@@ -6,7 +6,7 @@ export function assertNumber(value: ValueExpr, conditionName: string): asserts v
 
     throw new Error(
       `${conditionName} expects a number but received ${valueType}.
-      Add Transformer.ToInt() or Transformer.ToFloat() to the field configuration.`,
+      Add Transformer.String.ToInt() or Transformer.String.ToFloat() to the field configuration.`,
     )
   }
 }
@@ -15,7 +15,7 @@ export function assertDate(value: ValueExpr, conditionName: string): asserts val
   if (!(value instanceof Date)) {
     throw new Error(
       `${conditionName} expects a Date object but received ${typeof value}.
-      Add Transformer.ToDate() to the field configuration.`,
+      Add Transformer.String.ToDate() to the field configuration.`,
     )
   }
 

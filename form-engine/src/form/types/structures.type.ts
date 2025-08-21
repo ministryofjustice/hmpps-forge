@@ -26,7 +26,7 @@ export interface BlockDefinition {
  */
 export interface CollectionOptions {
   /** The collection source - can be a reference, pipeline, or static array */
-  collection: ReferenceExpr | PipelineExpr | (string | number | object)[]
+  collection: ReferenceExpr | PipelineExpr | string[] | number[] | object[]
 }
 
 /**

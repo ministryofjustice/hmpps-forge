@@ -4,7 +4,7 @@ describe('GeneralConditions', () => {
   describe('IsRequired', () => {
     const { evaluate } = GeneralConditions.IsRequired.spec
 
-    test('should return true for truthy values', () => {
+    test('should return true if a value is provided', () => {
       expect(evaluate('hello')).toBe(true)
       expect(evaluate('0')).toBe(true)
       expect(evaluate(1)).toBe(true)
