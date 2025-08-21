@@ -8,14 +8,14 @@ predicate/transitions system, as long as they are registered within the form eng
 ## Creating Custom Conditions
 
 ### Basic Structure
-Custom conditions are created using the `defineFunction` helper, which ensures
+Custom conditions are created using the `buildConditionFunction` helper, which ensures
 proper typing and integration with the form engine:
 
 ```typescript
-import { defineFunction } from '@form-system/helpers'
+import { buildConditionFunction } from '@form-system/helpers'
 
 const MyCustomConditions = {
-  isEvenNumber: defineFunction(
+  isEvenNumber: buildConditionFunction(
     'isEvenNumber',
     (value) => typeof value === 'number' && value % 2 === 0
   )
@@ -25,13 +25,13 @@ Answer('some_answer').match(MyCustomConditions.isEvenNumber())
 ```
 
 ### Function Signature
-The `defineFunction` helper takes two parameters:
+The `buildConditionFunction` helper takes two parameters:
 
 1. **name** (`string`): The unique identifier for your condition. Use camelCase for consistency.
 2. **evaluator** (`(value, ...args) => boolean | Promise<boolean>`): The function that performs the actual validation
 
 ```typescript
-defineFunction<A extends readonly ValueExpr[]>(
+buildConditionFunction<A extends readonly ValueExpr[]>(
   name: string,
   evaluator: (value: ValueExpr, ...args: A) => boolean | Promise<boolean>
 )
@@ -42,20 +42,20 @@ Custom conditions can accept additional parameters with full TypeScript support:
 
 ```typescript
 // Single parameter with type
-const hasMinValue = defineFunction(
+const hasMinValue = buildConditionFunction(
   'hasMinValue',
   (value, min: number) => typeof value === 'number' && value >= min
 )
 
 // Multiple parameters with types
-const isBetween = defineFunction(
+const isBetween = buildConditionFunction(
   'isBetween',
   (value, min: number, max: number) =>
     typeof value === 'number' && value >= min && value <= max
 )
 
 // Complex parameter types
-const matchesPattern = defineFunction(
+const matchesPattern = buildConditionFunction(
   'matchesPattern',
   (value, pattern: RegExp, flags?: string) => {
     const regex = flags ? new RegExp(pattern, flags) : pattern
@@ -79,14 +79,14 @@ validate: [
 Here are a bunch of examples to inspire you to build your own conditions.
 
 ```typescript
-const isSlug = defineFunction(
+const isSlug = buildConditionFunction(
   'isSlug',
   (value) =>
     typeof value === 'string' &&
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
 )
 
-const isInRange = defineFunction(
+const isInRange = buildConditionFunction(
   'isInRange',
   (value, ranges: Array<[number, number]>) => {
     if (typeof value !== 'number') return false
@@ -94,7 +94,7 @@ const isInRange = defineFunction(
   }
 )
 
-const hasUniqueValues = defineFunction(
+const hasUniqueValues = buildConditionFunction(
   'hasUniqueValues',
   (value) => {
     if (!Array.isArray(value)) return false
@@ -102,7 +102,7 @@ const hasUniqueValues = defineFunction(
   }
 )
 
-const isStrongPassword = defineFunction(
+const isStrongPassword = buildConditionFunction(
   'isStrongPassword',
   (value, requirements?: {
     minLength?: number
@@ -147,7 +147,7 @@ For conditions that need to perform asynchronous operations:
 > cause a failure in subsequent validation check (as the username would now have been registered).
 
 ```typescript
-const isUniqueUsername = defineFunction(
+const isUniqueUsername = buildConditionFunction(
   'isUniqueUsername',
   async (value) => {
     if (typeof value !== 'string' || value.length < 3) return false
@@ -170,7 +170,7 @@ Your custom conditions should handle errors appropriately:
 > them more neatly
 
 ```typescript
-const requiresApiCheck = defineFunction(
+const requiresApiCheck = buildConditionFunction(
   'requiresApiCheck',
   async (value) => {
     try {
@@ -205,7 +205,7 @@ postcodeCheck
 Always validate the input type before processing:
 
 ```typescript
-const isPercentage = defineFunction(
+const isPercentage = buildConditionFunction(
   'isPercentage',
   (value) => {
     // Always check type first
@@ -219,7 +219,7 @@ const isPercentage = defineFunction(
 Validate parameters to prevent runtime errors:
 
 ```typescript
-const hasPattern = defineFunction(
+const hasPattern = buildConditionFunction(
   'hasPattern',
   (value, pattern: string, flags?: string) => {
     if (typeof value !== 'string') return false
@@ -241,11 +241,11 @@ Keep conditions focused on a single validation concern:
 
 ```typescript
 // Good - single responsibility
-const isUKPostcode = defineFunction(/* ... */)
-const isRequiredField = defineFunction(/* ... */)
+const isUKPostcode = buildConditionFunction(/* ... */)
+const isRequiredField = buildConditionFunction(/* ... */)
 
 // Avoid - multiple responsibilities
-const isValidAndRequiredUKPostcode = defineFunction(/* ... */)
+const isValidAndRequiredUKPostcode = buildConditionFunction(/* ... */)
 ```
 
 ### 5. Reusability
@@ -253,7 +253,7 @@ Design conditions to be reusable across different contexts:
 
 ```typescript
 // Reusable with parameters
-const matchesLength = defineFunction(
+const matchesLength = buildConditionFunction(
   'matchesLength',
   (value, min: number, max?: number) => {
     if (typeof value !== 'string') return false
