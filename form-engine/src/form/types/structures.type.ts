@@ -67,7 +67,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
   value?: ConditionalString | FunctionExpr<any>
 
   /** Array of transformers to format/process the field value */
-  formatter: TransformerExpr[]
+  formatters?: TransformerExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
   hidden?: ConditionalValue<any>
