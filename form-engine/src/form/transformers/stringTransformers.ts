@@ -42,7 +42,7 @@ export default {
    */
   ToTitleCase: buildTransformerFunction('toTitleCase', (value: any) => {
     assertString(value, 'Transformer.String.ToTitleCase')
-    return value.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
+    return value.replace(/\w\S*/g, text => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase())
   }),
 
   /**
