@@ -1,12 +1,13 @@
-import { FunctionExpr, ValueExpr } from '../types/expressions.type'
+import { FunctionExpr, ValueExpr, ConditionFunctionExpr, TransformerFunctionExpr } from '../types/expressions.type'
+import { FunctionType } from '../types/enums'
 
 export type FunctionEvaluator<A extends readonly ValueExpr[], R = any> = (
   value: ValueExpr,
   ...args: A
 ) => R | Promise<R>
 
-interface RegistryFunction<A extends readonly ValueExpr[], R = any> {
-  (...args: A): FunctionExpr<A>
+interface RegistryFunction<A extends readonly ValueExpr[], R = any, T extends FunctionExpr<A> = FunctionExpr<A>> {
+  (...args: A): T
   spec: {
     name: string
     evaluate: FunctionEvaluator<A, R>
@@ -15,36 +16,34 @@ interface RegistryFunction<A extends readonly ValueExpr[], R = any> {
 
 /**
  * Make a registerable function that can be added to the form engine.
+ * @param type
  * @param name
  * @param evaluator
  */
-function createRegisterableFunction<A extends readonly ValueExpr[], R = any>(
-  name: string,
-  evaluator: FunctionEvaluator<A, R>,
-): RegistryFunction<A, R> {
+function createRegisterableFunction<
+  A extends readonly ValueExpr[],
+  R = any,
+  T extends FunctionExpr<A> = FunctionExpr<A>,
+>(type: FunctionType, name: string, evaluator: FunctionEvaluator<A, R>): RegistryFunction<A, R, T> {
   const fn = (...args: A) =>
     ({
-      type: 'function',
+      type,
       name,
       arguments: args,
-    }) as FunctionExpr<any>
+    }) as T
 
-  ;(fn as RegistryFunction<A, R>).spec = {
+  ;(fn as RegistryFunction<A, R, T>).spec = {
     name,
     evaluate: evaluator,
   }
 
-  return fn as RegistryFunction<A, R>
+  return fn as RegistryFunction<A, R, T>
 }
 
 /**
  * Creates a registerable condition function for use in field validation and conditionals/logic predicates.
  * Condition functions evaluate to boolean values and are used to determine validity of form fields
  * or to control conditional logic like field visibility, required states, and transitions.
- *
- * TODO: Probably need to add some kind of support for 'only-validate-at-submission' type conditions
- *  otherwise you can add something like 'Condition.Date.IsFutureDate' and it'll pass for a little bit before
- *  eventually starting to fail
  *
  * @param name - Unique identifier for the condition function in camelCase (e.g., 'isRequired', 'hasMinLength')
  *               This name is used in the compiled JSON and must be unique within the registry
@@ -89,7 +88,7 @@ function createRegisterableFunction<A extends readonly ValueExpr[], R = any>(
 export const buildConditionFunction = <A extends readonly ValueExpr[]>(
   name: string,
   evaluator: FunctionEvaluator<A, boolean>,
-) => createRegisterableFunction<A, boolean>(name, evaluator)
+) => createRegisterableFunction<A, boolean, ConditionFunctionExpr<A>>(FunctionType.CONDITION, name, evaluator)
 
 /**
  * Creates a registerable transformer function for data transformation in form configurations.
@@ -129,4 +128,4 @@ export const buildConditionFunction = <A extends readonly ValueExpr[]>(
 export const buildTransformerFunction = <A extends readonly ValueExpr[]>(
   name: string,
   evaluator: FunctionEvaluator<A, any>,
-) => createRegisterableFunction<A, any>(name, evaluator)
+) => createRegisterableFunction<A, any, TransformerFunctionExpr<A>>(FunctionType.TRANSFORMER, name, evaluator)

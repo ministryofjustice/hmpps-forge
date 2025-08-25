@@ -1,3 +1,5 @@
+import { FunctionType } from './enums'
+
 /**
  * Represents a reference to a value in the form context.
  * References are resolved at runtime to access data from various sources.
@@ -69,43 +71,6 @@ export interface FormatExpr {
 }
 
 /**
- * Represents a single data transformation function.
- * Transformers are registered functions that modify values,
- * such as formatting, extraction, or type conversion.
- *
- * @example
- * // Transform to uppercase
- * {
- *   type: 'transformer',
- *   name: 'toUpperCase',
- *   args: []
- * }
- *
- * @example
- * // Extract regex capture group
- * {
- *   type: 'transformer',
- *   name: 'regexCapture',
- *   args: ['^item-(.+)$', 1]
- * }
- */
-export interface TransformerExpr {
-  type: 'transformer'
-
-  /**
-   * Name of the registered transformer function.
-   * Must match a function in the transformer registry.
-   */
-  name: string
-
-  /**
-   * Arguments to pass to the transformer function.
-   * The transformed value is always the implicit first argument.
-   */
-  args: ValueExpr[]
-}
-
-/**
  * Represents a pipeline of sequential transformations.
  * The output of each step becomes the input to the next step,
  * allowing for complex data transformations through composition.
@@ -157,35 +122,83 @@ export interface PipelineExpr {
 }
 
 /**
- * Represents a function call expression with typed arguments.
- * Functions are used for conditions (validation) and transformers.
- *
- * @example
- * // Validation function
- * {
- *   type: 'function',
- *   name: 'hasMaxLength',
- *   arguments: [100]
- * }
- *
- * @example
- * // Condition function with multiple arguments
- * {
- *   type: 'function',
- *   name: 'isBetween',
- *   arguments: [10, 100]
- * }
+ * Base interface for all function call expressions with typed arguments.
+ * This serves as the foundation for specific function types like conditions and transformers.
  */
-export type FunctionExpr<A extends readonly ValueExpr[]> = {
-  type: 'function'
+export interface BaseFunctionExpr<A extends readonly ValueExpr[]> {
+  type: FunctionType
   /**
    * Name of the registered function.
-   * Must match a function in the appropriate registry (condition or transformer).
+   * Must match a function in the appropriate registry.
    */
   name: string
 
   /** Arguments to pass to the function. */
   arguments: A
+}
+
+/**
+ * Represents a condition function call expression.
+ * Condition functions evaluate to boolean values for validation and logic predicates.
+ *
+ * @example
+ * // Required validation condition
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'isRequired',
+ *   arguments: []
+ * }
+ *
+ * @example
+ * // Length validation with parameter
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'hasMaxLength',
+ *   arguments: [100]
+ * }
+ *
+ * @example
+ * // Range validation with multiple parameters
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'isBetween',
+ *   arguments: [10, 100]
+ * }
+ */
+export interface ConditionFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
+  extends BaseFunctionExpr<A> {
+  type: FunctionType.CONDITION
+}
+
+/**
+ * Generic function expression that can represent any function type.
+ * Used when the specific function type is not known at compile time.
+ */
+export type FunctionExpr<A extends readonly ValueExpr[]> = BaseFunctionExpr<A>
+
+/**
+ * Represents a transformer function call expression.
+ * Transformer functions modify values for formatting, extraction, or type conversion.
+ *
+ * @example
+ * // Transform to uppercase
+ * {
+ *   type: 'FunctionType.Transformer',
+ *   name: 'toUpperCase',
+ *   arguments: []
+ * }
+ *
+ * @example
+ * // Extract regex capture group
+ * {
+ *   type: 'FunctionType.Transformer',
+ *   name: 'regexCapture',
+ *   arguments: ['^item-(.+)$', 1]
+ * }
+ */
+export interface TransformerFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
+  extends BaseFunctionExpr<A> {
+  type: FunctionType.TRANSFORMER
 }
 
 /**
@@ -229,7 +242,7 @@ export type EffectExpr<A extends readonly ValueExpr[]> = {
 export type ValueExpr =
   | ReferenceExpr
   | FormatExpr
-  | TransformerExpr
+  | TransformerFunctionExpr
   | PipelineExpr
   | ValueExpr[]
   | string
@@ -248,7 +261,7 @@ export type ValueExpr =
  *   type: 'test',
  *   subject: { type: 'reference', path: ['@self'] },
  *   negate: false,
- *   condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
  * }
  *
  * @example
@@ -257,7 +270,7 @@ export type ValueExpr =
  *   type: 'test',
  *   subject: { type: 'reference', path: ['answers', 'email'] },
  *   negate: true,
- *   condition: { type: 'function', name: 'isEmail', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'isEmail', arguments: [] }
  * }
  */
 export interface PredicateTestExpr {
@@ -272,7 +285,7 @@ export interface PredicateTestExpr {
   negate: boolean
 
   /** The registered condition function to evaluate against the subject. */
-  condition: FunctionExpr<any>
+  condition: ConditionFunctionExpr<any>
 }
 
 /**
@@ -350,7 +363,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  *     type: 'test',
  *     subject: { type: 'reference', path: ['@self'] },
  *     negate: true,
- *     condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
  *   },
  *   thenValue: 'This field is required',
  *   elseValue: false
@@ -364,7 +377,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  *     type: 'test',
  *     subject: { type: 'reference', path: ['answers', 'hasChildren'] },
  *     negate: false,
- *     condition: { type: 'function', name: 'matchesValue', arguments: [true] }
+ *     condition: { type: 'FunctionType.Condition', name: 'matchesValue', arguments: [true] }
  *   },
  *   thenValue: true,
  *   elseValue: false

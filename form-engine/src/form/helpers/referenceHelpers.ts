@@ -1,7 +1,6 @@
 import { BuildableReference, createReference } from '../builders/utils/createReference'
 import { createScopedReference, CreateScopedReference } from '../builders/utils/createScopedReference'
-import { FieldBlockDefinition } from '../types/structures.type'
-import { ConditionalString } from '../types/values.type'
+import { FieldBlockDefinition, ConditionalString } from '../types/structures.type'
 import { isFieldBlockDefinition } from '../typeguards'
 
 /**

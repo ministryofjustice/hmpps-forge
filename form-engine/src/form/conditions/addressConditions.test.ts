@@ -1,4 +1,5 @@
 import AddressConditions from './addressConditions'
+import { FunctionType } from '../types/enums'
 
 describe('AddressConditions', () => {
   describe('IsValidPostcode', () => {
@@ -75,7 +76,7 @@ describe('AddressConditions', () => {
     test('should build correct expression object', () => {
       const expr = AddressConditions.IsValidPostcode()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isValidPostcode',
         arguments: [],
       })

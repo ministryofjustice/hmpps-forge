@@ -23,8 +23,8 @@ configuration objects that represent visual elements without any kind of form in
 ### Structure
 ```typescript
 interface BlockDefinition {
-  type: 'block'    // Type identifier for supporting JSON parsing
-  variant: string  // Component type (heading, content, etc.)
+  type: StructureType.BLOCK    // Type identifier for supporting JSON parsing
+  variant: string              // Component type (heading, content, etc.)
   // ... variant-specific properties
 }
 ```

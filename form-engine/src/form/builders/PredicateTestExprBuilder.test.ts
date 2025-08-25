@@ -1,10 +1,11 @@
 import { PredicateTestExprBuilder, and, or, xor, not } from './PredicateTestExprBuilder'
-import { FunctionExpr, ValueExpr } from '../types/expressions.type'
+import { ValueExpr, ConditionFunctionExpr } from '../types/expressions.type'
+import { FunctionType } from '../types/enums'
 
 describe('PredicateTestExprBuilder', () => {
   // Helper function to create a mock condition
-  const mockCondition = (name: string): FunctionExpr<any> => ({
-    type: 'function',
+  const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
+    type: FunctionType.CONDITION,
     name,
     arguments: [],
   })
@@ -64,7 +65,7 @@ describe('PredicateTestExprBuilder', () => {
         mockCondition('isRequired'),
         mockCondition('equals'),
         mockCondition('greaterThan'),
-        { type: 'function' as const, name: 'complex', arguments: [1, 'two', true] },
+        { type: FunctionType.CONDITION as const, name: 'complex', arguments: [1, 'two', true] },
       ]
 
       conditions.forEach(condition => {
@@ -122,8 +123,8 @@ describe('PredicateTestExprBuilder', () => {
   describe('arguments handling', () => {
     test('should handle empty condition arguments', () => {
       const subject = mockValue('test')
-      const condition: FunctionExpr<any> = {
-        type: 'function',
+      const condition: ConditionFunctionExpr<any> = {
+        type: FunctionType.CONDITION,
         name: 'isRequired',
         arguments: [],
       }
@@ -136,8 +137,8 @@ describe('PredicateTestExprBuilder', () => {
 
     test('should handle conditions with complex arguments', () => {
       const subject = mockValue('test')
-      const condition: FunctionExpr<any> = {
-        type: 'function',
+      const condition: ConditionFunctionExpr<any> = {
+        type: FunctionType.CONDITION,
         name: 'complex',
         arguments: [123, 'string', true, null, undefined, [1, 2, 3], { nested: { deep: 'value' } }],
       }
@@ -156,7 +157,7 @@ describe('Logic predicates', () => {
     type: 'test' as const,
     subject: 'value',
     negate,
-    condition: { type: 'function' as const, name, arguments: [] as any },
+    condition: { type: FunctionType.CONDITION as const, name, arguments: [] as any },
   })
 
   describe('and', () => {

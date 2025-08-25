@@ -1,4 +1,5 @@
 import ArrayTransformers from './arrayTransformers'
+import { FunctionType } from '../types/enums'
 
 describe('Array Transformers', () => {
   describe('Length', () => {
@@ -26,7 +27,7 @@ describe('Array Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = ArrayTransformers.Length()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'length',
         arguments: [],
       })

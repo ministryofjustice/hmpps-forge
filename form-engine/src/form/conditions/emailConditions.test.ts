@@ -1,4 +1,5 @@
 import EmailConditions from './emailConditions'
+import { FunctionType } from '../types/enums'
 
 describe('EmailConditions', () => {
   describe('IsValidEmail', () => {
@@ -54,7 +55,7 @@ describe('EmailConditions', () => {
     test('should build correct expression object', () => {
       const expr = EmailConditions.IsValidEmail()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isValidEmail',
         arguments: [],
       })

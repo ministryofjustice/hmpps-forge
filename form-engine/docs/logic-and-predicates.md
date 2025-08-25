@@ -2,7 +2,7 @@
 
 ## Overview
 
-The form system uses a declarative logic system for conditional behavior, validation rules, and dynamic values for block properties. 
+The form system uses a declarative logic system for conditional behavior, validation rules, and dynamic values for block properties.
 This system allows you to build complex logical expressions using a fluent, readable API that compiles to structured JSON for evaluation.
 
 ## Core Concepts
@@ -34,7 +34,7 @@ when(predicate).then(value).else(otherValue)
 
 ## 1. Building Test Predicates
 
-Test predicates evaluate whether a subject passes a specific condition. 
+Test predicates evaluate whether a subject passes a specific condition.
 They use the pattern: `Reference().match(condition)`.
 
 ### Basic Structure
@@ -60,7 +60,7 @@ Data('user.age').not.match(Condition.GreaterThan(18))
 ```
 
 ### Alternative Methods
-> [!WARNING]  
+> [!WARNING]
 > I don't know how I feel about this but I struggled to come up with one nice word to use.
 > We could probably boil this down to one single option and then remove the aliases.
 
@@ -84,7 +84,7 @@ Test predicates compile to this JSON structure:
   type: 'test',
   subject: { type: 'reference', path: ['@self'] },
   negate: true,
-  condition: { type: 'function', name: 'isRequired', arguments: [] }
+  condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
 }
 ```
 
@@ -219,7 +219,7 @@ when(Self().not.match(Condition.IsRequired())).then('Required')
     type: 'test',
     subject: { type: 'reference', path: ['@self'] },
     negate: true,
-    condition: { type: 'function', name: 'isRequired', arguments: [] }
+    condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
   },
   thenValue: 'Required',
   elseValue: false
@@ -247,13 +247,13 @@ when(
         type: 'test',
         subject: { type: 'reference', path: ['@self'] },
         negate: false,
-        condition: { type: 'function', name: 'isRequired', arguments: [] }
+        condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       },
       {
         type: 'test',
         subject: { type: 'reference', path: ['answers', 'other_field'] },
         negate: true,
-        condition: { type: 'function', name: 'isRequired', arguments: [] }
+        condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       }
     ]
   },
@@ -263,7 +263,7 @@ when(
 ```
 
 ## 6. Best Practices
-As you might be able to tell, you can go pretty wild with the logic predicate options, and build some very 
+As you might be able to tell, you can go pretty wild with the logic predicate options, and build some very
 complex rules quite quickly. If you find yourself repeating rules often, turn them into variables and reuse them!
 ```typescript
 // Break complex logic into readable, reusable  chunks

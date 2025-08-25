@@ -1,5 +1,5 @@
 import {
-  FunctionExpr,
+  ConditionFunctionExpr,
   PredicateExpr,
   PredicateLogicExpr,
   PredicateTestExpr,
@@ -28,7 +28,7 @@ export class PredicateTestExprBuilder {
     return this
   }
 
-  private buildTest(condition: FunctionExpr<any>): PredicateTestExpr {
+  private buildTest(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const test = {
       type: 'test' as const,
       subject: this.subject,
@@ -44,7 +44,7 @@ export class PredicateTestExprBuilder {
    * @param condition - The condition function to test against
    * @returns A predicate test expression
    */
-  match(condition: FunctionExpr<any>): PredicateTestExpr {
+  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     return this.buildTest(condition)
   }
 }

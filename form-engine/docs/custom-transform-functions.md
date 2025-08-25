@@ -299,12 +299,12 @@ value: Answer('price').pipe(
   input: { type: 'reference', path: ['answers', 'price'] },
   steps: [
     {
-      type: 'function',
+      type: 'FunctionType.Transformer',
       name: 'multiply',
       arguments: [1.2]
     },
     {
-      type: 'function',
+      type: 'FunctionType.Transformer',
       name: 'currency',
       arguments: ['GBP']
     }

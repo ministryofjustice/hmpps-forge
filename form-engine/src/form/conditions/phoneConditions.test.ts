@@ -1,4 +1,5 @@
 import PhoneConditions from './phoneConditions'
+import { FunctionType } from '../types/enums'
 
 describe('PhoneConditions', () => {
   describe('IsValidPhoneNumber', () => {
@@ -47,7 +48,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidPhoneNumber()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isValidPhoneNumber',
         arguments: [],
       })
@@ -112,7 +113,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidUKMobile()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isValidUKMobile',
         arguments: [],
       })

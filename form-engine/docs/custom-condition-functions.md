@@ -288,7 +288,7 @@ validate: [
     subject: { type: 'reference', path: ['@self'] },
     negate: false,
     condition: {
-      type: 'function',
+      type: 'FunctionType.Condition',
       name: 'isStrongPassword',
       arguments: [{ minLength: 12 }]
     }

@@ -1,4 +1,5 @@
 import StringTransformers from './stringTransformers'
+import { FunctionType } from '../types/enums'
 
 describe('String Transformers', () => {
   describe('Trim', () => {
@@ -36,7 +37,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.Trim()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'trim',
         arguments: [],
       })
@@ -327,7 +328,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToInt()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'toInt',
         arguments: [],
       })
@@ -384,7 +385,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToFloat()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'toFloat',
         arguments: [],
       })
@@ -446,7 +447,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToArray(',')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'toArray',
         arguments: [','],
       })
@@ -580,7 +581,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToDate()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'toDate',
         arguments: [],
       })

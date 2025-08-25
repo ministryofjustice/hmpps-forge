@@ -1,4 +1,5 @@
 import StringConditions from './stringConditions'
+import { FunctionType } from '../types/enums'
 
 describe('StringConditions', () => {
   describe('MatchesRegex', () => {
@@ -31,7 +32,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.MatchesRegex('h.*o')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'matchesRegex',
         arguments: ['h.*o'],
       })
@@ -65,7 +66,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMinLength(5)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'hasMinLength',
         arguments: [5],
       })
@@ -97,7 +98,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMaxLength(10)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'hasMaxLength',
         arguments: [10],
       })
@@ -130,7 +131,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.HasExactLength(8)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'hasExactLength',
         arguments: [8],
       })
@@ -172,7 +173,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMaxWords(100)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'hasMaxWords',
         arguments: [100],
       })
@@ -204,7 +205,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersOnly()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lettersOnly',
         arguments: [],
       })
@@ -235,7 +236,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.DigitsOnly()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'digitsOnly',
         arguments: [],
       })
@@ -270,7 +271,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersWithCommonPunctuation()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lettersWithCommonPunctuation',
         arguments: [],
       })
@@ -304,7 +305,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersWithSpaceDashApostrophe()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lettersWithSpaceDashApostrophe',
         arguments: [],
       })
@@ -335,7 +336,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersAndDigitsOnly()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lettersAndDigitsOnly',
         arguments: [],
       })
@@ -369,7 +370,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.AlphanumericWithCommonPunctuation()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'alphanumericWithCommonPunctuation',
         arguments: [],
       })
@@ -404,7 +405,7 @@ describe('StringConditions', () => {
     test('should build correct expression object', () => {
       const expr = StringConditions.AlphanumericWithAllSafeSymbols()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'alphanumericWithAllSafeSymbols',
         arguments: [],
       })

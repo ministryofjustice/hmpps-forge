@@ -1,4 +1,5 @@
 import NumberTransformers from './numberTransformers'
+import { FunctionType } from '../types/enums'
 
 describe('Number Transformers', () => {
   describe('Add', () => {
@@ -31,7 +32,7 @@ describe('Number Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = NumberTransformers.Add(5)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.TRANSFORMER,
         name: 'add',
         arguments: [5],
       })
