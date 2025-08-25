@@ -10,3 +10,18 @@ export enum StructureType {
   JOURNEY = 'StructureType.Journey',
   STEP = 'StructureType.Step',
 }
+
+export enum ExpressionType {
+  REFERENCE = 'ExpressionType.Reference',
+  FORMAT = 'ExpressionType.Format',
+  PIPELINE = 'ExpressionType.Pipeline',
+}
+
+export enum LogicType {
+  TEST = 'LogicType.Test',
+  AND = 'LogicType.And',
+  OR = 'LogicType.Or',
+  XOR = 'LogicType.Xor',
+  NOT = 'LogicType.Not',
+  CONDITIONAL = 'LogicType.Conditional',
+}

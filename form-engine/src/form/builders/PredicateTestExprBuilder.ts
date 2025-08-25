@@ -1,10 +1,14 @@
 import {
   ConditionFunctionExpr,
   PredicateExpr,
-  PredicateLogicExpr,
+  PredicateAndExpr,
+  PredicateOrExpr,
+  PredicateXorExpr,
+  PredicateNotExpr,
   PredicateTestExpr,
   ValueExpr,
 } from '../types/expressions.type'
+import { LogicType } from '../types/enums'
 
 /**
  * Fluent builder for creating predicate test expressions.
@@ -29,8 +33,8 @@ export class PredicateTestExprBuilder {
   }
 
   private buildTest(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    const test = {
-      type: 'test' as const,
+    const test: PredicateTestExpr = {
+      type: LogicType.TEST,
       subject: this.subject,
       negate: this.negateNext,
       condition,
@@ -61,26 +65,16 @@ function resolvePredicate(p: PredicateExpr | PredicateTestExprBuilder | Predicat
 }
 
 /**
- * Creates a logic predicate expression with the specified operator and operands.
- */
-function logic(
-  op: PredicateLogicExpr['op'],
-  operands: readonly [PredicateExpr, ...PredicateExpr[]],
-): PredicateLogicExpr {
-  return {
-    type: 'logic',
-    op,
-    operands: operands.map(resolvePredicate),
-  }
-}
-
-/**
  * Creates an AND logic predicate where all operands must be true.
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if all operands are true
  */
-export const and = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): PredicateLogicExpr => {
-  return logic('and', p)
+export const and = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr => {
+  const resolved = p.map(resolvePredicate)
+  return {
+    type: LogicType.AND,
+    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+  }
 }
 
 /**
@@ -88,8 +82,12 @@ export const and = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): Predica
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if any operand is true
  */
-export const or = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): PredicateLogicExpr => {
-  return logic('or', p)
+export const or = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr => {
+  const resolved = p.map(resolvePredicate)
+  return {
+    type: LogicType.OR,
+    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+  }
 }
 
 /**
@@ -97,8 +95,12 @@ export const or = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): Predicat
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if exactly one operand is true
  */
-export const xor = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): PredicateLogicExpr => {
-  return logic('xor', p)
+export const xor = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr => {
+  const resolved = p.map(resolvePredicate)
+  return {
+    type: LogicType.XOR,
+    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+  }
 }
 
 /**
@@ -106,6 +108,9 @@ export const xor = (...p: readonly [PredicateExpr, ...PredicateExpr[]]): Predica
  * @param p - The predicate expression to negate
  * @returns A logic predicate that evaluates to the opposite of the operand
  */
-export const not = (p: PredicateExpr): PredicateLogicExpr => {
-  return logic('not', [p])
+export const not = (p: PredicateExpr): PredicateNotExpr => {
+  return {
+    type: LogicType.NOT,
+    operand: resolvePredicate(p),
+  }
 }

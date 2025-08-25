@@ -295,8 +295,8 @@ value: Answer('price').pipe(
 
 // Compiles to JSON
 {
-  type: 'pipeline',
-  input: { type: 'reference', path: ['answers', 'price'] },
+  type: 'ExpressionType.Pipeline',
+  input: { type: 'ExpressionType.Reference', path: ['answers', 'price'] },
   steps: [
     {
       type: 'FunctionType.Transformer',

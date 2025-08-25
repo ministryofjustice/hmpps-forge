@@ -20,7 +20,7 @@ when(predicate).then(value).else(otherValue)
 
 // Outputs a CompiledRule:
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: PredicateExpr,
   thenValue: 'value',
   elseValue: 'otherValue'
@@ -81,8 +81,8 @@ Test predicates compile to this JSON structure:
 ```typescript
 // Self().not.match(Condition.IsRequired())
 {
-  type: 'test',
-  subject: { type: 'reference', path: ['@self'] },
+  type: 'LogicType.Test',
+  subject: { type: 'ExpressionType.Reference', path: ['@self'] },
   negate: true,
   condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
 }
@@ -214,10 +214,10 @@ when(Self().not.match(Condition.IsRequired())).then('Required')
 
 // Output
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: {
-    type: 'test',
-    subject: { type: 'reference', path: ['@self'] },
+    type: 'LogicType.Test',
+    subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: true,
     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
   },
@@ -238,20 +238,19 @@ when(
 
 // Output
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: {
-    type: 'logic',
-    op: 'and',
+    type: 'LogicType.And',
     operands: [
       {
-        type: 'test',
-        subject: { type: 'reference', path: ['@self'] },
+        type: 'LogicType.Test',
+        subject: { type: 'ExpressionType.Reference', path: ['@self'] },
         negate: false,
         condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       },
       {
-        type: 'test',
-        subject: { type: 'reference', path: ['answers', 'other_field'] },
+        type: 'LogicType.Test',
+        subject: { type: 'ExpressionType.Reference', path: ['answers', 'other_field'] },
         negate: true,
         condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       }

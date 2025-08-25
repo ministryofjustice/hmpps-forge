@@ -2,13 +2,14 @@ import { BuildableReference, createReference } from '../builders/utils/createRef
 import { createScopedReference, CreateScopedReference } from '../builders/utils/createScopedReference'
 import { FieldBlockDefinition, ConditionalString } from '../types/structures.type'
 import { isFieldBlockDefinition } from '../typeguards'
+import { ExpressionType } from '../types/enums'
 
 /**
  * References POST body data from form submission
  */
 export function Post(key: string): BuildableReference {
   return createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['post', key],
   })
 }
@@ -18,7 +19,7 @@ export function Post(key: string): BuildableReference {
  */
 export function Params(key: string): BuildableReference {
   return createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['params', key],
   })
 }
@@ -28,7 +29,7 @@ export function Params(key: string): BuildableReference {
  */
 export function Query(key: string): BuildableReference {
   return createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['query', key],
   })
 }
@@ -38,7 +39,7 @@ export function Query(key: string): BuildableReference {
  */
 export const Data = (key: string): BuildableReference =>
   createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['data', key],
   })
 
@@ -47,7 +48,7 @@ export const Data = (key: string): BuildableReference =>
  */
 export const Answer = (target: FieldBlockDefinition | ConditionalString): BuildableReference =>
   createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['answers', isFieldBlockDefinition(target) ? target.code : (target as any)],
   })
 
@@ -61,6 +62,6 @@ export const Item = (): CreateScopedReference => createScopedReference(0)
  */
 export const Self = (): BuildableReference =>
   createReference({
-    type: 'reference',
+    type: ExpressionType.REFERENCE,
     path: ['@self'],
   })

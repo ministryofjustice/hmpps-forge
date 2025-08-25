@@ -2,7 +2,6 @@ import {
   FunctionExpr,
   PipelineExpr,
   PredicateTestExpr,
-  PredicateExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
   TransitionExpr,
@@ -40,7 +39,7 @@ export interface CollectionOptions {
  */
 export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDefinition {
   /** Template blocks to render for each collection item */
-  template: T[]
+  template: readonly T[]
 
   /** Optional fallback block to render when collection is empty */
   fallbackTemplate?: T
@@ -56,27 +55,7 @@ export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDef
  */
 export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefinition {
   /** Array of child blocks contained within this composite block */
-  blocks: B[]
-}
-
-/**
- * Represents a validation rule for a form field.
- * Includes the validation logic, error message, and execution context.
- */
-export interface ValidationExpr {
-  type: 'validation'
-
-  /** The predicate expression that determines if validation passes */
-  when: PredicateExpr | ConditionalExprBuilder
-
-  /** Error message to display when validation fails */
-  message: string
-
-  /**
-   * If true, this validation is only checked at submission time,
-   * not during journey path traversal. Defaults to false.
-   */
-  submissionOnly?: boolean
+  blocks: readonly B[]
 }
 
 /**
@@ -91,16 +70,16 @@ export interface FieldBlockDefinition extends BlockDefinition {
   value?: ConditionalString | FunctionExpr<any>
 
   /** Array of transformers to format/process the field value */
-  formatters?: TransformerFunctionExpr[]
+  formatters?: readonly TransformerFunctionExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
   hidden?: ConditionalBoolean
 
   /** Array of validation error messages currently active on the field */
-  errors?: string[]
+  errors?: readonly string[]
 
   /** Array of validation rules to apply to the field value */
-  validate?: ValidationExpr[]
+  validate?: readonly (ConditionalExpr | ConditionalExprBuilder)[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
   dependent?: PredicateTestExpr | PredicateTestExprBuilder
@@ -132,10 +111,10 @@ export interface JourneyDefinition {
   controller?: string
 
   /** Array of steps that make up the journey flow */
-  steps?: StepDefinition[]
+  steps?: readonly StepDefinition[]
 
   /** Nested child journeys for hierarchical flows */
-  children?: JourneyDefinition[]
+  children?: readonly JourneyDefinition[]
 }
 
 /**
@@ -149,12 +128,12 @@ export interface StepDefinition {
   path: string
 
   /** Array of blocks to render in this step */
-  blocks: BlockDefinition[]
+  blocks: readonly BlockDefinition[]
 
   // data?: DataDefinition[] // TODO: Figure out how I'd like to do this now with transitions...
 
   /** Array of transition rules defining navigation from this step */
-  transitions?: TransitionExpr[]
+  transitions?: readonly TransitionExpr[]
 
   /** Optional custom Express controller for step-specific logic */
   controller?: string

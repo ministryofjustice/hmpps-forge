@@ -282,10 +282,10 @@ validate: [
 
 // Compiles to JSON
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: {
-    type: 'test',
-    subject: { type: 'reference', path: ['@self'] },
+    type: 'LogicType.Test',
+    subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: false,
     condition: {
       type: 'FunctionType.Condition',

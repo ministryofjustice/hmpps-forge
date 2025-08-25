@@ -3,7 +3,7 @@ import { Answer, Self } from '../helpers/referenceHelpers'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
 import { Condition } from '../conditions'
-import { FunctionType } from '../types/enums'
+import { FunctionType, ExpressionType, LogicType } from '../types/enums'
 
 describe('ConditionalExprBuilder', () => {
   const simplePredicate = () => Self().match(Condition.IsRequired())
@@ -22,8 +22,8 @@ describe('ConditionalExprBuilder', () => {
 
     it('accepts a PredicateTestExpr directly', () => {
       const testExpr: PredicateTestExpr = {
-        type: 'test',
-        subject: { type: 'reference', path: ['@self'] },
+        type: LogicType.TEST,
+        subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'isRequired', arguments: [] },
       }
@@ -85,7 +85,7 @@ describe('ConditionalExprBuilder', () => {
       const result = finaliseBuilders(when(predicate).then('Yes').else('No')) as ConditionalExpr
 
       expect(result).toEqual({
-        type: 'conditional',
+        type: LogicType.CONDITIONAL,
         predicate,
         thenValue: 'Yes',
         elseValue: 'No',
