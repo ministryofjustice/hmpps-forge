@@ -56,6 +56,26 @@ export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefi
 }
 
 /**
+ * Represents a validation rule for a form field.
+ * Includes the validation logic, error message, and execution context.
+ */
+export interface ValidationExpr {
+  type: 'validation'
+
+  /** The predicate expression that determines if validation passes */
+  when: PredicateExpr | ConditionalExprBuilder
+
+  /** Error message to display when validation fails */
+  message: string
+
+  /**
+   * If true, this validation is only checked at submission time,
+   * not during journey path traversal. Defaults to false.
+   */
+  submissionOnly?: boolean
+}
+
+/**
  * Block definition for form field blocks.
  * Represents user input fields with validation and formatting.
  */
@@ -76,10 +96,10 @@ export interface FieldBlockDefinition extends BlockDefinition {
   errors?: string[]
 
   /** Array of validation rules to apply to the field value */
-  validate?: (ConditionalExpr | ConditionalExprBuilder)[]
+  validate?: ValidationExpr[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
-  dependent?: ConditionalExpr | ConditionalExprBuilder
+  dependent?: PredicateTestExpr | PredicateTestExprBuilder
 }
 
 /**

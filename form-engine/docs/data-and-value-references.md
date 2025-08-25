@@ -2,9 +2,9 @@
 
 ## Overview
 
-References are the foundation of the form system's data access layer. 
-They provide a way to point to different sources of data within your forms, 
-from field valuesm, to external data and HTTP request information. All references can be 
+References are the foundation of the form system's data access layer.
+They provide a way to point to different sources of data within your forms,
+from field valuesm, to external data and HTTP request information. All references can be
 used directly in logic expressions and support the fluent predicate API.
 
 ## Reference Types
@@ -20,13 +20,13 @@ The form system provides several reference functions that access different data 
 - **`Query()`** - Query string parameters
 
 ## 1. Self() - Current Field Reference
-> [!NOTE]  
+> [!NOTE]
 > Self() solves a specific problem: when a field's code uses
 > dynamic expressions like `Format('item_%1_notes', Item('id'))`, you would otherwise
 > have to copy that exact same complex expression into every validation rule that needs
 > to reference the field's own value.
 
-References the field that contains this logic. Primarily used in validation 
+References the field that contains this logic. Primarily used in validation
 and conditional logic within a field's own configuration.
 
 ### Basic Usage
@@ -34,14 +34,18 @@ and conditional logic within a field's own configuration.
 ```typescript
 // Validation: check if current field is empty
 validate: [
-  when(Self().not.match(Condition.IsRequired()))
-    .then('This field is required')
+  validation({
+    when: Self().not.match(Condition.IsRequired()),
+    message: 'This field is required'
+  })
 ]
 
 // Check field length
 validate: [
-  when(Self().not.match(Condition.HasMaxLength(100)))
-    .then('Must be 100 characters or less')
+  validation({
+    when: Self().not.match(Condition.HasMaxLength(100)),
+    message: 'Must be 100 characters or less'
+  })
 ]
 
 // Dependency: show field only if it has a value
@@ -53,20 +57,22 @@ dependent: when(Self().match(Condition.IsRequired()))
 ```typescript
 // Complex validation combining multiple conditions
 validate: [
-  when(
-    and(
+  validation({
+    when: and(
       Self().match(Condition.IsRequired()),
       Self().not.match(Condition.IsEmail())
-    )
-  ).then('Please enter a valid email address'),
-  
+    ),
+    message: 'Please enter a valid email address'
+  }),
+
   // Conditional validation based on field's own value
-  when(
-    and(
+  validation({
+    when: and(
       Self().match(Condition.StartsWith('temp_')),
       Self().not.match(Condition.HasMinLength(10))
-    )
-  ).then('Temporary codes must be at least 10 characters')
+    ),
+    message: 'Temporary codes must be at least 10 characters'
+  })
 ]
 ```
 
@@ -82,7 +88,7 @@ validate: [
 
 ## 2. Answer() - Form Field References
 
-References values from other fields in the current form. This is the primary 
+References values from other fields in the current form. This is the primary
 way to create cross-field dependencies and validation.
 
 ### Referencing by Field Code
@@ -93,8 +99,10 @@ when(Answer('email').match(Condition.IsEmail()))
 
 // Cross-field validation
 validate: [
-  when(Answer('password').not.match(Condition.MatchesValue(Self())))
-    .then('Passwords must match')
+  validation({
+    when: Answer('password').not.match(Condition.MatchesValue(Self())),
+    message: 'Passwords must match'
+  })
 ]
 
 // Conditional field display
@@ -116,8 +124,10 @@ const confirmEmailField = field({
   code: 'confirm_email',
   label: 'Confirm Email',
   validate: [
-    when(Answer(emailField).not.match(Condition.MatchesValue(Self())))
-      .then('Email addresses must match')
+    validation({
+      when: Answer(emailField).not.match(Condition.MatchesValue(Self())),
+      message: 'Email addresses must match'
+    })
   ]
 })
 ```
@@ -135,20 +145,22 @@ dependent: when(
 
 // Conditional validation based on other fields
 validate: [
-  when(
-    and(
+  validation({
+    when: and(
       Answer('requires_phone').match(Condition.MatchesValue(true)),
       Self().not.match(Condition.IsRequired())
-    )
-  ).then('Phone number is required when contact preference is phone'),
-  
+    ),
+    message: 'Phone number is required when contact preference is phone'
+  }),
+
   // Date range validation
-  when(
-    and(
+  validation({
+    when: and(
       Answer('start_date').match(Condition.IsRequired()),
       Self().not.match(Condition.GreaterThan(Answer('start_date')))
-    )
-  ).then('End date must be after start date')
+    ),
+    message: 'End date must be after start date'
+  })
 ]
 ```
 
@@ -164,7 +176,7 @@ validate: [
 
 ## 3. Data() - External Data References
 
-References data that has been loaded at the step level through plugins, APIs, 
+References data that has been loaded at the step level through plugins, APIs,
 or other external sources. This data is typically loaded once when the step renders.
 
 ### Basic Data Access
@@ -267,7 +279,7 @@ For when you have collections within collections
 ```typescript
 code: Format('org_%1_dept_%2_emp_%3_name',
   Item().parent.parent.property('organisationId'),  // Organization ID
-  Item().parent.property('departmentId'),           // Department ID  
+  Item().parent.property('departmentId'),           // Department ID
   Item().property('employeeId')                     // Employee ID
 ),
 ```
@@ -286,19 +298,21 @@ dependent: when(
 
 // Validation based on item properties
 validate: [
-  when(
-    and(
+  validation({
+    when: and(
       Item.property('required').match(Condition.MatchesValue(true)),
       Self().not.match(Condition.IsRequired())
-    )
-  ).then('This item requires a value'),
-  
-  when(
-    and(
+    ),
+    message: 'This item requires a value'
+  }),
+
+  validation({
+    when: and(
       Item.property('maxLength').match(Condition.IsRequired()),
       Self().not.match(Condition.HasMaxLength(Item.property('maxLength')))
-    )
-  ).then(Format('Must be %1 characters or less', Item.property('maxLength')))
+    ),
+    message: Format('Must be %1 characters or less', Item.property('maxLength'))
+  })
 ]
 ```
 
@@ -307,7 +321,7 @@ validate: [
 Access different parts of the HTTP request data during form processing.
 
 ### Post() - Form Submission Data
-> [!WARNING]  
+> [!WARNING]
 > I'm not 100% how this differs from `Answers()` yet. I guess this is _pre_ processing,
 > though i've not added processing/formatting into any of the definitions yet (**DEFINITELY NEEDS IT**)
 > Probably adds a bit of tension because when to use Post() vs when to use Answers()
@@ -348,12 +362,13 @@ when(Params('mode').match(Condition.Equals('edit')))
 
 // Validation based on context
 validate: [
-  when(
-    and(
+  validation({
+    when: and(
       Params('action').match(Condition.Equals('create')),
       Self().not.match(Condition.IsRequired())
-    )
-  ).then('Name is required when creating new items')
+    ),
+    message: 'Name is required when creating new items'
+  })
 ]
 ```
 
@@ -390,7 +405,7 @@ dependent: when(Query('strict_mode').match(Condition.Equals('true')))
   path: ['post', 'action']
 }
 
-// Params('id') reference  
+// Params('id') reference
 {
   type: 'reference',
   path: ['params', 'id']

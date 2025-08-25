@@ -1,14 +1,12 @@
 # Logic and Predicates Documentation
 
 ## Overview
-
-The form system uses a declarative logic system for conditional behavior, validation rules, and dynamic values for block properties. 
+The form system uses a declarative logic system for conditional behavior, validation rules, and dynamic values for block properties.
 This system allows you to build complex logical expressions using a fluent, readable API that compiles to structured JSON for evaluation.
 
 ## Core Concepts
 
 ### Rules and Predicates
-
 The logic system is built around **rules** that follow an "if-then-else" pattern:
 - **Predicate**: A condition that evaluates to true or false
 - **Then Value**: What happens when the predicate is true (optional, defaults to `true`)
@@ -28,13 +26,11 @@ when(predicate).then(value).else(otherValue)
 ```
 
 ### Predicate Types
-
 1. **Test Predicates**: Compare a subject against a condition function
 2. **Logic Predicates**: Combine multiple predicates with logical operators
 
 ## 1. Building Test Predicates
-
-Test predicates evaluate whether a subject passes a specific condition. 
+Test predicates evaluate whether a subject passes a specific condition.
 They use the pattern: `Reference().match(condition)`.
 
 ### Basic Structure
@@ -59,23 +55,7 @@ Answer('email').not.match(Condition.IsEmail())
 Data('user.age').not.match(Condition.GreaterThan(18))
 ```
 
-### Alternative Methods
-> [!WARNING]  
-> I don't know how I feel about this but I struggled to come up with one nice word to use.
-> We could probably boil this down to one single option and then remove the aliases.
-
-The system provides semantic aliases for better readability:
-
-```typescript
-// All equivalent - use whichever reads better in context
-Self().match(Condition.IsRequired())
-Self().passes(Condition.IsRequired())
-Self().satisfies(Condition.IsRequired())
-Self().meets(Condition.IsRequired())
-```
-
 ### Output Structure
-
 Test predicates compile to this JSON structure:
 
 ```typescript
@@ -89,19 +69,19 @@ Test predicates compile to this JSON structure:
 ```
 
 ## 2. Logical Operators
-
 Combine multiple predicates with logical operators to create complex conditions.
 
 ### `and()` - All Must Be True
 
 ```typescript
 // Both conditions must be true
-when(
-  and(
+validation({
+  when: and(
     Self().not.match(Condition.IsRequired()),
     Answer('optional_field').not.match(Condition.IsRequired())
-  )
-).then('Both fields are empty')
+  ),
+  message: 'Both fields are empty'
+})
 
 // Multiple conditions
 when(
@@ -117,12 +97,13 @@ when(
 
 ```typescript
 // Either condition can be true
-when(
-  or(
-    Answer('phone').match(Condition.IsRequired()),
-    Answer('email').match(Condition.IsRequired())
-  )
-).then('Contact method provided')
+validation({
+  when: or(
+    Answer('phone').not.match(Condition.IsRequired()),
+    Answer('email').not.match(Condition.IsRequired())
+  ),
+  message: 'Provide either phone or email'
+})
 
 // Multiple alternatives
 when(
@@ -138,12 +119,13 @@ when(
 
 ```typescript
 // Exactly one of these should be true, not both
-when(
-  xor(
+validation({
+  when: not(xor(
     Answer('pickup').match(Condition.MatchesValue(true)),
     Answer('delivery').match(Condition.MatchesValue(true))
-  )
-).then('Valid fulfillment option')
+  )),
+  message: 'Choose either pickup or delivery, not both'
+})
 
 // Either start with A OR end with Z, but not both
 when(
@@ -157,23 +139,25 @@ when(
 ### `not()` - Invert Logic
 
 ```typescript
-// Invert an entire logical expression
-when(
-  not(
+// Invert an entire logical expression for validation
+validation({
+  when: not(
     and(
       Answer('terms').match(Condition.MatchesValue(true)),
       Answer('privacy').match(Condition.MatchesValue(true))
     )
-  )
-).then('Must accept both terms and privacy policy')
+  ),
+  message: 'Must accept both terms and privacy policy'
+})
 
 // Equivalent to using .not on individual predicates
-when(
-  or(
+validation({
+  when: or(
     Answer('terms').not.match(Condition.MatchesValue(true)),
     Answer('privacy').not.match(Condition.MatchesValue(true))
-  )
-).then('Must accept both terms and privacy policy')
+  ),
+  message: 'Must accept both terms and privacy policy'
+})
 ```
 
 ## 3. Complex Logic Examples
@@ -183,8 +167,8 @@ when(
 ```typescript
 // Complex validation with multiple levels of logic
 validate: [
-  when(
-    or(
+  validation({
+    when: or(
       // Either both fields are empty
       and(
         Self().not.match(Condition.IsRequired()),
@@ -198,8 +182,9 @@ validate: [
           Self().not.match(Condition.IsRequired())
         )
       )
-    )
-  ).then("Please enter a valid value")
+    ),
+    message: "Please enter a valid value"
+  })
 ]
 ```
 
@@ -210,19 +195,21 @@ The logic system compiles to structured JSON that can be evaluated by the AST:
 ### Simple Test Predicate
 ```typescript
 // Input
-when(Self().not.match(Condition.IsRequired())).then('Required')
+validation({
+  when: Self().not.match(Condition.IsRequired()),
+  message: 'This field is required'
+})
 
 // Output
 {
-  type: 'conditional',
-  predicate: {
+  type: 'validation',
+  when: {
     type: 'test',
     subject: { type: 'reference', path: ['@self'] },
     negate: true,
     condition: { type: 'function', name: 'isRequired', arguments: [] }
   },
-  thenValue: 'Required',
-  elseValue: false
+  message: 'This field is required'
 }
 ```
 
@@ -263,7 +250,7 @@ when(
 ```
 
 ## 6. Best Practices
-As you might be able to tell, you can go pretty wild with the logic predicate options, and build some very 
+As you might be able to tell, you can go pretty wild with the logic predicate options, and build some very
 complex rules quite quickly. If you find yourself repeating rules often, turn them into variables and reuse them!
 ```typescript
 // Break complex logic into readable, reusable  chunks
