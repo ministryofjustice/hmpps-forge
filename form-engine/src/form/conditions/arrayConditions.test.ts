@@ -1,4 +1,5 @@
 import ArrayConditions from './arrayConditions'
+import { FunctionType } from '../types/enums'
 
 describe('ArrayConditions', () => {
   describe('IsIn', () => {
@@ -52,7 +53,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.IsIn(['option1', 'option2'])
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'arrayIsIn',
         arguments: [['option1', 'option2']],
       })
@@ -113,7 +114,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.Contains('searchValue')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'arrayContains',
         arguments: ['searchValue'],
       })
@@ -179,7 +180,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAny(['value1', 'value2'])
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'arrayContainsAny',
         arguments: [['value1', 'value2']],
       })
@@ -259,7 +260,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAll([1, 2, 3])
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'arrayContainsAll',
         arguments: [[1, 2, 3]],
       })

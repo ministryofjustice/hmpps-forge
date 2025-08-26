@@ -1,31 +1,33 @@
+import { FunctionType, ExpressionType, LogicType } from './enums'
+
 /**
  * Represents a reference to a value in the form context.
  * References are resolved at runtime to access data from various sources.
  *
  * @example
  * // Reference to a form field answer
- * { type: 'reference', path: ['answers', 'email'] }
+ * { type: 'ExpressionType.Reference', path: ['answers', 'email'] }
  *
  * @example
  * // Reference to external data
- * { type: 'reference', path: ['data', 'user', 'role'] }
+ * { type: 'ExpressionType.Reference', path: ['data', 'user', 'role'] }
  *
  * @example
  * // Reference to current field (self)
- * { type: 'reference', path: ['@self'] }
+ * { type: 'ExpressionType.Reference', path: ['@self'] }
  *
  * @example
  * // Reference to current collection item
- * { type: 'reference', path: ['@item', 'id'] }
+ * { type: 'ExpressionType.Reference', path: ['@item', 'id'] }
  */
 export interface ReferenceExpr {
-  type: 'reference'
+  type: ExpressionType.REFERENCE
 
   /**
    * Path segments to traverse to reach the target value.
    * Special paths include '@self' (current field) and '@item' (current collection item).
    */
-  path: string[]
+  path: readonly string[]
 }
 
 /**
@@ -36,24 +38,24 @@ export interface ReferenceExpr {
  * @example
  * // Simple string formatting
  * {
- *   type: 'format',
+ *   type: 'ExpressionType.Format',
  *   text: 'Hello %1, you are %2 years old',
  *   args: [
- *     { type: 'reference', path: ['answers', 'name'] },
- *     { type: 'reference', path: ['answers', 'age'] }
+ *     { type: 'ExpressionType.Reference', path: ['answers', 'name'] },
+ *     { type: 'ExpressionType.Reference', path: ['answers', 'age'] }
  *   ]
  * }
  *
  * @example
  * // Dynamic field code generation in collections
  * {
- *   type: 'format',
+ *   type: 'ExpressionType.Format',
  *   text: 'address_%1_street',
- *   args: [{ type: 'reference', path: ['@item', 'id'] }]
+ *   args: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }]
  * }
  */
 export interface FormatExpr {
-  type: 'format'
+  type: ExpressionType.FORMAT
 
   /**
    * Template string containing placeholders (%1, %2, etc.).
@@ -65,44 +67,7 @@ export interface FormatExpr {
    * Array of expressions whose values will replace the placeholders.
    * The first argument replaces %1, second replaces %2, and so on.
    */
-  args: ValueExpr[]
-}
-
-/**
- * Represents a single data transformation function.
- * Transformers are registered functions that modify values,
- * such as formatting, extraction, or type conversion.
- *
- * @example
- * // Transform to uppercase
- * {
- *   type: 'transformer',
- *   name: 'toUpperCase',
- *   args: []
- * }
- *
- * @example
- * // Extract regex capture group
- * {
- *   type: 'transformer',
- *   name: 'regexCapture',
- *   args: ['^item-(.+)$', 1]
- * }
- */
-export interface TransformerExpr {
-  type: 'transformer'
-
-  /**
-   * Name of the registered transformer function.
-   * Must match a function in the transformer registry.
-   */
-  name: string
-
-  /**
-   * Arguments to pass to the transformer function.
-   * The transformed value is always the implicit first argument.
-   */
-  args: ValueExpr[]
+  args: readonly ValueExpr[]
 }
 
 /**
@@ -113,8 +78,8 @@ export interface TransformerExpr {
  * @example
  * // Chain multiple transformations
  * {
- *   type: 'pipeline',
- *   input: { type: 'reference', path: ['answers', 'email'] },
+ *   type: 'ExpressionType.Pipeline',
+ *   input: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
  *   steps: [
  *     { name: 'trim' },
  *     { name: 'toLowerCase' },
@@ -125,8 +90,8 @@ export interface TransformerExpr {
  * @example
  * // Transform with arguments
  * {
- *   type: 'pipeline',
- *   input: { type: 'reference', path: ['answers', 'price'] },
+ *   type: 'ExpressionType.Pipeline',
+ *   input: { type: 'ExpressionType.Reference', path: ['answers', 'price'] },
  *   steps: [
  *     { name: 'multiply', args: [1.2] },
  *     { name: 'round', args: [2] },
@@ -135,7 +100,7 @@ export interface TransformerExpr {
  * }
  */
 export interface PipelineExpr {
-  type: 'pipeline'
+  type: ExpressionType.PIPELINE
 
   /**
    * Initial value expression to be transformed.
@@ -147,45 +112,93 @@ export interface PipelineExpr {
    * Ordered array of transformation steps.
    * Each step receives the output of the previous step as its input.
    */
-  steps: {
+  steps: readonly {
     /** Name of the registered transformer function */
-    name: string
+    readonly name: string
 
     /** Optional arguments for the transformer (beyond the piped value) */
-    args?: ValueExpr[]
+    readonly args?: readonly ValueExpr[]
   }[]
 }
 
 /**
- * Represents a function call expression with typed arguments.
- * Functions are used for conditions (validation) and transformers.
- *
- * @example
- * // Validation function
- * {
- *   type: 'function',
- *   name: 'hasMaxLength',
- *   arguments: [100]
- * }
- *
- * @example
- * // Condition function with multiple arguments
- * {
- *   type: 'function',
- *   name: 'isBetween',
- *   arguments: [10, 100]
- * }
+ * Base interface for all function call expressions with typed arguments.
+ * This serves as the foundation for specific function types like conditions and transformers.
  */
-export type FunctionExpr<A extends readonly ValueExpr[]> = {
-  type: 'function'
+export interface BaseFunctionExpr<A extends readonly ValueExpr[]> {
+  type: FunctionType
   /**
    * Name of the registered function.
-   * Must match a function in the appropriate registry (condition or transformer).
+   * Must match a function in the appropriate registry.
    */
   name: string
 
   /** Arguments to pass to the function. */
   arguments: A
+}
+
+/**
+ * Represents a condition function call expression.
+ * Condition functions evaluate to boolean values for validation and logic predicates.
+ *
+ * @example
+ * // Required validation condition
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'isRequired',
+ *   arguments: []
+ * }
+ *
+ * @example
+ * // Length validation with parameter
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'hasMaxLength',
+ *   arguments: [100]
+ * }
+ *
+ * @example
+ * // Range validation with multiple parameters
+ * {
+ *   type: 'FunctionType.Condition',
+ *   name: 'isBetween',
+ *   arguments: [10, 100]
+ * }
+ */
+export interface ConditionFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
+  extends BaseFunctionExpr<A> {
+  type: FunctionType.CONDITION
+}
+
+/**
+ * Generic function expression that can represent any function type.
+ * Used when the specific function type is not known at compile time.
+ */
+export type FunctionExpr<A extends readonly ValueExpr[]> = BaseFunctionExpr<A>
+
+/**
+ * Represents a transformer function call expression.
+ * Transformer functions modify values for formatting, extraction, or type conversion.
+ *
+ * @example
+ * // Transform to uppercase
+ * {
+ *   type: 'FunctionType.Transformer',
+ *   name: 'toUpperCase',
+ *   arguments: []
+ * }
+ *
+ * @example
+ * // Extract regex capture group
+ * {
+ *   type: 'FunctionType.Transformer',
+ *   name: 'regexCapture',
+ *   arguments: ['^item-(.+)$', 1]
+ * }
+ */
+export interface TransformerFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
+  extends BaseFunctionExpr<A> {
+  type: FunctionType.TRANSFORMER
 }
 
 /**
@@ -196,7 +209,7 @@ export type FunctionExpr<A extends readonly ValueExpr[]> = {
  * @example
  * // Save effect
  * {
- *   type: 'effect',
+ *   type: 'FunctionType.Effect',
  *   name: 'save',
  *   arguments: [{ draft: true }]
  * }
@@ -204,22 +217,16 @@ export type FunctionExpr<A extends readonly ValueExpr[]> = {
  * @example
  * // Add to collection effect
  * {
- *   type: 'effect',
+ *   type: 'FunctionType.Effect',
  *   name: 'addToCollection',
  *   arguments: [
- *     { type: 'reference', path: ['answers', 'addresses'] },
+ *     { type: 'ExpressionType.Reference', path: ['answers', 'addresses'] },
  *     { street: '', city: '', postcode: '' }
  *   ]
  * }
  */
-export type EffectExpr<A extends readonly ValueExpr[]> = {
-  type: 'effect'
-
-  /** Name of the registered effect handler. */
-  name: string
-
-  /** Arguments to pass to the effect handler. */
-  arguments: A
+export interface EffectFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]> extends BaseFunctionExpr<A> {
+  type: FunctionType.EFFECT
 }
 
 /**
@@ -229,7 +236,7 @@ export type EffectExpr<A extends readonly ValueExpr[]> = {
 export type ValueExpr =
   | ReferenceExpr
   | FormatExpr
-  | TransformerExpr
+  | TransformerFunctionExpr
   | PipelineExpr
   | ValueExpr[]
   | string
@@ -245,23 +252,23 @@ export type ValueExpr =
  * @example
  * // Test if field is required (not empty)
  * {
- *   type: 'test',
- *   subject: { type: 'reference', path: ['@self'] },
+ *   type: 'LogicType.Test',
+ *   subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *   negate: false,
- *   condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
  * }
  *
  * @example
  * // Test if email is NOT valid (negated)
  * {
- *   type: 'test',
- *   subject: { type: 'reference', path: ['answers', 'email'] },
+ *   type: 'LogicType.Test',
+ *   subject: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
  *   negate: true,
- *   condition: { type: 'function', name: 'isEmail', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'isEmail', arguments: [] }
  * }
  */
 export interface PredicateTestExpr {
-  type: 'test'
+  type: LogicType.TEST
   /** The value expression to test. */
   subject: ValueExpr
 
@@ -272,71 +279,103 @@ export interface PredicateTestExpr {
   negate: boolean
 
   /** The registered condition function to evaluate against the subject. */
-  condition: FunctionExpr<any>
+  condition: ConditionFunctionExpr<any>
 }
 
 /**
- * Represents a logical combination of predicates.
+ * Represents an AND logical predicate where all operands must be true.
  *
  * @example
  * // AND logic - all must be true
  * {
- *   type: 'logic',
- *   op: 'and',
+ *   type: 'LogicType.And',
  *   operands: [
- *     { type: 'test', subject: {...}, negate: false, condition: {...} },
- *     { type: 'test', subject: {...}, negate: false, condition: {...} }
+ *     { type: 'LogicType.Test', subject: {...}, negate: false, condition: {...} },
+ *     { type: 'LogicType.Test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
+ */
+export interface PredicateAndExpr {
+  type: LogicType.AND
+
+  /**
+   * Array of predicates that must all be true.
+   * Requires at least 2 operands for logical AND.
+   */
+  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+}
+
+/**
+ * Represents an OR logical predicate where at least one operand must be true.
  *
  * @example
  * // OR logic - at least one must be true
  * {
- *   type: 'logic',
- *   op: 'or',
- *   operands: [...]
+ *   type: 'LogicType.Or',
+ *   operands: [
+ *     { type: 'LogicType.Test', subject: {...}, condition: {...} },
+ *     { type: 'LogicType.Test', subject: {...}, condition: {...} }
+ *   ]
  * }
+ */
+export interface PredicateOrExpr {
+  type: LogicType.OR
+
+  /**
+   * Array of predicates where at least one must be true.
+   * Requires at least 2 operands for logical OR.
+   */
+  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+}
+
+/**
+ * Represents an XOR logical predicate where exactly one operand must be true.
  *
  * @example
  * // XOR logic - exactly one must be true
  * {
- *   type: 'logic',
- *   op: 'xor',
- *   operands: [...]
+ *   type: 'LogicType.Xor',
+ *   operands: [
+ *     { type: 'LogicType.Test', subject: {...}, condition: {...} },
+ *     { type: 'LogicType.Test', subject: {...}, condition: {...} }
+ *   ]
  * }
+ */
+export interface PredicateXorExpr {
+  type: LogicType.XOR
+
+  /**
+   * Array of predicates where exactly one must be true.
+   * Requires at least 2 operands for logical XOR.
+   */
+  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+}
+
+/**
+ * Represents a NOT logical predicate that inverts the operand's result.
  *
  * @example
  * // NOT logic - invert the result
  * {
- *   type: 'logic',
- *   op: 'not',
- *   operands: [{ type: 'test', ... }]
+ *   type: 'LogicType.Not',
+ *   operand: { type: 'LogicType.Test', subject: {...}, condition: {...} }
  * }
  */
-export interface PredicateLogicExpr {
-  type: 'logic'
+export interface PredicateNotExpr {
+  type: LogicType.NOT
 
   /**
-   * The logical operator to apply.
-   * - 'and': All operands must be true
-   * - 'or': At least one operand must be true
-   * - 'xor': Exactly one operand must be true
-   * - 'not': Inverts the result (requires exactly one operand)
+   * Single predicate to negate.
+   * NOT requires exactly one operand.
    */
-  op: 'and' | 'or' | 'xor' | 'not'
-
-  /**
-   * Array of predicates to combine with the logical operator.
-   * Can include both test predicates and nested logic predicates.
-   */
-  operands: PredicateExpr[]
+  operand: PredicateExpr
 }
 
 /**
  * Represents any predicate expression that evaluates to true or false.
  * Used for validation rules, conditional logic, and guards.
  */
-export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
+export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrExpr | PredicateXorExpr | PredicateNotExpr
 
 /**
  * Represents a conditional expression that evaluates to different values based on a predicate.
@@ -345,12 +384,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  * @example
  * // Simple validation rule
  * {
- *   type: 'conditional',
+ *   type: 'LogicType.Conditional',
  *   predicate: {
- *     type: 'test',
- *     subject: { type: 'reference', path: ['@self'] },
+ *     type: 'LogicType.Test',
+ *     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *     negate: true,
- *     condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
  *   },
  *   thenValue: 'This field is required',
  *   elseValue: false
@@ -359,12 +398,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  * @example
  * // Conditional field visibility (dependent)
  * {
- *   type: 'conditional',
+ *   type: 'LogicType.Conditional',
  *   predicate: {
- *     type: 'test',
- *     subject: { type: 'reference', path: ['answers', 'hasChildren'] },
+ *     type: 'LogicType.Test',
+ *     subject: { type: 'ExpressionType.Reference', path: ['answers', 'hasChildren'] },
  *     negate: false,
- *     condition: { type: 'function', name: 'matchesValue', arguments: [true] }
+ *     condition: { type: 'FunctionType.Condition', name: 'matchesValue', arguments: [true] }
  *   },
  *   thenValue: true,
  *   elseValue: false
@@ -373,11 +412,11 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  * @example
  * // Nested conditionals for complex logic
  * {
- *   type: 'conditional',
- *   predicate: { type: 'test', subject: {...}, condition: {...} },
+ *   type: 'LogicType.Conditional',
+ *   predicate: { type: 'LogicType.Test', subject: {...}, condition: {...} },
  *   thenValue: {
- *     type: 'conditional',
- *     predicate: { type: 'test', subject: {...}, condition: {...} ,
+ *     type: 'LogicType.Conditional',
+ *     predicate: { type: 'LogicType.Test', subject: {...}, condition: {...} ,
  *     thenValue: 'Option A',
  *     elseValue: 'Option B'
  *   },
@@ -385,7 +424,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateLogicExpr
  * }
  */
 export interface ConditionalExpr {
-  type: 'conditional'
+  type: LogicType.CONDITIONAL
 
   /** The condition to evaluate. */
   predicate: PredicateExpr
@@ -463,7 +502,7 @@ interface TransitionBase {
  *   when: { type: 'test', subject: {...}, condition: {...} },
  *   validate: false,
  *   onAlways: {
- *     effects: [{ type: 'effect', name: 'save', arguments: [{ draft: true }] }],
+ *     effects: [{ type: 'FunctionType.Effect', name: 'save', arguments: [{ draft: true }] }],
  *     next: [{ goto: '/dashboard' }]
  *   }
  * }
@@ -475,10 +514,10 @@ export interface SkipValidationTransition extends TransitionBase {
   /** Actions to execute */
   onAlways: {
     /** Optional effects to execute (save, manipulate collections, etc.) */
-    effects?: EffectExpr<any>[]
+    effects?: readonly EffectFunctionExpr<any>[]
 
     /** Required navigation rules for where to go next */
-    next: NextExpr[]
+    next: readonly NextExpr[]
   }
 }
 
@@ -492,7 +531,7 @@ export interface SkipValidationTransition extends TransitionBase {
  *   when: { type: 'test', subject: {...}, condition: {...} },
  *   validate: true,
  *   onValid: {
- *     effects: [{ type: 'effect', name: 'save', arguments: [] }],
+ *     effects: [{ type: 'FunctionType.Effect', name: 'save', arguments: [] }],
  *     next: [{ goto: '/next-step' }]
  *   },
  *   onInvalid: {
@@ -506,7 +545,7 @@ export interface SkipValidationTransition extends TransitionBase {
  *   type: 'transition',
  *   validate: true,
  *   onAlways: {
- *     effects: [{ type: 'effect', name: 'log', arguments: ['submission attempt'] }]
+ *     effects: [{ type: 'FunctionType.Effect', name: 'log', arguments: ['submission attempt'] }]
  *   },
  *   onValid: {...},
  *   onInvalid: {...}
@@ -522,23 +561,23 @@ export interface ValidatingTransition extends TransitionBase {
    */
   onAlways?: {
     /** Effects to execute before validation */
-    effects?: EffectExpr<any>[]
+    effects?: readonly EffectFunctionExpr<any>[]
   }
 
   /** Actions to execute when validation passes. */
   onValid: {
     /** Optional effects to execute */
-    effects?: EffectExpr<any>[]
+    effects?: readonly EffectFunctionExpr<any>[]
     /** Required navigation rules on successful validation */
-    next: NextExpr[]
+    next: readonly NextExpr[]
   }
 
   /** Actions to execute when validation fails. */
   onInvalid: {
     /** Optional effects to execute */
-    effects?: EffectExpr<any>[]
+    effects?: readonly EffectFunctionExpr<any>[]
     /** Required navigation rules on failed validation */
-    next: NextExpr[]
+    next: readonly NextExpr[]
   }
 }
 

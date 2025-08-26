@@ -81,7 +81,7 @@ validate: [
 ```typescript
 // Self() reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['@self']
 }
 ```
@@ -169,7 +169,7 @@ validate: [
 ```typescript
 // Answer('email') reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['answers', 'email']
 }
 ```
@@ -242,7 +242,7 @@ const advancedSettingsField = field({
 ```typescript
 // Data('user.role') reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['data', 'user.role']
 }
 ```
@@ -401,19 +401,19 @@ dependent: when(Query('strict_mode').match(Condition.Equals('true')))
 ```typescript
 // Post('action') reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['post', 'action']
 }
 
 // Params('id') reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['params', 'id']
 }
 
 // Query('tab') reference
 {
-  type: 'reference',
+  type: 'ExpressionType.Reference',
   path: ['query', 'tab']
 }
 ```

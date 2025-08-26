@@ -1,12 +1,14 @@
 # Logic and Predicates Documentation
 
 ## Overview
+
 The form system uses a declarative logic system for conditional behavior, validation rules, and dynamic values for block properties.
 This system allows you to build complex logical expressions using a fluent, readable API that compiles to structured JSON for evaluation.
 
 ## Core Concepts
 
 ### Rules and Predicates
+
 The logic system is built around **rules** that follow an "if-then-else" pattern:
 - **Predicate**: A condition that evaluates to true or false
 - **Then Value**: What happens when the predicate is true (optional, defaults to `true`)
@@ -18,7 +20,7 @@ when(predicate).then(value).else(otherValue)
 
 // Outputs a CompiledRule:
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: PredicateExpr,
   thenValue: 'value',
   elseValue: 'otherValue'
@@ -26,10 +28,12 @@ when(predicate).then(value).else(otherValue)
 ```
 
 ### Predicate Types
+
 1. **Test Predicates**: Compare a subject against a condition function
 2. **Logic Predicates**: Combine multiple predicates with logical operators
 
 ## 1. Building Test Predicates
+
 Test predicates evaluate whether a subject passes a specific condition.
 They use the pattern: `Reference().match(condition)`.
 
@@ -56,19 +60,21 @@ Data('user.age').not.match(Condition.GreaterThan(18))
 ```
 
 ### Output Structure
+
 Test predicates compile to this JSON structure:
 
 ```typescript
 // Self().not.match(Condition.IsRequired())
 {
-  type: 'test',
-  subject: { type: 'reference', path: ['@self'] },
+  type: 'LogicType.Test',
+  subject: { type: 'ExpressionType.Reference', path: ['@self'] },
   negate: true,
-  condition: { type: 'function', name: 'isRequired', arguments: [] }
+  condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
 }
 ```
 
 ## 2. Logical Operators
+
 Combine multiple predicates with logical operators to create complex conditions.
 
 ### `and()` - All Must Be True
@@ -202,12 +208,12 @@ validation({
 
 // Output
 {
-  type: 'validation',
+  type: 'LogicType.Conditional',
   when: {
-    type: 'test',
-    subject: { type: 'reference', path: ['@self'] },
+    type: 'LogicType.Test',
+    subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: true,
-    condition: { type: 'function', name: 'isRequired', arguments: [] }
+    condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
   },
   message: 'This field is required'
 }
@@ -225,22 +231,21 @@ when(
 
 // Output
 {
-  type: 'conditional',
+  type: 'LogicType.Conditional',
   predicate: {
-    type: 'logic',
-    op: 'and',
+    type: 'LogicType.And',
     operands: [
       {
-        type: 'test',
-        subject: { type: 'reference', path: ['@self'] },
+        type: 'LogicType.Test',
+        subject: { type: 'ExpressionType.Reference', path: ['@self'] },
         negate: false,
-        condition: { type: 'function', name: 'isRequired', arguments: [] }
+        condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       },
       {
-        type: 'test',
-        subject: { type: 'reference', path: ['answers', 'other_field'] },
+        type: 'LogicType.Test',
+        subject: { type: 'ExpressionType.Reference', path: ['answers', 'other_field'] },
         negate: true,
-        condition: { type: 'function', name: 'isRequired', arguments: [] }
+        condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
       }
     ]
   },

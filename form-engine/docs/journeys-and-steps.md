@@ -26,7 +26,7 @@ They orchestrate how users move through your forms, managing the overall structu
 
 ```typescript
 interface JourneyDefinition {
-  type: 'journey'                 // Type identifier for JSON parsing
+  type: StructureType.JOURNEY     // Type identifier for JSON parsing
   code: string                    // Unique identifier for the journey
   title: string                   // Display title
   description?: string            // Optional description
@@ -139,7 +139,7 @@ handles data loading, defines transitions to other steps, and manages validation
 
 ```typescript
 interface StepDefinition {
-  type: 'step'                         // Type identifier for JSON parsing
+  type: StructureType.STEP             // Type identifier for JSON parsing
   path: string                         // URL path for this step
   blocks: BlockDefinition[]            // UI components to render
   data?: DataDefinition[]              // External data to load

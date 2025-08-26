@@ -1,4 +1,5 @@
 import NumberConditions from './numberConditions'
+import { FunctionType } from '../types/enums'
 
 describe('NumberConditions', () => {
   describe('GreaterThan', () => {
@@ -40,7 +41,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.GreaterThan(5)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'greaterThan',
         arguments: [5],
       })
@@ -75,7 +76,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.GreaterThanOrEqual(10)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'greaterThanOrEqual',
         arguments: [10],
       })
@@ -115,7 +116,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.LessThan(7)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lessThan',
         arguments: [7],
       })
@@ -149,7 +150,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.LessThanOrEqual(3)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'lessThanOrEqual',
         arguments: [3],
       })
@@ -210,7 +211,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.Between(1, 10)
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'between',
         arguments: [1, 10],
       })

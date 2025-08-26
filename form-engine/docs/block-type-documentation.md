@@ -23,8 +23,8 @@ configuration objects that represent visual elements without any kind of form in
 ### Structure
 ```typescript
 interface BlockDefinition {
-  type: 'block'    // Type identifier for supporting JSON parsing
-  variant: string  // Component type (heading, content, etc.)
+  type: StructureType.BLOCK    // Type identifier for supporting JSON parsing
+  variant: string              // Component type (heading, content, etc.)
   // ... variant-specific properties
 }
 ```
@@ -102,6 +102,7 @@ const otherDrugNameField: TextField = field({
     text: 'What other drugs have been misused?',
     classes: GovUKClasses.visuallyHidden,
   },
+  formatters: [ Transformers.String.Trim() ],
   validate: [
     validation({
       when: Self().not.match(Condition.IsRequired()),
@@ -140,6 +141,11 @@ const drugUse: RadioField = field({
 The unique identifier that determines where the field's value is stored and retrieved. When rendered as HTML,
 the code becomes the field's name attribute, making it the key used to access the field's
 value in form submissions (POST data) and stored answers.
+
+#### `formatters`
+Formatters take an array of Transformers to apply to the value of a field on submission. These are
+mainly used to trim spaces off text (`Transformers.String.Trim()`), convert to Int (`Transformers.String.ToInt`) etc.
+These are applied in the order of the array.
 
 #### `validate`
 Validation rules define conditions that determine when a field's value is invalid and should

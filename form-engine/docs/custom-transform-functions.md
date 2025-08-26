@@ -8,14 +8,14 @@ system and can be used to format values, extract data, or perform complex data m
 ## Creating Custom Transformers
 
 ### Basic Structure
-Custom transformers are created using the `defineFunction` helper, which ensures
+Custom transformers are created using the `buildTransformerFunction` helper, which ensures
 proper typing and integration with the form engine:
 
 ```typescript
-import { defineFunction } from '@form-system/helpers'
+import { buildTransformerFunction } from '@form-system/helpers'
 
 const MyCustomTransformers = {
-  toUpperCase: defineFunction(
+  toUpperCase: buildTransformerFunction(
     'toUpperCase',
     (value) => typeof value === 'string' ? value.toUpperCase() : value
   )
@@ -26,13 +26,13 @@ Answer('some_answer').pipe(MyCustomTransformers.toUpperCase())
 ```
 
 ### Function Signature
-The `defineFunction` helper takes two parameters:
+The `buildTransformerFunction` helper takes two parameters:
 
 1. **name** (`string`): The unique identifier for your transformer. Use camelCase for consistency.
 2. **transformer** (`(value, ...args) => any | Promise<any>`): The function that performs the transformation
 
 ```typescript
-defineFunction<A extends readonly ValueExpr[]>(
+buildTransformerFunction<A extends readonly ValueExpr[]>(
   name: string,
   transformer: (value: ValueExpr, ...args: A) => any | Promise<any>
 )
@@ -43,13 +43,13 @@ Custom transformers can accept additional parameters with full TypeScript suppor
 
 ```typescript
 // Single parameter transformer
-const multiply = defineFunction(
+const multiply = buildTransformerFunction(
   'multiply',
   (value, factor: number) => typeof value === 'number' ? value * factor : value
 )
 
 // Multiple parameters
-const clamp = defineFunction(
+const clamp = buildTransformerFunction(
   'clamp',
   (value, min: number, max: number) => {
     if (typeof value !== 'number') return value
@@ -58,7 +58,7 @@ const clamp = defineFunction(
 )
 
 // Complex parameter types
-const formatDate = defineFunction(
+const formatDate = buildTransformerFunction(
   'formatDate',
   (value, format: string, locale?: string) => {
     if (!value) return value
@@ -86,12 +86,12 @@ value: Answer('price').pipe(multiply('1.2'))       // ✗ Type error
 Here are various examples to inspire you to build your own transformers.
 
 ```typescript
-const trim = defineFunction(
+const trim = buildTransformerFunction(
   'trim',
   (value) => typeof value === 'string' ? value.trim() : value
 )
 
-const truncate = defineFunction(
+const truncate = buildTransformerFunction(
   'truncate',
   (value, maxLength: number, suffix: string = '...') => {
     if (typeof value !== 'string') return value
@@ -100,7 +100,7 @@ const truncate = defineFunction(
   }
 )
 
-const slugify = defineFunction(
+const slugify = buildTransformerFunction(
   'slugify',
   (value) => {
     if (typeof value !== 'string') return value
@@ -113,7 +113,7 @@ const slugify = defineFunction(
   }
 )
 
-const capitalize = defineFunction(
+const capitalize = buildTransformerFunction(
   'capitalize',
   (value) => {
     if (typeof value !== 'string') return value
@@ -121,7 +121,7 @@ const capitalize = defineFunction(
   }
 )
 
-const sortBy = defineFunction(
+const sortBy = buildTransformerFunction(
   'sortBy',
   (value, property?: string, order: 'asc' | 'desc' = 'asc') => {
     if (!Array.isArray(value)) return value
@@ -139,7 +139,7 @@ const sortBy = defineFunction(
   }
 )
 
-const maskSensitive = defineFunction(
+const maskSensitive = buildTransformerFunction(
   'maskSensitive',
   (value, showLast: number = 4, maskChar: string = '*') => {
     if (typeof value !== 'string' || value.length <= showLast) return value
@@ -148,7 +148,7 @@ const maskSensitive = defineFunction(
   }
 )
 
-const calculateAge = defineFunction(
+const calculateAge = buildTransformerFunction(
   'calculateAge',
   (value, referenceDate?: string) => {
     if (!value) return null
@@ -232,21 +232,21 @@ doStuff
 Never modify the input value directly; always return a new value:
 
 ```typescript
-// Good - returns new object
-const addProperty = defineFunction(
-  'addProperty',
-  (value, key: string, val: any) => {
-    if (typeof value !== 'object' || value === null) return value
-    return { ...value, [key]: val }  // New object
-  }
-)
-
 // Bad - mutates input (input will likely be READONLY somehow, proxy?)
-const badAddProperty = defineFunction(
+const badAddProperty = buildTransformerFunction(
   'addProperty',
   (value, key: string, val: any) => {
     value[key] = val  // Mutates original!
     return value
+  }
+)
+
+// Good - returns new object
+const addProperty = buildTransformerFunction(
+  'addProperty',
+  (value, key: string, val: any) => {
+    if (typeof value !== 'object' || value === null) return value
+    return { ...value, [key]: val }  // New object
   }
 )
 ```
@@ -255,7 +255,7 @@ const badAddProperty = defineFunction(
 Always check input types and handle unexpected inputs gracefully:
 
 ```typescript
-const appendString = defineFunction(
+const appendString = buildTransformerFunction(
   'appendString',
   (value, suffix: string) => {
     // Handle non-string inputs gracefully
@@ -270,9 +270,9 @@ Design transformers to work well in pipelines:
 
 ```typescript
 // Small, focused transformers that compose well
-const trim = defineFunction('trim', v => typeof v === 'string' ? v.trim() : v)
-const toLowerCase = defineFunction('toLowerCase', v => typeof v === 'string' ? v.toLowerCase() : v)
-const removeSpaces = defineFunction('removeSpaces', v => typeof v === 'string' ? v.replace(/\s/g, '') : v)
+const trim = buildTransformerFunction('trim', v => typeof v === 'string' ? v.trim() : v)
+const toLowerCase = buildTransformerFunction('toLowerCase', v => typeof v === 'string' ? v.toLowerCase() : v)
+const removeSpaces = buildTransformerFunction('removeSpaces', v => typeof v === 'string' ? v.replace(/\s/g, '') : v)
 
 // Can be combined in various ways
 value: Answer('code').pipe(
@@ -295,16 +295,16 @@ value: Answer('price').pipe(
 
 // Compiles to JSON
 {
-  type: 'pipeline',
-  input: { type: 'reference', path: ['answers', 'price'] },
+  type: 'ExpressionType.Pipeline',
+  input: { type: 'ExpressionType.Reference', path: ['answers', 'price'] },
   steps: [
     {
-      type: 'function',
+      type: 'FunctionType.Transformer',
       name: 'multiply',
       arguments: [1.2]
     },
     {
-      type: 'function',
+      type: 'FunctionType.Transformer',
       name: 'currency',
       arguments: ['GBP']
     }
