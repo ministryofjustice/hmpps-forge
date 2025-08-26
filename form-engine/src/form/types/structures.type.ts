@@ -121,8 +121,8 @@ export interface FieldBlockDefinition extends BlockDefinition {
   /** Conditional visibility - field is hidden when this evaluates to truthy */
   hidden?: ConditionalValue<any>
 
-  /** Array of validation error messages currently active on the field */
-  errors?: string[]
+  /** Array of validation errors currently active on the field */
+  errors?: readonly { message: string; details?: Record<string, any> }[]
 
   /** Array of validation rules to apply to the field value */
   validate?: ValidationExpr[]
