@@ -293,8 +293,8 @@ validate: [
 
 // Compiles to JSON
 {
-  type: 'LogicType.Conditional',
-  predicate: {
+  type: 'validation',
+  when: {
     type: 'LogicType.Test',
     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: false,
