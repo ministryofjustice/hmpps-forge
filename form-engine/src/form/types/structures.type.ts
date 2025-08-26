@@ -1,13 +1,14 @@
 import { ConditionalString, ConditionalValue } from './values.type'
 import {
-  ConditionalExpr,
   FunctionExpr,
   PipelineExpr,
+  PredicateExpr,
+  PredicateTestExpr,
   ReferenceExpr,
   TransformerExpr,
   TransitionExpr,
 } from './expressions.type'
-import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
+import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 
 /**
  * Base interface for all block types in the form engine.
@@ -58,12 +59,34 @@ export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefi
 /**
  * Represents a validation rule for a form field.
  * Includes the validation logic, error message, and execution context.
+ *
+ * @example
+ * // Using fluent builder syntax
+ * validation({
+ *   when: Answer('age').not.match(Condition.Number.IsBetween(18, 65)),
+ *   message: 'Age must be between 18 and 65',
+ *   details: { field: 'age', errorType: 'range' }
+ * })
+ *
+ * @example
+ * // Using object notation
+ * {
+ *   type: 'validation',
+ *   when: {
+ *     type: 'test',
+ *     subject: { type: 'reference', path: ['answers', 'email'] },
+ *     negate: true,
+ *     condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *   },
+ *   message: 'Email address is required',
+ *   submissionOnly: false
+ * }
  */
 export interface ValidationExpr {
   type: 'validation'
 
   /** The predicate expression that determines if validation passes */
-  when: PredicateExpr | ConditionalExprBuilder
+  when: PredicateExpr | PredicateTestExprBuilder
 
   /** Error message to display when validation fails */
   message: string
@@ -73,6 +96,12 @@ export interface ValidationExpr {
    * not during journey path traversal. Defaults to false.
    */
   submissionOnly?: boolean
+
+  /**
+   * Optional details that can be used by components for enhanced error handling.
+   * For example, to specify which sub-field in a composite field should be highlighted.
+   */
+  details?: Record<string, any>
 }
 
 /**

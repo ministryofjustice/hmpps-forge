@@ -1,71 +1,49 @@
-# Validation System Documentation
+# Validation System
 
 ## Overview
+
 The form engine uses a structured validation system with `ValidationExpr` objects
 that support both regular validations and submission-only validations. This
 system allows for precise control over when validation rules are applied and provides
 a clear separation between journey traversal validation and final submission validation.
 
-## ValidationExpr Structure
-Each validation rule is represented as a `ValidationExpr` with the following structure:
+## ValidationExpr
+
+Validation rules define conditions that determine when a field's value is invalid and should
+display an error message to the user. They integrate seamlessly with the form engine's
+predicate system and support enhanced error handling for complex field types.
+
+### Structure
 
 ```typescript
 interface ValidationExpr {
-  type: 'validation'                    // Type identifier
-  when: PredicateExpr                   // Condition that triggers validation failure
-  message: string                       // Error message to display
-  submissionOnly?: boolean              // Optional: only check at submission time
+  type: 'validation'              // Type identifier
+  when: PredicateExpr             // Condition that triggers validation failure
+  message: string                 // Error message to display
+  submissionOnly?: boolean        // Optional: only check at submission time
+  details?: Record<string, any>   // Optional: enhanced error handling details
 }
 ```
 
-## Creating Validation Rules
-Use the `validation()` builder function to create validation rules:
+### Examples
 
 ```typescript
-import { validation, field } from '../builders'
-import { Answer, Self } from '../helpers/referenceHelpers'
-import { Condition } from '../conditions'
-
-const emailField = field({
-  code: 'email',
-  variant: 'govukTextInput',
-  label: 'Email address',
-  validate: [
-    validation({
-      when: Self().not.match(Condition.IsRequired()),
-      message: 'Enter your email address'
-    }),
-    validation({
-      when: Self().not.match(Condition.Email.IsValid()),
-      message: 'Enter a valid email address'
-    })
-  ]
-})
-```
-
-## Validation Types
-
-### Regular Validations
-Regular validations are checked both during journey path traversal and at submission time.
-These should be used for standard field validation like required fields, format validation, etc.
-
-```typescript
+// Basic required field validation
 validation({
   when: Self().not.match(Condition.IsRequired()),
   message: 'This field is required'
 })
-```
 
-### Submission-Only Validations
-Submission-only validations are marked with `submissionOnly: true` and are only checked
-when the user submits the form, not during journey path traversal.
-This is useful for validations that:
+// Format validation with enhanced error details
+validation({
+  when: Self().not.match(Condition.Date.IsValid()),
+  message: 'Enter a valid date',
+  details: {
+    field: 'day'  // Highlight specific sub-field in composite components
+  }
+})
 
-- Make external API calls (like username uniqueness checks)
-- Depend on data that may change between form steps
-- Are expensive to compute
-
-```typescript
+// Submission-only validation for external API calls
 validation({
   when: Self().not.match(Condition.Username.IsUnique()),
   message: 'This username is already taken',
@@ -73,22 +51,63 @@ validation({
 })
 ```
 
-## Journey Path Traversal vs Submission
-The form engine validates that users can legitimately reach each step by re-running
-validations during journey path traversal. However, some validations (like external API calls)
-should not be re-checked during this process:
+### Concepts
+
+#### `type`
+All validation expressions are marked with `type: 'validation'` for identification during JSON parsing and processing.
+
+#### `when`
+The predicate expression that determines when validation should fail. This _often_ uses negative logic
+(with `.not.match()`) to check for invalid conditions rather than valid ones. This approach allows
+the system to identify and report specific validation failures.
+
+#### `message`
+The error message displayed to the user when validation fails. Should be clear, specific,
+and actionable, following accessibility guidelines and design system patterns.
+
+#### `submissionOnly`
+When `true`, this validation is only checked at final form submission, not during journey
+path traversal. This is essential for validations that:
+
+- Make external API calls (like username uniqueness checks)
+- Depend on data that may change between form steps
+- Are expensive to compute and shouldn't run repeatedly
+- Are time-dependent (like future date validations)
+
+**Journey Path Traversal**: The form engine validates that users can legitimately reach each
+step by re-running validations. Submission-only validations are excluded from this process
+to avoid blocking users with expensive or time-sensitive checks.
+
+#### `details`
+Optional metadata that provides additional context for error handling, particularly useful
+for composite fields where you need to specify which sub-component should be highlighted.
+
+Common patterns include:
+- `field: string` - Target a specific sub-field in composite components
+- `priority: number` - Prioritize certain errors
+- Custom data for specialized error processing
+
+## Validation Execution Context
+
+The form engine runs validation in two distinct contexts, each serving different purposes
+in ensuring form integrity and user experience.
 
 ### Journey Traversal Validation
-- Checks basic field requirements and format
-- Ensures user followed the correct path through the form
+Occurs when the system verifies that users can legitimately reach each step:
+
+- Checks basic field requirements and format validation
+- Ensures users followed the correct path through the form
 - Uses only validations where `submissionOnly` is false or undefined
+- Prevents expensive operations from blocking navigation
 
 ### Submission Validation
-- Runs ALL validation rules (both regular and submission-only)
-- Performs final checks before data is processed
-- Includes expensive operations like uniqueness checks
+Occurs during final form submission:
 
-## Examples
+- Runs ALL validation rules (both regular and submission-only)
+- Performs comprehensive checks before data processing
+- Includes expensive operations like API calls and uniqueness checks
+
+## Common Patterns
 
 ### Basic Field Validation
 ```typescript
@@ -162,7 +181,7 @@ const usernameField = field({
 })
 ```
 
-### Date Validation with Future Date Check
+### Validation with Additional Details
 ```typescript
 const appointmentDateField = field({
   code: 'appointment_date',
@@ -171,7 +190,10 @@ const appointmentDateField = field({
   validate: [
     validation({
       when: Self().not.match(Condition.Date.IsValid()),
-      message: 'Enter a valid date'
+      message: 'Enter a valid date',
+      details: {
+        field: 'day'  // Highlight the day field in a multi-field date input
+      }
     }),
     validation({
       when: Self().not.match(Condition.Date.IsFutureDate()),
@@ -199,6 +221,14 @@ Use regular validations (default behavior) for:
 2. **Required field checks**: Basic field presence validation
 3. **Static rules**: Length limits, character restrictions, etc.
 4. **Cross-field validation**: Between fields that don't change during the journey
+
+### Using the Details Property Effectively
+The `details` property should be used to enhance error handling for complex fields:
+
+1. **Field targeting**: Use `field` to specify which sub-component should be highlighted
+2. **Error classification**: Use `errorType` to categorize errors for consistent styling
+3. **Additional context**: Include any extra data needed for error processing
+4. **Keep it simple**: Only include details that will be used by your UI components
 
 ### Error Message Guidelines
 - Use clear, specific error messages

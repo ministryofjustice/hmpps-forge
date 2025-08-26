@@ -148,13 +148,11 @@ display an error message to the user. Each rule is a `ValidationExpr` with:
 1. `when: PredicateExpr` - A predicate expression that when true triggers validation failure
 2. `message: string` - Error message to display when validation fails
 3. `submissionOnly?: boolean` - If true, only checked at submission time, not during journey traversal
+4. `details?: Record<string, string>` - Details to include about the error, can be
+   used for highlighting severity or specific sub-field in a composite component that failed validation.
 
 These rules typically use negative logic (with .not.match()) to check for invalid conditions
 rather than valid ones. This approach allows the system to identify and report specific validation failures.
-
-**Submission-Only Validations**: Some validations (like username uniqueness checks) are only valid
-at submission time and should not be re-checked during journey path traversal. Mark these with
-`submissionOnly: true`.
 
 #### `dependent`
 The dependent property determines whether a field should be included in form processing
