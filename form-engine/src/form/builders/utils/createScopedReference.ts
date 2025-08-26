@@ -1,4 +1,5 @@
 import { BuildableReference, createReference } from './createReference'
+import { ExpressionType } from '../../types/enums'
 
 /**
  * Builder interface for creating references within collection contexts.
@@ -48,21 +49,21 @@ export function createScopedReference(currentLevel: number = 0): CreateScopedRef
   const builder = {
     property(key: string): BuildableReference {
       return createReference({
-        type: 'reference',
+        type: ExpressionType.REFERENCE,
         path: [...currentPath, key],
       })
     },
 
     value(): BuildableReference {
       return createReference({
-        type: 'reference',
+        type: ExpressionType.REFERENCE,
         path: currentPath,
       })
     },
 
     index(): BuildableReference {
       return createReference({
-        type: 'reference',
+        type: ExpressionType.REFERENCE,
         path: [...currentPath, '@index'],
       })
     },

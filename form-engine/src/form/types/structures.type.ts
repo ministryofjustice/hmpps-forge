@@ -1,20 +1,23 @@
-import { ConditionalString, ConditionalValue } from './values.type'
 import {
-  ConditionalExpr,
   FunctionExpr,
   PipelineExpr,
+  PredicateTestExpr,
   ReferenceExpr,
-  TransformerExpr,
+  TransformerFunctionExpr,
   TransitionExpr,
+  FormatExpr,
+  ConditionalExpr,
 } from './expressions.type'
+import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
+import { StructureType } from './enums'
 
 /**
  * Base interface for all block types in the form engine.
  * Blocks are the fundamental building units of form UI.
  */
 export interface BlockDefinition {
-  type: 'block'
+  type: StructureType.BLOCK
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
@@ -36,7 +39,7 @@ export interface CollectionOptions {
  */
 export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDefinition {
   /** Template blocks to render for each collection item */
-  template: T[]
+  template: readonly T[]
 
   /** Optional fallback block to render when collection is empty */
   fallbackTemplate?: T
@@ -52,7 +55,7 @@ export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDef
  */
 export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefinition {
   /** Array of child blocks contained within this composite block */
-  blocks: B[]
+  blocks: readonly B[]
 }
 
 /**
@@ -67,19 +70,19 @@ export interface FieldBlockDefinition extends BlockDefinition {
   value?: ConditionalString | FunctionExpr<any>
 
   /** Array of transformers to format/process the field value */
-  formatter: TransformerExpr[]
+  formatters?: readonly TransformerFunctionExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
-  hidden?: ConditionalValue<any>
+  hidden?: ConditionalBoolean
 
   /** Array of validation error messages currently active on the field */
-  errors?: string[]
+  errors?: readonly string[]
 
   /** Array of validation rules to apply to the field value */
-  validate?: (ConditionalExpr | ConditionalExprBuilder)[]
+  validate?: readonly (ConditionalExpr | ConditionalExprBuilder)[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
-  dependent?: ConditionalExpr | ConditionalExprBuilder
+  dependent?: PredicateTestExpr | PredicateTestExprBuilder
 }
 
 /**
@@ -87,7 +90,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
  * Journeys contain steps and can have nested child journeys.
  */
 export interface JourneyDefinition {
-  type: 'journey'
+  type: StructureType.JOURNEY
 
   /** Unique identifier for the journey */
   code: string
@@ -108,10 +111,10 @@ export interface JourneyDefinition {
   controller?: string
 
   /** Array of steps that make up the journey flow */
-  steps?: StepDefinition[]
+  steps?: readonly StepDefinition[]
 
   /** Nested child journeys for hierarchical flows */
-  children?: JourneyDefinition[]
+  children?: readonly JourneyDefinition[]
 }
 
 /**
@@ -119,18 +122,18 @@ export interface JourneyDefinition {
  * Steps contain blocks and define navigation/transition logic.
  */
 export interface StepDefinition {
-  type: 'step'
+  type: StructureType.STEP
 
   /** URL path segment for the step */
   path: string
 
   /** Array of blocks to render in this step */
-  blocks: BlockDefinition[]
+  blocks: readonly BlockDefinition[]
 
   // data?: DataDefinition[] // TODO: Figure out how I'd like to do this now with transitions...
 
   /** Array of transition rules defining navigation from this step */
-  transitions?: TransitionExpr[]
+  transitions?: readonly TransitionExpr[]
 
   /** Optional custom Express controller for step-specific logic */
   controller?: string
@@ -147,3 +150,46 @@ export interface StepDefinition {
   /** Override URL for the back link (auto-calculated if not provided) */
   backlink?: string
 }
+
+export type ConditionalString =
+  | string
+  | ReferenceExpr
+  | FormatExpr
+  | PipelineExpr
+  | ConditionalExpr
+  | ConditionalExprBuilder
+
+export type ConditionalBoolean = boolean | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+
+export type ConditionalNumber = number | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+
+export type ConditionalArray<T> = T[] | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+
+export type RenderedBlock = {
+  block: BlockDefinition
+  html: string
+}
+
+export type EvaluatedBlock<T, IsRoot extends boolean = true> =
+  // 1) leaf conditional types
+  T extends ConditionalString
+    ? string
+    : T extends ConditionalBoolean
+      ? boolean
+      : T extends ConditionalNumber
+        ? number
+        : // 2) arrays (both your ConditionalArray and normal arrays)
+          T extends ConditionalArray<infer U>
+          ? EvaluatedBlock<U, false>[]
+          : T extends readonly (infer U)[]
+            ? EvaluatedBlock<U, false>[]
+            : // 3) blocks: keep shape at root; collapse nested to RenderedBlock
+              T extends BlockDefinition
+              ? IsRoot extends true
+                ? { [K in keyof T]: K extends 'type' | 'variant' ? T[K] : EvaluatedBlock<T[K], false> }
+                : RenderedBlock
+              : // 4) plain objects
+                T extends object
+                ? { [K in keyof T]: K extends 'type' | 'variant' ? T[K] : EvaluatedBlock<T[K], false> }
+                : // 5) everything else
+                  T

@@ -1,4 +1,5 @@
 import DateConditions from './dateConditions'
+import { FunctionType } from '../types/enums'
 
 describe('DateConditions', () => {
   describe('IsValidYear', () => {
@@ -36,7 +37,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidYear()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'dateIsValidYear',
         arguments: [],
       })
@@ -76,7 +77,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidMonth()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'dateIsValidMonth',
         arguments: [],
       })
@@ -116,7 +117,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidDay()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'dateIsValidDay',
         arguments: [],
       })
@@ -200,7 +201,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsBefore('2024-12-31')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isDateBefore',
         arguments: ['2024-12-31'],
       })
@@ -284,7 +285,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsAfter('2024-01-01')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isDateAfter',
         arguments: ['2024-01-01'],
       })

@@ -2,8 +2,8 @@
 
 ## Overview
 
-The form system uses a hierarchical block architecture to create flexible, declarative forms. 
-All UI components are represented as 'blocks', with specialized types for different use cases. 
+The form system uses a hierarchical block architecture to create flexible, declarative forms.
+All UI components are represented as 'blocks', with specialized types for different use cases.
 This document explains the four main block types and how they work together.
 
 ### Block Type Hierarchy
@@ -17,14 +17,14 @@ Block (Base)
 
 ## 1. Block (Base Type)
 
-The foundational building block for all interface components. Blocks are pure UI 
+The foundational building block for all interface components. Blocks are pure UI
 configuration objects that represent visual elements without any kind of form input.
 
 ### Structure
 ```typescript
 interface BlockDefinition {
-  type: 'block'    // Type identifier for supporting JSON parsing
-  variant: string  // Component type (heading, content, etc.)
+  type: StructureType.BLOCK    // Type identifier for supporting JSON parsing
+  variant: string              // Component type (heading, content, etc.)
   // ... variant-specific properties
 }
 ```
@@ -53,7 +53,7 @@ const legalNotice = block({
   variant: 'html',
   content: `
     <div>
-      <p class='govuk-body'>By proceeding, you agree to our 
+      <p class='govuk-body'>By proceeding, you agree to our
          <a href="/terms">Terms of Service</a>
       </p>
     </div>
@@ -69,7 +69,7 @@ that are registered into the BlocksRegistry, for UI rendering. Some examples are
 
 ## 2. Field
 
-Fields are specialized blocks that handle form inputs with data binding, 
+Fields are specialized blocks that handle form inputs with data binding,
 validation, and conditional display logic. They extend the base block functionality with form-specific capabilities.
 
 ### Structure
@@ -87,7 +87,7 @@ interface FieldDefinition extends BlockDefinition {
 ### Examples
 ```typescript
 // A conditional text input field
-// This field has two validation rules; 
+// This field has two validation rules;
 // 1. If no value is entered, then validation error with "Enter which other drug they've misused"
 // 2. If value is over max length of 200 characters, then validation
 //    error with "Enter which other drug they've misused"
@@ -101,6 +101,7 @@ const otherDrugNameField: TextField = field({
     text: 'What other drugs have been misused?',
     classes: GovUKClasses.visuallyHidden,
   },
+  formatters: [ Transformers.String.Trim() ],
   validate: [
     when(Self().not.match(Condition.IsRequired()))
       .then("Enter which other drug they've misused"),
@@ -112,7 +113,7 @@ const otherDrugNameField: TextField = field({
 })
 
 // A radio input field that is always shown (no dependent)
-// This field has a single validation rule; 
+// This field has a single validation rule;
 // 1. If no value is entered, then validation error with "Select if they've ever misused drugs"
 const drugUse: RadioField = field({
   variant: 'radio',
@@ -130,22 +131,27 @@ const drugUse: RadioField = field({
 ```
 ### Concepts
 #### `code`
-The unique identifier that determines where the field's value is stored and retrieved. When rendered as HTML, 
-the code becomes the field's name attribute, making it the key used to access the field's 
+The unique identifier that determines where the field's value is stored and retrieved. When rendered as HTML,
+the code becomes the field's name attribute, making it the key used to access the field's
 value in form submissions (POST data) and stored answers.
 
+#### `formatters`
+Formatters take an array of Transformers to apply to the value of a field on submission. These are
+mainly used to trim spaces off text (`Transformers.String.Trim()`), convert to Int (`Transformers.String.ToInt`) etc.
+These are applied in the order of the array.
+
 #### `validate`
-Validation rules define conditions that determine when a field's value is invalid and should 
+Validation rules define conditions that determine when a field's value is invalid and should
 display an error message to the user. Each rule consists of:
 
 1. A predicate expression that evaluates to true or false
 2. A corresponding error message to display when validation fails
 
-These rules typically use negative logic (with .not.match()) to check for invalid conditions 
+These rules typically use negative logic (with .not.match()) to check for invalid conditions
 rather than valid ones. This approach allows the system to identify and report specific validation failures.
 
 #### `dependent`
-The dependent property determines whether a field should be included in form processing 
+The dependent property determines whether a field should be included in form processing
 based on conditional logic. It serves two critical functions:
 
 1. Validation Control: When a field's dependent condition evaluates to false,
@@ -156,7 +162,7 @@ Here's a section for CompositeBlock that follows the same style and structure:
 
 ## 3. CompositeBlock
 
-CompositeBlocks are containers that group other blocks together for structural organization and visual layout. 
+CompositeBlocks are containers that group other blocks together for structural organization and visual layout.
 They provide a way to create reusable form sections and organize related fields into logical groups.
 
 ### Structure
@@ -186,7 +192,7 @@ const personalDetailsFieldset = block({
       ]
     }),
     field({
-      variant: 'text', 
+      variant: 'text',
       code: 'last_name',
       label: 'Last Name',
       validate: [
@@ -222,7 +228,7 @@ const billingAddressSection = block({
     }),
     field({
       variant: 'text',
-      code: 'billing_city', 
+      code: 'billing_city',
       label: 'City',
       dependent: when(Answer('same_as_delivery').not.match(Condition.MatchesValue(true))),
     }),
@@ -238,15 +244,15 @@ const billingAddressSection = block({
 
 ### Concepts
 #### `blocks`
-An array of child blocks (Fields, Blocks, or other CompositeBlocks) that are contained within this composite block. 
+An array of child blocks (Fields, Blocks, or other CompositeBlocks) that are contained within this composite block.
 These child blocks are rendered as a group together.
 
 Here's a section for CollectionBlock following the same style:
 
 ## 4. CollectionBlock
 
-CollectionBlocks iterate over arrays of data to generate repeated form sections dynamically. 
-They use templates that are instantiated for each item in a collection, allowing forms to 
+CollectionBlocks iterate over arrays of data to generate repeated form sections dynamically.
+They use templates that are instantiated for each item in a collection, allowing forms to
 handle variable amounts of data efficiently.
 
 ### Structure
@@ -327,15 +333,15 @@ const drugUsageCollection = block({
 ### Concepts
 
 #### `template`
-An array of blocks that serve as the blueprint for each item in the collection. 
-The template is repeated once for every item, with `Item()` references resolved to the current item's data. 
+An array of blocks that serve as the blueprint for each item in the collection.
+The template is repeated once for every item, with `Item()` references resolved to the current item's data.
 Templates can contain any type of block: Fields, Blocks, or even nested CompositeBlocks.
 
 #### `collectionContext`
-Configuration that defines the data source and iteration behavior. The `collection` property 
+Configuration that defines the data source and iteration behavior. The `collection` property
 specifies which array to iterate over, while the optional `target` property can focus on a specific item or index within the collection.
 
 #### Dynamic Field Generation
 When using fields in CollectionBlocks, it's worth giving them unique `code` attributes by combining the
-`Format()` expression with an `Item()` reference. This ensures each repeated 
+`Format()` expression with an `Item()` reference. This ensures each repeated
 field has a distinct identifier while maintaining a predictable naming pattern.

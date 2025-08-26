@@ -1,4 +1,5 @@
 import GeneralConditions from './generalConditions'
+import { FunctionType } from '../types/enums'
 
 describe('GeneralConditions', () => {
   describe('IsRequired', () => {
@@ -57,7 +58,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.IsRequired()
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'isRequired',
         arguments: [],
       })
@@ -136,7 +137,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.Equals('expectedValue')
       expect(expr).toEqual({
-        type: 'function',
+        type: FunctionType.CONDITION,
         name: 'equals',
         arguments: ['expectedValue'],
       })

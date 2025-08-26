@@ -1,4 +1,5 @@
 import { ConditionalExpr, PredicateExpr, PredicateTestExpr, ValueExpr } from '../types/expressions.type'
+import { LogicType } from '../types/enums'
 
 /**
  * Represents a value that can be returned from a conditional branch.
@@ -47,7 +48,7 @@ export class ConditionalExprBuilder {
    */
   private build(): ConditionalExpr {
     return {
-      type: 'conditional',
+      type: LogicType.CONDITIONAL,
       predicate: this.predicate,
       thenValue: this.thenValue,
       elseValue: this.elseValue,
