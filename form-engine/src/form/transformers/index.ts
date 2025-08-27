@@ -1,5 +1,6 @@
 import ArrayTransformers from './arrayTransformers'
 import NumberTransformers from './numberTransformers'
+import ObjectTransformers from './objectTransformers'
 import StringTransformers from './stringTransformers'
 
 export const Transformer = {
@@ -11,4 +12,7 @@ export const Transformer = {
 
   /** Transformers for handling arrays */
   Array: ArrayTransformers,
+
+  /** Transformers for handling objects */
+  Object: ObjectTransformers,
 }
