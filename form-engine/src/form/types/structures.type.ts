@@ -1,6 +1,7 @@
 import {
   FunctionExpr,
   PipelineExpr,
+  PredicateExpr,
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
@@ -59,6 +60,54 @@ export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefi
 }
 
 /**
+ * Represents a validation rule for a form field.
+ * Includes the validation logic, error message, and execution context.
+ *
+ * @example
+ * // Using fluent builder syntax
+ * validation({
+ *   when: Answer('age').not.match(Condition.Number.IsBetween(18, 65)),
+ *   message: 'Age must be between 18 and 65',
+ *   details: { field: 'age', errorType: 'range' }
+ * })
+ *
+ * @example
+ * // Using object notation
+ * {
+ *   type: 'validation',
+ *   when: {
+ *     type: 'test',
+ *     subject: { type: 'reference', path: ['answers', 'email'] },
+ *     negate: true,
+ *     condition: { type: 'function', name: 'isRequired', arguments: [] }
+ *   },
+ *   message: 'Email address is required',
+ *   submissionOnly: false
+ * }
+ */
+export interface ValidationExpr {
+  type: 'validation'
+
+  /** The predicate expression that determines if validation passes */
+  when: PredicateExpr | PredicateTestExprBuilder
+
+  /** Error message to display when validation fails */
+  message: string
+
+  /**
+   * If true, this validation is only checked at submission time,
+   * not during journey path traversal. Defaults to false.
+   */
+  submissionOnly?: boolean
+
+  /**
+   * Optional details that can be used by components for enhanced error handling.
+   * For example, to specify which sub-field in a composite field should be highlighted.
+   */
+  details?: Record<string, any>
+}
+
+/**
  * Block definition for form field blocks.
  * Represents user input fields with validation and formatting.
  */
@@ -75,11 +124,11 @@ export interface FieldBlockDefinition extends BlockDefinition {
   /** Conditional visibility - field is hidden when this evaluates to truthy */
   hidden?: ConditionalBoolean
 
-  /** Array of validation error messages currently active on the field */
-  errors?: readonly string[]
+  /** Array of validation errors currently active on the field */
+  errors?: readonly { message: string; details?: Record<string, any> }[]
 
   /** Array of validation rules to apply to the field value */
-  validate?: readonly (ConditionalExpr | ConditionalExprBuilder)[]
+  validate?: readonly ValidationExpr[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
   dependent?: PredicateTestExpr | PredicateTestExprBuilder

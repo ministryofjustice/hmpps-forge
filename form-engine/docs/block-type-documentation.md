@@ -42,7 +42,7 @@ const checkAnswersBeforeSendingExamplehHeadingBlock = block({
 // Expanding details block
 const nationalityExampleDetailsBlock = block({
   variant: 'details',
-  summaryText: 'Help with nationality'
+  summaryText: 'Help with nationality',
   text: `We need to know your nationality so we can work out which
         elections you’re entitled to vote in. If you cannot provide your
         nationality, you’ll have to send copies of identity documents through the post.`
@@ -61,6 +61,7 @@ const legalNotice = block({
 })
 ```
 ### Concepts
+
 #### `block`
 All blocks are marked as `block` as their type. This is so they can easily be identified during JSON parsing.
 #### `variant`
@@ -78,7 +79,7 @@ validation, and conditional display logic. They extend the base block functional
 interface FieldDefinition extends BlockDefinition {
   code: ConditionalString             // Data binding key
   value?: ConditionalString           // Default value
-  validate?: CompiledRule[]           // Validation rules
+  validate?: ValidationExpr[]         // Validation rules
   dependent?: CompiledRule            // Conditional display/validation rule
   // ... variant-specific properties
 }
@@ -103,11 +104,14 @@ const otherDrugNameField: TextField = field({
   },
   formatters: [ Transformers.String.Trim() ],
   validate: [
-    when(Self().not.match(Condition.IsRequired()))
-      .then("Enter which other drug they've misused"),
-    when(Self().not.match(Condition.HasMaxLength(characterLimits.c200)))
-      .then(`Drug name must be ${characterLimits.c200} characters or less`,
-    ),
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: "Enter which other drug they've misused"
+    }),
+    validation({
+      when: Self().not.match(Condition.HasMaxLength(characterLimits.c200)),
+      message: `Drug name must be ${characterLimits.c200} characters or less`
+    }),
   ],
   dependent: when(Answer('select_misused_drugs').match(Condition.Contains('OTHER_DRUG'))),
 })
@@ -120,8 +124,10 @@ const drugUse: RadioField = field({
   code: 'drug_use',
   hint: 'This includes illegal and prescription drugs.',
   validate: [
-    when(Self().not.match(Condition.IsRequired()))
-      .then("Select if they've ever misused drugs")
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: "Select if they've ever misused drugs"
+    })
   ],
   items: [
     { value: 'YES', label: 'Yes' },
@@ -130,6 +136,7 @@ const drugUse: RadioField = field({
 })
 ```
 ### Concepts
+
 #### `code`
 The unique identifier that determines where the field's value is stored and retrieved. When rendered as HTML,
 the code becomes the field's name attribute, making it the key used to access the field's
@@ -142,10 +149,13 @@ These are applied in the order of the array.
 
 #### `validate`
 Validation rules define conditions that determine when a field's value is invalid and should
-display an error message to the user. Each rule consists of:
+display an error message to the user. Each rule is a `ValidationExpr` with:
 
-1. A predicate expression that evaluates to true or false
-2. A corresponding error message to display when validation fails
+1. `when: PredicateExpr` - A predicate expression that when true triggers validation failure
+2. `message: string` - Error message to display when validation fails
+3. `submissionOnly?: boolean` - If true, only checked at submission time, not during journey traversal
+4. `details?: Record<string, string>` - Details to include about the error, can be
+   used for highlighting severity or specific sub-field in a composite component that failed validation.
 
 These rules typically use negative logic (with .not.match()) to check for invalid conditions
 rather than valid ones. This approach allows the system to identify and report specific validation failures.
@@ -187,8 +197,10 @@ const personalDetailsFieldset = block({
       code: 'first_name',
       label: 'First Name',
       validate: [
-        when(Self().not.match(Condition.IsRequired()))
-          .then('First name is required')
+        validation({
+          when: Self().not.match(Condition.IsRequired()),
+          message: 'First name is required'
+        })
       ]
     }),
     field({
@@ -196,8 +208,10 @@ const personalDetailsFieldset = block({
       code: 'last_name',
       label: 'Last Name',
       validate: [
-        when(Self().not.match(Condition.IsRequired()))
-          .then('Last name is required')
+        validation({
+          when: Self().not.match(Condition.IsRequired()),
+          message: 'Last name is required'
+        })
       ]
     }),
     field({
@@ -205,10 +219,14 @@ const personalDetailsFieldset = block({
       code: 'email',
       label: 'Email Address',
       validate: [
-        when(Self().not.match(Condition.IsRequired()))
-          .then('Email is required'),
-        when(Self().not.match(Condition.IsEmail()))
-          .then('Enter a valid email address')
+        validation({
+          when: Self().not.match(Condition.IsRequired()),
+          message: 'Email is required'
+        }),
+        validation({
+          when: Self().not.match(Condition.IsEmail()),
+          message: 'Enter a valid email address'
+        })
       ]
     })
   ]
@@ -243,6 +261,7 @@ const billingAddressSection = block({
 ```
 
 ### Concepts
+
 #### `blocks`
 An array of child blocks (Fields, Blocks, or other CompositeBlocks) that are contained within this composite block.
 These child blocks are rendered as a group together.
@@ -283,8 +302,10 @@ const savedAddressesCollection = block({
       label: 'Street Address',
       value: Item('street'),  // Pre-populate from collection item
       validate: [
-        when(Self().not.match(Condition.IsRequired()))
-          .then('Street address is required')
+        validation({
+          when: Self().not.match(Condition.IsRequired()),
+          message: 'Street address is required'
+        })
       ]
     }),
     field({
@@ -319,8 +340,10 @@ const drugUsageCollection = block({
         { label: 'Used more than 6 months ago', value: 'MORE_THAN_SIX' }
       ],
       validate: [
-        when(Self().not.match(Condition.IsRequired()))
-          .then('Select when they last used this drug')
+        validation({
+          when: Self().not.match(Condition.IsRequired()),
+          message: 'Select when they last used this drug'
+        })
       ]
     }),
   ],
@@ -342,6 +365,7 @@ Configuration that defines the data source and iteration behavior. The `collecti
 specifies which array to iterate over, while the optional `target` property can focus on a specific item or index within the collection.
 
 #### Dynamic Field Generation
+
 When using fields in CollectionBlocks, it's worth giving them unique `code` attributes by combining the
 `Format()` expression with an `Item()` reference. This ensures each repeated
 field has a distinct identifier while maintaining a predictable naming pattern.

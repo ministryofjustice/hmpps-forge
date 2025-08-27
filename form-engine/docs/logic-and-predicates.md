@@ -59,21 +59,6 @@ Answer('email').not.match(Condition.IsEmail())
 Data('user.age').not.match(Condition.GreaterThan(18))
 ```
 
-### Alternative Methods
-> [!WARNING]
-> I don't know how I feel about this but I struggled to come up with one nice word to use.
-> We could probably boil this down to one single option and then remove the aliases.
-
-The system provides semantic aliases for better readability:
-
-```typescript
-// All equivalent - use whichever reads better in context
-Self().match(Condition.IsRequired())
-Self().passes(Condition.IsRequired())
-Self().satisfies(Condition.IsRequired())
-Self().meets(Condition.IsRequired())
-```
-
 ### Output Structure
 
 Test predicates compile to this JSON structure:
@@ -96,12 +81,13 @@ Combine multiple predicates with logical operators to create complex conditions.
 
 ```typescript
 // Both conditions must be true
-when(
-  and(
+validation({
+  when: and(
     Self().not.match(Condition.IsRequired()),
     Answer('optional_field').not.match(Condition.IsRequired())
-  )
-).then('Both fields are empty')
+  ),
+  message: 'Both fields are empty'
+})
 
 // Multiple conditions
 when(
@@ -117,12 +103,13 @@ when(
 
 ```typescript
 // Either condition can be true
-when(
-  or(
-    Answer('phone').match(Condition.IsRequired()),
-    Answer('email').match(Condition.IsRequired())
-  )
-).then('Contact method provided')
+validation({
+  when: or(
+    Answer('phone').not.match(Condition.IsRequired()),
+    Answer('email').not.match(Condition.IsRequired())
+  ),
+  message: 'Provide either phone or email'
+})
 
 // Multiple alternatives
 when(
@@ -138,12 +125,13 @@ when(
 
 ```typescript
 // Exactly one of these should be true, not both
-when(
-  xor(
+validation({
+  when: not(xor(
     Answer('pickup').match(Condition.MatchesValue(true)),
     Answer('delivery').match(Condition.MatchesValue(true))
-  )
-).then('Valid fulfillment option')
+  )),
+  message: 'Choose either pickup or delivery, not both'
+})
 
 // Either start with A OR end with Z, but not both
 when(
@@ -157,23 +145,25 @@ when(
 ### `not()` - Invert Logic
 
 ```typescript
-// Invert an entire logical expression
-when(
-  not(
+// Invert an entire logical expression for validation
+validation({
+  when: not(
     and(
       Answer('terms').match(Condition.MatchesValue(true)),
       Answer('privacy').match(Condition.MatchesValue(true))
     )
-  )
-).then('Must accept both terms and privacy policy')
+  ),
+  message: 'Must accept both terms and privacy policy'
+})
 
 // Equivalent to using .not on individual predicates
-when(
-  or(
+validation({
+  when: or(
     Answer('terms').not.match(Condition.MatchesValue(true)),
     Answer('privacy').not.match(Condition.MatchesValue(true))
-  )
-).then('Must accept both terms and privacy policy')
+  ),
+  message: 'Must accept both terms and privacy policy'
+})
 ```
 
 ## 3. Complex Logic Examples
@@ -183,8 +173,8 @@ when(
 ```typescript
 // Complex validation with multiple levels of logic
 validate: [
-  when(
-    or(
+  validation({
+    when: or(
       // Either both fields are empty
       and(
         Self().not.match(Condition.IsRequired()),
@@ -198,8 +188,9 @@ validate: [
           Self().not.match(Condition.IsRequired())
         )
       )
-    )
-  ).then("Please enter a valid value")
+    ),
+    message: "Please enter a valid value"
+  })
 ]
 ```
 
@@ -210,19 +201,21 @@ The logic system compiles to structured JSON that can be evaluated by the AST:
 ### Simple Test Predicate
 ```typescript
 // Input
-when(Self().not.match(Condition.IsRequired())).then('Required')
+validation({
+  when: Self().not.match(Condition.IsRequired()),
+  message: 'This field is required'
+})
 
 // Output
 {
   type: 'LogicType.Conditional',
-  predicate: {
+  when: {
     type: 'LogicType.Test',
     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: true,
     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
   },
-  thenValue: 'Required',
-  elseValue: false
+  message: 'This field is required'
 }
 ```
 

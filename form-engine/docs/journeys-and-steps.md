@@ -1,6 +1,7 @@
 # Journeys and Steps Documentation
 
 ## Overview
+
 The form system is built on a hierarchical structure where **Journeys** represent
 complete multi-step form flows (like wizards), and **Steps** are the individual pages
 within those journeys. This architecture enables complex, branching form flows with
@@ -17,6 +18,7 @@ Journey (Complete flow)
 ```
 
 ## Journeys
+
 Journeys are the top-level containers that define an entire form flow from start to finish.
 They orchestrate how users move through your forms, managing the overall structure and flow control.
 
@@ -56,6 +58,7 @@ const registrationJourney = journey({
 ```
 
 ### Journey with Child Journeys
+
 Child journeys allow you to compose complex flows from smaller, sub-journeys.
 They can be conditionally included based on user data or choices using each sub-journey's guard.
 
@@ -125,6 +128,7 @@ journey({
 ```
 
 ## Steps
+
 Steps represent individual pages in your form journey. Each step contains blocks (UI components),
 handles data loading, defines transitions to other steps, and manages validation.
 
@@ -158,13 +162,19 @@ const personalDetailsStep = step({
       variant: 'text',
       code: 'first_name',
       label: 'First Name',
-      validate: [ when(Self().not.match(Condition.IsRequired())).then('First name is required') ],
+      validate: [ validation({
+        when: Self().not.match(Condition.IsRequired()),
+        message: 'First name is required'
+      }) ],
     }),
     field({
       variant: 'text',
       code: 'last_name',
       label: 'Last Name',
-      validate: [ when(Self().not.match(Condition.IsRequired())).then('Last name is required') ],
+      validate: [ validation({
+        when: Self().not.match(Condition.IsRequired()),
+        message: 'Last name is required'
+      }) ],
     }),
     block({
       variant: 'button-group',

@@ -70,8 +70,17 @@ types when the condition is used in your form configuration:
 ```typescript
 // TypeScript will enforce correct types
 validate: [
-  when(Self().match(hasMinValue(10))),        // ✓ Correct
-  when(Self().match(hasMinValue('10')))      // ✗ Type error
+  // BAD - Will have a type error
+  validation({
+    when: Self().match(hasMinValue('10')),
+    message: 'Invalid type'
+  }),
+
+  // GOOD - Uses correct type for condition arguments.
+  validation({
+    when: Self().match(hasMinValue(10)),
+    message: 'Value must be at least 10'
+  }),
 ]
 ```
 
@@ -136,15 +145,9 @@ const isStrongPassword = buildConditionFunction(
 For conditions that need to perform asynchronous operations:
 
 > [!IMPORTANT]
-> If you do use an external data source for validation/conditional logic, expect that the data may change and then
-> cause a user to be reverted to an earlier step in the journey if it was used for validation (due to journey path
-> transversal checking). I would recommend against doing this.
-
->[!WARNING]
-> There's probably some kind of solution to the above warning where a function/validation operation can be marked
-> as non-pure so it's skipped for validation checking when doing journey path transversal checks. That would
-> allow for a nice mixture of at-submission validation, like the below example for unique usernames, as this would
-> cause a failure in subsequent validation check (as the username would now have been registered).
+> If you do use an external data source for validation/conditional logic, expect that the data may change.
+> Use `submissionOnly` for these validations to not trap the user to an earlier step in the form when they
+> next access previously submitted form data.
 
 ```typescript
 const isUniqueUsername = buildConditionFunction(
@@ -264,8 +267,14 @@ const matchesLength = buildConditionFunction(
 
 // Can be used in multiple ways
 validate: [
-  when(Self().not.match(matchesLength(5))).then('Minimum 5 characters'),
-  when(Self().not.match(matchesLength(5, 20))).then('Between 5-20 characters')
+  validation({
+    when: Self().not.match(matchesLength(5)),
+    message: 'Minimum 5 characters'
+  }),
+  validation({
+    when: Self().not.match(matchesLength(5, 20)),
+    message: 'Between 5-20 characters'
+  })
 ]
 ```
 
@@ -276,14 +285,16 @@ When custom functions are used in form configuration, they compile to the standa
 ```typescript
 // Usage in configuration
 validate: [
-  when(Self().match(isStrongPassword({ minLength: 12 })))
-    .then('Valid password')
+  validation({
+    when: Self().match(isStrongPassword({ minLength: 12 })),
+    message: 'Valid password'
+  })
 ]
 
 // Compiles to JSON
 {
-  type: 'LogicType.Conditional',
-  predicate: {
+  type: 'validation',
+  when: {
     type: 'LogicType.Test',
     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
     negate: false,
@@ -293,8 +304,7 @@ validate: [
       arguments: [{ minLength: 12 }]
     }
   },
-  thenValue: 'Valid password',
-  elseValue: false
+  message: 'Valid password'
 }
 ```
 

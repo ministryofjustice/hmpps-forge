@@ -1,5 +1,11 @@
 import { finaliseBuilders } from './utils/finaliseBuilders'
-import { BlockDefinition, FieldBlockDefinition, JourneyDefinition, StepDefinition } from '../types/structures.type'
+import {
+  BlockDefinition,
+  FieldBlockDefinition,
+  JourneyDefinition,
+  StepDefinition,
+  ValidationExpr,
+} from '../types/structures.type'
 import { SkipValidationTransition, TransitionExpr, ValidatingTransition } from '../types/expressions.type'
 import { StructureType } from '../types/enums'
 
@@ -37,5 +43,12 @@ export function transition(definition: Omit<TransitionExpr, 'type'>): Transition
   return finaliseBuilders({
     ...definition,
     type: 'transition',
+  }) as any
+}
+
+export function validation(definition: Omit<ValidationExpr, 'type'>): ValidationExpr {
+  return finaliseBuilders({
+    ...definition,
+    type: 'validation',
   }) as any
 }
