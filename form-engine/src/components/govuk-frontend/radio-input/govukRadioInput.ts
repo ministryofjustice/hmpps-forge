@@ -287,8 +287,10 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
     html: option.html,
     id: option.id,
     hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
-    checked: checkedValue === option.value || option.checked,
-    conditional: option.block,
+    checked: checkedValue === option.value || (option.checked ?? false),
+    conditional: option.block && {
+      html: option.block.html,
+    },
     disabled: option.disabled,
     attributes: option.attributes,
   }
