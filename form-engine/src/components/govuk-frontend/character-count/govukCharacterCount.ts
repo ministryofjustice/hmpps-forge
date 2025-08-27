@@ -1,5 +1,10 @@
 import nunjucks from 'nunjucks'
-import { ConditionalBoolean, ConditionalString, FieldBlockDefinition } from '../../../form/types/structures.type'
+import {
+  ConditionalBoolean,
+  ConditionalNumber,
+  ConditionalString,
+  FieldBlockDefinition,
+} from '../../../form/types/structures.type'
 import { buildComponent } from '../../../form/helpers/createComponent'
 
 /**
@@ -44,19 +49,19 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * The maximum number of characters allowed.
    * If `maxWords` is provided, this option will be ignored.
    * Either `maxLength` or `maxWords` must be specified.
-   * @example '200' // Allow up to 200 characters
-   * @example '1000' // Allow up to 1000 characters
+   * @example 200 // Allow up to 200 characters
+   * @example 1000 // Allow up to 1000 characters
    */
-  maxLength?: ConditionalString
+  maxLength?: ConditionalNumber
 
   /**
    * The maximum number of words allowed.
    * If provided, this takes precedence over `maxLength`.
    * Either `maxLength` or `maxWords` must be specified.
-   * @example '150' // Allow up to 150 words
-   * @example '500' // Allow up to 500 words
+   * @example 150 // Allow up to 150 words
+   * @example 500 // Allow up to 500 words
    */
-  maxWords?: ConditionalString
+  maxWords?: ConditionalNumber
 
   /**
    * The percentage value of the limit at which the count message is displayed.
