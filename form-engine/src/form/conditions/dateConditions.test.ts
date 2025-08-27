@@ -2,36 +2,71 @@ import DateConditions from './dateConditions'
 import { FunctionType } from '../types/enums'
 
 describe('DateConditions', () => {
+  describe('IsValid', () => {
+    const { evaluate } = DateConditions.IsValid.spec
+
+    test('should return true for valid ISO date strings', () => {
+      expect(evaluate('2025-09-05')).toBe(true)
+      expect(evaluate('2024-12-31')).toBe(true)
+      expect(evaluate('2000-02-29')).toBe(true) // Leap year
+      expect(evaluate('2023-02-28')).toBe(true)
+      expect(evaluate('1999-01-01')).toBe(true)
+    })
+
+    test('should return false for invalid ISO date strings', () => {
+      expect(evaluate('2025-02-30')).toBe(false) // February doesn't have 30 days
+      expect(evaluate('2023-02-29')).toBe(false) // Not a leap year
+      expect(evaluate('2025-04-31')).toBe(false) // April only has 30 days
+      expect(evaluate('2025-13-01')).toBe(false) // Invalid month
+      expect(evaluate('2025-00-01')).toBe(false) // Invalid month
+      expect(evaluate('2025-01-00')).toBe(false) // Invalid day
+      expect(evaluate('2025-01-32')).toBe(false) // Invalid day
+    })
+
+    test('should return false for malformed date strings', () => {
+      expect(evaluate('2024-1-1')).toBe(false)
+      expect(evaluate('24-01-01')).toBe(false)
+      expect(evaluate('2024/01/01')).toBe(false)
+      expect(evaluate('invalid')).toBe(false)
+    })
+
+    test('should validate input type', () => {
+      expect(() => evaluate(123)).toThrow('Condition.Date.IsValid expects a string but received number')
+    })
+
+    test('should build correct expression object', () => {
+      const expr = DateConditions.IsValid()
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'dateIsValid',
+        arguments: [],
+      })
+    })
+  })
+
   describe('IsValidYear', () => {
     const { evaluate } = DateConditions.IsValidYear.spec
 
-    test('should return true for valid 4-digit years', () => {
-      expect(evaluate(2024)).toBe(true)
-      expect(evaluate(1000)).toBe(true)
-      expect(evaluate(9999)).toBe(true)
-      expect(evaluate(1900)).toBe(true)
-      expect(evaluate(2000)).toBe(true)
+    test('should return true for valid years in ISO date strings', () => {
+      expect(evaluate('2024-01-01')).toBe(true)
+      expect(evaluate('1000-12-31')).toBe(true)
+      expect(evaluate('9999-01-01')).toBe(true)
+      expect(evaluate('2000-02-29')).toBe(true)
     })
 
-    test('should return false for years outside valid range', () => {
-      expect(evaluate(999)).toBe(false)
-      expect(evaluate(10000)).toBe(false)
-      expect(evaluate(0)).toBe(false)
-      expect(evaluate(-2024)).toBe(false)
+    test('should return false for invalid years', () => {
+      expect(evaluate('0999-01-01')).toBe(false)
+      expect(evaluate('999-01-01')).toBe(false)
     })
 
-    test('should return false for non-integer years', () => {
-      expect(evaluate(2024.5)).toBe(false)
-      expect(evaluate(2024.1)).toBe(false)
-      expect(evaluate(1999.999)).toBe(false)
+    test('should return false for malformed date strings', () => {
+      expect(evaluate('24-01-01')).toBe(false)
+      expect(evaluate('2024-1-1')).toBe(false)
+      expect(evaluate('invalid')).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('2024')).toThrow('Condition.Date.IsValidMonth expects a number but received string')
-      expect(() => evaluate(null)).toThrow('Condition.Date.IsValidMonth expects a number but received object')
-      expect(() => evaluate(undefined)).toThrow('Condition.Date.IsValidMonth expects a number but received undefined')
-      expect(() => evaluate(true)).toThrow('Condition.Date.IsValidMonth expects a number but received boolean')
-      expect(() => evaluate(NaN)).toThrow('Condition.Date.IsValidMonth expects a number but received NaN')
+    test('should validate input type', () => {
+      expect(() => evaluate(2024)).toThrow('Condition.Date.IsValidYear expects a string but received number')
     })
 
     test('should build correct expression object', () => {
@@ -47,31 +82,24 @@ describe('DateConditions', () => {
   describe('IsValidMonth', () => {
     const { evaluate } = DateConditions.IsValidMonth.spec
 
-    test('should return true for valid months (1-12)', () => {
-      expect(evaluate(1)).toBe(true)
-      expect(evaluate(6)).toBe(true)
-      expect(evaluate(12)).toBe(true)
-      expect(evaluate(2)).toBe(true)
-      expect(evaluate(11)).toBe(true)
+    test('should return true for valid months in ISO date strings', () => {
+      expect(evaluate('1990-01-01')).toBe(true)
+      expect(evaluate('1990-02-29')).toBe(true)
+      expect(evaluate('1990-09-05')).toBe(true)
     })
 
     test('should return false for invalid months', () => {
-      expect(evaluate(0)).toBe(false)
-      expect(evaluate(13)).toBe(false)
-      expect(evaluate(-1)).toBe(false)
-      expect(evaluate(100)).toBe(false)
+      expect(evaluate('2021-00-01')).toBe(false)
+      expect(evaluate('2021-13-01')).toBe(false)
     })
 
-    test('should reject decimal values', () => {
-      expect(evaluate(0.5)).toBe(false)
-      expect(evaluate(13.1)).toBe(false)
+    test('should return false for malformed date strings', () => {
+      expect(evaluate('2024-1-01')).toBe(false)
+      expect(evaluate('invalid')).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('6')).toThrow('Condition.Date.IsValidMonth expects a number but received string')
-      expect(() => evaluate([])).toThrow('Condition.Date.IsValidMonth expects a number but received object')
-      expect(() => evaluate(false)).toThrow('Condition.Date.IsValidMonth expects a number but received boolean')
-      expect(() => evaluate(NaN)).toThrow('Condition.Date.IsValidMonth expects a number but received NaN')
+    test('should validate input type', () => {
+      expect(() => evaluate(12)).toThrow('Condition.Date.IsValidMonth expects a string but received number')
     })
 
     test('should build correct expression object', () => {
@@ -87,31 +115,43 @@ describe('DateConditions', () => {
   describe('IsValidDay', () => {
     const { evaluate } = DateConditions.IsValidDay.spec
 
-    test('should return true for valid days (1-31)', () => {
-      expect(evaluate(1)).toBe(true)
-      expect(evaluate(15)).toBe(true)
-      expect(evaluate(31)).toBe(true)
-      expect(evaluate(28)).toBe(true)
-      expect(evaluate(30)).toBe(true)
+    test('should return true for valid days in regular months', () => {
+      expect(evaluate('2024-01-15')).toBe(true) // January (31 days)
+      expect(evaluate('2024-04-30')).toBe(true) // April (30 days)
+      expect(evaluate('2024-06-15')).toBe(true) // June (30 days)
+      expect(evaluate('2024-12-31')).toBe(true) // December (31 days)
     })
 
-    test('should return false for invalid days', () => {
-      expect(evaluate(0)).toBe(false)
-      expect(evaluate(32)).toBe(false)
-      expect(evaluate(-1)).toBe(false)
-      expect(evaluate(100)).toBe(false)
+    test('should return false for invalid days in specific months', () => {
+      expect(evaluate('2024-02-30')).toBe(false) // February doesn't have 30 days
+      expect(evaluate('2023-02-29')).toBe(false) // 2023 is not a leap year
+      expect(evaluate('2024-04-31')).toBe(false) // April only has 30 days
+      expect(evaluate('2025-06-31')).toBe(false) // June only has 30 days
+      expect(evaluate('2025-01-32')).toBe(false) // January doesn't have 32 days
     })
 
-    test('should reject decimal values', () => {
-      expect(evaluate(1.5)).toBe(false)
-      expect(evaluate(12.2)).toBe(false)
+    test('should return false for generally invalid days', () => {
+      expect(evaluate('2024-01-00')).toBe(false)
+      expect(evaluate('2024-13-15')).toBe(false)
+      expect(evaluate('2024-00-15')).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('15')).toThrow('Condition.Date.IsValidDay expects a number but received string')
-      expect(() => evaluate(null)).toThrow('Condition.Date.IsValidDay expects a number but received object')
-      expect(() => evaluate(undefined)).toThrow('Condition.Date.IsValidDay expects a number but received undefined')
-      expect(() => evaluate(NaN)).toThrow('Condition.Date.IsValidDay expects a number but received NaN')
+    test('should return false for malformed date strings', () => {
+      expect(evaluate('2024-1-1')).toBe(false)
+      expect(evaluate('24-01-01')).toBe(false)
+      expect(evaluate('2024/01/01')).toBe(false)
+      expect(evaluate('invalid')).toBe(false)
+    })
+
+    test('should handle leap year edge cases correctly', () => {
+      expect(evaluate('2000-02-29')).toBe(true)
+      expect(evaluate('2004-02-29')).toBe(true)
+      expect(evaluate('1900-02-29')).toBe(false)
+      expect(evaluate('2001-02-29')).toBe(false)
+    })
+
+    test('should validate input type', () => {
+      expect(() => evaluate(15)).toThrow('Condition.Date.IsValidDay expects a string but received number')
     })
 
     test('should build correct expression object', () => {
@@ -128,73 +168,42 @@ describe('DateConditions', () => {
     const { evaluate } = DateConditions.IsBefore.spec
 
     test('should return true when date is before comparison date', () => {
-      const date1 = new Date('2024-01-01')
-      const date2 = new Date('2024-06-01')
-      const date3 = new Date('2023-12-31')
-
-      expect(evaluate(date1, '2024-12-31')).toBe(true)
-      expect(evaluate(date2, '2024-12-31')).toBe(true)
-      expect(evaluate(date3, '2024-01-01')).toBe(true)
+      expect(evaluate('2024-01-01', '2024-01-02')).toBe(true)
+      expect(evaluate('2023-12-31', '2024-01-01')).toBe(true)
+      expect(evaluate('2024-01-15', '2024-02-01')).toBe(true)
+      expect(evaluate('2020-01-01', '2024-01-01')).toBe(true)
     })
 
     test('should return false when date is equal to comparison date', () => {
-      const date = new Date('2024-01-01T00:00:00')
-      expect(evaluate(date, '2024-01-01T00:00:00')).toBe(false)
+      expect(evaluate('2024-01-01', '2024-01-01')).toBe(false)
+      expect(evaluate('2024-12-31', '2024-12-31')).toBe(false)
     })
 
     test('should return false when date is after comparison date', () => {
-      const date1 = new Date('2024-12-31')
-      const date2 = new Date('2024-01-02')
-
-      expect(evaluate(date1, '2024-01-01')).toBe(false)
-      expect(evaluate(date2, '2024-01-01')).toBe(false)
+      expect(evaluate('2024-01-02', '2024-01-01')).toBe(false)
+      expect(evaluate('2024-01-01', '2023-12-31')).toBe(false)
+      expect(evaluate('2024-02-01', '2024-01-15')).toBe(false)
     })
 
-    test('should handle various date string formats', () => {
-      const date = new Date('2024-01-15')
-
-      expect(evaluate(date, '2024-02-01')).toBe(true)
-      expect(evaluate(date, '2024/02/01')).toBe(true)
-      expect(evaluate(date, 'February 1, 2024')).toBe(true)
-      expect(evaluate(date, '2024-02-01T10:30:00')).toBe(true)
+    test('should validate input type', () => {
+      expect(() => evaluate(123, '2024-01-01')).toThrow('Condition.Date.IsBefore expects a string but received number')
     })
 
-    test('should handle time components correctly', () => {
-      const date = new Date('2024-01-01T12:00:00')
-
-      expect(evaluate(date, '2024-01-01T13:00:00')).toBe(true)
-      expect(evaluate(date, '2024-01-01T11:00:00')).toBe(false)
-    })
-
-    test('should throw error when value is not a Date', () => {
-      expect(() => evaluate('2024-01-01', '2024-12-31')).toThrow(
-        'Condition.Date.IsBefore expects a Date object but received string',
+    test('should throw error when value is invalid date string', () => {
+      expect(() => evaluate('invalid-date', '2024-01-01')).toThrow(
+        'Condition.Date.IsBefore: Invalid date string "invalid-date"',
       )
-      expect(() => evaluate(1704067200000, '2024-12-31')).toThrow(
-        'Condition.Date.IsBefore expects a Date object but received number',
-      )
-      expect(() => evaluate(null, '2024-12-31')).toThrow(
-        'Condition.Date.IsBefore expects a Date object but received object',
+      expect(() => evaluate('2024-13-01', '2024-01-01')).toThrow(
+        'Condition.Date.IsBefore: Invalid date string "2024-13-01"',
       )
     })
 
     test('should throw error when comparison date string is invalid', () => {
-      const date = new Date('2024-01-01')
-
-      expect(() => evaluate(date, 'invalid-date')).toThrow(
+      expect(() => evaluate('2024-01-01', 'invalid-date')).toThrow(
         'Condition.Date.IsBefore: Invalid comparison date string "invalid-date"',
       )
-      expect(() => evaluate(date, '')).toThrow('Condition.Date.IsBefore: Invalid comparison date string ""')
-      expect(() => evaluate(date, '2024-13-01')).toThrow(
+      expect(() => evaluate('2024-01-01', '2024-13-01')).toThrow(
         'Condition.Date.IsBefore: Invalid comparison date string "2024-13-01"',
-      )
-    })
-
-    test('should throw error for invalid Date objects', () => {
-      const invalidDate = new Date('invalid')
-
-      expect(() => evaluate(invalidDate, '2024-01-01')).toThrow(
-        'Condition.Date.IsBefore received an invalid Date object',
       )
     })
 
@@ -212,73 +221,36 @@ describe('DateConditions', () => {
     const { evaluate } = DateConditions.IsAfter.spec
 
     test('should return true when date is after comparison date', () => {
-      const date1 = new Date('2024-12-31')
-      const date2 = new Date('2024-06-01')
-      const date3 = new Date('2024-01-02')
-
-      expect(evaluate(date1, '2024-01-01')).toBe(true)
-      expect(evaluate(date2, '2024-01-01')).toBe(true)
-      expect(evaluate(date3, '2024-01-01')).toBe(true)
+      expect(evaluate('2024-01-02', '2024-01-01')).toBe(true)
+      expect(evaluate('2024-01-01', '2023-12-31')).toBe(true)
+      expect(evaluate('2024-02-01', '2024-01-15')).toBe(true)
+      expect(evaluate('2024-01-01', '2020-01-01')).toBe(true)
     })
 
     test('should return false when date is equal to comparison date', () => {
-      const date = new Date('2024-01-01T00:00:00')
-      expect(evaluate(date, '2024-01-01T00:00:00')).toBe(false)
+      expect(evaluate('2024-01-01', '2024-01-01')).toBe(false)
+      expect(evaluate('2024-12-31', '2024-12-31')).toBe(false)
     })
 
     test('should return false when date is before comparison date', () => {
-      const date1 = new Date('2023-12-31')
-      const date2 = new Date('2024-01-01')
-
-      expect(evaluate(date1, '2024-01-01')).toBe(false)
-      expect(evaluate(date2, '2024-12-31')).toBe(false)
+      expect(evaluate('2024-01-01', '2024-01-02')).toBe(false)
+      expect(evaluate('2023-12-31', '2024-01-01')).toBe(false)
+      expect(evaluate('2024-01-15', '2024-02-01')).toBe(false)
     })
 
-    test('should handle various date string formats', () => {
-      const date = new Date('2024-02-15')
-
-      expect(evaluate(date, '2024-02-01')).toBe(true)
-      expect(evaluate(date, '2024/02/01')).toBe(true)
-      expect(evaluate(date, 'February 1, 2024')).toBe(true)
-      expect(evaluate(date, '2024-02-01T10:30:00')).toBe(true)
+    test('should validate input type', () => {
+      expect(() => evaluate(123, '2024-01-01')).toThrow('Condition.Date.IsAfter expects a string but received number')
     })
 
-    test('should handle time components correctly', () => {
-      const date = new Date('2024-01-01T12:00:00')
-
-      expect(evaluate(date, '2024-01-01T11:00:00')).toBe(true)
-      expect(evaluate(date, '2024-01-01T13:00:00')).toBe(false)
-    })
-
-    test('should throw error when value is not a Date', () => {
-      expect(() => evaluate('2024-12-31', '2024-01-01')).toThrow(
-        'Condition.Date.IsAfter expects a Date object but received string',
-      )
-      expect(() => evaluate(1704067200000, '2024-01-01')).toThrow(
-        'Condition.Date.IsAfter expects a Date object but received number',
-      )
-      expect(() => evaluate({}, '2024-01-01')).toThrow(
-        'Condition.Date.IsAfter expects a Date object but received object',
+    test('should throw error when value is invalid date string', () => {
+      expect(() => evaluate('invalid-date', '2024-01-01')).toThrow(
+        'Condition.Date.IsAfter: Invalid date string "invalid-date"',
       )
     })
 
     test('should throw error when comparison date string is invalid', () => {
-      const date = new Date('2024-01-01')
-
-      expect(() => evaluate(date, 'not-a-date')).toThrow(
-        'Condition.Date.IsAfter: Invalid comparison date string "not-a-date"',
-      )
-      expect(() => evaluate(date, '')).toThrow('Condition.Date.IsAfter: Invalid comparison date string ""')
-      expect(() => evaluate(date, '2024-00-01')).toThrow(
-        'Condition.Date.IsAfter: Invalid comparison date string "2024-00-01"',
-      )
-    })
-
-    test('should throw error for invalid Date objects', () => {
-      const invalidDate = new Date('invalid')
-
-      expect(() => evaluate(invalidDate, '2024-01-01')).toThrow(
-        'Condition.Date.IsAfter received an invalid Date object',
+      expect(() => evaluate('2024-01-01', 'invalid-date')).toThrow(
+        'Condition.Date.IsAfter: Invalid comparison date string "invalid-date"',
       )
     })
 
@@ -288,6 +260,57 @@ describe('DateConditions', () => {
         type: FunctionType.CONDITION,
         name: 'isDateAfter',
         arguments: ['2024-01-01'],
+      })
+    })
+  })
+
+  describe('IsFutureDate', () => {
+    const { evaluate } = DateConditions.IsFutureDate.spec
+
+    test('should return true for future dates', () => {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const tomorrowISO = tomorrow.toISOString().split('T')[0]
+
+      const nextWeek = new Date()
+      nextWeek.setDate(nextWeek.getDate() + 7)
+      const nextWeekISO = nextWeek.toISOString().split('T')[0]
+
+      expect(evaluate(tomorrowISO)).toBe(true)
+      expect(evaluate(nextWeekISO)).toBe(true)
+      expect(evaluate('2999-12-31')).toBe(true)
+    })
+
+    test('should return false for past dates', () => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayISO = yesterday.toISOString().split('T')[0]
+
+      expect(evaluate(yesterdayISO)).toBe(false)
+      expect(evaluate('2020-01-01')).toBe(false)
+      expect(evaluate('1999-12-31')).toBe(false)
+    })
+
+    test('should return false for today', () => {
+      const today = new Date().toISOString().split('T')[0]
+      expect(evaluate(today)).toBe(false)
+    })
+
+    test('should validate input type', () => {
+      expect(() => evaluate(123)).toThrow('Condition.Date.IsFutureDate expects a string but received number')
+    })
+
+    test('should throw error when value is invalid date string', () => {
+      expect(() => evaluate('invalid-date')).toThrow('Condition.Date.IsFutureDate: Invalid date string "invalid-date"')
+      expect(() => evaluate('2024-13-01')).toThrow('Condition.Date.IsFutureDate: Invalid date string "2024-13-01"')
+    })
+
+    test('should build correct expression object', () => {
+      const expr = DateConditions.IsFutureDate()
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'isFutureDate',
+        arguments: [],
       })
     })
   })
