@@ -5,7 +5,7 @@ export type ComponentRenderer<T extends BlockDefinition> = (block: EvaluatedBloc
 /**
  * Registry component structure that matches condition/transformer pattern
  */
-interface RegistryComponent<T extends BlockDefinition> {
+export interface RegistryComponent<T extends BlockDefinition> {
   spec: {
     variant: string
     render: ComponentRenderer<T>
