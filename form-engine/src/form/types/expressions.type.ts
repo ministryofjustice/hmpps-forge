@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, LogicType } from './enums'
+import { FunctionType, ExpressionType, LogicType, TransitionType } from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -471,11 +471,35 @@ interface NextExpr {
 }
 
 /**
- * Base interface for all transition types.
- * Transitions control how users move between steps in a journey.
+ * Lifecycle transition for pure data loading.
+ * Runs before access control checks.
  */
-interface TransitionBase {
-  type: 'transition'
+export interface LoadTransition {
+  /** Effects to execute for loading data */
+  effects: readonly EffectFunctionExpr<any>[]
+}
+
+/**
+ * Lifecycle transition for access control and non-loading effects.
+ * Runs after data loading, before rendering.
+ */
+export interface AccessTransition {
+  /** Guard conditions that must be met to access this step/journey */
+  guards?: PredicateExpr
+
+  /** Optional effects to execute (analytics, logging, etc.) */
+  effects?: readonly EffectFunctionExpr<any>[]
+
+  /** Navigation rules if guards fail */
+  redirect?: readonly NextExpr[]
+}
+
+/**
+ * Base interface for submission transition types.
+ * Submission transitions control how users move between steps when submitting forms.
+ */
+interface SubmitTransitionBase {
+  type: TransitionType.SUBMIT
 
   /**
    * Optional trigger condition for this transition.
@@ -507,7 +531,7 @@ interface TransitionBase {
  *   }
  * }
  */
-export interface SkipValidationTransition extends TransitionBase {
+export interface SkipValidationTransition extends SubmitTransitionBase {
   /** Must be false to skip validation */
   validate: false
 
@@ -551,7 +575,7 @@ export interface SkipValidationTransition extends TransitionBase {
  *   onInvalid: {...}
  * }
  */
-export interface ValidatingTransition extends TransitionBase {
+export interface ValidatingTransition extends SubmitTransitionBase {
   /** Must be true to trigger validation */
   validate: true
 
@@ -582,8 +606,7 @@ export interface ValidatingTransition extends TransitionBase {
 }
 
 /**
- * Represents any transition expression.
- * Transitions define how users move through form journeys,
- * including validation, effects, and navigation logic.
+ * Lifecycle transition for data submission.
+ * Runs after data loading, on form submission.
  */
-export type TransitionExpr = SkipValidationTransition | ValidatingTransition
+export type SubmitTransition = SkipValidationTransition | ValidatingTransition

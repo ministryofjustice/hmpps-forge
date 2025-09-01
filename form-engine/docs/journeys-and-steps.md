@@ -33,9 +33,10 @@ interface JourneyDefinition {
   path?: string                   // Base URL path for the journey
   version?: string                // Version identifier for journey/form version
   controller?: string             // Custom Express controller (?)
+  onLoad?: LoadTransition[]       // Load journey-specific data when accessed
+  onAccess?: AccessTransition[]   // Check access and run analytics
   steps?: StepDefinition[]        // Steps/pages that make up the journey
   children?: JourneyDefinition[]  // Sub-journeys
-  guard?: PredicateExpr           // Conditional access of the journey
 }
 ```
 
@@ -142,8 +143,9 @@ interface StepDefinition {
   type: StructureType.STEP             // Type identifier for JSON parsing
   path: string                         // URL path for this step
   blocks: BlockDefinition[]            // UI components to render
-  data?: DataDefinition[]              // External data to load
-  transitions?: TransitionDefinition[] // How to move to next steps
+  onLoad?: LoadTransition[]            // Load step-specific data when accessed
+  onAccess?: AccessTransition[]        // Check access and run analytics
+  onSubmission?: SubmitTransition[]    // Handle form submission transitions
   controller?: string                  // Custom Express controller (rare)
   template?: string                    // Custom Nunjucks template
   entry?: boolean                      // Mark as valid entry point
@@ -188,8 +190,8 @@ const personalDetailsStep = step({
       ]
     })
   ],
-  transitions: [
-    transition({
+  onSubmission: [
+    submitTransition({
       when: Post('action').match(Condition.MatchesValue('continue')),
       validate: true,
       onValid: {
@@ -205,25 +207,20 @@ const personalDetailsStep = step({
 ```
 
 ### Step with Data Loading
-Steps can load external data when they render, making it available to blocks and logic within the step.
+Steps can load external data using the `onLoad` hook, making it available to blocks and logic within the step.
 
 ```typescript
 step({
   path: '/location-selection',
-  data: [
-    // Load countries from API
-    {
-      key: 'countries',
-      plugin: 'reference-data',
-      method: 'getCountries',
-    },
-    // Load user's saved locations
-    {
-      key: 'savedLocations',
-      plugin: 'user-data',
-      method: 'getSavedLocations',
-    },
-  ],
+
+  // Load data using the onLoad hook
+  onLoad: loadTransition({
+    effects: [
+      Effect.LoadCountries(),  // Loads data to Data('countries')
+      Effect.LoadUserSavedLocations(),  // Loads data to Data('savedLocations')
+    ]
+  }),
+
   blocks: [
     field({
       variant: 'select',
@@ -267,24 +264,24 @@ Array of UI components that make up the step's interface. These are rendered in 
 and can include fields, blocks, composite blocks and collection blocks.
 See `block-type-documentation.md` for more details.
 
-#### `data`
-Optional array of data sources to load when the step renders. Data is loaded before blocks
-are rendered, making it available for use in field configurations, validation, and conditional logic.
+#### `onLoad`
+Optional hook for loading step-specific data when the step is accessed. Uses effects to populate
+the Data context, making it available for use in field configurations, validation, and conditional logic.
+See `hooks-documentation.md` for more details.
 
-> [!IMPORTANT]
-> If you do use an external data source for validation/conditional logic, expect that the data may change and then
-> cause a user to be reverted to an earlier step in the journey if it was used for validation (due to journey path
-> transversal checking). I would recommend against doing this.
+#### `onAccess`
+Optional hook for checking access permissions and running analytics when the step is accessed.
+Can include guards, effects, and navigation logic. See `hooks-documentation.md` for more details.
 
-#### `transitions`
-Array of transition definitions that control how users move from this step to others.
-Transitions are evaluated in order, with the first matching transition being executed.
+#### `onSubmission`
+Array of submission transition definitions that control how users move from this step to others
+when the form is submitted. Transitions are evaluated in order, with the first matching transition being executed.
 See `transition-documentation.md` for more details.
 
 ```typescript
-transitions: [
-  transition({ when: Post('action').match(Condition.MatchesValue('save-draft')) }),
-  transition({ when: Post('action').match(Condition.MatchesValue('continue')) }),
+onSubmission: [
+  submitTransition({ when: Post('action').match(Condition.MatchesValue('save-draft')), validate: false, /* ... */ }),
+  submitTransition({ when: Post('action').match(Condition.MatchesValue('continue')), validate: true, /* ... */ }),
 ]
 ```
 
@@ -348,8 +345,8 @@ journey({
     step({
       path: '/question-1',
       blocks: [ /*...*/ ],
-      transitions: [
-        transition({
+      onSubmission: [
+        submitTransition({
           validate: true,
           onValid: { next: [{ goto: '/question-2' }] },
           onInvalid: { next: [{ goto: '/question-1' }] },
@@ -359,8 +356,8 @@ journey({
     step({
       path: '/question-2',
       blocks: [ /*...*/ ],
-      transitions: [
-        transition({
+      onSubmission: [
+        submitTransition({
           validate: true,
           onValid: { next: [{ goto: '/question-3' }] },
           onInvalid: { next: [{ goto: '/question-2' }] },
@@ -370,8 +367,8 @@ journey({
     step({
       path: '/question-3',
       blocks: [ /*...*/ ],
-      transitions: [
-        transition({
+      onSubmission: [
+        submitTransition({
           validate: true,
           onValid: { next: [{ goto: '/complete' }] },
           onInvalid: { next: [{ goto: '/question-3' }] },
@@ -401,8 +398,8 @@ journey({
           ],
         }),
       ],
-      transitions: [
-        transition({
+      onSubmission: [
+        submitTransition({
           validate: true,
           onValid: {
             next: [
@@ -445,8 +442,8 @@ journey({
         // Summary of all collected data
         // With change links back to each section
       ],
-      transitions: [
-        transition({
+      onSubmission: [
+        submitTransition({
           when: Post('action').match(Condition.MatchesValue('submit')),
           validate: false,  // No validation needed on review
           onAlways: {
