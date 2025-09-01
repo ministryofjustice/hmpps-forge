@@ -1,13 +1,17 @@
+import { BuildableReference, createReference } from '@form-engine/form/builders/utils/createReference'
+import { isFieldBlockDefinition } from '@form-engine/form/typeguards'
+import { createScopedReference, CreateScopedReference } from '@form-engine/form/builders/utils/createScopedReference'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import {
   BlockDefinition,
+  ConditionalString,
   FieldBlockDefinition,
   JourneyDefinition,
   StepDefinition,
   ValidationExpr,
 } from '../types/structures.type'
 import { SkipValidationTransition, TransitionExpr, ValidatingTransition } from '../types/expressions.type'
-import { StructureType } from '../types/enums'
+import { ExpressionType, StructureType } from '../types/enums'
 
 export function block<D extends BlockDefinition>(definition: Omit<D, 'type'>): D {
   return finaliseBuilders({
@@ -52,3 +56,65 @@ export function validation(definition: Omit<ValidationExpr, 'type'>): Validation
     type: 'validation',
   }) as any
 }
+
+/**
+ * References POST body data from form submission
+ */
+export function Post(key: string): BuildableReference {
+  return createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['post', key],
+  })
+}
+
+/**
+ * References URL parameters (e.g., /users/:id)
+ */
+export function Params(key: string): BuildableReference {
+  return createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['params', key],
+  })
+}
+
+/**
+ * References query string parameters (e.g., ?search=test)
+ */
+export function Query(key: string): BuildableReference {
+  return createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['query', key],
+  })
+}
+
+/**
+ * References data defined for the step
+ */
+export const Data = (key: string): BuildableReference =>
+  createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['data', key],
+  })
+
+/**
+ * References an answer using its target field, or a string
+ */
+export const Answer = (target: FieldBlockDefinition | ConditionalString): BuildableReference =>
+  createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['answers', isFieldBlockDefinition(target) ? target.code : (target as any)],
+  })
+
+/**
+ * References the current collection item when inside a collection scope
+ */
+export const Item = (): CreateScopedReference => createScopedReference(0)
+
+/**
+ * References the block/field it's in scope of
+ */
+export const Self = (): BuildableReference =>
+  createReference({
+    type: ExpressionType.REFERENCE,
+    path: ['@self'],
+  })

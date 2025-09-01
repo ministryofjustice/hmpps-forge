@@ -1,7 +1,7 @@
 import nunjucks from 'nunjucks'
+import { RegistryComponent } from '@form-engine/registry/utils/buildComponent'
 import { BlockDefinition, EvaluatedBlock } from '../form/types/structures.type'
 import { StructureType } from '../form/types/enums'
-import { RegistryComponent } from '../form/helpers/createComponent'
 
 export class ComponentTestHelper<T extends BlockDefinition> {
   protected componentFn: RegistryComponent<T>['spec']['render']

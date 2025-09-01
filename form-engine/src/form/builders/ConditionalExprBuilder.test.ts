@@ -1,8 +1,8 @@
+import { Answer, Self } from '@form-engine/form/builders/index'
 import { ConditionalExprBuilder, when } from './ConditionalExprBuilder'
-import { Answer, Self } from '../helpers/referenceHelpers'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
-import { Condition } from '../conditions'
+import { Condition } from '../../registry/conditions'
 import { FunctionType, ExpressionType, LogicType } from '../types/enums'
 
 describe('ConditionalExprBuilder', () => {
