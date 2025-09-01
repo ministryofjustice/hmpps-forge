@@ -25,3 +25,10 @@ export enum LogicType {
   NOT = 'LogicType.Not',
   CONDITIONAL = 'LogicType.Conditional',
 }
+
+// TODO: Maybe eventually add ERROR, with an onError transition
+export enum TransitionType {
+  LOAD = 'TransitionType.Load',
+  ACCESS = 'TransitionType.Access',
+  SUBMIT = 'TransitionType.Submit',
+}

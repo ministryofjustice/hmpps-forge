@@ -10,8 +10,14 @@ import {
   StepDefinition,
   ValidationExpr,
 } from '../types/structures.type'
-import { SkipValidationTransition, TransitionExpr, ValidatingTransition } from '../types/expressions.type'
-import { ExpressionType, StructureType } from '../types/enums'
+import {
+  AccessTransition,
+  LoadTransition,
+  SkipValidationTransition,
+  SubmitTransition,
+  ValidatingTransition,
+} from '../types/expressions.type'
+import { ExpressionType, StructureType, TransitionType } from '../types/enums'
 
 export function block<D extends BlockDefinition>(definition: Omit<D, 'type'>): D {
   return finaliseBuilders({
@@ -41,13 +47,30 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>
   }) as D
 }
 
-export function transition(definition: Omit<ValidatingTransition, 'type'>): ValidatingTransition
-export function transition(definition: Omit<SkipValidationTransition, 'type'>): SkipValidationTransition
-export function transition(definition: Omit<TransitionExpr, 'type'>): TransitionExpr {
-  return finaliseBuilders({
-    ...definition,
-    type: 'transition',
-  }) as any
+/**
+ * Creates a submission transition for handling form submissions.
+ * Use this in the onSubmission array of steps.
+ */
+export function submitTransition(definition: Omit<ValidatingTransition, 'type'>): ValidatingTransition
+export function submitTransition(definition: Omit<SkipValidationTransition, 'type'>): SkipValidationTransition
+export function submitTransition(definition: Omit<SubmitTransition, 'type'>): SubmitTransition {
+  return finaliseBuilders({ ...definition, type: TransitionType.SUBMIT }) as SubmitTransition
+}
+
+/**
+ * Creates a load transition for data loading effects.
+ * Use this in the onLoad lifecycle hook.
+ */
+export function loadTransition(definition: LoadTransition): LoadTransition {
+  return finaliseBuilders({ ...definition, type: TransitionType.LOAD }) as LoadTransition
+}
+
+/**
+ * Creates an access transition for access control and analytics.
+ * Use this in the onAccess lifecycle hook.
+ */
+export function accessTransition(definition: AccessTransition): AccessTransition {
+  return finaliseBuilders({ ...definition, type: TransitionType.ACCESS }) as AccessTransition
 }
 
 export function validation(definition: Omit<ValidationExpr, 'type'>): ValidationExpr {

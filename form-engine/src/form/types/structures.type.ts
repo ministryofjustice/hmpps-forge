@@ -5,9 +5,11 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  TransitionExpr,
+  SubmitTransition,
   FormatExpr,
   ConditionalExpr,
+  AccessTransition,
+  LoadTransition,
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
@@ -122,7 +124,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
   formatters?: readonly TransformerFunctionExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
-  hidden?: ConditionalBoolean
+  hidden?: PredicateTestExpr | PredicateTestExprBuilder
 
   /** Array of validation errors currently active on the field */
   errors?: readonly { message: string; details?: Record<string, any> }[]
@@ -159,6 +161,12 @@ export interface JourneyDefinition {
   /** Optional custom Express controller applied to all steps */
   controller?: string
 
+  /** Load foundational data when journey is accessed */
+  onLoad?: readonly LoadTransition[]
+
+  /** Check access and run analytics when journey is accessed */
+  onAccess?: readonly AccessTransition[]
+
   /** Array of steps that make up the journey flow */
   steps?: readonly StepDefinition[]
 
@@ -179,10 +187,14 @@ export interface StepDefinition {
   /** Array of blocks to render in this step */
   blocks: readonly BlockDefinition[]
 
-  // data?: DataDefinition[] // TODO: Figure out how I'd like to do this now with transitions...
+  /** Load step-specific data when step is accessed */
+  onLoad?: readonly LoadTransition[]
 
-  /** Array of transition rules defining navigation from this step */
-  transitions?: readonly TransitionExpr[]
+  /** Check access and run analytics when step is accessed */
+  onAccess?: readonly AccessTransition[]
+
+  /** Handle form submission transitions */
+  onSubmission?: readonly SubmitTransition[]
 
   /** Optional custom Express controller for step-specific logic */
   controller?: string
