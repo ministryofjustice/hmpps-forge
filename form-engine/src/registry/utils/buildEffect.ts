@@ -40,7 +40,7 @@ import { FunctionType } from '../../form/types/enums'
  * )
  *
  */
-export const buildEffectFunction = <A extends readonly ValueExpr[]>(
+export const buildEffectFunction = <A extends ValueExpr[]>(
   name: string,
   evaluator: FunctionEvaluator<A>,
 ): RegistryFunction<A, any, EffectFunctionExpr<A>> =>
