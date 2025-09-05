@@ -13,6 +13,7 @@ import {
 import {
   AccessTransition,
   LoadTransition,
+  NextExpr,
   SkipValidationTransition,
   SubmitTransition,
   ValidatingTransition,
@@ -61,7 +62,7 @@ export function submitTransition(definition: Omit<SubmitTransition, 'type'>): Su
  * Creates a load transition for data loading effects.
  * Use this in the onLoad lifecycle hook.
  */
-export function loadTransition(definition: LoadTransition): LoadTransition {
+export function loadTransition(definition: Omit<LoadTransition, 'type'>): LoadTransition {
   return finaliseBuilders({ ...definition, type: TransitionType.LOAD }) as LoadTransition
 }
 
@@ -69,15 +70,26 @@ export function loadTransition(definition: LoadTransition): LoadTransition {
  * Creates an access transition for access control and analytics.
  * Use this in the onAccess lifecycle hook.
  */
-export function accessTransition(definition: AccessTransition): AccessTransition {
+export function accessTransition(definition: Omit<AccessTransition, 'type'>): AccessTransition {
   return finaliseBuilders({ ...definition, type: TransitionType.ACCESS }) as AccessTransition
 }
 
 export function validation(definition: Omit<ValidationExpr, 'type'>): ValidationExpr {
   return finaliseBuilders({
     ...definition,
-    type: 'validation',
-  }) as any
+    type: ExpressionType.VALIDATION,
+  }) as ValidationExpr
+}
+
+/**
+ * Creates a next navigation expression for transitions.
+ * Use this in the next/redirect arrays of transitions.
+ */
+export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
+  return finaliseBuilders({
+    ...definition,
+    type: ExpressionType.NEXT,
+  }) as NextExpr
 }
 
 /**
@@ -122,11 +134,22 @@ export const Data = (key: string): BuildableReference =>
 /**
  * References an answer using its target field, or a string
  */
-export const Answer = (target: FieldBlockDefinition | ConditionalString): BuildableReference =>
-  createReference({
+export const Answer = (target: FieldBlockDefinition | ConditionalString): BuildableReference => {
+  // If it's a field block definition, use its code property
+  if (isFieldBlockDefinition(target)) {
+    const { code } = target
+    return createReference({
+      type: ExpressionType.REFERENCE,
+      path: ['answers', code as any],
+    })
+  }
+
+  // Otherwise, use the target directly (string, or other ConditionalString types)
+  return createReference({
     type: ExpressionType.REFERENCE,
-    path: ['answers', isFieldBlockDefinition(target) ? target.code : (target as any)],
+    path: ['answers', target as any],
   })
+}
 
 /**
  * References the current collection item when inside a collection scope

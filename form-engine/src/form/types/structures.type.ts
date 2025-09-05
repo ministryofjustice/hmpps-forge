@@ -13,7 +13,7 @@ import {
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
-import { StructureType } from './enums'
+import { StructureType, ExpressionType } from './enums'
 
 /**
  * Base interface for all block types in the form engine.
@@ -76,7 +76,7 @@ export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefi
  * @example
  * // Using object notation
  * {
- *   type: 'validation',
+ *   type: 'ExpressionType.Validation',
  *   when: {
  *     type: 'test',
  *     subject: { type: 'reference', path: ['answers', 'email'] },
@@ -88,7 +88,7 @@ export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefi
  * }
  */
 export interface ValidationExpr {
-  type: 'validation'
+  type: ExpressionType.VALIDATION
 
   /** The predicate expression that determines if validation passes */
   when: PredicateExpr | PredicateTestExprBuilder

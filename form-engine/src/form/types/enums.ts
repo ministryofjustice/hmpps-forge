@@ -15,6 +15,8 @@ export enum ExpressionType {
   REFERENCE = 'ExpressionType.Reference',
   FORMAT = 'ExpressionType.Format',
   PIPELINE = 'ExpressionType.Pipeline',
+  NEXT = 'ExpressionType.Next',
+  VALIDATION = 'ExpressionType.Validation',
 }
 
 export enum LogicType {
@@ -26,7 +28,6 @@ export enum LogicType {
   CONDITIONAL = 'LogicType.Conditional',
 }
 
-// TODO: Maybe eventually add ERROR, with an onError transition
 export enum TransitionType {
   LOAD = 'TransitionType.Load',
   ACCESS = 'TransitionType.Access',
