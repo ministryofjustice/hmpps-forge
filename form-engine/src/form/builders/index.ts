@@ -1,6 +1,6 @@
 import { BuildableReference, createReference } from '@form-engine/form/builders/utils/createReference'
-import { isFieldBlockDefinition } from '@form-engine/form/typeguards'
 import { createScopedReference, CreateScopedReference } from '@form-engine/form/builders/utils/createScopedReference'
+import { isFieldBlockDefinition } from '@form-engine/typeguards/structures'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import {
   BlockDefinition,
