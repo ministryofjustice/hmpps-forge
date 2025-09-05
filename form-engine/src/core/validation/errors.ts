@@ -13,17 +13,6 @@ export interface ValidationError {
 }
 
 /**
- * Create a validation error for max depth exceeded
- */
-export function createMaxDepthError(maxDepth: number, path: (string | number)[]): ValidationError {
-  return {
-    path,
-    message: `Structure is too deeply nested. Maximum depth of ${maxDepth} exceeded.`,
-    code: 'max_depth_exceeded',
-  }
-}
-
-/**
  * Create a validation error for non-serializable types
  */
 export function createNonSerializableError(type: string, path: (string | number)[]): ValidationError {
