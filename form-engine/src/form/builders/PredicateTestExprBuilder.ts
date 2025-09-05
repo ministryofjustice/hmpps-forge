@@ -69,11 +69,11 @@ function resolvePredicate(p: PredicateExpr | PredicateTestExprBuilder | Predicat
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if all operands are true
  */
-export const and = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr => {
+export const and = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr => {
   const resolved = p.map(resolvePredicate)
   return {
     type: LogicType.AND,
-    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+    operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
 
@@ -82,11 +82,11 @@ export const and = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateEx
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if any operand is true
  */
-export const or = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr => {
+export const or = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr => {
   const resolved = p.map(resolvePredicate)
   return {
     type: LogicType.OR,
-    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+    operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
 
@@ -95,11 +95,11 @@ export const or = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExp
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if exactly one operand is true
  */
-export const xor = (...p: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr => {
+export const xor = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr => {
   const resolved = p.map(resolvePredicate)
   return {
     type: LogicType.XOR,
-    operands: resolved as unknown as readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+    operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
 

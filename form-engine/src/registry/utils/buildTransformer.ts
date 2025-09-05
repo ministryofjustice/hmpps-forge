@@ -37,7 +37,5 @@ import { FunctionType } from '../../form/types/enums'
  *   }
  * )
  */
-export const buildTransformerFunction = <A extends readonly ValueExpr[]>(
-  name: string,
-  evaluator: FunctionEvaluator<A, any>,
-) => createRegisterableFunction<A, any, TransformerFunctionExpr<A>>(FunctionType.TRANSFORMER, name, evaluator)
+export const buildTransformerFunction = <A extends ValueExpr[]>(name: string, evaluator: FunctionEvaluator<A, any>) =>
+  createRegisterableFunction<A, any, TransformerFunctionExpr<A>>(FunctionType.TRANSFORMER, name, evaluator)

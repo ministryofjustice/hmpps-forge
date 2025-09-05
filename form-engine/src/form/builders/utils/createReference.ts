@@ -5,7 +5,7 @@ import { PredicateTestExprBuilder } from '../PredicateTestExprBuilder'
  * Interface for references that can build predicates
  */
 export interface BuildableReference extends ReferenceExpr {
-  readonly not: PredicateTestExprBuilder
+  not: PredicateTestExprBuilder
   match(condition: FunctionExpr<any>): PredicateTestExpr
 }
 

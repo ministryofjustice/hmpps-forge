@@ -42,7 +42,7 @@ export interface CollectionOptions {
  */
 export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDefinition {
   /** Template blocks to render for each collection item */
-  template: readonly T[]
+  template: T[]
 
   /** Optional fallback block to render when collection is empty */
   fallbackTemplate?: T
@@ -58,7 +58,7 @@ export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDef
  */
 export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefinition {
   /** Array of child blocks contained within this composite block */
-  blocks: readonly B[]
+  blocks: B[]
 }
 
 /**
@@ -121,16 +121,16 @@ export interface FieldBlockDefinition extends BlockDefinition {
   value?: ConditionalString | ConditionalString[] | FunctionExpr<any>
 
   /** Array of transformers to format/process the field value */
-  formatters?: readonly TransformerFunctionExpr[]
+  formatters?: TransformerFunctionExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
   hidden?: PredicateTestExpr | PredicateTestExprBuilder
 
   /** Array of validation errors currently active on the field */
-  errors?: readonly { message: string; details?: Record<string, any> }[]
+  errors?: { message: string; details?: Record<string, any> }[]
 
   /** Array of validation rules to apply to the field value */
-  validate?: readonly ValidationExpr[]
+  validate?: ValidationExpr[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
   dependent?: PredicateTestExpr | PredicateTestExprBuilder
@@ -162,16 +162,16 @@ export interface JourneyDefinition {
   controller?: string
 
   /** Load foundational data when journey is accessed */
-  onLoad?: readonly LoadTransition[]
+  onLoad?: LoadTransition[]
 
   /** Check access and run analytics when journey is accessed */
-  onAccess?: readonly AccessTransition[]
+  onAccess?: AccessTransition[]
 
   /** Array of steps that make up the journey flow */
-  steps?: readonly StepDefinition[]
+  steps?: StepDefinition[]
 
   /** Nested child journeys for hierarchical flows */
-  children?: readonly JourneyDefinition[]
+  children?: JourneyDefinition[]
 }
 
 /**
@@ -185,16 +185,16 @@ export interface StepDefinition {
   path: string
 
   /** Array of blocks to render in this step */
-  blocks: readonly BlockDefinition[]
+  blocks: BlockDefinition[]
 
   /** Load step-specific data when step is accessed */
-  onLoad?: readonly LoadTransition[]
+  onLoad?: LoadTransition[]
 
   /** Check access and run analytics when step is accessed */
-  onAccess?: readonly AccessTransition[]
+  onAccess?: AccessTransition[]
 
   /** Handle form submission transitions */
-  onSubmission?: readonly SubmitTransition[]
+  onSubmission?: SubmitTransition[]
 
   /** Optional custom Express controller for step-specific logic */
   controller?: string
@@ -242,7 +242,7 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true> =
         : // 2) arrays (both your ConditionalArray and normal arrays)
           T extends ConditionalArray<infer U>
           ? EvaluatedBlock<U, false>[]
-          : T extends readonly (infer U)[]
+          : T extends (infer U)[]
             ? EvaluatedBlock<U, false>[]
             : // 3) blocks: keep shape at root; collapse nested to RenderedBlock
               T extends BlockDefinition

@@ -27,7 +27,7 @@ import { ExpressionType } from '../../types/enums'
  */
 export interface CreateScopedReference {
   /** Navigate to the parent of a collection item */
-  readonly parent: CreateScopedReference
+  parent: CreateScopedReference
 
   /** Get sub properties of a collection item */
   property(key: string): BuildableReference

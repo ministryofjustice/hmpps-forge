@@ -47,7 +47,5 @@ import { FunctionType } from '../../form/types/enums'
  *   }
  * )
  */
-export const buildConditionFunction = <A extends readonly ValueExpr[]>(
-  name: string,
-  evaluator: FunctionEvaluator<A, boolean>,
-) => createRegisterableFunction<A, boolean, ConditionFunctionExpr<A>>(FunctionType.CONDITION, name, evaluator)
+export const buildConditionFunction = <A extends ValueExpr[]>(name: string, evaluator: FunctionEvaluator<A, boolean>) =>
+  createRegisterableFunction<A, boolean, ConditionFunctionExpr<A>>(FunctionType.CONDITION, name, evaluator)
