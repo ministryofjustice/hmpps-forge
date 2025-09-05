@@ -1,4 +1,4 @@
-import { FunctionExpr, ValueExpr } from '../../form/types/expressions.type'
+import { EffectFunctionExpr, FunctionExpr, ValueExpr } from '../../form/types/expressions.type'
 import { FunctionType } from '../../form/types/enums'
 
 export type FunctionEvaluator<A extends readonly ValueExpr[], R = any> = (

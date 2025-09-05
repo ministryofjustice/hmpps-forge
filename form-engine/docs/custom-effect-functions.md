@@ -107,11 +107,13 @@ effects: [
 ```
 
 ## Dependency Injection
-For effects that require external services or dependencies, use the dependency injection pattern:
+For effects that require external services or dependencies, use the dependency injection pattern.
+This pattern allows you to keep your form configurations clean and free from implementation details:
 
 ```typescript
-// Create effects with dependency injection
-const assessmentEffects = {
+// Create injectable effect factories
+const assessmentEffectFactories = {
+  // Each factory is a function that takes the service and returns a RegistryFunction
   Load: (service: AssessmentService) =>
     buildEffectFunction(
       'loadAssessment',
@@ -133,18 +135,39 @@ const assessmentEffects = {
     buildEffectFunction(
       'completeSection',
       async (context, section: string) => {
-        const result = await service.completeSection(section)
+        await service.completeSection(section)
         context.setData(`${section}.completed`, true)
       }
     )
 }
 
-// Type the effects for use in form configuration
-export const AssessmentEffects = resolveInjectedEffectsType(assessmentEffects)
+// Create proxy for use in form configuration (no dependencies needed here)
+export const AssessmentEffects = createInjectableFunctions(assessmentEffectFactories, FunctionType.EFFECT)
 
-// Later, resolve with actual service for registration
-const resolvedEffects = resolveInjectedEffects(assessmentEffects, myServiceInstance)
-formEngine.registerEffects(resolvedEffects)
+// Usage in form configuration - clean and dependency-free
+import { AssessmentEffects } from './effects'
+
+onLoad: loadTransition({
+  effects: [
+    AssessmentEffects.Load(Data('assessmentId'))
+  ]
+})
+
+onSubmission: submitTransition({
+  onValid: {
+    effects: [
+      AssessmentEffects.Save({ draft: false }),
+      AssessmentEffects.CompleteSection('accommodation')
+    ]
+  },
+  onInvalid: {
+    effects: [AssessmentEffects.SaveDraft()]
+  }
+})
+
+// At application startup
+const assessmentService = new AssessmentServiceImpl(db, logger)
+formEngine.registerEffects(resolveInjectableFunctions(assessmentEffectFactories, assessmentService))
 ```
 
 ## Examples
@@ -282,6 +305,56 @@ onAlways: {
 > **TODO**: The registration process will be implemented when configuring the form library.
 > Users will provide an array of custom functions during initialization.
 
+
+### Direct Registration (Without Dependency Injection)
+For simple effects without external dependencies:
+
+```typescript
+const simpleEffects = {
+  logAction: buildEffectFunction(
+    'logAction',
+    (context, action: string) => {
+      console.log(`Action: ${action}`, context.getAnswers())
+    }
+  ),
+  clearCache: buildEffectFunction(
+    'clearCache',
+    (context) => {
+      context.setData('cache', null)
+    }
+  )
+}
+
+// Register directly with the form engine
+formEngine.registerEffects(Object.values(simpleEffects))
+```
+
+### Registration with Dependency Injection
+For effects that require services or dependencies:
+
+```typescript
+// 1. Define your injectable factories
+const effectFactories = {
+  Save: (service: MyService) =>
+    buildEffectFunction('save', async (context) => {
+      await service.save(context.getAnswers())
+    }),
+  Load: (service: MyService) =>
+    buildEffectFunction('load', async (context, id: string) => {
+      const data = await service.load(id)
+      context.setAnswers(data)
+    })
+}
+
+// 2. Create proxy for form configuration
+export const MyEffects = createInjectableFunctions(effectFactories, FunctionType.EFFECT)
+
+// 3. At application initialization, resolve and register
+const myService = new MyService(config)
+const resolvedEffects = resolveInjectableFunctions(effectFactories, myService)
+formEngine.registerEffects(Object.keys(resolvedEffects))
+```
+
 ## Error Handling
 Effects should handle errors appropriately and provide meaningful error messages:
 
@@ -403,6 +476,7 @@ const dataStorage = buildEffectFunction(
   (context, section: string, data: any) => {
     context.setData(`assessment.${section}.data`, data)
     context.setData(`assessment.${section}.lastUpdated`, Date.now())
+  }
 )
 ```
 
