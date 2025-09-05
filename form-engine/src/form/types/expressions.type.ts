@@ -27,7 +27,7 @@ export interface ReferenceExpr {
    * Path segments to traverse to reach the target value.
    * Special paths include '@self' (current field) and '@item' (current collection item).
    */
-  path: readonly string[]
+  path: string[]
 }
 
 /**
@@ -67,7 +67,7 @@ export interface FormatExpr {
    * Array of expressions whose values will replace the placeholders.
    * The first argument replaces %1, second replaces %2, and so on.
    */
-  args: readonly ValueExpr[]
+  args: ValueExpr[]
 }
 
 /**
@@ -112,12 +112,12 @@ export interface PipelineExpr {
    * Ordered array of transformation steps.
    * Each step receives the output of the previous step as its input.
    */
-  steps: readonly {
+  steps: {
     /** Name of the registered transformer function */
-    readonly name: string
+    name: string
 
     /** Optional arguments for the transformer (beyond the piped value) */
-    readonly args?: readonly ValueExpr[]
+    args?: ValueExpr[]
   }[]
 }
 
@@ -125,7 +125,7 @@ export interface PipelineExpr {
  * Base interface for all function call expressions with typed arguments.
  * This serves as the foundation for specific function types like conditions and transformers.
  */
-export interface BaseFunctionExpr<A extends readonly ValueExpr[]> {
+export interface BaseFunctionExpr<A extends ValueExpr[]> {
   type: FunctionType
   /**
    * Name of the registered function.
@@ -165,8 +165,7 @@ export interface BaseFunctionExpr<A extends readonly ValueExpr[]> {
  *   arguments: [10, 100]
  * }
  */
-export interface ConditionFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
-  extends BaseFunctionExpr<A> {
+export interface ConditionFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
   type: FunctionType.CONDITION
 }
 
@@ -174,7 +173,7 @@ export interface ConditionFunctionExpr<A extends readonly ValueExpr[] = readonly
  * Generic function expression that can represent any function type.
  * Used when the specific function type is not known at compile time.
  */
-export type FunctionExpr<A extends readonly ValueExpr[]> = BaseFunctionExpr<A>
+export type FunctionExpr<A extends ValueExpr[]> = BaseFunctionExpr<A>
 
 /**
  * Represents a transformer function call expression.
@@ -196,8 +195,7 @@ export type FunctionExpr<A extends readonly ValueExpr[]> = BaseFunctionExpr<A>
  *   arguments: ['^item-(.+)$', 1]
  * }
  */
-export interface TransformerFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]>
-  extends BaseFunctionExpr<A> {
+export interface TransformerFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
   type: FunctionType.TRANSFORMER
 }
 
@@ -225,7 +223,7 @@ export interface TransformerFunctionExpr<A extends readonly ValueExpr[] = readon
  *   ]
  * }
  */
-export interface EffectFunctionExpr<A extends readonly ValueExpr[] = readonly ValueExpr[]> extends BaseFunctionExpr<A> {
+export interface EffectFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
   type: FunctionType.EFFECT
 }
 
@@ -302,7 +300,7 @@ export interface PredicateAndExpr {
    * Array of predicates that must all be true.
    * Requires at least 2 operands for logical AND.
    */
-  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+  operands: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
 }
 
 /**
@@ -325,7 +323,7 @@ export interface PredicateOrExpr {
    * Array of predicates where at least one must be true.
    * Requires at least 2 operands for logical OR.
    */
-  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+  operands: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
 }
 
 /**
@@ -348,7 +346,7 @@ export interface PredicateXorExpr {
    * Array of predicates where exactly one must be true.
    * Requires at least 2 operands for logical XOR.
    */
-  operands: readonly [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
+  operands: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]
 }
 
 /**
@@ -450,16 +448,18 @@ export interface ConditionalExpr {
  *
  * @example
  * // Simple navigation
- * { goto: '/next-step' }
+ * { type: 'ExpressionType.Next', goto: '/next-step' }
  *
  * @example
  * // Conditional navigation
  * {
+ *   type: 'ExpressionType.Next',
  *   when: { type: 'test', subject: {...}, negate: false, condition: {...} },
  *   goto: '/business-flow'
  * }
  */
-interface NextExpr {
+export interface NextExpr {
+  type: ExpressionType.NEXT
   /**
    * Optional condition that must be true for this navigation to occur.
    * If omitted, this navigation always applies (useful as a fallback).
@@ -475,8 +475,9 @@ interface NextExpr {
  * Runs before access control checks.
  */
 export interface LoadTransition {
+  type: TransitionType.LOAD
   /** Effects to execute for loading data */
-  effects: readonly EffectFunctionExpr<any>[]
+  effects: EffectFunctionExpr<any>[]
 }
 
 /**
@@ -484,14 +485,15 @@ export interface LoadTransition {
  * Runs after data loading, before rendering.
  */
 export interface AccessTransition {
+  type: TransitionType.ACCESS
   /** Guard conditions that must be met to access this step/journey */
   guards?: PredicateExpr
 
   /** Optional effects to execute (analytics, logging, etc.) */
-  effects?: readonly EffectFunctionExpr<any>[]
+  effects?: EffectFunctionExpr<any>[]
 
   /** Navigation rules if guards fail */
-  redirect?: readonly NextExpr[]
+  redirect?: NextExpr[]
 }
 
 /**
@@ -538,10 +540,10 @@ export interface SkipValidationTransition extends SubmitTransitionBase {
   /** Actions to execute */
   onAlways: {
     /** Optional effects to execute (save, manipulate collections, etc.) */
-    effects?: readonly EffectFunctionExpr<any>[]
+    effects?: EffectFunctionExpr<any>[]
 
     /** Required navigation rules for where to go next */
-    next: readonly NextExpr[]
+    next: NextExpr[]
   }
 }
 
@@ -585,23 +587,23 @@ export interface ValidatingTransition extends SubmitTransitionBase {
    */
   onAlways?: {
     /** Effects to execute before validation */
-    effects?: readonly EffectFunctionExpr<any>[]
+    effects?: EffectFunctionExpr<any>[]
   }
 
   /** Actions to execute when validation passes. */
   onValid: {
     /** Optional effects to execute */
-    effects?: readonly EffectFunctionExpr<any>[]
+    effects?: EffectFunctionExpr<any>[]
     /** Required navigation rules on successful validation */
-    next: readonly NextExpr[]
+    next: NextExpr[]
   }
 
   /** Actions to execute when validation fails. */
   onInvalid: {
     /** Optional effects to execute */
-    effects?: readonly EffectFunctionExpr<any>[]
+    effects?: EffectFunctionExpr<any>[]
     /** Required navigation rules on failed validation */
-    next: readonly NextExpr[]
+    next: NextExpr[]
   }
 }
 
