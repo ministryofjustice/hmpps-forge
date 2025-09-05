@@ -1,5 +1,5 @@
 import { JourneySchema } from './schemas/structures.schema'
-import { ValidationError, createMaxDepthError, createNonSerializableError } from './errors'
+import { ValidationError, createNonSerializableError } from './errors'
 
 /** Result of validation */
 export interface ValidationResult {
@@ -10,59 +10,20 @@ export interface ValidationResult {
   errors: ValidationError[]
 }
 
-/** Options for validation */
-export interface ValidationOptions {
-  /** Maximum allowed nesting depth */
-  maxDepth?: number
-}
-
 /**
  * Form configuration validator that checks JSON and schema validity
  */
 export class FormValidator {
-  private readonly options: Required<ValidationOptions>
-
-  constructor(options: ValidationOptions = {}) {
-    this.options = {
-      maxDepth: options.maxDepth ?? 100,
-    }
-  }
-
   /**
    * Validate a journey definition
    */
   validateSchema(input: unknown) {
-    const errors: ValidationError[] = []
-
-    if (this.exceedsMaxDepth(input, this.options.maxDepth)) {
-      errors.push(createMaxDepthError(this.options.maxDepth, []))
-
-      return { isValid: false, errors }
-    }
-
     const result = JourneySchema.safeParse(input)
 
     return {
       isValid: result.success,
       errors: result.error?.issues || [],
     }
-  }
-
-  /**
-   * Check if an object exceeds maximum nesting depth
-   */
-  private exceedsMaxDepth(obj: any, maxDepth: number, currentDepth = 0): boolean {
-    if (currentDepth > maxDepth) return true
-
-    if (obj && typeof obj === 'object') {
-      if (Array.isArray(obj)) {
-        return obj.some(item => this.exceedsMaxDepth(item, maxDepth, currentDepth + 1))
-      }
-
-      return Object.values(obj).some(value => this.exceedsMaxDepth(value, maxDepth, currentDepth + 1))
-    }
-
-    return false
   }
 
   /**

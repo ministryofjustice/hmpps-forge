@@ -63,56 +63,6 @@ describe('FormValidator', () => {
     })
   })
 
-  describe('depth checking', () => {
-    it('should fail when max depth is exceeded', () => {
-      const deepObject: any = {
-        type: StructureType.JOURNEY,
-        code: 'test',
-        title: 'Test',
-      }
-      let current = deepObject
-
-      Array.from({ length: 150 }).forEach((_, i) => {
-        current.nested = { level: i }
-        current = current.nested
-      })
-
-      const result = validator.validateSchema(deepObject)
-
-      expect(result.isValid).toBe(false)
-      expect(result.errors[0].code).toBe('max_depth_exceeded')
-      expect(result.errors[0].message).toContain('Maximum depth of 100 exceeded')
-    })
-
-    it('should allow custom max depth', () => {
-      const customValidator = new FormValidator({ maxDepth: 5 })
-
-      const deepObject = {
-        type: StructureType.JOURNEY,
-        code: 'test',
-        title: 'Test',
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/test',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                variant: 'text',
-                nested: { a: { b: { c: { d: { e: 'too deep' } } } } },
-              },
-            ],
-          },
-        ],
-      }
-
-      const result = customValidator.validateSchema(deepObject)
-
-      expect(result.isValid).toBe(false)
-      expect(result.errors[0].code).toBe('max_depth_exceeded')
-    })
-  })
-
   describe('real', () => {
     it('should catch all errors in the broken strengths-and-needs form', () => {
       const brokenJson = {
