@@ -196,9 +196,33 @@ value: Answer('email').pipe(
 ```
 
 ## Registration
-> [!WARNING]
-> **TODO**: The registration process will be implemented when configuring the form library.
-> Users will provide an array of custom functions during initialization.
+
+Transformers must be registered with the FormEngine to be available for use in forms.
+Registration typically happens during application initialization:
+
+```typescript
+import FormEngine from '@form-engine/core/FormEngine'
+import { buildTransformerFunction } from '@form-engine/registry/utils/buildTransformer'
+
+// Create the form engine instance
+const formEngine = new FormEngine()
+
+// Register a single transformer
+formEngine.registerFunction(formatCurrency)
+
+// Register multiple transformers at once
+formEngine.registerFunctions([
+  formatCurrency,
+  extractPostcode,
+  calculateTotal
+])
+```
+
+### Registration Notes
+- Built-in transformers (like `toUpperCase`, `trim`, `split`) are registered automatically unless disabled via options
+- Functions are stored by their `name` property in the FunctionRegistry
+- Attempting to register a duplicate name will throw a `RegistryDuplicateError`
+- Invalid function specs will throw a `RegistryValidationError`
 
 ## Error Handling
 Transformers should handle errors gracefully and return sensible defaults:

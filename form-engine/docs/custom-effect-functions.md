@@ -301,15 +301,16 @@ onAlways: {
 ```
 
 ## Registration
-> [!WARNING]
-> **TODO**: The registration process will be implemented when configuring the form library.
-> Users will provide an array of custom functions during initialization.
-
+Effects must be registered with the FormEngine to be available for use in forms.
+Since effects are a type of function, they use the same registration methods as conditions and transformers.
 
 ### Direct Registration (Without Dependency Injection)
 For simple effects without external dependencies:
 
 ```typescript
+import FormEngine from '@form-engine/core/FormEngine'
+import { buildEffectFunction } from '@form-engine/registry/utils/buildEffect'
+
 const simpleEffects = {
   logAction: buildEffectFunction(
     'logAction',
@@ -325,8 +326,14 @@ const simpleEffects = {
   )
 }
 
-// Register directly with the form engine
-formEngine.registerEffects(Object.values(simpleEffects))
+// Create the form engine instance
+const formEngine = new FormEngine()
+
+// Register a single effect
+formEngine.registerFunction(simpleEffects.logAction)
+
+// Register multiple effects at once
+formEngine.registerFunctions(Object.values(simpleEffects))
 ```
 
 ### Registration with Dependency Injection
@@ -352,8 +359,17 @@ export const MyEffects = createInjectableFunctions(effectFactories, FunctionType
 // 3. At application initialization, resolve and register
 const myService = new MyService(config)
 const resolvedEffects = resolveInjectableFunctions(effectFactories, myService)
-formEngine.registerEffects(Object.keys(resolvedEffects))
+
+// Register all resolved effects with the form engine
+formEngine.registerFunctions(Object.values(resolvedEffects))
 ```
+
+### Registration Notes
+- Effects are registered using the same `registerFunction`/`registerFunctions` methods as conditions and transformers
+- Functions are stored by their `name` property in the FunctionRegistry
+- Attempting to register a duplicate name will throw a `RegistryDuplicateError`
+- Invalid function specs will throw a `RegistryValidationError`
+- Multiple errors are collected and thrown as an `AggregateError`
 
 ## Error Handling
 Effects should handle errors appropriately and provide meaningful error messages:
