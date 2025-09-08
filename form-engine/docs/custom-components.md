@@ -303,9 +303,32 @@ const params = {
 ```
 
 ## Registration
-> [!WARNING]
-> **TODO**: The registration process will be implemented when configuring the form library.
-> Components will need to be registered with the BlocksRegistry during initialization.
+
+Components must be registered with the FormEngine to be available for use in forms.
+Registration typically happens during application initialization:
+
+```typescript
+import FormEngine from '@form-engine/core/FormEngine'
+
+// Create the form engine instance
+const formEngine = new FormEngine()
+
+// Register a single component
+formEngine.registerComponent(CustomTextInput)
+
+// Register multiple components at once
+formEngine.registerComponents([
+  CustomTextInput,
+  CustomRadioInput,
+  CustomDatePicker
+])
+```
+
+### Registration Notes
+- Built-in components (GOV.UK Frontend) are registered automatically unless disabled via options
+- Components are stored by their `variant` property in the ComponentRegistry
+- Attempting to register a duplicate variant will throw a `RegistryDuplicateError`
+- Invalid component specs will throw a `RegistryValidationError`
 
 ## Best Practices
 

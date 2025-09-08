@@ -162,9 +162,32 @@ const isUniqueUsername = buildConditionFunction(
 ```
 
 ## Registration
-> [!WARNING]
-> **TODO**: The registration process will be implemented when configuring the form library.
-> Users will provide an array of custom functions during initialization.
+
+Conditions must be registered with the FormEngine to be available for use in forms.
+Registration typically happens during application initialization:
+
+```typescript
+import FormEngine from '@form-engine/core/FormEngine'
+
+// Create the form engine instance
+const formEngine = new FormEngine()
+
+// Register a single condition
+formEngine.registerFunction(isStrongPassword)
+
+// Register multiple conditions at once
+formEngine.registerFunctions([
+  isStrongPassword,
+  hasSpecialCharacters,
+  matchesPattern
+])
+```
+
+### Registration Notes
+- Built-in conditions (like `isRequired`, `hasMinLength`) are registered automatically unless disabled via options
+- Functions are stored by their `name` property in the FunctionRegistry
+- Attempting to register a duplicate name will throw a `RegistryDuplicateError`
+- Invalid function specs will throw a `RegistryValidationError`
 
 ## Error Handling
 Your custom conditions should handle errors appropriately:
