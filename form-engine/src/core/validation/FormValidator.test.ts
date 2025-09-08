@@ -5,8 +5,8 @@ import FormConfigurationSchemaError from '@form-engine/errors/FormConfigurationS
 import { FormValidator } from './FormValidator'
 
 describe('FormValidator', () => {
-  describe('validateJourney', () => {
-    it('should validate a valid journey', () => {
+  describe('validateSchema', () => {
+    it('should validate a valid schema', () => {
       const validJourney = {
         type: StructureType.JOURNEY,
         code: 'test-journey',
@@ -72,10 +72,8 @@ describe('FormValidator', () => {
         }
       }
     })
-  })
 
-  describe('real', () => {
-    it('should catch all errors in the broken strengths-and-needs form', () => {
+    it('should catch multiple errors in a schema', () => {
       const brokenJson = {
         type: StructureType.JOURNEY,
         code: 'strengths_and_needs',

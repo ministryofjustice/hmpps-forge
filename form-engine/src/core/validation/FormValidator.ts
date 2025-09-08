@@ -44,7 +44,7 @@ export class FormValidator {
     const errors = this.checkSerializableTypes(input, [])
 
     if (errors.length > 0) {
-      throw new AggregateError(errors, 'JSON validation failed')
+      throw new AggregateError(errors, 'JSON validation failed due to non-serializable types')
     }
 
     try {
