@@ -1,4 +1,5 @@
 import { ValidationExpr } from '@form-engine/form/types/structures.type'
+import { isPredicateExpr } from '@form-engine/typeguards/predicates'
 import {
   ReferenceExpr,
   FormatExpr,
@@ -8,7 +9,7 @@ import {
   NextExpr,
 } from '../form/types/expressions.type'
 import { ExpressionType, LogicType } from '../form/types/enums'
-import { isTransformerFunctionExpr } from './functions'
+import { isFunctionExpr, isTransformerFunctionExpr } from './functions'
 
 export function isReferenceExpr(obj: any): obj is ReferenceExpr {
   return obj != null && obj.type === ExpressionType.REFERENCE
@@ -57,4 +58,17 @@ export function isValueExpr(obj: any): obj is ValueExpr {
 
 export function isValidationExpr(obj: any): obj is ValidationExpr {
   return obj != null && obj.type === ExpressionType.VALIDATION
+}
+
+export function isExpression(node: any): boolean {
+  return (
+    isReferenceExpr(node) ||
+    isFormatExpr(node) ||
+    isPipelineExpr(node) ||
+    isConditionalExpr(node) ||
+    isPredicateExpr(node) ||
+    isFunctionExpr(node) ||
+    isValidationExpr(node) ||
+    isNextExpr(node)
+  )
 }

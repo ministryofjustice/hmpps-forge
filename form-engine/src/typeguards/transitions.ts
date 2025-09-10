@@ -26,3 +26,7 @@ export function isValidatingTransition(obj: any): obj is ValidatingTransition {
 export function isSubmitTransition(obj: any): obj is SubmitTransition {
   return isSkipValidationTransition(obj) || isValidatingTransition(obj)
 }
+
+export function isTransition(obj: any): boolean {
+  return isLoadTransition(obj) || isAccessTransition(obj) || isSubmitTransition(obj)
+}
