@@ -1,5 +1,5 @@
 import { ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
-import { ASTNodeType } from '@form-engine/core/types/enums'
+import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
 import {
   transformExpression,
   transformReference,
@@ -30,7 +30,7 @@ describe('Expression Transformations', () => {
       const result = transformReference(reference, ['test']) as ReferenceASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: 'ExpressionType.Reference',
       })
       expect(result.properties.get('path')).toEqual(['answers', 'email'])
@@ -59,12 +59,12 @@ describe('Expression Transformations', () => {
       const result = transformPipeline(pipeline, ['test']) as PipelineASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: 'ExpressionType.Pipeline',
       })
 
       expect(result.properties.get('input')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: 'ExpressionType.Reference',
       })
 
@@ -92,12 +92,12 @@ describe('Expression Transformations', () => {
       const result = transformConditional(conditional, ['test']) as ConditionalASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: 'LogicType.Conditional',
       })
 
       expect(result.properties.get('predicate')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.TEST,
       })
 
@@ -141,7 +141,7 @@ describe('Expression Transformations', () => {
       const result = transformValidation(validation, ['test']) as ValidationASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: 'ExpressionType.Validation',
       })
       expect(result.properties.get('message')).toBe('Please enter a valid email')
@@ -149,7 +149,7 @@ describe('Expression Transformations', () => {
       expect(result.properties.get('details')).toEqual({ field: 'email', errorType: 'format' })
 
       expect(result.properties.get('when')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.TEST,
       })
     })
@@ -186,16 +186,16 @@ describe('Expression Transformations', () => {
       const result = transformPredicate(predicate, ['test']) as PredicateASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.TEST,
       })
 
       expect(result.properties.get('subject')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
       })
 
       expect(result.properties.get('condition')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
       })
     })
 
@@ -221,13 +221,13 @@ describe('Expression Transformations', () => {
       const result = transformPredicate(predicate, ['test']) as PredicateASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.AND,
       })
 
       expect(result.properties.get('operands')).toHaveLength(2)
       expect(result.properties.get('operands')[0]).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.TEST,
       })
     })
@@ -271,12 +271,12 @@ describe('Expression Transformations', () => {
       const result = transformPredicate(predicate, ['test']) as PredicateASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.NOT,
       })
 
       expect(result.properties.get('operand')).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: LogicType.TEST,
       })
     })
@@ -293,7 +293,7 @@ describe('Expression Transformations', () => {
       const result = transformFunction(func, ['test']) as FunctionASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: FunctionType.CONDITION,
       })
       expect(result.properties.get('name')).toBe('hasMaxLength')
@@ -310,7 +310,7 @@ describe('Expression Transformations', () => {
       const result = transformFunction(func, ['test']) as FunctionASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: FunctionType.TRANSFORMER,
       })
       expect(result.properties.get('name')).toBe('toUpperCase')
@@ -327,7 +327,7 @@ describe('Expression Transformations', () => {
       const result = transformFunction(func, ['test']) as FunctionASTNode
 
       expect(result).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
+        type: AST_NODE_SYMBOLS.EXPRESSION,
         expressionType: FunctionType.EFFECT,
       })
       expect(result.properties.get('name')).toBe('save')
