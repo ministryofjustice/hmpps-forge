@@ -8,7 +8,7 @@ import {
   ReferenceASTNode,
   ValidationASTNode,
 } from '@form-engine/core/ast/types/nodes.type'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, LogicType } from '@form-engine/form/types/enums'
 import { transformNode, transformValue } from '@form-engine/core/ast/transformer/transformToAst'
 import {
@@ -71,7 +71,7 @@ export function transformExpression(json: any, path: string[]): ExpressionASTNod
   }
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: json.type,
     properties,
     raw: json,
@@ -89,7 +89,7 @@ export function transformReference(json: any, _path: string[]): ReferenceASTNode
   properties.set('path', json.path)
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.REFERENCE,
     properties,
     raw: json,
@@ -125,7 +125,7 @@ export function transformPipeline(json: any, path: string[]): PipelineASTNode {
   properties.set('steps', steps)
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.PIPELINE,
     properties,
     raw: json,
@@ -152,7 +152,7 @@ export function transformConditional(json: any, path: string[]): ConditionalASTN
   }
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: LogicType.CONDITIONAL,
     properties,
     raw: json,
@@ -181,7 +181,7 @@ export function transformValidation(json: any, path: string[]): ValidationASTNod
   }
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.VALIDATION,
     properties,
     raw: json,
@@ -214,7 +214,7 @@ export function transformPredicate(json: any, path: string[]): PredicateASTNode 
   }
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: predicateType,
     properties,
     raw: json,
@@ -237,7 +237,7 @@ export function transformFunction(json: any, path: string[]): FunctionASTNode {
   properties.set('arguments', args)
 
   return {
-    type: AST_NODE_SYMBOLS.EXPRESSION,
+    type: ASTNodeType.EXPRESSION,
     expressionType: funcType,
     properties,
     raw: json,

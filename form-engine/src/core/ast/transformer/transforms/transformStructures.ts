@@ -5,7 +5,7 @@ import {
 } from '@form-engine/typeguards/structures'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/ast/types/nodes.type'
 import { transformProperties } from '@form-engine/core/ast/transformer/transformToAst'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 
 /**
  * Transform Block node: UI components that render in steps
@@ -13,9 +13,9 @@ import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
  */
 export function transformBlock(json: any, path: string[]): BlockASTNode {
   // Destructure to separate type from actual properties
-  const { type, ...dataProperties } = json
+  const { variant, type, ...dataProperties } = json
   // Convert all properties to Map, transforming nested nodes
-  const properties = transformProperties(dataProperties, [...path, 'block'])
+  const properties = transformProperties(dataProperties, [...path, 'block', variant])
 
   // Classify block for AST traversal optimization
   let blockType: 'basic' | 'field' | 'collection' | 'composite'
@@ -31,7 +31,8 @@ export function transformBlock(json: any, path: string[]): BlockASTNode {
   }
 
   return {
-    type: AST_NODE_SYMBOLS.BLOCK,
+    type: ASTNodeType.BLOCK,
+    variant,
     blockType,
     properties,
     raw: json,
@@ -49,7 +50,7 @@ export function transformStep(json: any, path: string[]): StepASTNode {
   const properties = transformProperties(dataProperties, [...path, 'step'])
 
   return {
-    type: AST_NODE_SYMBOLS.STEP,
+    type: ASTNodeType.STEP,
     properties,
     raw: json,
   }
@@ -66,7 +67,7 @@ export function transformJourney(json: any, path: string[]): JourneyASTNode {
   const properties = transformProperties(dataProperties, [...path, 'journey'])
 
   return {
-    type: AST_NODE_SYMBOLS.JOURNEY,
+    type: ASTNodeType.JOURNEY,
     properties,
     raw: json,
   }

@@ -1,5 +1,5 @@
 import { TransitionType, ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
   transformTransition,
   transformLoadTransition,
@@ -27,13 +27,13 @@ describe('Transition Transformations', () => {
       const result = transformLoadTransition(transition, ['test']) as LoadTransitionASTNode
 
       expect(result).toMatchObject({
-        type: AST_NODE_SYMBOLS.TRANSITION,
+        type: ASTNodeType.TRANSITION,
         transitionType: 'TransitionType.Load',
       })
 
       expect(result.properties.get('effects')).toHaveLength(2)
       expect(result.properties.get('effects')[0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: FunctionType.EFFECT,
       })
     })
@@ -67,12 +67,12 @@ describe('Transition Transformations', () => {
       const result = transformAccessTransition(transition, ['test']) as AccessTransitionASTNode
 
       expect(result).toMatchObject({
-        type: AST_NODE_SYMBOLS.TRANSITION,
+        type: ASTNodeType.TRANSITION,
         transitionType: 'TransitionType.Access',
       })
 
       expect(result.properties.get('guards')).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: LogicType.TEST,
       })
 
@@ -126,16 +126,16 @@ describe('Transition Transformations', () => {
       const result = transformSubmitTransition(transition, ['test']) as SubmitTransitionASTNode
 
       expect(result).toMatchObject({
-        type: AST_NODE_SYMBOLS.TRANSITION,
+        type: ASTNodeType.TRANSITION,
         transitionType: 'TransitionType.Submit',
       })
 
       expect(result.properties.get('when')).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
       })
 
       expect(result.properties.get('guards')).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
       })
 
       expect(result.properties.get('validate')).toBe(true)

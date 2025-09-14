@@ -1,7 +1,7 @@
 import { StructureType, ExpressionType, LogicType, FunctionType, TransitionType } from '@form-engine/form/types/enums'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { transformToAst, transformNode, transformProperties, transformValue, isNode } from './transformToAst'
 import { ASTNode, JourneyASTNode, StepASTNode } from '../types/nodes.type'
 
@@ -18,7 +18,7 @@ describe('ASTTransformer', () => {
       const result = transformToAst(journey)
 
       expect(result).toMatchObject({
-        type: AST_NODE_SYMBOLS.JOURNEY,
+        type: ASTNodeType.JOURNEY,
       })
       expect(result.raw).toBe(journey)
     })
@@ -33,7 +33,7 @@ describe('ASTTransformer', () => {
       const result = transformToAst(step)
 
       expect(result).toMatchObject({
-        type: AST_NODE_SYMBOLS.STEP,
+        type: ASTNodeType.STEP,
       })
     })
 
@@ -62,7 +62,7 @@ describe('ASTTransformer', () => {
 
       const result = transformToAst(emptyStep) as StepASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.STEP)
+      expect(result.type).toBe(ASTNodeType.STEP)
       const blocks = result.properties.get('blocks') as any[]
       expect(blocks).toEqual([])
     })
@@ -247,7 +247,7 @@ describe('ASTTransformer', () => {
       const result = transformToAst(complexForm) as JourneyASTNode
 
       expect(result).toBeDefined()
-      expect(result.type).toBe(AST_NODE_SYMBOLS.JOURNEY)
+      expect(result.type).toBe(ASTNodeType.JOURNEY)
       expect(result.properties).toBeInstanceOf(Map)
       expect(result.properties.get('code')).toBe('complex-assessment')
       expect(result.properties.get('title')).toBe('Complex Assessment')
@@ -264,7 +264,7 @@ describe('ASTTransformer', () => {
       }
 
       const result = transformNode(journey, ['test'])
-      expect(result.type).toBe(AST_NODE_SYMBOLS.JOURNEY)
+      expect(result.type).toBe(ASTNodeType.JOURNEY)
     })
 
     it('should throw InvalidNodeError for invalid inputs', () => {
@@ -310,7 +310,7 @@ describe('ASTTransformer', () => {
       const steps = result.get('steps') as ASTNode[]
       expect(steps).toHaveLength(1)
       expect(steps[0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.STEP,
+        type: ASTNodeType.STEP,
       })
 
       const metadata = result.get('metadata') as any
@@ -359,7 +359,7 @@ describe('ASTTransformer', () => {
       expect(result[2]).toBe(true)
       expect(result[3]).toBeNull()
       expect(result[4]).toMatchObject({
-        type: AST_NODE_SYMBOLS.STEP,
+        type: ASTNodeType.STEP,
       })
       expect(result[5]).toEqual({ plain: 'object' })
       expect(result[6]).toEqual(['nested', 'array'])
@@ -387,11 +387,11 @@ describe('ASTTransformer', () => {
 
       expect(result.plainProperty).toBe('value')
       expect(result.nodeProperty).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: 'ExpressionType.Reference',
       })
       expect(result.deeplyNested.level1.level2).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: FunctionType.CONDITION,
       })
     })
@@ -411,7 +411,7 @@ describe('ASTTransformer', () => {
       const result = transformValue(deepArray, ['test']) as any[][][]
 
       expect(result[0][0][0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: 'ExpressionType.Reference',
       })
     })

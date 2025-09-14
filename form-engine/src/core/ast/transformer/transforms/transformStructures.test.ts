@@ -1,5 +1,5 @@
 import { StructureType, ExpressionType, LogicType, FunctionType, TransitionType } from '@form-engine/form/types/enums'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { transformJourney, transformStep, transformBlock } from './transformStructures'
 import { JourneyASTNode, StepASTNode, BlockASTNode, ASTNode } from '../../types/nodes.type'
 
@@ -50,7 +50,7 @@ describe('Structure Transformations', () => {
 
       const result = transformJourney(journey, ['test']) as JourneyASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.JOURNEY)
+      expect(result.type).toBe(ASTNodeType.JOURNEY)
       expect(result.properties.get('code')).toBe('assessment')
       expect(result.properties.get('title')).toBe('Assessment Journey')
       expect(result.properties.get('description')).toBe('A test assessment')
@@ -59,16 +59,20 @@ describe('Structure Transformations', () => {
 
       const steps = result.properties.get('steps') as ASTNode[]
       expect(steps).toHaveLength(1)
-      expect((steps[0] as StepASTNode).type).toBe(AST_NODE_SYMBOLS.STEP)
+      expect(steps[0]).toMatchObject({
+        type: ASTNodeType.STEP,
+      })
 
       const children = result.properties.get('children') as ASTNode[]
       expect(children).toHaveLength(1)
-      expect((children[0] as JourneyASTNode).type).toBe(AST_NODE_SYMBOLS.JOURNEY)
+      expect(children[0]).toMatchObject({
+        type: ASTNodeType.JOURNEY,
+      })
 
       const onLoad = result.properties.get('onLoad') as ASTNode[]
       expect(onLoad).toHaveLength(1)
       expect(onLoad[0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.TRANSITION,
+        type: ASTNodeType.TRANSITION,
         transitionType: 'TransitionType.Load',
       })
     })
@@ -82,7 +86,7 @@ describe('Structure Transformations', () => {
 
       const result = transformJourney(journey, ['test']) as JourneyASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.JOURNEY)
+      expect(result.type).toBe(ASTNodeType.JOURNEY)
       expect(result.properties.get('code')).toBe('minimal')
       expect(result.properties.get('title')).toBe('Minimal Journey')
       expect(result.properties.get('steps')).toBeUndefined()
@@ -129,7 +133,7 @@ describe('Structure Transformations', () => {
 
       const result = transformStep(step, ['test']) as StepASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.STEP)
+      expect(result.type).toBe(ASTNodeType.STEP)
       expect(result.properties.get('path')).toBe('/personal-details')
       expect(result.properties.get('controller')).toBe('stepController')
       expect(result.properties.get('template')).toBe('custom-template')
@@ -139,14 +143,15 @@ describe('Structure Transformations', () => {
 
       const blocks = result.properties.get('blocks') as ASTNode[]
       expect(blocks).toHaveLength(1)
-      const firstBlock = blocks[0] as BlockASTNode
-      expect(firstBlock.type).toBe(AST_NODE_SYMBOLS.BLOCK)
-      expect(firstBlock.properties.get('variant')).toBe('text')
+      expect(blocks[0]).toMatchObject({
+        type: ASTNodeType.BLOCK,
+        variant: 'text',
+      })
 
       const onSubmission = result.properties.get('onSubmission') as ASTNode[]
       expect(onSubmission).toHaveLength(1)
       expect(onSubmission[0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.TRANSITION,
+        type: ASTNodeType.TRANSITION,
         transitionType: 'TransitionType.Submit',
       })
     })
@@ -175,8 +180,8 @@ describe('Structure Transformations', () => {
 
       const result = transformBlock(fieldBlock, ['test']) as BlockASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.BLOCK)
-      expect(result.properties.get('variant')).toBe('text')
+      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.variant).toBe('text')
       expect(result.blockType).toBe('field')
       expect(result.properties.get('code')).toBe('username')
       expect(result.properties.get('label')).toBe('Username')
@@ -184,7 +189,7 @@ describe('Structure Transformations', () => {
       const validate = result.properties.get('validate') as ASTNode[]
       expect(validate).toHaveLength(1)
       expect(validate[0]).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: 'ExpressionType.Validation',
       })
     })
@@ -207,19 +212,20 @@ describe('Structure Transformations', () => {
 
       const result = transformBlock(collectionBlock, ['test']) as BlockASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.BLOCK)
-      expect(result.properties.get('variant')).toBe('collection')
+      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.variant).toBe('collection')
       expect(result.blockType).toBe('collection')
 
       const template = result.properties.get('template') as ASTNode[]
       expect(template).toHaveLength(1)
-      const templateBlock = template[0] as BlockASTNode
-      expect(templateBlock.type).toBe(AST_NODE_SYMBOLS.BLOCK)
-      expect(templateBlock.properties.get('variant')).toBe('text')
+      expect(template[0]).toMatchObject({
+        type: ASTNodeType.BLOCK,
+        variant: 'text',
+      })
 
       const collectionContext = result.properties.get('collectionContext') as any
       expect(collectionContext.collection).toMatchObject({
-        type: AST_NODE_SYMBOLS.EXPRESSION,
+        type: ASTNodeType.EXPRESSION,
         expressionType: 'ExpressionType.Reference',
       })
     })
@@ -244,10 +250,16 @@ describe('Structure Transformations', () => {
 
       const result = transformBlock(compositeBlock, ['test']) as BlockASTNode
 
-      expect(result.type).toBe(AST_NODE_SYMBOLS.BLOCK)
+      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.variant).toBe('fieldset')
       expect(result.blockType).toBe('composite')
-      expect(result.properties.get('variant')).toBe('fieldset')
-      expect(result.properties.get('blocks')).toHaveLength(2)
+
+      const blocks = result.properties.get('blocks') as ASTNode[]
+      expect(blocks).toHaveLength(2)
+      expect(blocks[0]).toMatchObject({
+        type: ASTNodeType.BLOCK,
+        variant: 'text',
+      })
     })
   })
 })

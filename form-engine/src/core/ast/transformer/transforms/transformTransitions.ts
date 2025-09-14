@@ -6,7 +6,7 @@ import {
   TransitionASTNode,
 } from '@form-engine/core/ast/types/nodes.type'
 import { isAccessTransition, isLoadTransition, isSubmitTransition } from '@form-engine/typeguards/transitions'
-import { AST_NODE_SYMBOLS } from '@form-engine/core/types/symbols'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { transformNode, transformValue } from '@form-engine/core/ast/transformer/transformToAst'
 
@@ -35,7 +35,7 @@ export function transformTransition(json: any, path: string[]): TransitionASTNod
   }
 
   return {
-    type: AST_NODE_SYMBOLS.TRANSITION,
+    type: ASTNodeType.TRANSITION,
     transitionType: json.type,
     properties,
     raw: json,
@@ -56,7 +56,7 @@ export function transformLoadTransition(json: any, path: string[]): LoadTransiti
   properties.set('effects', effects)
 
   return {
-    type: AST_NODE_SYMBOLS.TRANSITION,
+    type: ASTNodeType.TRANSITION,
     transitionType: TransitionType.LOAD,
     properties,
     raw: json,
@@ -89,7 +89,7 @@ export function transformAccessTransition(json: any, path: string[]): AccessTran
   }
 
   return {
-    type: AST_NODE_SYMBOLS.TRANSITION,
+    type: ASTNodeType.TRANSITION,
     transitionType: TransitionType.ACCESS,
     properties,
     raw: json,
@@ -148,7 +148,7 @@ export function transformSubmitTransition(json: any, path: string[]): SubmitTran
   }
 
   return {
-    type: AST_NODE_SYMBOLS.TRANSITION,
+    type: ASTNodeType.TRANSITION,
     transitionType: TransitionType.SUBMIT,
     properties,
     raw: json,
