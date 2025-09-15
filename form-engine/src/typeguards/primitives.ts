@@ -25,3 +25,7 @@ export function isArrayValue(obj: any): obj is any[] {
 export function isPrimitiveValue(obj: any): obj is string | number | boolean | null {
   return isStringValue(obj) || isNumberValue(obj) || isBooleanValue(obj) || isNullValue(obj)
 }
+
+export function isMapValue(obj: unknown): obj is Map<any, any> {
+  return obj instanceof Map
+}

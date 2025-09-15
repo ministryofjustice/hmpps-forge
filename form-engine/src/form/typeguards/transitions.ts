@@ -4,8 +4,8 @@ import {
   SkipValidationTransition,
   ValidatingTransition,
   SubmitTransition,
-} from '../form/types/expressions.type'
-import { TransitionType } from '../form/types/enums'
+} from '../types/expressions.type'
+import { TransitionType } from '../types/enums'
 
 export function isLoadTransition(obj: any): obj is LoadTransition {
   return obj != null && obj.type === TransitionType.LOAD

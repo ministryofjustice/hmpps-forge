@@ -4,8 +4,8 @@ import {
   TransformerFunctionExpr,
   EffectFunctionExpr,
   FunctionExpr,
-} from '../form/types/expressions.type'
-import { FunctionType } from '../form/types/enums'
+} from '../types/expressions.type'
+import { FunctionType } from '../types/enums'
 
 export function isBaseFunctionExpr(obj: any): obj is BaseFunctionExpr<any> {
   return obj != null && Object.values(FunctionType).includes(obj.type)

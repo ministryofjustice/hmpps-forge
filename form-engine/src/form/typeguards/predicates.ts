@@ -5,8 +5,8 @@ import {
   PredicateXorExpr,
   PredicateNotExpr,
   PredicateExpr,
-} from '../form/types/expressions.type'
-import { LogicType } from '../form/types/enums'
+} from '../types/expressions.type'
+import { LogicType } from '../types/enums'
 
 export function isPredicateTestExpr(obj: any): obj is PredicateTestExpr {
   return obj != null && obj.type === LogicType.TEST

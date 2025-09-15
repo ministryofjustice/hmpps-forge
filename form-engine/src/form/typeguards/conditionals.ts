@@ -1,11 +1,6 @@
-import {
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalNumber,
-  ConditionalArray,
-} from '../form/types/structures.type'
+import { ConditionalString, ConditionalBoolean, ConditionalNumber, ConditionalArray } from '../types/structures.type'
 import { isReferenceExpr, isFormatExpr, isPipelineExpr, isConditionalExpr } from './expressions'
-import { isStringValue, isNumberValue, isBooleanValue, isArrayValue } from './primitives'
+import { isStringValue, isNumberValue, isBooleanValue, isArrayValue } from '../../typeguards/primitives'
 
 export function isConditionalString(obj: any): obj is ConditionalString {
   return (

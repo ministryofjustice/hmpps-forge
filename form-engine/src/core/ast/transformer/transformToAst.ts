@@ -1,6 +1,6 @@
-import { isJourneyDefinition, isStepDefinition, isBlockDefinition } from '@form-engine/typeguards/structures'
-import { isExpression } from '@form-engine/typeguards/expressions'
-import { isTransition } from '@form-engine/typeguards/transitions'
+import { isJourneyDefinition, isStepDefinition, isBlockDefinition } from '@form-engine/form/typeguards/structures'
+import { isExpression } from '@form-engine/form/typeguards/expressions'
+import { isTransition } from '@form-engine/form/typeguards/transitions'
 import ASTTransformationError from '@form-engine/errors/ASTTransformationError'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
@@ -11,7 +11,7 @@ import {
 } from '@form-engine/core/ast/transformer/transforms/transformStructures'
 import { transformExpression } from '@form-engine/core/ast/transformer/transforms/transformExpressions'
 import { transformTransition } from '@form-engine/core/ast/transformer/transforms/transformTransitions'
-import { ASTNode } from '../types/nodes.type'
+import { ASTNode } from '@form-engine/core/types/engine.type'
 
 /**
  * Main entry point for transformation

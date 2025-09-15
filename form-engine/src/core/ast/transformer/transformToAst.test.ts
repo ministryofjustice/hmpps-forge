@@ -2,8 +2,15 @@ import { StructureType, ExpressionType, LogicType, FunctionType, TransitionType 
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { transformToAst, transformNode, transformProperties, transformValue, isNode } from './transformToAst'
-import { ASTNode, JourneyASTNode, StepASTNode } from '../types/nodes.type'
+import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { ASTNode } from '@form-engine/core/types/engine.type'
+import {
+  isNode,
+  transformNode,
+  transformProperties,
+  transformToAst,
+  transformValue,
+} from '@form-engine/core/ast/transformer/transformToAst'
 
 describe('ASTTransformer', () => {
   describe('transform()', () => {

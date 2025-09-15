@@ -1,14 +1,14 @@
-import {
-  AccessTransitionASTNode,
-  ASTNode,
-  LoadTransitionASTNode,
-  SubmitTransitionASTNode,
-  TransitionASTNode,
-} from '@form-engine/core/ast/types/nodes.type'
-import { isAccessTransition, isLoadTransition, isSubmitTransition } from '@form-engine/typeguards/transitions'
+import { isAccessTransition, isLoadTransition, isSubmitTransition } from '@form-engine/form/typeguards/transitions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { transformNode, transformValue } from '@form-engine/core/ast/transformer/transformToAst'
+import {
+  AccessTransitionASTNode,
+  LoadTransitionASTNode,
+  SubmitTransitionASTNode,
+  TransitionASTNode,
+} from '@form-engine/core/types/expressions.type'
+import { ASTNode } from '@form-engine/core/types/engine.type'
 
 /**
  * Transform Transition node: Lifecycle event handlers

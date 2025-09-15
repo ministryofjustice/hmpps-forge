@@ -1,7 +1,12 @@
 import { StructureType, ExpressionType, LogicType, FunctionType, TransitionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { transformJourney, transformStep, transformBlock } from './transformStructures'
-import { JourneyASTNode, StepASTNode, BlockASTNode, ASTNode } from '../../types/nodes.type'
+import { ASTNode } from '@form-engine/core/types/engine.type'
+import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import {
+  transformBlock,
+  transformJourney,
+  transformStep,
+} from '@form-engine/core/ast/transformer/transforms/transformStructures'
 
 describe('Structure Transformations', () => {
   describe('transformJourney()', () => {

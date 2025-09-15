@@ -1,17 +1,17 @@
 import { TransitionType, ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
+  AccessTransitionASTNode,
+  LoadTransitionASTNode,
+  SubmitTransitionASTNode,
+  TransitionASTNode,
+} from '@form-engine/core/types/expressions.type'
+import {
   transformTransition,
   transformLoadTransition,
   transformAccessTransition,
   transformSubmitTransition,
 } from './transformTransitions'
-import {
-  LoadTransitionASTNode,
-  AccessTransitionASTNode,
-  SubmitTransitionASTNode,
-  TransitionASTNode,
-} from '../../types/nodes.type'
 
 describe('Transition Transformations', () => {
   describe('transformLoadTransition()', () => {

@@ -2,10 +2,10 @@ import {
   isCollectionBlockDefinition,
   isCompositeBlockDefinition,
   isFieldBlockDefinition,
-} from '@form-engine/typeguards/structures'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/ast/types/nodes.type'
+} from '@form-engine/form/typeguards/structures'
 import { transformProperties } from '@form-engine/core/ast/transformer/transformToAst'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 
 /**
  * Transform Block node: UI components that render in steps

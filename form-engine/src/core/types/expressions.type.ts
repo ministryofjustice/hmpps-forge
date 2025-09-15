@@ -1,40 +1,6 @@
 import { ExpressionType, FunctionType, LogicType, TransitionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-
-/**
- * Base AST node interface that all nodes extend
- */
-export interface ASTNode {
-  type: ASTNodeType
-  id?: string
-  raw?: any
-}
-
-/**
- * Journey AST node - represents the top-level form journey
- */
-export interface JourneyASTNode extends ASTNode {
-  type: ASTNodeType.JOURNEY
-  properties: Map<string, ASTNode | any>
-}
-
-/**
- * Step AST node - represents a single page/step in the journey
- */
-export interface StepASTNode extends ASTNode {
-  type: ASTNodeType.STEP
-  properties: Map<string, ASTNode | any>
-}
-
-/**
- * Block AST node - represents UI components
- */
-export interface BlockASTNode extends ASTNode {
-  type: ASTNodeType.BLOCK
-  variant: string
-  blockType: 'basic' | 'field' | 'collection' | 'composite'
-  properties: Map<string, ASTNode | any>
-}
+import { ASTNode } from '@form-engine/core/types/engine.type'
 
 /**
  * Expression AST node - represents any expression in the form
@@ -53,10 +19,24 @@ export interface ReferenceASTNode extends ExpressionASTNode {
 }
 
 /**
+ * Next Expression AST node
+ */
+export interface NextASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.NEXT
+}
+
+/**
  * Pipeline Expression AST node
  */
 export interface PipelineASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.PIPELINE
+}
+
+/**
+ * Format Expression AST node
+ */
+export interface FormatASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.FORMAT
 }
 
 /**

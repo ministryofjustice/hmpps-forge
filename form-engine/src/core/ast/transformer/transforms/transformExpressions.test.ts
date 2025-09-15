@@ -1,6 +1,15 @@
 import { ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
+  ConditionalASTNode,
+  ExpressionASTNode,
+  FunctionASTNode,
+  PipelineASTNode,
+  PredicateASTNode,
+  ReferenceASTNode,
+  ValidationASTNode,
+} from '@form-engine/core/types/expressions.type'
+import {
   transformExpression,
   transformReference,
   transformPipeline,
@@ -9,15 +18,6 @@ import {
   transformPredicate,
   transformFunction,
 } from './transformExpressions'
-import {
-  ReferenceASTNode,
-  PipelineASTNode,
-  ConditionalASTNode,
-  PredicateASTNode,
-  FunctionASTNode,
-  ValidationASTNode,
-  ExpressionASTNode,
-} from '../../types/nodes.type'
 
 describe('Expression Transformations', () => {
   describe('transformReference()', () => {

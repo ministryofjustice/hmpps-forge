@@ -1,13 +1,3 @@
-import {
-  ASTNode,
-  ConditionalASTNode,
-  ExpressionASTNode,
-  FunctionASTNode,
-  PipelineASTNode,
-  PredicateASTNode,
-  ReferenceASTNode,
-  ValidationASTNode,
-} from '@form-engine/core/ast/types/nodes.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, LogicType } from '@form-engine/form/types/enums'
 import { transformNode, transformValue } from '@form-engine/core/ast/transformer/transformToAst'
@@ -18,14 +8,24 @@ import {
   isPredicateOrExpr,
   isPredicateTestExpr,
   isPredicateXorExpr,
-} from '@form-engine/typeguards/predicates'
+} from '@form-engine/form/typeguards/predicates'
 import {
   isConditionalExpr,
   isPipelineExpr,
   isReferenceExpr,
   isValidationExpr,
-} from '@form-engine/typeguards/expressions'
-import { isFunctionExpr } from '@form-engine/typeguards/functions'
+} from '@form-engine/form/typeguards/expressions'
+import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
+import {
+  ConditionalASTNode,
+  ExpressionASTNode,
+  FunctionASTNode,
+  PipelineASTNode,
+  PredicateASTNode,
+  ReferenceASTNode,
+  ValidationASTNode,
+} from '@form-engine/core/types/expressions.type'
+import { ASTNode } from '@form-engine/core/types/engine.type'
 
 /**
  * Transform Expression node: Dynamic values and logic
@@ -82,11 +82,14 @@ export function transformExpression(json: any, path: string[]): ExpressionASTNod
  * Transform Reference expression: Points to data in context
  * Examples: Answer('field'), Data('external.value'), Self(), Item()
  */
-export function transformReference(json: any, _path: string[]): ReferenceASTNode {
+export function transformReference(json: any, path: string[]): ReferenceASTNode {
   const properties = new Map<string, ASTNode | any>()
 
-  // Path segments for data resolution (e.g., ['answers', 'email'])
-  properties.set('path', json.path)
+  const transformedPath = Array.isArray(json.path)
+    ? json.path.map((segment: any, i: number) => transformValue(segment, [...path, 'path', i.toString()]))
+    : json.path
+
+  properties.set('path', transformedPath)
 
   return {
     type: ASTNodeType.EXPRESSION,
