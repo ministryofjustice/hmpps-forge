@@ -12,6 +12,7 @@ import {
 } from '../types/structures.type'
 import {
   AccessTransition,
+  FormatExpr,
   LoadTransition,
   NextExpr,
   SkipValidationTransition,
@@ -162,5 +163,13 @@ export const Item = (): CreateScopedReference => createScopedReference(0)
 export const Self = (): BuildableReference =>
   createReference({
     type: ExpressionType.REFERENCE,
-    path: ['@self'],
+    path: ['answers', '@self'],
   })
+
+export const Format = (text: string, ...args: ConditionalString[]): FormatExpr => {
+  return {
+    type: ExpressionType.FORMAT,
+    text,
+    args,
+  }
+}

@@ -179,10 +179,10 @@ export default {
       throw new Error(`Condition.Date.IsFutureDate: Invalid date string "${value}"`)
     }
 
-    const valueDate = new Date(parsed.year, parsed.month - 1, parsed.day)
+    const valueDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day))
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
 
-    return valueDate > today
+    return valueDate > todayUTC
   }),
 }

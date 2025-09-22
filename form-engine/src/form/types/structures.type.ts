@@ -44,11 +44,14 @@ export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDef
   /** Template blocks to render for each collection item */
   template: T[]
 
-  /** Optional fallback block to render when collection is empty */
-  fallbackTemplate?: T
-
   /** Configuration for the collection data source */
   collectionContext: CollectionOptions
+
+  /**
+   * @internal - This property is set by the engine at runtime.
+   * DO NOT set this manually in your definitions.
+   */
+  blocks?: never
 }
 
 /**
