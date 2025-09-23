@@ -17,5 +17,3 @@ export interface ASTNode {
   id?: number
   raw?: any
 }
-
-export type CompiledAST = object

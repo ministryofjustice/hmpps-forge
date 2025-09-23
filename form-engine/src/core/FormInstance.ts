@@ -3,9 +3,9 @@ import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import type { FormEngineOptions } from '@form-engine/core/FormEngine'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import CompiledAST from '@form-engine/core/ast/CompiledAST'
-import RouteGenerator from '@form-engine/core/ast/RouteGenerator'
 import { isJourneyDefinition } from '@form-engine/form/typeguards/structures'
 import { FormValidator } from '@form-engine/core/validation/FormValidator'
+import RouteGenerator from '@form-engine/core/runtime/routes/RouteGenerator'
 
 export default class FormInstance {
   private readonly router = express.Router()
@@ -19,7 +19,7 @@ export default class FormInstance {
   private constructor(
     formConfiguration: JourneyDefinition,
     private readonly dependencies: FormInstanceDependencies,
-    private readonly options?: Partial<FormEngineOptions>,
+    private readonly options?: FormEngineOptions,
   ) {
     this.rawConfiguration = formConfiguration
 
@@ -31,7 +31,7 @@ export default class FormInstance {
   static createFromConfiguration(
     configuration: any,
     dependencies: FormInstanceDependencies,
-    options: Partial<FormEngineOptions>,
+    options: FormEngineOptions,
   ) {
     let configurationAsObject
 
@@ -55,7 +55,7 @@ export default class FormInstance {
    * Generate and attach routes to the Express router
    */
   private attachRoutes(): void {
-    const routeGenerator = new RouteGenerator(this.compiledAst, this.dependencies)
+    const routeGenerator = new RouteGenerator(this.compiledAst, this.dependencies, this.options)
     const { routes } = routeGenerator.generateRoutes()
 
     routes.forEach(route => {

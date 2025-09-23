@@ -10,10 +10,10 @@ import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import express from 'express'
 
 export interface FormEngineOptions {
-  // TODO: Add some options later
-  disableBuiltInFunctions: boolean
-  disableBuiltInComponents: boolean
-  basePath: string
+  disableBuiltInFunctions?: boolean
+  disableBuiltInComponents?: boolean
+  basePath?: string
+  debug?: boolean
 }
 
 export default class FormEngine {
@@ -21,7 +21,10 @@ export default class FormEngine {
     disableBuiltInFunctions: false,
     disableBuiltInComponents: false,
     basePath: '/forms',
+    debug: false,
   }
+
+  private readonly options = FormEngine.DEFAULT_OPTIONS
 
   private readonly functionRegistry = new FunctionRegistry()
 
@@ -34,10 +37,10 @@ export default class FormEngine {
   private readonly router = express.Router({ mergeParams: true })
 
   constructor(
-    private readonly options: Partial<FormEngineOptions> = {},
+    constructorOptions = {} as Partial<FormEngineOptions>,
     private readonly logger: Logger | Console = console,
   ) {
-    this.options = { ...FormEngine.DEFAULT_OPTIONS, ...options }
+    this.options = { ...FormEngine.DEFAULT_OPTIONS, ...constructorOptions }
 
     this.logger = logger
 
