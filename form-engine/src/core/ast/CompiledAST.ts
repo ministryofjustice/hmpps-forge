@@ -1,5 +1,6 @@
 import { transformToAst } from '@form-engine/core/ast/transformer/transformToAst'
 import { resolveSelfReferences } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
+import { convertFormattersToPipeline } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
@@ -16,6 +17,7 @@ export default class CompiledAST {
 
     // 1B. Normalise AST
     resolveSelfReferences(root)
+    convertFormattersToPipeline(root)
 
     // 2. Registration
     const nodeRegistry = RegistrationTraverser.buildRegistry(root)

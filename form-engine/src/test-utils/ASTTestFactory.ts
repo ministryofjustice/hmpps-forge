@@ -1,9 +1,22 @@
 // eslint-disable-next-line max-classes-per-file
 import { ExpressionType, FunctionType, LogicType } from '@form-engine/form/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
-import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
+import {
+  ExpressionASTNode,
+  FunctionASTNode,
+  PredicateASTNode,
+  ReferenceASTNode,
+} from '@form-engine/core/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+
+type PredicateBuilderConfig = {
+  subject?: ExpressionASTNode
+  condition?: ExpressionASTNode
+  negate?: boolean
+  operands?: ExpressionASTNode[]
+  operand?: ExpressionASTNode
+}
 
 type BlockType = 'basic' | 'field' | 'collection' | 'composite'
 
@@ -71,8 +84,45 @@ export class ASTTestFactory {
   /**
    * Create a new ExpressionBuilder for fluent expression construction
    */
-  static expression(type: ExpressionType | FunctionType | LogicType): ExpressionBuilder {
-    return new ExpressionBuilder(type)
+  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionType | LogicType): ExpressionBuilder<T> {
+    return new ExpressionBuilder<T>(type)
+  }
+
+  static reference(path: string[]): ReferenceASTNode {
+    return ASTTestFactory.expression(ExpressionType.REFERENCE).withPath(path).build() as ReferenceASTNode
+  }
+
+  static functionExpression(type: FunctionType, name: string, args: unknown[] = []): FunctionASTNode {
+    return ASTTestFactory.expression(type)
+      .withProperty('name', name)
+      .withProperty('arguments', args)
+      .build() as FunctionASTNode
+  }
+
+  static predicate(type: LogicType, config: PredicateBuilderConfig = {}): PredicateASTNode {
+    const builder = ASTTestFactory.expression(type)
+
+    if (config.subject) {
+      builder.withSubject(config.subject)
+    }
+
+    if (config.condition) {
+      builder.withProperty('condition', config.condition)
+    }
+
+    if (config.negate !== undefined) {
+      builder.withProperty('negate', config.negate)
+    }
+
+    if (config.operands) {
+      builder.withProperty('operands', config.operands)
+    }
+
+    if (config.operand) {
+      builder.withProperty('operand', config.operand)
+    }
+
+    return builder.build() as PredicateASTNode
   }
 
   static scenarios = {
@@ -493,7 +543,7 @@ export class BlockBuilder {
 /**
  * Fluent builder for Expression nodes
  */
-export class ExpressionBuilder {
+export class ExpressionBuilder<T = ExpressionASTNode> {
   private id?: number
 
   private properties: Map<string, any> = new Map()
@@ -545,7 +595,7 @@ export class ExpressionBuilder {
     return this
   }
 
-  build(): ExpressionASTNode {
+  build(): T {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
@@ -553,6 +603,6 @@ export class ExpressionBuilder {
       id: nodeId,
       expressionType: this.expressionType,
       properties: this.properties,
-    }
+    } as T
   }
 }
