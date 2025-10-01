@@ -1,20 +1,22 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
+import { CollectionExpr } from '@form-engine/form/types/expressions.type'
 import {
   BlockDefinition,
-  CollectionBlockDefinition,
   ConditionalString,
   EvaluatedBlock,
   RenderedBlock,
 } from '../../../../form/types/structures.type'
 
+// TODO: I need to come back to this once I know more about how the collections are unpacked
+//  at runtime. Just ignore if this is dumb for now.
+
 /**
  * Collection block component for rendering repeated blocks based on a collection.
  */
-export interface CollectionBlock<T = BlockDefinition> extends CollectionBlockDefinition<T> {
+export interface CollectionBlock<T = BlockDefinition> extends BlockDefinition {
   variant: 'collection-block'
 
-  /** Optional fallback block to render when collection is empty */
-  fallbackTemplate?: T
+  collection: CollectionExpr<T>
 
   /** Additional CSS classes to apply to wrapper div (optional) */
   classes?: ConditionalString

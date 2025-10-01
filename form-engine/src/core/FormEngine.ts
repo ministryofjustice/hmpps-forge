@@ -1,19 +1,20 @@
 import type Logger from 'bunyan'
-import FunctionRegistry from '@form-engine/core/registry/FunctionRegistry'
-import ComponentRegistry from '@form-engine/core/registry/ComponentRegistry'
-import { RegistryComponent } from '@form-engine/registry/utils/buildComponent'
-import { RegistryFunction } from '@form-engine/registry/utils/createRegisterableFunction'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { formatBox } from '@form-engine/logging/formatBox'
 import FormInstance from '@form-engine/core/FormInstance'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import express from 'express'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
+import { RegistryComponent } from '@form-engine/registry/types/components.type'
+import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
 
 export interface FormEngineOptions {
   disableBuiltInFunctions?: boolean
   disableBuiltInComponents?: boolean
   basePath?: string
   debug?: boolean
+  logger: Logger | Console
 }
 
 export default class FormEngine {
@@ -22,6 +23,7 @@ export default class FormEngine {
     disableBuiltInComponents: false,
     basePath: '/forms',
     debug: false,
+    logger: console,
   }
 
   private readonly options = FormEngine.DEFAULT_OPTIONS
@@ -36,18 +38,13 @@ export default class FormEngine {
 
   private readonly router = express.Router({ mergeParams: true })
 
-  constructor(
-    constructorOptions = {} as Partial<FormEngineOptions>,
-    private readonly logger: Logger | Console = console,
-  ) {
+  constructor(constructorOptions: Partial<FormEngineOptions> = {}) {
     this.options = { ...FormEngine.DEFAULT_OPTIONS, ...constructorOptions }
-
-    this.logger = logger
 
     this.dependencies = {
       functionRegistry: this.functionRegistry,
       componentRegistry: this.componentRegistry,
-      logger: this.logger,
+      logger: this.options.logger,
     }
 
     if (!this.options.disableBuiltInFunctions) {
@@ -73,16 +70,9 @@ export default class FormEngine {
     return this
   }
 
-  /** Add a new condition or transformer to the form engine */
-  registerFunction(func: RegistryFunction<any>): this {
-    this.functionRegistry.registerMany([func])
-
-    return this
-  }
-
-  /** Add new conditions, transformers to the form engine */
-  registerFunctions(functions: RegistryFunction<any>[]): this {
-    this.functionRegistry.registerMany(functions)
+  /** Register functions from a registry object */
+  registerFunctions(functions: FunctionRegistryObject): this {
+    this.functionRegistry.register(functions)
 
     return this
   }
@@ -121,18 +111,18 @@ export default class FormEngine {
       message.push({ label: 'GET Paths', value: getRoutes.join('\n') })
     }
 
-    this.logger.info(formatBox(message, { title: 'FormEngine' }))
+    this.dependencies.logger.info(formatBox(message, { title: 'FormEngine' }))
   }
 
   private logRegistrationError(e: unknown) {
     if (e instanceof AggregateError) {
-      this.logger.error(`${e.message}:`)
+      this.dependencies.logger.error(`${e.message}:`)
 
       e.errors.forEach(error => {
-        this.logger.error(error?.toString ? error.toString() : String(error))
+        this.dependencies.logger.error(error?.toString ? error.toString() : String(error))
       })
     } else {
-      this.logger.error(e)
+      this.dependencies.logger.error(e)
     }
   }
 

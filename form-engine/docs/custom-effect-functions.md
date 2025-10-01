@@ -9,38 +9,35 @@ the form lifecycle.
 ## Creating Custom Effects
 
 ### Basic Structure
-Custom effects are created using the `buildEffectFunction` helper, which ensures proper typing
+Custom effects are created using the `defineEffects` helper, which ensures proper typing
 and integration with the form engine:
 
 ```typescript
-import { buildEffectFunction } from '@form-system/helpers'
+import { defineEffects } from '@form-engine/registry/utils/createRegisterableFunction'
 
-const MyCustomEffects = {
-  saveProgress: buildEffectFunction(
-    'saveProgress',
-    async (context) => {
-      const data = context.getAnswers()
-      await api.saveProgress(data)
-    }
-  )
-}
+const { effects: MyCustomEffects, registry: MyCustomEffectsRegistry } = defineEffects({
+  SaveProgress: async (context) => {
+    const data = context.getAnswers()
+    await api.saveProgress(data)
+  },
+  LogAction: (context, action: string) => {
+    console.log(`Action: ${action}`, context.getAnswers())
+  }
+})
 
 // Usage in transitions
-effects: [MyCustomEffects.saveProgress()]
+effects: [MyCustomEffects.SaveProgress()]
 ```
 
 ### Function Signature
-The `buildEffectFunction` helper takes two parameters:
+The `defineEffects` helper takes an object where:
 
-1. **name** (`string`): The unique identifier for your effect. Use camelCase for consistency.
-2. **evaluator** (`(context, ...args) => any | Promise<any>`): The function that performs the side effect
+- **Keys** are the effect names (use PascalCase for consistency)
+- **Values** are evaluator functions `(context, ...args) => void | Promise<void>`
 
-```typescript
-buildEffectFunction<A extends readonly ValueExpr[]>(
-  name: string,
-  evaluator: (context: FormContext, ...args: A) => any | Promise<any>
-)
-```
+It returns an object with:
+- **effects**: Builder functions for creating effect expressions
+- **registry**: Registry object for registration with FormEngine
 
 ### The Context Object
 The first parameter of every effect function is the form context, which provides access to:
@@ -61,28 +58,21 @@ The first parameter of every effect function is the form context, which provides
 Custom effects can accept additional parameters with full TypeScript support:
 
 ```typescript
-// Single parameter effect
-const loadSection = buildEffectFunction(
-  'loadSection',
-  async (context, sectionName: string) => {
+const { effects, registry } = defineEffects({
+  // Single parameter effect
+  LoadSection: async (context, sectionName: string) => {
     const data = await api.loadSection(sectionName)
     context.setData(sectionName, data)
-  }
-)
+  },
 
-// Multiple parameters
-const saveWithOptions = buildEffectFunction(
-  'saveWithOptions',
-  async (context, endpoint: string, options?: SaveOptions) => {
+  // Multiple parameters
+  SaveWithOptions: async (context, endpoint: string, options?: SaveOptions) => {
     const answers = context.getAnswers()
     await api.save(endpoint, answers, options)
-  }
-)
+  },
 
-// Complex parameter types
-const trackAnalytics = buildEffectFunction(
-  'trackAnalytics',
-  (context, event: string, properties?: Record<string, any>) => {
+  // Complex parameter types
+  TrackAnalytics: (context, event: string, properties?: Record<string, any>) => {
     analytics.track({
       event,
       userId: context.getData('userId'),
@@ -92,7 +82,7 @@ const trackAnalytics = buildEffectFunction(
       }
     })
   }
-)
+})
 ```
 
 TypeScript will enforce these types when the effect is used:
@@ -100,105 +90,87 @@ TypeScript will enforce these types when the effect is used:
 ```typescript
 // TypeScript will enforce correct types
 effects: [
-  loadSection('accommodation'),              // ✓ Correct
-  loadSection(),                             // ✗ Type error - missing parameter
-  saveWithOptions('/api/save', { draft: true }) // ✓ Correct with options
+  effects.LoadSection('accommodation'),              // ✓ Correct
+  effects.LoadSection(),                             // ✗ Type error - missing parameter
+  effects.SaveWithOptions('/api/save', { draft: true }) // ✓ Correct with options
 ]
 ```
 
 ## Dependency Injection
-For effects that require external services or dependencies, use the dependency injection pattern.
-This pattern allows you to keep your form configurations clean and free from implementation details:
+For effects that require external services or dependencies, use `defineEffectsWithDeps`:
 
 ```typescript
-// Create injectable effect factories
-const assessmentEffectFactories = {
-  // Each factory is a function that takes the service and returns a RegistryFunction
-  Load: (service: AssessmentService) =>
-    buildEffectFunction(
-      'loadAssessment',
-      async (context, assessmentId: string) => {
-        const data = await service.loadAssessment(assessmentId)
-        context.setData('assessment', data)
-      }
-    ),
+import { defineEffectsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 
-  Save: (service: AssessmentService) =>
-    buildEffectFunction(
-      'saveAssessment',
-      async (context, options?: { draft?: boolean }) => {
-        await service.save(context.getAnswers(), options)
-      }
-    ),
-
-  CompleteSection: (service: AssessmentService) =>
-    buildEffectFunction(
-      'completeSection',
-      async (context, section: string) => {
-        await service.completeSection(section)
-        context.setData(`${section}.completed`, true)
-      }
-    )
+const deps = {
+  assessmentService: new AssessmentService(db),
+  analytics: new AnalyticsService(),
+  logger: new Logger()
 }
 
-// Create proxy for use in form configuration (no dependencies needed here)
-export const AssessmentEffects = createInjectableFunctions(assessmentEffectFactories, FunctionType.EFFECT)
+const { effects: AssessmentEffects, registry: AssessmentEffectsRegistry } = defineEffectsWithDeps(deps, {
+  LoadAssessment: (deps) => async (context, assessmentId: string) => {
+    const data = await deps.assessmentService.loadAssessment(assessmentId)
+    context.setData('assessment', data)
+  },
+
+  SaveAssessment: (deps) => async (context, options?: { draft?: boolean }) => {
+    await deps.assessmentService.save(context.getAnswers(), options)
+    deps.logger.info('Assessment saved', { draft: options?.draft })
+  },
+
+  CompleteSection: (deps) => async (context, section: string) => {
+    await deps.assessmentService.completeSection(section)
+    context.setData(`${section}.completed`, true)
+    deps.analytics.track('section_completed', { section })
+  }
+})
 
 // Usage in form configuration - clean and dependency-free
-import { AssessmentEffects } from './effects'
-
 onLoad: loadTransition({
   effects: [
-    AssessmentEffects.Load(Data('assessmentId'))
+    AssessmentEffects.LoadAssessment(Data('assessmentId'))
   ]
 })
 
 onSubmission: submitTransition({
   onValid: {
     effects: [
-      AssessmentEffects.Save({ draft: false }),
+      AssessmentEffects.SaveAssessment({ draft: false }),
       AssessmentEffects.CompleteSection('accommodation')
     ]
   },
   onInvalid: {
-    effects: [AssessmentEffects.SaveDraft()]
+    effects: [AssessmentEffects.SaveAssessment({ draft: true })]
   }
 })
 
 // At application startup
-const assessmentService = new AssessmentServiceImpl(db, logger)
-formEngine.registerEffects(resolveInjectableFunctions(assessmentEffectFactories, assessmentService))
+formEngine.registerFunctions(AssessmentEffectsRegistry)
 ```
 
 ## Examples
 Here are various examples to inspire you to build your own effects.
 
 ```typescript
-const logFormStart = buildEffectFunction(
-  'logFormStart',
-  (context) => {
+const { effects, registry } = defineEffects({
+  LogFormStart: (context) => {
     logger.log('Form started:', {
       journey: context.getJourney().code,
       timestamp: new Date().toISOString()
     })
-  }
-)
+  },
 
-const prefillFromDatabase = buildEffectFunction(
-  'prefillFromDatabase',
-  async (context, userId: string) => {
+  PrefillFromDatabase: async (context, userId: string) => {
     const userData = await database.getUser(userId)
 
     // Prefill form with existing data
     Object.entries(userData).forEach(([key, value]) => {
       context.setData(`prefilled.${key}`, value)
     })
-  }
-)
+  },
 
-const sendNotification = buildEffectFunction(
-  'sendNotifyEmail',
-  async (context, type: 'email' | 'sms', template: string) => {
+  SendNotification: async (context, type: 'email' | 'sms', template: string) => {
     const user = context.getData('user')
     const answers = context.getAnswers()
 
@@ -208,12 +180,9 @@ const sendNotification = buildEffectFunction(
       recipient: user,
       data: answers
     })
-  }
-)
+  },
 
-const incrementProgress = buildEffectFunction(
-  'incrementProgress',
-  (context, stepName: string) => {
+  IncrementProgress: (context, stepName: string) => {
     const progress = context.getData('progress') || {}
     progress[stepName] = {
       completed: true,
@@ -227,7 +196,7 @@ const incrementProgress = buildEffectFunction(
     context.setData('progress', progress)
     context.setData('progressPercentage', percentage)
   }
-)
+})
 ```
 
 ### Async Effects
@@ -238,9 +207,8 @@ Effects commonly perform asynchronous operations like API calls:
 > Consider using try-catch blocks and providing fallback behavior.
 
 ```typescript
-const syncWithBackend = buildEffectFunction(
-  'syncWithBackend',
-  async (context, retries: number = 3) => {
+const { effects, registry } = defineEffects({
+  SyncWithBackend: async (context, retries: number = 3) => {
     let lastError: Error | null = null
 
     for (let i = 0; i < retries; i++) {
@@ -257,7 +225,7 @@ const syncWithBackend = buildEffectFunction(
     context.setData('syncError', lastError?.message)
     throw lastError
   }
-)
+})
 ```
 
 ## Using Effects in Transitions
@@ -267,8 +235,8 @@ Effects are used within transition definitions to perform actions at specific po
 // On form load
 onLoad: loadTransition({
   effects: [
-    AssessmentEffects.Load(Data('assessmentId')),
-    prefillFromDatabase(Data('userId'))
+    AssessmentEffects.LoadAssessment(Data('assessmentId')),
+    effects.PrefillFromDatabase(Data('userId'))
   ]
 })
 
@@ -279,13 +247,13 @@ onSubmission: [
     validate: true,
     onValid: {
       effects: [
-        AssessmentEffects.Save(),
-        trackAnalytics('step_completed', { step: 'accommodation' })
+        AssessmentEffects.SaveAssessment(),
+        effects.TrackAnalytics('step_completed', { step: 'accommodation' })
       ],
       next: [{ goto: 'next-step' }]
     },
     onInvalid: {
-      effects: [AssessmentEffects.SaveDraft()],
+      effects: [AssessmentEffects.SaveAssessment({ draft: true })],
       next: [{ goto: '@self' }]
     }
   })
@@ -294,74 +262,55 @@ onSubmission: [
 // On always (regardless of validation)
 onAlways: {
   effects: [
-    incrementProgress('current-step'),
-    cacheResponses('form-cache', 7200)
+    effects.IncrementProgress('current-step'),
+    effects.CacheResponses('form-cache', 7200)
   ]
 }
 ```
 
 ## Registration
 Effects must be registered with the FormEngine to be available for use in forms.
-Since effects are a type of function, they use the same registration methods as conditions and transformers.
-
-### Direct Registration (Without Dependency Injection)
-For simple effects without external dependencies:
 
 ```typescript
 import FormEngine from '@form-engine/core/FormEngine'
-import { buildEffectFunction } from '@form-engine/registry/utils/buildEffect'
+import { defineEffects, defineEffectsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 
-const simpleEffects = {
-  logAction: buildEffectFunction(
-    'logAction',
-    (context, action: string) => {
-      console.log(`Action: ${action}`, context.getAnswers())
-    }
-  ),
-  clearCache: buildEffectFunction(
-    'clearCache',
-    (context) => {
-      context.setData('cache', null)
-    }
-  )
+// Define simple effects without dependencies
+const { effects: SimpleEffects, registry: SimpleEffectsRegistry } = defineEffects({
+  LogAction: (context, action: string) => {
+    console.log(`Action: ${action}`, context.getAnswers())
+  },
+  ClearCache: (context) => {
+    context.setData('cache', null)
+  }
+})
+
+// Define effects with dependencies
+const deps = {
+  myService: new MyService(config),
+  logger: new Logger()
 }
+
+const { effects: ServiceEffects, registry: ServiceEffectsRegistry } = defineEffectsWithDeps(deps, {
+  Save: (deps) => async (context) => {
+    await deps.myService.save(context.getAnswers())
+    deps.logger.info('Data saved')
+  },
+  Load: (deps) => async (context, id: string) => {
+    const data = await deps.myService.load(id)
+    context.setAnswers(data)
+  }
+})
 
 // Create the form engine instance
 const formEngine = new FormEngine()
 
-// Register a single effect
-formEngine.registerFunction(simpleEffects.logAction)
+// Register the effects using their registries
+formEngine.registerFunctions(SimpleEffectsRegistry)
+formEngine.registerFunctions(ServiceEffectsRegistry)
 
-// Register multiple effects at once
-formEngine.registerFunctions(Object.values(simpleEffects))
-```
-
-### Registration with Dependency Injection
-For effects that require services or dependencies:
-
-```typescript
-// 1. Define your injectable factories
-const effectFactories = {
-  Save: (service: MyService) =>
-    buildEffectFunction('save', async (context) => {
-      await service.save(context.getAnswers())
-    }),
-  Load: (service: MyService) =>
-    buildEffectFunction('load', async (context, id: string) => {
-      const data = await service.load(id)
-      context.setAnswers(data)
-    })
-}
-
-// 2. Create proxy for form configuration
-export const MyEffects = createInjectableFunctions(effectFactories, FunctionType.EFFECT)
-
-// 3. At application initialization, resolve and register
-const myService = new MyService(config)
-const resolvedEffects = resolveInjectableFunctions(effectFactories, myService)
-
-// Register all resolved effects with the form engine
-formEngine.registerFunctions(Object.values(resolvedEffects))
+// Export effects for use in form definitions
+export { SimpleEffects, ServiceEffects }
 ```
 
 ### Registration Notes
@@ -375,9 +324,8 @@ formEngine.registerFunctions(Object.values(resolvedEffects))
 Effects should handle errors appropriately and provide meaningful error messages:
 
 ```typescript
-const robustApiCall = buildEffectFunction(
-  'robustApiCall',
-  async (context, endpoint: string) => {
+const { effects, registry } = defineEffects({
+  RobustApiCall: async (context, endpoint: string) => {
     try {
       const response = await fetch(endpoint)
 
@@ -391,7 +339,7 @@ const robustApiCall = buildEffectFunction(
         throw new Error(`API call failed: ${response.statusText}`)
       }
 
-      context.setData('someApiCall', response.json())
+      context.setData('someApiCall', await response.json())
     } catch (error) {
       // Log error for debugging
       console.error('API call failed:', error)
@@ -406,20 +354,20 @@ const robustApiCall = buildEffectFunction(
       throw error
     }
   }
-)
+})
 ```
 
 ## Best Practices
 
 ### 1. Naming Conventions
-Use descriptive camelCase names that clearly indicate the effect's purpose:
+Use descriptive PascalCase names that clearly indicate the effect's purpose:
 
 ```typescript
 // Good
-saveAssessment
-loadUserData
-sendConfirmationEmail
-trackFormProgress
+SaveAssessment
+LoadUserData
+SendConfirmationEmail
+TrackFormProgress
 
 // Avoid
 doStuff
@@ -431,40 +379,35 @@ handleData
 Design effects to be idempotent where possible - running them multiple times should have the same result:
 
 ```typescript
-// Good - idempotent
-const markSectionComplete = buildEffectFunction(
-  'markSectionComplete',
-  async (context, section: string) => {
+const { effects, registry } = defineEffects({
+  // Good - idempotent
+  MarkSectionComplete: async (context, section: string) => {
     // Check if already complete
     if (context.getData(`${section}.completed`)) {
-      return { already_complete: true }
+      return
     }
 
     const result = await api.completeSection(section)
     context.setData(`${section}.completed`, true)
-  }
-)
+  },
 
-// Avoid - not idempotent
-const incrementCounter = buildEffectFunction(
-  'incrementCounter',
-  (context) => {
+  // Avoid - not idempotent
+  IncrementCounter: (context) => {
     const count = context.getData('count') || 0
     context.setData('count', count + 1) // Will increment each time
   }
-)
+})
 ```
 
 ### 3. Error Recovery
 Provide graceful error handling and recovery mechanisms:
 
 ```typescript
-const saveWithFallback = buildEffectFunction(
-  'saveWithFallback',
-  async (context) => {
+const { effects, registry } = defineEffects({
+  SaveWithFallback: async (context) => {
     try {
       // Try primary save
-      return await api.save(context.getAnswers())
+      await api.save(context.getAnswers())
     } catch (error) {
       // Fallback to local storage
       localStorage.setItem('backup', JSON.stringify({
@@ -477,7 +420,7 @@ const saveWithFallback = buildEffectFunction(
       context.setData('saveError', 'Saved locally, will sync later')
     }
   }
-)
+})
 ```
 
 ### 4. Performance Considerations
@@ -487,13 +430,12 @@ Be mindful of performance, especially for effects that run frequently:
 Use clear namespacing when storing data in context:
 
 ```typescript
-const dataStorage = buildEffectFunction(
-  'dataStorage',
-  (context, section: string, data: any) => {
+const { effects, registry } = defineEffects({
+  StoreData: (context, section: string, data: any) => {
     context.setData(`assessment.${section}.data`, data)
     context.setData(`assessment.${section}.lastUpdated`, Date.now())
   }
-)
+})
 ```
 
 ## JSON Output
@@ -503,8 +445,8 @@ When custom effects are used in form configuration, they compile to the standard
 ```typescript
 // Usage in configuration
 effects: [
-  AssessmentEffects.Save({ draft: true }),
-  trackAnalytics('save_draft', { step: 'accommodation' })
+  AssessmentEffects.SaveAssessment({ draft: true }),
+  effects.TrackAnalytics('save_draft', { step: 'accommodation' })
 ]
 
 // Compiles to JSON
@@ -512,12 +454,12 @@ effects: [
   effects: [
     {
       type: 'FunctionType.Effect',
-      name: 'saveAssessment',
+      name: 'SaveAssessment',
       arguments: [{ draft: true }]
     },
     {
       type: 'FunctionType.Effect',
-      name: 'trackAnalytics',
+      name: 'TrackAnalytics',
       arguments: ['save_draft', { step: 'accommodation' }]
     }
   ]

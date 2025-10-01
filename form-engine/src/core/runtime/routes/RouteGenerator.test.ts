@@ -23,6 +23,7 @@ describe('RouteGenerator', () => {
     disableBuiltInComponents: false,
     basePath: '/forms',
     debug: false,
+    logger: console,
   }
 
   const createMockCompiledAST = (root: JourneyASTNode) => {

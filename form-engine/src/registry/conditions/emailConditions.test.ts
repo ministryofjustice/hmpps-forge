@@ -1,9 +1,9 @@
-import EmailConditions from './emailConditions'
+import { EmailConditions, EmailConditionsRegistry } from './emailConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('EmailConditions', () => {
   describe('IsValidEmail', () => {
-    const { evaluate } = EmailConditions.IsValidEmail.spec
+    const { evaluate } = EmailConditionsRegistry.IsValidEmail
 
     test('should return true for valid email addresses', () => {
       expect(evaluate('test@example.com')).toBe(true)
@@ -56,7 +56,7 @@ describe('EmailConditions', () => {
       const expr = EmailConditions.IsValidEmail()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isValidEmail',
+        name: 'IsValidEmail',
         arguments: [],
       })
     })

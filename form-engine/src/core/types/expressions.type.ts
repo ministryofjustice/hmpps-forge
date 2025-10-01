@@ -40,6 +40,13 @@ export interface FormatASTNode extends ExpressionASTNode {
 }
 
 /**
+ * Collection Expression AST node
+ */
+export interface CollectionASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.COLLECTION
+}
+
+/**
  * Conditional Expression AST node
  */
 export interface ConditionalASTNode extends ExpressionASTNode {

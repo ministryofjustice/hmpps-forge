@@ -1,11 +1,11 @@
-import NumberConditions from './numberConditions'
-import DateConditions from './dateConditions'
-import StringConditions from './stringConditions'
-import EmailConditions from './emailConditions'
-import PhoneConditions from './phoneConditions'
-import AddressConditions from './addressConditions'
-import ArrayConditions from './arrayConditions'
-import GeneralConditions from './generalConditions'
+import { GeneralConditions, GeneralConditionsRegistry } from '@form-engine/registry/conditions/generalConditions'
+import { StringConditions, StringConditionsRegistry } from '@form-engine/registry/conditions/stringConditions'
+import { AddressConditions, AddressConditionsRegistry } from '@form-engine/registry/conditions/addressConditions'
+import { EmailConditions, EmailConditionsRegistry } from '@form-engine/registry/conditions/emailConditions'
+import { DateConditions, DateConditionsRegistry } from '@form-engine/registry/conditions/dateConditions'
+import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
+import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
+import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
 
 export const Condition = {
   ...GeneralConditions,
@@ -30,4 +30,15 @@ export const Condition = {
 
   /** Conditions for handling arrays */
   Array: ArrayConditions,
+}
+
+export const ConditionsRegistry = {
+  ...GeneralConditionsRegistry,
+  ...StringConditionsRegistry,
+  ...EmailConditionsRegistry,
+  ...PhoneConditionsRegistry,
+  ...AddressConditionsRegistry,
+  ...DateConditionsRegistry,
+  ...NumberConditionsRegistry,
+  ...ArrayConditionsRegistry,
 }

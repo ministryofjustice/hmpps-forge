@@ -1,9 +1,9 @@
-import NumberConditions from './numberConditions'
+import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('NumberConditions', () => {
   describe('GreaterThan', () => {
-    const { evaluate } = NumberConditions.GreaterThan.spec
+    const { evaluate } = NumberConditionsRegistry.GreaterThan
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -42,14 +42,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.GreaterThan(5)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'greaterThan',
+        name: 'GreaterThan',
         arguments: [5],
       })
     })
   })
 
   describe('GreaterThanOrEqual', () => {
-    const { evaluate } = NumberConditions.GreaterThanOrEqual.spec
+    const { evaluate } = NumberConditionsRegistry.GreaterThanOrEqual
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -77,14 +77,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.GreaterThanOrEqual(10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'greaterThanOrEqual',
+        name: 'GreaterThanOrEqual',
         arguments: [10],
       })
     })
   })
 
   describe('LessThan', () => {
-    const { evaluate } = NumberConditions.LessThan.spec
+    const { evaluate } = NumberConditionsRegistry.LessThan
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -117,14 +117,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.LessThan(7)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lessThan',
+        name: 'LessThan',
         arguments: [7],
       })
     })
   })
 
   describe('LessThanOrEqual', () => {
-    const { evaluate } = NumberConditions.LessThanOrEqual.spec
+    const { evaluate } = NumberConditionsRegistry.LessThanOrEqual
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -151,14 +151,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.LessThanOrEqual(3)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lessThanOrEqual',
+        name: 'LessThanOrEqual',
         arguments: [3],
       })
     })
   })
 
   describe('Between', () => {
-    const { evaluate } = NumberConditions.Between.spec
+    const { evaluate } = NumberConditionsRegistry.Between
 
     test('should return true when value is between min and max (inclusive)', () => {
       expect(evaluate(5, 1, 10)).toBe(true)
@@ -212,7 +212,7 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.Between(1, 10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'between',
+        name: 'Between',
         arguments: [1, 10],
       })
     })

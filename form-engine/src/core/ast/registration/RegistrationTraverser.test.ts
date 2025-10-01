@@ -101,14 +101,5 @@ describe('RegistrationTraverser', () => {
       // Has conditional expressions
       expect(registry.size()).toBeGreaterThan(4) // journey + step + 2 blocks + expressions
     })
-
-    it('should handle withCollection scenario', () => {
-      const tree = ASTTestFactory.scenarios.withCollection()
-      const registry = RegistrationTraverser.buildRegistry(tree)
-
-      expect(tree.id).toBe(1)
-      // Collection with template blocks
-      expect(registry.size()).toBeGreaterThan(3)
-    })
   })
 })

@@ -23,6 +23,6 @@ export interface StepASTNode extends ASTNode {
 export interface BlockASTNode extends ASTNode {
   type: ASTNodeType.BLOCK
   variant: string
-  blockType: 'basic' | 'field' | 'collection' | 'composite'
+  blockType: 'basic' | 'field' | 'composite'
   properties: Map<string, ASTNode | any>
 }

@@ -39,7 +39,7 @@ export const myCustomComponent = buildComponent<MyComponentInterface>(
 ### Component Interface
 
 Every component needs a TypeScript interface that extends either `BlockDefinition`, `FieldBlockDefinition`,
-`CollectionBlockDefinition` or `CompositeBlockDefinition`. You can read up more on the distinction between these
+or `CompositeBlockDefinition`. You can read up more on the distinction between these
 types in the `block-type-documentation.md`:
 
 ```typescript

@@ -1,7 +1,7 @@
-import ArrayTransformers from './arrayTransformers'
-import NumberTransformers from './numberTransformers'
-import ObjectTransformers from './objectTransformers'
-import StringTransformers from './stringTransformers'
+import { ArrayTransformers, ArrayTransformersRegistry } from './arrayTransformers'
+import { NumberTransformers, NumberTransformersRegistry } from './numberTransformers'
+import { ObjectTransformers, ObjectTransformersRegistry } from './objectTransformers'
+import { StringTransformers, StringTransformersRegistry } from './stringTransformers'
 
 export const Transformer = {
   /** Transformers for handling strings */
@@ -15,4 +15,11 @@ export const Transformer = {
 
   /** Transformers for handling objects */
   Object: ObjectTransformers,
+}
+
+export const TransformersRegistry = {
+  ...StringTransformersRegistry,
+  ...NumberTransformersRegistry,
+  ...ArrayTransformersRegistry,
+  ...ObjectTransformersRegistry,
 }

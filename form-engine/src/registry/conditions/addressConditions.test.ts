@@ -1,9 +1,9 @@
-import AddressConditions from './addressConditions'
+import { AddressConditions, AddressConditionsRegistry } from './addressConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('AddressConditions', () => {
   describe('IsValidPostcode', () => {
-    const { evaluate } = AddressConditions.IsValidPostcode.spec
+    const { evaluate } = AddressConditionsRegistry.IsValidPostcode
 
     test('should return true for valid UK postcodes', () => {
       expect(evaluate('SW1A 1AA')).toBe(true)
@@ -77,7 +77,7 @@ describe('AddressConditions', () => {
       const expr = AddressConditions.IsValidPostcode()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isValidPostcode',
+        name: 'IsValidPostcode',
         arguments: [],
       })
     })

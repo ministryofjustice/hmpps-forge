@@ -1,16 +1,5 @@
-import { BlockDefinition, EvaluatedBlock } from '../../form/types/structures.type'
-
-export type ComponentRenderer<T extends BlockDefinition> = (block: EvaluatedBlock<T>) => Promise<string>
-
-/**
- * Registry component structure that matches condition/transformer pattern
- */
-export interface RegistryComponent<T extends BlockDefinition> {
-  spec: {
-    variant: string
-    render: ComponentRenderer<T>
-  }
-}
+import { ComponentRenderer, RegistryComponent } from '@form-engine/registry/types/components.type'
+import { BlockDefinition } from '../../form/types/structures.type'
 
 /**
  * Creates a registerable component function for rendering form UI elements.

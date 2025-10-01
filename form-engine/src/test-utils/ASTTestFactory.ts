@@ -9,6 +9,7 @@ import {
 } from '@form-engine/core/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { PipelineExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode
@@ -18,7 +19,7 @@ type PredicateBuilderConfig = {
   operand?: ExpressionASTNode
 }
 
-type BlockType = 'basic' | 'field' | 'collection' | 'composite'
+type BlockType = 'basic' | 'field' | 'composite'
 
 /**
  * Test data factory for creating AST nodes with fluent builders and automatic ID generation.
@@ -201,26 +202,6 @@ export class ASTTestFactory {
                     .build(),
                 ),
             ),
-        )
-        .build()
-    },
-
-    /**
-     * Form with collection blocks
-     */
-    withCollection: (): JourneyASTNode => {
-      const itemTemplate = ASTTestFactory.block('Composite', 'composite')
-        .withProperty('blocks', [
-          ASTTestFactory.block('TextInput', 'field').withCode('street').withLabel('Street').build(),
-          ASTTestFactory.block('TextInput', 'field').withCode('city').withLabel('City').build(),
-        ])
-        .build()
-
-      return ASTTestFactory.journey()
-        .withStep(step =>
-          step.withBlock('Collection', 'collection', block =>
-            block.withCode('addresses').withLabel('Addresses').withProperty('itemTemplate', itemTemplate),
-          ),
         )
         .build()
     },
@@ -592,6 +573,21 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   withSteps(steps: any[]): this {
     this.properties.set('steps', steps)
+    return this
+  }
+
+  withCollection(collection: ReferenceExpr | PipelineExpr | any[]): this {
+    this.properties.set('collection', collection)
+    return this
+  }
+
+  withTemplate(nodes: ASTNode[]): this {
+    this.properties.set('template', nodes)
+    return this
+  }
+
+  withFallback(node: ASTNode): this {
+    this.properties.set('fallback', node)
     return this
   }
 

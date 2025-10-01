@@ -217,27 +217,41 @@ describe('convertFormattersToPipeline', () => {
     expect(stepArgs(steps[0])).toEqual([])
   })
 
-  it('handles collection blocks with formatters', () => {
+  it('converts formatters for fields inside collection expression templates', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
-    const itemField = ASTTestFactory.block('TextInput', 'field')
-      .withId(17)
-      .withCode('itemName')
+    const templateField = ASTTestFactory.block('TextInput', 'field')
+      .withId(21)
+      .withCode('itemField')
       .withProperty('formatters', [formatter])
       .build()
 
-    const collectionBlock = ASTTestFactory.block('collection', 'collection')
-      .withId(18)
-      .withProperty('itemTemplate', itemField)
+    const collectionExpr = ASTTestFactory.expression(ExpressionType.COLLECTION)
+      .withId(22)
+      .withCollection({ type: ExpressionType.REFERENCE, path: ['answers', 'items'] })
+      .withTemplate([templateField])
       .build()
 
-    convertFormattersToPipeline(collectionBlock)
+    const step = ASTTestFactory.step()
+      .withId(23)
+      .withBlock('container', 'basic', block => block.withId(24).withProperty('content', collectionExpr))
+      .build()
 
-    const formatPipeline = itemField.properties.get('formatPipeline') as PipelineASTNode
-    expect(isPipelineExprNode(formatPipeline)).toBe(true)
+    const journey = ASTTestFactory.journey().withId(25).withProperty('steps', [step]).build()
 
-    const input = formatPipeline.properties.get('input') as ReferenceASTNode
-    expect(input.properties.get('path')).toEqual(['post', 'itemName'])
+    convertFormattersToPipeline(journey)
+
+    const steps = journey.properties.get('steps') as any[]
+    const containerBlock = steps[0].properties.get('blocks')[0]
+    const transformedCollection = containerBlock.properties.get('content')
+    const template = transformedCollection.properties.get('template') as any[]
+    const transformedField = template[0]
+    const pipeline = transformedField.properties.get('formatPipeline') as PipelineASTNode
+
+    expect(isPipelineExprNode(pipeline)).toBe(true)
+    const input = pipeline.properties.get('input') as ReferenceASTNode
+    expect(isReferenceExprNode(input)).toBe(true)
+    expect(input.properties.get('path')).toEqual(['post', 'itemField'])
   })
 
   it('preserves all other field properties when adding formatPipeline', () => {

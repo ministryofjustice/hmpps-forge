@@ -27,34 +27,6 @@ export interface BlockDefinition {
 }
 
 /**
- * Configuration options for collection-based blocks.
- * Defines the data source for iterating over collections.
- */
-export interface CollectionOptions {
-  /** The collection source - can be a reference, pipeline, or static array */
-  collection: ReferenceExpr | PipelineExpr | string[] | number[] | object[]
-}
-
-/**
- * Block definition for collection/repeater blocks.
- * Renders template blocks for each item in a collection.
- * @template T - The type of blocks used in the template
- */
-export interface CollectionBlockDefinition<T = BlockDefinition> extends BlockDefinition {
-  /** Template blocks to render for each collection item */
-  template: T[]
-
-  /** Configuration for the collection data source */
-  collectionContext: CollectionOptions
-
-  /**
-   * @internal - This property is set by the engine at runtime.
-   * DO NOT set this manually in your definitions.
-   */
-  blocks?: never
-}
-
-/**
  * Block definition for composite blocks that contain other blocks.
  * Used for grouping and layout purposes.
  * @template B - The type of child blocks

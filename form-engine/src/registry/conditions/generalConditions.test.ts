@@ -1,9 +1,9 @@
-import GeneralConditions from './generalConditions'
+import { GeneralConditions, GeneralConditionsRegistry } from './generalConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('GeneralConditions', () => {
   describe('IsRequired', () => {
-    const { evaluate } = GeneralConditions.IsRequired.spec
+    const { evaluate } = GeneralConditionsRegistry.IsRequired
 
     test('should return true if a value is provided', () => {
       expect(evaluate('hello')).toBe(true)
@@ -59,14 +59,14 @@ describe('GeneralConditions', () => {
       const expr = GeneralConditions.IsRequired()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isRequired',
+        name: 'IsRequired',
         arguments: [],
       })
     })
   })
 
   describe('Equals', () => {
-    const { evaluate } = GeneralConditions.Equals.spec
+    const { evaluate } = GeneralConditionsRegistry.Equals
 
     test('should return true for identical primitive values', () => {
       expect(evaluate('hello', 'hello')).toBe(true)
@@ -138,7 +138,7 @@ describe('GeneralConditions', () => {
       const expr = GeneralConditions.Equals('expectedValue')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'equals',
+        name: 'Equals',
         arguments: ['expectedValue'],
       })
     })

@@ -1,9 +1,9 @@
-import NumberTransformers from './numberTransformers'
+import { NumberTransformers, NumberTransformersRegistry } from './numberTransformers'
 import { FunctionType } from '../../form/types/enums'
 
 describe('Number Transformers', () => {
   describe('Add', () => {
-    const { evaluate } = NumberTransformers.Add.spec
+    const { evaluate } = NumberTransformersRegistry.Add
 
     it('should add two positive numbers', () => {
       const result = evaluate(5, 3)
@@ -33,14 +33,14 @@ describe('Number Transformers', () => {
       const expr = NumberTransformers.Add(5)
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'add',
+        name: 'Add',
         arguments: [5],
       })
     })
   })
 
   describe('Subtract', () => {
-    const { evaluate } = NumberTransformers.Subtract.spec
+    const { evaluate } = NumberTransformersRegistry.Subtract
 
     it('should subtract two positive numbers', () => {
       const result = evaluate(10, 3)
@@ -63,7 +63,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Multiply', () => {
-    const { evaluate } = NumberTransformers.Multiply.spec
+    const { evaluate } = NumberTransformersRegistry.Multiply
 
     it('should multiply two positive numbers', () => {
       const result = evaluate(4, 3)
@@ -91,7 +91,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Divide', () => {
-    const { evaluate } = NumberTransformers.Divide.spec
+    const { evaluate } = NumberTransformersRegistry.Divide
 
     it('should divide two positive numbers', () => {
       const result = evaluate(15, 3)
@@ -113,7 +113,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Abs', () => {
-    const { evaluate } = NumberTransformers.Abs.spec
+    const { evaluate } = NumberTransformersRegistry.Abs
 
     it('should return absolute value of positive number', () => {
       const result = evaluate(5)
@@ -141,7 +141,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Round', () => {
-    const { evaluate } = NumberTransformers.Round.spec
+    const { evaluate } = NumberTransformersRegistry.Round
 
     it('should round positive decimal down', () => {
       const result = evaluate(4.4)
@@ -169,7 +169,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Floor', () => {
-    const { evaluate } = NumberTransformers.Floor.spec
+    const { evaluate } = NumberTransformersRegistry.Floor
 
     it('should floor positive decimal', () => {
       const result = evaluate(4.7)
@@ -192,7 +192,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Ceil', () => {
-    const { evaluate } = NumberTransformers.Ceil.spec
+    const { evaluate } = NumberTransformersRegistry.Ceil
 
     it('should ceiling positive decimal', () => {
       const result = evaluate(4.2)
@@ -215,7 +215,7 @@ describe('Number Transformers', () => {
   })
 
   describe('ToFixed', () => {
-    const { evaluate } = NumberTransformers.ToFixed.spec
+    const { evaluate } = NumberTransformersRegistry.ToFixed
 
     it('should round to specified decimal places', () => {
       const result = evaluate(3.14159, 2)
@@ -238,7 +238,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Max', () => {
-    const { evaluate } = NumberTransformers.Max.spec
+    const { evaluate } = NumberTransformersRegistry.Max
 
     it('should return maximum of two numbers', () => {
       const result = evaluate(5, 10)
@@ -266,7 +266,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Min', () => {
-    const { evaluate } = NumberTransformers.Min.spec
+    const { evaluate } = NumberTransformersRegistry.Min
 
     it('should return minimum of two numbers', () => {
       const result = evaluate(5, 10)
@@ -294,7 +294,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Power', () => {
-    const { evaluate } = NumberTransformers.Power.spec
+    const { evaluate } = NumberTransformersRegistry.Power
 
     it('should raise number to power', () => {
       const result = evaluate(2, 3)
@@ -317,7 +317,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Sqrt', () => {
-    const { evaluate } = NumberTransformers.Sqrt.spec
+    const { evaluate } = NumberTransformersRegistry.Sqrt
 
     it('should return square root of positive number', () => {
       const result = evaluate(16)
@@ -344,7 +344,7 @@ describe('Number Transformers', () => {
   })
 
   describe('Clamp', () => {
-    const { evaluate } = NumberTransformers.Clamp.spec
+    const { evaluate } = NumberTransformersRegistry.Clamp
 
     it('should clamp value above maximum', () => {
       const result = evaluate(15, 5, 10)

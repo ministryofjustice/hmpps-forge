@@ -70,11 +70,10 @@ The AST automatically:
 - Optimizes evaluation to only recalculate what's changed
 
 ### Collections and Dynamic Content
-The system handles dynamic, repeating sections through collection blocks that:
-- Generate fields dynamically based on data arrays
-- Maintain proper namespacing and validation per item
-- Handle add/edit/delete operations declaratively
-- Scale efficiently even with large collections
+The system handles dynamic, repeating sections through collection expressions that:
+- Generate structures dynamically from array data sources
+- Maintain proper namespacing and validation per item by scoping `Item()` references
+- Allow authors to express repetition declaratively within the AST
 
 ## Core Concepts
 
@@ -83,8 +82,7 @@ The system handles dynamic, repeating sections through collection blocks that:
 Journey (Complete multi-step flow)
 ├── Step (Individual page)
 │   ├── Block (UI component)
-│   ├── Field (Form input with validation)
-│   └── CollectionBlock (Dynamic repeated sections)
+│   └── Field (Form input with validation)
 └── Child Journey (Sub-flow within main journey)
 ```
 

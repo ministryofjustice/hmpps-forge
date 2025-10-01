@@ -5,6 +5,7 @@ import {
   FormatExpr,
   PipelineExpr,
   ConditionalExpr,
+  CollectionExpr,
   ValueExpr,
   NextExpr,
 } from '../types/expressions.type'
@@ -27,6 +28,10 @@ export function isConditionalExpr(obj: any): obj is ConditionalExpr {
   return obj != null && obj.type === LogicType.CONDITIONAL
 }
 
+export function isCollectionExpr(obj: any): obj is CollectionExpr {
+  return obj != null && obj.type === ExpressionType.COLLECTION
+}
+
 export function isNextExpr(obj: any): obj is NextExpr {
   return obj != null && obj.type === ExpressionType.NEXT
 }
@@ -36,6 +41,7 @@ export function isValueExpr(obj: any): obj is ValueExpr {
   if (isReferenceExpr(obj)) return true
   if (isFormatExpr(obj)) return true
   if (isPipelineExpr(obj)) return true
+  if (isCollectionExpr(obj)) return true
 
   // Check for function types
   if (obj != null && typeof obj === 'object' && 'type' in obj) {
@@ -66,6 +72,7 @@ export function isExpression(node: any): boolean {
     isFormatExpr(node) ||
     isPipelineExpr(node) ||
     isConditionalExpr(node) ||
+    isCollectionExpr(node) ||
     isPredicateExpr(node) ||
     isFunctionExpr(node) ||
     isValidationExpr(node) ||

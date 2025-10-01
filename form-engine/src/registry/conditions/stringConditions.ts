@@ -1,14 +1,14 @@
-import { buildConditionFunction } from '@form-engine/registry/utils/buildCondition'
 import { assertString } from '@form-engine/registry/utils/asserts'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 
-export default {
+export const { conditions: StringConditions, registry: StringConditionsRegistry } = defineConditions({
   /**
    * Checks if a string matches a regular expression pattern
    * @param value - The string to test
    * @param pattern - The regex pattern to match against
    * @returns true if the string matches the pattern
    */
-  MatchesRegex: buildConditionFunction('matchesRegex', (value, pattern: string) => {
+  MatchesRegex: (value, pattern: string) => {
     assertString(value, 'Condition.String.MatchesRegex')
 
     try {
@@ -17,7 +17,7 @@ export default {
     } catch (_) {
       throw new Error(`Condition.String.MatchesRegex: Invalid regex pattern "${pattern}"`)
     }
-  }),
+  },
 
   /**
    * Checks if a string has at least the minimum specified length
@@ -25,7 +25,7 @@ export default {
    * @param min - The minimum length required
    * @returns true if the string length is >= min
    */
-  HasMinLength: buildConditionFunction('hasMinLength', (value, min: number) => {
+  HasMinLength: (value, min: number) => {
     assertString(value, 'Condition.String.HasMinLength')
 
     if (typeof min !== 'number' || min < 0) {
@@ -33,7 +33,7 @@ export default {
     }
 
     return value.length >= min
-  }),
+  },
 
   /**
    * Checks if a string does not exceed the maximum specified length
@@ -41,7 +41,7 @@ export default {
    * @param max - The maximum length allowed
    * @returns true if the string length is <= max
    */
-  HasMaxLength: buildConditionFunction('hasMaxLength', (value, max: number) => {
+  HasMaxLength: (value, max: number) => {
     assertString(value, 'Condition.String.HasMaxLength')
 
     if (typeof max !== 'number' || max < 0) {
@@ -49,7 +49,7 @@ export default {
     }
 
     return value.length <= max
-  }),
+  },
 
   /**
    * Checks if a string has exactly the specified length
@@ -57,7 +57,7 @@ export default {
    * @param len - The exact length required
    * @returns true if the string length equals len
    */
-  HasExactLength: buildConditionFunction('hasExactLength', (value, len: number) => {
+  HasExactLength: (value, len: number) => {
     assertString(value, 'Condition.String.HasExactLength')
 
     if (typeof len !== 'number' || len < 0) {
@@ -65,7 +65,7 @@ export default {
     }
 
     return value.length === len
-  }),
+  },
 
   /**
    * Checks if a string contains at most the specified number of words
@@ -73,7 +73,7 @@ export default {
    * @param maxWords - The maximum number of words allowed
    * @returns true if the word count is <= maxWords
    */
-  HasMaxWords: buildConditionFunction('hasMaxWords', (value, maxWords: number) => {
+  HasMaxWords: (value, maxWords: number) => {
     assertString(value, 'Condition.String.HasMaxWords')
 
     if (typeof maxWords !== 'number' || maxWords < 0) {
@@ -86,27 +86,27 @@ export default {
     }
 
     return trimmed.split(/\s+/).length <= maxWords
-  }),
+  },
 
   /**
    * Checks if a string contains only letters (A-Z, a-z)
    * @param value - The string to test
    * @returns true if the string contains only letters
    */
-  LettersOnly: buildConditionFunction('lettersOnly', value => {
+  LettersOnly: value => {
     assertString(value, 'Condition.String.LettersOnly')
     return /^[A-Za-z]+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only digits (0-9)
    * @param value - The string to test
    * @returns true if the string contains only digits
    */
-  DigitsOnly: buildConditionFunction('digitsOnly', value => {
+  DigitsOnly: value => {
     assertString(value, 'Condition.String.DigitsOnly')
     return /^[0-9]+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only letters and common punctuation marks
@@ -114,10 +114,10 @@ export default {
    * @param value - The string to test
    * @returns true if the string contains only allowed characters
    */
-  LettersWithCommonPunctuation: buildConditionFunction('lettersWithCommonPunctuation', value => {
+  LettersWithCommonPunctuation: value => {
     assertString(value, 'Condition.String.LettersWithCommonPunctuation')
     return /^[A-Za-z.,'"()\-!? ]+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only letters, spaces, dashes, and apostrophes
@@ -125,20 +125,20 @@ export default {
    * @param value - The string to test
    * @returns true if the string contains only allowed characters
    */
-  LettersWithSpaceDashApostrophe: buildConditionFunction('lettersWithSpaceDashApostrophe', value => {
+  LettersWithSpaceDashApostrophe: value => {
     assertString(value, 'Condition.String.LettersWithSpaceDashApostrophe')
     return /^[A-Za-z\s\-']+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only letters and digits (alphanumeric)
    * @param value - The string to test
    * @returns true if the string is alphanumeric
    */
-  LettersAndDigitsOnly: buildConditionFunction('lettersAndDigitsOnly', value => {
+  LettersAndDigitsOnly: value => {
     assertString(value, 'Condition.String.LettersAndDigitsOnly')
     return /^[A-Za-z0-9]+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only alphanumeric characters and common punctuation
@@ -146,10 +146,10 @@ export default {
    * @param value - The string to test
    * @returns true if the string contains only allowed characters
    */
-  AlphanumericWithCommonPunctuation: buildConditionFunction('alphanumericWithCommonPunctuation', value => {
+  AlphanumericWithCommonPunctuation: value => {
     assertString(value, 'Condition.String.AlphanumericWithCommonPunctuation')
     return /^[A-Za-z0-9.,'"()\-!? ]+$/.test(value)
-  }),
+  },
 
   /**
    * Checks if a string contains only alphanumeric characters and safe symbols
@@ -157,8 +157,8 @@ export default {
    * @param value - The string to test
    * @returns true if the string contains only allowed characters
    */
-  AlphanumericWithAllSafeSymbols: buildConditionFunction('alphanumericWithAllSafeSymbols', value => {
+  AlphanumericWithAllSafeSymbols: value => {
     assertString(value, 'Condition.String.AlphanumericWithAllSafeSymbols')
     return /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)
-  }),
-}
+  },
+})

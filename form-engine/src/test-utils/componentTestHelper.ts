@@ -1,5 +1,5 @@
 import nunjucks from 'nunjucks'
-import { RegistryComponent } from '@form-engine/registry/utils/buildComponent'
+import { RegistryComponent } from '@form-engine/registry/types/components.type'
 import { BlockDefinition, EvaluatedBlock } from '../form/types/structures.type'
 import { StructureType } from '../form/types/enums'
 

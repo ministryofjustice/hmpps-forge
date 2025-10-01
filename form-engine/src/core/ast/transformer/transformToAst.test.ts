@@ -209,21 +209,8 @@ describe('ASTTransformer', () => {
               },
               {
                 type: StructureType.BLOCK,
-                variant: 'collection',
-                template: [
-                  {
-                    type: StructureType.BLOCK,
-                    variant: 'text',
-                    code: {
-                      type: ExpressionType.FORMAT,
-                      text: 'address_%1_street',
-                      args: [{ type: ExpressionType.REFERENCE, path: ['@item', 'id'] }],
-                    },
-                  },
-                ],
-                collectionContext: {
-                  collection: { type: ExpressionType.REFERENCE, path: ['answers', 'addresses'] },
-                },
+                variant: 'html',
+                content: '<p>Addresses will appear here</p>',
               },
             ],
             onSubmission: [

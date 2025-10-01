@@ -1,4 +1,4 @@
-import { ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
+import { ExpressionType, LogicType, FunctionType, StructureType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
   ConditionalASTNode,
@@ -17,6 +17,7 @@ import {
   transformValidation,
   transformPredicate,
   transformFunction,
+  transformCollection,
 } from './transformExpressions'
 
 describe('Expression Transformations', () => {
@@ -75,6 +76,50 @@ describe('Expression Transformations', () => {
     })
   })
 
+  describe('transformCollection()', () => {
+    it('should transform a collection expression with template and fallback', () => {
+      const collection = {
+        type: ExpressionType.COLLECTION,
+        collection: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] },
+        template: [
+          {
+            type: StructureType.BLOCK,
+            variant: 'text',
+            code: 'item',
+          },
+        ],
+        fallback: [
+          {
+            type: StructureType.BLOCK,
+            variant: 'html',
+            content: 'No items',
+          },
+        ],
+      }
+
+      const result = transformCollection(collection, ['test'])
+
+      expect(result).toMatchObject({
+        type: ASTNodeType.EXPRESSION,
+        expressionType: ExpressionType.COLLECTION,
+      })
+
+      const collectionProp = result.properties.get('collection') as ReferenceASTNode
+      expect(collectionProp).toMatchObject({
+        type: ASTNodeType.EXPRESSION,
+        expressionType: ExpressionType.REFERENCE,
+      })
+
+      const template = result.properties.get('template') as any[]
+      expect(Array.isArray(template)).toBe(true)
+      expect(template[0]).toMatchObject({ type: ASTNodeType.BLOCK, variant: 'text' })
+
+      const fallback = result.properties.get('fallback') as any[]
+      expect(Array.isArray(fallback)).toBe(true)
+      expect(fallback[0]).toMatchObject({ type: ASTNodeType.BLOCK, variant: 'html' })
+    })
+  })
+
   describe('transformConditional()', () => {
     it('should transform a conditional expression', () => {
       const conditional = {
@@ -85,8 +130,8 @@ describe('Expression Transformations', () => {
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'equals', arguments: [true] as any[] },
         },
-        then: 'Show children fields',
-        else: 'Hide children fields',
+        thenValue: 'Show children fields',
+        elseValue: 'Hide children fields',
       }
 
       const result = transformConditional(conditional, ['test']) as ConditionalASTNode

@@ -10,6 +10,7 @@ import {
   isPredicateXorExpr,
 } from '@form-engine/form/typeguards/predicates'
 import {
+  isCollectionExpr,
   isConditionalExpr,
   isPipelineExpr,
   isReferenceExpr,
@@ -17,6 +18,7 @@ import {
 } from '@form-engine/form/typeguards/expressions'
 import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
 import {
+  CollectionASTNode,
   ConditionalASTNode,
   ExpressionASTNode,
   FunctionASTNode,
@@ -29,7 +31,7 @@ import { ASTNode } from '@form-engine/core/types/engine.type'
 
 /**
  * Transform Expression node: Dynamic values and logic
- * Handles references, pipelines, conditionals, validations, predicates, functions
+ * Handles references, pipelines, conditionals, collections, validations, predicates, functions
  */
 export function transformExpression(json: any, path: string[]): ExpressionASTNode {
   // Handle reference expressions
@@ -45,6 +47,11 @@ export function transformExpression(json: any, path: string[]): ExpressionASTNod
   // Handle conditional expressions
   if (isConditionalExpr(json)) {
     return transformConditional(json, path)
+  }
+
+  // Handle collection expressions
+  if (isCollectionExpr(json)) {
+    return transformCollection(json, path)
   }
 
   // Handle validation expressions
@@ -146,17 +153,52 @@ export function transformConditional(json: any, path: string[]): ConditionalASTN
     properties.set('predicate', transformNode(json.predicate, [...path, 'predicate']))
   }
 
-  if (json.then !== undefined) {
-    properties.set('thenValue', transformValue(json.then, [...path, 'then']))
+  if (json.thenValue !== undefined) {
+    properties.set('thenValue', transformValue(json.thenValue, [...path, 'thenValue']))
   }
 
-  if (json.else !== undefined) {
-    properties.set('elseValue', transformValue(json.else, [...path, 'else']))
+  if (json.elseValue !== undefined) {
+    properties.set('elseValue', transformValue(json.elseValue, [...path, 'elseValue']))
   }
 
   return {
     type: ASTNodeType.EXPRESSION,
     expressionType: LogicType.CONDITIONAL,
+    properties,
+    raw: json,
+  }
+}
+
+/**
+ * Transform Collection expression: Iterate over data to produce repeated templates
+ * Note this is _just_ the template, at runtime this template is used to generate
+ * actual nodes based on Collection content.
+ */
+export function transformCollection(json: any, path: string[]): CollectionASTNode {
+  const properties = new Map<string, ASTNode | any>()
+
+  // Transform the collection data source
+  properties.set('collection', transformValue(json.collection, [...path, 'collection']))
+
+  // Transform template blocks
+  if (json.template) {
+    const template = json.template.map((item: any, i: number) =>
+      transformNode(item, [...path, 'template', i.toString()]),
+    )
+    properties.set('template', template)
+  }
+
+  // Transform optional fallback blocks
+  if (json.fallback) {
+    const fallback = json.fallback.map((item: any, i: number) =>
+      transformNode(item, [...path, 'fallback', i.toString()]),
+    )
+    properties.set('fallback', fallback)
+  }
+
+  return {
+    type: ASTNodeType.EXPRESSION,
+    expressionType: ExpressionType.COLLECTION,
     properties,
     raw: json,
   }

@@ -1,8 +1,8 @@
-import { RegistryComponent, ComponentRenderer } from '@form-engine/registry/utils/buildComponent'
 import { BlockDefinition } from '@form-engine/form/types/structures.type'
 import RegistryDuplicateError from '@form-engine/errors/RegistryDuplicateError'
 import RegistryValidationError from '@form-engine/errors/RegistryValidationError'
 import { govukFrontendComponents } from '@form-engine/registry/components/govuk-frontend'
+import { ComponentRenderer, RegistryComponent } from '@form-engine/registry/types/components.type'
 
 /**
  * Registry for managing UI components in the form engine.

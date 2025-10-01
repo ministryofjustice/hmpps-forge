@@ -1,5 +1,5 @@
-import { buildConditionFunction } from '@form-engine/registry/utils/buildCondition'
 import { assertString } from '@form-engine/registry/utils/asserts'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 
 /**
  * Helper function to parse and validate ISO-8601 date format (YYYY-MM-DD)
@@ -28,13 +28,13 @@ function parseISODate(value: string): { year: number; month: number; day: number
   return { year, month, day }
 }
 
-export default {
+export const { conditions: DateConditions, registry: DateConditionsRegistry } = defineConditions({
   /**
    * Checks if a value is a valid ISO-8601 date string (YYYY-MM-DD)
    * @param value - The ISO date string to validate
    * @returns true if the value is a valid date
    */
-  IsValid: buildConditionFunction('dateIsValid', value => {
+  IsValid: value => {
     assertString(value, 'Condition.Date.IsValid')
 
     const parsed = parseISODate(value)
@@ -50,14 +50,14 @@ export default {
       date.getMonth() === parsed.month - 1 &&
       date.getDate() === parsed.day
     )
-  }),
+  },
 
   /**
    * Validates if an ISO date string has a valid year component (1000-9999)
    * @param value - The ISO date string to validate
    * @returns true if the year is valid
    */
-  IsValidYear: buildConditionFunction('dateIsValidYear', value => {
+  IsValidYear: value => {
     assertString(value, 'Condition.Date.IsValidYear')
 
     const parsed = parseISODate(value)
@@ -67,14 +67,14 @@ export default {
 
     // I really hope this doesn't live till 9999
     return parsed.year >= 1000 && parsed.year <= 9999
-  }),
+  },
 
   /**
    * Validates if an ISO date string has a valid month component (1-12)
    * @param value - The ISO date string to validate
    * @returns true if the month is valid
    */
-  IsValidMonth: buildConditionFunction('dateIsValidMonth', value => {
+  IsValidMonth: value => {
     assertString(value, 'Condition.Date.IsValidMonth')
 
     const parsed = parseISODate(value)
@@ -83,7 +83,7 @@ export default {
     }
 
     return parsed.month >= 1 && parsed.month <= 12
-  }),
+  },
 
   /**
    * Validates if a date string has a valid day component for its specific month/year
@@ -91,7 +91,7 @@ export default {
    * @param value - The ISO date string to validate (YYYY-MM-DD format)
    * @returns true if the day is valid for the specific month and year
    */
-  IsValidDay: buildConditionFunction('dateIsValidDay', value => {
+  IsValidDay: value => {
     assertString(value, 'Condition.Date.IsValidDay')
 
     // Parse ISO date format (YYYY-MM-DD)
@@ -114,7 +114,7 @@ export default {
 
     // Validate day against actual month length
     return day >= 1 && day <= daysInMonth
-  }),
+  },
 
   /**
    * Checks if an ISO date string is before another ISO date string
@@ -122,7 +122,7 @@ export default {
    * @param dateStr - The comparison ISO date string
    * @returns true if value is before the comparison date
    */
-  IsBefore: buildConditionFunction('isDateBefore', (value, dateStr: string) => {
+  IsBefore: (value, dateStr: string) => {
     assertString(value, 'Condition.Date.IsBefore')
 
     const valueParsed = parseISODate(value)
@@ -139,7 +139,7 @@ export default {
     const compareDate = new Date(compareParsed.year, compareParsed.month - 1, compareParsed.day)
 
     return valueDate < compareDate
-  }),
+  },
 
   /**
    * Checks if an ISO date string is after another ISO date string
@@ -147,7 +147,7 @@ export default {
    * @param dateStr - The comparison ISO date string
    * @returns true if value is after the comparison date
    */
-  IsAfter: buildConditionFunction('isDateAfter', (value, dateStr: string) => {
+  IsAfter: (value, dateStr: string) => {
     assertString(value, 'Condition.Date.IsAfter')
 
     const valueParsed = parseISODate(value)
@@ -164,14 +164,14 @@ export default {
     const compareDate = new Date(compareParsed.year, compareParsed.month - 1, compareParsed.day)
 
     return valueDate > compareDate
-  }),
+  },
 
   /**
    * Checks if an ISO date string is in the future (after today)
    * @param value - The ISO date string to test
    * @returns true if value is after today
    */
-  IsFutureDate: buildConditionFunction('isFutureDate', value => {
+  IsFutureDate: value => {
     assertString(value, 'Condition.Date.IsFutureDate')
 
     const parsed = parseISODate(value)
@@ -184,5 +184,5 @@ export default {
     const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
 
     return valueDate > todayUTC
-  }),
-}
+  },
+})

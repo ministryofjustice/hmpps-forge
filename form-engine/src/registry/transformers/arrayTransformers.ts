@@ -1,76 +1,76 @@
 import { assertArray } from '@form-engine/registry/utils/asserts'
-import { buildTransformerFunction } from '@form-engine/registry/utils/buildTransformer'
+import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
 
 /**
  * Array transformation functions for manipulating collections of data
  */
-export default {
+export const { transformers: ArrayTransformers, registry: ArrayTransformersRegistry } = defineTransformers({
   /**
    * Returns the length of the array
    * @example
    * // Length([1, 2, 3, 4]) returns 4
    */
-  Length: buildTransformerFunction('length', (value: any) => {
+  Length: (value: any) => {
     assertArray(value, 'Transformer.Array.Length')
     return value.length
-  }),
+  },
 
   /**
    * Returns the first element of the array
    * @example
    * // First([1, 2, 3]) returns 1
    */
-  First: buildTransformerFunction('first', (value: any) => {
+  First: (value: any) => {
     assertArray(value, 'Transformer.Array.First')
     return value.length > 0 ? value[0] : undefined
-  }),
+  },
 
   /**
    * Returns the last element of the array
    * @example
    * // Last([1, 2, 3]) returns 3
    */
-  Last: buildTransformerFunction('last', (value: any) => {
+  Last: (value: any) => {
     assertArray(value, 'Transformer.Array.Last')
     return value.length > 0 ? value[value.length - 1] : undefined
-  }),
+  },
 
   /**
    * Reverses the array (returns a new array)
    * @example
    * // Reverse([1, 2, 3]) returns [3, 2, 1]
    */
-  Reverse: buildTransformerFunction('reverse', (value: any) => {
+  Reverse: (value: any) => {
     assertArray(value, 'Transformer.Array.Reverse')
     return [...value].reverse()
-  }),
+  },
 
   /**
    * Joins array elements into a string with specified separator
    * @example
    * // Join([1, 2, 3], ", ") returns "1, 2, 3"
    */
-  Join: buildTransformerFunction('join', (value: any, separator: string = ',') => {
+  Join: (value: any, separator: string = ',') => {
     assertArray(value, 'Transformer.Array.Join')
     return value.join(separator)
-  }),
+  },
 
   /**
    * Returns a slice of the array from start to end index
    * @example
    * // Slice([1, 2, 3, 4, 5], 1, 4) returns [2, 3, 4]
    */
-  Slice: buildTransformerFunction('slice', (value: any, start: number, end?: number) => {
+  Slice: (value: any, start: number, end?: number) => {
     assertArray(value, 'Transformer.Array.Slice')
     return value.slice(start, end)
-  }),
+  },
 
   /**
    * Concatenates arrays together
    * @example
    * // Concat([1, 2], [3, 4]) returns [1, 2, 3, 4]
    */
-  Concat: buildTransformerFunction('concat', (value: any, ...arrays: any[][]) => {
+  Concat: (value: any, ...arrays: any[][]) => {
     assertArray(value, 'Transformer.Array.Concat')
     arrays.forEach((arr, index) => {
       if (!Array.isArray(arr)) {
@@ -78,24 +78,24 @@ export default {
       }
     })
     return value.concat(...arrays)
-  }),
+  },
 
   /**
    * Returns unique elements from the array (removes duplicates)
    * @example
    * // Unique([1, 2, 2, 3, 1]) returns [1, 2, 3]
    */
-  Unique: buildTransformerFunction('unique', (value: any) => {
+  Unique: (value: any) => {
     assertArray(value, 'Transformer.Array.Unique')
     return [...new Set(value)]
-  }),
+  },
 
   /**
    * Sorts the array in ascending order (returns a new array)
    * @example
    * // Sort([3, 1, 4, 2]) returns [1, 2, 3, 4]
    */
-  Sort: buildTransformerFunction('sort', (value: any) => {
+  Sort: (value: any) => {
     assertArray(value, 'Transformer.Array.Sort')
     return [...value].sort((a, b) => {
       if (typeof a === 'number' && typeof b === 'number') {
@@ -103,17 +103,17 @@ export default {
       }
       return String(a).localeCompare(String(b))
     })
-  }),
+  },
 
   /**
    * Filters the array to only include elements that match the specified value
    * @example
    * // Filter([1, 2, 2, 3], 2) returns [2, 2]
    */
-  Filter: buildTransformerFunction('filter', (value: any, filterValue: any) => {
+  Filter: (value: any, filterValue: any) => {
     assertArray(value, 'Transformer.Array.Filter')
     return value.filter((item: any) => item === filterValue)
-  }),
+  },
 
   /**
    * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
@@ -121,7 +121,7 @@ export default {
    * // Map([{name: 'John'}, {name: 'Jane'}], 'name') returns ['John', 'Jane']
    * // Map([[1, 2], [3, 4]], 0) returns [1, 3]
    */
-  Map: buildTransformerFunction('map', (value: any, property: string | number) => {
+  Map: (value: any, property: string | number) => {
     assertArray(value, 'Transformer.Array.Map')
     return value.map((item: any) => {
       if (typeof property === 'number' && Array.isArray(item)) {
@@ -132,15 +132,15 @@ export default {
       }
       return undefined
     })
-  }),
+  },
 
   /**
    * Flattens a nested array by one level
    * @example
    * // Flatten([[1, 2], [3, 4]]) returns [1, 2, 3, 4]
    */
-  Flatten: buildTransformerFunction('flatten', (value: any) => {
+  Flatten: (value: any) => {
     assertArray(value, 'Transformer.Array.Flatten')
     return value.flat()
-  }),
-}
+  },
+})

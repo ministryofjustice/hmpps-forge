@@ -1,14 +1,14 @@
 import { collectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
-import { StructureType } from '../../../../form/types/enums'
+import { ExpressionType, StructureType } from '../../../../form/types/enums'
 import { RenderedBlock } from '../../../../form/types/structures.type'
+import { ASTTestFactory } from '../../../../test-utils/ASTTestFactory'
 
 describe('collectionBlock component', () => {
   const mockEvaluatedBlock = (overrides?: Partial<EvaluatedCollectionBlock>): EvaluatedCollectionBlock =>
     ({
       type: StructureType.BLOCK,
       variant: 'collection-block',
-      template: [],
-      collectionContext: { collection: [] },
+      collection: ASTTestFactory.expression(ExpressionType.COLLECTION).withCollection([]).withTemplate([]),
       ...overrides,
     }) as EvaluatedCollectionBlock
 

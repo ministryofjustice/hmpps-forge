@@ -199,42 +199,6 @@ describe('Structure Transformations', () => {
       })
     })
 
-    it('should transform a collection block', () => {
-      const collectionBlock = {
-        type: StructureType.BLOCK,
-        variant: 'collection',
-        template: [
-          {
-            type: StructureType.BLOCK,
-            variant: 'text',
-            code: 'item_name',
-          },
-        ],
-        collectionContext: {
-          collection: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] },
-        },
-      }
-
-      const result = transformBlock(collectionBlock, ['test']) as BlockASTNode
-
-      expect(result.type).toBe(ASTNodeType.BLOCK)
-      expect(result.variant).toBe('collection')
-      expect(result.blockType).toBe('collection')
-
-      const template = result.properties.get('template') as ASTNode[]
-      expect(template).toHaveLength(1)
-      expect(template[0]).toMatchObject({
-        type: ASTNodeType.BLOCK,
-        variant: 'text',
-      })
-
-      const collectionContext = result.properties.get('collectionContext') as any
-      expect(collectionContext.collection).toMatchObject({
-        type: ASTNodeType.EXPRESSION,
-        expressionType: 'ExpressionType.Reference',
-      })
-    })
-
     it('should transform a composite block', () => {
       const compositeBlock = {
         type: StructureType.BLOCK,

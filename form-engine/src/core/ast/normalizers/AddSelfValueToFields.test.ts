@@ -68,31 +68,35 @@ describe('AddSelfValueToFields', () => {
       expect(value.properties.get('path')).toEqual(['answers', '@self'])
     })
 
-    it('processes blocks within collection templates', () => {
-      const itemTemplate = ASTTestFactory.block('textInput', 'field')
+    it('adds Self() to fields inside collection expression templates', () => {
+      const templateField = ASTTestFactory.block('textInput', 'field')
         .withId(5)
         .withCode('street')
         .withLabel('Street')
         .build()
 
-      const collectionBlock = ASTTestFactory.block('collection', 'collection')
+      const collectionExpr = ASTTestFactory.expression(ExpressionType.COLLECTION)
         .withId(6)
-        .withCode('addresses')
-        .withProperty('itemTemplate', itemTemplate)
+        .withCollection({ type: ExpressionType.REFERENCE, path: ['answers', 'addresses'] })
+        .withTemplate([templateField])
         .build()
 
-      const step = ASTTestFactory.step().withId(7).withProperty('blocks', [collectionBlock]).build()
+      const step = ASTTestFactory.step()
+        .withId(7)
+        .withBlock('container', 'basic', block => block.withId(8).withProperty('content', collectionExpr))
+        .build()
 
-      const journey = ASTTestFactory.journey().withId(8).withProperty('steps', [step]).build()
+      const journey = ASTTestFactory.journey().withId(9).withProperty('steps', [step]).build()
 
       addSelfValueToFields(journey)
 
-      const steps = journey.properties.get('steps')
-      const blocks = steps[0].properties.get('blocks')
-      const template = blocks[0].properties.get('itemTemplate')
+      const steps = journey.properties.get('steps') as any[]
+      const containerBlock = steps[0].properties.get('blocks')[0]
+      const transformedCollection = containerBlock.properties.get('content')
+      const template = transformedCollection.properties.get('template') as any[]
+      const transformedField = template[0]
+      const value = transformedField.properties.get('value')
 
-      // Item template field should have Self() added
-      const value = template.properties.get('value')
       expect(isExpressionNode(value)).toBe(true)
       expect(value.properties.get('path')).toEqual(['answers', '@self'])
     })

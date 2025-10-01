@@ -11,8 +11,7 @@ This document explains the four main block types and how they work together.
 ```
 Block (Base)
 ├── Field (Form inputs)
-├── CompositeBlock (Structural containers)
-└── CollectionBlock (Dynamic templated content)
+└── CompositeBlock (Structural containers)
 ```
 
 ## 1. Block (Base Type)
@@ -265,107 +264,3 @@ const billingAddressSection = block({
 #### `blocks`
 An array of child blocks (Fields, Blocks, or other CompositeBlocks) that are contained within this composite block.
 These child blocks are rendered as a group together.
-
-Here's a section for CollectionBlock following the same style:
-
-## 4. CollectionBlock
-
-CollectionBlocks iterate over arrays of data to generate repeated form sections dynamically.
-They use templates that are instantiated for each item in a collection, allowing forms to
-handle variable amounts of data efficiently.
-
-### Structure
-
-```typescript
-interface CollectionBlockDefinition extends BlockDefinition {
-  template: BlockDefinition[]             // Template blocks repeated for each item
-  fallbackTemplate?: BlockDefinition      // Optional template when collection is empty
-  collectionContext: CollectionOptions    // Configuration for data iteration
-}
-
-interface CollectionOptions {
-  collection: ReferenceExpr | PipelineExpr | Array     // Data source to iterate over
-  target?: ReferenceExpr | PipelineExpr | number       // Specific item/index
-}
-```
-
-### Examples
-
-```typescript
-// A collection that creates address fields for each address in the user's saved addresses
-const savedAddressesCollection = block({
-  variant: 'collection-block-group',
-  template: [
-    field({
-      variant: 'text',
-      code: Format('address_%1_street', Item('id')),
-      label: 'Street Address',
-      value: Item('street'),  // Pre-populate from collection item
-      validate: [
-        validation({
-          when: Self().not.match(Condition.IsRequired()),
-          message: 'Street address is required'
-        })
-      ]
-    }),
-    field({
-      variant: 'text',
-      code: Format('address_%1_city', Item('id')),
-      label: 'City',
-      value: Item('city')
-    }),
-    field({
-      variant: 'select',
-      code: Format('address_%1_country', Item('id')),
-      label: 'Country',
-      value: Item('country'),
-      items: Data('countries')
-    })
-  ],
-  collectionContext: {
-    collection: Answer('user_addresses')  // Array of address objects
-  }
-})
-
-// A collection with conditional fields based on item properties
-const drugUsageCollection = block({
-  variant: 'collection-block-group',
-  template: [
-    field({
-      variant: 'radio',
-      code: Format('drug_%1_last_used', Item('value')),
-      label: Format('When did they last use %1?', Item('value')),
-      items: [
-        { label: 'Used in the last 6 months', value: 'LAST_SIX' },
-        { label: 'Used more than 6 months ago', value: 'MORE_THAN_SIX' }
-      ],
-      validate: [
-        validation({
-          when: Self().not.match(Condition.IsRequired()),
-          message: 'Select when they last used this drug'
-        })
-      ]
-    }),
-  ],
-  collectionContext: {
-    collection: Answer('selected_drugs')  // Array of selected drug objects
-  }
-})
-```
-
-### Concepts
-
-#### `template`
-An array of blocks that serve as the blueprint for each item in the collection.
-The template is repeated once for every item, with `Item()` references resolved to the current item's data.
-Templates can contain any type of block: Fields, Blocks, or even nested CompositeBlocks.
-
-#### `collectionContext`
-Configuration that defines the data source and iteration behavior. The `collection` property
-specifies which array to iterate over, while the optional `target` property can focus on a specific item or index within the collection.
-
-#### Dynamic Field Generation
-
-When using fields in CollectionBlocks, it's worth giving them unique `code` attributes by combining the
-`Format()` expression with an `Item()` reference. This ensures each repeated
-field has a distinct identifier while maintaining a predictable naming pattern.

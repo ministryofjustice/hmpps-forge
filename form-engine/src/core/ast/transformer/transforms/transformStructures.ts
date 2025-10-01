@@ -1,8 +1,4 @@
-import {
-  isCollectionBlockDefinition,
-  isCompositeBlockDefinition,
-  isFieldBlockDefinition,
-} from '@form-engine/form/typeguards/structures'
+import { isCompositeBlockDefinition, isFieldBlockDefinition } from '@form-engine/form/typeguards/structures'
 import { transformProperties } from '@form-engine/core/ast/transformer/transformToAst'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
@@ -18,12 +14,10 @@ export function transformBlock(json: any, path: string[]): BlockASTNode {
   const properties = transformProperties(dataProperties, [...path, 'block', variant])
 
   // Classify block for AST traversal optimization
-  let blockType: 'basic' | 'field' | 'collection' | 'composite'
+  let blockType: 'basic' | 'field' | 'composite'
 
   if (isFieldBlockDefinition(json)) {
     blockType = 'field'
-  } else if (isCollectionBlockDefinition(json)) {
-    blockType = 'collection'
   } else if (isCompositeBlockDefinition(json)) {
     blockType = 'composite'
   } else {

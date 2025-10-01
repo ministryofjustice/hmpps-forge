@@ -1,9 +1,9 @@
-import ArrayConditions from './arrayConditions'
+import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('ArrayConditions', () => {
   describe('IsIn', () => {
-    const { evaluate } = ArrayConditions.IsIn.spec
+    const { evaluate } = ArrayConditionsRegistry.IsIn
 
     test('should return true when value is in the expected array', () => {
       expect(evaluate('apple', ['apple', 'banana', 'orange'])).toBe(true)
@@ -54,14 +54,14 @@ describe('ArrayConditions', () => {
       const expr = ArrayConditions.IsIn(['option1', 'option2'])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'arrayIsIn',
+        name: 'IsIn',
         arguments: [['option1', 'option2']],
       })
     })
   })
 
   describe('Contains', () => {
-    const { evaluate } = ArrayConditions.Contains.spec
+    const { evaluate } = ArrayConditionsRegistry.Contains
 
     test('should return true when value array contains the expected value', () => {
       expect(evaluate(['apple', 'banana'], 'apple')).toBe(true)
@@ -115,14 +115,14 @@ describe('ArrayConditions', () => {
       const expr = ArrayConditions.Contains('searchValue')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'arrayContains',
+        name: 'Contains',
         arguments: ['searchValue'],
       })
     })
   })
 
   describe('ContainsAny', () => {
-    const { evaluate } = ArrayConditions.ContainsAny.spec
+    const { evaluate } = ArrayConditionsRegistry.ContainsAny
 
     test('should return true when value array contains any of the items from expected array', () => {
       expect(evaluate(['apple', 'banana'], ['orange', 'apple'])).toBe(true)
@@ -181,14 +181,14 @@ describe('ArrayConditions', () => {
       const expr = ArrayConditions.ContainsAny(['value1', 'value2'])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'arrayContainsAny',
+        name: 'ContainsAny',
         arguments: [['value1', 'value2']],
       })
     })
   })
 
   describe('ContainsAll', () => {
-    const { evaluate } = ArrayConditions.ContainsAll.spec
+    const { evaluate } = ArrayConditionsRegistry.ContainsAll
 
     test('should return true when all items in value array are in expected array', () => {
       expect(evaluate(['apple', 'banana'], ['apple', 'banana', 'orange'])).toBe(true)
@@ -261,7 +261,7 @@ describe('ArrayConditions', () => {
       const expr = ArrayConditions.ContainsAll([1, 2, 3])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'arrayContainsAll',
+        name: 'ContainsAll',
         arguments: [[1, 2, 3]],
       })
     })

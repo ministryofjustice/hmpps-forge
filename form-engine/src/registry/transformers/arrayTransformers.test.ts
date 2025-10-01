@@ -1,9 +1,9 @@
-import ArrayTransformers from './arrayTransformers'
+import { ArrayTransformers, ArrayTransformersRegistry } from './arrayTransformers'
 import { FunctionType } from '../../form/types/enums'
 
 describe('Array Transformers', () => {
   describe('Length', () => {
-    const { evaluate } = ArrayTransformers.Length.spec
+    const { evaluate } = ArrayTransformersRegistry.Length
 
     it('should return length of array', () => {
       const result = evaluate([1, 2, 3, 4])
@@ -28,14 +28,14 @@ describe('Array Transformers', () => {
       const expr = ArrayTransformers.Length()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'length',
+        name: 'Length',
         arguments: [],
       })
     })
   })
 
   describe('First', () => {
-    const { evaluate } = ArrayTransformers.First.spec
+    const { evaluate } = ArrayTransformersRegistry.First
 
     it('should return first element of array', () => {
       const result = evaluate([1, 2, 3])
@@ -58,7 +58,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Last', () => {
-    const { evaluate } = ArrayTransformers.Last.spec
+    const { evaluate } = ArrayTransformersRegistry.Last
 
     it('should return last element of array', () => {
       const result = evaluate([1, 2, 3])
@@ -81,7 +81,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Reverse', () => {
-    const { evaluate } = ArrayTransformers.Reverse.spec
+    const { evaluate } = ArrayTransformersRegistry.Reverse
 
     it('should reverse array elements', () => {
       const result = evaluate([1, 2, 3])
@@ -111,7 +111,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Join', () => {
-    const { evaluate } = ArrayTransformers.Join.spec
+    const { evaluate } = ArrayTransformersRegistry.Join
 
     it('should join array elements with default comma separator', () => {
       const result = evaluate([1, 2, 3])
@@ -144,7 +144,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Slice', () => {
-    const { evaluate } = ArrayTransformers.Slice.spec
+    const { evaluate } = ArrayTransformersRegistry.Slice
 
     it('should slice array with start and end indices', () => {
       const result = evaluate([1, 2, 3, 4, 5], 1, 4)
@@ -172,7 +172,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Concat', () => {
-    const { evaluate } = ArrayTransformers.Concat.spec
+    const { evaluate } = ArrayTransformersRegistry.Concat
 
     it('should concatenate two arrays', () => {
       const result = evaluate([1, 2], [3, 4])
@@ -190,7 +190,6 @@ describe('Array Transformers', () => {
     })
 
     it('should throw error if any argument is not an array', () => {
-      // @ts-expect-error - Needs to be incorrect type for test
       expect(() => evaluate([1, 2], 'hello')).toThrow('Expected array at position 1 for Transformer.Array.Concat')
     })
 
@@ -200,7 +199,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Unique', () => {
-    const { evaluate } = ArrayTransformers.Unique.spec
+    const { evaluate } = ArrayTransformersRegistry.Unique
 
     it('should remove duplicate elements', () => {
       const result = evaluate([1, 2, 2, 3, 1])
@@ -228,7 +227,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Sort', () => {
-    const { evaluate } = ArrayTransformers.Sort.spec
+    const { evaluate } = ArrayTransformersRegistry.Sort
 
     it('should sort numeric array', () => {
       const result = evaluate([3, 1, 4, 2])
@@ -263,7 +262,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Filter', () => {
-    const { evaluate } = ArrayTransformers.Filter.spec
+    const { evaluate } = ArrayTransformersRegistry.Filter
 
     it('should filter array by value', () => {
       const result = evaluate([1, 2, 2, 3], 2)
@@ -291,7 +290,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Map', () => {
-    const { evaluate } = ArrayTransformers.Map.spec
+    const { evaluate } = ArrayTransformersRegistry.Map
 
     it('should map object properties', () => {
       const result = evaluate([{ name: 'John' }, { name: 'Jane' }], 'name')
@@ -330,7 +329,7 @@ describe('Array Transformers', () => {
   })
 
   describe('Flatten', () => {
-    const { evaluate } = ArrayTransformers.Flatten.spec
+    const { evaluate } = ArrayTransformersRegistry.Flatten
 
     it('should flatten nested arrays by one level', () => {
       const result = evaluate([

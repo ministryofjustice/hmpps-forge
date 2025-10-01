@@ -1,9 +1,9 @@
-import ObjectTransformers from './objectTransformers'
+import { ObjectTransformers, ObjectTransformersRegistry } from './objectTransformers'
 import { FunctionType } from '../../form/types/enums'
 
 describe('Object Transformers', () => {
   describe('ToISO', () => {
-    const { evaluate } = ObjectTransformers.ToISO.spec
+    const { evaluate } = ObjectTransformersRegistry.ToISO
 
     it('should convert date objects to ISO format with zero-padding', () => {
       const dateObject = { day: '5', month: '3', year: '2024' }
@@ -59,7 +59,7 @@ describe('Object Transformers', () => {
       const expr = ObjectTransformers.ToISO(paths)
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'objectToISO',
+        name: 'ToISO',
         arguments: [paths],
       })
     })

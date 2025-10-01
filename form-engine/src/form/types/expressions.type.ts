@@ -228,6 +228,54 @@ export interface EffectFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends
 }
 
 /**
+ * Represents a collection expression that iterates over data to produce repeated templates.
+ * Collections allow dynamic generation of form elements based on arrays of data.
+ *
+ * @example
+ * // Iterate over addresses to create address fields
+ * {
+ *   type: 'ExpressionType.Collection',
+ *   collection: { type: 'ExpressionType.Reference', path: ['answers', 'addresses'] },
+ *   template: [
+ *     {
+ *       type: 'StructureType.Block',
+ *       variant: 'text',
+ *       code: { type: 'ExpressionType.Format', text: 'address_%1_line1', args: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }] }
+ *     }
+ *   ]
+ * }
+ *
+ * @example
+ * // Collection with fallback when empty
+ * {
+ *   type: 'ExpressionType.Collection',
+ *   collection: { type: 'ExpressionType.Reference', path: ['data', 'items'] },
+ *   template: [...],
+ *   fallback: [{ type: 'StructureType.Block', variant: 'html', content: 'No items found' }]
+ * }
+ */
+export interface CollectionExpr<T = any> {
+  type: ExpressionType.COLLECTION
+
+  /**
+   * The data source to iterate over.
+   * Can be a reference expression or a static array.
+   */
+  collection: ReferenceExpr | PipelineExpr | any[]
+
+  /**
+   * Template blocks to render for each item in the collection.
+   * The template is repeated once per item with @item references resolved.
+   */
+  template: T[]
+
+  /**
+   * Optional fallback blocks to render when the collection is empty.
+   */
+  fallback?: T[]
+}
+
+/**
  * Represents any expression that evaluates to a value.
  * This is the base type for all expressions in the form system.
  */
@@ -236,6 +284,7 @@ export type ValueExpr =
   | FormatExpr
   | TransformerFunctionExpr
   | PipelineExpr
+  | CollectionExpr
   | ValueExpr[]
   | string
   | number

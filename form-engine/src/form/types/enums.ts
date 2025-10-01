@@ -17,6 +17,7 @@ export enum ExpressionType {
   PIPELINE = 'ExpressionType.Pipeline',
   NEXT = 'ExpressionType.Next',
   VALIDATION = 'ExpressionType.Validation',
+  COLLECTION = 'ExpressionType.Collection',
 }
 
 export enum LogicType {

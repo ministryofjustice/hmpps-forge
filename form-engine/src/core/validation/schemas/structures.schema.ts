@@ -33,19 +33,6 @@ export const ValidationExprSchema = z.looseObject({
 })
 
 /**
- * @see {@link CollectionOptions}
- */
-export const CollectionOptionsSchema = z.looseObject({
-  collection: z.union([
-    ReferenceExprSchema,
-    PipelineExprSchema,
-    z.array(z.string()),
-    z.array(z.number()),
-    z.array(z.looseObject({})),
-  ]),
-})
-
-/**
  * @see {@link BlockDefinition}
  */
 export const BlockSchema: z.ZodType<any> = z.lazy(() => {
@@ -71,12 +58,6 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     dependent: PredicateTestExprSchema.optional(),
   })
 
-  const collectionBlockProps = z.looseObject({
-    template: z.array(BlockSchema),
-    fallbackTemplate: BlockSchema.optional(),
-    collectionContext: CollectionOptionsSchema,
-  })
-
   const compositeBlockProps = z.looseObject({
     blocks: z.array(BlockSchema),
   })
@@ -85,10 +66,6 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     z.looseObject({
       ...baseBlock.shape,
       ...fieldBlockProps.shape,
-    }),
-    z.looseObject({
-      ...baseBlock.shape,
-      ...collectionBlockProps.shape,
     }),
     z.looseObject({
       ...baseBlock.shape,

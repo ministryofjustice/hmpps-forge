@@ -1,8 +1,8 @@
-import { buildConditionFunction } from '@form-engine/registry/utils/buildCondition'
 import { assertArray } from '@form-engine/registry/utils/asserts'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 import { ValueExpr } from '../../form/types/expressions.type'
 
-export default {
+export const { conditions: ArrayConditions, registry: ArrayConditionsRegistry } = defineConditions({
   /**
    * Checks if a value exists within an array of options
    * Uses strict equality (===) for comparison
@@ -10,11 +10,11 @@ export default {
    * @param expected - The array of options to search within
    * @returns true if the value is found in the expected array
    */
-  IsIn: buildConditionFunction('arrayIsIn', (value, expected: any[]) => {
+  IsIn: (value, expected: any[]) => {
     assertArray(expected, 'Condition.Array.IsIn')
 
     return expected.includes(value)
-  }),
+  },
 
   /**
    * Checks if an array contains a specific value
@@ -23,11 +23,11 @@ export default {
    * @param expected - The value to search for
    * @returns true if the array contains the expected value
    */
-  Contains: buildConditionFunction('arrayContains', (value: any[], expected: ValueExpr) => {
+  Contains: (value: any[], expected: ValueExpr) => {
     assertArray(value, 'Condition.Array.Contains')
 
     return value.includes(expected)
-  }),
+  },
 
   /**
    * Checks if an array contains any of the items from another array
@@ -37,14 +37,14 @@ export default {
    * @param expected - The array of values to search for
    * @returns true if the value array contains at least one item from the expected array
    */
-  ContainsAny: buildConditionFunction('arrayContainsAny', (value: any[], expected: any[]) => {
+  ContainsAny: (value: any[], expected: any[]) => {
     assertArray(value, 'Condition.Array.ContainsAny')
     if (value.length === 0 && expected.length === 0) {
       return true
     }
 
     return expected.some(item => value.includes(item))
-  }),
+  },
 
   /**
    * Checks if all items in the value array exist in the expected array
@@ -55,12 +55,12 @@ export default {
    * @param expected - The array that should contain all items from value
    * @returns true if every item in the value array exists in the expected array
    */
-  ContainsAll: buildConditionFunction('arrayContainsAll', (value: any[], expected: any[]) => {
+  ContainsAll: (value: any[], expected: any[]) => {
     assertArray(value, 'Condition.Array.ContainsAll')
     if (value.length === 0 && expected.length === 0) {
       return true
     }
 
     return value.every(item => expected.includes(item))
-  }),
-}
+  },
+})

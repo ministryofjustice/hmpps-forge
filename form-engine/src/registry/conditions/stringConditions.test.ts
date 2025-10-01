@@ -1,9 +1,9 @@
-import StringConditions from './stringConditions'
+import { StringConditions, StringConditionsRegistry } from './stringConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('StringConditions', () => {
   describe('MatchesRegex', () => {
-    const { evaluate } = StringConditions.MatchesRegex.spec
+    const { evaluate } = StringConditionsRegistry.MatchesRegex
 
     test('should return true when string matches regex pattern', () => {
       expect(evaluate('hello', 'h.*o')).toBe(true)
@@ -33,14 +33,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.MatchesRegex('h.*o')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'matchesRegex',
+        name: 'MatchesRegex',
         arguments: ['h.*o'],
       })
     })
   })
 
   describe('HasMinLength', () => {
-    const { evaluate } = StringConditions.HasMinLength.spec
+    const { evaluate } = StringConditionsRegistry.HasMinLength
 
     test('should return true when string length is greater than or equal to min', () => {
       expect(evaluate('hello', 3)).toBe(true)
@@ -59,7 +59,6 @@ describe('StringConditions', () => {
 
     test('should throw error when min is not a valid number', () => {
       expect(() => evaluate('test', -1)).toThrow('Condition.String.HasMinLength: min must be a non-negative number')
-      // @ts-expect-error - need to use wrong type for test
       expect(() => evaluate('test', 'abc')).toThrow('Condition.String.HasMinLength: min must be a non-negative number')
     })
 
@@ -67,14 +66,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.HasMinLength(5)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'hasMinLength',
+        name: 'HasMinLength',
         arguments: [5],
       })
     })
   })
 
   describe('HasMaxLength', () => {
-    const { evaluate } = StringConditions.HasMaxLength.spec
+    const { evaluate } = StringConditionsRegistry.HasMaxLength
 
     test('should return true when string length is less than or equal to max', () => {
       expect(evaluate('hello', 10)).toBe(true)
@@ -99,14 +98,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.HasMaxLength(10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'hasMaxLength',
+        name: 'HasMaxLength',
         arguments: [10],
       })
     })
   })
 
   describe('HasExactLength', () => {
-    const { evaluate } = StringConditions.HasExactLength.spec
+    const { evaluate } = StringConditionsRegistry.HasExactLength
 
     test('should return true when string length equals the specified length', () => {
       expect(evaluate('hello', 5)).toBe(true)
@@ -132,14 +131,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.HasExactLength(8)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'hasExactLength',
+        name: 'HasExactLength',
         arguments: [8],
       })
     })
   })
 
   describe('HasMaxWords', () => {
-    const { evaluate } = StringConditions.HasMaxWords.spec
+    const { evaluate } = StringConditionsRegistry.HasMaxWords
 
     test('should return true when word count is less than or equal to max', () => {
       expect(evaluate('hello world', 2)).toBe(true)
@@ -174,14 +173,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.HasMaxWords(100)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'hasMaxWords',
+        name: 'HasMaxWords',
         arguments: [100],
       })
     })
   })
 
   describe('LettersOnly', () => {
-    const { evaluate } = StringConditions.LettersOnly.spec
+    const { evaluate } = StringConditionsRegistry.LettersOnly
 
     test('should return true for strings with only letters', () => {
       expect(evaluate('hello')).toBe(true)
@@ -206,14 +205,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.LettersOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lettersOnly',
+        name: 'LettersOnly',
         arguments: [],
       })
     })
   })
 
   describe('DigitsOnly', () => {
-    const { evaluate } = StringConditions.DigitsOnly.spec
+    const { evaluate } = StringConditionsRegistry.DigitsOnly
 
     test('should return true for strings with only digits', () => {
       expect(evaluate('123')).toBe(true)
@@ -237,14 +236,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.DigitsOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'digitsOnly',
+        name: 'DigitsOnly',
         arguments: [],
       })
     })
   })
 
   describe('LettersWithCommonPunctuation', () => {
-    const { evaluate } = StringConditions.LettersWithCommonPunctuation.spec
+    const { evaluate } = StringConditionsRegistry.LettersWithCommonPunctuation
 
     test('should return true for letters with allowed punctuation', () => {
       expect(evaluate('Hello, World!')).toBe(true)
@@ -272,14 +271,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.LettersWithCommonPunctuation()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lettersWithCommonPunctuation',
+        name: 'LettersWithCommonPunctuation',
         arguments: [],
       })
     })
   })
 
   describe('LettersWithSpaceDashApostrophe', () => {
-    const { evaluate } = StringConditions.LettersWithSpaceDashApostrophe.spec
+    const { evaluate } = StringConditionsRegistry.LettersWithSpaceDashApostrophe
 
     test('should return true for letters with space, dash, and apostrophe', () => {
       expect(evaluate('Hello World')).toBe(true)
@@ -306,14 +305,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.LettersWithSpaceDashApostrophe()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lettersWithSpaceDashApostrophe',
+        name: 'LettersWithSpaceDashApostrophe',
         arguments: [],
       })
     })
   })
 
   describe('LettersAndDigitsOnly', () => {
-    const { evaluate } = StringConditions.LettersAndDigitsOnly.spec
+    const { evaluate } = StringConditionsRegistry.LettersAndDigitsOnly
 
     test('should return true for alphanumeric strings', () => {
       expect(evaluate('Hello123')).toBe(true)
@@ -337,14 +336,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.LettersAndDigitsOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'lettersAndDigitsOnly',
+        name: 'LettersAndDigitsOnly',
         arguments: [],
       })
     })
   })
 
   describe('AlphanumericWithCommonPunctuation', () => {
-    const { evaluate } = StringConditions.AlphanumericWithCommonPunctuation.spec
+    const { evaluate } = StringConditionsRegistry.AlphanumericWithCommonPunctuation
 
     test('should return true for alphanumeric with allowed punctuation', () => {
       expect(evaluate('Hello123!')).toBe(true)
@@ -371,14 +370,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.AlphanumericWithCommonPunctuation()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'alphanumericWithCommonPunctuation',
+        name: 'AlphanumericWithCommonPunctuation',
         arguments: [],
       })
     })
   })
 
   describe('AlphanumericWithAllSafeSymbols', () => {
-    const { evaluate } = StringConditions.AlphanumericWithAllSafeSymbols.spec
+    const { evaluate } = StringConditionsRegistry.AlphanumericWithAllSafeSymbols
 
     test('should return true for alphanumeric with all safe symbols', () => {
       expect(evaluate('Hello@123')).toBe(true)
@@ -406,7 +405,7 @@ describe('StringConditions', () => {
       const expr = StringConditions.AlphanumericWithAllSafeSymbols()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'alphanumericWithAllSafeSymbols',
+        name: 'AlphanumericWithAllSafeSymbols',
         arguments: [],
       })
     })

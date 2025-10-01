@@ -1,6 +1,5 @@
 import {
   BlockDefinition,
-  CollectionBlockDefinition,
   CompositeBlockDefinition,
   FieldBlockDefinition,
   JourneyDefinition,
@@ -22,10 +21,6 @@ export function isBlockDefinition(obj: any): obj is BlockDefinition {
 
 export function isFieldBlockDefinition(obj: any): obj is FieldBlockDefinition {
   return isBlockDefinition(obj) && 'code' in obj
-}
-
-export function isCollectionBlockDefinition(obj: any): obj is CollectionBlockDefinition<any> {
-  return isBlockDefinition(obj) && 'collectionContext' in obj
 }
 
 export function isCompositeBlockDefinition(obj: any): obj is CompositeBlockDefinition<any> {

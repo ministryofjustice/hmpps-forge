@@ -1,17 +1,17 @@
 import { assertString } from '@form-engine/registry/utils/asserts'
-import { buildConditionFunction } from '@form-engine/registry/utils/buildCondition'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 
-export default {
+export const { conditions: AddressConditions, registry: AddressConditionsRegistry } = defineConditions({
   /**
    * Validates if a string is a valid UK postcode format
-   * @param value - The string to validate as a UK postcode
+   * @internal value - The string to validate as a UK postcode
    * @returns true if the string is a valid UK postcode format
    */
-  IsValidPostcode: buildConditionFunction('isValidPostcode', value => {
+  IsValidPostcode: value => {
     assertString(value, 'Condition.Address.IsValidPostcode')
 
     const postcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}| ?0A{2})$/i
 
     return postcodeRegex.test(value)
-  }),
-}
+  },
+})

@@ -8,60 +8,54 @@ predicate/transitions system, as long as they are registered within the form eng
 ## Creating Custom Conditions
 
 ### Basic Structure
-Custom conditions are created using the `buildConditionFunction` helper, which ensures
+Custom conditions are created using the `defineConditions` helper, which ensures
 proper typing and integration with the form engine:
 
 ```typescript
-import { buildConditionFunction } from '@form-system/helpers'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 
-const MyCustomConditions = {
-  isEvenNumber: buildConditionFunction(
-    'isEvenNumber',
-    (value) => typeof value === 'number' && value % 2 === 0
-  )
-}
+const { conditions: MyCustomConditions, registry: MyCustomConditionsRegistry } = defineConditions({
+  IsEvenNumber: (value) => typeof value === 'number' && value % 2 === 0,
+  IsOddNumber: (value) => typeof value === 'number' && value % 2 !== 0
+})
 
-Answer('some_answer').match(MyCustomConditions.isEvenNumber())
+// Usage in form definition
+Answer('some_answer').match(MyCustomConditions.IsEvenNumber())
 ```
 
 ### Function Signature
-The `buildConditionFunction` helper takes two parameters:
+The `defineConditions` helper takes an object where:
 
-1. **name** (`string`): The unique identifier for your condition. Use camelCase for consistency.
-2. **evaluator** (`(value, ...args) => boolean | Promise<boolean>`): The function that performs the actual validation
+- **Keys** are the condition names (use PascalCase for consistency)
+- **Values** are evaluator functions `(value, ...args) => boolean | Promise<boolean>`
 
-```typescript
-buildConditionFunction<A extends readonly ValueExpr[]>(
-  name: string,
-  evaluator: (value: ValueExpr, ...args: A) => boolean | Promise<boolean>
-)
-```
+It returns an object with:
+- **conditions**: Builder functions for creating condition expressions
+- **registry**: Registry object for registration with FormEngine
 
 ### Parameters and Type Safety
 Custom conditions can accept additional parameters with full TypeScript support:
 
 ```typescript
-// Single parameter with type
-const hasMinValue = buildConditionFunction(
-  'hasMinValue',
-  (value, min: number) => typeof value === 'number' && value >= min
-)
+const { conditions, registry } = defineConditions({
+  // Single parameter with type
+  HasMinValue: (value, min: number) =>
+    typeof value === 'number' && value >= min,
 
-// Multiple parameters with types
-const isBetween = buildConditionFunction(
-  'isBetween',
-  (value, min: number, max: number) =>
-    typeof value === 'number' && value >= min && value <= max
-)
+  // Multiple parameters with types
+  IsBetween: (value, min: number, max: number) =>
+    typeof value === 'number' && value >= min && value <= max,
 
-// Complex parameter types
-const matchesPattern = buildConditionFunction(
-  'matchesPattern',
-  (value, pattern: RegExp, flags?: string) => {
-    const regex = flags ? new RegExp(pattern, flags) : pattern
-    return typeof value === 'string' && regex.test(value)
+  // Complex parameter types
+  MatchesPattern: (value, pattern: string, flags?: string) => {
+    try {
+      const regex = new RegExp(pattern, flags)
+      return typeof value === 'string' && regex.test(value)
+    } catch {
+      return false
+    }
   }
-)
+})
 ```
 
 When you specify parameter types in your evaluator function, TypeScript will enforce these
@@ -72,13 +66,13 @@ types when the condition is used in your form configuration:
 validate: [
   // BAD - Will have a type error
   validation({
-    when: Self().match(hasMinValue('10')),
+    when: Self().match(conditions.HasMinValue('10')),
     message: 'Invalid type'
   }),
 
   // GOOD - Uses correct type for condition arguments.
   validation({
-    when: Self().match(hasMinValue(10)),
+    when: Self().match(conditions.HasMinValue(10)),
     message: 'Value must be at least 10'
   }),
 ]
@@ -88,32 +82,22 @@ validate: [
 Here are a bunch of examples to inspire you to build your own conditions.
 
 ```typescript
-const isSlug = buildConditionFunction(
-  'isSlug',
-  (value) =>
+const { conditions, registry } = defineConditions({
+  IsSlug: (value) =>
     typeof value === 'string' &&
-    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
-)
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
 
-const isInRange = buildConditionFunction(
-  'isInRange',
-  (value, ranges: Array<[number, number]>) => {
+  IsInRange: (value, ranges: Array<[number, number]>) => {
     if (typeof value !== 'number') return false
     return ranges.some(([min, max]) => value >= min && value <= max)
-  }
-)
+  },
 
-const hasUniqueValues = buildConditionFunction(
-  'hasUniqueValues',
-  (value) => {
+  HasUniqueValues: (value) => {
     if (!Array.isArray(value)) return false
     return new Set(value).size === value.length
-  }
-)
+  },
 
-const isStrongPassword = buildConditionFunction(
-  'isStrongPassword',
-  (value, requirements?: {
+  IsStrongPassword: (value, requirements?: {
     minLength?: number
     requireUppercase?: boolean
     requireLowercase?: boolean
@@ -138,7 +122,7 @@ const isStrongPassword = buildConditionFunction(
 
     return true
   }
-)
+})
 ```
 
 ### Async Conditions
@@ -150,15 +134,41 @@ For conditions that need to perform asynchronous operations:
 > next access previously submitted form data.
 
 ```typescript
-const isUniqueUsername = buildConditionFunction(
-  'isUniqueUsername',
-  async (value) => {
+const { conditions, registry } = defineConditions({
+  IsUniqueUsername: async (value) => {
     if (typeof value !== 'string' || value.length < 3) return false
 
     // Example API call
     return await accountService.isUsernameUnique(value)
   }
-)
+})
+```
+
+### Conditions with Dependencies
+For conditions that need external dependencies, use `defineConditionsWithDeps`:
+
+```typescript
+import { defineConditionsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
+
+const deps = {
+  apiClient: new ApiClient(),
+  config: { minAge: 18, maxRetries: 3 }
+}
+
+const { conditions, registry } = defineConditionsWithDeps(deps, {
+  IsValidUser: (deps) => async (userId: string) => {
+    try {
+      const user = await deps.apiClient.getUser(userId)
+      return user.active && user.verified
+    } catch {
+      return false
+    }
+  },
+
+  MeetsAgeRequirement: (deps) => (age: number) => {
+    return age >= deps.config.minAge
+  }
+})
 ```
 
 ## Registration
@@ -168,19 +178,29 @@ Registration typically happens during application initialization:
 
 ```typescript
 import FormEngine from '@form-engine/core/FormEngine'
+import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
+
+// Define your custom conditions
+const { conditions: CustomConditions, registry: CustomConditionsRegistry } = defineConditions({
+  IsStrongPassword: (value, minLength?: number) => {
+    // implementation
+  },
+  HasSpecialCharacters: (value) => {
+    // implementation
+  },
+  MatchesPattern: (value, pattern: string) => {
+    // implementation
+  }
+})
 
 // Create the form engine instance
 const formEngine = new FormEngine()
 
-// Register a single condition
-formEngine.registerFunction(isStrongPassword)
+// Register the conditions using the registry
+formEngine.registerFunctions(CustomConditionsRegistry)
 
-// Register multiple conditions at once
-formEngine.registerFunctions([
-  isStrongPassword,
-  hasSpecialCharacters,
-  matchesPattern
-])
+// Export conditions for use in form definitions
+export { CustomConditions }
 ```
 
 ### Registration Notes
@@ -196,9 +216,8 @@ Your custom conditions should handle errors appropriately:
 > them more neatly
 
 ```typescript
-const requiresApiCheck = buildConditionFunction(
-  'requiresApiCheck',
-  async (value) => {
+const { conditions, registry } = defineConditions({
+  RequiresApiCheck: async (value) => {
     try {
       const result = await someApiCall(value)
       return result.valid
@@ -207,19 +226,19 @@ const requiresApiCheck = buildConditionFunction(
       throw new ValidationError(`API validation failed: ${error.message}`)
     }
   }
-)
+})
 ```
 
 ## Best Practices
 
 ### 1. Naming Conventions
-Use descriptive camelCase names that clearly indicate what the condition checks:
+Use descriptive PascalCase names that clearly indicate what the condition checks:
 
 ```typescript
 // Good
-isValidPostcode
-hasMinimumAge
-matchesAccountFormat
+IsValidPostcode
+HasMinimumAge
+MatchesAccountFormat
 
 // Avoid
 validate1
@@ -231,23 +250,21 @@ postcodeCheck
 Always validate the input type before processing:
 
 ```typescript
-const isPercentage = buildConditionFunction(
-  'isPercentage',
-  (value) => {
+const { conditions, registry } = defineConditions({
+  IsPercentage: (value) => {
     // Always check type first
     if (typeof value !== 'number') return false
     return value >= 0 && value <= 100
   }
-)
+})
 ```
 
 ### 3. Parameter Validation
 Validate parameters to prevent runtime errors:
 
 ```typescript
-const hasPattern = buildConditionFunction(
-  'hasPattern',
-  (value, pattern: string, flags?: string) => {
+const { conditions, registry } = defineConditions({
+  HasPattern: (value, pattern: string, flags?: string) => {
     if (typeof value !== 'string') return false
     if (typeof pattern !== 'string') return false
 
@@ -259,7 +276,7 @@ const hasPattern = buildConditionFunction(
       return false
     }
   }
-)
+})
 ```
 
 ### 4. Single Responsibility
@@ -267,35 +284,38 @@ Keep conditions focused on a single validation concern:
 
 ```typescript
 // Good - single responsibility
-const isUKPostcode = buildConditionFunction(/* ... */)
-const isRequiredField = buildConditionFunction(/* ... */)
+const { conditions, registry } = defineConditions({
+  IsUKPostcode: (value) => { /* ... */ },
+  IsRequiredField: (value) => { /* ... */ }
+})
 
 // Avoid - multiple responsibilities
-const isValidAndRequiredUKPostcode = buildConditionFunction(/* ... */)
+const { conditions: BadConditions } = defineConditions({
+  IsValidAndRequiredUKPostcode: (value) => { /* ... */ }
+})
 ```
 
 ### 5. Reusability
 Design conditions to be reusable across different contexts:
 
 ```typescript
-// Reusable with parameters
-const matchesLength = buildConditionFunction(
-  'matchesLength',
-  (value, min: number, max?: number) => {
+const { conditions, registry } = defineConditions({
+  // Reusable with parameters
+  MatchesLength: (value, min: number, max?: number) => {
     if (typeof value !== 'string') return false
     const len = value.length
     return max ? len >= min && len <= max : len >= min
   }
-)
+})
 
 // Can be used in multiple ways
 validate: [
   validation({
-    when: Self().not.match(matchesLength(5)),
+    when: Self().not.match(conditions.MatchesLength(5)),
     message: 'Minimum 5 characters'
   }),
   validation({
-    when: Self().not.match(matchesLength(5, 20)),
+    when: Self().not.match(conditions.MatchesLength(5, 20)),
     message: 'Between 5-20 characters'
   })
 ]
@@ -309,7 +329,7 @@ When custom functions are used in form configuration, they compile to the standa
 // Usage in configuration
 validate: [
   validation({
-    when: Self().match(isStrongPassword({ minLength: 12 })),
+    when: Self().match(conditions.IsStrongPassword(12)),
     message: 'Valid password'
   })
 ]
@@ -323,13 +343,13 @@ validate: [
     negate: false,
     condition: {
       type: 'FunctionType.Condition',
-      name: 'isStrongPassword',
-      arguments: [{ minLength: 12 }]
+      name: 'IsStrongPassword',
+      arguments: [12]
     }
   },
   message: 'Valid password'
 }
 ```
 
-The form engine will look up the `isStrongPassword` function by name in the registry and
+The form engine will look up the `IsStrongPassword` function by name in the registry and
 execute its evaluator with the provided arguments during validation.

@@ -1,5 +1,5 @@
-import { buildTransformerFunction } from '@form-engine/registry/utils/buildTransformer'
 import { assertObject } from '@form-engine/registry/utils/asserts'
+import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
 import { getByPath } from '../../utils/utils'
 
 export interface DateParts {
@@ -8,7 +8,7 @@ export interface DateParts {
   day?: string
 }
 
-export default {
+export const { transformers: ObjectTransformers, registry: ObjectTransformersRegistry } = defineTransformers({
   /**
    * Converts an object with date parts to an ISO 8601 date string
    * Supports full dates (YYYY-MM-DD), partial dates (YYYY-MM, MM-DD), or single components
@@ -24,7 +24,7 @@ export default {
    * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} → "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
-  ToISO: buildTransformerFunction('objectToISO', (value: any, paths: DateParts) => {
+  ToISO: (value: any, paths: DateParts) => {
     assertObject(value, 'Transformer.Object.ToISO')
 
     if (!paths || typeof paths !== 'object') {
@@ -92,5 +92,5 @@ export default {
 
     // No valid date components found
     throw new Error('Transformer.Object.ToISO: No valid date components found in object')
-  }),
-}
+  },
+})

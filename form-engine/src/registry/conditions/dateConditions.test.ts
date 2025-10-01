@@ -1,9 +1,9 @@
-import DateConditions from './dateConditions'
+import { DateConditions, DateConditionsRegistry } from './dateConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('DateConditions', () => {
   describe('IsValid', () => {
-    const { evaluate } = DateConditions.IsValid.spec
+    const { evaluate } = DateConditionsRegistry.IsValid
 
     test('should return true for valid ISO date strings', () => {
       expect(evaluate('2025-09-05')).toBe(true)
@@ -38,14 +38,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsValid()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'dateIsValid',
+        name: 'IsValid',
         arguments: [],
       })
     })
   })
 
   describe('IsValidYear', () => {
-    const { evaluate } = DateConditions.IsValidYear.spec
+    const { evaluate } = DateConditionsRegistry.IsValidYear
 
     test('should return true for valid years in ISO date strings', () => {
       expect(evaluate('2024-01-01')).toBe(true)
@@ -73,14 +73,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsValidYear()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'dateIsValidYear',
+        name: 'IsValidYear',
         arguments: [],
       })
     })
   })
 
   describe('IsValidMonth', () => {
-    const { evaluate } = DateConditions.IsValidMonth.spec
+    const { evaluate } = DateConditionsRegistry.IsValidMonth
 
     test('should return true for valid months in ISO date strings', () => {
       expect(evaluate('1990-01-01')).toBe(true)
@@ -106,14 +106,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsValidMonth()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'dateIsValidMonth',
+        name: 'IsValidMonth',
         arguments: [],
       })
     })
   })
 
   describe('IsValidDay', () => {
-    const { evaluate } = DateConditions.IsValidDay.spec
+    const { evaluate } = DateConditionsRegistry.IsValidDay
 
     test('should return true for valid days in regular months', () => {
       expect(evaluate('2024-01-15')).toBe(true) // January (31 days)
@@ -158,14 +158,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsValidDay()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'dateIsValidDay',
+        name: 'IsValidDay',
         arguments: [],
       })
     })
   })
 
   describe('IsBefore', () => {
-    const { evaluate } = DateConditions.IsBefore.spec
+    const { evaluate } = DateConditionsRegistry.IsBefore
 
     test('should return true when date is before comparison date', () => {
       expect(evaluate('2024-01-01', '2024-01-02')).toBe(true)
@@ -211,14 +211,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsBefore('2024-12-31')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isDateBefore',
+        name: 'IsBefore',
         arguments: ['2024-12-31'],
       })
     })
   })
 
   describe('IsAfter', () => {
-    const { evaluate } = DateConditions.IsAfter.spec
+    const { evaluate } = DateConditionsRegistry.IsAfter
 
     test('should return true when date is after comparison date', () => {
       expect(evaluate('2024-01-02', '2024-01-01')).toBe(true)
@@ -258,14 +258,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsAfter('2024-01-01')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isDateAfter',
+        name: 'IsAfter',
         arguments: ['2024-01-01'],
       })
     })
   })
 
   describe('IsFutureDate', () => {
-    const { evaluate } = DateConditions.IsFutureDate.spec
+    const { evaluate } = DateConditionsRegistry.IsFutureDate
 
     test('should return true for future dates', () => {
       const tomorrow = new Date()
@@ -309,7 +309,7 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsFutureDate()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isFutureDate',
+        name: 'IsFutureDate',
         arguments: [],
       })
     })

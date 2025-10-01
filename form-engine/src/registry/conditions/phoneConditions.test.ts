@@ -1,9 +1,9 @@
-import PhoneConditions from './phoneConditions'
+import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('PhoneConditions', () => {
   describe('IsValidPhoneNumber', () => {
-    const { evaluate } = PhoneConditions.IsValidPhoneNumber.spec
+    const { evaluate } = PhoneConditionsRegistry.IsValidPhoneNumber
 
     test('should return true for valid phone numbers', () => {
       expect(evaluate('1234567')).toBe(true)
@@ -49,14 +49,14 @@ describe('PhoneConditions', () => {
       const expr = PhoneConditions.IsValidPhoneNumber()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isValidPhoneNumber',
+        name: 'IsValidPhoneNumber',
         arguments: [],
       })
     })
   })
 
   describe('IsValidUKMobile', () => {
-    const { evaluate } = PhoneConditions.IsValidUKMobile.spec
+    const { evaluate } = PhoneConditionsRegistry.IsValidUKMobile
 
     test('should return true for valid UK mobile numbers', () => {
       expect(evaluate('07123456789')).toBe(true)
@@ -114,7 +114,7 @@ describe('PhoneConditions', () => {
       const expr = PhoneConditions.IsValidUKMobile()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'isValidUKMobile',
+        name: 'IsValidUKMobile',
         arguments: [],
       })
     })
