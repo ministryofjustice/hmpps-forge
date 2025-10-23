@@ -42,7 +42,6 @@ export default class RegistrationTraverser {
         // Generate and assign ID
         const id = this.generateId()
 
-        // eslint-disable-next-line no-param-reassign
         node.id = id
 
         // Register node in registry with its structural path

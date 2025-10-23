@@ -16,4 +16,5 @@ export interface ASTNode {
   type: ASTNodeType
   id?: number
   raw?: any
+  parentNode?: ASTNode
 }

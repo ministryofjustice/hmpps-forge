@@ -23,7 +23,7 @@ export default class FormInstance {
   ) {
     this.rawConfiguration = formConfiguration
 
-    this.compiledAst = this.compileFormAst(formConfiguration)
+    this.compiledAst = CompiledAST.createFrom(formConfiguration)
 
     this.attachRoutes()
   }
@@ -45,10 +45,6 @@ export default class FormInstance {
     FormValidator.validateSchema(configurationAsObject)
 
     return new FormInstance(configurationAsObject, dependencies, options)
-  }
-
-  private compileFormAst(formConfiguration: JourneyDefinition) {
-    return CompiledAST.createFrom(formConfiguration)
   }
 
   /**
