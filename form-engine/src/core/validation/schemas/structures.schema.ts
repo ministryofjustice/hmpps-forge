@@ -27,7 +27,7 @@ export const ConditionalStringSchema = z.union([
 export const ValidationExprSchema = z.looseObject({
   type: z.literal(ExpressionType.VALIDATION),
   when: PredicateExprSchema,
-  message: z.string(),
+  message: z.string().trim().min(1, { message: 'Validation message must not be empty' }),
   submissionOnly: z.boolean().optional(),
   details: z.record(z.string(), z.any()).optional(),
 })
@@ -49,7 +49,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     errors: z
       .array(
         z.object({
-          message: z.string(),
+          message: z.string().trim().min(1, { message: 'Validation message must not be empty' }),
           details: z.record(z.string(), z.any()).optional(),
         }),
       )

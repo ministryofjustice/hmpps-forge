@@ -207,6 +207,6 @@ export const Collection = <T = any>({
     type: ExpressionType.COLLECTION,
     collection,
     template,
-    fallback,
+    fallback: fallback ?? [],
   }
 }
