@@ -58,6 +58,7 @@ export interface ConditionalASTNode extends ExpressionASTNode {
  */
 export interface PredicateASTNode extends ExpressionASTNode {
   expressionType: LogicType
+  properties: Map<string, ASTNode | any>
 }
 
 /**

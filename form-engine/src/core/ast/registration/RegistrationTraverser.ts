@@ -9,54 +9,36 @@ import {
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 
 /**
- * Traverser that builds a registry from an AST by collecting all nodes with their IDs.
+ * Visitor that builds a registry from an AST by collecting all nodes with their IDs.
  * Uses StructuralTraverser to traverse the AST and register each node using its existing ID.
  */
-export default class RegistrationTraverser {
-  private readonly registry: NodeRegistry = new NodeRegistry()
-
-  private constructor() {}
+export default class RegistrationTraverser implements StructuralVisitor {
+  constructor(private readonly registry: NodeRegistry) {}
 
   /**
-   * Static factory method to create and execute registration traversal
-   * @param root The root node of the AST to register
-   * @returns NodeRegistry containing all nodes with their IDs and paths
-   * @throws Error if any node lacks an ID
+   * Visitor method: called when entering a node during traversal
    */
-  static buildRegistry(root: ASTNode): NodeRegistry {
-    const traverser = new RegistrationTraverser()
-    return traverser.traverse(root)
+  enterNode(node: ASTNode, ctx: StructuralContext): StructuralVisitResult {
+    // Nodes must have IDs already assigned
+    if (!node.id) {
+      throw new InvalidNodeError({
+        message: `Node is missing ID - ${ctx.path.join('.')}`,
+        node,
+      })
+    }
+
+    this.registry.register(node.id, node, [...ctx.path])
+
+    // Continue traversal
+    return StructuralVisitResult.CONTINUE
   }
 
   /**
-   * Traverse an AST and register all nodes with their existing IDs
-   * @param root The root node of the AST
-   * @returns NodeRegistry containing all nodes
+   * Register all nodes in the AST
+   * @param root The root node of the AST to register
    * @throws Error if any node lacks an ID
    */
-  private traverse(root: ASTNode): NodeRegistry {
-    // Create visitor that only processes nodes
-    const visitor: StructuralVisitor = {
-      enterNode: (node: ASTNode, ctx: StructuralContext) => {
-        // Nodes must have IDs already assigned
-        if (!node.id) {
-          throw new InvalidNodeError({
-            message: `Node is missing ID - ${ctx.path.join('.')}`,
-            node,
-          })
-        }
-
-        this.registry.register(node.id, node, [...ctx.path])
-
-        // Continue traversal
-        return StructuralVisitResult.CONTINUE
-      },
-    }
-
-    // Traverse the tree
-    structuralTraverse(root, visitor)
-
-    // Return the populated registry
-    return this.registry
+  register(root: ASTNode): void {
+    structuralTraverse(root, this)
   }
 }

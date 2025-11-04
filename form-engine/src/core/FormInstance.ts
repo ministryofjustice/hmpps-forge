@@ -26,7 +26,7 @@ export default class FormInstance {
 
     this.compiledAst = CompiledAST.createFrom(
       formConfiguration,
-      createCompileStageContainer(dependencies.functionRegistry, dependencies.componentRegistry),
+      createCompileStageContainer(dependencies.logger, dependencies.functionRegistry, dependencies.componentRegistry),
     )
 
     this.attachRoutes()

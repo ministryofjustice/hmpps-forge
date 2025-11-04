@@ -155,22 +155,25 @@ export class ExpressionNodeFactory {
 
   /**
    * Transform Collection expression: Iterate over data to produce repeated templates
-   * Note this is just the template, at runtime this template is used to generate
-   * actual nodes based on Collection content.
+   *
+   * IMPORTANT: The template is stored as raw JSON, NOT pre-compiled AST nodes.
+   * At runtime, the template is instantiated once per collection item, creating fresh
+   * AST nodes with unique runtime IDs. This allows Item() references to be substituted
+   * with actual item data before node creation.
+   *
    */
   private createCollection(json: any): CollectionASTNode {
     const properties = new Map<string, ASTNode | any>()
 
-    // Transform the collection data source
+    // Transform the collection data source (this IS an expression that needs evaluation)
     properties.set('collection', this.nodeFactory.transformValue(json.collection))
 
-    // Transform template blocks
+    // Store template as raw JSON - will be instantiated at runtime per collection item
     if (json.template) {
-      const template = json.template.map((item: any) => this.nodeFactory.createNode(item))
-      properties.set('template', template)
+      properties.set('template', json.template)
     }
 
-    // Transform optional fallback blocks
+    // Transform fallback blocks normally - they're shown when collection is empty
     if (json.fallback) {
       const fallback = json.fallback.map((item: any) => this.nodeFactory.createNode(item))
       properties.set('fallback', fallback)

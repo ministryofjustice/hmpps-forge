@@ -1,5 +1,4 @@
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
-import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { CompileStageDependencies } from '@form-engine/core/container/compileStageContainer'
@@ -8,25 +7,27 @@ export default class CompiledAST {
   private constructor(
     private readonly root: JourneyASTNode,
     private readonly nodeRegistry: NodeRegistry,
+    private readonly pseudoNodeRegistry: NodeRegistry,
   ) {}
 
-  static createFrom(json: JourneyDefinition, dependencies: CompileStageDependencies): CompiledAST {
+  static createFrom(json: JourneyDefinition, services: CompileStageDependencies): CompiledAST {
     // Phase 1A: Transform JSON to AST
-    const root = dependencies.nodeFactory.createNode(json)
+    const root = services.nodeFactory.createNode(json) as JourneyASTNode
 
     // Phase 1B: Normalize AST
-    dependencies.normalizers.addSelfValue.normalize(root)
-    dependencies.normalizers.resolveSelfReferences.normalize(root)
-    dependencies.normalizers.attachValidationBlockCode.normalize(root)
-    dependencies.normalizers.convertFormatters.normalize(root)
-    dependencies.normalizers.attachParentNodes.normalize(root)
+    services.normalizers.addSelfValue.normalize(root)
+    services.normalizers.resolveSelfReferences.normalize(root)
+    services.normalizers.attachValidationBlockCode.normalize(root)
+    services.normalizers.convertFormatters.normalize(root)
+    services.normalizers.attachParentNodes.normalize(root)
 
-    // Phase 2: Register nodes with IDs
-    const nodeRegistry = RegistrationTraverser.buildRegistry(root)
+    // Phase 2A: Register AST nodes with IDs
+    services.registers.configurationNodes.register(root)
 
-    // TODO: Add all other compile stages
+    // Phase 2B: Discover and register pseudo nodes
+    services.registers.pseudoNodes.register(root)
 
-    return new CompiledAST(root as JourneyASTNode, nodeRegistry)
+    return new CompiledAST(root as JourneyASTNode, services.astNodeRegistry, services.pseudoNodeRegistry)
   }
 
   // Getters for accessing internal state

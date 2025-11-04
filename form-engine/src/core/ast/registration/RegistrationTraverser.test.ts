@@ -4,13 +4,14 @@ import { ExpressionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import RegistrationTraverser from './RegistrationTraverser'
+import NodeRegistry from './NodeRegistry'
 
 describe('RegistrationTraverser', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
   })
 
-  describe('buildRegistry', () => {
+  describe('register', () => {
     it('should build registry from nested structure with all node types', () => {
       const expr = ASTTestFactory.expression(ExpressionType.REFERENCE)
         .withId('compile_ast:5')
@@ -34,7 +35,9 @@ describe('RegistrationTraverser', () => {
         )
         .build()
 
-      const registry = RegistrationTraverser.buildRegistry(journey)
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+      traverser.register(journey)
 
       // Verify all nodes registered
       expect(registry.size()).toBe(5) // journey + step + 2 blocks + expression
@@ -70,7 +73,9 @@ describe('RegistrationTraverser', () => {
         )
         .build()
 
-      const registry = RegistrationTraverser.buildRegistry(journey)
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+      traverser.register(journey)
 
       const journeyEntry = registry.getEntry(journey.id)
       expect(journeyEntry?.path).toEqual([])
@@ -95,7 +100,9 @@ describe('RegistrationTraverser', () => {
 
       const step = ASTTestFactory.step().withId('compile_ast:1').withProperty('blocks', [block]).build()
 
-      const registry = RegistrationTraverser.buildRegistry(step)
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+      traverser.register(step)
 
       expect(registry.size()).toBe(4) // step + block + 2 expressions
       expect(registry.has('compile_ast:1')).toBe(true)
@@ -108,7 +115,9 @@ describe('RegistrationTraverser', () => {
       it('should handle empty journey', () => {
         const journey = ASTTestFactory.journey().build()
 
-        const registry = RegistrationTraverser.buildRegistry(journey)
+        const registry = new NodeRegistry()
+        const traverser = new RegistrationTraverser(registry)
+        traverser.register(journey)
 
         expect(registry.size()).toBe(1)
         expect(registry.has(journey.id)).toBe(true)
@@ -119,7 +128,9 @@ describe('RegistrationTraverser', () => {
           .withStep(step => step.withId('compile_ast:2'))
           .build()
 
-        const registry = RegistrationTraverser.buildRegistry(journey)
+        const registry = new NodeRegistry()
+        const traverser = new RegistrationTraverser(registry)
+        traverser.register(journey)
 
         expect(registry.size()).toBe(2)
         expect(registry.has(journey.id)).toBe(true)
@@ -136,8 +147,11 @@ describe('RegistrationTraverser', () => {
         properties: new Map(),
       } as ASTNode
 
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+
       try {
-        RegistrationTraverser.buildRegistry(nodeWithoutId)
+        traverser.register(nodeWithoutId)
         fail('Expected InvalidNodeError to be thrown')
       } catch (error) {
         expect(error).toBeInstanceOf(InvalidNodeError)
@@ -164,7 +178,10 @@ describe('RegistrationTraverser', () => {
 
       const step = ASTTestFactory.step().withId('compile_ast:1').withProperty('blocks', [block]).build()
 
-      expect(() => RegistrationTraverser.buildRegistry(step)).toThrow(/blocks\.0\.defaultValue/)
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+
+      expect(() => traverser.register(step)).toThrow(/blocks\.0\.defaultValue/)
     })
 
     it('should throw error when duplicate ID exists in tree', () => {
@@ -175,7 +192,10 @@ describe('RegistrationTraverser', () => {
         .withStep(step => step.withId(duplicateId))
         .build()
 
-      expect(() => RegistrationTraverser.buildRegistry(journey)).toThrow(/already registered/)
+      const registry = new NodeRegistry()
+      const traverser = new RegistrationTraverser(registry)
+
+      expect(() => traverser.register(journey)).toThrow(/already registered/)
     })
   })
 })

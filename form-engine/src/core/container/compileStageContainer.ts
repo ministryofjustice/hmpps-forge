@@ -7,25 +7,44 @@ import { AddSelfValueToFieldsNormalizer } from '@form-engine/core/ast/normalizer
 import { ConvertFormattersToPipelineNormalizer } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
 import { AttachParentNodesNormalizer } from '@form-engine/core/ast/normalizers/AttachParentNodes'
 import { AttachValidationBlockCodeNormalizer } from '@form-engine/core/ast/normalizers/AttachValidationBlockCode'
+import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
+import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
+import PseudoNodeTraverser from '@form-engine/core/ast/registration/PseudoNodeTraverser'
+import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
+import type Logger from 'bunyan'
 
 export const createCompileStageContainer = (
+  logger: Logger | Console,
   functionRegistry: FunctionRegistry,
   componentRegistry: ComponentRegistry,
 ) => {
   const nodeIdGenerator = new NodeIDGenerator()
+
   const nodeFactory = new NodeFactory(nodeIdGenerator)
+  const pseudoNodeFactory = new PseudoNodeFactory(nodeIdGenerator)
+
+  const astNodeRegistry = new NodeRegistry()
+  const pseudoNodeRegistry = new NodeRegistry()
 
   return {
+    logger,
     functionRegistry,
     componentRegistry,
-    nodeFactory,
+    astNodeRegistry,
+    pseudoNodeRegistry,
     nodeIdGenerator,
+    nodeFactory,
+    pseudoNodeFactory,
     normalizers: {
       addSelfValue: new AddSelfValueToFieldsNormalizer(nodeFactory),
       resolveSelfReferences: new ResolveSelfReferencesNormalizer(),
       attachValidationBlockCode: new AttachValidationBlockCodeNormalizer(),
       convertFormatters: new ConvertFormattersToPipelineNormalizer(nodeIdGenerator),
       attachParentNodes: new AttachParentNodesNormalizer(),
+    },
+    registers: {
+      configurationNodes: new RegistrationTraverser(astNodeRegistry),
+      pseudoNodes: new PseudoNodeTraverser(pseudoNodeRegistry, pseudoNodeFactory),
     },
   }
 }

@@ -558,7 +558,7 @@ describe('ExpressionNodeFactory', () => {
       expect(collection.expressionType).toBe(ExpressionType.REFERENCE)
     })
 
-    it('should transform template blocks', () => {
+    it('should store template as raw JSON (not transformed)', () => {
       const templateBlock = { type: 'StructureType.Block', fields: [] as any }
       const json = {
         type: ExpressionType.COLLECTION,
@@ -572,18 +572,17 @@ describe('ExpressionNodeFactory', () => {
       expect(Array.isArray(template)).toBe(true)
       expect(template).toHaveLength(1)
 
-      expect(template[0]).toHaveProperty('id')
-      expect(template[0]).toHaveProperty('type')
+      expect(template[0]).toBe(templateBlock)
+      expect(template[0]).not.toHaveProperty('id')
     })
 
-    it('should transform multiple template blocks', () => {
+    it('should store multiple template blocks as raw JSON', () => {
+      const block1 = { type: 'StructureType.Block', fields: [] as any }
+      const block2 = { type: 'StructureType.Block', fields: [] as any }
       const json = {
         type: ExpressionType.COLLECTION,
         collection: { type: ExpressionType.REFERENCE, path: ['users'] },
-        template: [
-          { type: 'StructureType.Block', fields: [] as any },
-          { type: 'StructureType.Block', fields: [] },
-        ],
+        template: [block1, block2],
       }
 
       const result = expressionFactory.create(json)
@@ -591,10 +590,10 @@ describe('ExpressionNodeFactory', () => {
       const template = result.properties.get('template')
       expect(template).toHaveLength(2)
 
-      template.forEach((item: any) => {
-        expect(item.id).toBeDefined()
-        expect(item.type).toEqual(ASTNodeType.BLOCK)
-      })
+      expect(template[0]).toBe(block1)
+      expect(template[1]).toBe(block2)
+      expect(template[0]).not.toHaveProperty('id')
+      expect(template[1]).not.toHaveProperty('id')
     })
 
     it('should create a Collection expression with fallback', () => {
