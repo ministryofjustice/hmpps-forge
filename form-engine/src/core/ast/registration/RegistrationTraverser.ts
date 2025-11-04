@@ -6,16 +6,13 @@ import {
   StructuralVisitResult,
   StructuralContext,
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
+import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 
 /**
- * Traverser that assigns unique IDs to all AST nodes and builds a registry.
- * Uses StructuralTraverser to traverse the AST and assign sequential numeric
- * IDs to each node. Each node receives an ID in its id field and is registered
- * in a NodeRegistry for O(1) lookups with their structural paths.
+ * Traverser that builds a registry from an AST by collecting all nodes with their IDs.
+ * Uses StructuralTraverser to traverse the AST and register each node using its existing ID.
  */
 export default class RegistrationTraverser {
-  private counter: number = 0
-
   private readonly registry: NodeRegistry = new NodeRegistry()
 
   private constructor() {}
@@ -23,7 +20,8 @@ export default class RegistrationTraverser {
   /**
    * Static factory method to create and execute registration traversal
    * @param root The root node of the AST to register
-   * @returns NodeRegistry containing all nodes with assigned IDs and paths
+   * @returns NodeRegistry containing all nodes with their IDs and paths
+   * @throws Error if any node lacks an ID
    */
   static buildRegistry(root: ASTNode): NodeRegistry {
     const traverser = new RegistrationTraverser()
@@ -31,21 +29,24 @@ export default class RegistrationTraverser {
   }
 
   /**
-   * Traverse an AST, assign IDs to all nodes, and return a registry
+   * Traverse an AST and register all nodes with their existing IDs
    * @param root The root node of the AST
-   * @returns NodeRegistry containing all nodes with assigned IDs
+   * @returns NodeRegistry containing all nodes
+   * @throws Error if any node lacks an ID
    */
   private traverse(root: ASTNode): NodeRegistry {
     // Create visitor that only processes nodes
     const visitor: StructuralVisitor = {
       enterNode: (node: ASTNode, ctx: StructuralContext) => {
-        // Generate and assign ID
-        const id = this.generateId()
+        // Nodes must have IDs already assigned
+        if (!node.id) {
+          throw new InvalidNodeError({
+            message: `Node is missing ID - ${ctx.path.join('.')}`,
+            node,
+          })
+        }
 
-        node.id = id
-
-        // Register node in registry with its structural path
-        this.registry.register(id, node, [...ctx.path])
+        this.registry.register(node.id, node, [...ctx.path])
 
         // Continue traversal
         return StructuralVisitResult.CONTINUE
@@ -57,14 +58,5 @@ export default class RegistrationTraverser {
 
     // Return the populated registry
     return this.registry
-  }
-
-  /**
-   * Generate a unique numeric ID
-   * @returns A unique ID number
-   */
-  private generateId(): number {
-    this.counter += 1
-    return this.counter
   }
 }

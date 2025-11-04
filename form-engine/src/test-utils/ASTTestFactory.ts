@@ -19,7 +19,7 @@ type PredicateBuilderConfig = {
   operand?: ExpressionASTNode
 }
 
-type BlockType = 'basic' | 'field' | 'composite'
+type BlockType = 'basic' | 'field'
 
 /**
  * Test data factory for creating AST nodes with fluent builders and automatic ID generation.
@@ -53,12 +53,13 @@ export class ASTTestFactory {
   }
 
   /**
-   * Get the next available ID
+   * Get the next available ID in NodeIDGenerator format
+   * @param category - The ID category (defaults to 'compile_ast' for tests)
    */
-  static getId(): number {
+  static getId(category: string = 'compile_ast'): string {
     const id = this.nextId
     this.nextId += 1
-    return id
+    return `${category}:${id}`
   }
 
   /**
@@ -218,7 +219,7 @@ export class ASTTestFactory {
             .build()
         }
 
-        return ASTTestFactory.block('Container', 'composite')
+        return ASTTestFactory.block('Container', 'basic')
           .withProperty('blocks', [createNestedBlock(level - 1)])
           .build()
       }
@@ -264,7 +265,7 @@ export class ASTTestFactory {
     /**
      * Find a node by ID
      */
-    findNodeById: (root: ASTNode, targetId: number): ASTNode | null => {
+    findNodeById: (root: ASTNode, targetId: string): ASTNode | null => {
       if (root.id === targetId) return root
 
       const traverse = (node: any): ASTNode | null => {
@@ -369,11 +370,11 @@ export class ASTTestFactory {
  * Fluent builder for Journey nodes
  */
 export class JourneyBuilder {
-  private id?: number
+  private id?: string
 
   private properties: Map<string, any> = new Map()
 
-  withId(id: number): this {
+  withId(id: string): this {
     this.id = id
     return this
   }
@@ -414,11 +415,11 @@ export class JourneyBuilder {
  * Fluent builder for Step nodes
  */
 export class StepBuilder {
-  private id?: number
+  private id?: string
 
   private properties: Map<string, any> = new Map()
 
-  withId(id: number): this {
+  withId(id: string): this {
     this.id = id
     return this
   }
@@ -464,7 +465,7 @@ export class StepBuilder {
  * Fluent builder for Block nodes
  */
 export class BlockBuilder {
-  private id?: number
+  private id?: string
 
   private properties: Map<string, any> = new Map()
 
@@ -473,7 +474,7 @@ export class BlockBuilder {
     private blockType: BlockType,
   ) {}
 
-  withId(id: number): this {
+  withId(id: string): this {
     this.id = id
     return this
   }
@@ -525,13 +526,13 @@ export class BlockBuilder {
  * Fluent builder for Expression nodes
  */
 export class ExpressionBuilder<T = ExpressionASTNode> {
-  private id?: number
+  private id?: string
 
   private properties: Map<string, any> = new Map()
 
   constructor(private expressionType: ExpressionType | FunctionType | LogicType) {}
 
-  withId(id: number): this {
+  withId(id: string): this {
     this.id = id
     return this
   }

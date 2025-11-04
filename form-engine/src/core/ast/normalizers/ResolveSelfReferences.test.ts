@@ -6,10 +6,13 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 describe('resolveSelfReferences', () => {
   it('replaces @self with static field code', () => {
-    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE).withId(1).withPath(['answers', '@self']).build()
+    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
+      .withId('compile_ast:1')
+      .withPath(['answers', '@self'])
+      .build()
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(2)
+      .withId('compile_ast:2')
       .withCode('myField')
       .withProperty('value', ref)
       .build()
@@ -26,14 +29,17 @@ describe('resolveSelfReferences', () => {
 
   it('replaces @self with a deep-cloned code expression when code is dynamic', () => {
     const codeExpr = ASTTestFactory.expression(ExpressionType.PIPELINE)
-      .withId(3)
+      .withId('compile_ast:3')
       .withSteps([{ name: 'trim' }])
       .build()
 
-    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE).withId(4).withPath(['answers', '@self']).build()
+    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
+      .withId('compile_ast:4')
+      .withPath(['answers', '@self'])
+      .build()
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(5)
+      .withId('compile_ast:5')
       .withCode(codeExpr)
       .withProperty('value', ref)
       .build()
@@ -60,9 +66,12 @@ describe('resolveSelfReferences', () => {
   })
 
   it('throws when Self() is used outside of a field block', () => {
-    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE).withId(6).withPath(['answers', '@self']).build()
+    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
+      .withId('compile_ast:6')
+      .withPath(['answers', '@self'])
+      .build()
 
-    const journey = ASTTestFactory.journey().withId(7).withProperty('expr', ref).build()
+    const journey = ASTTestFactory.journey().withId('compile_ast:7').withProperty('expr', ref).build()
 
     expect(() => resolveSelfReferences(journey)).toThrow(InvalidNodeError)
 
@@ -76,9 +85,12 @@ describe('resolveSelfReferences', () => {
   })
 
   it('throws when containing field has no code', () => {
-    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE).withId(8).withPath(['answers', '@self']).build()
+    const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
+      .withId('compile_ast:8')
+      .withPath(['answers', '@self'])
+      .build()
 
-    const field = ASTTestFactory.block('TextInput', 'field').withId(9).withProperty('value', ref).build()
+    const field = ASTTestFactory.block('TextInput', 'field').withId('compile_ast:9').withProperty('value', ref).build()
 
     expect(() => resolveSelfReferences(field)).toThrow(InvalidNodeError)
 
@@ -92,17 +104,17 @@ describe('resolveSelfReferences', () => {
 
   it("throws when Self() is used within the field's code expression", () => {
     const selfInCode = ASTTestFactory.expression(ExpressionType.REFERENCE)
-      .withId(10)
+      .withId('compile_ast:10')
       .withPath(['answers', '@self'])
       .build()
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(11)
+      .withId('compile_ast:11')
       .withCode(selfInCode)
       // Value can be anything; the error is triggered by the Self() in code
       .withProperty(
         'value',
-        ASTTestFactory.expression(ExpressionType.REFERENCE).withId(12).withPath(['answers', 'x']).build(),
+        ASTTestFactory.expression(ExpressionType.REFERENCE).withId('compile_ast:12').withPath(['answers', 'x']).build(),
       )
       .build()
 

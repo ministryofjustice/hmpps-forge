@@ -10,8 +10,7 @@ This document explains the four main block types and how they work together.
 
 ```
 Block (Base)
-├── Field (Form inputs)
-└── CompositeBlock (Structural containers)
+└── Field (Form inputs)
 ```
 
 ## 1. Block (Base Type)
@@ -165,102 +164,4 @@ based on conditional logic. It serves two critical functions:
 
 1. Validation Control: When a field's dependent condition evaluates to false,
    the field will not be validated, even if it has validation rules
-3. Answer Management: When dependent is false, the field's value is automatically removed from form answers
-
-Here's a section for CompositeBlock that follows the same style and structure:
-
-## 3. CompositeBlock
-
-CompositeBlocks are containers that group other blocks together for structural organization and visual layout.
-They provide a way to create reusable form sections and organize related fields into logical groups.
-
-### Structure
-
-```typescript
-interface CompositeBlockDefinition extends BlockDefinition {
-  blocks: BlockDefinition[]           // Child blocks contained within
-  // ... variant-specific properties
-}
-```
-
-### Examples
-
-```typescript
-// A fieldset grouping related personal information fields
-const personalDetailsFieldset = block({
-  variant: 'fieldset',
-  legend: 'Personal Information',
-  blocks: [
-    field({
-      variant: 'text',
-      code: 'first_name',
-      label: 'First Name',
-      validate: [
-        validation({
-          when: Self().not.match(Condition.IsRequired()),
-          message: 'First name is required'
-        })
-      ]
-    }),
-    field({
-      variant: 'text',
-      code: 'last_name',
-      label: 'Last Name',
-      validate: [
-        validation({
-          when: Self().not.match(Condition.IsRequired()),
-          message: 'Last name is required'
-        })
-      ]
-    }),
-    field({
-      variant: 'email',
-      code: 'email',
-      label: 'Email Address',
-      validate: [
-        validation({
-          when: Self().not.match(Condition.IsRequired()),
-          message: 'Email is required'
-        }),
-        validation({
-          when: Self().not.match(Condition.IsEmail()),
-          message: 'Enter a valid email address'
-        })
-      ]
-    })
-  ]
-})
-
-// A conditional address section that appears based on other field values
-const billingAddressSection = block({
-  variant: 'fieldset',
-  legend: 'Billing Address',
-  display: when(Answer('same_as_delivery').not.match(Condition.MatchesValue(true))),
-  blocks: [
-    field({
-      variant: 'text',
-      code: 'billing_street',
-      label: 'Street Address',
-      dependent: when(Answer('same_as_delivery').not.match(Condition.MatchesValue(true))),
-    }),
-    field({
-      variant: 'text',
-      code: 'billing_city',
-      label: 'City',
-      dependent: when(Answer('same_as_delivery').not.match(Condition.MatchesValue(true))),
-    }),
-    field({
-      variant: 'text',
-      code: 'billing_postcode',
-      label: 'Postcode',
-      dependent: when(Answer('same_as_delivery').not.match(Condition.MatchesValue(true))),
-    })
-  ]
-})
-```
-
-### Concepts
-
-#### `blocks`
-An array of child blocks (Fields, Blocks, or other CompositeBlocks) that are contained within this composite block.
-These child blocks are rendered as a group together.
+2. Answer Management: When dependent is false, the field's value is mark for removal

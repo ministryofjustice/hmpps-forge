@@ -1,4 +1,3 @@
-import { transformToAst } from '@form-engine/core/ast/transformer/transformToAst'
 import { resolveSelfReferences } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
@@ -8,6 +7,7 @@ import { addSelfValueToFields } from '@form-engine/core/ast/normalizers/AddSelfV
 import { attachParentNodes } from '@form-engine/core/ast/normalizers/AttachParentNodes'
 import { convertFormattersToPipeline } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
 import { attachValidationBlockCode } from '@form-engine/core/ast/normalizers/AttachValidationBlockCode'
+import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
 
 export default class CompiledAST {
   private constructor(
@@ -17,14 +17,14 @@ export default class CompiledAST {
 
   static createFrom(json: JourneyDefinition): CompiledAST {
     // Phase 1A: Transform JSON to AST
-    const root = transformToAst(json) as JourneyASTNode
+    const root = new NodeFactory().createNode(json)
 
     // Phase 1B: Normalize AST
-    attachParentNodes(root)
     addSelfValueToFields(root)
     resolveSelfReferences(root)
     attachValidationBlockCode(root)
     convertFormattersToPipeline(root)
+    attachParentNodes(root)
 
     // Phase 2: Register nodes with IDs
     const nodeRegistry = RegistrationTraverser.buildRegistry(root)

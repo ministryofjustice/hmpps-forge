@@ -3,8 +3,8 @@ import { formatBox } from '@form-engine/logging/formatBox'
 interface InvalidNodeErrorOptions {
   /** Specific validation failure message */
   message: string
-  /** Path to the invalid node */
-  path: (string | number)[]
+  /** Path to the invalid node (optional) */
+  path?: (string | number)[]
   /** The invalid node */
   node?: any
   /** What was expected */
@@ -16,7 +16,7 @@ interface InvalidNodeErrorOptions {
 }
 
 export default class InvalidNodeError extends Error {
-  readonly path: (string | number)[]
+  readonly path?: (string | number)[]
 
   readonly node?: any
 
@@ -53,7 +53,7 @@ export default class InvalidNodeError extends Error {
 
   toString() {
     const fields = [
-      { label: 'Path', value: this.path.length ? this.path.join('.') : 'root' },
+      { label: 'Path', value: this.path?.length ? this.path.join('.') : 'root' },
       { label: 'Code', value: this.code },
       { label: 'Message', value: this.message },
     ]

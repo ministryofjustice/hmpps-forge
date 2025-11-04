@@ -38,9 +38,8 @@ export const myCustomComponent = buildComponent<MyComponentInterface>(
 
 ### Component Interface
 
-Every component needs a TypeScript interface that extends either `BlockDefinition`, `FieldBlockDefinition`,
-or `CompositeBlockDefinition`. You can read up more on the distinction between these
-types in the `block-type-documentation.md`:
+Every component needs a TypeScript interface that extends either `BlockDefinition` or `FieldBlockDefinition`.
+You can read up more on the distinction between these types in the `block-type-documentation.md`:
 
 ```typescript
 import { FieldBlockDefinition, ConditionalString } from '@form-engine/types'

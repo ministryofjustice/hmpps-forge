@@ -11,7 +11,7 @@ describe('convertFormattersToPipeline', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(1)
+      .withId('compile_ast:1')
       .withCode('myField')
       .withProperty('formatters', [formatter])
       .build()
@@ -49,7 +49,7 @@ describe('convertFormattersToPipeline', () => {
     const formatter3 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'removeSpaces')
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(2)
+      .withId('compile_ast:2')
       .withCode('userInput')
       .withProperty('formatters', [formatter1, formatter2, formatter3])
       .build()
@@ -70,7 +70,7 @@ describe('convertFormattersToPipeline', () => {
     const formatter2 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'padEnd', [20, '.'])
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(3)
+      .withId('compile_ast:3')
       .withCode('limitedText')
       .withProperty('formatters', [formatter1, formatter2])
       .build()
@@ -89,7 +89,7 @@ describe('convertFormattersToPipeline', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'truncate', [refArg, '...'])
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(4)
+      .withId('compile_ast:4')
       .withCode('description')
       .withProperty('formatters', [formatter])
       .build()
@@ -107,7 +107,7 @@ describe('convertFormattersToPipeline', () => {
   })
 
   it('does not modify fields without formatters', () => {
-    const field = ASTTestFactory.block('TextInput', 'field').withId(5).withCode('plainField').build()
+    const field = ASTTestFactory.block('TextInput', 'field').withId('compile_ast:5').withCode('plainField').build()
 
     const originalProps = new Map(field.properties)
     convertFormattersToPipeline(field)
@@ -118,7 +118,7 @@ describe('convertFormattersToPipeline', () => {
 
   it('does not modify fields with empty formatters array', () => {
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(6)
+      .withId('compile_ast:6')
       .withCode('emptyFormatters')
       .withProperty('formatters', [])
       .build()
@@ -133,22 +133,22 @@ describe('convertFormattersToPipeline', () => {
     const formatter2 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'toUpperCase')
 
     const field1 = ASTTestFactory.block('TextInput', 'field')
-      .withId(7)
+      .withId('compile_ast:7')
       .withCode('field1')
       .withProperty('formatters', [formatter1])
       .build()
 
     const field2 = ASTTestFactory.block('TextInput', 'field')
-      .withId(8)
+      .withId('compile_ast:8')
       .withCode('field2')
       .withProperty('formatters', [formatter2])
       .build()
 
-    const field3 = ASTTestFactory.block('TextInput', 'field').withId(9).withCode('field3').build()
+    const field3 = ASTTestFactory.block('TextInput', 'field').withId('compile_ast:9').withCode('field3').build()
 
-    const step = ASTTestFactory.step().withId(10).withProperty('blocks', [field1, field2, field3]).build()
+    const step = ASTTestFactory.step().withId('compile_ast:10').withProperty('blocks', [field1, field2, field3]).build()
 
-    const journey = ASTTestFactory.journey().withId(11).withProperty('steps', [step]).build()
+    const journey = ASTTestFactory.journey().withId('compile_ast:11').withProperty('steps', [step]).build()
 
     convertFormattersToPipeline(journey)
 
@@ -171,7 +171,10 @@ describe('convertFormattersToPipeline', () => {
   it('throws when field with formatters has no code', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
-    const field = ASTTestFactory.block('TextInput', 'field').withId(12).withProperty('formatters', [formatter]).build()
+    const field = ASTTestFactory.block('TextInput', 'field')
+      .withId('compile_ast:12')
+      .withProperty('formatters', [formatter])
+      .build()
 
     expect(() => convertFormattersToPipeline(field)).toThrow(InvalidNodeError)
 
@@ -187,13 +190,13 @@ describe('convertFormattersToPipeline', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
     const codeExpr = ASTTestFactory.expression(ExpressionType.FORMAT)
-      .withId(13)
+      .withId('compile_ast:13')
       .withProperty('text', 'address_%1')
       .withProperty('args', [ASTTestFactory.reference(['@scope', '@index'])])
       .build()
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(14)
+      .withId('compile_ast:14')
       .withCode(codeExpr)
       .withProperty('formatters', [formatter])
       .build()
@@ -221,23 +224,23 @@ describe('convertFormattersToPipeline', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
     const templateField = ASTTestFactory.block('TextInput', 'field')
-      .withId(21)
+      .withId('compile_ast:21')
       .withCode('itemField')
       .withProperty('formatters', [formatter])
       .build()
 
     const collectionExpr = ASTTestFactory.expression(ExpressionType.COLLECTION)
-      .withId(22)
+      .withId('compile_ast:22')
       .withCollection({ type: ExpressionType.REFERENCE, path: ['answers', 'items'] })
       .withTemplate([templateField])
       .build()
 
     const step = ASTTestFactory.step()
-      .withId(23)
-      .withBlock('container', 'basic', block => block.withId(24).withProperty('content', collectionExpr))
+      .withId('compile_ast:23')
+      .withBlock('container', 'basic', block => block.withId('compile_ast:24').withProperty('content', collectionExpr))
       .build()
 
-    const journey = ASTTestFactory.journey().withId(25).withProperty('steps', [step]).build()
+    const journey = ASTTestFactory.journey().withId('compile_ast:25').withProperty('steps', [step]).build()
 
     convertFormattersToPipeline(journey)
 
@@ -257,10 +260,10 @@ describe('convertFormattersToPipeline', () => {
   it('preserves all other field properties when adding formatPipeline', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
-    const validationExpr = ASTTestFactory.expression(ExpressionType.VALIDATION).withId(19).build()
+    const validationExpr = ASTTestFactory.expression(ExpressionType.VALIDATION).withId('compile_ast:19').build()
 
     const field = ASTTestFactory.block('TextInput', 'field')
-      .withId(20)
+      .withId('compile_ast:20')
       .withCode('fullField')
       .withLabel('Full Field')
       .withProperty('hint', 'Enter your text')

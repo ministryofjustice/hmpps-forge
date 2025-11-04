@@ -14,7 +14,7 @@ export interface FormInstanceDependencies {
  */
 export interface ASTNode {
   type: ASTNodeType
-  id?: number
+  id?: string
   raw?: any
   parentNode?: ASTNode
 }

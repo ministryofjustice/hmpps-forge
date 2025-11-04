@@ -13,7 +13,7 @@ export interface NodeRegistryEntry {
  * Registry for storing and retrieving AST nodes by their unique IDs.
  */
 export default class NodeRegistry {
-  private readonly nodes: Map<number, NodeRegistryEntry> = new Map()
+  private readonly nodes: Map<string, NodeRegistryEntry> = new Map()
 
   /**
    * Register a node with its ID and path
@@ -22,7 +22,7 @@ export default class NodeRegistry {
    * @param path The structural path from root to this node
    * @throws Error if ID is already registered
    */
-  register(id: number, node: ASTNode, path: (string | number)[] = []): void {
+  register(id: string, node: ASTNode, path: (string | number)[] = []): void {
     if (this.nodes.has(id)) {
       throw new Error(`Node with ID "${id}" is already registered`)
     }
@@ -34,7 +34,7 @@ export default class NodeRegistry {
    * @param id The ID of the node to retrieve
    * @returns The node, or undefined if not found
    */
-  get(id: number): ASTNode | undefined {
+  get(id: string): ASTNode | undefined {
     return this.nodes.get(id)?.node
   }
 
@@ -43,7 +43,7 @@ export default class NodeRegistry {
    * @param id The ID of the node to retrieve
    * @returns The node entry with path, or undefined if not found
    */
-  getEntry(id: number): NodeRegistryEntry | undefined {
+  getEntry(id: string): NodeRegistryEntry | undefined {
     return this.nodes.get(id)
   }
 
@@ -52,7 +52,7 @@ export default class NodeRegistry {
    * @param id The ID to check
    * @returns True if the ID is registered, false otherwise
    */
-  has(id: number): boolean {
+  has(id: string): boolean {
     return this.nodes.has(id)
   }
 
@@ -60,8 +60,8 @@ export default class NodeRegistry {
    * Get all registered nodes
    * @returns Map of all nodes by ID
    */
-  getAll(): Map<number, ASTNode> {
-    const result = new Map<number, ASTNode>()
+  getAll(): Map<string, ASTNode> {
+    const result = new Map<string, ASTNode>()
     for (const [id, entry] of this.nodes) {
       result.set(id, entry.node)
     }
@@ -72,7 +72,7 @@ export default class NodeRegistry {
    * Get all registered entries (nodes with paths)
    * @returns Map of all entries by ID
    */
-  getAllEntries(): Map<number, NodeRegistryEntry> {
+  getAllEntries(): Map<string, NodeRegistryEntry> {
     return new Map(this.nodes)
   }
 
@@ -80,7 +80,7 @@ export default class NodeRegistry {
    * Get all registered node IDs
    * @returns Array of all registered IDs
    */
-  getIds(): number[] {
+  getIds(): string[] {
     return Array.from(this.nodes.keys())
   }
 

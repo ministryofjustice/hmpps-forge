@@ -27,16 +27,6 @@ export interface BlockDefinition {
 }
 
 /**
- * Block definition for composite blocks that contain other blocks.
- * Used for grouping and layout purposes.
- * @template B - The type of child blocks
- */
-export interface CompositeBlockDefinition<B = BlockDefinition> extends BlockDefinition {
-  /** Array of child blocks contained within this composite block */
-  blocks: B[]
-}
-
-/**
  * Represents a validation rule for a form field.
  * Includes the validation logic, error message, and execution context.
  *

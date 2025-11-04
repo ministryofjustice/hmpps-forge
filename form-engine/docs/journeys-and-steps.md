@@ -261,7 +261,7 @@ These are then accessible using `Params('param-name')`
 
 #### `blocks`
 Array of UI components that make up the step's interface. These are rendered in order
-and can include fields, blocks, composite blocks and collection blocks.
+and can include fields, blocks, and collection blocks.
 See `block-type-documentation.md` for more details.
 
 #### `onLoad`

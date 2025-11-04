@@ -58,18 +58,10 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     dependent: PredicateTestExprSchema.optional(),
   })
 
-  const compositeBlockProps = z.looseObject({
-    blocks: z.array(BlockSchema),
-  })
-
   return z.union([
     z.looseObject({
       ...baseBlock.shape,
       ...fieldBlockProps.shape,
-    }),
-    z.looseObject({
-      ...baseBlock.shape,
-      ...compositeBlockProps.shape,
     }),
     baseBlock,
   ])

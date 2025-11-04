@@ -3,8 +3,8 @@ import { formatBox } from '@form-engine/logging/formatBox'
 interface UnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
   nodeType?: string
-  /** Path to the node */
-  path: (string | number)[]
+  /** Path to the node (optional) */
+  path?: (string | number)[]
   /** The actual node object */
   node?: any
   /** List of valid types (for helpful error messages) */
@@ -14,7 +14,7 @@ interface UnknownNodeTypeErrorOptions {
 export default class UnknownNodeTypeError extends Error {
   readonly nodeType?: string
 
-  readonly path: (string | number)[]
+  readonly path?: (string | number)[]
 
   readonly node?: any
 
@@ -55,7 +55,7 @@ export default class UnknownNodeTypeError extends Error {
 
   toString() {
     const fields = [
-      { label: 'Path', value: this.path.length ? this.path.join('.') : 'root' },
+      { label: 'Path', value: this.path?.length ? this.path.join('.') : 'root' },
       { label: 'Type', value: this.nodeType || 'undefined' },
       { label: 'Message', value: this.message },
     ]

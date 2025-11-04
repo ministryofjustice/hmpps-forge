@@ -1,105 +1,181 @@
-import { ExpressionType } from '@form-engine/form/types/enums'
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
+import { ExpressionType } from '@form-engine/form/types/enums'
+import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
+import { ASTNode } from '@form-engine/core/types/engine.type'
 import RegistrationTraverser from './RegistrationTraverser'
 
 describe('RegistrationTraverser', () => {
+  beforeEach(() => {
+    ASTTestFactory.resetIds()
+  })
+
   describe('buildRegistry', () => {
-    it('should assign IDs in depth-first order and register all nodes', () => {
-      const tree = ASTTestFactory.scenarios.withValidation() as ASTNode & { properties: any }
-      const registry = RegistrationTraverser.buildRegistry(tree)
-
-      // Verify depth-first ID assignment pattern
-      expect(tree.id).toBe(1)
-
-      const steps = tree.properties.get('steps')
-      expect(steps[0].id).toBe(2)
-
-      const blocks = steps[0].properties.get('blocks')
-      expect(blocks[0].id).toBe(3)
-
-      // The withValidation scenario has a validation expression
-      const validation = blocks[0].properties.get('validation')
-      expect(validation.id).toBeDefined()
-      expect(validation.id).toBeGreaterThan(3)
-
-      // Verify all nodes are registered
-      // withValidation creates: 1 journey + 1 step + 1 block + validation expressions
-      expect(registry.size()).toBeGreaterThanOrEqual(4)
-
-      // Verify we can look up nodes by ID
-      expect(registry.get(1)).toBe(tree)
-      expect(registry.get(2)).toBe(steps[0])
-      expect(registry.get(3)).toBe(blocks[0])
-    })
-
-    it('should handle single node', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
-      const registry = RegistrationTraverser.buildRegistry(node)
-
-      expect(node.id).toBe(1)
-      expect(registry.size()).toBe(1)
-    })
-
-    it('should handle deeply nested structures', () => {
-      const root = ASTTestFactory.scenarios.deeplyNested(10)
-      const registry = RegistrationTraverser.buildRegistry(root)
-
-      // Count nodes: 1 journey + 1 step + 11 nested blocks (10 containers + 1 field)
-      expect(registry.size()).toBe(13)
-    })
-
-    it('should handle nodes with no properties', () => {
-      const node = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
-      // Expression with minimal properties
-      const registry = RegistrationTraverser.buildRegistry(node)
-
-      expect(node.id).toBe(1)
-      expect(registry.size()).toBe(1)
-    })
-
-    it('should handle arrays with multiple nodes', () => {
-      const blocks = Array.from({ length: 5 }, (_, i) =>
-        ASTTestFactory.block('TextField', 'field').withCode(`field_${i}`).build(),
-      )
-      const root = ASTTestFactory.step().withProperty('blocks', blocks).build()
-
-      const registry = RegistrationTraverser.buildRegistry(root)
-
-      expect(registry.size()).toBe(6) // root + 5 blocks
-      blocks.forEach((block, index) => {
-        expect(block.id).toBe(index + 2) // IDs start at 2 for blocks
-      })
-    })
-
-    it('should handle mixed content in properties', () => {
-      const root = ASTTestFactory.journey()
-        .withMetadata({ version: '1.0' })
-        .withProperty('count', 42)
-        .withStep(step => step.withTitle('Test Step').withBlock('TextField', 'field', block => block))
+    it('should build registry from nested structure with all node types', () => {
+      const expr = ASTTestFactory.expression(ExpressionType.REFERENCE)
+        .withId('compile_ast:5')
+        .withPath(['answers', 'test'])
         .build()
 
-      const registry = RegistrationTraverser.buildRegistry(root)
+      const journey = ASTTestFactory.journey()
+        .withStep(step =>
+          step
+            .withId('compile_ast:2')
+            .withBlock('TextInput', 'field', block =>
+              block.withId('compile_ast:3').withCode('firstName').withLabel('First Name'),
+            )
+            .withBlock('TextInput', 'field', block =>
+              block
+                .withId('compile_ast:4')
+                .withCode('testField')
+                .withLabel('Test Field')
+                .withProperty('defaultValue', expr),
+            ),
+        )
+        .build()
 
-      // Should only count actual nodes, not other values
-      expect(registry.size()).toBe(3) // root + step + block
+      const registry = RegistrationTraverser.buildRegistry(journey)
+
+      // Verify all nodes registered
+      expect(registry.size()).toBe(5) // journey + step + 2 blocks + expression
+      expect(registry.has(journey.id)).toBe(true)
+      expect(registry.has('compile_ast:2')).toBe(true)
+      expect(registry.has('compile_ast:3')).toBe(true)
+      expect(registry.has('compile_ast:4')).toBe(true)
+      expect(registry.has('compile_ast:5')).toBe(true)
+
+      // Verify can retrieve nodes
+      expect(registry.get(journey.id)).toBe(journey)
+      expect(registry.get('compile_ast:3')).toBeTruthy()
+      expect(registry.get('compile_ast:5')).toBe(expr)
+
+      // Verify types are registered correctly
+      const journeys = registry.findByType(ASTNodeType.JOURNEY)
+      expect(journeys.length).toBe(1)
+
+      const steps = registry.findByType(ASTNodeType.STEP)
+      expect(steps.length).toBe(1)
+
+      const blocks = registry.findByType(ASTNodeType.BLOCK)
+      expect(blocks.length).toBe(2)
+
+      const expressions = registry.findByType(ASTNodeType.EXPRESSION)
+      expect(expressions.length).toBe(1)
     })
 
-    it('should handle minimal scenario', () => {
-      const tree = ASTTestFactory.scenarios.minimal()
-      const registry = RegistrationTraverser.buildRegistry(tree)
+    it('should register nodes with correct paths', () => {
+      const journey = ASTTestFactory.journey()
+        .withStep(step =>
+          step.withId('compile_ast:2').withBlock('TextInput', 'field', block => block.withId('compile_ast:3')),
+        )
+        .build()
 
-      expect(tree.id).toBe(1)
-      expect(registry.size()).toBeGreaterThanOrEqual(3) // journey + step + field
+      const registry = RegistrationTraverser.buildRegistry(journey)
+
+      const journeyEntry = registry.getEntry(journey.id)
+      expect(journeyEntry?.path).toEqual([])
+
+      const stepEntry = registry.getEntry('compile_ast:2')
+      expect(stepEntry?.path).toEqual(['steps', 0])
+
+      const blockEntry = registry.getEntry('compile_ast:3')
+      expect(blockEntry?.path).toEqual(['steps', 0, 'blocks', 0])
     })
 
-    it('should handle withConditionals scenario', () => {
-      const tree = ASTTestFactory.scenarios.withConditionals()
-      const registry = RegistrationTraverser.buildRegistry(tree)
+    it('should handle node with multiple properties containing nodes', () => {
+      const expr1 = ASTTestFactory.expression(ExpressionType.REFERENCE).withId('compile_ast:3').build()
 
-      expect(tree.id).toBe(1)
-      // Has conditional expressions
-      expect(registry.size()).toBeGreaterThan(4) // journey + step + 2 blocks + expressions
+      const expr2 = ASTTestFactory.expression(ExpressionType.REFERENCE).withId('compile_ast:4').build()
+
+      const block = ASTTestFactory.block('TextInput', 'field')
+        .withId('compile_ast:2')
+        .withProperty('defaultValue', expr1)
+        .withProperty('validation', expr2)
+        .build()
+
+      const step = ASTTestFactory.step().withId('compile_ast:1').withProperty('blocks', [block]).build()
+
+      const registry = RegistrationTraverser.buildRegistry(step)
+
+      expect(registry.size()).toBe(4) // step + block + 2 expressions
+      expect(registry.has('compile_ast:1')).toBe(true)
+      expect(registry.has('compile_ast:2')).toBe(true)
+      expect(registry.has('compile_ast:3')).toBe(true)
+      expect(registry.has('compile_ast:4')).toBe(true)
+    })
+
+    describe('edge cases', () => {
+      it('should handle empty journey', () => {
+        const journey = ASTTestFactory.journey().build()
+
+        const registry = RegistrationTraverser.buildRegistry(journey)
+
+        expect(registry.size()).toBe(1)
+        expect(registry.has(journey.id)).toBe(true)
+      })
+
+      it('should handle step with no blocks', () => {
+        const journey = ASTTestFactory.journey()
+          .withStep(step => step.withId('compile_ast:2'))
+          .build()
+
+        const registry = RegistrationTraverser.buildRegistry(journey)
+
+        expect(registry.size()).toBe(2)
+        expect(registry.has(journey.id)).toBe(true)
+        expect(registry.has('compile_ast:2')).toBe(true)
+      })
+    })
+  })
+
+  describe('error handling', () => {
+    it('should throw InvalidNodeError with message and node reference when root node lacks ID', () => {
+      const nodeWithoutId = {
+        type: ASTNodeType.STEP,
+        id: undefined as any,
+        properties: new Map(),
+      } as ASTNode
+
+      try {
+        RegistrationTraverser.buildRegistry(nodeWithoutId)
+        fail('Expected InvalidNodeError to be thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(InvalidNodeError)
+        expect(error.message).toMatch(/Node is missing ID/)
+
+        if (error instanceof InvalidNodeError) {
+          expect(error.node).toBe(nodeWithoutId)
+        }
+      }
+    })
+
+    it('should throw InvalidNodeError for nested nodes and include path in error message', () => {
+      const exprWithoutId = {
+        type: ASTNodeType.EXPRESSION,
+        id: undefined as any,
+        expressionType: ExpressionType.REFERENCE,
+        properties: new Map([['path', ['answers', 'test']]]),
+      } as ASTNode
+
+      const block = ASTTestFactory.block('TextInput', 'field')
+        .withId('compile_ast:2')
+        .withProperty('defaultValue', exprWithoutId)
+        .build()
+
+      const step = ASTTestFactory.step().withId('compile_ast:1').withProperty('blocks', [block]).build()
+
+      expect(() => RegistrationTraverser.buildRegistry(step)).toThrow(/blocks\.0\.defaultValue/)
+    })
+
+    it('should throw error when duplicate ID exists in tree', () => {
+      const duplicateId = 'compile_ast:999'
+
+      const journey = ASTTestFactory.journey()
+        .withStep(step => step.withId(duplicateId))
+        .withStep(step => step.withId(duplicateId))
+        .build()
+
+      expect(() => RegistrationTraverser.buildRegistry(journey)).toThrow(/already registered/)
     })
   })
 })
