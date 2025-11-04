@@ -1,11 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
-import { ExpressionType, FunctionType, LogicType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, LogicType, TransitionType } from '@form-engine/form/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
   PredicateASTNode,
   ReferenceASTNode,
+  TransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
@@ -88,6 +89,13 @@ export class ASTTestFactory {
    */
   static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionType | LogicType): ExpressionBuilder<T> {
     return new ExpressionBuilder<T>(type)
+  }
+
+  /**
+   * Create a new TransitionBuilder for fluent transition construction
+   */
+  static transition(type: TransitionType): TransitionBuilder {
+    return new TransitionBuilder(type)
   }
 
   static reference(path: string[]): ReferenceASTNode {
@@ -601,5 +609,37 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
       expressionType: this.expressionType,
       properties: this.properties,
     } as T
+  }
+}
+
+/**
+ * Fluent builder for Transition nodes
+ */
+export class TransitionBuilder {
+  private id?: string
+
+  private properties: Map<string, any> = new Map()
+
+  constructor(private transitionType: TransitionType) {}
+
+  withId(id: string): this {
+    this.id = id
+    return this
+  }
+
+  withProperty(key: string, value: any): this {
+    this.properties.set(key, value)
+    return this
+  }
+
+  build(): TransitionASTNode {
+    const nodeId = this.id ?? ASTTestFactory.getId()
+
+    return {
+      type: ASTNodeType.TRANSITION,
+      id: nodeId,
+      transitionType: this.transitionType,
+      properties: this.properties,
+    } as TransitionASTNode
   }
 }
