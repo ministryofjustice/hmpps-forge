@@ -1,10 +1,17 @@
 import { ExpressionType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { attachParentNodes } from './AttachParentNodes'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
+import { AttachParentNodesNormalizer } from './AttachParentNodes'
 
 describe('attachParentNodes', () => {
+  let normalizer: AttachParentNodesNormalizer
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    const container = createCompileStageContainer(new FunctionRegistry(), new ComponentRegistry())
+    normalizer = container.normalizers.attachParentNodes
   })
 
   it('sets parentNode on direct children', () => {
@@ -16,7 +23,7 @@ describe('attachParentNodes', () => {
       )
       .build()
 
-    attachParentNodes(journey)
+    normalizer.normalize(journey)
 
     const step = journey.properties.get('steps')[0]
     const block = step.properties.get('blocks')[0]
@@ -37,7 +44,7 @@ describe('attachParentNodes', () => {
       .withStep(step => step.withBlock('TextInput', 'field', block => block.withShowWhen(parentExpression)))
       .build()
 
-    attachParentNodes(journey)
+    normalizer.normalize(journey)
 
     const block = journey.properties.get('steps')[0].properties.get('blocks')[0]
 

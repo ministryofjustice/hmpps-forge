@@ -6,30 +6,41 @@ import {
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
 
 /**
- * Mutates AST nodes to include a reference to their parent node.
+ * Normalizer that mutates AST nodes to include a reference to their parent node.
  */
-export function attachParentNodes(root: ASTNode): void {
-  const parentStack: ASTNode[] = []
+export class AttachParentNodesNormalizer implements StructuralVisitor {
+  private parentStack: ASTNode[] = []
 
-  const visitor: StructuralVisitor = {
-    enterNode: (node: ASTNode): StructuralVisitResult => {
-      const parent = parentStack[parentStack.length - 1]
+  /**
+   * Visitor method: called when entering a node during traversal
+   */
+  enterNode(node: ASTNode): StructuralVisitResult {
+    const parent = this.parentStack[this.parentStack.length - 1]
 
-      if (parent) {
-        node.parentNode = parent
-      } else if (node.parentNode !== undefined) {
-        delete node.parentNode
-      }
+    if (parent) {
+      node.parentNode = parent
+    } else if (node.parentNode !== undefined) {
+      delete node.parentNode
+    }
 
-      parentStack.push(node)
+    this.parentStack.push(node)
 
-      return StructuralVisitResult.CONTINUE
-    },
-    exitNode: (): StructuralVisitResult => {
-      parentStack.pop()
-      return StructuralVisitResult.CONTINUE
-    },
+    return StructuralVisitResult.CONTINUE
   }
 
-  structuralTraverse(root, visitor)
+  /**
+   * Visitor method: called when exiting a node during traversal
+   */
+  exitNode(): StructuralVisitResult {
+    this.parentStack.pop()
+    return StructuralVisitResult.CONTINUE
+  }
+
+  /**
+   * Normalize the AST by attaching parent node references
+   */
+  normalize(root: ASTNode): void {
+    this.parentStack = []
+    structuralTraverse(root, this)
+  }
 }

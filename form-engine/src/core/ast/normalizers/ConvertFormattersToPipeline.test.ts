@@ -1,12 +1,22 @@
-import { convertFormattersToPipeline } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
+import { ConvertFormattersToPipelineNormalizer } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { FunctionType, ExpressionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { isPipelineExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import { isTransformerFunctionNode } from '@form-engine/core/typeguards/function-nodes'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 
 describe('convertFormattersToPipeline', () => {
+  let normalizer: ConvertFormattersToPipelineNormalizer
+
+  beforeEach(() => {
+    const container = createCompileStageContainer(new FunctionRegistry(), new ComponentRegistry())
+    normalizer = container.normalizers.convertFormatters
+  })
+
   it('converts single formatter to pipeline with POST reference', () => {
     const formatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
 
@@ -16,7 +26,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     const formatPipeline = field.properties.get('formatPipeline') as PipelineASTNode
     expect(isPipelineExprNode(formatPipeline)).toBe(true)
@@ -28,19 +38,18 @@ describe('convertFormattersToPipeline', () => {
 
     // Check steps
     const steps = formatPipeline.properties.get('steps') as any[]
-    const originalFormatters = field.properties.get('formatters') as any[]
 
     expect(steps).toHaveLength(1)
-    expect(steps).not.toBe(originalFormatters)
+    expect(steps[0]).toBe(formatter) // Now uses formatters directly
     expect(isTransformerFunctionNode(steps[0])).toBe(true)
 
     const stepProps = steps[0].properties as Map<string, unknown>
-    expect(stepProps).not.toBe(formatter.properties)
+    expect(stepProps).toBe(formatter.properties) // Same reference since we use formatters directly
     expect(stepProps.get('name')).toBe('trim')
     expect(stepProps.get('arguments')).toEqual([])
 
-    // Original formatters should still be present
-    expect(field.properties.get('formatters')).toEqual([formatter])
+    // Formatters property should be removed
+    expect(field.properties.has('formatters')).toBe(false)
   })
 
   it('converts multiple formatters to pipeline steps in order', () => {
@@ -54,7 +63,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter1, formatter2, formatter3])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     const formatPipeline = field.properties.get('formatPipeline') as PipelineASTNode
     const steps = formatPipeline.properties.get('steps') as any[]
@@ -75,7 +84,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter1, formatter2])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     const formatPipeline = field.properties.get('formatPipeline') as PipelineASTNode
     const steps = formatPipeline.properties.get('steps') as any[]
@@ -94,7 +103,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     const formatPipeline = field.properties.get('formatPipeline') as PipelineASTNode
     const steps = formatPipeline.properties.get('steps') as any[]
@@ -110,7 +119,7 @@ describe('convertFormattersToPipeline', () => {
     const field = ASTTestFactory.block('TextInput', 'field').withId('compile_ast:5').withCode('plainField').build()
 
     const originalProps = new Map(field.properties)
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     expect(field.properties.has('formatPipeline')).toBe(false)
     expect(field.properties).toEqual(originalProps)
@@ -123,7 +132,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     expect(field.properties.has('formatPipeline')).toBe(false)
   })
@@ -150,7 +159,7 @@ describe('convertFormattersToPipeline', () => {
 
     const journey = ASTTestFactory.journey().withId('compile_ast:11').withProperty('steps', [step]).build()
 
-    convertFormattersToPipeline(journey)
+    normalizer.normalize(journey)
 
     // Check field1
     const pipeline1 = field1.properties.get('formatPipeline') as PipelineASTNode
@@ -176,10 +185,10 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter])
       .build()
 
-    expect(() => convertFormattersToPipeline(field)).toThrow(InvalidNodeError)
+    expect(() => normalizer.normalize(field)).toThrow(InvalidNodeError)
 
     try {
-      convertFormattersToPipeline(field)
+      normalizer.normalize(field)
     } catch (e) {
       const err = e as InvalidNodeError
       expect(err.message).toMatch(/Field with formatters must have a code property/)
@@ -201,7 +210,7 @@ describe('convertFormattersToPipeline', () => {
       .withProperty('formatters', [formatter])
       .build()
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
     const formatPipeline = field.properties.get('formatPipeline') as PipelineASTNode
     expect(isPipelineExprNode(formatPipeline)).toBe(true)
@@ -242,7 +251,7 @@ describe('convertFormattersToPipeline', () => {
 
     const journey = ASTTestFactory.journey().withId('compile_ast:25').withProperty('steps', [step]).build()
 
-    convertFormattersToPipeline(journey)
+    normalizer.normalize(journey)
 
     const steps = journey.properties.get('steps') as any[]
     const containerBlock = steps[0].properties.get('blocks')[0]
@@ -268,18 +277,23 @@ describe('convertFormattersToPipeline', () => {
       .withLabel('Full Field')
       .withProperty('hint', 'Enter your text')
       .withProperty('required', true)
-      .withProperty('validation', validationExpr)
+      .withProperty('validate', validationExpr)
       .withProperty('formatters', [formatter])
       .build()
 
     const originalKeys = Array.from(field.properties.keys())
 
-    convertFormattersToPipeline(field)
+    normalizer.normalize(field)
 
-    // All original properties should still exist
+    // All original properties, apart from 'formatters' should still exist
     for (const key of originalKeys) {
-      expect(field.properties.has(key)).toBe(true)
+      if (key !== 'formatters') {
+        expect(field.properties.has(key)).toBe(true)
+      }
     }
+
+    // Formatters property should be removed
+    expect(field.properties.has('formatters')).toBe(false)
 
     // Plus the new formatPipeline
     expect(field.properties.has('formatPipeline')).toBe(true)
@@ -288,7 +302,7 @@ describe('convertFormattersToPipeline', () => {
     expect(field.properties.get('label')).toBe('Full Field')
     expect(field.properties.get('hint')).toBe('Enter your text')
     expect(field.properties.get('required')).toBe(true)
-    expect(field.properties.get('validation')).toBe(validationExpr)
+    expect(field.properties.get('validate')).toBe(validationExpr)
   })
 })
 

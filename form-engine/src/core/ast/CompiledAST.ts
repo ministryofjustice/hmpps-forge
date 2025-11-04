@@ -1,13 +1,8 @@
-import { resolveSelfReferences } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
-import { addSelfValueToFields } from '@form-engine/core/ast/normalizers/AddSelfValueToFields'
-import { attachParentNodes } from '@form-engine/core/ast/normalizers/AttachParentNodes'
-import { convertFormattersToPipeline } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
-import { attachValidationBlockCode } from '@form-engine/core/ast/normalizers/AttachValidationBlockCode'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { CompileStageDependencies } from '@form-engine/core/container/compileStageContainer'
 
 export default class CompiledAST {
   private constructor(
@@ -15,16 +10,16 @@ export default class CompiledAST {
     private readonly nodeRegistry: NodeRegistry,
   ) {}
 
-  static createFrom(json: JourneyDefinition): CompiledAST {
+  static createFrom(json: JourneyDefinition, dependencies: CompileStageDependencies): CompiledAST {
     // Phase 1A: Transform JSON to AST
-    const root = new NodeFactory().createNode(json)
+    const root = dependencies.nodeFactory.createNode(json)
 
     // Phase 1B: Normalize AST
-    addSelfValueToFields(root)
-    resolveSelfReferences(root)
-    attachValidationBlockCode(root)
-    convertFormattersToPipeline(root)
-    attachParentNodes(root)
+    dependencies.normalizers.addSelfValue.normalize(root)
+    dependencies.normalizers.resolveSelfReferences.normalize(root)
+    dependencies.normalizers.attachValidationBlockCode.normalize(root)
+    dependencies.normalizers.convertFormatters.normalize(root)
+    dependencies.normalizers.attachParentNodes.normalize(root)
 
     // Phase 2: Register nodes with IDs
     const nodeRegistry = RegistrationTraverser.buildRegistry(root)

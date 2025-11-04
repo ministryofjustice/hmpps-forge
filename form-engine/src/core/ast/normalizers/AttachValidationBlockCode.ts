@@ -1,38 +1,51 @@
 import { ASTNode } from '@form-engine/core/types/engine.type'
-import { structuralTraverse, StructuralVisitResult } from '@form-engine/core/ast/traverser/StructuralTraverser'
+import {
+  structuralTraverse,
+  StructuralVisitResult,
+  StructuralVisitor,
+  StructuralContext,
+} from '@form-engine/core/ast/traverser/StructuralTraverser'
 import { isValidationExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
- * Normaliser that records the owning block's code on validation expressions.
+ * Normalizer that records the owning block's code on validation expressions.
  * Allows runtime validation handlers to avoid walking back up the AST.
  */
-export function attachValidationBlockCode(root: ASTNode): void {
-  structuralTraverse(root, {
-    enterNode: (node, ctx) => {
-      if (!isValidationExprNode(node)) {
-        return StructuralVisitResult.CONTINUE
-      }
-
-      const owningBlock = findOwningBlock(ctx.ancestors)
-
-      if (!owningBlock) {
-        return StructuralVisitResult.CONTINUE
-      }
-
-      const resolvedCode = resolveBlockCode(owningBlock)
-
-      if (resolvedCode === undefined) {
-        node.properties.delete('resolvedBlockCode')
-      } else {
-        node.properties.set('resolvedBlockCode', resolvedCode)
-      }
-
+export class AttachValidationBlockCodeNormalizer implements StructuralVisitor {
+  /**
+   * Visitor method: called when entering a node during traversal
+   */
+  enterNode(node: ASTNode, ctx: StructuralContext): StructuralVisitResult {
+    if (!isValidationExprNode(node)) {
       return StructuralVisitResult.CONTINUE
-    },
-  })
+    }
+
+    const owningBlock = findOwningBlock(ctx.ancestors)
+
+    if (!owningBlock) {
+      return StructuralVisitResult.CONTINUE
+    }
+
+    const resolvedCode = resolveBlockCode(owningBlock)
+
+    if (resolvedCode === undefined) {
+      node.properties.delete('resolvedBlockCode')
+    } else {
+      node.properties.set('resolvedBlockCode', resolvedCode)
+    }
+
+    return StructuralVisitResult.CONTINUE
+  }
+
+  /**
+   * Normalize the AST by attaching validation block codes
+   */
+  normalize(root: ASTNode): void {
+    structuralTraverse(root, this)
+  }
 }
 
 function findOwningBlock(ancestors: any[]): BlockASTNode | undefined {

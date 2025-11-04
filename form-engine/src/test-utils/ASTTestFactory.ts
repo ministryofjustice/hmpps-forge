@@ -500,7 +500,7 @@ export class BlockBuilder {
   }
 
   withValidation(validation: ExpressionASTNode): this {
-    this.properties.set('validation', validation)
+    this.properties.set('validate', validation)
     return this
   }
 

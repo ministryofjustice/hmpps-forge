@@ -1,11 +1,18 @@
 import { ExpressionType, LogicType } from '@form-engine/form/types/enums'
 import { isExpressionNode } from '@form-engine/core/typeguards/expression-nodes'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { attachValidationBlockCode } from './AttachValidationBlockCode'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
+import { AttachValidationBlockCodeNormalizer } from './AttachValidationBlockCode'
 
 describe('attachValidationBlockCode', () => {
+  let normalizer: AttachValidationBlockCodeNormalizer
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    const container = createCompileStageContainer(new FunctionRegistry(), new ComponentRegistry())
+    normalizer = container.normalizers.attachValidationBlockCode
   })
 
   const buildValidation = () =>
@@ -21,11 +28,11 @@ describe('attachValidationBlockCode', () => {
 
     const ast = journey.build()
 
-    attachValidationBlockCode(ast)
+    normalizer.normalize(ast)
 
     const steps = ast.properties.get('steps')
     const block = steps[0].properties.get('blocks')[0]
-    const validation = block.properties.get('validation')
+    const validation = block.properties.get('validate')
 
     expect(validation.properties.get('resolvedBlockCode')).toBe('nickname')
   })
@@ -39,11 +46,11 @@ describe('attachValidationBlockCode', () => {
 
     const ast = journey.build()
 
-    attachValidationBlockCode(ast)
+    normalizer.normalize(ast)
 
     const steps = ast.properties.get('steps')
     const block = steps[0].properties.get('blocks')[0]
-    const validation = block.properties.get('validation')
+    const validation = block.properties.get('validate')
 
     const resolved = validation.properties.get('resolvedBlockCode')
 
@@ -59,11 +66,11 @@ describe('attachValidationBlockCode', () => {
 
     const ast = journey.build()
 
-    attachValidationBlockCode(ast)
+    normalizer.normalize(ast)
 
     const steps = ast.properties.get('steps')
     const block = steps[0].properties.get('blocks')[0]
-    const validation = block.properties.get('validation')
+    const validation = block.properties.get('validate')
 
     expect(validation.properties.has('resolvedBlockCode')).toBe(false)
   })

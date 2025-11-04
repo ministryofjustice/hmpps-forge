@@ -2,11 +2,18 @@ import { ExpressionType } from '@form-engine/form/types/enums'
 import { isExpressionNode } from '@form-engine/core/typeguards/expression-nodes'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { addSelfValueToFields } from './AddSelfValueToFields'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
+import { AddSelfValueToFieldsNormalizer } from './AddSelfValueToFields'
 
 describe('AddSelfValueToFields', () => {
+  let normalizer: AddSelfValueToFieldsNormalizer
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    const container = createCompileStageContainer(new FunctionRegistry(), new ComponentRegistry())
+    normalizer = container.normalizers.addSelfValue
   })
 
   describe('addSelfValueToFields', () => {
@@ -17,7 +24,7 @@ describe('AddSelfValueToFields', () => {
         .withLabel('Username')
         .build()
 
-      addSelfValueToFields(field)
+      normalizer.normalize(field)
 
       const value = field.properties.get('value')
       expect(isExpressionNode(value)).toBe(true)
@@ -37,7 +44,7 @@ describe('AddSelfValueToFields', () => {
         .withProperty('value', explicitValue)
         .build()
 
-      addSelfValueToFields(field)
+      normalizer.normalize(field)
 
       const value = field.properties.get('value')
       expect(isExpressionNode(value)).toBe(true)
@@ -51,7 +58,7 @@ describe('AddSelfValueToFields', () => {
         .build()
 
       const originalValue = block.properties.get('value')
-      addSelfValueToFields(block)
+      normalizer.normalize(block)
 
       expect(block.properties.get('value')).toBe(originalValue)
     })
@@ -64,7 +71,7 @@ describe('AddSelfValueToFields', () => {
         .withProperty('value', undefined)
         .build()
 
-      addSelfValueToFields(field)
+      normalizer.normalize(field)
 
       const value = field.properties.get('value')
       expect(isExpressionNode(value)).toBe(true)
@@ -91,7 +98,7 @@ describe('AddSelfValueToFields', () => {
 
       const journey = ASTTestFactory.journey().withId('compile_ast:9').withProperty('steps', [step]).build()
 
-      addSelfValueToFields(journey)
+      normalizer.normalize(journey)
 
       const steps = journey.properties.get('steps') as any[]
       const containerBlock = steps[0].properties.get('blocks')[0]
@@ -128,7 +135,7 @@ describe('AddSelfValueToFields', () => {
         .withProperty('blocks', [blockWithNestedFields])
         .build()
 
-      addSelfValueToFields(step)
+      normalizer.normalize(step)
 
       const blocks = step.properties.get('blocks')[0].properties.get('blocks')
 

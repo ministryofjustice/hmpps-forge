@@ -1,10 +1,20 @@
-import { resolveSelfReferences } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
+import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { ExpressionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 
 describe('resolveSelfReferences', () => {
+  let normalizer: ResolveSelfReferencesNormalizer
+
+  beforeEach(() => {
+    const container = createCompileStageContainer(new FunctionRegistry(), new ComponentRegistry())
+    normalizer = container.normalizers.resolveSelfReferences
+  })
+
   it('replaces @self with static field code', () => {
     const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
       .withId('compile_ast:1')
@@ -17,7 +27,7 @@ describe('resolveSelfReferences', () => {
       .withProperty('value', ref)
       .build()
 
-    resolveSelfReferences(field)
+    normalizer.normalize(field)
 
     const valueExpr = field.properties.get('value')
     const path = valueExpr.properties.get('path') as any[]
@@ -44,7 +54,7 @@ describe('resolveSelfReferences', () => {
       .withProperty('value', ref)
       .build()
 
-    resolveSelfReferences(field)
+    normalizer.normalize(field)
 
     const valueExpr = field.properties.get('value')
     const path = valueExpr.properties.get('path') as any[]
@@ -73,10 +83,10 @@ describe('resolveSelfReferences', () => {
 
     const journey = ASTTestFactory.journey().withId('compile_ast:7').withProperty('expr', ref).build()
 
-    expect(() => resolveSelfReferences(journey)).toThrow(InvalidNodeError)
+    expect(() => normalizer.normalize(journey)).toThrow(InvalidNodeError)
 
     try {
-      resolveSelfReferences(journey)
+      normalizer.normalize(journey)
     } catch (e) {
       const err = e as InvalidNodeError
       expect(err.message).toMatch(/Self\(\) reference used outside of a field block/)
@@ -92,10 +102,10 @@ describe('resolveSelfReferences', () => {
 
     const field = ASTTestFactory.block('TextInput', 'field').withId('compile_ast:9').withProperty('value', ref).build()
 
-    expect(() => resolveSelfReferences(field)).toThrow(InvalidNodeError)
+    expect(() => normalizer.normalize(field)).toThrow(InvalidNodeError)
 
     try {
-      resolveSelfReferences(field)
+      normalizer.normalize(field)
     } catch (e) {
       const err = e as InvalidNodeError
       expect(err.message).toMatch(/Containing field has no code to resolve Self\(\)/)
@@ -118,10 +128,10 @@ describe('resolveSelfReferences', () => {
       )
       .build()
 
-    expect(() => resolveSelfReferences(field)).toThrow(InvalidNodeError)
+    expect(() => normalizer.normalize(field)).toThrow(InvalidNodeError)
 
     try {
-      resolveSelfReferences(field)
+      normalizer.normalize(field)
     } catch (e) {
       const err = e as InvalidNodeError
       expect(err.message).toMatch(/Self\(\) cannot be used within the field's code expression/)

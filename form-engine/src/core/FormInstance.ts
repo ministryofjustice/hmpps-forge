@@ -6,6 +6,7 @@ import CompiledAST from '@form-engine/core/ast/CompiledAST'
 import { isJourneyDefinition } from '@form-engine/form/typeguards/structures'
 import { FormValidator } from '@form-engine/core/validation/FormValidator'
 import RouteGenerator from '@form-engine/core/runtime/routes/RouteGenerator'
+import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
 
 export default class FormInstance {
   private readonly router = express.Router()
@@ -23,7 +24,10 @@ export default class FormInstance {
   ) {
     this.rawConfiguration = formConfiguration
 
-    this.compiledAst = CompiledAST.createFrom(formConfiguration)
+    this.compiledAst = CompiledAST.createFrom(
+      formConfiguration,
+      createCompileStageContainer(dependencies.functionRegistry, dependencies.componentRegistry),
+    )
 
     this.attachRoutes()
   }
