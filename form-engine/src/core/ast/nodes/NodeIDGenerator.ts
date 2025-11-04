@@ -1,3 +1,5 @@
+import { AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
+
 /**
  * Categories for node IDs
  * Determines prefix and counter namespace
@@ -26,7 +28,15 @@ export class NodeIDGenerator {
    * @param category - Which counter to use
    * @returns String ID like "compile_ast:1"
    */
-  next(category: NodeIDCategory): string {
+  next(category: NodeIDCategory.COMPILE_AST): AstNodeId
+
+  next(category: NodeIDCategory.RUNTIME_AST): AstNodeId
+
+  next(category: NodeIDCategory.COMPILE_PSEUDO): PseudoNodeId
+
+  next(category: NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
+
+  next(category: NodeIDCategory): NodeId {
     const current = this.counters.get(category)!
     const next = current + 1
 

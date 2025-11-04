@@ -14,7 +14,26 @@ export interface FormInstanceDependencies {
  */
 export interface ASTNode {
   type: ASTNodeType
-  id?: string
+  id: AstNodeId
   raw?: any
   parentNode?: ASTNode
 }
+
+/**
+ * Template literal types for enforcing NodeID structure
+ */
+export type CompileAstNodeId = `compile_ast:${number}`
+export type CompilePseudoNodeId = `compile_pseudo:${number}`
+export type RuntimeAstNodeId = `runtime_ast:${number}`
+export type RuntimePseudoNodeId = `runtime_pseudo:${number}`
+
+/**
+ * Union of all valid NodeId formats
+ */
+export type NodeId = CompileAstNodeId | CompilePseudoNodeId | RuntimeAstNodeId | RuntimePseudoNodeId
+
+/**
+ * NodeIds categorized by AST vs Pseudo node type
+ */
+export type AstNodeId = CompileAstNodeId | RuntimeAstNodeId
+export type PseudoNodeId = CompilePseudoNodeId | RuntimePseudoNodeId

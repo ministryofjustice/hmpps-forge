@@ -1,4 +1,4 @@
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 
 /**
@@ -13,7 +13,7 @@ export interface NodeRegistryEntry {
  * Registry for storing and retrieving AST nodes by their unique IDs.
  */
 export default class NodeRegistry {
-  private readonly nodes: Map<string, NodeRegistryEntry> = new Map()
+  private readonly nodes: Map<NodeId, NodeRegistryEntry> = new Map()
 
   /**
    * Register a node with its ID and path
@@ -22,10 +22,11 @@ export default class NodeRegistry {
    * @param path The structural path from root to this node
    * @throws Error if ID is already registered
    */
-  register(id: string, node: ASTNode, path: (string | number)[] = []): void {
+  register(id: NodeId, node: ASTNode, path: (string | number)[] = []): void {
     if (this.nodes.has(id)) {
       throw new Error(`Node with ID "${id}" is already registered`)
     }
+
     this.nodes.set(id, { node, path })
   }
 
@@ -34,7 +35,7 @@ export default class NodeRegistry {
    * @param id The ID of the node to retrieve
    * @returns The node, or undefined if not found
    */
-  get(id: string): ASTNode | undefined {
+  get(id: NodeId): ASTNode | undefined {
     return this.nodes.get(id)?.node
   }
 
@@ -43,7 +44,7 @@ export default class NodeRegistry {
    * @param id The ID of the node to retrieve
    * @returns The node entry with path, or undefined if not found
    */
-  getEntry(id: string): NodeRegistryEntry | undefined {
+  getEntry(id: NodeId): NodeRegistryEntry | undefined {
     return this.nodes.get(id)
   }
 
@@ -52,7 +53,7 @@ export default class NodeRegistry {
    * @param id The ID to check
    * @returns True if the ID is registered, false otherwise
    */
-  has(id: string): boolean {
+  has(id: NodeId): boolean {
     return this.nodes.has(id)
   }
 
@@ -60,11 +61,13 @@ export default class NodeRegistry {
    * Get all registered nodes
    * @returns Map of all nodes by ID
    */
-  getAll(): Map<string, ASTNode> {
-    const result = new Map<string, ASTNode>()
+  getAll(): Map<NodeId, ASTNode> {
+    const result = new Map<NodeId, ASTNode>()
+
     for (const [id, entry] of this.nodes) {
       result.set(id, entry.node)
     }
+
     return result
   }
 
@@ -72,7 +75,7 @@ export default class NodeRegistry {
    * Get all registered entries (nodes with paths)
    * @returns Map of all entries by ID
    */
-  getAllEntries(): Map<string, NodeRegistryEntry> {
+  getAllEntries(): Map<NodeId, NodeRegistryEntry> {
     return new Map(this.nodes)
   }
 
@@ -80,7 +83,7 @@ export default class NodeRegistry {
    * Get all registered node IDs
    * @returns Array of all registered IDs
    */
-  getIds(): string[] {
+  getIds(): NodeId[] {
     return Array.from(this.nodes.keys())
   }
 
@@ -99,11 +102,13 @@ export default class NodeRegistry {
    */
   findByType(type: ASTNodeType): ASTNode[] {
     const results: ASTNode[] = []
+
     for (const entry of this.nodes.values()) {
       if (entry.node.type === type) {
         results.push(entry.node)
       }
     }
+
     return results
   }
 
@@ -114,11 +119,13 @@ export default class NodeRegistry {
    */
   findBy(predicate: (node: ASTNode) => boolean): ASTNode[] {
     const results: ASTNode[] = []
+
     for (const entry of this.nodes.values()) {
       if (predicate(entry.node)) {
         results.push(entry.node)
       }
     }
+
     return results
   }
 }
