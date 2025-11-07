@@ -73,12 +73,10 @@ export function isCollectionExprNode(obj: any): obj is CollectionASTNode {
  * Check if an AST node is any type of Predicate Expression node
  */
 export function isPredicateExprNode(obj: any): obj is PredicateASTNode {
-  return (
-    obj != null &&
+  return obj != null &&
     obj.expressionType != null &&
     Object.values(LogicType).includes(obj.expressionType) &&
     obj.expressionType !== LogicType.CONDITIONAL
-  )
 }
 
 /**

@@ -29,11 +29,9 @@ export function isPredicateNotExpr(obj: any): obj is PredicateNotExpr {
 }
 
 export function isPredicateExpr(obj: any): obj is PredicateExpr {
-  return (
-    isPredicateTestExpr(obj) ||
+  return isPredicateTestExpr(obj) ||
     isPredicateAndExpr(obj) ||
     isPredicateOrExpr(obj) ||
     isPredicateXorExpr(obj) ||
     isPredicateNotExpr(obj)
-  )
 }

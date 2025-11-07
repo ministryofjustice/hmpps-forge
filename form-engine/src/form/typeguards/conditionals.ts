@@ -3,9 +3,7 @@ import { isReferenceExpr, isFormatExpr, isPipelineExpr, isConditionalExpr } from
 import { isStringValue, isNumberValue, isBooleanValue, isArrayValue } from '../../typeguards/primitives'
 
 export function isConditionalString(obj: any): obj is ConditionalString {
-  return (
-    isStringValue(obj) || isReferenceExpr(obj) || isFormatExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
-  )
+  return isStringValue(obj) || isReferenceExpr(obj) || isFormatExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
 }
 
 export function isConditionalBoolean(obj: any): obj is ConditionalBoolean {

@@ -306,9 +306,7 @@ export class ASTTestFactory {
      * Check if value is an AST node
      */
     isASTNode: (value: any): value is ASTNode => {
-      return (
-        value != null && typeof value === 'object' && 'type' in value && Object.values(ASTNodeType).includes(value.type)
-      )
+      return value != null && typeof value === 'object' && 'type' in value && Object.values(ASTNodeType).includes(value.type)
     },
 
     /**

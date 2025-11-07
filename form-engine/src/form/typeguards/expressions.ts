@@ -67,8 +67,7 @@ export function isValidationExpr(obj: any): obj is ValidationExpr {
 }
 
 export function isExpression(node: any): boolean {
-  return (
-    isReferenceExpr(node) ||
+  return isReferenceExpr(node) ||
     isFormatExpr(node) ||
     isPipelineExpr(node) ||
     isConditionalExpr(node) ||
@@ -77,5 +76,4 @@ export function isExpression(node: any): boolean {
     isFunctionExpr(node) ||
     isValidationExpr(node) ||
     isNextExpr(node)
-  )
 }

@@ -158,12 +158,10 @@ export class NodeFactory {
     }
 
     // Check against all known node types
-    return (
-      isJourneyDefinition(value) ||
+    return isJourneyDefinition(value) ||
       isStepDefinition(value) ||
       isBlockDefinition(value) ||
       isExpression(value) ||
       isTransition(value)
-    )
   }
 }

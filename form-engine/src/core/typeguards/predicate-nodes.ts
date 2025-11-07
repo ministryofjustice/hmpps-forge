@@ -5,12 +5,10 @@ import { PredicateASTNode } from '@form-engine/core/types/expressions.type'
  * Check if an AST node is a Predicate expression node
  */
 export function isPredicateNode(obj: any): obj is PredicateASTNode {
-  return (
-    obj != null &&
+  return obj != null &&
     obj.expressionType != null &&
     Object.values(LogicType).includes(obj.expressionType) &&
     obj.expressionType !== LogicType.CONDITIONAL
-  )
 }
 
 /**

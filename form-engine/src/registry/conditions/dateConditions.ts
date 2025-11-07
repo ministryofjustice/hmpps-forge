@@ -44,12 +44,10 @@ export const { conditions: DateConditions, registry: DateConditionsRegistry } = 
 
     // Create a Date object and check if it's valid and matches the parsed components
     const date = new Date(parsed.year, parsed.month - 1, parsed.day)
-    return (
-      !Number.isNaN(date.getTime()) &&
+    return !Number.isNaN(date.getTime()) &&
       date.getFullYear() === parsed.year &&
       date.getMonth() === parsed.month - 1 &&
       date.getDate() === parsed.day
-    )
   },
 
   /**
