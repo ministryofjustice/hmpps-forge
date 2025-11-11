@@ -2,16 +2,17 @@ import express from 'express'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import type { FormEngineOptions } from '@form-engine/core/FormEngine'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
-import CompiledAST from '@form-engine/core/ast/CompiledAST'
+import FormCompilationFactory, { CompiledForm } from '@form-engine/core/ast/FormCompilationFactory'
 import { isJourneyDefinition } from '@form-engine/form/typeguards/structures'
 import { FormValidator } from '@form-engine/core/validation/FormValidator'
 import RouteGenerator from '@form-engine/core/runtime/routes/RouteGenerator'
-import { createCompileStageContainer } from '@form-engine/core/container/compileStageContainer'
+import { ASTNodeType } from '@form-engine/core/types/enums'
+import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 
 export default class FormInstance {
   private readonly router = express.Router()
 
-  private readonly compiledAst: CompiledAST
+  private readonly compiledForm: CompiledForm
 
   private readonly rawConfiguration: JourneyDefinition
 
@@ -24,10 +25,9 @@ export default class FormInstance {
   ) {
     this.rawConfiguration = formConfiguration
 
-    this.compiledAst = CompiledAST.createFrom(
-      formConfiguration,
-      createCompileStageContainer(dependencies.logger, dependencies.functionRegistry, dependencies.componentRegistry),
-    )
+    const compiler = new FormCompilationFactory()
+
+    this.compiledForm = compiler.compile(formConfiguration)
 
     this.attachRoutes()
   }
@@ -55,7 +55,7 @@ export default class FormInstance {
    * Generate and attach routes to the Express router
    */
   private attachRoutes(): void {
-    const routeGenerator = new RouteGenerator(this.compiledAst, this.dependencies, this.options)
+    const routeGenerator = new RouteGenerator(this.compiledForm, this.dependencies, this.options)
     const { routes } = routeGenerator.generateRoutes()
 
     routes.forEach(route => {
@@ -77,11 +77,13 @@ export default class FormInstance {
   }
 
   getFormCode(): string {
-    return this.compiledAst.getRoot().properties.get('code')
+    return this.compiledForm[0].journeyMetadataArtefact.specialisedNodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
+      .at(0)
+      .properties.get('code')
   }
 
   getFormTitle(): string {
-    return this.compiledAst.getRoot().properties.get('title')
+    return this.rawConfiguration.title
   }
 
   /**

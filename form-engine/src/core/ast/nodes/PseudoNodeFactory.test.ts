@@ -1,96 +1,154 @@
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { PseudoNodeFactory } from './PseudoNodeFactory'
-import { NodeIDGenerator } from './NodeIDGenerator'
 
 describe('PseudoNodeFactory', () => {
-  let nodeIDGenerator: NodeIDGenerator
+  let mockNodeIDGenerator: jest.Mocked<NodeIDGenerator>
   let factory: PseudoNodeFactory
 
   beforeEach(() => {
-    nodeIDGenerator = new NodeIDGenerator()
-    factory = new PseudoNodeFactory(nodeIDGenerator)
+    mockNodeIDGenerator = {
+      next: jest.fn(),
+    } as unknown as jest.Mocked<NodeIDGenerator>
+
+    factory = new PseudoNodeFactory(mockNodeIDGenerator)
   })
 
-  describe('createPostPseudoNode()', () => {
-    it('should create a POST pseudo node with auto-generated ID', () => {
-      const postNode = factory.createPostPseudoNode('email')
+  describe('createPostPseudoNode', () => {
+    it('should create POST pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const baseFieldCode = 'firstName'
+      const generatedId = 'compile_pseudo:1'
 
-      expect(postNode).toEqual({
-        id: 'compile_pseudo:1',
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createPostPseudoNode(baseFieldCode)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
         type: PseudoNodeType.POST,
-        metadata: {
-          fieldCode: 'email',
+        properties: {
+          baseFieldCode,
         },
       })
     })
-
-    it('should generate sequential IDs for multiple nodes', () => {
-      const post1 = factory.createPostPseudoNode('email')
-      const post2 = factory.createPostPseudoNode('name')
-
-      expect(post1.id).toBe('compile_pseudo:1')
-      expect(post2.id).toBe('compile_pseudo:2')
-    })
   })
 
-  describe('createAnswerPseudoNode()', () => {
-    it('should create an ANSWER pseudo node with auto-generated ID', () => {
-      const answerNode = factory.createAnswerPseudoNode('email')
+  describe('createAnswerLocalPseudoNode', () => {
+    it('should create ANSWER_LOCAL pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const baseFieldCode = 'firstName'
+      const fieldNodeId = 'compile_ast:100'
+      const generatedId = 'compile_pseudo:10'
 
-      expect(answerNode).toEqual({
-        id: 'compile_pseudo:1',
-        type: PseudoNodeType.ANSWER,
-        metadata: {
-          fieldCode: 'email',
-          fieldNodeId: undefined,
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createAnswerLocalPseudoNode(baseFieldCode, fieldNodeId)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
+        type: PseudoNodeType.ANSWER_LOCAL,
+        properties: {
+          baseFieldCode,
+          fieldNodeId,
         },
       })
     })
+  })
 
-    it('should include fieldNodeId when provided', () => {
-      const answerNode = factory.createAnswerPseudoNode('email', 'compile_ast:42')
+  describe('createAnswerRemotePseudoNode', () => {
+    it('should create ANSWER_REMOTE pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const baseFieldCode = 'previousAnswer'
+      const generatedId = 'compile_pseudo:20'
 
-      expect(answerNode.metadata.fieldNodeId).toBe('compile_ast:42')
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createAnswerRemotePseudoNode(baseFieldCode)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
+        type: PseudoNodeType.ANSWER_REMOTE,
+        properties: {
+          baseFieldCode,
+        },
+      })
     })
   })
 
-  describe('createDataPseudoNode()', () => {
-    it('should create a DATA pseudo node with auto-generated ID', () => {
-      const dataNode = factory.createDataPseudoNode('currentUser')
+  describe('createDataPseudoNode', () => {
+    it('should create DATA pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const baseFieldCode = 'userData'
+      const generatedId = 'compile_pseudo:30'
 
-      expect(dataNode).toEqual({
-        id: 'compile_pseudo:1',
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createDataPseudoNode(baseFieldCode)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
         type: PseudoNodeType.DATA,
-        metadata: {
-          dataKey: 'currentUser',
+        properties: {
+          baseFieldCode,
         },
       })
     })
   })
 
-  describe('createQueryPseudoNode()', () => {
-    it('should create a QUERY pseudo node with auto-generated ID', () => {
-      const queryNode = factory.createQueryPseudoNode('returnUrl')
+  describe('createQueryPseudoNode', () => {
+    it('should create QUERY pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const paramName = 'returnUrl'
+      const generatedId = 'compile_pseudo:40'
 
-      expect(queryNode).toEqual({
-        id: 'compile_pseudo:1',
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createQueryPseudoNode(paramName)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
         type: PseudoNodeType.QUERY,
-        metadata: {
-          paramName: 'returnUrl',
+        properties: {
+          paramName,
         },
       })
     })
   })
 
-  describe('createParamsPseudoNode()', () => {
-    it('should create a PARAMS pseudo node with auto-generated ID', () => {
-      const paramsNode = factory.createParamsPseudoNode('userId')
+  describe('createParamsPseudoNode', () => {
+    it('should create PARAMS pseudo node with generated ID from nodeIDGenerator', () => {
+      // Arrange
+      const paramName = 'journeyId'
+      const generatedId = 'compile_pseudo:50'
 
-      expect(paramsNode).toEqual({
-        id: 'compile_pseudo:1',
+      mockNodeIDGenerator.next.mockReturnValue(generatedId)
+
+      // Act
+      const result = factory.createParamsPseudoNode(paramName)
+
+      // Assert
+      expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
+      expect(result).toEqual({
+        id: generatedId,
         type: PseudoNodeType.PARAMS,
-        metadata: {
-          paramName: 'userId',
+        properties: {
+          paramName,
         },
       })
     })

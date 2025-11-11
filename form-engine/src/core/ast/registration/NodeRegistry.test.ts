@@ -277,4 +277,67 @@ describe('NodeRegistry', () => {
       expect(emailFields[0]).toBe(block1)
     })
   })
+
+  describe('clone', () => {
+    it('should create a new registry with the same entries', () => {
+      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node2 = ASTTestFactory.step().build()
+
+      registry.register('compile_ast:1', node1, ['blocks', 0])
+      registry.register('compile_ast:2', node2, ['steps', 0])
+
+      const cloned = registry.clone()
+
+      expect(cloned).not.toBe(registry)
+      expect(cloned.size()).toBe(2)
+      expect(cloned.has('compile_ast:1')).toBe(true)
+      expect(cloned.has('compile_ast:2')).toBe(true)
+    })
+
+    it('should share node references between original and clone', () => {
+      const node = ASTTestFactory.block('TextField', 'field').build()
+
+      registry.register('compile_ast:1', node, ['blocks', 0])
+
+      const cloned = registry.clone()
+
+      expect(cloned.get('compile_ast:1')).toBe(node)
+      expect(cloned.get('compile_ast:1')).toBe(registry.get('compile_ast:1'))
+    })
+
+    it('should allow independent modifications to cloned registry', () => {
+      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node2 = ASTTestFactory.step().build()
+
+      registry.register('compile_ast:1', node1)
+
+      const cloned = registry.clone()
+
+      cloned.register('compile_ast:2', node2)
+
+      expect(cloned.size()).toBe(2)
+      expect(registry.size()).toBe(1)
+      expect(cloned.has('compile_ast:2')).toBe(true)
+      expect(registry.has('compile_ast:2')).toBe(false)
+    })
+
+    it('should clone empty registry', () => {
+      const cloned = registry.clone()
+
+      expect(cloned.size()).toBe(0)
+      expect(cloned).not.toBe(registry)
+    })
+
+    it('should preserve entry paths in cloned registry', () => {
+      const node = ASTTestFactory.block('TextField', 'field').build()
+      const path = ['steps', 0, 'blocks', 2]
+
+      registry.register('compile_ast:1', node, path)
+
+      const cloned = registry.clone()
+      const entry = cloned.getEntry('compile_ast:1')
+
+      expect(entry?.path).toEqual(path)
+    })
+  })
 })

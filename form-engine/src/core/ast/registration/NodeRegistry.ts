@@ -28,7 +28,7 @@ export default class NodeRegistry {
       throw new Error(`Node with ID "${id}" is already registered`)
     }
 
-    this.nodes.set(id, { node, path })
+    this.nodes.set(id, { node: Object.freeze(node), path })
   }
 
   /**
@@ -65,9 +65,9 @@ export default class NodeRegistry {
   getAll(): Map<NodeId, ASTNode | PseudoNode> {
     const result = new Map<NodeId, ASTNode | PseudoNode>()
 
-    for (const [id, entry] of this.nodes) {
+    this.nodes.forEach((entry, id) => {
       result.set(id, entry.node)
-    }
+    })
 
     return result
   }
@@ -101,14 +101,14 @@ export default class NodeRegistry {
    * @param type The node type symbol to search for
    * @returns Array of nodes matching the type
    */
-  findByType(type: ASTNodeType | PseudoNodeType): (ASTNode | PseudoNode)[] {
-    const results: (ASTNode | PseudoNode)[] = []
+  findByType<T = ASTNode | PseudoNode>(type: ASTNodeType | PseudoNodeType): T[] {
+    const results: T[] = []
 
-    for (const entry of this.nodes.values()) {
+    this.nodes.forEach(entry => {
       if (entry.node.type === type) {
-        results.push(entry.node)
+        results.push(entry.node as T)
       }
-    }
+    })
 
     return results
   }
@@ -121,12 +121,26 @@ export default class NodeRegistry {
   findBy(predicate: (node: ASTNode | PseudoNode) => boolean): (ASTNode | PseudoNode)[] {
     const results: (ASTNode | PseudoNode)[] = []
 
-    for (const entry of this.nodes.values()) {
+    this.nodes.forEach(entry => {
       if (predicate(entry.node)) {
         results.push(entry.node)
       }
-    }
+    })
 
     return results
+  }
+
+  /**
+   * Create a shallow copy of this registry
+   * Node references are shared (safe since nodes are immutable),
+   * but the registry can be modified independently
+   * @returns A new NodeRegistry with the same entries
+   */
+  clone(): NodeRegistry {
+    const cloned = Object.create(Object.getPrototypeOf(this)) as NodeRegistry
+
+    return Object.assign(cloned, {
+      nodes: new Map(this.nodes),
+    })
   }
 }

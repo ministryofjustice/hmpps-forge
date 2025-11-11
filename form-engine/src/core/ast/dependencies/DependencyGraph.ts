@@ -11,20 +11,20 @@ export enum DependencyEdgeType {
   STRUCTURAL = 'structural',
 
   /**
-   * Data flow edges (consumer → producer)
-   * Example: Field → DefaultValue, Conditional → Predicate
+   * Data flow edges (producer → consumer)
+   * Example: DefaultValue → Field, Predicate → Conditional
    */
   DATA_FLOW = 'data_flow',
 
   /**
-   * Control flow edges (dependent → condition)
-   * Example: Validation → dependent condition
+   * Control flow edges (condition → dependent)
+   * Example: dependent condition → Validation
    */
   CONTROL_FLOW = 'control_flow',
 
   /**
-   * Effect flow edges (consumer → effect that populates)
-   * Example: Answer → onLoad, Data → onLoad
+   * Effect flow edges (effect → consumer that depends on it)
+   * Example: onLoad → Answer, onLoad → Data
    */
   EFFECT_FLOW = 'effect_flow',
 }
@@ -51,7 +51,7 @@ export default class DependencyGraph {
 
   private readonly reverseAdjacencyList: Map<NodeId, Set<NodeId>> = new Map()
 
-  private readonly edges: Map<string, DependencyEdge[]> = new Map()
+  private readonly edgeMetadata: Map<NodeId, Map<NodeId, DependencyEdge[]>> = new Map()
 
   private readonly nodes: Set<NodeId> = new Set()
 
@@ -87,13 +87,17 @@ export default class DependencyGraph {
     this.reverseAdjacencyList.get(to)!.add(from)
 
     // Store edge metadata
-    const edgeKey = `${from} → ${to}`
-
-    if (!this.edges.has(edgeKey)) {
-      this.edges.set(edgeKey, [])
+    if (!this.edgeMetadata.has(from)) {
+      this.edgeMetadata.set(from, new Map())
     }
 
-    this.edges.get(edgeKey)!.push({ from, to, type, metadata })
+    const fromEdges = this.edgeMetadata.get(from)!
+
+    if (!fromEdges.has(to)) {
+      fromEdges.set(to, [])
+    }
+
+    fromEdges.get(to)!.push({ from, to, type, metadata })
   }
 
   /**
@@ -113,10 +117,20 @@ export default class DependencyGraph {
   }
 
   /**
-   * Get all edges for a specific node pair
+   * Get all edges between a specific node pair
+   * Returns array to support multiple edge types between same nodes
    */
   getEdges(from: NodeId, to: NodeId): DependencyEdge[] {
-    return this.edges.get(`${from} → ${to}`) ?? []
+    return this.edgeMetadata.get(from)?.get(to) ?? []
+  }
+
+  /**
+   * Get all edges from a specific node
+   */
+  getAllEdgesFrom(from: NodeId): DependencyEdge[] {
+    const edges = this.edgeMetadata.get(from)
+
+    return edges ? Array.from(edges.values()).flat() : []
   }
 
   /**

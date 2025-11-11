@@ -16,7 +16,6 @@ export interface ASTNode {
   type: ASTNodeType
   id: AstNodeId
   raw?: any
-  parentNode?: ASTNode
 }
 
 /**

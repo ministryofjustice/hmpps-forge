@@ -1,6 +1,7 @@
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import {
-  AnswerPseudoNode,
+  AnswerLocalPseudoNode,
+  AnswerRemotePseudoNode,
   DataPseudoNode,
   ParamsPseudoNode,
   PostPseudoNode,
@@ -22,33 +23,51 @@ export class PseudoNodeFactory {
   /**
    * Create a POST pseudo node - represents form submission data for a field
    *
-   * @param fieldCode - The field code this POST node represents
+   * @param baseFieldCode - The base field code (e.g., 'fieldName')
    * @returns PostPseudoNode with auto-generated ID
    */
-  createPostPseudoNode(fieldCode: string): PostPseudoNode {
+  createPostPseudoNode(baseFieldCode: string): PostPseudoNode {
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
       type: PseudoNodeType.POST,
-      metadata: {
-        fieldCode,
+      properties: {
+        baseFieldCode,
       },
     }
   }
 
   /**
-   * Create an ANSWER pseudo node - represents field answer with default value fallback
+   * Create an ANSWER_LOCAL pseudo node - represents field answer for a field on the current step
+   * Has dependencies on POST, formatters, defaultValue, and onLoad transitions
    *
-   * @param fieldCode - The field code this ANSWER node represents
-   * @param fieldNodeId - Optional reference to the field node for defaultValue lookup
-   * @returns AnswerPseudoNode with auto-generated ID
+   * @param baseFieldCode - The base field code (e.g., 'fieldName')
+   * @param fieldNodeId - Reference to the field node for dependency tracking
+   * @returns AnswerLocalPseudoNode with auto-generated ID
    */
-  createAnswerPseudoNode(fieldCode: string, fieldNodeId?: NodeId): AnswerPseudoNode {
+  createAnswerLocalPseudoNode(baseFieldCode: string, fieldNodeId: NodeId): AnswerLocalPseudoNode {
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
-      type: PseudoNodeType.ANSWER,
-      metadata: {
-        fieldCode,
+      type: PseudoNodeType.ANSWER_LOCAL,
+      properties: {
+        baseFieldCode,
         fieldNodeId,
+      },
+    }
+  }
+
+  /**
+   * Create an ANSWER_REMOTE pseudo node - represents field answer for a field on a different step
+   * Only has dependencies on onLoad transitions (value is read from context.answers)
+   *
+   * @param baseFieldCode - The base field code (e.g., 'fieldName')
+   * @returns AnswerRemotePseudoNode with auto-generated ID
+   */
+  createAnswerRemotePseudoNode(baseFieldCode: string): AnswerRemotePseudoNode {
+    return {
+      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      type: PseudoNodeType.ANSWER_REMOTE,
+      properties: {
+        baseFieldCode,
       },
     }
   }
@@ -56,15 +75,15 @@ export class PseudoNodeFactory {
   /**
    * Create a DATA pseudo node - represents external data reference
    *
-   * @param dataKey - The data key this DATA node represents
+   * @param baseFieldCode - The base field code (e.g., 'userData')
    * @returns DataPseudoNode with auto-generated ID
    */
-  createDataPseudoNode(dataKey: string): DataPseudoNode {
+  createDataPseudoNode(baseFieldCode: string): DataPseudoNode {
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
       type: PseudoNodeType.DATA,
-      metadata: {
-        dataKey,
+      properties: {
+        baseFieldCode,
       },
     }
   }
@@ -79,7 +98,7 @@ export class PseudoNodeFactory {
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
       type: PseudoNodeType.QUERY,
-      metadata: {
+      properties: {
         paramName,
       },
     }
@@ -95,7 +114,7 @@ export class PseudoNodeFactory {
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
       type: PseudoNodeType.PARAMS,
-      metadata: {
+      properties: {
         paramName,
       },
     }

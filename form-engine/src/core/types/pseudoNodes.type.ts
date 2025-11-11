@@ -9,7 +9,8 @@ export enum PseudoNodeType {
   QUERY = 'QUERY',
   PARAMS = 'PARAMS',
   DATA = 'DATA',
-  ANSWER = 'ANSWER',
+  ANSWER_LOCAL = 'ANSWER_LOCAL',
+  ANSWER_REMOTE = 'ANSWER_REMOTE',
 }
 
 /**
@@ -18,17 +19,7 @@ export enum PseudoNodeType {
 export interface BasePseudoNode {
   id: PseudoNodeId
   type: PseudoNodeType
-  metadata: Record<string, unknown>
-}
-
-/**
- * POST pseudo node - represents raw form submission data for a field
- */
-export interface PostPseudoNode extends BasePseudoNode {
-  type: PseudoNodeType.POST
-  metadata: {
-    fieldCode: string
-  }
+  properties: Record<string, unknown>
 }
 
 /**
@@ -36,7 +27,7 @@ export interface PostPseudoNode extends BasePseudoNode {
  */
 export interface QueryPseudoNode extends BasePseudoNode {
   type: PseudoNodeType.QUERY
-  metadata: {
+  properties: {
     paramName: string
   }
 }
@@ -46,33 +37,79 @@ export interface QueryPseudoNode extends BasePseudoNode {
  */
 export interface ParamsPseudoNode extends BasePseudoNode {
   type: PseudoNodeType.PARAMS
-  metadata: {
+  properties: {
     paramName: string
   }
 }
 
 /**
- * DATA pseudo node - represents external data loaded via onLoad transitions
+ * POST pseudo node - represents raw form submission data for a field
+ *
+ * Stores only the base field code.
+ * Nested property access (e.g., 'fieldName.subProperty') is handled by the expression evaluator.
  */
-export interface DataPseudoNode extends BasePseudoNode {
-  type: PseudoNodeType.DATA
-  metadata: {
-    dataKey: string
+export interface PostPseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.POST
+  properties: {
+    baseFieldCode: string
   }
 }
 
 /**
- * ANSWER pseudo node - represents resolved field answer (POST + formatters + defaultValue)
+ * DATA pseudo node - represents external data loaded via onLoad transitions
+ *
+ * Stores only the base field code.
+ * Nested property access (e.g., 'userData.name') is handled by the expression evaluator.
  */
-export interface AnswerPseudoNode extends BasePseudoNode {
-  type: PseudoNodeType.ANSWER
-  metadata: {
-    fieldCode: string
-    fieldNodeId?: NodeId
+export interface DataPseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.DATA
+  properties: {
+    baseFieldCode: string
   }
 }
+
+/**
+ * ANSWER_LOCAL pseudo node - represents resolved field answer for a field on the current step
+ * Has dependencies on POST, formatters, defaultValue, and onLoad transitions
+ *
+ * Stores only the base field code.
+ * Nested property access (e.g., 'business-type.0.title') is handled by the expression evaluator.
+ */
+export interface AnswerLocalPseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.ANSWER_LOCAL
+  properties: {
+    baseFieldCode: string
+    fieldNodeId: NodeId
+  }
+}
+
+/**
+ * ANSWER_REMOTE pseudo node - represents resolved field answer for a field on a different step
+ * Only has dependencies on onLoad transitions (value is read from context.answers)
+ *
+ * Stores only the base field code.
+ * Nested property access (e.g., 'business-type.0.title') is handled by the expression evaluator.
+ * All references to the same base field share one pseudo node.
+ */
+export interface AnswerRemotePseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.ANSWER_REMOTE
+  properties: {
+    baseFieldCode: string
+  }
+}
+
+/**
+ * Union type for answer pseudo nodes
+ */
+export type AnswerPseudoNode = AnswerLocalPseudoNode | AnswerRemotePseudoNode
 
 /**
  * Union type of all pseudo nodes
  */
-export type PseudoNode = PostPseudoNode | QueryPseudoNode | ParamsPseudoNode | DataPseudoNode | AnswerPseudoNode
+export type PseudoNode =
+  | PostPseudoNode
+  | QueryPseudoNode
+  | ParamsPseudoNode
+  | DataPseudoNode
+  | AnswerLocalPseudoNode
+  | AnswerRemotePseudoNode

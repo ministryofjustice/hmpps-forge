@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import { ExpressionType, FunctionType, LogicType, TransitionType } from '@form-engine/form/types/enums'
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
@@ -11,6 +11,15 @@ import {
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { PipelineExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
+import {
+  PseudoNodeType,
+  PostPseudoNode,
+  QueryPseudoNode,
+  ParamsPseudoNode,
+  DataPseudoNode,
+  AnswerLocalPseudoNode,
+  AnswerRemotePseudoNode,
+} from '@form-engine/core/types/pseudoNodes.type'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode
@@ -44,23 +53,36 @@ type BlockType = 'basic' | 'field'
  * const node = ASTTestFactory.utils.findNodeById(form, 5)
  */
 export class ASTTestFactory {
-  private static nextId = 1
+  private static astNodeNextId = 1
+
+  private static pseudoNodeNextId = 1
 
   /**
    * Reset the ID counter (useful between tests)
    */
   static resetIds(): void {
-    this.nextId = 1
+    this.astNodeNextId = 1
   }
 
   /**
    * Get the next available ID in NodeIDGenerator format
    * @param category - The ID category (defaults to 'compile_ast' for tests)
    */
-  static getId(category: string = 'compile_ast'): string {
-    const id = this.nextId
-    this.nextId += 1
-    return `${category}:${id}`
+  static getId(category: string = 'compile_ast'): AstNodeId {
+    const id = this.astNodeNextId
+    this.astNodeNextId += 1
+
+    return `${category}:${id}` as AstNodeId
+  }
+
+  /**
+   * Get the next available pseudo node ID
+   */
+  static getPseudoId(category: string = 'compile_pseudo'): PseudoNodeId {
+    const id = this.pseudoNodeNextId
+    this.pseudoNodeNextId += 1
+
+    return `${category}:${id}` as PseudoNodeId
   }
 
   /**
@@ -133,6 +155,85 @@ export class ASTTestFactory {
     }
 
     return builder.build() as PredicateASTNode
+  }
+
+  /**
+   * Create a POST pseudo node
+   */
+  static postPseudoNode(baseFieldCode: string): PostPseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.POST,
+      properties: {
+        baseFieldCode,
+      },
+    }
+  }
+
+  /**
+   * Create a QUERY pseudo node
+   */
+  static queryPseudoNode(paramName: string): QueryPseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.QUERY,
+      properties: {
+        paramName,
+      },
+    }
+  }
+
+  /**
+   * Create a PARAMS pseudo node
+   */
+  static paramsPseudoNode(paramName: string): ParamsPseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.PARAMS,
+      properties: {
+        paramName,
+      },
+    }
+  }
+
+  /**
+   * Create a DATA pseudo node
+   */
+  static dataPseudoNode(baseFieldCode: string): DataPseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.DATA,
+      properties: {
+        baseFieldCode,
+      },
+    }
+  }
+
+  /**
+   * Create an ANSWER_LOCAL pseudo node
+   */
+  static answerLocalPseudoNode(baseFieldCode: string, fieldNodeId: NodeId): AnswerLocalPseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.ANSWER_LOCAL,
+      properties: {
+        baseFieldCode,
+        fieldNodeId,
+      },
+    }
+  }
+
+  /**
+   * Create an ANSWER_REMOTE pseudo node
+   */
+  static answerRemotePseudoNode(baseFieldCode: string): AnswerRemotePseudoNode {
+    return {
+      id: ASTTestFactory.getPseudoId(),
+      type: PseudoNodeType.ANSWER_REMOTE,
+      properties: {
+        baseFieldCode,
+      },
+    }
   }
 
   static scenarios = {

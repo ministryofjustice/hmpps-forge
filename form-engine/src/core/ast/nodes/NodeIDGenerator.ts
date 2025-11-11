@@ -67,4 +67,17 @@ export class NodeIDGenerator {
       })
     }
   }
+
+  /**
+   * Create a shallow copy of this ID generator with the same counter state
+   * Counters are copied so each generator can increment independently
+   * @returns A new NodeIDGenerator with the same counter values
+   */
+  clone(): NodeIDGenerator {
+    const cloned = Object.create(Object.getPrototypeOf(this)) as NodeIDGenerator
+
+    return Object.assign(cloned, {
+      counters: new Map(this.counters),
+    })
+  }
 }
