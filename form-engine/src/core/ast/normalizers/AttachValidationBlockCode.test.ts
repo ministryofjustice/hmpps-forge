@@ -27,11 +27,11 @@ describe('AttachValidationBlockCodeNormalizer', () => {
 
       normalizer.normalize(ast)
 
-      const steps = ast.properties.get('steps')
-      const block = steps[0].properties.get('blocks')[0]
-      const validation = block.properties.get('validate')
+      const steps = ast.properties.steps
+      const block = steps[0].properties.blocks[0]
+      const validation = block.properties.validate
 
-      expect(validation.properties.get('resolvedBlockCode')).toBe('nickname')
+      expect(validation.properties.resolvedBlockCode).toBe('nickname')
     })
 
     it('attaches cloned dynamic code expressions to validation nodes', () => {
@@ -45,15 +45,15 @@ describe('AttachValidationBlockCodeNormalizer', () => {
 
       normalizer.normalize(ast)
 
-      const steps = ast.properties.get('steps')
-      const block = steps[0].properties.get('blocks')[0]
-      const validation = block.properties.get('validate')
+      const steps = ast.properties.steps
+      const block = steps[0].properties.blocks[0]
+      const validation = block.properties.validate
 
-      const resolved = validation.properties.get('resolvedBlockCode')
+      const resolved = validation.properties.resolvedBlockCode
 
       expect(isExpressionNode(resolved)).toBe(true)
       expect(resolved).not.toBe(dynamicCode)
-      expect(resolved.properties.get('path')).toEqual(['answers', 'dynamicCode'])
+      expect(resolved.properties.path).toEqual(['answers', 'dynamicCode'])
     })
 
     it('omits resolved block code when block has no code', () => {
@@ -65,11 +65,11 @@ describe('AttachValidationBlockCodeNormalizer', () => {
 
       normalizer.normalize(ast)
 
-      const steps = ast.properties.get('steps')
-      const block = steps[0].properties.get('blocks')[0]
-      const validation = block.properties.get('validate')
+      const steps = ast.properties.steps
+      const block = steps[0].properties.blocks[0]
+      const validation = block.properties.validate
 
-      expect(validation.properties.has('resolvedBlockCode')).toBe(false)
+      expect(validation.properties.resolvedBlockCode !== undefined).toBe(false)
     })
   })
 })

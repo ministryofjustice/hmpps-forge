@@ -22,6 +22,15 @@ import {
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
+import {
+  CollectionExpr,
+  FormatExpr,
+  FunctionExpr,
+  NextExpr,
+  PipelineExpr,
+  ReferenceExpr,
+} from '@form-engine/form/types/expressions.type'
+import { ValidationExpr } from '@form-engine/form/types/structures.type'
 import { NodeFactory } from '../NodeFactory'
 
 /**
@@ -37,7 +46,7 @@ export class ExpressionNodeFactory {
   /**
    * Create an expression node based on the JSON type
    */
-  create(json: any): ExpressionASTNode {
+  create(json: any): ExpressionASTNode | FunctionASTNode {
     if (isReferenceExpr(json)) {
       return this.createReference(json)
     }
@@ -77,20 +86,18 @@ export class ExpressionNodeFactory {
    * Transform Reference expression: Points to data in context
    * Examples: Answer('field'), Data('external.value'), Self(), Item()
    */
-  private createReference(json: any): ReferenceASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
+  private createReference(json: ReferenceExpr): ReferenceASTNode {
     const transformedPath = Array.isArray(json.path)
       ? json.path.map((segment: any) => this.nodeFactory.transformValue(segment))
       : json.path
-
-    properties.set('path', transformedPath)
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
-      properties,
+      properties: {
+        path: transformedPath,
+      },
       raw: json,
     }
   }
@@ -98,22 +105,19 @@ export class ExpressionNodeFactory {
   /**
    * Transform Format expression: String template with placeholders
    * Replaces placeholders (%1, %2, etc.) with evaluated argument values
-   * Example: text: 'address_%1_street', args: [Item().id]
+   * Example: template: 'address_%1_street', arguments: [Item().id]
    */
-  private createFormat(json: any): FormatASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
-    properties.set('text', json.text)
-
-    const transformedArgs = json.args.map((arg: any) => this.nodeFactory.transformValue(arg))
-
-    properties.set('args', transformedArgs)
+  private createFormat(json: FormatExpr): FormatASTNode {
+    const transformedArgs = json.arguments.map((arg: any) => this.nodeFactory.transformValue(arg))
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.FORMAT,
-      properties,
+      properties: {
+        template: json.template,
+        arguments: transformedArgs,
+      },
       raw: json,
     }
   }
@@ -122,33 +126,21 @@ export class ExpressionNodeFactory {
    * Transform Pipeline expression: Sequential data transformations
    * Input flows through each step: input -> step1 -> step2 -> output
    */
-  private createPipeline(json: any): PipelineASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
+  private createPipeline(json: PipelineExpr): PipelineASTNode {
     // Initial value to transform
-    properties.set('input', this.nodeFactory.createNode(json.input))
+    const input = this.nodeFactory.createNode(json.input)
 
     // Transform each pipeline step
-    const steps = json.steps.map((step: any) => {
-      const result: any = {
-        name: step.name,
-      }
-
-      // Optional arguments for transformer functions
-      if (step.args) {
-        result.args = step.args.map((arg: any) => this.nodeFactory.transformValue(arg))
-      }
-
-      return result
-    })
-
-    properties.set('steps', steps)
+    const steps = json.steps.map((arg: any) => this.nodeFactory.transformValue(arg))
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.PIPELINE,
-      properties,
+      properties: {
+        input,
+        steps,
+      },
       raw: json,
     }
   }
@@ -162,21 +154,21 @@ export class ExpressionNodeFactory {
    * with actual item data before node creation.
    *
    */
-  private createCollection(json: any): CollectionASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
-    // Transform the collection data source (this IS an expression that needs evaluation)
-    properties.set('collection', this.nodeFactory.transformValue(json.collection))
-
-    // Store template as raw JSON - will be instantiated at runtime per collection item
-    if (json.template) {
-      properties.set('template', json.template)
+  private createCollection(json: CollectionExpr): CollectionASTNode {
+    const properties: {
+      collection: ASTNode | any
+      template: any
+      fallback?: ASTNode[]
+    } = {
+      // Transform the collection data source (this IS an expression that needs evaluation)
+      collection: this.nodeFactory.transformValue(json.collection),
+      // Store template as raw JSON - will be instantiated at runtime per collection item
+      template: json.template,
     }
 
     // Transform fallback blocks normally - they're shown when collection is empty
     if (json.fallback) {
-      const fallback = json.fallback.map((item: any) => this.nodeFactory.createNode(item))
-      properties.set('fallback', fallback)
+      properties.fallback = json.fallback.map((item: any) => this.nodeFactory.createNode(item))
     }
 
     return {
@@ -192,21 +184,24 @@ export class ExpressionNodeFactory {
    * Transform Validation expression: Field validation rules
    * Contains predicate condition and error message
    */
-  private createValidation(json: any): ValidationASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
-    if (json.when) {
-      properties.set('when', this.nodeFactory.createNode(json.when))
+  private createValidation(json: ValidationExpr): ValidationASTNode {
+    const properties: {
+      when: ASTNode
+      message: ASTNode | string
+      submissionOnly?: boolean
+      details?: Record<string, any>
+    } = {
+      when: this.nodeFactory.createNode(json.when),
+      message: this.nodeFactory.transformValue(json.message || ''),
+      submissionOnly: false, // Default to false
     }
 
-    properties.set('message', json.message || '')
-
     if (json.submissionOnly !== undefined) {
-      properties.set('submissionOnly', json.submissionOnly)
+      properties.submissionOnly = json.submissionOnly
     }
 
     if (json.details) {
-      properties.set('details', json.details)
+      properties.details = json.details
     }
 
     return {
@@ -222,22 +217,20 @@ export class ExpressionNodeFactory {
    * Transform Function expression: Registered function calls
    * Types: Condition (boolean), Transformer (value), Effect (side-effect)
    */
-  private createFunction(json: any): FunctionASTNode {
+  private createFunction(json: FunctionExpr<any>): FunctionASTNode {
     const funcType = json.type
-    const properties = new Map<string, ASTNode | any>()
-
-    properties.set('name', json.name)
 
     // Transform arguments recursively
     const args = json.arguments.map((arg: any) => this.nodeFactory.transformValue(arg))
-
-    properties.set('arguments', args)
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: funcType,
-      properties,
+      properties: {
+        name: json.name,
+        arguments: args,
+      },
       raw: json,
     }
   }
@@ -246,14 +239,14 @@ export class ExpressionNodeFactory {
    * Transform Next expression: Navigation target
    * Contains optional condition and destination path
    */
-  private createNext(json: any): NextASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
-    if (json.when) {
-      properties.set('when', this.nodeFactory.createNode(json.when))
+  private createNext(json: NextExpr): NextASTNode {
+    const properties: { when?: ASTNode; goto: ASTNode | any } = {
+      goto: this.nodeFactory.transformValue(json.goto),
     }
 
-    properties.set('goto', this.nodeFactory.transformValue(json.goto))
+    if (json.when) {
+      properties.when = this.nodeFactory.createNode(json.when)
+    }
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),

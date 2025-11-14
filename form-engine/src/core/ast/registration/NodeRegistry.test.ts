@@ -269,7 +269,7 @@ describe('NodeRegistry', () => {
       // Find blocks with "Email" in their label
       const emailFields = registry.findBy(node => {
         if (node.type !== ASTNodeType.BLOCK) return false
-        const label = (node as any).properties?.get('label')
+        const label = (node as any).properties?.label
         return label && label.includes('Email')
       })
 

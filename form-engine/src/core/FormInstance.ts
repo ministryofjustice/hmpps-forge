@@ -78,8 +78,7 @@ export default class FormInstance {
 
   getFormCode(): string {
     return this.compiledForm[0].journeyMetadataArtefact.specialisedNodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
-      .at(0)
-      .properties.get('code')
+      .at(0).properties.code
   }
 
   getFormTitle(): string {

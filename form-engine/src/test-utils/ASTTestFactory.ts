@@ -6,7 +6,9 @@ import {
   FunctionASTNode,
   PredicateASTNode,
   ReferenceASTNode,
-  TransitionASTNode,
+  LoadTransitionASTNode,
+  AccessTransitionASTNode,
+  SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
@@ -125,10 +127,10 @@ export class ASTTestFactory {
   }
 
   static functionExpression(type: FunctionType, name: string, args: unknown[] = []): FunctionASTNode {
-    return ASTTestFactory.expression(type)
+    return ASTTestFactory.expression<FunctionASTNode>(type)
       .withProperty('name', name)
       .withProperty('arguments', args)
-      .build() as FunctionASTNode
+      .build()
   }
 
   static predicate(type: LogicType, config: PredicateBuilderConfig = {}): PredicateASTNode {
@@ -212,13 +214,13 @@ export class ASTTestFactory {
   /**
    * Create an ANSWER_LOCAL pseudo node
    */
-  static answerLocalPseudoNode(baseFieldCode: string, fieldNodeId: NodeId): AnswerLocalPseudoNode {
+  static answerLocalPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): AnswerLocalPseudoNode {
     return {
       id: ASTTestFactory.getPseudoId(),
       type: PseudoNodeType.ANSWER_LOCAL,
       properties: {
         baseFieldCode,
-        fieldNodeId,
+        fieldNodeId: fieldNodeId ?? ASTTestFactory.getId(),
       },
     }
   }
@@ -349,22 +351,21 @@ export class ASTTestFactory {
       const traverse = (node: any) => {
         if (!node) return
 
-        if (node.properties instanceof Map) {
-          for (const value of node.properties.values()) {
-            if (ASTTestFactory.utils.isASTNode(value)) {
-              count += 1
-              traverse(value)
-            } else if (Array.isArray(value)) {
-              // eslint-disable-next-line no-loop-func
-              value.forEach(item => {
-                if (ASTTestFactory.utils.isASTNode(item)) {
-                  count += 1
-                  traverse(item)
-                }
-              })
-            }
+        const propertyValues = Object.values(node.properties || {})
+
+        propertyValues.forEach(value => {
+          if (ASTTestFactory.utils.isASTNode(value)) {
+            count += 1
+            traverse(value)
+          } else if (Array.isArray(value)) {
+            value.forEach(item => {
+              if (ASTTestFactory.utils.isASTNode(item)) {
+                count += 1
+                traverse(item)
+              }
+            })
           }
-        }
+        })
       }
 
       traverse(root)
@@ -381,17 +382,17 @@ export class ASTTestFactory {
         if (!node) return null
         if (node.id === targetId) return node
 
-        if (node.properties instanceof Map) {
-          for (const value of node.properties.values()) {
-            if (ASTTestFactory.utils.isASTNode(value)) {
-              const found = traverse(value)
-              if (found) return found
-            } else if (Array.isArray(value)) {
-              for (const item of value) {
-                if (ASTTestFactory.utils.isASTNode(item)) {
-                  const found = traverse(item)
-                  if (found) return found
-                }
+        const propertyValues = Object.values(node.properties || {})
+
+        for (const value of propertyValues) {
+          if (ASTTestFactory.utils.isASTNode(value)) {
+            const found = traverse(value)
+            if (found) return found
+          } else if (Array.isArray(value)) {
+            for (const item of value) {
+              if (ASTTestFactory.utils.isASTNode(item)) {
+                const found = traverse(item)
+                if (found) return found
               }
             }
           }
@@ -419,20 +420,19 @@ export class ASTTestFactory {
 
         let maxDepth = currentDepth
 
-        if (node.properties instanceof Map) {
-          for (const value of node.properties.values()) {
-            if (ASTTestFactory.utils.isASTNode(value)) {
-              maxDepth = Math.max(maxDepth, traverse(value, currentDepth + 1))
-            } else if (Array.isArray(value)) {
-              // eslint-disable-next-line no-loop-func
-              value.forEach(item => {
-                if (ASTTestFactory.utils.isASTNode(item)) {
-                  maxDepth = Math.max(maxDepth, traverse(item, currentDepth + 1))
-                }
-              })
-            }
+        const propertyValues = Object.values(node.properties || {})
+
+        propertyValues.forEach(value => {
+          if (ASTTestFactory.utils.isASTNode(value)) {
+            maxDepth = Math.max(maxDepth, traverse(value, currentDepth + 1))
+          } else if (Array.isArray(value)) {
+            value.forEach(item => {
+              if (ASTTestFactory.utils.isASTNode(item)) {
+                maxDepth = Math.max(maxDepth, traverse(item, currentDepth + 1))
+              }
+            })
           }
-        }
+        })
 
         return maxDepth
       }
@@ -449,22 +449,21 @@ export class ASTTestFactory {
       const traverse = (node: any) => {
         if (!node) return
 
-        if (node.properties instanceof Map) {
-          for (const value of node.properties.values()) {
-            if (ASTTestFactory.utils.isASTNode(value)) {
-              if (value.type === type) count += 1
-              traverse(value)
-            } else if (Array.isArray(value)) {
-              // eslint-disable-next-line no-loop-func
-              value.forEach(item => {
-                if (ASTTestFactory.utils.isASTNode(item)) {
-                  if (item.type === type) count += 1
-                  traverse(item)
-                }
-              })
-            }
+        const propertyValues = Object.values(node.properties || {})
+
+        propertyValues.forEach(value => {
+          if (ASTTestFactory.utils.isASTNode(value)) {
+            if (value.type === type) count += 1
+            traverse(value)
+          } else if (Array.isArray(value)) {
+            value.forEach(item => {
+              if (ASTTestFactory.utils.isASTNode(item)) {
+                if (item.type === type) count += 1
+                traverse(item)
+              }
+            })
           }
-        }
+        })
       }
 
       traverse(root)
@@ -479,7 +478,7 @@ export class ASTTestFactory {
 export class JourneyBuilder {
   private id?: string
 
-  private properties: Map<string, any> = new Map()
+  private properties: any = {}
 
   withId(id: string): this {
     this.id = id
@@ -487,7 +486,17 @@ export class JourneyBuilder {
   }
 
   withProperty(key: string, value: any): this {
-    this.properties.set(key, value)
+    this.properties[key] = value
+    return this
+  }
+
+  withCode(code: string): this {
+    this.properties.code = code
+    return this
+  }
+
+  withTitle(title: string): this {
+    this.properties.title = title
     return this
   }
 
@@ -495,15 +504,17 @@ export class JourneyBuilder {
     const stepBuilder = new StepBuilder()
     const step = configFn ? configFn(stepBuilder).build() : stepBuilder.build()
 
-    const steps = this.properties.get('steps') || []
-    steps.push(step)
-    this.properties.set('steps', steps)
+    if (!this.properties.steps) {
+      this.properties.steps = []
+    }
+
+    this.properties.steps.push(step)
 
     return this
   }
 
   withMetadata(metadata: Record<string, any>): this {
-    this.properties.set('metadata', metadata)
+    this.properties.metadata = metadata
     return this
   }
 
@@ -524,7 +535,7 @@ export class JourneyBuilder {
 export class StepBuilder {
   private id?: string
 
-  private properties: Map<string, any> = new Map()
+  private properties: any = {}
 
   withId(id: string): this {
     this.id = id
@@ -532,7 +543,12 @@ export class StepBuilder {
   }
 
   withProperty(key: string, value: any): this {
-    this.properties.set(key, value)
+    this.properties[key] = value
+    return this
+  }
+
+  withPath(path: string): this {
+    this.properties.path = path
     return this
   }
 
@@ -540,20 +556,22 @@ export class StepBuilder {
     const blockBuilder = new BlockBuilder(variant, blockType)
     const block = configFn ? configFn(blockBuilder).build() : blockBuilder.build()
 
-    const blocks = this.properties.get('blocks') || []
-    blocks.push(block)
-    this.properties.set('blocks', blocks)
+    if (!this.properties.blocks) {
+      this.properties.blocks = []
+    }
+
+    this.properties.blocks.push(block)
 
     return this
   }
 
   withTitle(title: string): this {
-    this.properties.set('title', title)
+    this.properties.title = title
     return this
   }
 
   withDescription(description: string): this {
-    this.properties.set('description', description)
+    this.properties.description = description
     return this
   }
 
@@ -574,7 +592,7 @@ export class StepBuilder {
 export class BlockBuilder {
   private id?: string
 
-  private properties: Map<string, any> = new Map()
+  private properties: any = {}
 
   constructor(
     private variant: string,
@@ -587,32 +605,32 @@ export class BlockBuilder {
   }
 
   withProperty(key: string, value: any): this {
-    this.properties.set(key, value)
+    this.properties[key] = value
     return this
   }
 
   withCode(code: string | ExpressionASTNode): this {
-    this.properties.set('code', code)
+    this.properties.code = code
     return this
   }
 
   withLabel(label: string): this {
-    this.properties.set('label', label)
+    this.properties.label = label
     return this
   }
 
   withValue(value: any): this {
-    this.properties.set('value', value)
+    this.properties.value = value
     return this
   }
 
   withValidation(validation: ExpressionASTNode): this {
-    this.properties.set('validate', validation)
+    this.properties.validate = validation
     return this
   }
 
   withShowWhen(condition: ExpressionASTNode): this {
-    this.properties.set('showWhen', condition)
+    this.properties.showWhen = condition
     return this
   }
 
@@ -635,7 +653,7 @@ export class BlockBuilder {
 export class ExpressionBuilder<T = ExpressionASTNode> {
   private id?: string
 
-  private properties: Map<string, any> = new Map()
+  private properties: any = {}
 
   constructor(private expressionType: ExpressionType | FunctionType | LogicType) {}
 
@@ -645,57 +663,57 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
   }
 
   withProperty(key: string, value: any): this {
-    this.properties.set(key, value)
+    this.properties[key] = value
     return this
   }
 
   withPath(path: any[]): this {
-    this.properties.set('path', path)
+    this.properties.path = path
     return this
   }
 
   withSubject(subject: ExpressionASTNode): this {
-    this.properties.set('subject', subject)
+    this.properties.subject = subject
     return this
   }
 
   withCondition(condition: any): this {
-    this.properties.set('condition', condition)
+    this.properties.condition = condition
     return this
   }
 
   withPredicate(predicate: ExpressionASTNode): this {
-    this.properties.set('predicate', predicate)
+    this.properties.predicate = predicate
     return this
   }
 
   withThenValue(value: any): this {
-    this.properties.set('thenValue', value)
+    this.properties.thenValue = value
     return this
   }
 
   withElseValue(value: any): this {
-    this.properties.set('elseValue', value)
+    this.properties.elseValue = value
     return this
   }
 
   withSteps(steps: any[]): this {
-    this.properties.set('steps', steps)
+    this.properties.steps = steps
     return this
   }
 
   withCollection(collection: ReferenceExpr | PipelineExpr | any[]): this {
-    this.properties.set('collection', collection)
+    this.properties.collection = collection
     return this
   }
 
   withTemplate(nodes: ASTNode[]): this {
-    this.properties.set('template', nodes)
+    this.properties.template = nodes
     return this
   }
 
   withFallback(node: ASTNode): this {
-    this.properties.set('fallback', node)
+    this.properties.fallback = node
     return this
   }
 
@@ -717,7 +735,7 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 export class TransitionBuilder {
   private id?: string
 
-  private properties: Map<string, any> = new Map()
+  private properties: any = {}
 
   constructor(private transitionType: TransitionType) {}
 
@@ -727,11 +745,11 @@ export class TransitionBuilder {
   }
 
   withProperty(key: string, value: any): this {
-    this.properties.set(key, value)
+    this.properties[key] = value
     return this
   }
 
-  build(): TransitionASTNode {
+  build(): LoadTransitionASTNode | AccessTransitionASTNode | SubmitTransitionASTNode {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
@@ -739,6 +757,6 @@ export class TransitionBuilder {
       id: nodeId,
       transitionType: this.transitionType,
       properties: this.properties,
-    } as TransitionASTNode
+    } as LoadTransitionASTNode | AccessTransitionASTNode | SubmitTransitionASTNode
   }
 }

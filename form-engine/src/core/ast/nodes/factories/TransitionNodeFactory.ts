@@ -5,11 +5,10 @@ import {
   AccessTransitionASTNode,
   LoadTransitionASTNode,
   SubmitTransitionASTNode,
-  TransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
-import { ASTNode } from '@form-engine/core/types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
+import { AccessTransition, LoadTransition, SubmitTransition } from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '../NodeFactory'
 
 /**
@@ -26,7 +25,7 @@ export class TransitionNodeFactory {
    * Transform Transition node: Lifecycle event handlers
    * Routes to specific transition type (Load, Access, Submit)
    */
-  create(json: any): TransitionASTNode {
+  create(json: any): LoadTransitionASTNode | AccessTransitionASTNode | SubmitTransitionASTNode {
     if (isLoadTransition(json)) {
       return this.createLoadTransition(json)
     }
@@ -50,18 +49,16 @@ export class TransitionNodeFactory {
    * Transform Load transition: Data loading on step/journey access
    * Executes effects before rendering
    */
-  private createLoadTransition(json: any): LoadTransitionASTNode {
-    const properties = new Map<string, ASTNode | any>()
-
+  private createLoadTransition(json: LoadTransition): LoadTransitionASTNode {
     const effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
-
-    properties.set('effects', effects)
 
     return {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.TRANSITION,
       transitionType: TransitionType.LOAD,
-      properties,
+      properties: {
+        effects,
+      },
       raw: json,
     }
   }
@@ -70,23 +67,19 @@ export class TransitionNodeFactory {
    * Transform Access transition: Guards and analytics
    * Controls access and tracks user navigation
    */
-  private createAccessTransition(json: any): AccessTransitionASTNode {
-    const properties = new Map<string, ASTNode | any>()
+  private createAccessTransition(json: AccessTransition): AccessTransitionASTNode {
+    const properties: AccessTransitionASTNode['properties'] = {}
 
     if (json.guards) {
-      properties.set('guards', this.nodeFactory.createNode(json.guards))
+      properties.guards = this.nodeFactory.createNode(json.guards)
     }
 
     if (Array.isArray(json.effects)) {
-      const effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
-
-      properties.set('effects', effects)
+      properties.effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
     }
 
     if (Array.isArray(json.redirect)) {
-      const redirect = json.redirect.map((r: any) => this.nodeFactory.createNode(r))
-
-      properties.set('redirect', redirect)
+      properties.redirect = json.redirect.map((r: any) => this.nodeFactory.createNode(r))
     }
 
     return {
@@ -102,19 +95,19 @@ export class TransitionNodeFactory {
    * Transform Submit transition: Form submission handling
    * Manages validation, effects, and navigation on submit
    */
-  private createSubmitTransition(json: any): SubmitTransitionASTNode {
-    const properties = new Map<string, ASTNode | any>()
+  private createSubmitTransition(json: SubmitTransition): SubmitTransitionASTNode {
+    const properties: SubmitTransitionASTNode['properties'] = {
+      // Default to validation disabled unless explicitly true
+      validate: json.validate === true,
+    }
 
     if (json.when) {
-      properties.set('when', this.nodeFactory.createNode(json.when))
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     if (json.guards) {
-      properties.set('guards', this.nodeFactory.createNode(json.guards))
+      properties.guards = this.nodeFactory.createNode(json.guards)
     }
-
-    // Default to validation enabled unless explicitly false
-    properties.set('validate', json.validate !== false)
 
     // Helper to transform submission branches (onAlways/onValid/onInvalid)
     const transformBranch = (branch: any) => {
@@ -136,15 +129,15 @@ export class TransitionNodeFactory {
     }
 
     if (json.onAlways) {
-      properties.set('onAlways', transformBranch(json.onAlways))
+      properties.onAlways = transformBranch(json.onAlways)
     }
 
     if (json.onValid) {
-      properties.set('onValid', transformBranch(json.onValid))
+      properties.onValid = transformBranch(json.onValid)
     }
 
     if (json.onInvalid) {
-      properties.set('onInvalid', transformBranch(json.onInvalid))
+      properties.onInvalid = transformBranch(json.onInvalid)
     }
 
     return {

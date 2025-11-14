@@ -1,14 +1,12 @@
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   structuralTraverse,
-  StructuralVisitResult,
   StructuralVisitor,
-  StructuralContext,
+  StructuralVisitResult,
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
-import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
-import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
+import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 
@@ -30,32 +28,20 @@ export class ConvertFormattersToPipelineNormalizer implements StructuralVisitor 
   /**
    * Visitor method: called when entering a node during traversal
    */
-  enterNode(node: ASTNode, ctx: StructuralContext): StructuralVisitResult {
+  enterNode(node: ASTNode): StructuralVisitResult {
     // Only process field blocks
-    if (!isBlockStructNode(node) || node.blockType !== 'field') {
-      return StructuralVisitResult.CONTINUE
-    }
-
-    if (!node.properties) {
-      return StructuralVisitResult.CONTINUE
-    }
-
-    // Check if field has formatters
-    const formatters = node.properties.get('formatters')
-
-    if (!Array.isArray(formatters) || formatters.length === 0) {
+    if (!isFieldBlockStructNode(node)) {
       return StructuralVisitResult.CONTINUE
     }
 
     // Get field code for POST reference
-    const fieldCode = node.properties.get('code')
+    const fieldCode = node.properties.code
 
-    if (!fieldCode) {
-      throw new InvalidNodeError({
-        message: 'Field with formatters must have a code property',
-        node,
-        path: ctx.path,
-      })
+    // Check if field has formatters
+    const formatters = node.properties.formatters
+
+    if (!Array.isArray(formatters) || formatters.length === 0) {
+      return StructuralVisitResult.CONTINUE
     }
 
     // Create the POST reference node manually to preserve fieldCode (which may be an AST node)
@@ -64,23 +50,24 @@ export class ConvertFormattersToPipelineNormalizer implements StructuralVisitor 
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
-      properties: new Map([['path', ['post', fieldCode]]]),
+      properties: {
+        path: ['post', fieldCode],
+      },
     }
 
     // Create the pipeline node manually with proper ID
-    const pipelineNode: PipelineASTNode = {
+    // Store the pipeline as formatPipeline property, remove old field
+    node.properties.formatPipeline = {
       id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.PIPELINE,
-      properties: new Map<string, any>([
-        ['input', postReference],
-        ['steps', formatters],
-      ]),
+      properties: {
+        input: postReference,
+        steps: formatters,
+      },
     }
 
-    // Store the pipeline as formatPipeline property, remove old field
-    node.properties.set('formatPipeline', pipelineNode)
-    node.properties.delete('formatters')
+    delete node.properties.formatters
 
     return StructuralVisitResult.CONTINUE
   }

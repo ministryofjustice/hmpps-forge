@@ -39,8 +39,8 @@ export interface ReferenceExpr {
  * // Simple string formatting
  * {
  *   type: 'ExpressionType.Format',
- *   text: 'Hello %1, you are %2 years old',
- *   args: [
+ *   template: 'Hello %1, you are %2 years old',
+ *   arguments: [
  *     { type: 'ExpressionType.Reference', path: ['answers', 'name'] },
  *     { type: 'ExpressionType.Reference', path: ['answers', 'age'] }
  *   ]
@@ -50,8 +50,8 @@ export interface ReferenceExpr {
  * // Dynamic field code generation in collections
  * {
  *   type: 'ExpressionType.Format',
- *   text: 'address_%1_street',
- *   args: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }]
+ *   template: 'address_%1_street',
+ *   arguments: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }]
  * }
  */
 export interface FormatExpr {
@@ -59,15 +59,15 @@ export interface FormatExpr {
 
   /**
    * Template string containing placeholders (%1, %2, etc.).
-   * Placeholders are 1-indexed and correspond to the args array.
+   * Placeholders are 1-indexed and correspond to the arguments array.
    */
-  text: string
+  template: string
 
   /**
    * Array of expressions whose values will replace the placeholders.
    * The first argument replaces %1, second replaces %2, and so on.
    */
-  args: ValueExpr[]
+  arguments: ValueExpr[]
 }
 
 /**
@@ -81,9 +81,9 @@ export interface FormatExpr {
  *   type: 'ExpressionType.Pipeline',
  *   input: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
  *   steps: [
- *     { name: 'trim' },
- *     { name: 'toLowerCase' },
- *     { name: 'validateEmail' }
+ *     { type: 'FunctionType.Transformer', name: 'trim', arguments: [] },
+ *     { type: 'FunctionType.Transformer', name: 'toLowerCase', arguments: [] },
+ *     { type: 'FunctionType.Transformer', name: 'validateEmail', arguments: [] }
  *   ]
  * }
  *
@@ -93,9 +93,9 @@ export interface FormatExpr {
  *   type: 'ExpressionType.Pipeline',
  *   input: { type: 'ExpressionType.Reference', path: ['answers', 'price'] },
  *   steps: [
- *     { name: 'multiply', args: [1.2] },
- *     { name: 'round', args: [2] },
- *     { name: 'formatCurrency', args: ['GBP'] }
+ *     { type: 'FunctionType.Transformer', name: 'multiply', arguments: [1.2] },
+ *     { type: 'FunctionType.Transformer', name: 'round', arguments: [2] },
+ *     { type: 'FunctionType.Transformer', name: 'formatCurrency', arguments: ['GBP'] }
  *   ]
  * }
  */
@@ -112,13 +112,7 @@ export interface PipelineExpr {
    * Ordered array of transformation steps.
    * Each step receives the output of the previous step as its input.
    */
-  steps: {
-    /** Name of the registered transformer function */
-    name: string
-
-    /** Optional arguments for the transformer (beyond the piped value) */
-    args?: ValueExpr[]
-  }[]
+  steps: TransformerFunctionExpr[]
 }
 
 /**
@@ -594,6 +588,9 @@ export interface SkipValidationTransition extends SubmitTransitionBase {
     /** Required navigation rules for where to go next */
     next: NextExpr[]
   }
+
+  onValid?: never
+  onInvalid?: never
 }
 
 /**

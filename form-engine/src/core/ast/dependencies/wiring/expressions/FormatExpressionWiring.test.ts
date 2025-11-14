@@ -39,7 +39,7 @@ describe('FormatExpressionWiring', () => {
 
       const formatExpr = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', '{0} {1} is {2} years old')
-        .withProperty('args', [arg1, arg2, arg3])
+        .withProperty('arguments', [arg1, arg2, arg3])
         .build()
 
       when(mockWiringContext.findNodesByType)
@@ -51,15 +51,15 @@ describe('FormatExpressionWiring', () => {
 
       // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(arg1.id, formatExpr.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 0,
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(arg2.id, formatExpr.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 1,
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(arg3.id, formatExpr.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 2,
       })
     })
@@ -71,7 +71,7 @@ describe('FormatExpressionWiring', () => {
 
       const formatExpr = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', '{0} {1}! Age: {2}')
-        .withProperty('args', [arg1, arg2, 25])
+        .withProperty('arguments', [arg1, arg2, 25])
         .build()
 
       when(mockWiringContext.findNodesByType)
@@ -85,11 +85,11 @@ describe('FormatExpressionWiring', () => {
       expect(mockGraph.addEdge).toHaveBeenCalledTimes(2)
 
       expect(mockGraph.addEdge).toHaveBeenCalledWith(arg1.id, formatExpr.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 0,
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(arg2.id, formatExpr.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 1,
       })
     })
@@ -99,13 +99,13 @@ describe('FormatExpressionWiring', () => {
       const innerArg = ASTTestFactory.reference(['answers', 'name'])
       const innerFormat = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', 'Hello {0}')
-        .withProperty('args', [innerArg])
+        .withProperty('arguments', [innerArg])
         .build()
 
       const outerArg = ASTTestFactory.reference(['data', 'title'])
       const outerFormat = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', '{0}: {1}')
-        .withProperty('args', [outerArg, innerFormat])
+        .withProperty('arguments', [outerArg, innerFormat])
         .build()
 
       when(mockWiringContext.findNodesByType)
@@ -117,15 +117,15 @@ describe('FormatExpressionWiring', () => {
 
       // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(innerArg.id, innerFormat.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 0,
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(outerArg.id, outerFormat.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 0,
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(innerFormat.id, outerFormat.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'args',
+        property: 'arguments',
         index: 1,
       })
     })

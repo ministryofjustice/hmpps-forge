@@ -98,7 +98,7 @@ describe('RegistrationTraverser', () => {
       const rootWithoutId = {
         type: ASTNodeType.STEP,
         id: undefined as any,
-        properties: new Map(),
+        properties: {},
       } as ASTNode
 
       // Act & Assert - Root node
@@ -120,7 +120,7 @@ describe('RegistrationTraverser', () => {
         type: ASTNodeType.EXPRESSION,
         id: undefined as any,
         expressionType: ExpressionType.REFERENCE,
-        properties: new Map([['path', ['answers', 'test']]]),
+        properties: { path: ['answers', 'test'] },
       } as ASTNode
 
       const block = ASTTestFactory

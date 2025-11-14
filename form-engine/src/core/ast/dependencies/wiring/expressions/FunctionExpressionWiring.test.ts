@@ -38,7 +38,7 @@ describe('FunctionExpressionWiring', () => {
       const arg3 = ASTTestFactory.reference(['data', 'maxValue'])
 
       const transformerExpr = ASTTestFactory.expression(FunctionType.TRANSFORMER)
-        .withProperty('functionName', 'clamp')
+        .withProperty('name', 'clamp')
         .withProperty('arguments', [arg1, arg2, arg3])
         .build()
 
@@ -69,7 +69,7 @@ describe('FunctionExpressionWiring', () => {
       const arg1 = ASTTestFactory.reference(['answers', 'text'])
 
       const transformerExpr = ASTTestFactory.expression(FunctionType.TRANSFORMER)
-        .withProperty('functionName', 'replace')
+        .withProperty('name', 'replace')
         .withProperty('arguments', [arg1, 'old', 'new'])
         .build()
 
@@ -93,13 +93,13 @@ describe('FunctionExpressionWiring', () => {
       // Arrange
       const innerArg = ASTTestFactory.reference(['answers', 'name'])
       const innerFunction = ASTTestFactory.expression(FunctionType.TRANSFORMER)
-        .withProperty('functionName', 'lowercase')
+        .withProperty('name', 'lowercase')
         .withProperty('arguments', [innerArg])
         .build()
 
       const outerArg = ASTTestFactory.reference(['data', 'prefix'])
       const outerFunction = ASTTestFactory.expression(FunctionType.TRANSFORMER)
-        .withProperty('functionName', 'concat')
+        .withProperty('name', 'concat')
         .withProperty('arguments', [outerArg, innerFunction])
         .build()
 

@@ -39,8 +39,8 @@ export default class PipelineExpressionWiring {
    * Creates edges: input → pipeline, step[i] → pipeline
    */
   private wirePipeline(pipelineNode: PipelineASTNode) {
-    const input = pipelineNode.properties.get('input')
-    const steps = pipelineNode.properties.get('steps')
+    const input = pipelineNode.properties.input
+    const steps = pipelineNode.properties.steps
 
     // Wire input → pipeline (input must be evaluated before pipeline)
     if (isASTNode(input)) {

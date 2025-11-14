@@ -36,13 +36,12 @@ export function isSubmitTransitionNode(obj: any): obj is SubmitTransitionASTNode
  * Check if an AST node is a Skip Validation Transition node (Submit without validation)
  */
 export function isSkipValidationTransitionNode(obj: any): obj is SubmitTransitionASTNode {
-  return isSubmitTransitionNode(obj) && obj.properties != null && obj.properties.get('validate') === false
+  return isSubmitTransitionNode(obj) && obj.properties.validate === false
 }
 
 /**
  * Check if an AST node is a Validating Transition node (Submit with validation)
  */
 export function isValidatingTransitionNode(obj: any): obj is SubmitTransitionASTNode {
-  return isSubmitTransitionNode(obj) &&
-    (obj.properties == null || obj.properties.get('validate') == null || obj.properties.get('validate') === true)
+  return isSubmitTransitionNode(obj) && obj.properties.validate === true
 }

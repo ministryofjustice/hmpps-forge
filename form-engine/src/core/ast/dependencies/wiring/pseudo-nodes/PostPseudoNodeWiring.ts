@@ -38,7 +38,7 @@ export default class PostPseudoNodeWiring {
     const postRefs = this.wiringContext.findReferenceNodes('post')
 
     postRefs.forEach(refNode => {
-      const path = refNode.properties.get('path') as string[]
+      const path = refNode.properties.path
 
       if (path.length >= 2) {
         const referencedField = path[1] as string

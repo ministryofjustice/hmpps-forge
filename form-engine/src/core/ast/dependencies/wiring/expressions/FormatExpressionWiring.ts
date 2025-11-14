@@ -39,12 +39,12 @@ export default class FormatExpressionWiring {
    * Creates edges: arg[0] → format, arg[1] → format, etc.
    */
   private wireArguments(formatNode: FormatASTNode) {
-    const args = formatNode.properties.get('args')
+    const args = formatNode.properties.arguments
 
     if (Array.isArray(args)) {
       args.filter(isASTNode).forEach((arg, index) => {
         this.wiringContext.graph.addEdge(arg.id, formatNode.id, DependencyEdgeType.DATA_FLOW, {
-          property: 'args',
+          property: 'arguments',
           index,
         })
       })

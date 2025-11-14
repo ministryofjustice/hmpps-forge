@@ -83,22 +83,6 @@ export class NodeFactory {
   }
 
   /**
-   * Transform properties: Convert object to Map with recursive transformation
-   * Enables efficient property access and modification in AST
-   */
-  transformProperties(obj: any): Map<string, ASTNode | any> {
-    const properties = new Map<string, ASTNode | any>()
-
-    Object.entries(obj).forEach(([key, value]) => {
-      const transformedValue = this.transformValue(value)
-
-      properties.set(key, transformedValue)
-    })
-
-    return properties
-  }
-
-  /**
    * Transform value: Recursive processor for any JSON value
    * Detects and transforms nested nodes while preserving primitives
    */

@@ -39,7 +39,7 @@ export default class FunctionExpressionWiring {
    * Creates edges: arg[0] → function, arg[1] → function, etc.
    */
   private wireArguments(functionNode: FunctionASTNode) {
-    const args = functionNode.properties.get('arguments')
+    const args = functionNode.properties.arguments
 
     if (Array.isArray(args)) {
       args.filter(isASTNode).forEach((arg, index) => {

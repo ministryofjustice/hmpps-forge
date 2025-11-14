@@ -74,7 +74,7 @@ export class WiringContext {
       allExprNodes
         .filter(isReferenceExprNode)
         .filter(node => {
-          const path = node.properties.get('path')
+          const path = node.properties.path
 
           return Array.isArray(path) && path.length >= 2 && path[0] === referenceSource
         })
@@ -146,8 +146,16 @@ export class WiringContext {
     let currentNode = this.nodeRegistry.get(nodeId)
 
     while (currentNode) {
-      if (isJourneyStructNode(currentNode) || isStepStructNode(currentNode)) {
-        const onLoad = currentNode.properties.get('onLoad') as LoadTransitionASTNode[]
+      if (isStepStructNode(currentNode)) {
+        const onLoad = currentNode.properties.onLoad as LoadTransitionASTNode[] | undefined
+
+        if (Array.isArray(onLoad) && onLoad.length > 0) {
+          return onLoad.at(-1)
+        }
+      }
+
+      if (isJourneyStructNode(currentNode)) {
+        const onLoad = currentNode.properties.onLoad
 
         if (Array.isArray(onLoad) && onLoad.length > 0) {
           return onLoad.at(-1)

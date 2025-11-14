@@ -33,12 +33,14 @@ export default class OnLoadTransitionWiring {
       .filter(journey => this.wiringContext.metadataRegistry.get(journey.id, 'isAncestorOfStep'))
 
     ancestorJourneys.forEach(journey => {
-      const onLoadTransitions = journey.properties.get('onLoad') as LoadTransitionASTNode[]
+      const onLoadTransitions = journey.properties.onLoad
       this.wireTransitionsArray(onLoadTransitions)
     })
 
     // Wire the current step's array of on load transitions together
-    const stepOnLoadTransitions = this.wiringContext.getStepNode().properties.get('onLoad') as LoadTransitionASTNode[]
+    const stepOnLoadTransitions = this.wiringContext.getStepNode().properties.onLoad as
+      | LoadTransitionASTNode[]
+      | undefined
     this.wireTransitionsArray(stepOnLoadTransitions)
   }
 
@@ -117,7 +119,10 @@ export default class OnLoadTransitionWiring {
    * Returns undefined if no transitions exist
    */
   private getFirstTransition(node: JourneyASTNode | StepASTNode): LoadTransitionASTNode | undefined {
-    const onLoad = node.properties.get('onLoad') as LoadTransitionASTNode[] | undefined
+    const onLoad =
+      node.type === ASTNodeType.STEP
+        ? (node as StepASTNode).properties.onLoad
+        : (node as JourneyASTNode).properties.onLoad
 
     return onLoad?.at(0)
   }
@@ -127,7 +132,10 @@ export default class OnLoadTransitionWiring {
    * Returns undefined if no transitions exist
    */
   private getLastTransition(node: JourneyASTNode | StepASTNode): LoadTransitionASTNode | undefined {
-    const onLoad = node.properties.get('onLoad') as LoadTransitionASTNode[] | undefined
+    const onLoad =
+      node.type === ASTNodeType.STEP
+        ? (node as StepASTNode).properties.onLoad
+        : (node as JourneyASTNode).properties.onLoad
 
     return onLoad?.at(-1)
   }
@@ -139,7 +147,7 @@ export default class OnLoadTransitionWiring {
    * Note: Effect arguments are wired by FunctionExpressionWiring since effects are FunctionASTNodes
    */
   private wireTransitionEffects(transition: LoadTransitionASTNode) {
-    const effects = transition.properties.get('effects') as FunctionASTNode[]
+    const effects = transition.properties.effects as FunctionASTNode[]
 
     if (!Array.isArray(effects)) {
       return

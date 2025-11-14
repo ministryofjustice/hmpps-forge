@@ -43,7 +43,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
 
   const fieldBlockProps = z.looseObject({
     code: ConditionalStringSchema,
-    value: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
+    defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
     hidden: PredicateTestExprSchema.optional(),
     errors: z
@@ -133,15 +133,15 @@ export const SubmitTransitionSchema = z.union([SkipValidationTransitionSchema, V
 export const StepSchema = z.looseObject({
   type: z.literal(StructureType.STEP),
   path: z.string(),
-  blocks: z.array(BlockSchema),
+  blocks: z.array(BlockSchema).optional(),
   onLoad: z.array(LoadTransitionSchema).optional(),
   onAccess: z.array(AccessTransitionSchema).optional(),
   onSubmission: z.array(SubmitTransitionSchema).optional(),
-  controller: z.string().optional(),
+  title: z.string(),
   template: z.string().optional(),
-  entry: z.boolean().optional(),
-  checkJourneyTraversal: z.boolean().optional(),
+  isEntryPoint: z.boolean().optional(),
   backlink: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 })
 
 /**
@@ -150,15 +150,14 @@ export const StepSchema = z.looseObject({
 export const JourneySchema: z.ZodType<any> = z.lazy(() =>
   z.looseObject({
     type: z.literal(StructureType.JOURNEY),
+    path: z.string(),
     code: z.string(),
-    title: z.string(),
-    description: z.string().optional(),
-    path: z.string().optional(),
-    version: z.string().optional(),
-    controller: z.string().optional(),
     onLoad: z.array(LoadTransitionSchema).optional(),
     onAccess: z.array(AccessTransitionSchema).optional(),
     steps: z.array(StepSchema).optional(),
     children: z.array(JourneySchema).optional(),
+    title: z.string(),
+    description: z.string().optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   }),
 )

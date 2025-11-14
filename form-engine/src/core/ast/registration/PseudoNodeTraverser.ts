@@ -6,6 +6,7 @@ import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
+import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 
 /**
  * Traverses the AST to discover and create pseudo nodes at compile-time.
@@ -42,9 +43,9 @@ export default class PseudoNodeTraverser {
   createPseudoNodes() {
     // Setup AnswerLocalPseudoNodes first
     this.nodeRegistry.findByType<BlockASTNode>(ASTNodeType.BLOCK)
-      .filter(blockNode => blockNode.blockType === 'field')
+      .filter(isFieldBlockStructNode)
       .forEach(blockNode => {
-        const fieldCode = blockNode.properties.get('code')
+        const fieldCode = blockNode.properties.code
 
         if (typeof fieldCode === 'string') {
           // Check if the field is on the current step
@@ -60,7 +61,7 @@ export default class PseudoNodeTraverser {
     this.nodeRegistry.findByType<ExpressionASTNode>(ASTNodeType.EXPRESSION)
       .filter(isReferenceExprNode)
       .forEach(referenceExpressionNode => {
-        const path = referenceExpressionNode.properties.get('path')
+        const path = referenceExpressionNode.properties.path
 
         if (Array.isArray(path) && path.length >= 2) {
           const [referenceSource, key] = path

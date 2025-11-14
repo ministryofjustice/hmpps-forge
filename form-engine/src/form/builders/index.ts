@@ -169,11 +169,11 @@ export const Self = (): BuildableReference =>
     path: ['answers', '@self'],
   })
 
-export const Format = (text: string, ...args: ConditionalString[]): FormatExpr => {
+export const Format = (template: string, ...args: ConditionalString[]): FormatExpr => {
   return {
     type: ExpressionType.FORMAT,
-    text,
-    args,
+    template,
+    arguments: args,
   }
 }
 

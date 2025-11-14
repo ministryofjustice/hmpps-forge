@@ -20,6 +20,7 @@ import {
 } from '@form-engine/form/types/expressions.type'
 import {
   BlockDefinition,
+  FieldBlockDefinition,
   JourneyDefinition,
   StepDefinition,
   ValidationExpr,
@@ -30,8 +31,10 @@ import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import {
   ConditionalASTNode,
   ExpressionASTNode,
+  FunctionASTNode,
   PipelineASTNode,
   PredicateASTNode,
+  AndPredicateASTNode,
   TransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
@@ -52,6 +55,7 @@ describe('NodeFactory', () => {
         const json = {
           type: StructureType.JOURNEY,
           code: 'test-journey',
+          path: 'test-journey',
           title: 'Test Journey',
           steps: [] as StepDefinition[],
         } satisfies JourneyDefinition
@@ -60,7 +64,7 @@ describe('NodeFactory', () => {
 
         expect(result.type).toBe(ASTNodeType.JOURNEY)
         expect(result.id).toBeDefined()
-        expect(result.properties.get('title')).toBe('Test Journey')
+        expect(result.properties.title).toBe('Test Journey')
       })
 
       it('should route Step definitions to StructureNodeFactory', () => {
@@ -68,13 +72,14 @@ describe('NodeFactory', () => {
           type: StructureType.STEP,
           path: 'test-step',
           blocks: [] as BlockDefinition[],
+          title: 'test-step',
         } satisfies StepDefinition
 
         const result = nodeFactory.createNode(json) as StepASTNode
 
         expect(result.type).toBe(ASTNodeType.STEP)
         expect(result.id).toBeDefined()
-        expect(result.properties.get('path')).toBe('test-step')
+        expect(result.properties.path).toBe('test-step')
       })
 
       it('should route Block definitions to StructureNodeFactory', () => {
@@ -269,7 +274,7 @@ describe('NodeFactory', () => {
         const json = {
           type: ExpressionType.PIPELINE,
           input: { type: ExpressionType.REFERENCE, path: ['value'] } satisfies ReferenceExpr,
-          steps: [{ name: 'trim' }],
+          steps: [{ type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as ValueExpr[] as any }],
         } satisfies PipelineExpr
 
         const result = nodeFactory.createNode(json) as PredicateASTNode
@@ -430,94 +435,6 @@ describe('NodeFactory', () => {
     })
   })
 
-  describe('transformProperties', () => {
-    it('should transform object to Map', () => {
-      const obj = {
-        name: 'test',
-        value: 42,
-        enabled: true,
-      }
-
-      const result = nodeFactory.transformProperties(obj)
-
-      expect(result).toBeInstanceOf(Map)
-      expect(result.get('name')).toBe('test')
-      expect(result.get('value')).toBe(42)
-      expect(result.get('enabled')).toBe(true)
-    })
-
-    it('should preserve primitive values', () => {
-      const obj = {
-        string: 'text',
-        number: 123,
-        boolean: false,
-        nullValue: null,
-        undefinedValue: undefined,
-      } as any
-
-      const result = nodeFactory.transformProperties(obj)
-
-      expect(result.get('string')).toBe('text')
-      expect(result.get('number')).toBe(123)
-      expect(result.get('boolean')).toBe(false)
-      expect(result.get('nullValue')).toBeNull()
-      expect(result.get('undefinedValue')).toBeUndefined()
-    })
-
-    it('should transform nested expression nodes', () => {
-      const obj = {
-        condition: {
-          type: ExpressionType.REFERENCE,
-          path: ['field'],
-        },
-      }
-
-      const result = nodeFactory.transformProperties(obj)
-
-      const condition = result.get('condition')
-      expect(condition).toHaveProperty('id')
-      expect(condition).toHaveProperty('type')
-      expect(condition.type).toBe(ASTNodeType.EXPRESSION)
-    })
-
-    it('should transform arrays of nodes', () => {
-      const obj = {
-        items: [
-          { type: ExpressionType.REFERENCE, path: ['field1'] },
-          { type: ExpressionType.REFERENCE, path: ['field2'] },
-        ],
-      }
-
-      const result = nodeFactory.transformProperties(obj)
-
-      const items = result.get('items')
-      expect(Array.isArray(items)).toBe(true)
-      expect(items).toHaveLength(2)
-
-      items.forEach((item: any) => {
-        expect(item).toHaveProperty('id')
-        expect(item).toHaveProperty('type')
-        expect(item.type).toBe(ASTNodeType.EXPRESSION)
-      })
-    })
-
-    it('should preserve plain object properties', () => {
-      const obj = {
-        metadata: {
-          author: 'Test',
-          version: 1,
-        },
-      }
-
-      const result = nodeFactory.transformProperties(obj)
-
-      expect(result.get('metadata')).toEqual({
-        author: 'Test',
-        version: 1,
-      })
-    })
-  })
-
   describe('transformValue', () => {
     describe('Primitive values', () => {
       it('should preserve null', () => {
@@ -624,6 +541,12 @@ describe('NodeFactory', () => {
       it('should transform Validation expressions', () => {
         const json = {
           type: ExpressionType.VALIDATION,
+          when: {
+            type: LogicType.TEST,
+            subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
+            negate: true,
+            condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+          },
           message: 'Required',
         }
 
@@ -636,6 +559,12 @@ describe('NodeFactory', () => {
       it('should transform Conditional expressions', () => {
         const json = {
           type: LogicType.CONDITIONAL,
+          predicate: {
+            type: LogicType.TEST,
+            subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+            negate: false,
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          } satisfies PredicateTestExpr,
           thenValue: 'yes',
           elseValue: 'no',
         }
@@ -825,11 +754,14 @@ describe('NodeFactory', () => {
     it('should transform a complete Journey with nested structures', () => {
       const json = {
         type: StructureType.JOURNEY,
+        code: 'test-journey',
+        path: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
             type: StructureType.STEP,
-            slug: 'step1',
+            path: 'step1',
+            title: 'step1',
             blocks: [
               {
                 type: StructureType.BLOCK,
@@ -838,39 +770,49 @@ describe('NodeFactory', () => {
                 validate: [
                   {
                     type: ExpressionType.VALIDATION,
+                    when: {
+                      type: LogicType.TEST,
+                      subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
+                      negate: true,
+                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+                    },
                     message: 'Email is required',
                   },
                 ],
-              },
+              } as FieldBlockDefinition,
             ],
-            onSubmit: [
+            onSubmission: [
               {
                 type: TransitionType.SUBMIT,
-                validate: true,
+                validate: false,
+                onAlways: {
+                  effects: [] as EffectFunctionExpr[],
+                  next: [] as NextExpr[],
+                },
               },
             ],
           },
         ],
-      }
+      } satisfies JourneyDefinition
 
       const result = nodeFactory.createNode(json) as JourneyASTNode
 
       expect(result.type).toBe(ASTNodeType.JOURNEY)
 
-      const steps = result.properties.get('steps')
+      const steps = result.properties.steps
       expect(steps).toHaveLength(1)
       expect(steps[0].type).toBe(ASTNodeType.STEP)
 
-      const blocks = steps[0].properties.get('blocks')
+      const blocks = steps[0].properties.blocks
       expect(blocks).toHaveLength(1)
       expect(blocks[0].type).toBe(ASTNodeType.BLOCK)
 
-      const validate = blocks[0].properties.get('validate')
+      const validate = blocks[0].properties.validate
       expect(validate).toHaveLength(1)
       expect(validate[0].type).toBe(ASTNodeType.EXPRESSION)
       expect(validate[0].expressionType).toBe(ExpressionType.VALIDATION)
 
-      const onSubmit = steps[0].properties.get('onSubmit')
+      const onSubmit = steps[0].properties.onSubmission
       expect(onSubmit).toHaveLength(1)
       expect(onSubmit[0].type).toBe(ASTNodeType.TRANSITION)
     })
@@ -920,19 +862,19 @@ describe('NodeFactory', () => {
 
       expect(result.expressionType).toBe(LogicType.CONDITIONAL)
 
-      const predicate = result.properties.get('predicate')
+      const predicate = result.properties.predicate as AndPredicateASTNode
       expect(predicate.expressionType).toBe(LogicType.AND)
 
-      const operands = predicate.properties.get('operands')
+      const operands = predicate.properties.operands
       expect(operands).toHaveLength(2)
-      expect(operands[0].expressionType).toBe(LogicType.TEST)
-      expect(operands[1].expressionType).toBe(LogicType.NOT)
+      expect((operands[0] as ExpressionASTNode).expressionType).toBe(LogicType.TEST)
+      expect((operands[1] as ExpressionASTNode).expressionType).toBe(LogicType.NOT)
 
-      const thenValue = result.properties.get('thenValue')
+      const thenValue = result.properties.thenValue
       expect(thenValue.type).toBe(ASTNodeType.EXPRESSION)
       expect(thenValue.expressionType).toBe(ExpressionType.REFERENCE)
 
-      const elseValue = result.properties.get('elseValue')
+      const elseValue = result.properties.elseValue
       expect(elseValue.type).toBe(ASTNodeType.EXPRESSION)
       expect(elseValue.expressionType).toBe(ExpressionType.REFERENCE)
     })
@@ -946,8 +888,9 @@ describe('NodeFactory', () => {
         },
         steps: [
           {
+            type: FunctionType.TRANSFORMER,
             name: 'replace',
-            args: ['old', { type: ExpressionType.REFERENCE, path: ['replacement'] }],
+            arguments: ['old', { type: ExpressionType.REFERENCE, path: ['replacement'] }],
           },
         ],
       }
@@ -956,13 +899,13 @@ describe('NodeFactory', () => {
 
       expect(result.expressionType).toBe(ExpressionType.PIPELINE)
 
-      const input = result.properties.get('input')
+      const input = result.properties.input
       expect(input.type).toBe(ASTNodeType.EXPRESSION)
       expect(input.expressionType).toBe(ExpressionType.REFERENCE)
 
-      const steps = result.properties.get('steps')
-      expect(steps[0].args[0]).toBe('old')
-      expect(steps[0].args[1].type).toBe(ASTNodeType.EXPRESSION)
+      const steps = result.properties.steps as FunctionASTNode[]
+      expect(steps[0].properties.arguments[0]).toBe('old')
+      expect(steps[0].properties.arguments[1].type).toBe(ASTNodeType.EXPRESSION)
     })
   })
 

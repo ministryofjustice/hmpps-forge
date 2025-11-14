@@ -39,7 +39,7 @@ export default class ParamsPseudoNodeWiring {
     const paramsRefs = this.wiringContext.findReferenceNodes('params')
 
     paramsRefs.forEach(refNode => {
-      const path = refNode.properties.get('path') as string[]
+      const path = refNode.properties.path
 
       if (path.length >= 2 && path[1] === paramName) {
         this.wiringContext.graph.addEdge(paramsPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {

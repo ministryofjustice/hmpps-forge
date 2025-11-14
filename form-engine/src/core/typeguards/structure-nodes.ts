@@ -1,4 +1,4 @@
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { BlockASTNode, FieldBlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 
 // TODO: Go back and rename '___Definition' to '____Struct' as it makes way more sense
@@ -12,4 +12,12 @@ export function isStepStructNode(obj: any): obj is StepASTNode {
 
 export function isBlockStructNode(obj: any): obj is BlockASTNode {
   return obj != null && obj.type === ASTNodeType.BLOCK
+}
+
+export function isBasicBlockStructNode(obj: any): obj is BlockASTNode {
+  return obj != null && obj.type === ASTNodeType.BLOCK && obj.blockType === 'basic'
+}
+
+export function isFieldBlockStructNode(obj: any): obj is FieldBlockASTNode {
+  return obj != null && obj.type === ASTNodeType.BLOCK && obj.blockType === 'field'
 }

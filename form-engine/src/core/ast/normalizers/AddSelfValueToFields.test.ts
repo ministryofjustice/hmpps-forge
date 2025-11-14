@@ -2,6 +2,7 @@ import { ExpressionType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
 import { ASTNode } from '@form-engine/core/types/engine.type'
+import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { AddSelfValueToFieldsNormalizer } from './AddSelfValueToFields'
 
 describe('AddSelfValueToFields', () => {
@@ -36,7 +37,7 @@ describe('AddSelfValueToFields', () => {
         type: ExpressionType.REFERENCE,
         path: ['answers', '@self'],
       })
-      expect(field.properties.get('value')).toBe(mockSelfReferenceNode)
+      expect(field.properties.value).toBe(mockSelfReferenceNode)
     })
 
     it('overrides existing value with Self() reference', () => {
@@ -54,7 +55,7 @@ describe('AddSelfValueToFields', () => {
         type: ExpressionType.REFERENCE,
         path: ['answers', '@self'],
       })
-      expect(field.properties.get('value')).toBe(mockSelfReferenceNode)
+      expect(field.properties.value).toBe(mockSelfReferenceNode)
     })
 
     it('does not create Self() reference for blocks without code (non-fields)', () => {
@@ -63,12 +64,12 @@ describe('AddSelfValueToFields', () => {
         .withProperty('text', 'Welcome')
         .build()
 
-      const originalValue = block.properties.get('value')
+      const originalValue = block.properties.value
 
       normalizer.normalize(block)
 
       expect(mockNodeFactory.createNode).not.toHaveBeenCalled()
-      expect(block.properties.get('value')).toBe(originalValue)
+      expect(block.properties.value).toBe(originalValue)
     })
 
     it('adds Self() even when value is undefined', () => {
@@ -85,7 +86,7 @@ describe('AddSelfValueToFields', () => {
         type: ExpressionType.REFERENCE,
         path: ['answers', '@self'],
       })
-      expect(field.properties.get('value')).toBe(mockSelfReferenceNode)
+      expect(field.properties.value).toBe(mockSelfReferenceNode)
     })
 
     it('adds Self() to fields inside collection expression templates', () => {
@@ -110,17 +111,17 @@ describe('AddSelfValueToFields', () => {
 
       normalizer.normalize(journey)
 
-      const steps = journey.properties.get('steps') as any[]
-      const containerBlock = steps[0].properties.get('blocks')[0]
-      const transformedCollection = containerBlock.properties.get('content')
-      const template = transformedCollection.properties.get('template') as any[]
+      const steps = journey.properties.steps as StepASTNode[]
+      const containerBlock = steps[0].properties.blocks[0]
+      const transformedCollection = containerBlock.properties.content
+      const template = transformedCollection.properties.template as any[]
       const transformedField = template[0]
 
       expect(mockNodeFactory.createNode).toHaveBeenCalledWith({
         type: ExpressionType.REFERENCE,
         path: ['answers', '@self'],
       })
-      expect(transformedField.properties.get('value')).toBe(mockSelfReferenceNode)
+      expect(transformedField.properties.value).toBe(mockSelfReferenceNode)
     })
 
     it('adds Self() to nested fields in blocks', () => {
@@ -149,15 +150,15 @@ describe('AddSelfValueToFields', () => {
 
       normalizer.normalize(step)
 
-      const blocks = step.properties.get('blocks')[0].properties.get('blocks')
+      const blocks = step.properties.blocks[0].properties.blocks
 
       expect(mockNodeFactory.createNode).toHaveBeenCalledTimes(2)
       expect(mockNodeFactory.createNode).toHaveBeenCalledWith({
         type: ExpressionType.REFERENCE,
         path: ['answers', '@self'],
       })
-      expect(blocks[0].properties.get('value')).toBe(mockSelfReferenceNode)
-      expect(blocks[1].properties.get('value')).toBe(mockSelfReferenceNode)
+      expect(blocks[0].properties.value).toBe(mockSelfReferenceNode)
+      expect(blocks[1].properties.value).toBe(mockSelfReferenceNode)
     })
   })
 })

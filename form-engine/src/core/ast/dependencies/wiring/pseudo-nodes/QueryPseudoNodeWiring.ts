@@ -39,7 +39,7 @@ export default class QueryPseudoNodeWiring {
     const queryRefs = this.wiringContext.findReferenceNodes('query')
 
     queryRefs.forEach(refNode => {
-      const path = refNode.properties.get('path') as string[]
+      const path = refNode.properties.path
 
       if (path.length >= 2 && path[1] === paramName) {
         this.wiringContext.graph.addEdge(queryPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {

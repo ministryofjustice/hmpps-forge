@@ -67,7 +67,7 @@ export default class AnswerPseudoNodeWiring {
 
     // Wire formatter pipeline, this itself has a Post('field_code') reference,
     // so it the graph still works out correctly. If no formatter pipeline, just wire to Post('field_name')
-    const formatPipelineNode = fieldNode.properties.get('formatPipeline')
+    const formatPipelineNode = fieldNode.properties.formatPipeline
 
     if (isPipelineExprNode(formatPipelineNode)) {
       // Wire formatter Pipeline
@@ -86,7 +86,7 @@ export default class AnswerPseudoNodeWiring {
       }
     }
 
-    const defaultValue = fieldNode.properties.get('defaultValue')
+    const defaultValue = fieldNode.properties.defaultValue
 
     if (isASTNode(defaultValue)) {
       this.wiringContext.graph.addEdge(defaultValue.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
@@ -135,7 +135,7 @@ export default class AnswerPseudoNodeWiring {
     const answerRefs = this.wiringContext.findReferenceNodes('answers')
 
     answerRefs.forEach(refNode => {
-      const path = refNode.properties.get('path') as string[]
+      const path = refNode.properties.path
 
       if (path.length >= 2) {
         const referencedField = path[1] as string

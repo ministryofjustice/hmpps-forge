@@ -9,12 +9,14 @@ describe('FormValidator', () => {
     it('should validate a valid schema', () => {
       const validJourney = {
         type: StructureType.JOURNEY,
+        path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
             type: StructureType.STEP,
             path: '/step1',
+            title: 'Step 1',
             blocks: [],
           } as StepDefinition,
         ],
@@ -79,12 +81,12 @@ describe('FormValidator', () => {
         code: 'strengths_and_needs',
         title: 'Strengths and Needs Assessment',
         path: '/strength-and-needs',
-        version: '1.0',
         children: [
           {
             type: StructureType.JOURNEY,
             code: null,
             title: null,
+            path: null,
             onAccess: [
               {
                 type: TransitionType.ACCESS,
@@ -99,6 +101,7 @@ describe('FormValidator', () => {
               {
                 type: StructureType.STEP,
                 path: '/test',
+                title: null,
                 blocks: [],
                 onSubmission: [
                   {

@@ -34,8 +34,8 @@ export const ReferenceExprSchema = z.looseObject({
  */
 export const FormatExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(ExpressionType.FORMAT),
-  text: z.string(),
-  args: z.array(ValueExprSchema),
+  template: z.string(),
+  arguments: z.array(ValueExprSchema),
 })
 
 /**
@@ -44,12 +44,7 @@ export const FormatExprSchema: z.ZodType<any> = z.looseObject({
 export const PipelineExprSchema = z.looseObject({
   type: z.literal(ExpressionType.PIPELINE),
   input: ValueExprSchema,
-  steps: z.array(
-    z.looseObject({
-      name: z.string(),
-      args: z.array(ValueExprSchema).optional(),
-    }),
-  ),
+  steps: z.array(TransformerFunctionExprSchema),
 })
 
 /**

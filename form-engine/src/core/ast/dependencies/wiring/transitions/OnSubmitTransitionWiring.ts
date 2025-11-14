@@ -5,7 +5,8 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType } from '@form-engine/form/types/enums'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { isSubmitTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
-import { NodeId } from '@form-engine/core/types/engine.type'
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * OnSubmitTransitionWiring: Wires onSubmission transitions for all steps
@@ -27,12 +28,13 @@ export default class OnSubmitTransitionWiring {
 
   private wireOnSubmitTransitions() {
     // Find all steps in the registry and wire their onSubmission transitions
-    this.wiringContext.findNodesByType<TransitionASTNode>(ASTNodeType.TRANSITION)
+    const submitTransitions = this.wiringContext.findNodesByType<TransitionASTNode>(ASTNodeType.TRANSITION)
       .filter(isSubmitTransitionNode)
-      .forEach(submitTransitionNode => {
-        this.wiringContext.graph.addNode(submitTransitionNode.id)
-        this.wireTransitionProperties(submitTransitionNode)
-      })
+
+    submitTransitions.forEach(submitTransitionNode => {
+      this.wiringContext.graph.addNode(submitTransitionNode.id)
+      this.wireTransitionProperties(submitTransitionNode)
+    })
   }
 
   private wireTransitionProperties(transition: SubmitTransitionASTNode) {
@@ -44,7 +46,7 @@ export default class OnSubmitTransitionWiring {
     this.wireValidationDependencies(transition)
 
     // Determine which transition type we have
-    const validate = transition.properties.get('validate')
+    const validate = transition.properties.validate
 
     if (validate === true) {
       // ValidatingTransition
@@ -60,9 +62,9 @@ export default class OnSubmitTransitionWiring {
    * Creates edge: when → transition
    */
   private wireWhenPredicate(transition: SubmitTransitionASTNode) {
-    const when = transition.properties.get('when')
+    const when = transition.properties.when
 
-    if (when && typeof when === 'object' && 'id' in when) {
+    if (isASTNode(when)) {
       this.wiringContext.graph.addEdge(when.id, transition.id, DependencyEdgeType.DATA_FLOW, {
         property: 'when',
       })
@@ -74,9 +76,9 @@ export default class OnSubmitTransitionWiring {
    * Creates edge: guards → transition
    */
   private wireGuardsPredicate(transition: SubmitTransitionASTNode) {
-    const guards = transition.properties.get('guards')
+    const guards = transition.properties.guards
 
-    if (guards && typeof guards === 'object' && 'id' in guards) {
+    if (isASTNode(guards)) {
       this.wiringContext.graph.addEdge(guards.id, transition.id, DependencyEdgeType.DATA_FLOW, {
         property: 'guards',
       })
@@ -88,7 +90,7 @@ export default class OnSubmitTransitionWiring {
    * Ensures all validations in the step are evaluated before the transition executes
    */
   private wireValidationDependencies(transition: SubmitTransitionASTNode) {
-    const validate = transition.properties.get('validate')
+    const validate = transition.properties.validate
 
     if (validate !== true) {
       return
@@ -162,24 +164,24 @@ export default class OnSubmitTransitionWiring {
    */
   private wireValidatingTransition(transition: SubmitTransitionASTNode) {
     // Wire onAlways (if present)
-    const onAlways = transition.properties.get('onAlways')
+    const onAlways = transition.properties.onAlways
 
-    if (onAlways && typeof onAlways === 'object') {
+    if (onAlways) {
       this.wireEffects(transition, onAlways.effects, 'onAlways')
     }
 
     // Wire onValid
-    const onValid = transition.properties.get('onValid')
+    const onValid = transition.properties.onValid
 
-    if (onValid && typeof onValid === 'object') {
+    if (onValid) {
       this.wireEffects(transition, onValid.effects, 'onValid')
       this.wireNext(transition, onValid.next, 'onValid')
     }
 
     // Wire onInvalid
-    const onInvalid = transition.properties.get('onInvalid')
+    const onInvalid = transition.properties.onInvalid
 
-    if (onInvalid && typeof onInvalid === 'object') {
+    if (onInvalid) {
       this.wireEffects(transition, onInvalid.effects, 'onInvalid')
       this.wireNext(transition, onInvalid.next, 'onInvalid')
     }
@@ -190,9 +192,9 @@ export default class OnSubmitTransitionWiring {
    * Wires onAlways branch
    */
   private wireSkipValidationTransition(transition: SubmitTransitionASTNode) {
-    const onAlways = transition.properties.get('onAlways')
+    const onAlways = transition.properties.onAlways
 
-    if (onAlways && typeof onAlways === 'object') {
+    if (onAlways) {
       this.wireEffects(transition, onAlways.effects, 'onAlways')
       this.wireNext(transition, onAlways.next, 'onAlways')
     }
@@ -202,18 +204,16 @@ export default class OnSubmitTransitionWiring {
    * Wire effects array to the transition
    * Creates edges: effect → transition
    */
-  private wireEffects(transition: SubmitTransitionASTNode, effects: any, branch: string) {
-    if (!Array.isArray(effects)) {
+  private wireEffects(transition: SubmitTransitionASTNode, effects: ASTNode[] | undefined, branch: string) {
+    if (!effects) {
       return
     }
 
-    effects.forEach((effect, index) => {
-      if (effect && typeof effect === 'object' && 'id' in effect) {
-        this.wiringContext.graph.addEdge(effect.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-          property: `${branch}.effects`,
-          index,
-        })
-      }
+    effects.filter(isASTNode).forEach((effect, index) => {
+      this.wiringContext.graph.addEdge(effect.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+        property: `${branch}.effects`,
+        index,
+      })
     })
   }
 
@@ -221,18 +221,16 @@ export default class OnSubmitTransitionWiring {
    * Wire next expressions array to the transition
    * Creates edges: next → transition
    */
-  private wireNext(transition: SubmitTransitionASTNode, next: any, branch: string) {
-    if (!Array.isArray(next)) {
+  private wireNext(transition: SubmitTransitionASTNode, next: ASTNode[] | undefined, branch: string) {
+    if (!next) {
       return
     }
 
-    next.forEach((nextExpr, index) => {
-      if (nextExpr && typeof nextExpr === 'object' && 'id' in nextExpr) {
-        this.wiringContext.graph.addEdge(nextExpr.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-          property: `${branch}.next`,
-          index,
-        })
-      }
+    next.filter(isASTNode).forEach((nextExpr, index) => {
+      this.wiringContext.graph.addEdge(nextExpr.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+        property: `${branch}.next`,
+        index,
+      })
     })
   }
 }

@@ -36,7 +36,7 @@ export default class ValidationExpressionWiring {
    * Creates edge: condition → validation
    */
   private wireValidation(validationNode: ValidationASTNode) {
-    const condition = validationNode.properties.get('when')
+    const condition = validationNode.properties.when
 
     // Wire condition → validation (condition must be evaluated before validation)
     if (isASTNode(condition)) {

@@ -50,8 +50,8 @@ const toHaveNodeCount: jest.CustomMatcher = function toHaveNodeCountMatcher(
       count += 1
     }
 
-    if (node.properties instanceof Map) {
-      for (const value of node.properties.values()) {
+    if (node.properties && typeof node.properties === 'object') {
+      for (const value of Object.values(node.properties)) {
         if (typeof value === 'object') {
           if (Array.isArray(value)) {
             value.forEach(countNodes)
@@ -87,8 +87,8 @@ const toHaveDepth: jest.CustomMatcher = function toHaveDepthMatcher(
 
     let maxDepth = currentDepth
 
-    if (node.properties instanceof Map) {
-      for (const value of node.properties.values()) {
+    if (node.properties && typeof node.properties === 'object') {
+      for (const value of Object.values(node.properties)) {
         if (typeof value === 'object') {
           if (Array.isArray(value)) {
             // eslint-disable-next-line no-loop-func
@@ -130,8 +130,8 @@ const toContainNodeWithId: jest.CustomMatcher = function toContainNodeWithIdMatc
 
     if (node.id === expectedId) return true
 
-    if (node.properties instanceof Map) {
-      for (const value of node.properties.values()) {
+    if (node.properties && typeof node.properties === 'object') {
+      for (const value of Object.values(node.properties)) {
         if (typeof value === 'object') {
           if (Array.isArray(value)) {
             if (value.some(findNode)) return true
@@ -196,12 +196,12 @@ const toHaveValidStructure: jest.CustomMatcher = function toHaveValidStructureMa
 
     if (!('properties' in node)) {
       errors.push(`${path}: Missing 'properties' property`)
-    } else if (!(node.properties instanceof Map)) {
-      errors.push(`${path}: Properties should be a Map`)
+    } else if (!(node.properties && typeof node.properties === 'object')) {
+      errors.push(`${path}: Properties should be an object`)
     }
 
-    if (node.properties instanceof Map) {
-      for (const [key, value] of node.properties.entries()) {
+    if (node.properties && typeof node.properties === 'object') {
+      for (const [key, value] of Object.entries(node.properties)) {
         if (typeof value === 'object' && value !== null) {
           if (Array.isArray(value)) {
             value.forEach((item, index) => {

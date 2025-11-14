@@ -60,7 +60,7 @@ describe('OnSubmitTransitionWiring', () => {
     describe('when predicate wiring', () => {
       it('should wire when predicate to transition', () => {
         // Arrange
-        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isRequired', [])
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isRequired', []) as any
         const whenPredicate = ASTTestFactory.predicate(LogicType.TEST, {
           subject: ASTTestFactory.reference(['answers', 'confirmed']),
           condition,
@@ -87,7 +87,7 @@ describe('OnSubmitTransitionWiring', () => {
     describe('guards predicate wiring', () => {
       it('should wire guards predicate to transition', () => {
         // Arrange
-        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'matchesValue', ['admin'])
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'matchesValue', ['admin']) as any
         const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
           subject: ASTTestFactory.reference(['data', 'userRole']),
           condition,

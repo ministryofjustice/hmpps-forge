@@ -55,7 +55,7 @@ export default class RouteGenerator {
     // TODO: For now, just find the step artefact. When thunks etc are done,
     //  we'll export a more complete chunk of data about a step which we can use here
     const path = stepArtefact.specialisedNodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
-      .at(0).properties.get('path')
+      .at(0).properties.path
 
     if (this.routeMap.has(path)) {
       this.dependencies.logger.warn(`Duplicate route path detected: ${path}`)

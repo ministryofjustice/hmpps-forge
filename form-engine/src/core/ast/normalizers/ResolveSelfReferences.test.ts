@@ -1,8 +1,9 @@
 import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
+import { FunctionASTNode, PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 
 describe('ResolveSelfReferencesNormalizer', () => {
   let normalizer: ResolveSelfReferencesNormalizer
@@ -26,8 +27,8 @@ describe('ResolveSelfReferencesNormalizer', () => {
 
       normalizer.normalize(field)
 
-      const valueExpr = field.properties.get('value')
-      const path = valueExpr.properties.get('path') as any[]
+      const valueExpr = field.properties.value
+      const path = valueExpr.properties.path as any[]
 
       expect(Array.isArray(path)).toBe(true)
       expect(path[0]).toBe('answers')
@@ -35,12 +36,14 @@ describe('ResolveSelfReferencesNormalizer', () => {
     })
 
     it('replaces @self with a deep-cloned code expression when code is dynamic', () => {
-      const codeExpr = ASTTestFactory.expression(ExpressionType.PIPELINE)
+      const trimFunction = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim', [])
+
+      const codeExpr = ASTTestFactory.expression<PipelineASTNode>(ExpressionType.PIPELINE)
         .withId('compile_ast:3')
-        .withSteps([{ name: 'trim' }])
+        .withSteps([trimFunction])
         .build()
 
-      const ref = ASTTestFactory.expression(ExpressionType.REFERENCE)
+      const ref = ASTTestFactory.expression<ReferenceASTNode>(ExpressionType.REFERENCE)
         .withId('compile_ast:4')
         .withPath(['answers', '@self'])
         .build()
@@ -53,8 +56,8 @@ describe('ResolveSelfReferencesNormalizer', () => {
 
       normalizer.normalize(field)
 
-      const valueExpr = field.properties.get('value')
-      const path = valueExpr.properties.get('path') as any[]
+      const valueExpr = field.properties.value
+      const path = valueExpr.properties.path as any[]
       const seg = path[1]
 
       expect(isASTNode(seg)).toBe(true)
@@ -62,14 +65,16 @@ describe('ResolveSelfReferencesNormalizer', () => {
       expect(seg.type).toBe(codeExpr.type)
       expect(seg.expressionType).toBe(codeExpr.expressionType)
 
-      const originalSteps = codeExpr.properties.get('steps')
-      const clonedSteps = seg.properties.get('steps')
+      const originalSteps = codeExpr.properties.steps
+      const clonedSteps = seg.properties.steps
 
       expect(Array.isArray(originalSteps)).toBe(true)
       expect(Array.isArray(clonedSteps)).toBe(true)
       expect(clonedSteps).not.toBe(originalSteps)
       expect(clonedSteps.length).toBe(originalSteps.length)
-      expect(clonedSteps[0].name).toBe(originalSteps[0].name)
+      expect((clonedSteps[0] as FunctionASTNode).properties.name).toBe(
+        (originalSteps[0] as FunctionASTNode).properties.name,
+      )
     })
 
     it('throws when Self() is used outside of a field block', () => {

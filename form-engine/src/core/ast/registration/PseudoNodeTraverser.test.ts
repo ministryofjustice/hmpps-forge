@@ -1,7 +1,7 @@
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { when } from 'jest-when'
 import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
@@ -123,12 +123,14 @@ describe('PseudoNodeTraverser', () => {
 
       it('should skip field blocks with non-string code property', () => {
         // Arrange
-        const fieldBlock: BlockASTNode = {
+        const fieldBlock: FieldBlockASTNode = {
           id: 'compile_ast:1',
           type: ASTNodeType.BLOCK,
           blockType: 'field',
           variant: 'TextInput',
-          properties: new Map([['code', 123]]),
+          properties: {
+            code: ASTTestFactory.reference(['test']),
+          },
         }
 
         when(mockNodeRegistry.findByType)
@@ -456,21 +458,21 @@ describe('PseudoNodeTraverser', () => {
           id: 'compile_ast:1',
           type: ASTNodeType.EXPRESSION,
           expressionType: ExpressionType.REFERENCE,
-          properties: new Map([['path', ['query']]]),
+          properties: { path: ['query'] },
         }
 
         const nonArrayRef: ReferenceASTNode = {
           id: 'compile_ast:2',
           type: ASTNodeType.EXPRESSION,
           expressionType: ExpressionType.REFERENCE,
-          properties: new Map([['path', 'query.returnUrl']]),
+          properties: { path: ['query.returnUrl'] },
         }
 
         const nonStringKeyRef: ReferenceASTNode = {
           id: 'compile_ast:3',
           type: ASTNodeType.EXPRESSION,
           expressionType: ExpressionType.REFERENCE,
-          properties: new Map([['path', ['query', 123]]]),
+          properties: { path: ['query', 123] },
         }
 
         when(mockNodeRegistry.findByType)

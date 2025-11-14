@@ -1,10 +1,10 @@
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   structuralTraverse,
-  StructuralVisitResult,
   StructuralVisitor,
+  StructuralVisitResult,
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
-import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
+import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { ExpressionType } from '@form-engine/form/types/enums'
 import { ReferenceExpr } from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
@@ -21,28 +21,16 @@ export class AddSelfValueToFieldsNormalizer implements StructuralVisitor {
    */
   enterNode(node: ASTNode): StructuralVisitResult {
     // Only process field blocks
-    if (!isBlockStructNode(node) || node.blockType !== 'field') {
-      return StructuralVisitResult.CONTINUE
-    }
-
-    if (!node.properties) {
-      return StructuralVisitResult.CONTINUE
-    }
-
-    // Only process blocks that have a 'code' (i.e., fields)
-    const code = node.properties.get('code')
-    if (!code) {
+    if (!isFieldBlockStructNode(node)) {
       return StructuralVisitResult.CONTINUE
     }
 
     // Create a Self() reference node using the factory
-    const selfReference = this.nodeFactory.createNode({
+    // Add the Self() reference as the value directly on the node
+    node.properties.value = this.nodeFactory.createNode({
       type: ExpressionType.REFERENCE,
       path: ['answers', '@self'],
     } satisfies ReferenceExpr)
-
-    // Add the Self() reference as the value directly on the node
-    node.properties.set('value', selfReference)
 
     return StructuralVisitResult.CONTINUE
   }

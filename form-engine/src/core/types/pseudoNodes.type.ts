@@ -5,12 +5,12 @@ import { NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
  * Pseudo nodes represent runtime data sources that aren't part of the AST
  */
 export enum PseudoNodeType {
-  POST = 'POST',
-  QUERY = 'QUERY',
-  PARAMS = 'PARAMS',
-  DATA = 'DATA',
-  ANSWER_LOCAL = 'ANSWER_LOCAL',
-  ANSWER_REMOTE = 'ANSWER_REMOTE',
+  POST = 'PseudoNodeType.Post',
+  QUERY = 'PseudoNodeType.Query',
+  PARAMS = 'PseudoNodeType.Params',
+  DATA = 'PseudoNodeType.Data',
+  ANSWER_LOCAL = 'PseudoNodeType.AnswerLocal',
+  ANSWER_REMOTE = 'PseudoNodeType.AnswerRemote',
 }
 
 /**

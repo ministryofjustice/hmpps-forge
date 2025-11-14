@@ -4,6 +4,7 @@ import { LogicType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { PredicateASTNode } from '@form-engine/core/types/expressions.type'
 import LogicExpressionWiring from './LogicExpressionWiring'
 
 describe('LogicExpressionWiring', () => {
@@ -371,13 +372,13 @@ describe('LogicExpressionWiring', () => {
         // Arrange
         const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isRequired', [])
 
-        const testExpr = ASTTestFactory.expression(LogicType.TEST)
+        const testExpr = ASTTestFactory.expression<PredicateASTNode>(LogicType.TEST)
           .withProperty('condition', condition)
           .withProperty('negate', false)
           .build()
 
         // Remove subject property
-        testExpr.properties.delete('subject')
+        delete (testExpr.properties as any).subject
 
         when(mockWiringContext.findNodesByType)
           .calledWith(ASTNodeType.EXPRESSION)
@@ -397,13 +398,13 @@ describe('LogicExpressionWiring', () => {
         // Arrange
         const subject = ASTTestFactory.reference(['answers', 'field'])
 
-        const testExpr = ASTTestFactory.expression(LogicType.TEST)
+        const testExpr = ASTTestFactory.expression<PredicateASTNode>(LogicType.TEST)
           .withSubject(subject)
           .withProperty('negate', false)
           .build()
 
         // Remove condition property
-        testExpr.properties.delete('condition')
+        delete (testExpr.properties as any).condition
 
         when(mockWiringContext.findNodesByType)
           .calledWith(ASTNodeType.EXPRESSION)
@@ -421,10 +422,10 @@ describe('LogicExpressionWiring', () => {
 
       it('should handle unary operator with missing operand property', () => {
         // Arrange
-        const notExpr = ASTTestFactory.expression(LogicType.NOT).build()
+        const notExpr = ASTTestFactory.expression<PredicateASTNode>(LogicType.NOT).build()
 
         // Remove operand property
-        notExpr.properties.delete('operand')
+        delete (notExpr.properties as any).operand
 
         when(mockWiringContext.findNodesByType)
           .calledWith(ASTNodeType.EXPRESSION)

@@ -39,9 +39,9 @@ export default class ConditionalExpressionWiring {
    * Creates edges: predicate → conditional, then → conditional, else → conditional
    */
   private wireConditional(conditionalNode: ConditionalASTNode) {
-    const predicate = conditionalNode.properties.get('predicate')
-    const thenValue = conditionalNode.properties.get('thenValue')
-    const elseValue = conditionalNode.properties.get('elseValue')
+    const predicate = conditionalNode.properties.predicate
+    const thenValue = conditionalNode.properties.thenValue
+    const elseValue = conditionalNode.properties.elseValue
 
     // Wire predicate → conditional (predicate must be evaluated before conditional)
     if (isASTNode(predicate)) {

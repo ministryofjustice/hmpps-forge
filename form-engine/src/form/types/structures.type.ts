@@ -24,6 +24,11 @@ export interface BlockDefinition {
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
+
+  /** Optional metadata regarding the step */
+  metadata?: {
+    [key: string]: any
+  }
 }
 
 /**
@@ -108,23 +113,11 @@ export interface FieldBlockDefinition extends BlockDefinition {
 export interface JourneyDefinition {
   type: StructureType.JOURNEY
 
+  /** URL path segment for the journey */
+  path: string
+
   /** Unique identifier for the journey */
   code: string
-
-  /** Display title for the journey */
-  title: string
-
-  /** Optional description of the journey's purpose */
-  description?: string
-
-  /** URL path segment for the journey */
-  path?: string
-
-  /** Version identifier for journey versioning */
-  version?: string
-
-  /** Optional custom Express controller applied to all steps */
-  controller?: string
 
   /** Load foundational data when journey is accessed */
   onLoad?: LoadTransition[]
@@ -137,6 +130,17 @@ export interface JourneyDefinition {
 
   /** Nested child journeys for hierarchical flows */
   children?: JourneyDefinition[]
+
+  /** Display title for the journey */
+  title: string
+
+  /** Optional description of the journey's purpose */
+  description?: string
+
+  /** Optional metadata regarding the journey */
+  metadata?: {
+    [key: string]: any
+  }
 }
 
 /**
@@ -150,7 +154,7 @@ export interface StepDefinition {
   path: string
 
   /** Array of blocks to render in this step */
-  blocks: BlockDefinition[]
+  blocks?: BlockDefinition[]
 
   /** Load step-specific data when step is accessed */
   onLoad?: LoadTransition[]
@@ -161,20 +165,22 @@ export interface StepDefinition {
   /** Handle form submission transitions */
   onSubmission?: SubmitTransition[]
 
-  /** Optional custom Express controller for step-specific logic */
-  controller?: string
+  /** Title for this step for displaying on the UI */
+  title: string
 
   /** Optional custom Nunjucks template for rendering the step */
   template?: string
 
   /** Marks this as an entry point step in the journey */
-  entry?: boolean
-
-  /** Whether to validate that user can legitimately reach this step */
-  checkJourneyTraversal?: boolean
+  isEntryPoint?: boolean
 
   /** Override URL for the back link (auto-calculated if not provided) */
   backlink?: string
+
+  /** Optional metadata regarding the step */
+  metadata?: {
+    [key: string]: any
+  }
 }
 
 export type ConditionalString =
