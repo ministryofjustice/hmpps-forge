@@ -507,4 +507,126 @@ describe('MetadataTraverser', () => {
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(targetStepBlock.id, 'attachedToParentProperty', 'blocks')
     })
   })
+
+  describe('traverseSubtree', () => {
+    it('should reconstruct ancestorPath from metadata and set parent metadata for runtime node', () => {
+      // Arrange
+      const block = ASTTestFactory
+        .block('TextInput', 'field')
+        .withCode('name')
+        .build()
+      const step = ASTTestFactory
+        .step()
+        .withProperty('blocks', [block])
+        .build()
+      const journey = ASTTestFactory
+        .journey()
+        .withProperty('steps', [step])
+        .build()
+
+      const realMetadataRegistry = new MetadataRegistry()
+      realMetadataRegistry.set(step.id, 'attachedToParentNode', journey.id)
+      realMetadataRegistry.set(block.id, 'attachedToParentNode', step.id)
+      realMetadataRegistry.set(block.id, 'isDescendantOfStep', true)
+
+      const realTraverser = new MetadataTraverser(realMetadataRegistry)
+
+      const runtimeChild = ASTTestFactory
+        .block('TextInput', 'field')
+        .withCode('dynamicField')
+        .build()
+      const runtimeNode = ASTTestFactory
+        .block('Container', 'basic')
+        .withProperty('blocks', [runtimeChild])
+        .build()
+
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentNode', block.id)
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentProperty', 'template')
+
+      // Act
+      realTraverser.traverseSubtree(runtimeNode)
+
+      // Assert
+      expect(realMetadataRegistry.get(runtimeNode.id, 'attachedToParentNode')).toBe(block.id)
+      expect(realMetadataRegistry.get(runtimeNode.id, 'attachedToParentProperty')).toBe('template')
+      expect(realMetadataRegistry.get(runtimeChild.id, 'attachedToParentNode')).toBe(runtimeNode.id)
+      expect(realMetadataRegistry.get(runtimeChild.id, 'attachedToParentProperty')).toBe('blocks')
+    })
+
+    it('should inherit step context from parent node', () => {
+      // Arrange
+      const step = ASTTestFactory.step().build()
+      const block = ASTTestFactory
+        .block('TextInput', 'field')
+        .withCode('name')
+        .build()
+
+      const realMetadataRegistry = new MetadataRegistry()
+      realMetadataRegistry.set(block.id, 'attachedToParentNode', step.id)
+      realMetadataRegistry.set(block.id, 'isDescendantOfStep', true)
+      realMetadataRegistry.set(block.id, 'isAncestorOfStep', false)
+
+      const realTraverser = new MetadataTraverser(realMetadataRegistry)
+
+      const runtimeNode = ASTTestFactory
+        .block('Container', 'basic')
+        .build()
+
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentNode', block.id)
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentProperty', 'template')
+
+      // Act
+      realTraverser.traverseSubtree(runtimeNode)
+
+      // Assert
+      expect(realMetadataRegistry.get(runtimeNode.id, 'isDescendantOfStep')).toBe(true)
+    })
+
+    it('should handle deep ancestry chain by reconstructing from metadata', () => {
+      // Arrange
+      const block3 = ASTTestFactory
+        .block('TextInput', 'field')
+        .withCode('field3')
+        .build()
+      const block2 = ASTTestFactory
+        .block('Container', 'basic')
+        .withProperty('blocks', [block3])
+        .build()
+      const block1 = ASTTestFactory
+        .block('Container', 'basic')
+        .withProperty('blocks', [block2])
+        .build()
+      const step = ASTTestFactory
+        .step()
+        .withProperty('blocks', [block1])
+        .build()
+      const journey = ASTTestFactory
+        .journey()
+        .withProperty('steps', [step])
+        .build()
+
+      const realMetadataRegistry = new MetadataRegistry()
+      realMetadataRegistry.set(step.id, 'attachedToParentNode', journey.id)
+      realMetadataRegistry.set(block1.id, 'attachedToParentNode', step.id)
+      realMetadataRegistry.set(block2.id, 'attachedToParentNode', block1.id)
+      realMetadataRegistry.set(block3.id, 'attachedToParentNode', block2.id)
+
+      const realTraverser = new MetadataTraverser(realMetadataRegistry)
+
+      const runtimeNode = ASTTestFactory
+        .block('TextInput', 'field')
+        .withCode('dynamicField')
+        .build()
+
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentNode', block3.id)
+      realMetadataRegistry.set(runtimeNode.id, 'attachedToParentProperty', 'value')
+
+      // Act
+      realTraverser.traverseSubtree(runtimeNode)
+
+      // Assert
+      expect(realMetadataRegistry.get(runtimeNode.id, 'attachedToParentNode')).toBe(block3.id)
+      expect(realMetadataRegistry.get(runtimeNode.id, 'attachedToParentProperty')).toBe('value')
+    })
+  })
 })

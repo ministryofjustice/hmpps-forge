@@ -1,0 +1,342 @@
+import { NodeId, FormInstanceDependencies, ASTNode } from '@form-engine/core/types/engine.type'
+import {
+  ThunkHandler,
+  ThunkInvocationAdapter,
+  ThunkResult,
+  ThunkRuntimeHooks,
+  RuntimeOverlayBuilder,
+  RuntimeOverlayConfigurator,
+  EvaluatorRequestData,
+} from '@form-engine/core/ast/thunks/types'
+import ThunkHandlerRegistryError from '@form-engine/errors/ThunkHandlerRegistryError'
+import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
+import ThunkCompilerFactory from '@form-engine/core/ast/thunks/factories/ThunkCompilerFactory'
+import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
+import ThunkRuntimeHooksFactory from '@form-engine/core/ast/thunks/factories/ThunkRuntimeHooksFactory'
+import { ASTNodeType } from '@form-engine/core/types/enums'
+import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
+import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
+
+/**
+ * Result of evaluating a form
+ */
+export interface EvaluationResult {
+  context: ThunkEvaluationContext
+  journey: ThunkResult<unknown>
+}
+
+/**
+ * Runtime evaluator that orchestrates lazy thunk handler execution.
+ *
+ * ThunkEvaluator implements the ThunkInvocationAdapter interface, providing
+ * memoized handler invocation for recursive evaluation. It coordinates the
+ * evaluation process by:
+ *
+ * 1. Building evaluation context from request data
+ * 2. Invoking the Journey node (root of AST)
+ * 3. Handlers recursively invoke their dependencies via invoke()
+ * 4. Managing memoization cache to prevent redundant computation
+ * 5. Collecting and returning evaluation results
+ *
+ * Lazy evaluation means nodes are only evaluated when explicitly invoked by
+ * their parents, enabling natural control flow and conditional evaluation.
+ *
+ * The evaluator is stateless - each evaluation creates a fresh cache and
+ * context, ensuring no state leaks across requests.
+ *
+ * Use the static `withRuntimeOverlay()` factory to create instances - the
+ * constructor is private to enforce that evaluation always has a runtime overlay.
+ */
+export default class ThunkEvaluator implements ThunkInvocationAdapter {
+  /**
+   * Cache manager for memoization and dirty tracking
+   */
+  private readonly cacheManager = new ThunkCacheManager()
+
+  /**
+   * Factory for creating runtime hooks
+   */
+  private readonly runtimeHooksFactory: ThunkRuntimeHooksFactory
+
+  /**
+   * Construct a ThunkEvaluator
+   *
+   * **Prefer using `ThunkEvaluator.withRuntimeOverlay()` instead.**
+   * This static factory handles cloning compilation dependencies and
+   * setting up the runtime overlay correctly.
+   *
+   * Direct construction is primarily for unit testing with mocked dependencies.
+   */
+  constructor(
+    private readonly compilationDependencies: CompilationDependencies,
+    private readonly formInstanceDependencies: FormInstanceDependencies,
+    runtimeOverlayBuilder: RuntimeOverlayBuilder,
+  ) {
+    this.runtimeHooksFactory = new ThunkRuntimeHooksFactory(
+      compilationDependencies,
+      new ThunkCompilerFactory(),
+      this.cacheManager,
+      runtimeOverlayBuilder,
+    )
+  }
+
+  /**
+   * Create an evaluator with a runtime overlay.
+   *
+   * This factory clones the compilation dependencies and creates a runtime overlay
+   * so callers can register runtime-expanded nodes/edges/handlers without mutating
+   * the original compiled program.
+   *
+   * The provided configurator receives the cloned registries and graph so it
+   * can append additional runtime nodes and wiring before evaluation.
+   *
+   * @param compilationDependencies - The compiled form dependencies
+   * @param formInstanceDependencies - Form instance runtime dependencies
+   * @param configurator - Optional function to configure the runtime overlay
+   * @returns A new ThunkEvaluator ready for evaluation
+   */
+  static withRuntimeOverlay(
+    compilationDependencies: CompilationDependencies,
+    formInstanceDependencies: FormInstanceDependencies,
+    configurator?: RuntimeOverlayConfigurator,
+  ): ThunkEvaluator {
+    const clonedCompilationDependencies = compilationDependencies.clone()
+
+    const runtimeCompilationDependencies = new CompilationDependencies(
+      clonedCompilationDependencies.nodeIdGenerator,
+      new NodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_AST),
+      new PseudoNodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_PSEUDO),
+      clonedCompilationDependencies.nodeRegistry,
+      clonedCompilationDependencies.metadataRegistry,
+      clonedCompilationDependencies.thunkHandlerRegistry,
+      clonedCompilationDependencies.dependencyGraph,
+    )
+
+    const overlay: RuntimeOverlayBuilder = {
+      handlerRegistry: clonedCompilationDependencies.thunkHandlerRegistry,
+      metadataRegistry: clonedCompilationDependencies.metadataRegistry,
+      dependencyGraph: clonedCompilationDependencies.dependencyGraph,
+      nodeRegistry: clonedCompilationDependencies.nodeRegistry,
+      nodeFactory: new NodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_AST),
+      runtimeNodes: new Map<NodeId, ASTNode>(),
+    }
+
+    if (configurator) {
+      configurator(overlay)
+    }
+
+    return new ThunkEvaluator(runtimeCompilationDependencies, formInstanceDependencies, overlay)
+  }
+
+  /**
+   * Invoke evaluation for a specific node (ThunkInvocationAdapter implementation)
+   *
+   * This method implements the memoization strategy with retry logic:
+   * 1. Check cache for existing result
+   * 2. Look up handler from registry
+   * 3. Capture version counter at start
+   * 4. Execute handler (which may recursively call invoke)
+   * 5. Check if node was invalidated during execution (version changed)
+   * 6. If invalidated, retry evaluation (up to maxRetries)
+   * 7. Store result in cache and return
+   *
+   * @param nodeId - The node to evaluate
+   * @param context - Runtime evaluation context
+   * @returns Promise resolving to the evaluation result
+   */
+  async invoke<T = unknown>(nodeId: NodeId, context: ThunkEvaluationContext): Promise<ThunkResult<T>> {
+    // Create isolated scope for this invocation to prevent scope pollution
+    // when multiple evaluations run in parallel (e.g., Promise.all in BlockHandler)
+    const isolatedContext = context.withIsolatedScope()
+
+    return this.invokeWithRetry(nodeId, isolatedContext, 10)
+  }
+
+  /**
+   * Internal invoke implementation with retry logic
+   *
+   * Separated from public invoke() to keep maxRetries as implementation detail
+   *
+   * @param nodeId - The node to evaluate
+   * @param context - Runtime evaluation context
+   * @param maxRetries - Maximum number of retries if invalidated during evaluation
+   * @returns Promise resolving to the evaluation result
+   */
+  private async invokeWithRetry<T = unknown>(
+    nodeId: NodeId,
+    context: ThunkEvaluationContext,
+    maxRetries: number,
+  ): Promise<ThunkResult<T>> {
+    // 1. Check cache for existing result (memoization)
+    const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
+
+    if (cachedResult) {
+      return cachedResult
+    }
+
+    // 2. Look up handler from registry
+    const handler = this.compilationDependencies.thunkHandlerRegistry.get(nodeId)
+
+    if (!handler) {
+      const registry = this.compilationDependencies.thunkHandlerRegistry
+      const error = ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
+
+      const errorResult: ThunkResult<T> = {
+        error: error.toThunkError(),
+        metadata: {
+          source: 'ThunkEvaluator.invoke',
+          timestamp: Date.now(),
+        },
+      }
+
+      this.cacheManager.set(nodeId, errorResult)
+
+      return errorResult
+    }
+
+    // 3. Retry loop - handles mid-evaluation invalidations
+    let retries = 0
+    let result: ThunkResult<T> | undefined
+
+    while (retries < maxRetries) {
+      // Capture version at START of evaluation
+      const versionAtStart = this.cacheManager.getVersion(nodeId)
+
+      // Create contextual hooks for this evaluation attempt
+      const contextualHooks = this.runtimeHooksFactory.create(nodeId)
+
+      // Execute handler with error handling
+      // eslint-disable-next-line no-await-in-loop
+      result = await this.executeHandler<T>(nodeId, handler, context, contextualHooks)
+
+      // Check version at END of evaluation
+      const versionAtEnd = this.cacheManager.getVersion(nodeId)
+
+      if (versionAtEnd === versionAtStart) {
+        // No invalidation during evaluation - result is valid
+        this.cacheManager.set(nodeId, result)
+
+        return result
+      }
+
+      // Node was invalidated during evaluation - result is stale
+      // Clear cache and retry
+      this.cacheManager.delete(nodeId)
+      retries += 1
+    }
+
+    // Exceeded max retries - likely infinite invalidation loop
+    const error = ThunkEvaluationError.maxRetriesExceeded(nodeId, retries, maxRetries)
+
+    const maxRetriesError: ThunkResult<T> = {
+      error: error.toThunkError(),
+      metadata: {
+        source: 'ThunkEvaluator.invoke',
+        timestamp: Date.now(),
+      },
+    }
+
+    this.cacheManager.set(nodeId, maxRetriesError)
+
+    return maxRetriesError
+  }
+
+  /**
+   * Execute handler and wrap any errors in structured ThunkError
+   *
+   * Merges infrastructure-provided metadata (source from handler class name, timestamp)
+   * with any handler-provided metadata. Handler metadata is appended and can override
+   * defaults if needed.
+   *
+   * @param nodeId - The node being evaluated
+   * @param handler - The handler to execute
+   * @param context - Runtime evaluation context
+   * @param hooks - Runtime hooks
+   * @returns Promise resolving to evaluation result (success or wrapped error)
+   */
+  private async executeHandler<T>(
+    nodeId: NodeId,
+    handler: ThunkHandler,
+    context: ThunkEvaluationContext,
+    hooks: ThunkRuntimeHooks,
+  ): Promise<ThunkResult<T>> {
+    try {
+      const result = await handler.evaluate(context, this, hooks)
+
+      // Infrastructure provides defaults, handler metadata appends/overrides
+      return {
+        ...result,
+        metadata: {
+          source: handler.constructor.name,
+          timestamp: Date.now(),
+          ...result.metadata,
+        },
+      } as ThunkResult<T>
+    } catch (cause) {
+      // Wrap any thrown errors in structured ThunkError
+      const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
+      const error = ThunkEvaluationError.failed(nodeId, wrappedCause, handler.constructor.name)
+
+      return {
+        error: error.toThunkError(),
+        metadata: {
+          source: handler.constructor.name,
+          timestamp: Date.now(),
+        },
+      }
+    }
+  }
+
+  /**
+   * Create an evaluation context from request data.
+   *
+   * Use this to create a context before running lifecycle transitions,
+   * then pass the same context to evaluate().
+   *
+   * @param request - HTTP request data (post, query, params)
+   * @returns A new ThunkEvaluationContext
+   */
+  createContext(request: EvaluatorRequestData): ThunkEvaluationContext {
+    return new ThunkEvaluationContext(this.compilationDependencies, this.formInstanceDependencies, request)
+  }
+
+  /**
+   * Main entry point: evaluate form starting from Journey node
+   *
+   * Orchestrates lazy evaluation by:
+   * 1. Invoke the Journey node (root of AST)
+   * 2. Return context with all evaluated values
+   *
+   * The Journey node invokes its children (Steps), which invoke their children (Blocks),
+   * and so on, creating a natural lazy evaluation cascade. Memoization prevents redundant
+   * computation when nodes are referenced multiple times.
+   *
+   * Version counters detect mid-evaluation invalidations (e.g., Collections adding
+   * runtime nodes) and trigger retries to ensure correct results.
+   *
+   * Note: Lifecycle transitions (onLoad, onAccess, onSubmit) should be executed
+   * before calling evaluate(), using LifecycleCoordinator.handleRequest().
+   *
+   * @param context - Evaluation context created via createContext()
+   * @returns Promise resolving to evaluation result with context and journey
+   */
+  async evaluate(context: ThunkEvaluationContext): Promise<EvaluationResult> {
+    // Find and invoke the Journey node (root of the AST)
+    // The Journey handler will recursively invoke all necessary nodes
+    const journeyNodes = this.compilationDependencies.nodeRegistry.findByType(ASTNodeType.JOURNEY)
+
+    let journey: ThunkResult<unknown> = {
+      value: undefined,
+      metadata: { source: 'ThunkEvaluator.evaluate', timestamp: Date.now() },
+    }
+
+    if (journeyNodes.length > 0) {
+      journey = await this.invoke(journeyNodes[0].id, context)
+    }
+
+    return { context, journey }
+  }
+}

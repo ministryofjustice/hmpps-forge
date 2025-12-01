@@ -32,9 +32,9 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
     }
 
     // Extract values using paths
-    const year = paths.year ? getByPath(value, paths.year) : undefined
-    const month = paths.month ? getByPath(value, paths.month) : undefined
-    const day = paths.day ? getByPath(value, paths.day) : undefined
+    const year = paths.year ? getByPath<string>(value, paths.year) : undefined
+    const month = paths.month ? getByPath<string>(value, paths.month) : undefined
+    const day = paths.day ? getByPath<string>(value, paths.day) : undefined
 
     // Validate extracted values are numeric strings if present
     if (year && !/^\d{1,4}$/.test(year)) {

@@ -4,7 +4,7 @@ import { FunctionType, ExpressionType } from '@form-engine/form/types/enums'
 import { PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { isPipelineExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import { isTransformerFunctionNode } from '@form-engine/core/typeguards/function-nodes'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
 
 describe('ConvertFormattersToPipelineNormalizer', () => {
@@ -16,7 +16,7 @@ describe('ConvertFormattersToPipelineNormalizer', () => {
       next: jest.fn().mockReturnValue('mock-id'),
     } as unknown as jest.Mocked<NodeIDGenerator>
 
-    normalizer = new ConvertFormattersToPipelineNormalizer(mockNodeIDGenerator)
+    normalizer = new ConvertFormattersToPipelineNormalizer(mockNodeIDGenerator, NodeIDCategory.COMPILE_AST)
   })
 
   describe('normalize()', () => {

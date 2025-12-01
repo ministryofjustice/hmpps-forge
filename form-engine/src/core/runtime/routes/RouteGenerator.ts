@@ -1,21 +1,21 @@
 import express from 'express'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import { FormEngineOptions } from '@form-engine/core/FormEngine'
-import { CompiledForm, StepArtefact } from '@form-engine/core/ast/FormCompilationFactory'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
+import { CompilationArtefact, CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationFactory'
 
 export interface GeneratedRoute {
   path: string
   method: 'GET' | 'POST'
-  stepArtefact: StepArtefact
+  artefact: CompilationArtefact
   handler: express.RequestHandler
   isDebugRoute: boolean
 }
 
 export interface RouteGenerationResult {
   routes: GeneratedRoute[]
-  routeMap: Map<string, StepArtefact>
+  routeMap: Map<string, CompilationArtefact>
 }
 
 /**
@@ -25,7 +25,7 @@ export interface RouteGenerationResult {
 export default class RouteGenerator {
   private routes: GeneratedRoute[] = []
 
-  private routeMap: Map<string, StepArtefact> = new Map()
+  private routeMap: Map<string, CompilationArtefact> = new Map()
 
   constructor(
     private readonly compiledForm: CompiledForm,
@@ -38,8 +38,8 @@ export default class RouteGenerator {
    */
   generateRoutes(): RouteGenerationResult {
     // Iterate over all step artefacts
-    this.compiledForm.forEach(artefact => {
-      this.handleStepArtefact(artefact.stepArtefact)
+    this.compiledForm.forEach(({ artefact }) => {
+      this.handleStepArtefact(artefact)
     })
 
     return {
@@ -51,21 +51,25 @@ export default class RouteGenerator {
   /**
    * Handle a step artefact - create routes for it
    */
-  private handleStepArtefact(stepArtefact: StepArtefact): void {
-    // TODO: For now, just find the step artefact. When thunks etc are done,
-    //  we'll export a more complete chunk of data about a step which we can use here
-    const path = stepArtefact.specialisedNodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
-      .at(0).properties.path
+  private handleStepArtefact(artefact: CompilationArtefact): void {
+    const stepNode = artefact.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP).at(0)
+
+    if (!stepNode) {
+      this.dependencies.logger.warn('No step node found in artefact')
+      return
+    }
+
+    const path = stepNode.properties.path
 
     if (this.routeMap.has(path)) {
       this.dependencies.logger.warn(`Duplicate route path detected: ${path}`)
       return
     }
 
-    this.routeMap.set(path, stepArtefact)
+    this.routeMap.set(path, artefact)
 
-    const getRoute = this.createRoute(path, 'GET', stepArtefact)
-    const postRoute = this.createRoute(path, 'POST', stepArtefact)
+    const getRoute = this.createRoute(path, 'GET', artefact)
+    const postRoute = this.createRoute(path, 'POST', artefact)
 
     this.routes.push(getRoute, postRoute)
   }
@@ -73,13 +77,13 @@ export default class RouteGenerator {
   /**
    * Create a route with its handler
    */
-  private createRoute(path: string, method: 'GET' | 'POST', artefact: StepArtefact): GeneratedRoute {
+  private createRoute(path: string, method: 'GET' | 'POST', artefact: CompilationArtefact): GeneratedRoute {
     const handler = this.createHandler(method)
 
     return {
       path,
       method,
-      stepArtefact: artefact,
+      artefact,
       handler,
       isDebugRoute: false,
     }
@@ -90,7 +94,6 @@ export default class RouteGenerator {
    */
   private createHandler(method: 'GET' | 'POST'): express.RequestHandler {
     return async (req, res, next) => {
-
       try {
         if (method === 'GET') {
           // For GET requests, render the step
@@ -102,6 +105,8 @@ export default class RouteGenerator {
             message: 'Form rendering not yet implemented',
             path: req.path,
           })
+
+          return
         }
 
         if (method === 'POST') {
@@ -114,9 +119,10 @@ export default class RouteGenerator {
             path: req.path,
             body: req.body,
           })
+
+          return
         }
 
-        // TODO: Add proper HTTP errors?
         next(new Error('Unsupported method, request must be either a GET or a POST'))
       } catch (error) {
         next(error)

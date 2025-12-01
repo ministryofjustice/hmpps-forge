@@ -131,6 +131,13 @@ export default class NodeRegistry {
   }
 
   /**
+   * Clear all registered nodes
+   */
+  clear(): void {
+    this.nodes.clear()
+  }
+
+  /**
    * Create a shallow copy of this registry
    * Node references are shared (safe since nodes are immutable),
    * but the registry can be modified independently

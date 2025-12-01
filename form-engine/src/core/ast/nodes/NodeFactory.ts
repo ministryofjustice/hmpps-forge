@@ -5,7 +5,7 @@ import { isTransition } from '@form-engine/form/typeguards/transitions'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNode } from '@form-engine/core/types/engine.type'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import { TransitionNodeFactory } from './factories/TransitionNodeFactory'
 import { LogicNodeFactory } from './factories/LogicNodeFactory'
 import { ExpressionNodeFactory } from './factories/ExpressionNodeFactory'
@@ -34,11 +34,14 @@ export class NodeFactory {
 
   private transitionNodeFactory: TransitionNodeFactory
 
-  constructor(nodeIDGenerator = new NodeIDGenerator()) {
-    this.structureNodeFactory = new StructureNodeFactory(nodeIDGenerator, this)
-    this.logicNodeFactory = new LogicNodeFactory(nodeIDGenerator, this)
-    this.expressionNodeFactory = new ExpressionNodeFactory(nodeIDGenerator, this)
-    this.transitionNodeFactory = new TransitionNodeFactory(nodeIDGenerator, this)
+  constructor(
+    private readonly nodeIDGenerator: NodeIDGenerator,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+  ) {
+    this.structureNodeFactory = new StructureNodeFactory(this.nodeIDGenerator, this, this.category)
+    this.logicNodeFactory = new LogicNodeFactory(this.nodeIDGenerator, this, this.category)
+    this.expressionNodeFactory = new ExpressionNodeFactory(this.nodeIDGenerator, this, this.category)
+    this.transitionNodeFactory = new TransitionNodeFactory(this.nodeIDGenerator, this, this.category)
   }
 
   /**

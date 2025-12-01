@@ -17,16 +17,11 @@ export enum DependencyEdgeType {
   DATA_FLOW = 'data_flow',
 
   /**
-   * Control flow edges (condition → dependent)
-   * Example: dependent condition → Validation
+   * Control flow edges (sequential execution order)
+   * Represents that one node must complete before another can start.
+   * Example: transition[0] → transition[1], effect[0] → effect[1]
    */
   CONTROL_FLOW = 'control_flow',
-
-  /**
-   * Effect flow edges (effect → consumer that depends on it)
-   * Example: onLoad → Answer, onLoad → Data
-   */
-  EFFECT_FLOW = 'effect_flow',
 }
 
 /**
@@ -152,6 +147,55 @@ export default class DependencyGraph {
    */
   size(): number {
     return this.nodes.size
+  }
+
+  /**
+   * Get all edges in the graph
+   */
+  getAllEdges(): DependencyEdge[] {
+    const edges: DependencyEdge[] = []
+
+    this.edgeMetadata.forEach(toMap => {
+      toMap.forEach(edgeList => {
+        edges.push(...edgeList)
+      })
+    })
+
+    return edges
+  }
+
+  /**
+   * Clear all nodes and edges from the graph
+   */
+  clear(): void {
+    this.nodes.clear()
+    this.adjacencyList.clear()
+    this.reverseAdjacencyList.clear()
+    this.edgeMetadata.clear()
+  }
+
+  /**
+   * Create a shallow copy of this dependency graph
+   *
+   * Edge lists and node sets are duplicated so the clone can be mutated
+   * without affecting the original graph.
+   */
+  clone(): DependencyGraph {
+    const cloned = new DependencyGraph()
+
+    this.nodes.forEach(node => {
+      cloned.addNode(node)
+    })
+
+    this.edgeMetadata.forEach((toMap: Map<NodeId, DependencyEdge[]>) => {
+      toMap.forEach(edges => {
+        edges.forEach(edge => {
+          cloned.addEdge(edge.from, edge.to, edge.type, edge.metadata)
+        })
+      })
+    })
+
+    return cloned
   }
 
   /**

@@ -4,6 +4,7 @@ import { ASTNode, AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/type
 import {
   ExpressionASTNode,
   FunctionASTNode,
+  PipelineASTNode,
   PredicateASTNode,
   ReferenceASTNode,
   LoadTransitionASTNode,
@@ -130,6 +131,13 @@ export class ASTTestFactory {
     return ASTTestFactory.expression<FunctionASTNode>(type)
       .withProperty('name', name)
       .withProperty('arguments', args)
+      .build()
+  }
+
+  static pipelineExpression(config: { input: unknown; steps: unknown[] }): PipelineASTNode {
+    return ASTTestFactory.expression<PipelineASTNode>(ExpressionType.PIPELINE)
+      .withProperty('input', config.input)
+      .withProperty('steps', config.steps)
       .build()
   }
 

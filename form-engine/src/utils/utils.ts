@@ -3,13 +3,17 @@
  * @param obj - The object to extract from
  * @param path - The dot-notation path (e.g., 'user.profile.name')
  */
-export function getByPath(obj: any, path: string): string | undefined {
-  if (!obj || typeof path !== 'string') {
+export function getByPath<T = unknown>(obj: unknown, path: string): T | undefined {
+  if (obj == null || typeof path !== 'string') {
     return undefined
   }
 
+  if (path === '') {
+    return obj as T
+  }
+
   const keys = path.split('.')
-  let current = obj
+  let current: any = obj
 
   for (const key of keys) {
     if (current == null || typeof current !== 'object') {
@@ -18,9 +22,5 @@ export function getByPath(obj: any, path: string): string | undefined {
     current = current[key]
   }
 
-  if (current == null) {
-    return undefined
-  }
-
-  return current
+  return current as T
 }

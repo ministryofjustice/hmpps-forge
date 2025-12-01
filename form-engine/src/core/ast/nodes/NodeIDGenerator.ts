@@ -26,15 +26,11 @@ export class NodeIDGenerator {
   /**
    * Generate next ID in category
    * @param category - Which counter to use
-   * @returns String ID like "compile_ast:1"
+   * @returns String ID like "compile_ast:1" or "runtime_ast:1"
    */
-  next(category: NodeIDCategory.COMPILE_AST): AstNodeId
+  next(category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST): AstNodeId
 
-  next(category: NodeIDCategory.RUNTIME_AST): AstNodeId
-
-  next(category: NodeIDCategory.COMPILE_PSEUDO): PseudoNodeId
-
-  next(category: NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
+  next(category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
 
   next(category: NodeIDCategory): NodeId {
     const current = this.counters.get(category)!

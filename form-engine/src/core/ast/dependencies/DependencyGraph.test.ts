@@ -131,12 +131,7 @@ describe('DependencyGraph', () => {
       graph.addNode(a)
       graph.addNode(b)
 
-      const edgeTypes = [
-        DependencyEdgeType.STRUCTURAL,
-        DependencyEdgeType.DATA_FLOW,
-        DependencyEdgeType.CONTROL_FLOW,
-        DependencyEdgeType.EFFECT_FLOW,
-      ]
+      const edgeTypes = [DependencyEdgeType.STRUCTURAL, DependencyEdgeType.DATA_FLOW, DependencyEdgeType.CONTROL_FLOW]
 
       edgeTypes.forEach(type => {
         graph.addEdge(a, b, type)
@@ -144,7 +139,7 @@ describe('DependencyGraph', () => {
 
       const edges = graph.getEdges(a, b)
 
-      expect(edges).toHaveLength(4)
+      expect(edges).toHaveLength(3)
       edgeTypes.forEach(type => {
         expect(edges.some(e => e.type === type)).toBe(true)
       })
@@ -551,6 +546,47 @@ describe('DependencyGraph', () => {
         expect(result.cycles.length).toBeGreaterThan(0)
         expect(Array.isArray(result.cycles[0])).toBe(true)
       })
+    })
+  })
+
+  describe('clone', () => {
+    it('duplicates registered nodes and edges', () => {
+      const a: NodeId = 'compile_ast:1'
+      const b: NodeId = 'compile_ast:2'
+      const metadata = { propertyName: 'defaultValue' }
+
+      graph.addNode(a)
+      graph.addNode(b)
+      graph.addEdge(a, b, DependencyEdgeType.DATA_FLOW, metadata)
+
+      const cloned = graph.clone()
+
+      expect(cloned.size()).toBe(graph.size())
+      expect(cloned.hasNode(a)).toBe(true)
+      expect(cloned.hasNode(b)).toBe(true)
+
+      const clonedEdges = cloned.getEdges(a, b)
+
+      expect(clonedEdges).toHaveLength(1)
+      expect(clonedEdges[0].type).toBe(DependencyEdgeType.DATA_FLOW)
+      expect(clonedEdges[0].metadata).toEqual(metadata)
+    })
+
+    it('returns an independent graph copy', () => {
+      const existing: NodeId = 'compile_ast:3'
+      graph.addNode(existing)
+
+      const cloned = graph.clone()
+      const runtimeNode: NodeId = 'runtime_ast:1'
+
+      cloned.addNode(runtimeNode)
+
+      expect(graph.hasNode(runtimeNode)).toBe(false)
+
+      const newOriginalNode: NodeId = 'compile_ast:4'
+      graph.addNode(newOriginalNode)
+
+      expect(cloned.hasNode(newOriginalNode)).toBe(false)
     })
   })
 })

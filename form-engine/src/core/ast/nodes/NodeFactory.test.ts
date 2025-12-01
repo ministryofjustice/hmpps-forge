@@ -1,5 +1,5 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { StructureType, TransitionType, ExpressionType, LogicType, FunctionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, LogicType, StructureType, TransitionType } from '@form-engine/form/types/enums'
 import {
   AccessTransition,
   CollectionExpr,
@@ -25,16 +25,16 @@ import {
   StepDefinition,
   ValidationExpr,
 } from '@form-engine/form/types/structures.type'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import {
+  AndPredicateASTNode,
   ConditionalASTNode,
   ExpressionASTNode,
   FunctionASTNode,
   PipelineASTNode,
   PredicateASTNode,
-  AndPredicateASTNode,
   TransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
@@ -46,7 +46,7 @@ describe('NodeFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator)
+    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
   })
 
   describe('createNode - Routing', () => {

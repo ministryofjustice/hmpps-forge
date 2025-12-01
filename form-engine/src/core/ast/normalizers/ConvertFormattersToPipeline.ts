@@ -23,7 +23,10 @@ import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/Nod
  * 3. Stores the pipeline as the formatPipeline property
  */
 export class ConvertFormattersToPipelineNormalizer implements StructuralVisitor {
-  constructor(private readonly nodeIDGenerator: NodeIDGenerator) {}
+  constructor(
+    private readonly nodeIDGenerator: NodeIDGenerator,
+    private readonly idCategory: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+  ) {}
 
   /**
    * Visitor method: called when entering a node during traversal
@@ -47,7 +50,7 @@ export class ConvertFormattersToPipelineNormalizer implements StructuralVisitor 
     // Create the POST reference node manually to preserve fieldCode (which may be an AST node)
     // The code can be either a string or an expression (e.g., Format('address_%1', Item.index()))
     const postReference: ReferenceASTNode = {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.idCategory),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
       properties: {
@@ -58,7 +61,7 @@ export class ConvertFormattersToPipelineNormalizer implements StructuralVisitor 
     // Create the pipeline node manually with proper ID
     // Store the pipeline as formatPipeline property, remove old field
     node.properties.formatPipeline = {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.idCategory),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.PIPELINE,
       properties: {

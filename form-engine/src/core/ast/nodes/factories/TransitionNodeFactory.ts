@@ -19,6 +19,7 @@ export class TransitionNodeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
   ) {}
 
   /**
@@ -53,7 +54,7 @@ export class TransitionNodeFactory {
     const effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.TRANSITION,
       transitionType: TransitionType.LOAD,
       properties: {
@@ -83,7 +84,7 @@ export class TransitionNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.TRANSITION,
       transitionType: TransitionType.ACCESS,
       properties,
@@ -141,7 +142,7 @@ export class TransitionNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.TRANSITION,
       transitionType: TransitionType.SUBMIT,
       properties,

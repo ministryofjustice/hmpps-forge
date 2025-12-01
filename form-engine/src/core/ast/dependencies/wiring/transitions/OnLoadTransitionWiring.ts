@@ -76,7 +76,7 @@ export default class OnLoadTransitionWiring {
       const firstTransition = this.getFirstTransition(nextNode)
 
       if (firstTransition) {
-        this.wiringContext.graph.addEdge(lastTransition.id, firstTransition.id, DependencyEdgeType.EFFECT_FLOW, {
+        this.wiringContext.graph.addEdge(lastTransition.id, firstTransition.id, DependencyEdgeType.CONTROL_FLOW, {
           chain: 'onLoad',
           crossDepth: true,
         })
@@ -104,7 +104,7 @@ export default class OnLoadTransitionWiring {
         this.wiringContext.graph.addEdge(
           transition.id,
           onLoadTransitions.at(index + 1).id,
-          DependencyEdgeType.EFFECT_FLOW,
+          DependencyEdgeType.CONTROL_FLOW,
           {
             chain: 'onLoad',
             crossDepth: false,
@@ -141,23 +141,30 @@ export default class OnLoadTransitionWiring {
   }
 
   /**
-   * Wire the effects within a transition to the transition itself
-   * Creates edges: effect → transition
+   * Wire the effects within a transition to execute sequentially
+   * Creates edges: effect[0] → effect[1] → effect[2] → transition
    *
    * Note: Effect arguments are wired by FunctionExpressionWiring since effects are FunctionASTNodes
    */
   private wireTransitionEffects(transition: LoadTransitionASTNode) {
     const effects = transition.properties.effects as FunctionASTNode[]
 
-    if (!Array.isArray(effects)) {
+    if (!Array.isArray(effects) || effects.length === 0) {
       return
     }
 
     effects.forEach((effect, index) => {
-      this.wiringContext.graph.addEdge(effect.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'effects',
-        index,
-      })
+      if (index + 1 < effects.length) {
+        // Chain to next effect
+        this.wiringContext.graph.addEdge(effect.id, effects[index + 1].id, DependencyEdgeType.CONTROL_FLOW, {
+          chain: 'effects',
+        })
+      } else {
+        // Last effect wires to transition
+        this.wiringContext.graph.addEdge(effect.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+          property: 'effects',
+        })
+      }
     })
   }
 }

@@ -1,21 +1,21 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { TransitionType, FunctionType, LogicType, ExpressionType } from '@form-engine/form/types/enums'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { ExpressionType, FunctionType, LogicType, TransitionType } from '@form-engine/form/types/enums'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import {
-  FunctionASTNode,
-  SubmitTransitionASTNode,
-  LoadTransitionASTNode,
   AccessTransitionASTNode,
+  FunctionASTNode,
+  LoadTransitionASTNode,
   NextASTNode,
+  SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import {
-  LoadTransition,
   AccessTransition,
-  ValidatingTransition,
-  PredicateTestExpr,
   EffectFunctionExpr,
+  LoadTransition,
   NextExpr,
+  PredicateTestExpr,
   ReferenceExpr,
+  ValidatingTransition,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '../NodeFactory'
@@ -28,8 +28,8 @@ describe('TransitionNodeFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator)
-    transitionFactory = new TransitionNodeFactory(nodeIDGenerator, nodeFactory)
+    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
+    transitionFactory = new TransitionNodeFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
   })
 
   describe('create', () => {

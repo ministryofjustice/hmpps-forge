@@ -74,6 +74,33 @@ export default class MetadataRegistry {
   }
 
   /**
+   * Get all entries in the registry
+   * @returns Map of all node IDs to their metadata maps
+   */
+  getAllEntries(): Map<NodeId, Map<string, unknown>> {
+    const result = new Map<NodeId, Map<string, unknown>>()
+
+    this.metadata.forEach((meta, nodeId) => {
+      const metaMap = new Map<string, unknown>()
+
+      Object.entries(meta).forEach(([key, value]) => {
+        metaMap.set(key, value)
+      })
+
+      result.set(nodeId, metaMap)
+    })
+
+    return result
+  }
+
+  /**
+   * Clear all metadata
+   */
+  clear(): void {
+    this.metadata.clear()
+  }
+
+  /**
    * Create a shallow copy of this metadata registry
    * The clone can be modified independently per compilation
    * @returns A new MetadataRegistry with the same metadata

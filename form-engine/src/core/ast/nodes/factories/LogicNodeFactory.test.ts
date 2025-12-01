@@ -1,25 +1,25 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { LogicType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, LogicType } from '@form-engine/form/types/enums'
 import type {
   ConditionalExpr,
-  PredicateTestExpr,
   PredicateAndExpr,
-  PredicateOrExpr,
-  PredicateXorExpr,
   PredicateNotExpr,
+  PredicateOrExpr,
+  PredicateTestExpr,
+  PredicateXorExpr,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import {
+  AndPredicateASTNode,
   ConditionalASTNode,
   ExpressionASTNode,
+  NotPredicateASTNode,
+  OrPredicateASTNode,
   PredicateASTNode,
   TestPredicateASTNode,
-  NotPredicateASTNode,
-  AndPredicateASTNode,
-  OrPredicateASTNode,
   XorPredicateASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { NodeFactory } from '../NodeFactory'
@@ -32,8 +32,8 @@ describe('LogicNodeFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator)
-    logicFactory = new LogicNodeFactory(nodeIDGenerator, nodeFactory)
+    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
+    logicFactory = new LogicNodeFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
   })
 
   describe('create', () => {

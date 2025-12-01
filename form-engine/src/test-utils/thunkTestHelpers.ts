@@ -1,0 +1,281 @@
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
+import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import {
+  EvaluatorRequestData,
+  ThunkErrorType,
+  ThunkInvocationAdapter,
+  ThunkResult,
+  ThunkRuntimeHooks,
+} from '@form-engine/core/ast/thunks/types'
+
+/**
+ * Options for creating a mock ThunkEvaluationContext
+ */
+export interface MockContextOptions {
+  mockRequest?: Partial<EvaluatorRequestData>
+  mockData?: Record<string, unknown>
+  mockAnswers?: Record<string, unknown>
+  mockScope?: Record<string, unknown>[]
+  mockNodes?: Map<NodeId, ASTNode | PseudoNode>
+  mockRegisteredFunctions?: Map<string, any>
+}
+
+/**
+ * Create a mock ThunkEvaluationContext for testing
+ *
+ * @returns A mock ThunkEvaluationContext instance
+ *
+ * @example
+ * const context = createMockContext({
+ *   mockRequest: {
+ *     post: { email: 'test@example.com' },
+ *     query: { returnUrl: '/dashboard' },
+ *   },
+ *   mockAnswers: { businessType: 'food-stall' },
+ *   mockRegisteredFunctions: new Map([
+ *     ['uppercase', (str: string) => str.toUpperCase()],
+ *     ['lowercase', (str: string) => str.toLowerCase()],
+ *   ]),
+ * })
+ * @param options
+ */
+export function createMockContext(options: MockContextOptions = {}): ThunkEvaluationContext {
+  const request: EvaluatorRequestData = {
+    post: options.mockRequest?.post ?? {},
+    query: options.mockRequest?.query ?? {},
+    params: options.mockRequest?.params ?? {},
+    session: options.mockRequest?.session,
+    state: options.mockRequest?.state,
+  }
+
+  const global: ThunkEvaluationGlobalState = {
+    data: options.mockData ?? {},
+    answers: options.mockAnswers ?? {},
+  }
+
+  const scope = options.mockScope ?? []
+
+  const findFieldByCode = jest.fn()
+
+  const mockFunctionRegistry = {
+    has: jest.fn((name: string) => options.mockRegisteredFunctions?.has(name) ?? false),
+    get: jest.fn((name: string) => options.mockRegisteredFunctions?.get(name)),
+    getAll: jest.fn(() => options.mockRegisteredFunctions ?? new Map()),
+  }
+
+  const mockNodeRegistry = {
+    getAll: jest.fn(() => options.mockNodes ?? new Map()),
+    get: jest.fn((nodeId: NodeId) => options.mockNodes?.get(nodeId)),
+    has: jest.fn((nodeId: NodeId) => options.mockNodes?.has(nodeId) ?? false),
+  }
+
+  return {
+    request,
+    global,
+    scope,
+    findFieldByCode,
+    nodeRegistry: mockNodeRegistry,
+    functionRegistry: mockFunctionRegistry,
+    logger: console,
+    withIsolatedScope: jest.fn().mockImplementation(function withIsolatedScopeMock(this: any) {
+      // Create a shallow clone with the same global state but new scope array
+      const clone = {
+        ...this,
+        scope: [...this.scope],
+      }
+
+      // Ensure the clone also has withIsolatedScope
+      clone.withIsolatedScope = this.withIsolatedScope
+
+      return clone
+    }),
+  } as any
+}
+
+/**
+ * Options for creating a mock ThunkInvocationAdapter
+ */
+export interface MockInvokerOptions {
+  /**
+   * Default return value for invoke calls
+   * Can be overridden with returnValueMap
+   */
+  defaultValue?: unknown
+
+  /**
+   * Map of nodeId to return value for specific nodes
+   */
+  returnValueMap?: Map<NodeId, unknown>
+
+  /**
+   * Custom invoke implementation
+   */
+  invokeImpl?: (nodeId: NodeId, context: ThunkEvaluationContext, hooks: ThunkRuntimeHooks) => Promise<ThunkResult>
+}
+
+/**
+ * Create a mock ThunkInvocationAdapter for testing
+ *
+ * @param options - Customization options for the mock invoker
+ * @returns A mock ThunkInvocationAdapter
+ *
+ * @example
+ * // Simple mock with default value
+ * const invoker = createMockInvoker({ defaultValue: 'test' })
+ *
+ * @example
+ * // Mock with specific return values per node
+ * const invoker = createMockInvoker({
+ *   returnValueMap: new Map([
+ *     ['compile_ast:1', 'value1'],
+ *     ['compile_ast:2', 'value2'],
+ *   ])
+ * })
+ *
+ * @example
+ * // Mock with custom implementation
+ * const invoker = createMockInvoker({
+ *   invokeImpl: async (nodeId) => ({
+ *     value: `evaluated-${nodeId}`,
+ *     metadata: { source: 'test', timestamp: Date.now() }
+ *   })
+ * })
+ */
+export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked<ThunkInvocationAdapter> {
+  const defaultImpl = async (
+    nodeId: NodeId,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: ThunkEvaluationContext,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    hooks: ThunkRuntimeHooks,
+  ): Promise<ThunkResult> => {
+    let value = options.defaultValue
+
+    if (options.returnValueMap?.has(nodeId)) {
+      value = options.returnValueMap.get(nodeId)
+    }
+
+    return {
+      value,
+      metadata: {
+        source: 'mockInvoker',
+        timestamp: Date.now(),
+      },
+    }
+  }
+
+  return {
+    invoke: jest.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
+  }
+}
+
+/**
+ * Create a mock invoker that returns sequential values from an array
+ *
+ * Each call to invoke returns the next value in sequence. Useful when testing
+ * evaluation of multiple AST nodes where the order of evaluation matters.
+ *
+ * @param values - Array of values to return sequentially
+ * @returns A mock ThunkInvocationAdapter that returns values in order
+ *
+ * @example
+ * // Returns 'first' on first call, 'second' on second call
+ * const invoker = createSequentialMockInvoker(['first', 'second'])
+ *
+ * @example
+ * // Testing array evaluation with dynamic values
+ * const invoker = createSequentialMockInvoker(['Option 1', 'Option 2'])
+ * const result = await handler.evaluate(context, invoker)
+ * expect(result.value.options).toEqual(['Option 1', 'Option 2'])
+ */
+export function createSequentialMockInvoker(values: unknown[]): jest.Mocked<ThunkInvocationAdapter> {
+  let callIndex = 0
+
+  return createMockInvoker({
+    invokeImpl: async () => {
+      const value = values[callIndex]
+      callIndex += 1
+
+      return {
+        value,
+        metadata: {
+          source: 'sequentialMockInvoker',
+          timestamp: Date.now(),
+        },
+      }
+    },
+  })
+}
+
+/**
+ * Create a mock ThunkInvocationAdapter that always returns an error result
+ *
+ * Useful for testing error handling paths in handlers.
+ *
+ * @param options - Customization options for the error
+ * @returns A mock ThunkInvocationAdapter that returns an error
+ *
+ * @example
+ * // Default error
+ * const invoker = createMockInvokerWithError()
+ *
+ * @example
+ * // Custom error message
+ * const invoker = createMockInvokerWithError({ message: 'Data not found' })
+ *
+ * @example
+ * // Custom error type and node
+ * const invoker = createMockInvokerWithError({
+ *   type: 'HANDLER_NOT_FOUND',
+ *   nodeId: node.id,
+ *   message: 'No handler registered',
+ * })
+ */
+export function createMockInvokerWithError(
+  options: {
+    type?: ThunkErrorType
+    nodeId?: NodeId
+    message?: string
+  } = {},
+): jest.Mocked<ThunkInvocationAdapter> {
+  return createMockInvoker({
+    invokeImpl: async (): Promise<ThunkResult> => ({
+      error: {
+        type: options.type ?? 'EVALUATION_FAILED',
+        nodeId: options.nodeId ?? 'compile_ast:100',
+        message: options.message ?? 'Evaluation failed',
+      },
+      metadata: { source: 'test', timestamp: Date.now() },
+    }),
+  })
+}
+
+/**
+ * Create mock runtime hooks for testing
+ *
+ * @returns A mock ThunkRuntimeHooks object with jest.fn() for all methods
+ *
+ * @example
+ * const hooks = createMockHooks()
+ * await handler.evaluate(context, invoker, hooks)
+ * expect(hooks.registerRuntimeNode).toHaveBeenCalledWith(node, 'template')
+ */
+export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
+  let pseudoNodeCounter = 0
+
+  return {
+    createNode: jest.fn(),
+    registerRuntimeNode: jest.fn(),
+    createPseudoNode: jest.fn().mockImplementation((type: PseudoNodeType, properties: Record<string, unknown>) => {
+      pseudoNodeCounter += 1
+
+      return {
+        id: `runtime_pseudo:${pseudoNodeCounter}` as NodeId,
+        type,
+        properties,
+      } as PseudoNode
+    }),
+    registerPseudoNode: jest.fn(),
+  }
+}

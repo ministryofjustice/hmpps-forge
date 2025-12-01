@@ -18,7 +18,10 @@ import { NodeId } from '@form-engine/core/types/engine.type'
  * at compile time, pseudo nodes are created as needed during graph construction.
  */
 export class PseudoNodeFactory {
-  constructor(private readonly nodeIDGenerator: NodeIDGenerator) {}
+  constructor(
+    private readonly nodeIDGenerator: NodeIDGenerator,
+    private readonly category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO,
+  ) {}
 
   /**
    * Create a POST pseudo node - represents form submission data for a field
@@ -28,7 +31,7 @@ export class PseudoNodeFactory {
    */
   createPostPseudoNode(baseFieldCode: string): PostPseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.POST,
       properties: {
         baseFieldCode,
@@ -46,7 +49,7 @@ export class PseudoNodeFactory {
    */
   createAnswerLocalPseudoNode(baseFieldCode: string, fieldNodeId: NodeId): AnswerLocalPseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.ANSWER_LOCAL,
       properties: {
         baseFieldCode,
@@ -64,7 +67,7 @@ export class PseudoNodeFactory {
    */
   createAnswerRemotePseudoNode(baseFieldCode: string): AnswerRemotePseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.ANSWER_REMOTE,
       properties: {
         baseFieldCode,
@@ -80,7 +83,7 @@ export class PseudoNodeFactory {
    */
   createDataPseudoNode(baseFieldCode: string): DataPseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.DATA,
       properties: {
         baseFieldCode,
@@ -96,7 +99,7 @@ export class PseudoNodeFactory {
    */
   createQueryPseudoNode(paramName: string): QueryPseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.QUERY,
       properties: {
         paramName,
@@ -112,7 +115,7 @@ export class PseudoNodeFactory {
    */
   createParamsPseudoNode(paramName: string): ParamsPseudoNode {
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_PSEUDO),
+      id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.PARAMS,
       properties: {
         paramName,

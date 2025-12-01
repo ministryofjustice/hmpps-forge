@@ -103,7 +103,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
   validate?: ValidationExpr[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
-  dependent?: PredicateTestExpr | PredicateTestExprBuilder
+  dependent?: PredicateExpr | PredicateTestExprBuilder
 }
 
 /**

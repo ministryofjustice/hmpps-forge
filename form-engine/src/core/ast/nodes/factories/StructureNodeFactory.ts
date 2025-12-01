@@ -31,6 +31,7 @@ export class StructureNodeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
   ) {}
 
   /**
@@ -125,7 +126,7 @@ export class StructureNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.JOURNEY,
       properties,
       raw: json,
@@ -195,7 +196,7 @@ export class StructureNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.STEP,
       properties,
       raw: json,
@@ -219,7 +220,7 @@ export class StructureNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.BLOCK,
       variant,
       blockType: 'basic',
@@ -285,7 +286,7 @@ export class StructureNodeFactory {
     })
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.BLOCK,
       variant,
       blockType: 'field',

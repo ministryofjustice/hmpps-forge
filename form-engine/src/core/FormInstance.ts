@@ -2,12 +2,12 @@ import express from 'express'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import type { FormEngineOptions } from '@form-engine/core/FormEngine'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
-import FormCompilationFactory, { CompiledForm } from '@form-engine/core/ast/FormCompilationFactory'
 import { isJourneyDefinition } from '@form-engine/form/typeguards/structures'
 import { FormValidator } from '@form-engine/core/validation/FormValidator'
 import RouteGenerator from '@form-engine/core/runtime/routes/RouteGenerator'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
+import FormCompilationFactory, { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationFactory'
 
 export default class FormInstance {
   private readonly router = express.Router()
@@ -25,7 +25,7 @@ export default class FormInstance {
   ) {
     this.rawConfiguration = formConfiguration
 
-    const compiler = new FormCompilationFactory()
+    const compiler = new FormCompilationFactory(dependencies)
 
     this.compiledForm = compiler.compile(formConfiguration)
 
@@ -77,8 +77,13 @@ export default class FormInstance {
   }
 
   getFormCode(): string {
-    return this.compiledForm[0].journeyMetadataArtefact.specialisedNodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
-      .at(0).properties.code
+    const journeyNode = this.compiledForm[0].artefact.nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).at(0)
+
+    if (!journeyNode) {
+      throw new Error('No journey node found in compiled form')
+    }
+
+    return journeyNode.properties.code
   }
 
   getFormTitle(): string {

@@ -37,6 +37,7 @@ export class LogicNodeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
   ) {}
 
   /**
@@ -98,7 +99,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.CONDITIONAL,
       properties: {
@@ -134,7 +135,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.TEST,
       properties: {
@@ -160,7 +161,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.NOT,
       properties: {
@@ -184,7 +185,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.AND,
       properties: {
@@ -208,7 +209,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.OR,
       properties: {
@@ -232,7 +233,7 @@ export class LogicNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.XOR,
       properties: {

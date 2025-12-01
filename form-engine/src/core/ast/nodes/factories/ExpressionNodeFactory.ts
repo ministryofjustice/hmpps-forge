@@ -41,6 +41,7 @@ export class ExpressionNodeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
   ) {}
 
   /**
@@ -92,7 +93,7 @@ export class ExpressionNodeFactory {
       : json.path
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
       properties: {
@@ -111,7 +112,7 @@ export class ExpressionNodeFactory {
     const transformedArgs = json.arguments.map((arg: any) => this.nodeFactory.transformValue(arg))
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.FORMAT,
       properties: {
@@ -134,7 +135,7 @@ export class ExpressionNodeFactory {
     const steps = json.steps.map((arg: any) => this.nodeFactory.transformValue(arg))
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.PIPELINE,
       properties: {
@@ -172,7 +173,7 @@ export class ExpressionNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.COLLECTION,
       properties,
@@ -205,7 +206,7 @@ export class ExpressionNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.VALIDATION,
       properties,
@@ -224,7 +225,7 @@ export class ExpressionNodeFactory {
     const args = json.arguments.map((arg: any) => this.nodeFactory.transformValue(arg))
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: funcType,
       properties: {
@@ -249,7 +250,7 @@ export class ExpressionNodeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(NodeIDCategory.COMPILE_AST),
+      id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.NEXT,
       properties,

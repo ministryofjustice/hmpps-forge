@@ -1,0 +1,407 @@
+import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
+import { TransitionType, LogicType, FunctionType, ExpressionType } from '@form-engine/form/types/enums'
+import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
+import { createMockContext, createMockInvoker } from '@form-engine/test-utils/thunkTestHelpers'
+import AccessTransitionHandler from './AccessTransitionHandler'
+
+describe('AccessTransitionHandler', () => {
+  beforeEach(() => {
+    ASTTestFactory.resetIds()
+  })
+
+  describe('evaluate()', () => {
+    describe('guards evaluation', () => {
+      it('should return passed: true when no guards are defined', async () => {
+        // Arrange
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(true)
+        expect(result.value.redirect).toBeUndefined()
+      })
+
+      it('should return passed: true when guards predicate evaluates to true', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker({ defaultValue: true })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(invoker.invoke).toHaveBeenCalledWith(guardsPredicate.id, mockContext)
+        expect(result.value.passed).toBe(true)
+        expect(result.value.redirect).toBeUndefined()
+      })
+
+      it('should return passed: false when guards predicate evaluates to false', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker({ defaultValue: false })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(false)
+      })
+
+      it('should return passed: false when guards predicate evaluation errors', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'checkAccess', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker()
+        invoker.invoke.mockResolvedValue({
+          error: { type: 'EVALUATION_FAILED', nodeId: guardsPredicate.id, message: 'Error' },
+          metadata: { source: 'TestHandler', timestamp: Date.now() },
+        })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(false)
+      })
+    })
+
+    describe('redirect evaluation', () => {
+      it('should evaluate redirect when guards fail', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const redirectExpr = ASTTestFactory.expression(ExpressionType.NEXT)
+          .withProperty('goto', '/login')
+          .build()
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .withProperty('redirect', [redirectExpr])
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            if (nodeId === guardsPredicate.id) {
+              return { value: false, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            if (nodeId === redirectExpr.id) {
+              return { value: '/login', metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(false)
+        expect(result.value.redirect).toBe('/login')
+      })
+
+      it('should return first matching redirect from multiple redirect expressions', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const redirect1 = ASTTestFactory.expression(ExpressionType.NEXT)
+          .withProperty('when', ASTTestFactory.predicate(LogicType.TEST, {}))
+          .withProperty('goto', '/conditional-redirect')
+          .build()
+
+        const redirect2 = ASTTestFactory.expression(ExpressionType.NEXT)
+          .withProperty('goto', '/fallback')
+          .build()
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .withProperty('redirect', [redirect1, redirect2])
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            if (nodeId === guardsPredicate.id) {
+              return { value: false, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            if (nodeId === redirect1.id) {
+              return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            if (nodeId === redirect2.id) {
+              return { value: '/fallback', metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.redirect).toBe('/fallback')
+      })
+
+      it('should return undefined redirect when no redirect expressions defined', async () => {
+        // Arrange
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker({ defaultValue: false })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(false)
+        expect(result.value.redirect).toBeUndefined()
+      })
+    })
+
+    describe('effects evaluation', () => {
+      it('should capture and commit effects regardless of guards result', async () => {
+        // Arrange
+        const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAccessAttempt', [])
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('effects', [effect])
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockEffectFn = { name: 'logAccessAttempt', evaluate: jest.fn() }
+        const mockContext = createMockContext({
+          mockRegisteredFunctions: new Map([['logAccessAttempt', mockEffectFn]]),
+        })
+
+        const invocationOrder: string[] = []
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            invocationOrder.push(nodeId)
+
+            if (nodeId === guardsPredicate.id) {
+              return { value: false, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            // Effect node returns CapturedEffect
+            if (nodeId === effect.id) {
+              return {
+                value: { effectName: 'logAccessAttempt', args: [], nodeId: effect.id },
+                metadata: { source: 'EffectHandler', timestamp: Date.now() },
+              }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert - effect was captured and committed
+        expect(invocationOrder).toContain(effect.id)
+        expect(mockEffectFn.evaluate).toHaveBeenCalled()
+        expect(result.value.passed).toBe(false)
+      })
+
+      it('should capture and commit effects before guards evaluation', async () => {
+        // Arrange
+        const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAccessAttempt', [])
+        const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
+        const guardsPredicate = ASTTestFactory.predicate(LogicType.TEST, {
+          subject: ASTTestFactory.reference(['data', 'user']),
+          condition,
+          negate: false,
+        })
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('effects', [effect])
+          .withProperty('guards', guardsPredicate)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockEffectFn = { name: 'logAccessAttempt', evaluate: jest.fn() }
+        const mockContext = createMockContext({
+          mockRegisteredFunctions: new Map([['logAccessAttempt', mockEffectFn]]),
+        })
+
+        const invocationOrder: string[] = []
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            invocationOrder.push(nodeId)
+
+            // Effect node returns CapturedEffect
+            if (nodeId === effect.id) {
+              return {
+                value: { effectName: 'logAccessAttempt', args: [], nodeId: effect.id },
+                metadata: { source: 'EffectHandler', timestamp: Date.now() },
+              }
+            }
+
+            return { value: true, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
+
+        // Act
+        await handler.evaluate(mockContext, invoker)
+
+        // Assert - effects should be invoked before guards
+        const effectIndex = invocationOrder.indexOf(effect.id)
+        const guardsIndex = invocationOrder.indexOf(guardsPredicate.id)
+        expect(effectIndex).toBeLessThan(guardsIndex)
+      })
+
+      it('should capture and commit multiple effects sequentially', async () => {
+        // Arrange
+        const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1', [])
+        const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2', [])
+
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .withProperty('effects', [effect1, effect2])
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockEffectFn1 = { name: 'effect1', evaluate: jest.fn() }
+        const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
+        const mockContext = createMockContext({
+          mockRegisteredFunctions: new Map([
+            ['effect1', mockEffectFn1],
+            ['effect2', mockEffectFn2],
+          ]),
+        })
+
+        const invocationOrder: string[] = []
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            invocationOrder.push(nodeId)
+
+            if (nodeId === effect1.id) {
+              return {
+                value: { effectName: 'effect1', args: [], nodeId: effect1.id },
+                metadata: { source: 'EffectHandler', timestamp: Date.now() },
+              }
+            }
+
+            if (nodeId === effect2.id) {
+              return {
+                value: { effectName: 'effect2', args: [], nodeId: effect2.id },
+                metadata: { source: 'EffectHandler', timestamp: Date.now() },
+              }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
+
+        // Act
+        await handler.evaluate(mockContext, invoker)
+
+        // Assert - effects were captured in order and committed
+        expect(invocationOrder).toEqual([effect1.id, effect2.id])
+        expect(mockEffectFn1.evaluate).toHaveBeenCalled()
+        expect(mockEffectFn2.evaluate).toHaveBeenCalled()
+      })
+
+      it('should succeed when no effects defined', async () => {
+        // Arrange
+        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+          .build() as AccessTransitionASTNode
+
+        const handler = new AccessTransitionHandler(transition.id, transition)
+
+        const mockContext = createMockContext()
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value.passed).toBe(true)
+      })
+    })
+  })
+})

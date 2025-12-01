@@ -85,3 +85,12 @@ export function isPredicateExprNode(obj: any): obj is PredicateASTNode {
 export function isFunctionExprNode(obj: any): obj is FunctionASTNode {
   return obj != null && obj.expressionType != null && Object.values(FunctionType).includes(obj.expressionType)
 }
+
+/**
+ * Check if an AST node is an Effect Expression node
+ * Effects are function expressions that perform side effects (save data, log, etc.)
+ * They are handled separately from other functions to enable deferred execution.
+ */
+export function isEffectExprNode(obj: any): obj is FunctionASTNode {
+  return isFunctionExprNode(obj) && obj.expressionType === FunctionType.EFFECT
+}

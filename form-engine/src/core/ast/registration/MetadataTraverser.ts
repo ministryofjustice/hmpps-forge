@@ -1,6 +1,6 @@
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import {
   structuralTraverse,
   StructuralVisitor,
@@ -22,7 +22,7 @@ export class MetadataTraverser implements StructuralVisitor {
 
   private insideStep = false
 
-  private targetStepId: string | null = null
+  private targetStepId: NodeId | null = null
 
   constructor(private readonly metadataRegistry: MetadataRegistry) {}
 
@@ -37,6 +37,43 @@ export class MetadataTraverser implements StructuralVisitor {
     this.targetStepId = stepNode.id
 
     structuralTraverse(rootNode, this)
+  }
+
+  /**
+   * Traverse a runtime node subtree, setting metadata for the node and its descendants
+   * Used for dynamically created nodes that need parent context from compile-time nodes
+   *
+   * Reads parent relationship from metadata (set by handlers) and reconstructs
+   * ancestorPath so enterNode() can handle metadata setting automatically
+   *
+   * @param runtimeNode The runtime node to traverse
+   */
+  traverseSubtree(runtimeNode: ASTNode): void {
+    // Read parent relationship from metadata (set by handler when node was created)
+    const parentNodeId = this.metadataRegistry.get<NodeId>(runtimeNode.id, 'attachedToParentNode')
+
+    if (!parentNodeId) {
+      // No parent metadata - can't traverse without parent context
+      return
+    }
+
+    // Mark if we're inside the step if the parent was inside the step
+    this.insideStep = this.metadataRegistry.get(parentNodeId, 'isDescendantOfStep')
+    this.targetStepId = null
+
+    // Reconstruct ancestorPath from metadata by walking up the parent chain
+    // Creates shallow node objects with just the id property (that's all enterNode needs)
+    this.ancestorPath = []
+    let currentId = parentNodeId
+
+    while (currentId) {
+      // Create shallow node object - enterNode only accesses the id property
+      this.ancestorPath.unshift({ id: currentId } as ASTNode)
+      currentId = this.metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
+    }
+
+    // Traverse the runtime node - enterNode() will handle all other metadata setting automatically
+    structuralTraverse(runtimeNode, this)
   }
 
   /**
@@ -63,8 +100,9 @@ export class MetadataTraverser implements StructuralVisitor {
         this.metadataRegistry.set(ancestor.id, 'isAncestorOfStep', true)
       })
 
-      // Mark this step node as isAncestorOfStep
+      // Mark this step node as isAncestorOfStep and isCurrentStep
       this.metadataRegistry.set(node.id, 'isAncestorOfStep', true)
+      this.metadataRegistry.set(node.id, 'isCurrentStep', true)
 
       // Set flag to mark all descendants
       this.insideStep = true

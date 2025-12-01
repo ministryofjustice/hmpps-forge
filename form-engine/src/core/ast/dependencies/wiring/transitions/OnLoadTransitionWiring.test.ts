@@ -69,11 +69,11 @@ describe('OnLoadTransitionWiring', () => {
       expect(mockGraph.addNode).toHaveBeenCalledWith(transitionB.id)
       expect(mockGraph.addNode).toHaveBeenCalledWith(transitionC.id)
 
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionA.id, transitionB.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionA.id, transitionB.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: false,
       })
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionB.id, transitionC.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionB.id, transitionC.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: false,
       })
@@ -101,7 +101,7 @@ describe('OnLoadTransitionWiring', () => {
       // Assert
       expect(mockGraph.addNode).toHaveBeenCalledWith(transitionA.id)
       expect(mockGraph.addNode).toHaveBeenCalledWith(transitionB.id)
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionA.id, transitionB.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(transitionA.id, transitionB.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: false,
       })
@@ -222,7 +222,7 @@ describe('OnLoadTransitionWiring', () => {
       wiring.wire()
 
       // Assert - parentTransB → childTransA
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(parentTransB.id, childTransA.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(parentTransB.id, childTransA.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: true,
       })
@@ -259,7 +259,7 @@ describe('OnLoadTransitionWiring', () => {
       wiring.wire()
 
       // Assert - journeyTransB → stepTransA
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(journeyTransB.id, stepTransA.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(journeyTransB.id, stepTransA.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: true,
       })
@@ -324,15 +324,15 @@ describe('OnLoadTransitionWiring', () => {
       wiring.wire()
 
       // Assert - chain should be: root → middle → deep → step
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(rootTrans.id, middleTrans.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(rootTrans.id, middleTrans.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: true,
       })
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(middleTrans.id, deepTrans.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(middleTrans.id, deepTrans.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: true,
       })
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(deepTrans.id, stepTrans.id, DependencyEdgeType.EFFECT_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(deepTrans.id, stepTrans.id, DependencyEdgeType.CONTROL_FLOW, {
         chain: 'onLoad',
         crossDepth: true,
       })
@@ -340,7 +340,7 @@ describe('OnLoadTransitionWiring', () => {
   })
 
   describe('wireTransitionEffects', () => {
-    it('should wire effects to their parent transition', () => {
+    it('should wire effects in series and last effect to transition', () => {
       // Arrange
       const effectA = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadData', [])
       const effectB = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'setContext', [])
@@ -363,18 +363,16 @@ describe('OnLoadTransitionWiring', () => {
       // Act
       wiring.wire()
 
-      // Assert - effects should be wired to transition
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(effectA.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'effects',
-        index: 0,
+      // Assert - effects should be chained: effectA → effectB → transition
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(effectA.id, effectB.id, DependencyEdgeType.CONTROL_FLOW, {
+        chain: 'effects',
       })
       expect(mockGraph.addEdge).toHaveBeenCalledWith(effectB.id, transition.id, DependencyEdgeType.DATA_FLOW, {
         property: 'effects',
-        index: 1,
       })
     })
 
-    it('should wire effects with arguments to their parent transition', () => {
+    it('should wire single effect directly to transition', () => {
       // Arrange
       const queryArg = ASTTestFactory.reference(['query', 'postcode'])
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadData', [queryArg])
@@ -397,11 +395,16 @@ describe('OnLoadTransitionWiring', () => {
       // Act
       wiring.wire()
 
-      // Assert - effect should be wired to transition
+      // Assert - single effect should wire directly to transition (no chaining)
       expect(mockGraph.addEdge).toHaveBeenCalledWith(effect.id, transition.id, DependencyEdgeType.DATA_FLOW, {
         property: 'effects',
-        index: 0,
       })
+
+      // No EFFECT_FLOW edges for single effect
+      const effectFlowCalls = (mockGraph.addEdge as jest.Mock).mock.calls.filter(
+        call => call[2] === DependencyEdgeType.CONTROL_FLOW && call[3]?.chain === 'effects',
+      )
+      expect(effectFlowCalls).toHaveLength(0)
     })
 
     it('should handle transitions without effects', () => {

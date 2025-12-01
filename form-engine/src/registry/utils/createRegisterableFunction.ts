@@ -1,4 +1,5 @@
-import { FormEffectContext, FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
+import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
+import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
 import {
   ConditionFunctionExpr,
   EffectFunctionExpr,
@@ -124,7 +125,7 @@ function withDeps<D, Fns extends Record<string, (deps: D) => (...args: any[]) =>
  * @template E - Record of effect evaluator functions
  *
  * @param evaluators - Object mapping effect names to evaluator functions
- *   Each evaluator receives a FormEffectContext and additional arguments
+ *   Each evaluator receives a EffectFunctionContext and additional arguments
  *
  * @returns Object containing:
  * - `effects`: Function builders for creating effect expressions in form definitions
@@ -144,9 +145,9 @@ function withDeps<D, Fns extends Record<string, (deps: D) => (...args: any[]) =>
  * // effects.SendEmail('user@example.com', 'Form Submitted')
  */
 export function defineEffects<
-  E extends Record<string, (context: FormEffectContext, ...args: ValueExpr[]) => void | Promise<void>>,
+  E extends Record<string, (context: EffectFunctionContext, ...args: ValueExpr[]) => void | Promise<void>>,
 >(evaluators: E) {
-  const { functions, registry } = defineFunctionSet<FormEffectContext, FunctionType.EFFECT, E>(
+  const { functions, registry } = defineFunctionSet<EffectFunctionContext, FunctionType.EFFECT, E>(
     FunctionType.EFFECT,
     evaluators,
   )
@@ -179,7 +180,10 @@ export function defineEffects<
  */
 export function defineEffectsWithDeps<
   D,
-  Fns extends Record<string, (deps: D) => (context: FormEffectContext, ...args: ValueExpr[]) => void | Promise<void>>,
+  Fns extends Record<
+    string,
+    (deps: D) => (context: EffectFunctionContext, ...args: ValueExpr[]) => void | Promise<void>
+  >,
 >(deps: D, factories: Fns) {
   return defineEffects(withDeps(deps, factories))
 }

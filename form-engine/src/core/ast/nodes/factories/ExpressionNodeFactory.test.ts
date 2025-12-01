@@ -12,7 +12,7 @@ import {
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
 import { BlockDefinition, ValidationExpr } from '@form-engine/form/types/structures.type'
-import { NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import {
   CollectionASTNode,
@@ -33,8 +33,8 @@ describe('ExpressionNodeFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator)
-    expressionFactory = new ExpressionNodeFactory(nodeIDGenerator, nodeFactory)
+    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
+    expressionFactory = new ExpressionNodeFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
   })
 
   describe('create', () => {
