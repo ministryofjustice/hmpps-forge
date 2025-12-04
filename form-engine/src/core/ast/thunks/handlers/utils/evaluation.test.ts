@@ -1,4 +1,3 @@
-import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
   createMockContext,
   createMockInvoker,
@@ -204,7 +203,7 @@ describe('evaluation utilities', () => {
       expect(result).toBe('test@example.com')
     })
 
-    it('should not evaluate unregistered AST nodes (treat as plain object)', async () => {
+    it('should filter out unregistered AST nodes (return undefined)', async () => {
       // Arrange
       const node = ASTTestFactory.reference(['answers', 'email'])
       const mockContext = createMockContext({
@@ -215,9 +214,8 @@ describe('evaluation utilities', () => {
       // Act
       const result = await evaluatePropertyValue(node, mockContext, mockInvoker)
 
-      // Assert - should return the node as-is since it's not registered
-      expect(result).toHaveProperty('id', node.id)
-      expect(result).toHaveProperty('type', ASTNodeType.EXPRESSION)
+      // Assert - should return undefined since node is not registered
+      expect(result).toBeUndefined()
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
     })
 
@@ -243,6 +241,24 @@ describe('evaluation utilities', () => {
 
       // Assert
       expect(result).toEqual(['static', 'value1', 'value2'])
+    })
+
+    it('should filter out unregistered AST nodes from arrays', async () => {
+      // Arrange
+      const registeredNode = ASTTestFactory.reference(['answers', 'field1'])
+      const unregisteredNode = ASTTestFactory.reference(['answers', 'field2'])
+      const mockContext = createMockContext({
+        mockNodes: new Map([[registeredNode.id, registeredNode]]), // only first node registered
+      })
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[registeredNode.id, 'value1']]),
+      })
+
+      // Act
+      const result = await evaluatePropertyValue(['static', registeredNode, unregisteredNode], mockContext, mockInvoker)
+
+      // Assert - unregistered node should be filtered out
+      expect(result).toEqual(['static', 'value1'])
     })
 
     it('should recursively evaluate object properties', async () => {

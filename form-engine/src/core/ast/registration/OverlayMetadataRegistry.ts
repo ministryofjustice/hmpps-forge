@@ -90,4 +90,25 @@ export default class OverlayMetadataRegistry extends MetadataRegistry {
 
     this.clearPending()
   }
+
+  /**
+   * Find all node IDs where a metadata key matches a value
+   * Checks both pending and main registries, with pending taking precedence
+   */
+  findNodesWhere(key: string, value: unknown): NodeId[] {
+    const pendingResults = this.pending.findNodesWhere(key, value)
+    const mainResults = this.main.findNodesWhere(key, value)
+
+    // Combine results, avoiding duplicates (pending takes precedence)
+    const seen = new Set(pendingResults)
+    const combined = [...pendingResults]
+
+    mainResults.forEach(nodeId => {
+      if (!seen.has(nodeId)) {
+        combined.push(nodeId)
+      }
+    })
+
+    return combined
+  }
 }

@@ -103,7 +103,8 @@ export async function evaluateWithScope<T>(
  * Handles:
  * - null/undefined: pass through
  * - AST nodes (if registered): invoke and return result
- * - Arrays: recursively evaluate each element
+ * - AST nodes (if NOT registered): filter out (return undefined)
+ * - Arrays: recursively evaluate each element, filtering out undefined
  * - Objects: recursively evaluate each property value
  * - Primitives: return as-is
  *
@@ -124,8 +125,13 @@ export async function evaluatePropertyValue(
     return value
   }
 
-  // AST node - invoke it only if it exists in the registry
-  if (isASTNode(value) && context.nodeRegistry.has(value.id)) {
+  // AST node handling
+  if (isASTNode(value)) {
+    // Only evaluate if registered - otherwise filter out
+    if (!context.nodeRegistry.has(value.id)) {
+      return undefined
+    }
+
     const result = await invoker.invoke(value.id, context)
 
     if (result.error) {
@@ -135,9 +141,10 @@ export async function evaluatePropertyValue(
     return result.value
   }
 
-  // Array - recursively evaluate each element
+  // Array - recursively evaluate each element, filtering out undefined results
   if (Array.isArray(value)) {
-    return Promise.all(value.map(element => evaluatePropertyValue(element, context, invoker)))
+    const evaluated = await Promise.all(value.map(element => evaluatePropertyValue(element, context, invoker)))
+    return evaluated.filter(item => item !== undefined)
   }
 
   // Object - recursively evaluate each property
