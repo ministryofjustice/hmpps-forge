@@ -21,7 +21,7 @@ describe('OnLoadTransitionWiring', () => {
         get: jest.fn().mockReturnValue(false),
       },
       graph: mockGraph,
-      getStepNode: jest.fn().mockReturnValue(stepNode),
+      getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
   }
 

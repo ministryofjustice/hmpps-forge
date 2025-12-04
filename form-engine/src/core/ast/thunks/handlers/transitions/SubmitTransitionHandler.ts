@@ -5,6 +5,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { evaluateUntilFirstMatch } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
 
 /**
  * Result of a submit transition evaluation
@@ -207,7 +208,7 @@ export default class SubmitTransitionHandler implements ThunkHandler {
   ): Promise<boolean> {
     try {
       // Step 1: Find the parent step of this transition
-      const parentStepId = this.findParentStepId(context)
+      const parentStepId = this.findParentStepIdForNode(this.nodeId, context)
 
       if (!parentStepId) {
         return true
@@ -254,36 +255,6 @@ export default class SubmitTransitionHandler implements ThunkHandler {
   }
 
   /**
-   * Find the parent Step ID of this transition by traversing up the parent chain
-   * Returns the step ID or undefined if no step is found
-   */
-  private findParentStepId(context: ThunkEvaluationContext): NodeId | undefined {
-    let currentId: NodeId | undefined = this.nodeId
-
-    while (currentId) {
-      const parentId = context.metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
-
-      if (!parentId) {
-        return undefined
-      }
-
-      const parentNode = context.nodeRegistry.get(parentId)
-
-      if (!parentNode) {
-        return undefined
-      }
-
-      if (parentNode.type === ASTNodeType.STEP) {
-        return parentId
-      }
-
-      currentId = parentId
-    }
-
-    return undefined
-  }
-
-  /**
    * Find all block nodes that belong to a specific step
    *
    * Algorithm:
@@ -318,29 +289,13 @@ export default class SubmitTransitionHandler implements ThunkHandler {
    * Find the parent Step ID for any given node by traversing up the parent chain
    */
   private findParentStepIdForNode(nodeId: NodeId, context: ThunkEvaluationContext): NodeId | undefined {
-    let currentId: NodeId | undefined = nodeId
+    const ancestors = getAncestorChain(nodeId, context.metadataRegistry)
 
-    while (currentId) {
-      const node = context.nodeRegistry.get(currentId)
+    return ancestors.find(ancestorId => {
+      const node = context.nodeRegistry.get(ancestorId)
 
-      if (!node) {
-        return undefined
-      }
-
-      if (node.type === ASTNodeType.STEP) {
-        return currentId
-      }
-
-      const parentId = context.metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
-
-      if (!parentId) {
-        return undefined
-      }
-
-      currentId = parentId
-    }
-
-    return undefined
+      return node?.type === ASTNodeType.STEP
+    })
   }
 
   /**

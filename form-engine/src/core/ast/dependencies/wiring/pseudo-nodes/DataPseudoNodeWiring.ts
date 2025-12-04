@@ -36,7 +36,9 @@ export default class DataPseudoNodeWiring {
   private wireProducers(dataPseudoNode: DataPseudoNode) {
     const { baseFieldCode } = dataPseudoNode.properties
 
-    const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(this.wiringContext.getStepNode().id)
+    const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(
+      this.wiringContext.getCurrentStepNode().id,
+    )
 
     if (nearestOnLoadTransition) {
       this.wiringContext.graph.addEdge(nearestOnLoadTransition.id, dataPseudoNode.id, DependencyEdgeType.DATA_FLOW, {

@@ -19,7 +19,7 @@ describe('DataPseudoNodeWiring', () => {
       findReferenceNodes: jest.fn().mockReturnValue([]),
       findLastOnLoadTransitionFrom: jest.fn().mockReturnValue(undefined),
       graph: mockGraph,
-      getStepNode: jest.fn().mockReturnValue(stepNode),
+      getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
   }
 

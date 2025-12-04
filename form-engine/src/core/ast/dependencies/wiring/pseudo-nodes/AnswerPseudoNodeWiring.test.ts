@@ -23,7 +23,7 @@ describe('AnswerPseudoNodeWiring', () => {
         get: jest.fn().mockReturnValue(undefined),
       },
       graph: mockGraph,
-      getStepNode: jest.fn().mockReturnValue(stepNode),
+      getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
   }
 

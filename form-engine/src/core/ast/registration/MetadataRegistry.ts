@@ -94,6 +94,25 @@ export default class MetadataRegistry {
   }
 
   /**
+   * Find all node IDs where a metadata key matches a value
+   *
+   * @param key - The metadata property name to check
+   * @param value - The value to match against
+   * @returns Array of NodeIds where metadata[key] === value
+   */
+  findNodesWhere(key: string, value: unknown): NodeId[] {
+    const results: NodeId[] = []
+
+    this.metadata.forEach((meta, nodeId) => {
+      if (meta[key] === value) {
+        results.push(nodeId)
+      }
+    })
+
+    return results
+  }
+
+  /**
    * Clear all metadata
    */
   clear(): void {

@@ -38,7 +38,7 @@ export default class OnLoadTransitionWiring {
     })
 
     // Wire the current step's array of on load transitions together
-    const stepOnLoadTransitions = this.wiringContext.getStepNode().properties.onLoad as
+    const stepOnLoadTransitions = this.wiringContext.getCurrentStepNode().properties.onLoad as
       | LoadTransitionASTNode[]
       | undefined
     this.wireTransitionsArray(stepOnLoadTransitions)
@@ -71,7 +71,7 @@ export default class OnLoadTransitionWiring {
       const nextNode =
         index + 1 < ancestorJourneysWithDepth.length
           ? ancestorJourneysWithDepth.at(index + 1).journey
-          : this.wiringContext.getStepNode()
+          : this.wiringContext.getCurrentStepNode()
 
       const firstTransition = this.getFirstTransition(nextNode)
 

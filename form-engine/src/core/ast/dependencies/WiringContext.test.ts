@@ -22,6 +22,7 @@ function createMockNodeRegistry(): jest.Mocked<NodeRegistry> {
 function createMockMetadataRegistry(): jest.Mocked<MetadataRegistry> {
   return {
     get: jest.fn().mockReturnValue(undefined),
+    findNodesWhere: jest.fn().mockReturnValue([]),
   } as unknown as jest.Mocked<MetadataRegistry>
 }
 
@@ -39,48 +40,34 @@ describe('WiringContext', () => {
     context = new WiringContext(mockNodeRegistry, mockMetadataRegistry, mockGraph)
   })
 
-  describe('getStepNode', () => {
-    it('should return step marked as isAncestorOfStep', () => {
-      const step1 = ASTTestFactory.step().build()
-      const step2 = ASTTestFactory.step().build()
-
-      when(mockNodeRegistry.findByType)
-        .calledWith(ASTNodeType.STEP)
-        .mockReturnValue([step1, step2])
-
-      when(mockMetadataRegistry.get)
-        .calledWith(step1.id, 'isAncestorOfStep')
-        .mockReturnValue(false)
-
-      when(mockMetadataRegistry.get)
-        .calledWith(step2.id, 'isAncestorOfStep')
-        .mockReturnValue(true)
-
-      const result = context.getStepNode()
-
-      expect(result).toBe(step2)
-    })
-
-    it('should throw error when no step is marked as isAncestorOfStep', () => {
+  describe('getStepNode()', () => {
+    it('should return step marked as isCurrentStep', () => {
+      // Arrange
       const step = ASTTestFactory.step().build()
 
-      when(mockNodeRegistry.findByType)
-        .calledWith(ASTNodeType.STEP)
-        .mockReturnValue([step])
+      when(mockMetadataRegistry.findNodesWhere)
+        .calledWith('isCurrentStep', true)
+        .mockReturnValue([step.id])
 
-      when(mockMetadataRegistry.get)
-        .calledWith(step.id, 'isAncestorOfStep')
-        .mockReturnValue(false)
+      when(mockNodeRegistry.get)
+        .calledWith(step.id)
+        .mockReturnValue(step)
 
-      expect(() => context.getStepNode()).toThrow('No current step found in node registry')
+      // Act
+      const result = context.getCurrentStepNode()
+
+      // Assert
+      expect(result).toBe(step)
     })
 
-    it('should throw error when no steps exist', () => {
-      when(mockNodeRegistry.findByType)
-        .calledWith(ASTNodeType.STEP)
+    it('should throw error when no step is marked as isCurrentStep', () => {
+      // Arrange
+      when(mockMetadataRegistry.findNodesWhere)
+        .calledWith('isCurrentStep', true)
         .mockReturnValue([])
 
-      expect(() => context.getStepNode()).toThrow('No current step found in node registry')
+      // Act & Assert
+      expect(() => context.getCurrentStepNode()).toThrow('No current step found in metadata registry')
     })
   })
 

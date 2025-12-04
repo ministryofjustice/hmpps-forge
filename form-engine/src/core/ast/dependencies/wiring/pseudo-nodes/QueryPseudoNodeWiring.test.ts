@@ -16,7 +16,7 @@ describe('QueryPseudoNodeWiring', () => {
       findPseudoNodesByType: jest.fn().mockReturnValue([]),
       findReferenceNodes: jest.fn().mockReturnValue([]),
       graph: mockGraph,
-      getStepNode: jest.fn().mockReturnValue(stepNode),
+      getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
   }
 
