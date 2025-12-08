@@ -57,6 +57,12 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
   private readonly cacheManager = new ThunkCacheManager()
 
   /**
+   * In-flight evaluation promises to prevent parallel duplicate evaluations.
+   * When multiple callers invoke the same node simultaneously, they await the same Promise.
+   */
+  private readonly inFlightEvaluations = new Map<NodeId, Promise<ThunkResult>>()
+
+  /**
    * Factory for creating runtime hooks
    */
   private readonly runtimeHooksFactory: ThunkRuntimeHooksFactory
@@ -197,7 +203,50 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
       return errorResult
     }
 
-    // 3. Retry loop - handles mid-evaluation invalidations
+    // 3. Dedupe concurrent evaluations and execute
+    return this.withInFlightTracking(nodeId, () => this.evaluateWithRetry<T>(nodeId, handler, context, maxRetries))
+  }
+
+  /**
+   * Track an in-flight evaluation to prevent parallel duplicate evaluations.
+   *
+   * When multiple callers invoke the same node simultaneously, they all await
+   * the same Promise rather than each starting their own evaluation.
+   *
+   * @param nodeId - The node being evaluated
+   * @param compute - Function that performs the actual evaluation
+   * @returns Promise resolving to the evaluation result
+   */
+  private async withInFlightTracking<T>(
+    nodeId: NodeId,
+    compute: () => Promise<ThunkResult<T>>,
+  ): Promise<ThunkResult<T>> {
+    const existing = this.inFlightEvaluations.get(nodeId)
+
+    if (existing) {
+      return existing as Promise<ThunkResult<T>>
+    }
+
+    const promise = compute()
+
+    this.inFlightEvaluations.set(nodeId, promise as Promise<ThunkResult>)
+
+    try {
+      return await promise
+    } finally {
+      this.inFlightEvaluations.delete(nodeId)
+    }
+  }
+
+  /**
+   * Execute evaluation with retry logic for mid-evaluation invalidations
+   */
+  private async evaluateWithRetry<T>(
+    nodeId: NodeId,
+    handler: ThunkHandler,
+    context: ThunkEvaluationContext,
+    maxRetries: number,
+  ): Promise<ThunkResult<T>> {
     let retries = 0
     let result: ThunkResult<T> | undefined
 

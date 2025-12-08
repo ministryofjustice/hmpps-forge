@@ -288,6 +288,43 @@ describe('ThunkEvaluator', () => {
       expect(result.error?.message).toContain('String error')
       expect(result.error?.cause).toBeInstanceOf(Error)
     })
+
+    it('should dedupe concurrent invocations of the same node', async () => {
+      // Arrange
+      let resolveEvaluation: (value: unknown) => void
+      const evaluationPromise = new Promise(resolve => {
+        resolveEvaluation = resolve
+      })
+
+      const mockHandler: jest.Mocked<ThunkHandler> = {
+        nodeId,
+        evaluate: jest.fn().mockImplementation(async () => {
+          await evaluationPromise
+
+          return {
+            value: 'shared-result',
+            metadata: { source: 'OMGWTFBBQ', timestamp: 123456 },
+          }
+        }),
+      }
+
+      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+
+      // Act
+      const promise1 = evaluator.invoke(nodeId, mockContext)
+      const promise2 = evaluator.invoke(nodeId, mockContext)
+      const promise3 = evaluator.invoke(nodeId, mockContext)
+
+      resolveEvaluation!(undefined)
+
+      const [result1, result2, result3] = await Promise.all([promise1, promise2, promise3])
+
+      // Assert
+      expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
+      expect(result1.value).toBe('shared-result')
+      expect(result2.value).toBe('shared-result')
+      expect(result3.value).toBe('shared-result')
+    })
   })
 
   describe('createContext()', () => {
