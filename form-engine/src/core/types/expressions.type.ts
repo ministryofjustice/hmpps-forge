@@ -195,6 +195,17 @@ export interface AccessTransitionASTNode extends TransitionASTNode {
 }
 
 /**
+ * Action Transition AST node
+ */
+export interface ActionTransitionASTNode extends TransitionASTNode {
+  transitionType: TransitionType.ACTION
+  properties: {
+    when: ASTNode
+    effects: ASTNode[]
+  }
+}
+
+/**
  * Submit Transition AST node
  */
 export interface SubmitTransitionASTNode extends TransitionASTNode {

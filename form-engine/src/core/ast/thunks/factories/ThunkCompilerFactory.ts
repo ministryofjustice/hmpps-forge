@@ -15,6 +15,7 @@ import {
 import {
   isLoadTransitionNode,
   isAccessTransitionNode,
+  isActionTransitionNode,
   isSubmitTransitionNode,
 } from '@form-engine/core/typeguards/transition-nodes'
 import { ThunkHandler } from '@form-engine/core/ast/thunks/types'
@@ -38,6 +39,7 @@ import BlockHandler from '@form-engine/core/ast/thunks/handlers/structures/Block
 import StepHandler from '@form-engine/core/ast/thunks/handlers/structures/StepHandler'
 import LoadTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/LoadTransitionHandler'
 import AccessTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/AccessTransitionHandler'
+import ActionTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/ActionTransitionHandler'
 import SubmitTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/SubmitTransitionHandler'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 import JourneyHandler from '@form-engine/core/ast/thunks/handlers/structures/JourneyHandler'
@@ -238,13 +240,17 @@ export default class ThunkCompilerFactory {
       return new ValidationHandler(nodeId, node)
     }
 
-    // Transition nodes (LOAD, ACCESS, SUBMIT)
+    // Transition nodes (LOAD, ACCESS, ACTION, SUBMIT)
     if (isLoadTransitionNode(node)) {
       return new LoadTransitionHandler(nodeId, node)
     }
 
     if (isAccessTransitionNode(node)) {
       return new AccessTransitionHandler(nodeId, node)
+    }
+
+    if (isActionTransitionNode(node)) {
+      return new ActionTransitionHandler(nodeId, node)
     }
 
     if (isSubmitTransitionNode(node)) {

@@ -1,18 +1,29 @@
-import { isAccessTransition, isLoadTransition, isSubmitTransition } from '@form-engine/form/typeguards/transitions'
+import {
+  isAccessTransition,
+  isActionTransition,
+  isLoadTransition,
+  isSubmitTransition,
+} from '@form-engine/form/typeguards/transitions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import {
   AccessTransitionASTNode,
+  ActionTransitionASTNode,
   LoadTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
-import { AccessTransition, LoadTransition, SubmitTransition } from '@form-engine/form/types/expressions.type'
+import {
+  AccessTransition,
+  ActionTransition,
+  LoadTransition,
+  SubmitTransition,
+} from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '../NodeFactory'
 
 /**
- * TransitionNodeFactory: Creates transition nodes (Load, Access, Submit)
+ * TransitionNodeFactory: Creates transition nodes (Load, Access, Action, Submit)
  * Handles lifecycle event handlers for journeys and steps
  */
 export class TransitionNodeFactory {
@@ -24,15 +35,21 @@ export class TransitionNodeFactory {
 
   /**
    * Transform Transition node: Lifecycle event handlers
-   * Routes to specific transition type (Load, Access, Submit)
+   * Routes to specific transition type (Load, Access, Action, Submit)
    */
-  create(json: any): LoadTransitionASTNode | AccessTransitionASTNode | SubmitTransitionASTNode {
+  create(
+    json: any,
+  ): LoadTransitionASTNode | AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode {
     if (isLoadTransition(json)) {
       return this.createLoadTransition(json)
     }
 
     if (isAccessTransition(json)) {
       return this.createAccessTransition(json)
+    }
+
+    if (isActionTransition(json)) {
+      return this.createActionTransition(json)
     }
 
     if (isSubmitTransition(json)) {
@@ -42,7 +59,7 @@ export class TransitionNodeFactory {
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['LoadTransition', 'AccessTransition', 'SubmitTransition'],
+      validTypes: ['LoadTransition', 'AccessTransition', 'ActionTransition', 'SubmitTransition'],
     })
   }
 
@@ -88,6 +105,26 @@ export class TransitionNodeFactory {
       type: ASTNodeType.TRANSITION,
       transitionType: TransitionType.ACCESS,
       properties,
+      raw: json,
+    }
+  }
+
+  /**
+   * Transform Action transition: In-page actions
+   * Handles button clicks that trigger effects without navigation (e.g., "Find address")
+   */
+  private createActionTransition(json: ActionTransition): ActionTransitionASTNode {
+    const when = this.nodeFactory.createNode(json.when)
+    const effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
+
+    return {
+      id: this.nodeIDGenerator.next(this.category),
+      type: ASTNodeType.TRANSITION,
+      transitionType: TransitionType.ACTION,
+      properties: {
+        when,
+        effects,
+      },
       raw: json,
     }
   }

@@ -11,6 +11,7 @@ import {
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
 import {
   isAccessTransitionNode,
+  isActionTransitionNode,
   isLoadTransitionNode,
   isSubmitTransitionNode,
 } from '@form-engine/core/typeguards/transition-nodes'
@@ -57,14 +58,20 @@ export function findRelevantNodes(
   // Collect transition nodes using dedicated functions
   const onLoadNodes = collectOnLoadTransitionsFromAncestors(rootNode, metadataRegistry)
   const onAccessNodes = collectOnAccessTransitionsFromAncestors(rootNode, metadataRegistry)
+  const onActionNodes = collectOnActionTransitionsFromCurrentStep(rootNode, metadataRegistry)
   const onSubmitNodes = collectOnSubmitTransitionsFromAllSteps(rootNode)
 
-  nodes.push(...onLoadNodes, ...onAccessNodes, ...onSubmitNodes)
+  nodes.push(...onLoadNodes, ...onAccessNodes, ...onActionNodes, ...onSubmitNodes)
 
   structuralTraverse(rootNode, {
     enterNode: (node: ASTNode): VisitorResult => {
       // Skip all transition nodes - they're handled by the dedicated collection functions above
-      if (isLoadTransitionNode(node) || isAccessTransitionNode(node) || isSubmitTransitionNode(node)) {
+      if (
+        isLoadTransitionNode(node) ||
+        isAccessTransitionNode(node) ||
+        isActionTransitionNode(node) ||
+        isSubmitTransitionNode(node)
+      ) {
         return StructuralVisitResult.SKIP
       }
 
@@ -85,6 +92,7 @@ export function findRelevantNodes(
             if (
               isLoadTransitionNode(childNode) ||
               isAccessTransitionNode(childNode) ||
+              isActionTransitionNode(childNode) ||
               isSubmitTransitionNode(childNode)
             ) {
               return StructuralVisitResult.SKIP
@@ -341,6 +349,48 @@ function collectOnAccessTransitionsFromAncestors(
 }
 
 /**
+ * Collect all OnAction transition nodes from the current step only
+ *
+ * OnAction transitions fire on POST requests before block evaluation.
+ * Only collected from the current step (step-level only).
+ *
+ * @param rootNode - Root journey node to search from
+ * @param metadataRegistry - Registry containing node metadata (isCurrentStep, etc.)
+ * @returns Array of all AST nodes within OnAction transitions of the current step
+ */
+function collectOnActionTransitionsFromCurrentStep(
+  rootNode: JourneyASTNode,
+  metadataRegistry: MetadataRegistry,
+): ASTNode[] {
+  const nodes: ASTNode[] = []
+
+  structuralTraverse(rootNode, {
+    enterNode: (node: ASTNode, ctx: StructuralContext): VisitorResult => {
+      if (!isActionTransitionNode(node)) {
+        return StructuralVisitResult.CONTINUE
+      }
+
+      // Find the Step node that owns this OnAction transition
+      const ownerNode = ctx.ancestors.filter(ancestor => isStepStructNode(ancestor)).at(-1)
+
+      if (ownerNode && metadataRegistry.get(ownerNode.id, 'isCurrentStep')) {
+        // Owner is the current step - traverse this OnAction subtree
+        structuralTraverse(node, {
+          enterNode(childNode: ASTNode): VisitorResult {
+            nodes.push(childNode)
+            return StructuralVisitResult.CONTINUE
+          },
+        })
+      }
+
+      return StructuralVisitResult.SKIP
+    },
+  })
+
+  return nodes
+}
+
+/**
  * Collect all OnSubmit transition nodes from all steps
  *
  * OnSubmit transitions define navigation and validation behavior.
@@ -359,8 +409,7 @@ export function collectOnSubmitTransitionsFromAllSteps(rootNode: JourneyASTNode)
       }
 
       // Find the Step node that owns this OnSubmit transition
-      const ownerNode = ctx.ancestors.filter(ancestor => isStepStructNode(ancestor))
-        .at(-1)
+      const ownerNode = ctx.ancestors.filter(ancestor => isStepStructNode(ancestor)).at(-1)
 
       if (ownerNode) {
         // Traverse this OnSubmit subtree

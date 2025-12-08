@@ -9,6 +9,7 @@ import {
   FormatExpr,
   ConditionalExpr,
   AccessTransition,
+  ActionTransition,
   LoadTransition,
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
@@ -168,6 +169,9 @@ export interface StepDefinition {
 
   /** Check access and run analytics when step is accessed */
   onAccess?: AccessTransition[]
+
+  /** Handle in-step actions (e.g., "Find address" button) */
+  onAction?: ActionTransition[]
 
   /** Handle form submission transitions */
   onSubmission?: SubmitTransition[]

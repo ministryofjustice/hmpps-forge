@@ -4,6 +4,7 @@ import {
   TransitionASTNode,
   LoadTransitionASTNode,
   AccessTransitionASTNode,
+  ActionTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 
@@ -23,6 +24,13 @@ export function isLoadTransitionNode(obj: any): obj is LoadTransitionASTNode {
  */
 export function isAccessTransitionNode(obj: any): obj is AccessTransitionASTNode {
   return isTransitionNode(obj) && obj.transitionType === TransitionType.ACCESS
+}
+
+/**
+ * Check if an AST node is an Action Transition node
+ */
+export function isActionTransitionNode(obj: any): obj is ActionTransitionASTNode {
+  return isTransitionNode(obj) && obj.transitionType === TransitionType.ACTION
 }
 
 /**

@@ -8,6 +8,7 @@ import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalize
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import StructuralWiring from '@form-engine/core/ast/dependencies/wiring/structural/StructuralWiring'
 import OnSubmitTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnSubmitTransitionWiring'
+import OnActionTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnActionTransitionWiring'
 import AnswerPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/AnswerPseudoNodeWiring'
 import DataPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/DataPseudoNodeWiring'
 import QueryPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/QueryPseudoNodeWiring'
@@ -161,8 +162,9 @@ export class NodeCompilationPipeline {
     // Wire structural hierarchy
     new StructuralWiring(wiringContext).wire()
 
-    // Wire lifecycle transitions (entry = onLoad + onAccess, exit = onSubmit)
+    // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
     new OnLoadTransitionWiring(wiringContext).wire()
+    new OnActionTransitionWiring(wiringContext).wire()
     new OnSubmitTransitionWiring(wiringContext).wire()
 
     // Wire pseudo nodes

@@ -171,6 +171,10 @@ export class StructureNodeFactory {
       properties.onAccess = this.nodeFactory.transformValue(dataProperties.onAccess)
     }
 
+    if (dataProperties.onAction !== undefined) {
+      properties.onAction = this.nodeFactory.transformValue(dataProperties.onAction)
+    }
+
     if (dataProperties.onSubmission !== undefined) {
       properties.onSubmission = this.nodeFactory.transformValue(dataProperties.onSubmission)
     }

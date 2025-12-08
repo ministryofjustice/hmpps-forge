@@ -658,3 +658,45 @@ export interface ValidatingTransition extends SubmitTransitionBase {
  * Runs after data loading, on form submission.
  */
 export type SubmitTransition = SkipValidationTransition | ValidatingTransition
+
+/**
+ * Lifecycle transition for in-page actions.
+ *
+ * Executes effects in response to button clicks that don't navigate away,
+ * such as "Find address" or "Add another item" buttons.
+ *
+ * Runs BEFORE block evaluation on POST requests, allowing effects to populate
+ * answers that blocks will then display.
+ *
+ * @example
+ * // Postcode lookup action
+ * {
+ *   type: 'TransitionType.Action',
+ *   when: Post('action').match(Condition.Equals('lookup')),
+ *   effects: [lookupPostcode()]
+ * }
+ *
+ * @example
+ * // Add item to collection
+ * {
+ *   type: 'TransitionType.Action',
+ *   when: Post('action').match(Condition.Equals('add-item')),
+ *   effects: [addItemToCollection()]
+ * }
+ */
+export interface ActionTransition {
+  type: TransitionType.ACTION
+
+  /**
+   * Trigger condition for this action.
+   * Checks POST data to determine if this action was triggered.
+   */
+  when: PredicateExpr
+
+  /**
+   * Effects to execute when the action triggers.
+   * Effects run before block evaluation, allowing them to set answers
+   * that will be displayed in the re-rendered form.
+   */
+  effects: EffectFunctionExpr<any>[]
+}

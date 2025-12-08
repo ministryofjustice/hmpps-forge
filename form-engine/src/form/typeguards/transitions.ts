@@ -1,6 +1,7 @@
 import {
   LoadTransition,
   AccessTransition,
+  ActionTransition,
   SkipValidationTransition,
   ValidatingTransition,
   SubmitTransition,
@@ -13,6 +14,10 @@ export function isLoadTransition(obj: any): obj is LoadTransition {
 
 export function isAccessTransition(obj: any): obj is AccessTransition {
   return obj != null && obj.type === TransitionType.ACCESS
+}
+
+export function isActionTransition(obj: any): obj is ActionTransition {
+  return obj != null && obj.type === TransitionType.ACTION
 }
 
 export function isSkipValidationTransition(obj: any): obj is SkipValidationTransition {
@@ -28,5 +33,5 @@ export function isSubmitTransition(obj: any): obj is SubmitTransition {
 }
 
 export function isTransition(obj: any): boolean {
-  return isLoadTransition(obj) || isAccessTransition(obj) || isSubmitTransition(obj)
+  return isLoadTransition(obj) || isAccessTransition(obj) || isActionTransition(obj) || isSubmitTransition(obj)
 }

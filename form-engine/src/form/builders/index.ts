@@ -12,6 +12,7 @@ import {
 } from '../types/structures.type'
 import {
   AccessTransition,
+  ActionTransition,
   CollectionExpr,
   FormatExpr,
   LoadTransition,
@@ -76,6 +77,15 @@ export function loadTransition(definition: Omit<LoadTransition, 'type'>): LoadTr
  */
 export function accessTransition(definition: Omit<AccessTransition, 'type'>): AccessTransition {
   return finaliseBuilders({ ...definition, type: TransitionType.ACCESS }) as AccessTransition
+}
+
+/**
+ * Creates an action transition for in-page actions.
+ * Use this in the onAction lifecycle hook for buttons that trigger effects
+ * without navigating away (e.g., "Find address", "Add item").
+ */
+export function actionTransition(definition: Omit<ActionTransition, 'type'>): ActionTransition {
+  return finaliseBuilders({ ...definition, type: TransitionType.ACTION }) as ActionTransition
 }
 
 export function validation(definition: Omit<ValidationExpr, 'type'>): ValidationExpr {

@@ -85,6 +85,37 @@ describe('findRelevantNodes', () => {
     expect(result).not.toContainEqual(onSubmitNode)
   })
 
+  it('should include OnAction transitions when owner is current step', () => {
+    // Arrange
+    const onActionNode = ASTTestFactory.transition(TransitionType.ACTION).build()
+    const journeyNode = ASTTestFactory.journey()
+      .withStep(step => step.withProperty('onAction', [onActionNode]))
+      .build()
+
+    const stepNode = journeyNode.properties.steps[0]
+    metadataRegistry.set(stepNode.id, 'isCurrentStep', true)
+
+    // Act
+    const result = findRelevantNodes(journeyNode, nodeRegistry, metadataRegistry)
+
+    // Assert
+    expect(result).toContainEqual(onActionNode)
+  })
+
+  it('should skip OnAction transitions when owner is not current step', () => {
+    // Arrange
+    const onActionNode = ASTTestFactory.transition(TransitionType.ACTION).build()
+    const journeyNode = ASTTestFactory.journey()
+      .withStep(step => step.withProperty('onAction', [onActionNode]))
+      .build()
+
+    // Act
+    const result = findRelevantNodes(journeyNode, nodeRegistry, metadataRegistry)
+
+    // Assert
+    expect(result).not.toContainEqual(onActionNode)
+  })
+
   it('should traverse Collection expressions in non-standard block properties', () => {
     // Arrange
     const collectionSourceRef = ASTTestFactory.reference(['data', 'items'])
@@ -161,6 +192,7 @@ describe('findRelevantNodes', () => {
       .build()
     const onLoadNode = ASTTestFactory.transition(TransitionType.LOAD).build()
     const onAccessNode = ASTTestFactory.transition(TransitionType.ACCESS).build()
+    const onActionNode = ASTTestFactory.transition(TransitionType.ACTION).build()
 
     const journeyNode = ASTTestFactory.journey()
       .withProperty('onLoad', onLoadNode)
@@ -168,6 +200,7 @@ describe('findRelevantNodes', () => {
         step
           .withProperty('onSubmission', [onSubmitNode])
           .withProperty('onAccess', onAccessNode)
+          .withProperty('onAction', [onActionNode])
           .withBlock('TextInput', 'field', block => block.withCode('firstName')),
       )
       .build()

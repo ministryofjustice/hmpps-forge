@@ -11,12 +11,17 @@ Each hook serves a specific purpose in the form's lifecycle, ensuring predictabl
 Understanding the execution order is crucial for building forms correctly:
 
 ```
+GET Request:
 1. Journey onLoad     - Load foundational data (user, permissions, settings)
 2. Journey onAccess   - Check journey-level access, track analytics
 3. Step onLoad        - Load step-specific data (drafts, section data)
 4. Step onAccess      - Check step-level guards, track progress
 5. Blocks render      - UI renders with all loaded data available
-6. User submits       - onSubmission transitions run
+
+POST Request (adds):
+6. Step onAction      - Handle in-page actions (e.g., postcode lookup)
+7. Blocks render      - UI re-renders with action results
+8. Step onSubmission  - Handle form submission, validation, navigation
 ```
 
 This strict order ensures that:
@@ -114,7 +119,76 @@ step({
 - Guards can reference data loaded in `onLoad`
 - If guards fail, navigation in `redirect` is triggered
 
-### 3. onSubmission - Form Submissions
+### 3. onAction - In-Page Actions
+
+**Purpose**: Handle in-page actions that need to modify answers before blocks render
+**When it runs**: On POST requests, after access control, before block evaluation
+**Can include**: Trigger condition and effects
+**Step-level only**: Not available on Journey nodes
+
+```typescript
+interface ActionTransition {
+  when: PredicateExpr           // Required - trigger condition (e.g., button click)
+  effects: EffectFunctionExpr[] // Required - effects to run when triggered
+}
+```
+
+**The Problem it Solves:**
+
+When a form has "in-page actions" (like a "Find address" button), effects that modify answers
+need to run BEFORE blocks evaluate. Without `onAction`, effects in `onSubmission` run AFTER
+block evaluation, meaning effect-set values (like `addressLine1`) would be lost.
+
+**Usage:**
+```typescript
+step({
+  path: '/business-details',
+
+  onAction: [
+    actionTransition({
+      when: Post('lookupAddress').match(Condition.Equals('lookup')),
+      effects: [Effect.LookupPostcode(Answer('postcode'))],
+    }),
+  ],
+
+  onSubmission: [
+    submitTransition({
+      when: Post('action').match(Condition.Equals('continue')),
+      validate: true,
+      onValid: {
+        effects: [Effect.Save()],
+        next: [{ goto: '/next-step' }],
+      },
+    }),
+  ],
+
+  blocks: [
+    // These fields will show the address populated by the lookup
+    field({ code: 'postcode', component: 'TextInput' }),
+    field({ code: 'addressLine1', component: 'TextInput' }),
+    field({ code: 'town', component: 'TextInput' }),
+  ],
+})
+```
+
+**Key Points:**
+- `when` is **required** - actions always need a trigger condition
+- Only the **first matching** `onAction` executes (first-match semantics)
+- Effects are **immediately committed** before blocks evaluate
+- No navigation - `onAction` always stays on the same page
+- Use `onSubmission` with `when` clauses to prevent both firing on the same POST
+
+**Execution Order on POST:**
+```
+1. onLoad effects run
+2. onAccess guards checked
+3. onAction transitions evaluated (first match executes)
+4. Answers snapshot captured (AFTER action effects)
+5. Blocks evaluate (sees action-set values)
+6. onSubmission transitions run
+```
+
+### 4. onSubmission - Form Submissions
 
 **Purpose**: Handle form submissions, validation, and navigation
 **When it runs**: When user submits the form
@@ -404,6 +478,52 @@ step({
 })
 ```
 
+### 6. Address Lookup with onAction
+```typescript
+step({
+  path: '/address',
+
+  // Handle the lookup button - runs BEFORE blocks render
+  onAction: [
+    actionTransition({
+      when: Post('findAddress').match(Condition.Equals('lookup')),
+      effects: [Effect.LookupPostcode(Answer('postcode'))],
+    }),
+  ],
+
+  // Handle form submission - runs AFTER blocks render
+  onSubmission: [
+    submitTransition({
+      when: Post('action').match(Condition.Equals('continue')),
+      validate: true,
+      onValid: {
+        effects: [Effect.SaveAddress()],
+        next: [{ goto: '/contact-details' }],
+      },
+    }),
+  ],
+
+  blocks: [
+    field({ code: 'postcode', component: 'TextInput', label: 'Postcode' }),
+    // Button that triggers the onAction lookup
+    block({ component: 'Button', name: 'findAddress', value: 'lookup', label: 'Find Address' }),
+    // These fields are populated by the lookup effect
+    field({ code: 'addressLine1', component: 'TextInput', label: 'Address Line 1' }),
+    field({ code: 'addressLine2', component: 'TextInput', label: 'Address Line 2' }),
+    field({ code: 'town', component: 'TextInput', label: 'Town' }),
+    field({ code: 'county', component: 'TextInput', label: 'County' }),
+  ],
+})
+```
+
+**Why this works:**
+1. User enters postcode and clicks "Find Address"
+2. `onAction` fires because `Post('findAddress')` equals `'lookup'`
+3. `LookupPostcode` effect runs and sets `addressLine1`, `town`, etc.
+4. Blocks render with the populated address fields
+5. `onSubmission` does NOT fire (different `when` condition)
+6. User can edit the address and click "Continue" to proceed
+
 ## Best Practices
 
 ### 1. Load Data at the Right Level
@@ -440,23 +560,31 @@ next: [
 - Consider `submissionOnly` validation for expensive checks
 
 ## Execution Flow Diagram
-// TODO: Probably should make a pretty diagram for this.
+
 ```
-User Accesses Journey
+User Accesses Journey (GET)
     ↓
 Journey.onLoad (effects)
     ↓
-Journey.onAccess (guards → effects → next?)
+Journey.onAccess (guards → effects → redirect?)
     ↓
-User Accesses Step
+User Accesses Step (GET)
     ↓
 Step.onLoad (effects)
     ↓
-Step.onAccess (guards → effects → next?)
+Step.onAccess (guards → effects → redirect?)
     ↓
 Blocks Render
     ↓
-User Submits Form
+User Submits Form (POST)
+    ↓
+Step.onLoad (effects)
+    ↓
+Step.onAccess (guards → effects → redirect?)
+    ↓
+Step.onAction (when → effects) ← NEW: runs before blocks
+    ↓
+Blocks Render (with action-set values)
     ↓
 Step.onSubmission (when → guards → validate → effects → next)
 ```

@@ -2,6 +2,7 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   AccessTransitionASTNode,
+  ActionTransitionASTNode,
   LoadTransitionASTNode,
   SubmitTransitionASTNode,
   ValidationASTNode,
@@ -35,6 +36,7 @@ export interface StepASTNode extends ASTNode {
     path: string
     onLoad?: LoadTransitionASTNode[]
     onAccess?: AccessTransitionASTNode[]
+    onAction?: ActionTransitionASTNode[]
     onSubmission?: SubmitTransitionASTNode[]
     blocks?: BlockASTNode[]
     title: string

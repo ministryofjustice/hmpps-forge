@@ -32,5 +32,6 @@ export enum LogicType {
 export enum TransitionType {
   LOAD = 'TransitionType.Load',
   ACCESS = 'TransitionType.Access',
+  ACTION = 'TransitionType.Action',
   SUBMIT = 'TransitionType.Submit',
 }
