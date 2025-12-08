@@ -3,6 +3,7 @@ import RegistryDuplicateError from '@form-engine/errors/RegistryDuplicateError'
 import RegistryValidationError from '@form-engine/errors/RegistryValidationError'
 import { govukFrontendComponents } from '@form-engine/registry/components/govuk-frontend'
 import { ComponentRenderer, RegistryComponent } from '@form-engine/registry/types/components.type'
+import { coreComponents } from '@form-engine/registry/components/core'
 
 /**
  * Registry for managing UI components in the form engine.
@@ -70,6 +71,7 @@ export default class ComponentRegistry {
 
   registerBuiltInComponents() {
     this.registerMany([
+      ...coreComponents,
       ...govukFrontendComponents,
       // ...mojFrontendComponents
     ])
