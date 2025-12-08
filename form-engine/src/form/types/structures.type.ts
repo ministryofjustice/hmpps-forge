@@ -104,6 +104,13 @@ export interface FieldBlockDefinition extends BlockDefinition {
 
   /** Marks field as dependent on other fields - used for validation ordering */
   dependent?: PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Whether to keep all values when an array is returned.
+   * When false (default), only the first non-empty value is used.
+   * When true, all values in the array are kept.
+   */
+  multiple?: boolean
 }
 
 /**

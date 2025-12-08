@@ -27,14 +27,16 @@ export class PseudoNodeFactory {
    * Create a POST pseudo node - represents form submission data for a field
    *
    * @param baseFieldCode - The base field code (e.g., 'fieldName')
+   * @param fieldNodeId - Optional reference to the field node for accessing field properties
    * @returns PostPseudoNode with auto-generated ID
    */
-  createPostPseudoNode(baseFieldCode: string): PostPseudoNode {
+  createPostPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): PostPseudoNode {
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.POST,
       properties: {
         baseFieldCode,
+        fieldNodeId,
       },
     }
   }

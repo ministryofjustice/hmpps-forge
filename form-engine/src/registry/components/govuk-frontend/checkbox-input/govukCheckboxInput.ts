@@ -23,6 +23,9 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
   /** Component variant identifier */
   variant: 'govukCheckboxInput'
 
+  /** Required to be set to `true` to make sure array of answers is retrieved from POST */
+  multiple: true
+
   /**
    * The label for the checkbox group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.

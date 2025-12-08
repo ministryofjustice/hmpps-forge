@@ -3,6 +3,7 @@ import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistr
 import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import { NodeId } from '@form-engine/core/types/engine.type'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
@@ -51,10 +52,9 @@ export default class PseudoNodeTraverser {
           // Check if the field is on the current step
           if (this.metadataRegistry.get(blockNode.id, 'isDescendantOfStep', false)) {
             this.createAnswerLocalPseudoNode(blockNode, fieldCode)
-            this.createPostPseudoNode(fieldCode)
+            this.createPostPseudoNode(fieldCode, blockNode.id)
           }
         }
-        // TODO: If its not a string, we need to defer this till runtime somehow.
       })
 
     // Setup all other reference nodes
@@ -120,13 +120,13 @@ export default class PseudoNodeTraverser {
   /**
    * Create a POST pseudo node with deduplication
    */
-  private createPostPseudoNode(baseFieldCode: string): void {
+  private createPostPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): void {
     // Check if already created
     if (this.created.get(PseudoNodeType.POST).has(baseFieldCode)) {
       return
     }
 
-    const node = this.pseudoNodeFactory.createPostPseudoNode(baseFieldCode)
+    const node = this.pseudoNodeFactory.createPostPseudoNode(baseFieldCode, fieldNodeId)
 
     this.nodeRegistry.register(node.id, node)
     this.created.get(PseudoNodeType.POST).add(baseFieldCode)

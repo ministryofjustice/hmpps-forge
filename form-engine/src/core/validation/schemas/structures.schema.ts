@@ -56,6 +56,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
       .optional(),
     validate: z.array(ValidationExprSchema).optional(),
     dependent: PredicateTestExprSchema.optional(),
+    multiple: z.boolean().optional(),
   })
 
   return z.union([

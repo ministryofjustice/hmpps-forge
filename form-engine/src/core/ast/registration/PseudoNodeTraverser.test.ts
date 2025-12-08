@@ -49,7 +49,7 @@ describe('PseudoNodeTraverser', () => {
         const answerLocalPseudoNode = ASTTestFactory
           .answerLocalPseudoNode('firstName', fieldBlock.id)
         const postPseudoNode = ASTTestFactory
-          .postPseudoNode('firstName')
+          .postPseudoNode('firstName', fieldBlock.id)
 
         when(mockNodeRegistry.findByType)
           .calledWith(ASTNodeType.BLOCK)
@@ -64,7 +64,7 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue(answerLocalPseudoNode)
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('firstName')
+          .calledWith('firstName', fieldBlock.id)
           .mockReturnValue(postPseudoNode)
 
         // Act
@@ -187,9 +187,9 @@ describe('PseudoNodeTraverser', () => {
         const lastNameAnswerLocal = ASTTestFactory
           .answerLocalPseudoNode('lastName', lastNameBlock.id)
         const firstNamePost = ASTTestFactory
-          .postPseudoNode('firstName')
+          .postPseudoNode('firstName', firstNameBlock.id)
         const lastNamePost = ASTTestFactory
-          .postPseudoNode('lastName')
+          .postPseudoNode('lastName', lastNameBlock.id)
 
         when(mockNodeRegistry.findByType)
           .calledWith(ASTNodeType.BLOCK)
@@ -212,11 +212,11 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue(lastNameAnswerLocal)
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('firstName')
+          .calledWith('firstName', firstNameBlock.id)
           .mockReturnValue(firstNamePost)
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('lastName')
+          .calledWith('lastName', lastNameBlock.id)
           .mockReturnValue(lastNamePost)
 
         // Act
@@ -273,7 +273,7 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue(paramsPseudo)
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('firstName')
+          .calledWith('firstName', undefined)
           .mockReturnValue(postPseudo)
 
         when(mockPseudoNodeFactory.createDataPseudoNode)
@@ -342,14 +342,14 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue([postRef])
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('address')
+          .calledWith('address', undefined)
           .mockReturnValue(postPseudo)
 
         // Act
         traverser.createPseudoNodes()
 
         // Assert
-        expect(mockPseudoNodeFactory.createPostPseudoNode).toHaveBeenCalledWith('address')
+        expect(mockPseudoNodeFactory.createPostPseudoNode).toHaveBeenCalledWith('address', undefined)
         expect(mockNodeRegistry.register).toHaveBeenCalledWith(postPseudo.id, postPseudo)
       })
 
@@ -371,7 +371,7 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue([postRef1, postRef2])
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('address')
+          .calledWith('address', undefined)
           .mockReturnValue(postPseudo)
 
         // Act
@@ -379,7 +379,7 @@ describe('PseudoNodeTraverser', () => {
 
         // Assert
         expect(mockPseudoNodeFactory.createPostPseudoNode).toHaveBeenCalledTimes(1)
-        expect(mockPseudoNodeFactory.createPostPseudoNode).toHaveBeenCalledWith('address')
+        expect(mockPseudoNodeFactory.createPostPseudoNode).toHaveBeenCalledWith('address', undefined)
         expect(mockNodeRegistry.register).toHaveBeenCalledTimes(1)
         expect(mockNodeRegistry.register).toHaveBeenCalledWith(postPseudo.id, postPseudo)
       })
@@ -395,7 +395,7 @@ describe('PseudoNodeTraverser', () => {
         const answerLocalPseudo = ASTTestFactory
           .answerLocalPseudoNode('firstName', fieldBlock.id)
         const postPseudo = ASTTestFactory
-          .postPseudoNode('firstName')
+          .postPseudoNode('firstName', fieldBlock.id)
 
         when(mockNodeRegistry.findByType)
           .calledWith(ASTNodeType.BLOCK)
@@ -414,7 +414,7 @@ describe('PseudoNodeTraverser', () => {
           .mockReturnValue(answerLocalPseudo)
 
         when(mockPseudoNodeFactory.createPostPseudoNode)
-          .calledWith('firstName')
+          .calledWith('firstName', fieldBlock.id)
           .mockReturnValue(postPseudo)
 
         // Act
@@ -518,9 +518,9 @@ describe('PseudoNodeTraverser', () => {
       const lastNameAnswerLocal = ASTTestFactory
         .answerLocalPseudoNode('lastName', lastNameBlock.id)
       const firstNamePost = ASTTestFactory
-        .postPseudoNode('firstName')
+        .postPseudoNode('firstName', firstNameBlock.id)
       const lastNamePost = ASTTestFactory
-        .postPseudoNode('lastName')
+        .postPseudoNode('lastName', lastNameBlock.id)
       const queryPseudo = ASTTestFactory
         .queryPseudoNode('returnUrl')
       const dataPseudo = ASTTestFactory
@@ -553,11 +553,11 @@ describe('PseudoNodeTraverser', () => {
         .mockReturnValue(lastNameAnswerLocal)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
-        .calledWith('firstName')
+        .calledWith('firstName', firstNameBlock.id)
         .mockReturnValue(firstNamePost)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
-        .calledWith('lastName')
+        .calledWith('lastName', lastNameBlock.id)
         .mockReturnValue(lastNamePost)
 
       when(mockPseudoNodeFactory.createQueryPseudoNode)
