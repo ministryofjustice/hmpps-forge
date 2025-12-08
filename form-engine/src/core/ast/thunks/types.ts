@@ -14,7 +14,7 @@ export interface EvaluatorRequestData {
   post: Record<string, string | string[]>
   query: Record<string, string | string[]>
   params: Record<string, string>
-  session?: Record<string, any>
+  session?: any
   state?: Record<string, any>
 }
 

@@ -156,20 +156,47 @@ export function defineEffects<
 }
 
 /**
+ * Type helper to extract the evaluator function type from a factory function.
+ * Factory: (deps: D) => (context, ...args) => void
+ * Evaluator: (context, ...args) => void
+ */
+type EvaluatorFromFactory<F> = F extends (deps: any) => infer E ? E : never
+
+/**
+ * Type helper to safely extract parameters from evaluator, with fallback to any[].
+ */
+type SafeTailParams<F> = F extends (...args: any[]) => any ? Tail<Parameters<F>> : any[]
+
+/**
+ * Type helper to build the effect builders type from factory functions.
+ * Maps each factory to a builder function that takes the args (minus context) and returns an expression.
+ */
+type EffectBuildersFromFactories<Fns> = {
+  [K in keyof Fns]: (
+    ...args: SafeTailParams<EvaluatorFromFactory<Fns[K]>>
+  ) => EffectFunctionExpr<SafeTailParams<EvaluatorFromFactory<Fns[K]>>>
+}
+
+/**
  * Creates effect functions with dependency injection from factory functions.
  * This variant allows effects to depend on external services or configuration.
+ *
+ * Unlike defineEffects, this separates builder creation from registry creation:
+ * - `effects`: Available immediately for use in form definitions (no deps needed)
+ * - `createRegistry`: Factory function to create registry with real dependencies at runtime
  *
  * @template D - The dependencies type
  * @template Fns - Record of factory functions that create effect evaluators
  *
- * @param deps - Dependencies to inject into the effect factories
  * @param factories - Object mapping effect names to factory functions
  *
- * @returns Same as defineEffects - object with effects builders and registry
+ * @returns Object containing:
+ * - `effects`: Function builders for creating effect expressions (deps-free)
+ * - `createRegistry`: Function that takes deps and returns registry for runtime use
  *
  * @example
- * const deps = { emailService: new EmailService(), logger: new Logger() }
- * const { effects, registry } = defineEffectsWithDeps(deps, {
+ * // effects.ts - define effects with factory pattern
+ * export const { effects: MyEffects, createRegistry } = defineEffectsWithDeps<MyDeps>()({
  *   SendEmail: (deps) => (context, recipient: string) => {
  *     return deps.emailService.send(recipient, context.formData)
  *   },
@@ -177,15 +204,50 @@ export function defineEffects<
  *     deps.logger.info(`${action}: ${context.formId}`)
  *   }
  * })
+ *
+ * // app.ts - create registry with real dependencies
+ * const registry = createRegistry({ emailService, logger })
+ * formEngine.registerFunctions(registry)
+ *
+ * // step.ts - use effects in form definitions (no deps needed)
+ * effects: [MyEffects.SendEmail('user@example.com')]
  */
-export function defineEffectsWithDeps<
-  D,
-  Fns extends Record<
-    string,
-    (deps: D) => (context: EffectFunctionContext, ...args: ValueExpr[]) => void | Promise<void>
-  >,
->(deps: D, factories: Fns) {
-  return defineEffects(withDeps(deps, factories))
+export function defineEffectsWithDeps<D>() {
+  return <
+    Fns extends Record<
+      string,
+      (deps: D) => (context: EffectFunctionContext, ...args: ValueExpr[]) => void | Promise<void>
+    >,
+  >(
+    factories: Fns,
+  ) => {
+    type Builders = EffectBuildersFromFactories<Fns>
+
+    // Create builders from factory keys only - no deps needed
+    const effects = {} as Builders
+
+    Object.keys(factories).forEach(name => {
+      ;(effects as any)[name] = (...args: any[]): FunctionExpr<any> => ({
+        type: FunctionType.EFFECT,
+        name,
+        arguments: args,
+      })
+    })
+
+    // Factory function to create registry with real dependencies
+    const createRegistry = (deps: D): FunctionRegistryObject => {
+      const registry = {} as FunctionRegistryObject
+
+      Object.entries(factories).forEach(([name, factory]) => {
+        const evaluate = factory(deps)
+        ;(registry as any)[name] = { name, evaluate }
+      })
+
+      return registry
+    }
+
+    return { effects, createRegistry }
+  }
 }
 
 /**

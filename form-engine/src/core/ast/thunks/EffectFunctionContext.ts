@@ -122,17 +122,10 @@ export default class EffectFunctionContext {
   }
 
   /**
-   * Get a request session value by key
+   * Get the session object
    */
-  getSession(key: string): any | undefined {
-    return this.context.request.session?.[key]
-  }
-
-  /**
-   * Get all session data for the request
-   */
-  getAllSession(): Record<string, any> {
-    return this.context.request.session ? { ...this.context.request.session } : {}
+  getSession(): any | undefined {
+    return this.context.request.session
   }
 
   /**

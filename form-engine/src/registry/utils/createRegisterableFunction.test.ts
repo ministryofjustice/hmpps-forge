@@ -319,7 +319,16 @@ describe('createRegisterableFunction', () => {
 
   describe('defineEffectsWithDeps', () => {
     it('should create effects with dependency injection', () => {
-      const deps = {
+      interface TestDeps {
+        emailService: {
+          send: (to: string, subject: string, body: string) => { id: string; sent: boolean }
+        }
+        logger: {
+          info: (message: string) => { logged: string }
+        }
+      }
+
+      const deps: TestDeps = {
         emailService: {
           send: (_to: string, _subject: string, _body: string) => ({ id: 'email123', sent: true }),
         },
@@ -328,7 +337,7 @@ describe('createRegisterableFunction', () => {
         },
       }
 
-      const { effects, registry } = defineEffectsWithDeps(deps, {
+      const { effects, createRegistry } = defineEffectsWithDeps<TestDeps>()({
         SendEmail: d => (context: any, recipient: string, subject: string) => {
           d.emailService.send(recipient, subject, JSON.stringify(context.formData))
         },
@@ -337,9 +346,12 @@ describe('createRegisterableFunction', () => {
         },
       })
 
-      // Test function builders exist
+      // Test function builders exist (no deps needed)
       expect(typeof effects.SendEmail).toBe('function')
       expect(typeof effects.LogAction).toBe('function')
+
+      // Create registry with real dependencies
+      const registry = createRegistry(deps)
 
       // Test registry evaluators work with injected dependencies
       const mockContext = { formData: { test: 'data' }, formId: 'form123' }
