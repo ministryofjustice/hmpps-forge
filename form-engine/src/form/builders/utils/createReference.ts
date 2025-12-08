@@ -1,21 +1,34 @@
-import { FunctionExpr, PredicateTestExpr, ReferenceExpr } from '../../types/expressions.type'
+import {
+  FunctionExpr,
+  PipelineExpr,
+  PredicateTestExpr,
+  ReferenceExpr,
+  TransformerFunctionExpr,
+} from '../../types/expressions.type'
+import { ExpressionType } from '../../types/enums'
 import { PredicateTestExprBuilder } from '../PredicateTestExprBuilder'
 
 /**
- * Interface for references that can build predicates
+ * Interface for references that can build predicates and pipelines
  */
 export interface BuildableReference extends ReferenceExpr {
   not: PredicateTestExprBuilder
   match(condition: FunctionExpr<any>): PredicateTestExpr
+  pipe(...steps: TransformerFunctionExpr[]): PipelineExpr
 }
 
 /**
  * Creates a buildable reference using Proxy
- * Appends the PredicateTextExpr fluents onto References
- * // TODO: Probably need to append Transformer fluents (.pipe) onto this too.
+ * Appends the PredicateTestExpr fluents and Pipeline fluents onto References
  */
 export function createReference<T extends ReferenceExpr>(ref: ReferenceExpr): T {
   const builder = new PredicateTestExprBuilder(ref)
+
+  const pipe = (...steps: TransformerFunctionExpr[]): PipelineExpr => ({
+    type: ExpressionType.PIPELINE,
+    input: ref,
+    steps,
+  })
 
   return new Proxy(ref, {
     get(target, prop) {
@@ -24,13 +37,15 @@ export function createReference<T extends ReferenceExpr>(ref: ReferenceExpr): T 
           return builder.not
         case 'match':
           return builder[prop].bind(builder)
+        case 'pipe':
+          return pipe
         default:
           return target[prop as keyof ReferenceExpr]
       }
     },
 
     has(target, prop) {
-      return prop in target || ['not', 'match'].includes(prop as string)
+      return prop in target || ['not', 'match', 'pipe'].includes(prop as string)
     },
 
     ownKeys(target) {
@@ -38,9 +53,10 @@ export function createReference<T extends ReferenceExpr>(ref: ReferenceExpr): T 
     },
 
     getOwnPropertyDescriptor(target, prop) {
-      if (['not', 'match'].includes(prop as string)) {
+      if (['not', 'match', 'pipe'].includes(prop as string)) {
         return undefined
       }
+
       return Reflect.getOwnPropertyDescriptor(target, prop)
     },
   }) as T
