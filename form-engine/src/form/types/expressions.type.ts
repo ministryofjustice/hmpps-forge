@@ -585,8 +585,8 @@ export interface SkipValidationTransition extends SubmitTransitionBase {
     /** Optional effects to execute (save, manipulate collections, etc.) */
     effects?: EffectFunctionExpr<any>[]
 
-    /** Required navigation rules for where to go next */
-    next: NextExpr[]
+    /** Optional navigation rules for where to go next */
+    next?: NextExpr[]
   }
 
   onValid?: never
@@ -640,16 +640,16 @@ export interface ValidatingTransition extends SubmitTransitionBase {
   onValid: {
     /** Optional effects to execute */
     effects?: EffectFunctionExpr<any>[]
-    /** Required navigation rules on successful validation */
-    next: NextExpr[]
+    /** Optional navigation rules on successful validation */
+    next?: NextExpr[]
   }
 
   /** Actions to execute when validation fails. */
   onInvalid: {
     /** Optional effects to execute */
     effects?: EffectFunctionExpr<any>[]
-    /** Required navigation rules on failed validation */
-    next: NextExpr[]
+    /** Optional navigation rules on failed validation */
+    next?: NextExpr[]
   }
 }
 
