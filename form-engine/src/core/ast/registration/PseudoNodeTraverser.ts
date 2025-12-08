@@ -86,7 +86,7 @@ export default class PseudoNodeTraverser {
                 break
 
               case 'data':
-                // Create pseudo node with only base field name
+                // Create pseudo node with only base property name
                 this.createDataPseudoNode(baseFieldCode)
                 break
 
@@ -202,15 +202,15 @@ export default class PseudoNodeTraverser {
   /**
    * Create a DATA pseudo node with deduplication
    */
-  private createDataPseudoNode(baseFieldCode: string): void {
+  private createDataPseudoNode(baseProperty: string): void {
     // Check if already created
-    if (this.created.get(PseudoNodeType.DATA).has(baseFieldCode)) {
+    if (this.created.get(PseudoNodeType.DATA).has(baseProperty)) {
       return
     }
 
-    const node = this.pseudoNodeFactory.createDataPseudoNode(baseFieldCode)
+    const node = this.pseudoNodeFactory.createDataPseudoNode(baseProperty)
 
     this.nodeRegistry.register(node.id, node)
-    this.created.get(PseudoNodeType.DATA).add(baseFieldCode)
+    this.created.get(PseudoNodeType.DATA).add(baseProperty)
   }
 }

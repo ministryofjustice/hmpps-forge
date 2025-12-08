@@ -119,11 +119,11 @@ describe('ThunkRuntimeHooksFactory', () => {
       const hooks = factory.create('compile_ast:1' as AstNodeId)
 
       // Act
-      const result = hooks.createPseudoNode(PseudoNodeType.DATA, { baseFieldCode: 'userId' })
+      const result = hooks.createPseudoNode(PseudoNodeType.DATA, { baseProperty: 'userId' })
 
       // Assert
       expect(result.type).toBe(PseudoNodeType.DATA)
-      expect(result.properties).toEqual({ baseFieldCode: 'userId' })
+      expect(result.properties).toEqual({ baseProperty: 'userId' })
     })
 
     it('should create POST pseudo node via createPseudoNode hook', () => {

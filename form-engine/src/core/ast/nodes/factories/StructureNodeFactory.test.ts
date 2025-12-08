@@ -410,7 +410,7 @@ describe('StructureNodeFactory', () => {
         code: 'details',
         dependent: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['showDetails'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -443,7 +443,7 @@ describe('StructureNodeFactory', () => {
         code: 'email',
         dependent: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['requireEmail'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,

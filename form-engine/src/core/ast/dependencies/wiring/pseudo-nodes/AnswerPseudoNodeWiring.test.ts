@@ -520,10 +520,10 @@ describe('AnswerPseudoNodeWiring', () => {
         })
       })
 
-      it('should handle dotted field codes in references', () => {
+      it('should wire nested path to pseudo node', () => {
         // Arrange
         const answerRemote = ASTTestFactory.answerRemotePseudoNode('address')
-        const answerRef = ASTTestFactory.reference(['answers', 'address.postcode'])
+        const answerRef = ASTTestFactory.reference(['answers', 'address', 'postcode'])
 
         when(mockWiringContext.findPseudoNodesByType)
           .calledWith(PseudoNodeType.ANSWER_LOCAL)
@@ -540,7 +540,7 @@ describe('AnswerPseudoNodeWiring', () => {
         // Act
         wiring.wire()
 
-        // Assert - should match base code 'address' from 'address.postcode'
+        // Assert
         expect(mockGraph.addEdge).toHaveBeenCalledWith(answerRemote.id, answerRef.id, DependencyEdgeType.DATA_FLOW, {
           referenceType: 'answer',
           fieldCode: 'address',

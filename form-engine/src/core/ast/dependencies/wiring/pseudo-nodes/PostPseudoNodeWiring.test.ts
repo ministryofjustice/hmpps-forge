@@ -55,10 +55,10 @@ describe('PostPseudoNodeWiring', () => {
       })
     })
 
-    it('should handle dotted field codes in references', () => {
+    it('should wire nested path to pseudo node', () => {
       // Arrange
       const postNode = ASTTestFactory.postPseudoNode('address')
-      const postRef = ASTTestFactory.reference(['post', 'address.postcode'])
+      const postRef = ASTTestFactory.reference(['post', 'address', 'postcode'])
 
       when(mockWiringContext.findPseudoNodesByType)
         .calledWith(PseudoNodeType.POST)
@@ -71,7 +71,7 @@ describe('PostPseudoNodeWiring', () => {
       // Act
       wiring.wire()
 
-      // Assert - should match base code 'address' from 'address.postcode'
+      // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(postNode.id, postRef.id, DependencyEdgeType.DATA_FLOW, {
         referenceType: 'post',
         fieldCode: 'address',

@@ -41,10 +41,10 @@ export default class DataReferenceHandler implements ThunkHandler {
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
   }
 
-  private findPseudoNode(context: ThunkEvaluationContext, baseFieldCode: string) {
+  private findPseudoNode(context: ThunkEvaluationContext, baseProperty: string) {
     return Array.from(context.nodeRegistry.getAll().values()).find(
       (node: DataPseudoNode) =>
-        isPseudoNode(node) && PSEUDO_TYPES.includes(node.type) && node.properties.baseFieldCode === baseFieldCode,
+        isPseudoNode(node) && PSEUDO_TYPES.includes(node.type) && node.properties.baseProperty === baseProperty,
     )
   }
 }

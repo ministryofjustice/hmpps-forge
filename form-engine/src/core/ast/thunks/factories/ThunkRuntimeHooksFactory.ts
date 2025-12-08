@@ -108,7 +108,7 @@ export default class ThunkRuntimeHooksFactory {
           return runtimePseudoNodeFactory.createAnswerRemotePseudoNode(properties.baseFieldCode as string)
 
         case PseudoNodeType.DATA:
-          return runtimePseudoNodeFactory.createDataPseudoNode(properties.baseFieldCode as string)
+          return runtimePseudoNodeFactory.createDataPseudoNode(properties.baseProperty as string)
 
         case PseudoNodeType.POST:
           return runtimePseudoNodeFactory.createPostPseudoNode(properties.baseFieldCode as string)

@@ -142,10 +142,9 @@ export default class AnswerPseudoNodeWiring {
       const path = refNode.properties.path
 
       if (path.length >= 2) {
-        const referencedField = path[1] as string
-        const baseCode = referencedField.split('.')[0]
+        const referencedBaseCode = path[1] as string
 
-        if (baseCode === baseFieldCode) {
+        if (referencedBaseCode === baseFieldCode) {
           this.wiringContext.graph.addEdge(answerPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
             referenceType: 'answer',
             fieldCode: baseFieldCode,

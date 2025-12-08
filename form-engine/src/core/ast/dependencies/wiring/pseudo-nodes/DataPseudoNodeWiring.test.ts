@@ -66,7 +66,7 @@ describe('DataPseudoNodeWiring', () => {
 
       // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(onLoadTrans.id, dataNode.id, DependencyEdgeType.DATA_FLOW, {
-        fieldCode: 'externalField',
+        baseProperty: 'externalField',
       })
     })
 
@@ -96,7 +96,7 @@ describe('DataPseudoNodeWiring', () => {
 
       // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(onLoadTrans.id, dataNode.id, DependencyEdgeType.DATA_FLOW, {
-        fieldCode: 'externalField',
+        baseProperty: 'externalField',
       })
     })
 
@@ -123,14 +123,14 @@ describe('DataPseudoNodeWiring', () => {
       // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(dataNode.id, dataRef.id, DependencyEdgeType.DATA_FLOW, {
         referenceType: 'data',
-        fieldCode: 'externalField',
+        baseProperty: 'externalField',
       })
     })
 
-    it('should handle dotted field codes in references', () => {
+    it('should wire nested path to pseudo node', () => {
       // Arrange
       const dataNode = ASTTestFactory.dataPseudoNode('user')
-      const dataRef = ASTTestFactory.reference(['data', 'user.name'])
+      const dataRef = ASTTestFactory.reference(['data', 'user', 'name'])
 
       when(mockWiringContext.findPseudoNodesByType)
         .calledWith(PseudoNodeType.DATA)
@@ -147,10 +147,10 @@ describe('DataPseudoNodeWiring', () => {
       // Act
       wiring.wire()
 
-      // Assert - should match base code 'user' from 'user.name'
+      // Assert
       expect(mockGraph.addEdge).toHaveBeenCalledWith(dataNode.id, dataRef.id, DependencyEdgeType.DATA_FLOW, {
         referenceType: 'data',
-        fieldCode: 'user',
+        baseProperty: 'user',
       })
     })
 
@@ -229,7 +229,7 @@ describe('DataPseudoNodeWiring', () => {
 
         // Assert - should use the last transition
         expect(mockGraph.addEdge).toHaveBeenCalledWith(onLoadTrans3.id, dataNode.id, DependencyEdgeType.DATA_FLOW, {
-          fieldCode: 'externalField',
+          baseProperty: 'externalField',
         })
       })
 
@@ -259,7 +259,7 @@ describe('DataPseudoNodeWiring', () => {
 
         // Assert - should use step transition
         expect(mockGraph.addEdge).toHaveBeenCalledWith(stepOnLoad.id, dataNode.id, DependencyEdgeType.DATA_FLOW, {
-          fieldCode: 'externalField',
+          baseProperty: 'externalField',
         })
       })
 
@@ -293,7 +293,7 @@ describe('DataPseudoNodeWiring', () => {
           dataNode.id,
           DependencyEdgeType.DATA_FLOW,
           {
-            fieldCode: 'externalField',
+            baseProperty: 'externalField',
           },
         )
       })
@@ -324,7 +324,7 @@ describe('DataPseudoNodeWiring', () => {
 
         // Assert - should use parent transition (skipping empty step array)
         expect(mockGraph.addEdge).toHaveBeenCalledWith(parentOnLoad.id, dataNode.id, DependencyEdgeType.DATA_FLOW, {
-          fieldCode: 'externalField',
+          baseProperty: 'externalField',
         })
       })
     })

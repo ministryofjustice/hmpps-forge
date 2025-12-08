@@ -43,6 +43,13 @@ export interface CreateScopedReference {
  * Creates a scope builder using Proxy for property-based navigation
  * //TODO: This could probably use re-working
  */
+/**
+ * Split a key string into path segments
+ * 'user.name' → ['user', 'name']
+ * 'simple' → ['simple']
+ */
+const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+
 export function createScopedReference(currentLevel: number = 0): CreateScopedReference {
   const currentPath = ['@scope', currentLevel.toString()]
 
@@ -50,7 +57,7 @@ export function createScopedReference(currentLevel: number = 0): CreateScopedRef
     property(key: string): BuildableReference {
       return createReference({
         type: ExpressionType.REFERENCE,
-        path: [...currentPath, key],
+        path: [...currentPath, ...splitKey(key)],
       })
     },
 

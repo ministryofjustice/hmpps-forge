@@ -34,7 +34,7 @@ export default class DataPseudoNodeWiring {
    * They only have one producer: the nearest onLoad transition that loads data.
    */
   private wireProducers(dataPseudoNode: DataPseudoNode) {
-    const { baseFieldCode } = dataPseudoNode.properties
+    const { baseProperty } = dataPseudoNode.properties
 
     const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(
       this.wiringContext.getCurrentStepNode().id,
@@ -42,7 +42,7 @@ export default class DataPseudoNodeWiring {
 
     if (nearestOnLoadTransition) {
       this.wiringContext.graph.addEdge(nearestOnLoadTransition.id, dataPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
-        fieldCode: baseFieldCode,
+        baseProperty,
       })
     }
   }
@@ -50,24 +50,23 @@ export default class DataPseudoNodeWiring {
   /**
    * Wire a data pseudo node to its consumers (Data reference nodes)
    *
-   * Finds all Data() reference nodes that reference this field and creates
+   * Finds all Data() reference nodes that reference this property and creates
    * edges: DATA_PSEUDO_NODE → Data() reference
    */
   private wireConsumers(dataPseudoNode: DataPseudoNode) {
-    const { baseFieldCode } = dataPseudoNode.properties
+    const { baseProperty } = dataPseudoNode.properties
     const dataRefs = this.wiringContext.findReferenceNodes('data')
 
     dataRefs.forEach(refNode => {
       const path = refNode.properties.path
 
       if (path.length >= 2) {
-        const referencedField = path[1] as string
-        const baseCode = referencedField.split('.')[0]
+        const referencedBaseProperty = path[1] as string
 
-        if (baseCode === baseFieldCode) {
+        if (referencedBaseProperty === baseProperty) {
           this.wiringContext.graph.addEdge(dataPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
             referenceType: 'data',
-            fieldCode: baseFieldCode,
+            baseProperty,
           })
         }
       }

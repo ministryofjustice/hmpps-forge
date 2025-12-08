@@ -42,7 +42,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -63,7 +63,7 @@ describe('LogicNodeFactory', () => {
     it('should route to createPredicate for Test predicates', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -82,13 +82,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -109,13 +109,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -133,13 +133,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -156,7 +156,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.NOT,
         operand: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -200,7 +200,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -223,7 +223,7 @@ describe('LogicNodeFactory', () => {
     it('should transform predicate using real nodeFactory', () => {
       const predicateJson = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -247,7 +247,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -266,12 +266,12 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
-        thenValue: { type: ExpressionType.REFERENCE, path: ['thenField'] },
-        elseValue: { type: ExpressionType.REFERENCE, path: ['elseField'] },
+        thenValue: { type: ExpressionType.REFERENCE, path: ['answers', 'thenField'] },
+        elseValue: { type: ExpressionType.REFERENCE, path: ['answers', 'elseField'] },
       } satisfies ConditionalExpr
 
       const result = logicFactory.create(json) as ConditionalASTNode
@@ -289,7 +289,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -308,7 +308,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -327,7 +327,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.CONDITIONAL,
         predicate: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -359,7 +359,7 @@ describe('LogicNodeFactory', () => {
     it('should create a Test predicate with subject and condition', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -379,7 +379,7 @@ describe('LogicNodeFactory', () => {
     it('should transform subject using real nodeFactory', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -394,7 +394,7 @@ describe('LogicNodeFactory', () => {
     it('should transform condition using real nodeFactory', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -409,7 +409,7 @@ describe('LogicNodeFactory', () => {
     it('should handle negate flag', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: true,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -422,7 +422,7 @@ describe('LogicNodeFactory', () => {
     it('should handle negate as false', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -435,7 +435,7 @@ describe('LogicNodeFactory', () => {
     it('should default negate to false when omitted', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       }
 
@@ -457,7 +457,7 @@ describe('LogicNodeFactory', () => {
     it('should throw InvalidNodeError when condition is missing', () => {
       const json = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
       } as any
 
       expect(() => logicFactory.create(json)).toThrow(InvalidNodeError)
@@ -471,7 +471,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.NOT,
         operand: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -491,7 +491,7 @@ describe('LogicNodeFactory', () => {
         type: LogicType.NOT,
         operand: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -511,7 +511,7 @@ describe('LogicNodeFactory', () => {
           type: LogicType.NOT,
           operand: {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -543,13 +543,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -574,13 +574,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -602,13 +602,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -633,13 +633,13 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -667,13 +667,13 @@ describe('LogicNodeFactory', () => {
             operands: [
               {
                 type: LogicType.TEST,
-                subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
                 negate: false,
                 condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
               } satisfies PredicateTestExpr,
               {
                 type: LogicType.TEST,
-                subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
                 negate: false,
                 condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
               } satisfies PredicateTestExpr,
@@ -681,7 +681,7 @@ describe('LogicNodeFactory', () => {
           } satisfies PredicateAndExpr,
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -701,7 +701,7 @@ describe('LogicNodeFactory', () => {
         operands: [
           {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -709,7 +709,7 @@ describe('LogicNodeFactory', () => {
             type: LogicType.NOT,
             operand: {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field2'] },
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
               negate: false,
               condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
             } satisfies PredicateTestExpr,
@@ -719,13 +719,13 @@ describe('LogicNodeFactory', () => {
             operands: [
               {
                 type: LogicType.TEST,
-                subject: { type: ExpressionType.REFERENCE, path: ['field3'] },
+                subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field3'] },
                 negate: false,
                 condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
               } satisfies PredicateTestExpr,
               {
                 type: LogicType.TEST,
-                subject: { type: ExpressionType.REFERENCE, path: ['field3'] },
+                subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field3'] },
                 negate: false,
                 condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
               } satisfies PredicateTestExpr,

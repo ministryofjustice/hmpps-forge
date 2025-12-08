@@ -97,12 +97,19 @@ export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
 }
 
 /**
+ * Split a key string into path segments
+ * 'user.name' → ['user', 'name']
+ * 'simple' → ['simple']
+ */
+const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+
+/**
  * References POST body data from form submission
  */
 export function Post(key: string): BuildableReference {
   return createReference({
     type: ExpressionType.REFERENCE,
-    path: ['post', key],
+    path: ['post', ...splitKey(key)],
   })
 }
 
@@ -112,7 +119,7 @@ export function Post(key: string): BuildableReference {
 export function Params(key: string): BuildableReference {
   return createReference({
     type: ExpressionType.REFERENCE,
-    path: ['params', key],
+    path: ['params', ...splitKey(key)],
   })
 }
 
@@ -122,7 +129,7 @@ export function Params(key: string): BuildableReference {
 export function Query(key: string): BuildableReference {
   return createReference({
     type: ExpressionType.REFERENCE,
-    path: ['query', key],
+    path: ['query', ...splitKey(key)],
   })
 }
 
@@ -132,7 +139,7 @@ export function Query(key: string): BuildableReference {
 export const Data = (key: string): BuildableReference =>
   createReference({
     type: ExpressionType.REFERENCE,
-    path: ['data', key],
+    path: ['data', ...splitKey(key)],
   })
 
 /**
@@ -142,13 +149,31 @@ export const Answer = (target: FieldBlockDefinition | ConditionalString): Builda
   // If it's a field block definition, use its code property
   if (isFieldBlockDefinition(target)) {
     const { code } = target
+
+    // String code - split dot notation
+    if (typeof code === 'string') {
+      return createReference({
+        type: ExpressionType.REFERENCE,
+        path: ['answers', ...splitKey(code)],
+      })
+    }
+
+    // Dynamic code (expression) - pass through
     return createReference({
       type: ExpressionType.REFERENCE,
       path: ['answers', code as any],
     })
   }
 
-  // Otherwise, use the target directly (string, or other ConditionalString types)
+  // String target - split dot notation
+  if (typeof target === 'string') {
+    return createReference({
+      type: ExpressionType.REFERENCE,
+      path: ['answers', ...splitKey(target)],
+    })
+  }
+
+  // Otherwise, use the target directly (expression types like Format)
   return createReference({
     type: ExpressionType.REFERENCE,
     path: ['answers', target as any],

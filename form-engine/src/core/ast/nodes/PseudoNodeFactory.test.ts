@@ -88,13 +88,13 @@ describe('PseudoNodeFactory', () => {
   describe('createDataPseudoNode', () => {
     it('should create DATA pseudo node with generated ID from nodeIDGenerator', () => {
       // Arrange
-      const baseFieldCode = 'userData'
+      const baseProperty = 'userData'
       const generatedId = 'compile_pseudo:30'
 
       mockNodeIDGenerator.next.mockReturnValue(generatedId)
 
       // Act
-      const result = factory.createDataPseudoNode(baseFieldCode)
+      const result = factory.createDataPseudoNode(baseProperty)
 
       // Assert
       expect(mockNodeIDGenerator.next).toHaveBeenCalledWith(NodeIDCategory.COMPILE_PSEUDO)
@@ -102,7 +102,7 @@ describe('PseudoNodeFactory', () => {
         id: generatedId,
         type: PseudoNodeType.DATA,
         properties: {
-          baseFieldCode,
+          baseProperty,
         },
       })
     })

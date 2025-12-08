@@ -5,6 +5,7 @@ import {
   isCollectionExpr,
   isValidationExpr,
   isNextExpr,
+  isExpression,
 } from '@form-engine/form/typeguards/expressions'
 import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
@@ -22,6 +23,7 @@ import {
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
+import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import {
   CollectionExpr,
   FormatExpr,
@@ -88,19 +90,32 @@ export class ExpressionNodeFactory {
    * Examples: Answer('field'), Data('external.value'), Self(), Item()
    */
   private createReference(json: ReferenceExpr): ReferenceASTNode {
-    const transformedPath = Array.isArray(json.path)
-      ? json.path.map((segment: any) => this.nodeFactory.transformValue(segment))
-      : json.path
+    const path = this.buildReferencePath(json.path)
 
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
-      properties: {
-        path: transformedPath,
-      },
+      properties: { path },
       raw: json,
     }
+  }
+
+  /**
+   * Build the reference path, transforming any dynamic expressions.
+   * Path splitting is done at the builder level - factory just passes through.
+   */
+  private buildReferencePath(path: any[]): any[] {
+    if (!Array.isArray(path) || path.length === 0) {
+      throw new InvalidNodeError({
+        message: 'Reference path must be a non-empty array',
+        actual: JSON.stringify(path),
+        code: 'INVALID_REFERENCE_PATH',
+      })
+    }
+
+    // Transform any expressions in the path (e.g., dynamic keys)
+    return path.map(segment => (isExpression(segment) ? this.nodeFactory.transformValue(segment) : segment))
   }
 
   /**

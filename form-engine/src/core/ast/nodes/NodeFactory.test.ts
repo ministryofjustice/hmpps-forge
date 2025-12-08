@@ -101,7 +101,7 @@ describe('NodeFactory', () => {
           type: LogicType.CONDITIONAL,
           predicate: {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field'] } satisfies ReferenceExpr,
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
             negate: false,
             condition: {
               type: FunctionType.CONDITION,
@@ -123,7 +123,7 @@ describe('NodeFactory', () => {
       it('should route Test predicates to LogicNodeFactory', () => {
         const json = {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['field'] } satisfies ReferenceExpr,
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
             type: FunctionType.CONDITION,
@@ -145,7 +145,7 @@ describe('NodeFactory', () => {
           operands: [
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field1'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
               condition: {
                 type: FunctionType.CONDITION,
                 name: 'IsTrue',
@@ -155,7 +155,7 @@ describe('NodeFactory', () => {
             } satisfies PredicateTestExpr,
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field2'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
               condition: {
                 type: FunctionType.CONDITION,
                 name: 'IsTrue',
@@ -177,7 +177,7 @@ describe('NodeFactory', () => {
           operands: [
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field1'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
               negate: false,
               condition: {
                 type: FunctionType.CONDITION,
@@ -187,7 +187,7 @@ describe('NodeFactory', () => {
             } satisfies PredicateTestExpr,
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field2'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
               negate: false,
               condition: {
                 type: FunctionType.CONDITION,
@@ -209,7 +209,7 @@ describe('NodeFactory', () => {
           operands: [
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field1'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
               negate: false,
               condition: {
                 type: FunctionType.CONDITION,
@@ -219,7 +219,7 @@ describe('NodeFactory', () => {
             } satisfies PredicateTestExpr,
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field2'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
               negate: false,
               condition: {
                 type: FunctionType.CONDITION,
@@ -240,7 +240,7 @@ describe('NodeFactory', () => {
           type: LogicType.NOT,
           operand: {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field'] } satisfies ReferenceExpr,
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
             negate: false,
             condition: {
               type: FunctionType.CONDITION,
@@ -260,7 +260,7 @@ describe('NodeFactory', () => {
       it('should route Reference expressions to ExpressionNodeFactory', () => {
         const json = {
           type: ExpressionType.REFERENCE,
-          path: ['field'],
+          path: ['answers', 'field'],
         } satisfies ReferenceExpr
 
         const result = nodeFactory.createNode(json) as PredicateASTNode
@@ -273,7 +273,7 @@ describe('NodeFactory', () => {
       it('should route Pipeline expressions to ExpressionNodeFactory', () => {
         const json = {
           type: ExpressionType.PIPELINE,
-          input: { type: ExpressionType.REFERENCE, path: ['value'] } satisfies ReferenceExpr,
+          input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
           steps: [{ type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as ValueExpr[] as any }],
         } satisfies PipelineExpr
 
@@ -285,7 +285,7 @@ describe('NodeFactory', () => {
       it('should route Collection expressions to ExpressionNodeFactory', () => {
         const json = {
           type: ExpressionType.COLLECTION,
-          collection: { type: ExpressionType.REFERENCE, path: ['items'] } satisfies ReferenceExpr,
+          collection: { type: ExpressionType.REFERENCE, path: ['data', 'items'] } satisfies ReferenceExpr,
           template: [] as BlockDefinition[],
         } satisfies CollectionExpr<BlockDefinition>
 
@@ -300,7 +300,7 @@ describe('NodeFactory', () => {
           message: 'Required',
           when: {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['test'] } satisfies ReferenceExpr,
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
             negate: false,
             condition: {
               type: FunctionType.CONDITION,
@@ -474,8 +474,8 @@ describe('NodeFactory', () => {
 
       it('should transform array of nodes', () => {
         const arr = [
-          { type: ExpressionType.REFERENCE, path: ['field1'] },
-          { type: ExpressionType.REFERENCE, path: ['field2'] },
+          { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
+          { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
         ]
 
         const result = nodeFactory.transformValue(arr)
@@ -491,7 +491,7 @@ describe('NodeFactory', () => {
       })
 
       it('should transform mixed array of nodes and primitives', () => {
-        const arr = ['literal', { type: ExpressionType.REFERENCE, path: ['field'] }, 42]
+        const arr = ['literal', { type: ExpressionType.REFERENCE, path: ['answers', 'field'] }, 42]
 
         const result = nodeFactory.transformValue(arr)
 
@@ -527,7 +527,7 @@ describe('NodeFactory', () => {
       it('should transform Reference expressions', () => {
         const json = {
           type: ExpressionType.REFERENCE,
-          path: ['field'],
+          path: ['answers', 'field'],
         }
 
         const result = nodeFactory.transformValue(json)
@@ -561,7 +561,7 @@ describe('NodeFactory', () => {
           type: LogicType.CONDITIONAL,
           predicate: {
             type: LogicType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['field'] },
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
             negate: false,
             condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
           } satisfies PredicateTestExpr,
@@ -637,7 +637,7 @@ describe('NodeFactory', () => {
           },
           condition: {
             type: ExpressionType.REFERENCE,
-            path: ['field'],
+            path: ['answers', 'field'],
           },
         }
 
@@ -655,7 +655,7 @@ describe('NodeFactory', () => {
               level3: {
                 node: {
                   type: ExpressionType.REFERENCE,
-                  path: ['field'],
+                  path: ['answers', 'field'],
                 },
               },
             },
@@ -675,14 +675,14 @@ describe('NodeFactory', () => {
               name: 'item1',
               condition: {
                 type: ExpressionType.REFERENCE,
-                path: ['field1'],
+                path: ['answers', 'field1'],
               },
             },
             {
               name: 'item2',
               condition: {
                 type: ExpressionType.REFERENCE,
-                path: ['field2'],
+                path: ['answers', 'field2'],
               },
             },
           ],
@@ -825,7 +825,7 @@ describe('NodeFactory', () => {
           operands: [
             {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['field1'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
               negate: false,
               condition: {
                 type: FunctionType.CONDITION,
@@ -837,7 +837,7 @@ describe('NodeFactory', () => {
               type: LogicType.NOT,
               operand: {
                 type: LogicType.TEST,
-                subject: { type: ExpressionType.REFERENCE, path: ['field2'] } satisfies ReferenceExpr,
+                subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
                 negate: false,
                 condition: {
                   type: FunctionType.CONDITION,
@@ -850,11 +850,11 @@ describe('NodeFactory', () => {
         } satisfies PredicateAndExpr,
         thenValue: {
           type: ExpressionType.REFERENCE,
-          path: ['result1'],
+          path: ['answers', 'result1'],
         } satisfies ReferenceExpr,
         elseValue: {
           type: ExpressionType.REFERENCE,
-          path: ['result2'],
+          path: ['answers', 'result2'],
         } satisfies ReferenceExpr,
       } satisfies ConditionalExpr
 
@@ -890,7 +890,7 @@ describe('NodeFactory', () => {
           {
             type: FunctionType.TRANSFORMER,
             name: 'replace',
-            arguments: ['old', { type: ExpressionType.REFERENCE, path: ['replacement'] }],
+            arguments: ['old', { type: ExpressionType.REFERENCE, path: ['answers', 'replacement'] }],
           },
         ],
       }
@@ -913,12 +913,12 @@ describe('NodeFactory', () => {
     it('should generate unique IDs for each node', () => {
       const json1 = {
         type: ExpressionType.REFERENCE,
-        path: ['field1'],
+        path: ['answers', 'field1'],
       }
 
       const json2 = {
         type: ExpressionType.REFERENCE,
-        path: ['field2'],
+        path: ['answers', 'field2'],
       }
 
       const result1 = nodeFactory.createNode(json1)
@@ -932,7 +932,7 @@ describe('NodeFactory', () => {
     it('should share ID generator across all sub-factories', () => {
       const ref = nodeFactory.createNode({
         type: ExpressionType.REFERENCE,
-        path: ['field'],
+        path: ['answers', 'field'],
       } satisfies ReferenceExpr)
 
       const block = nodeFactory.createNode({

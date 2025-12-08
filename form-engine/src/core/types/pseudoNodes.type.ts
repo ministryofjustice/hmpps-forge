@@ -59,13 +59,13 @@ export interface PostPseudoNode extends BasePseudoNode {
 /**
  * DATA pseudo node - represents external data loaded via onLoad transitions
  *
- * Stores only the base field code.
+ * Stores only the base property name.
  * Nested property access (e.g., 'userData.name') is handled by the expression evaluator.
  */
 export interface DataPseudoNode extends BasePseudoNode {
   type: PseudoNodeType.DATA
   properties: {
-    baseFieldCode: string
+    baseProperty: string
   }
 }
 

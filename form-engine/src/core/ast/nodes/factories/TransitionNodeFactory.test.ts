@@ -53,7 +53,7 @@ describe('TransitionNodeFactory', () => {
         type: TransitionType.ACCESS,
         guards: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['test'] } satisfies ReferenceExpr,
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -169,7 +169,7 @@ describe('TransitionNodeFactory', () => {
     it('should create an Access transition with guards', () => {
       const guards = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['field'] } satisfies ReferenceExpr,
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
         negate: false,
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       } satisfies PredicateTestExpr
@@ -221,7 +221,7 @@ describe('TransitionNodeFactory', () => {
             type: ExpressionType.NEXT,
             when: {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['test'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
               condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
             } satisfies PredicateTestExpr,
@@ -247,7 +247,7 @@ describe('TransitionNodeFactory', () => {
         type: TransitionType.ACCESS,
         guards: {
           type: LogicType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['test'] } satisfies ReferenceExpr,
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
@@ -257,7 +257,7 @@ describe('TransitionNodeFactory', () => {
             type: ExpressionType.NEXT,
             when: {
               type: LogicType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['test'] } satisfies ReferenceExpr,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
               condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
             } satisfies PredicateTestExpr,
@@ -317,7 +317,7 @@ describe('TransitionNodeFactory', () => {
     it('should create a Submit transition with when condition', () => {
       const when = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['test'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       }
       const json = {
@@ -341,7 +341,7 @@ describe('TransitionNodeFactory', () => {
     it('should create a Submit transition with guards', () => {
       const guards = {
         type: LogicType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['test'] },
+        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
         condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
       }
       const json = {
@@ -412,7 +412,7 @@ describe('TransitionNodeFactory', () => {
         validate: true,
         onAlways: {
           effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.REFERENCE, path: ['nextStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'nextStep'] }],
         },
       }
 
@@ -436,7 +436,7 @@ describe('TransitionNodeFactory', () => {
         validate: true,
         onValid: {
           effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.REFERENCE, path: ['successStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'successStep'] }],
         },
       }
 
@@ -458,7 +458,7 @@ describe('TransitionNodeFactory', () => {
         validate: true,
         onInvalid: {
           effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.REFERENCE, path: ['errorStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'errorStep'] }],
         },
       }
 
@@ -482,11 +482,11 @@ describe('TransitionNodeFactory', () => {
           effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ValueExpr[] }],
         },
         onValid: {
-          next: [{ type: ExpressionType.REFERENCE, path: ['nextStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'nextStep'] }],
         },
         onInvalid: {
           effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.REFERENCE, path: ['errorStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'errorStep'] }],
         },
       }
 
@@ -524,7 +524,7 @@ describe('TransitionNodeFactory', () => {
         type: TransitionType.SUBMIT,
         validate: true,
         onValid: {
-          next: [{ type: ExpressionType.REFERENCE, path: ['nextStep'] }],
+          next: [{ type: ExpressionType.REFERENCE, path: ['answers', 'nextStep'] }],
         },
       }
 

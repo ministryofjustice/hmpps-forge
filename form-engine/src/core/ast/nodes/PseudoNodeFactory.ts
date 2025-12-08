@@ -80,15 +80,15 @@ export class PseudoNodeFactory {
   /**
    * Create a DATA pseudo node - represents external data reference
    *
-   * @param baseFieldCode - The base field code (e.g., 'userData')
+   * @param baseProperty - The base property name (e.g., 'userData')
    * @returns DataPseudoNode with auto-generated ID
    */
-  createDataPseudoNode(baseFieldCode: string): DataPseudoNode {
+  createDataPseudoNode(baseProperty: string): DataPseudoNode {
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: PseudoNodeType.DATA,
       properties: {
-        baseFieldCode,
+        baseProperty,
       },
     }
   }

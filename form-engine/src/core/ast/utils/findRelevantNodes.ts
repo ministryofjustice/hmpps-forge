@@ -182,7 +182,8 @@ export function findRelevantPseudoNodes(nodes: (ASTNode | PseudoNode)[], nodeReg
 
   // Extract identifiers from reference nodes
   const identifiers = {
-    answers: new Set<string>(), // Answer() and Data() base field codes
+    answers: new Set<string>(), // Answer() and Post() base field codes
+    data: new Set<string>(), // Data() base property names
     query: new Set<string>(), // Query() param names
     params: new Set<string>(), // Params() param names
   }
@@ -199,11 +200,16 @@ export function findRelevantPseudoNodes(nodes: (ASTNode | PseudoNode)[], nodeReg
 
     switch (source) {
       case 'answers':
-      case 'data':
       case 'post': {
         // Extract base field code (before the dot)
         const baseFieldCode = identifier.split('.')[0]
         identifiers.answers.add(baseFieldCode)
+        break
+      }
+      case 'data': {
+        // Extract base property name (before the dot)
+        const baseProperty = identifier.split('.')[0]
+        identifiers.data.add(baseProperty)
         break
       }
       case 'query':
@@ -226,9 +232,11 @@ export function findRelevantPseudoNodes(nodes: (ASTNode | PseudoNode)[], nodeReg
         switch (pseudoNode.type) {
           case PseudoNodeType.ANSWER_LOCAL:
           case PseudoNodeType.ANSWER_REMOTE:
-          case PseudoNodeType.DATA:
           case PseudoNodeType.POST:
             return identifiers.answers.has(pseudoNode.properties.baseFieldCode)
+
+          case PseudoNodeType.DATA:
+            return identifiers.data.has(pseudoNode.properties.baseProperty)
 
           case PseudoNodeType.QUERY:
             return identifiers.query.has(pseudoNode.properties.paramName)
