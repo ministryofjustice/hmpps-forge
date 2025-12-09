@@ -10,7 +10,7 @@ import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
 /**
  * Result of a submit transition evaluation
  */
-interface SubmitTransitionResult {
+export interface SubmitTransitionResult {
   /**
    * Whether the transition was executed (when/guards passed)
    */

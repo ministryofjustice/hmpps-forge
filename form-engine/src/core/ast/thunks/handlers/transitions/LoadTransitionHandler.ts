@@ -2,21 +2,31 @@ import { NodeId } from '@form-engine/core/types/engine.type'
 import { LoadTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { commitPendingEffects } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+
+/**
+ * Result of a load transition evaluation
+ */
+export interface LoadTransitionResult {
+  /**
+   * Captured effects to be committed by LifecycleCoordinator
+   * Effects are captured with their evaluated arguments, deferred for commit
+   */
+  effects: CapturedEffect[]
+}
 
 /**
  * Handler for Load Transition nodes
  *
- * Evaluates onLoad transitions by capturing and immediately committing effects.
- * Effects are functions that typically load external data into context.data.
- *
- * The handler ensures all effects complete before the transition resolves,
- * enabling dependent nodes to access the loaded data.
+ * Evaluates onLoad transitions by capturing effects and returning them
+ * for LifecycleCoordinator to commit. Effects are functions that typically
+ * load external data into context.data.
  *
  * ## Execution Pattern
  * 1. Capture all effects (invoke EffectHandler to get CapturedEffect[])
- * 2. Immediately commit all captured effects (execute them)
- * 3. Return undefined
+ * 2. Return captured effects for LifecycleCoordinator to commit
+ *
+ * LifecycleCoordinator commits LOAD effects immediately after evaluation
+ * to ensure data is available for downstream nodes.
  *
  * ## Wiring Pattern
  * Effects are wired sequentially in the dependency graph:
@@ -25,8 +35,7 @@ import { commitPendingEffects } from '@form-engine/core/ast/thunks/handlers/util
  * - Last effect wires to transition with DATA_FLOW edge
  *
  * ## Return Value
- * Returns undefined to indicate transition completion.
- * Side effects (data loading) occur during commit phase.
+ * Returns LoadTransitionResult containing captured effects.
  */
 export default class LoadTransitionHandler implements ThunkHandler {
   constructor(
@@ -34,19 +43,21 @@ export default class LoadTransitionHandler implements ThunkHandler {
     private readonly node: LoadTransitionASTNode,
   ) {}
 
-  async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
+  async evaluate(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Promise<HandlerResult<LoadTransitionResult>> {
     const effects = this.node.properties.effects as FunctionASTNode[]
 
-    if (Array.isArray(effects) && effects.length > 0) {
-      // Capture effects (invoke EffectHandler for each)
-      const results = await Promise.all(effects.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
-
-      const capturedEffects = results.filter(result => !result.error && result.value).map(result => result.value!)
-
-      // TODO: Immediately commit for now, move commit into LifecycleCoordinator later
-      await commitPendingEffects(capturedEffects, context)
+    if (!Array.isArray(effects) || effects.length === 0) {
+      return { value: { effects: [] } }
     }
 
-    return { value: undefined }
+    // Capture effects (invoke EffectHandler for each)
+    const results = await Promise.all(effects.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
+
+    const capturedEffects = results.filter(result => !result.error && result.value).map(result => result.value!)
+
+    return { value: { effects: capturedEffects } }
   }
 }

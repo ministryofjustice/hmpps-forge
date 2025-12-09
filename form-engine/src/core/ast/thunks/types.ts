@@ -8,9 +8,66 @@ import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluation
 import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 
 /**
+ * Transition types that can set answers
+ *
+ * Used to track where an answer value originated from:
+ * - load: Set during onLoad transitions (e.g., loading from API)
+ * - access: Set during onAccess transitions
+ * - action: Set during onAction transitions (e.g., postcode lookup)
+ * - submit: Set during onSubmission transitions
+ */
+export type TransitionType = 'load' | 'access' | 'action' | 'submit'
+
+/**
+ * Sources that can provide answer values
+ *
+ * Extends TransitionType with non-transition sources:
+ * - post: Raw value from POST form data
+ * - processed: Value after running through formatter pipeline
+ * - default: Value from field's defaultValue
+ */
+export type AnswerSource = TransitionType | 'post' | 'processed' | 'default'
+
+/**
+ * A single mutation to an answer value
+ *
+ * Records the value and which lifecycle phase set it.
+ */
+export interface AnswerMutation {
+  value: unknown
+  source: AnswerSource
+}
+
+/**
+ * History of mutations to an answer over the request lifecycle
+ *
+ * Tracks how an answer evolved through different phases:
+ * - load: API/session data loaded during onLoad
+ * - action: In-page actions like postcode lookup
+ * - post: Raw POST form data
+ * - processed: POST data after formatter pipeline
+ * - default: Field's defaultValue
+ *
+ * Enables:
+ * - Precedence logic (action-set answers protected from POST override)
+ * - Delta queries (what changed during submission)
+ * - Debugging (how did this answer reach its current value)
+ */
+export interface AnswerHistory {
+  current: unknown
+  mutations: AnswerMutation[]
+}
+
+/**
+ * HTTP method for the request
+ */
+export type HttpMethod = 'GET' | 'POST'
+
+/**
  * Request data structure for evaluation
  */
 export interface EvaluatorRequestData {
+  method: HttpMethod
   post: Record<string, string | string[]>
   query: Record<string, string | string[]>
   params: Record<string, string>

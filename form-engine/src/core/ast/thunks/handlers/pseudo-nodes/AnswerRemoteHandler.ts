@@ -28,6 +28,6 @@ export default class AnswerRemoteHandler implements ThunkHandler {
     }
 
     // Read previously resolved answer from context
-    return { value: context.global.answers[baseFieldCode] }
+    return { value: context.global.answers[baseFieldCode]?.current }
   }
 }

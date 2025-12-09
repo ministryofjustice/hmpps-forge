@@ -1,42 +1,75 @@
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import { AnswerHistory, TransitionType } from '@form-engine/core/ast/thunks/types'
 
 /**
  * User-friendly context object provided to effect functions.
  * Wraps the low-level ThunkEvaluationContext with a cleaner API.
+ *
+ * Provides access to:
+ * - Answers (get, set, check, clear) with mutation history tracking
+ * - Data (get, set)
+ * - Request data (params, query, post, session, state)
+ *
+ * The transitionType parameter determines the source recorded when setting answers.
+ * This enables precedence logic: action-set answers are protected from POST override.
  */
 export default class EffectFunctionContext {
-  constructor(private readonly context: ThunkEvaluationContext) {}
+  constructor(
+    private readonly context: ThunkEvaluationContext,
+    private readonly transitionType: TransitionType,
+  ) {}
 
   /**
    * Get a specific answer value by key
    */
-  getAnswer(key: string): any | undefined {
-    return this.context.global.answers[key]
+  getAnswer(key: string): unknown {
+    return this.context.global.answers[key]?.current
   }
 
   /**
    * Set a specific answer value
+   *
+   * Pushes a mutation to the answer's history with the current transitionType as source.
+   * This enables precedence logic and delta tracking via mutation history.
    */
-  setAnswer(key: string, value: any): void {
-    this.context.global.answers[key] = value
+  setAnswer(key: string, value: unknown): void {
+    const history = this.context.global.answers[key] ?? { current: undefined, mutations: [] }
+
+    history.mutations.push({ value, source: this.transitionType })
+    history.current = value
+    this.context.global.answers[key] = history
   }
 
   /**
-   * Get all answers
+   * Get all answers (current values only, without history)
    */
-  getAnswers(): Record<string, any> {
-    return { ...this.context.global.answers }
-  }
+  getAnswers(): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
 
-  /**
-   * Replace all answers
-   */
-  setAnswers(answers: Record<string, any>): void {
-    Object.keys(this.context.global.answers).forEach(key => {
-      delete this.context.global.answers[key]
+    Object.entries(this.context.global.answers).forEach(([key, history]) => {
+      result[key] = history.current
     })
 
-    Object.assign(this.context.global.answers, answers)
+    return result
+  }
+
+  /**
+   * Get the full history for an answer
+   *
+   * Returns the complete mutation history including all sources that have set this answer.
+   */
+  getAnswerHistory(key: string): AnswerHistory | undefined {
+    return this.context.global.answers[key]
+  }
+
+  /**
+   * Get all answer histories
+   *
+   * Returns all answers with their full mutation history.
+   * Useful for calculating custom deltas based on mutation sources.
+   */
+  getAllAnswerHistories(): Record<string, AnswerHistory> {
+    return this.context.global.answers
   }
 
   /**

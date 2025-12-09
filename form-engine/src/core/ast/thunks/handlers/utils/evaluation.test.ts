@@ -476,7 +476,7 @@ describe('evaluation utilities', () => {
       const mockContext = createMockContext()
 
       // Act
-      const result = await commitPendingEffects([], mockContext)
+      const result = await commitPendingEffects([], mockContext, 'load')
 
       // Assert
       expect(result).toEqual([])
@@ -499,7 +499,7 @@ describe('evaluation utilities', () => {
       ]
 
       // Act
-      const result = await commitPendingEffects(capturedEffects, mockContext)
+      const result = await commitPendingEffects(capturedEffects, mockContext, 'load')
 
       // Assert
       expect(result).toEqual(capturedEffects)
@@ -518,7 +518,7 @@ describe('evaluation utilities', () => {
       const capturedEffects: CapturedEffect[] = [{ effectName: 'testEffect', args: [], nodeId: 'compile_ast:1' }]
 
       // Act
-      await commitPendingEffects(capturedEffects, mockContext)
+      await commitPendingEffects(capturedEffects, mockContext, 'load')
 
       // Assert
       expect(mockEffectFn.evaluate).toHaveBeenCalledTimes(1)
@@ -535,7 +535,7 @@ describe('evaluation utilities', () => {
       const capturedEffects: CapturedEffect[] = [{ effectName: 'unknownEffect', args: [], nodeId: 'compile_ast:1' }]
 
       // Act & Assert
-      await expect(commitPendingEffects(capturedEffects, mockContext)).rejects.toThrow(
+      await expect(commitPendingEffects(capturedEffects, mockContext, 'load')).rejects.toThrow(
         'Function "unknownEffect" not found in registry',
       )
     })
@@ -562,7 +562,7 @@ describe('evaluation utilities', () => {
       ]
 
       // Act & Assert
-      await expect(commitPendingEffects(capturedEffects, mockContext)).rejects.toThrow('Effect failed')
+      await expect(commitPendingEffects(capturedEffects, mockContext, 'load')).rejects.toThrow('Effect failed')
       // Second effect should NOT have been called due to fail-fast behavior
       expect(mockEffectFn2.evaluate).not.toHaveBeenCalled()
     })

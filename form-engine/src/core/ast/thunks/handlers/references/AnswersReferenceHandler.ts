@@ -36,7 +36,7 @@ export default class AnswersReferenceHandler implements ThunkHandler {
     const relatedPseudoNode = this.findPseudoNode(context, path[1] as string)
     const baseValue = relatedPseudoNode
       ? (await invoker.invoke(relatedPseudoNode.id, context)).value
-      : context.global.answers[path[1] as string]
+      : context.global.answers[path[1] as string]?.current
 
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
   }

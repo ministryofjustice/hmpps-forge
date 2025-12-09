@@ -3,7 +3,7 @@ import { AccessTransitionASTNode, FunctionASTNode } from '@form-engine/core/type
 import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { commitPendingEffects, evaluateUntilFirstMatch } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { evaluateUntilFirstMatch } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
 
 /**
  * Result of an access transition evaluation
@@ -18,15 +18,22 @@ export interface AccessTransitionResult {
    * Navigation target if guards failed (from redirect expressions)
    */
   redirect?: string
+
+  /**
+   * Captured effects to be committed by LifecycleCoordinator
+   * Effects are captured with their evaluated arguments, deferred for commit
+   */
+  effects: CapturedEffect[]
 }
 
 /**
  * Handler for Access Transition nodes
  *
  * Evaluates onAccess transitions by:
- * 1. Evaluating guards predicate
- * 2. If guards fail → evaluating redirect expressions for navigation target
- * 3. Executing effects (analytics, logging, etc.)
+ * 1. Capturing effects (analytics, logging, etc.)
+ * 2. Evaluating guards predicate
+ * 3. If guards fail → evaluating redirect expressions for navigation target
+ * 4. Returning result with captured effects for LifecycleCoordinator to commit
  *
  * ## Lifecycle Position
  * Access transitions run after onLoad at each hierarchy level:
@@ -37,8 +44,8 @@ export interface AccessTransitionResult {
  * - guards: false → access denied, evaluate redirect for navigation target
  *
  * ## Effects
- * Effects always execute (for logging/analytics), regardless of guard result.
- * They run BEFORE guards are evaluated.
+ * Effects are captured and returned for LifecycleCoordinator to commit immediately.
+ * They are captured BEFORE guards are evaluated.
  */
 export default class AccessTransitionHandler implements ThunkHandler {
   constructor(
@@ -50,8 +57,8 @@ export default class AccessTransitionHandler implements ThunkHandler {
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
   ): Promise<HandlerResult<AccessTransitionResult>> {
-    // Execute effects first (logging, analytics, etc.) - capture then immediately commit
-    await this.executeEffects(context, invoker)
+    // Capture effects first (logging, analytics, etc.)
+    const capturedEffects = await this.captureEffects(context, invoker)
 
     // Evaluate guards predicate
     const guardsPassed = await this.evaluateGuardsPredicate(context, invoker)
@@ -60,6 +67,7 @@ export default class AccessTransitionHandler implements ThunkHandler {
       return {
         value: {
           passed: true,
+          effects: capturedEffects,
         },
       }
     }
@@ -71,6 +79,7 @@ export default class AccessTransitionHandler implements ThunkHandler {
       value: {
         passed: false,
         redirect,
+        effects: capturedEffects,
       },
     }
   }
@@ -99,27 +108,25 @@ export default class AccessTransitionHandler implements ThunkHandler {
   }
 
   /**
-   * Execute effects by capturing then immediately committing
+   * Capture effects by invoking their handlers
    *
-   * Uses the capture-then-commit pattern:
-   * 1. Invoke EffectHandler for each effect to get CapturedEffect
-   * 2. Immediately commit all captured effects
+   * Invokes EffectHandler for each effect to get CapturedEffect.
+   * Returns captured effects for LifecycleCoordinator to commit.
    */
-  private async executeEffects(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<void> {
+  private async captureEffects(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Promise<CapturedEffect[]> {
     const effects = this.node.properties.effects as FunctionASTNode[] | undefined
 
     if (!effects || !Array.isArray(effects) || effects.length === 0) {
-      return
+      return []
     }
 
-    // Capture effects
     const effectNodes = effects.filter(isASTNode)
     const results = await Promise.all(effectNodes.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
 
-    const capturedEffects = results.filter(result => !result.error && result.value).map(result => result.value!)
-
-    // TODO: Immediately commit for now, move commit into LifecycleCoordinator later
-    await commitPendingEffects(capturedEffects, context)
+    return results.filter(result => !result.error && result.value).map(result => result.value!)
   }
 
   /**

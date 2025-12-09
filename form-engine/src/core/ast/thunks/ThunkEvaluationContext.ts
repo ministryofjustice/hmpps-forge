@@ -1,27 +1,28 @@
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
-import { EvaluatorRequestData } from '@form-engine/core/ast/thunks/types'
+import { AnswerHistory, EvaluatorRequestData } from '@form-engine/core/ast/thunks/types'
 
 /**
  * Global mutable state that persists across thunk evaluations
  */
 export interface ThunkEvaluationGlobalState {
   data: Record<string, unknown>
-  answers: Record<string, unknown>
+  answers: Record<string, AnswerHistory>
 }
 
 /**
  * Runtime evaluation context with scoped variable support
  *
- * Key improvements over ThunkEvaluationContext:
+ * Key features:
  * 1. Organized structure: request data, global state, and scoped variables clearly separated
  * 2. Lexical scoping: Support for nested collections and function contexts via scope stack
- * 3. Unified lookup: getValue() method provides convenient access to scoped and global variables
+ * 3. Answer history: Track mutations to answers over the request lifecycle
  *
  * This design enables:
  * - Functions to receive contextual `value` parameters via scope
  * - Nested collections to safely reference parent collection items
  * - Prevention of context pollution across thunk invocations
+ * - Delta queries via AnswerHistory.mutations
  */
 export default class ThunkEvaluationContext {
   /**
@@ -29,7 +30,7 @@ export default class ThunkEvaluationContext {
    *
    * Contains state that persists across all thunk evaluations:
    * - data: External data loaded via onLoad transitions
-   * - answers: Resolved field answers (maps field codes to values)
+   * - answers: Resolved field answers (maps field codes to AnswerHistory with mutation tracking)
    *
    * Both properties are mutable and populated during evaluation.
    */

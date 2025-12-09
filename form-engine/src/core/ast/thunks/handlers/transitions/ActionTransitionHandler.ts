@@ -2,7 +2,6 @@ import { NodeId } from '@form-engine/core/types/engine.type'
 import { ActionTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { commitPendingEffects } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -13,6 +12,12 @@ export interface ActionTransitionResult {
    * Whether the action was executed (when predicate passed)
    */
   executed: boolean
+
+  /**
+   * Captured effects to be committed by LifecycleCoordinator
+   * Effects are captured with their evaluated arguments, deferred for commit
+   */
+  effects: CapturedEffect[]
 }
 
 /**
@@ -20,7 +25,7 @@ export interface ActionTransitionResult {
  *
  * Evaluates onAction transitions by:
  * 1. Checking the when predicate (required - must match to execute)
- * 2. Capturing and immediately committing effects
+ * 2. Capturing effects and returning them for LifecycleCoordinator to commit
  *
  * ## Purpose
  * onAction transitions handle "in-page actions" like postcode lookups.
@@ -29,8 +34,11 @@ export interface ActionTransitionResult {
  *
  * ## Execution Pattern
  * 1. Evaluate when predicate
- * 2. If when fails -> return { executed: false }
- * 3. If when passes -> capture effects -> commit immediately -> return { executed: true }
+ * 2. If when fails -> return { executed: false, effects: [] }
+ * 3. If when passes -> capture effects -> return { executed: true, effects }
+ *
+ * LifecycleCoordinator commits ACTION effects immediately after evaluation
+ * to ensure answers are set before blocks evaluate.
  *
  * ## Wiring Pattern
  * - when -> transition (must evaluate before transition)
@@ -56,23 +64,17 @@ export default class ActionTransitionHandler implements ThunkHandler {
       return {
         value: {
           executed: false,
+          effects: [],
         },
       }
     }
 
-    const effects = this.node.properties.effects as FunctionASTNode[]
-
-    if (Array.isArray(effects) && effects.length > 0) {
-      const results = await Promise.all(effects.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
-
-      const capturedEffects = results.filter(result => !result.error && result.value).map(result => result.value!)
-
-      await commitPendingEffects(capturedEffects, context)
-    }
+    const capturedEffects = await this.captureEffects(context, invoker)
 
     return {
       value: {
         executed: true,
+        effects: capturedEffects,
       },
     }
   }
@@ -100,5 +102,27 @@ export default class ActionTransitionHandler implements ThunkHandler {
     }
 
     return Boolean(result.value)
+  }
+
+  /**
+   * Capture effects by invoking their handlers
+   *
+   * Invokes EffectHandler for each effect to get CapturedEffect.
+   * Returns captured effects for LifecycleCoordinator to commit.
+   */
+  private async captureEffects(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Promise<CapturedEffect[]> {
+    const effects = this.node.properties.effects as FunctionASTNode[]
+
+    if (!Array.isArray(effects) || effects.length === 0) {
+      return []
+    }
+
+    const effectNodes = effects.filter(isASTNode)
+    const results = await Promise.all(effectNodes.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
+
+    return results.filter(result => !result.error && result.value).map(result => result.value!)
   }
 }

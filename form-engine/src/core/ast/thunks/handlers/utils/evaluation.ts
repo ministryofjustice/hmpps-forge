@@ -1,6 +1,6 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
-import { CapturedEffect, ThunkInvocationAdapter } from '@form-engine/core/ast/thunks/types'
+import { CapturedEffect, ThunkInvocationAdapter, TransitionType } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
@@ -227,6 +227,7 @@ export async function evaluateUntilFirstMatch(
  *
  * @param capturedEffects - Array of captured effect intents from EffectHandler
  * @param context - The evaluation context (provides functionRegistry)
+ * @param transitionType - The type of transition committing these effects (determines answer source)
  * @returns Array of successfully committed effects
  * @throws ThunkLookupError if an effect function is not found in the registry
  * @throws Error if an effect function fails during execution
@@ -234,12 +235,13 @@ export async function evaluateUntilFirstMatch(
 export async function commitPendingEffects(
   capturedEffects: CapturedEffect[],
   context: ThunkEvaluationContext,
+  transitionType: TransitionType,
 ): Promise<CapturedEffect[]> {
   if (capturedEffects.length === 0) {
     return []
   }
 
-  const effectContext = new EffectFunctionContext(context)
+  const effectContext = new EffectFunctionContext(context, transitionType)
   const committed: CapturedEffect[] = []
 
   for (const effect of capturedEffects) {

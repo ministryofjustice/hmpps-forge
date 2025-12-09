@@ -13,7 +13,7 @@ describe('ActionTransitionHandler', () => {
   })
 
   describe('evaluate()', () => {
-    it('should return executed: false when when predicate returns false', async () => {
+    it('should return executed: false with empty effects when when predicate returns false', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
@@ -40,10 +40,10 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false })
+      expect(result.value).toEqual({ executed: false, effects: [] })
     })
 
-    it('should return executed: true and run effects when when predicate returns true', async () => {
+    it('should return executed: true with captured effects when when predicate returns true', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
@@ -55,10 +55,8 @@ describe('ActionTransitionHandler', () => {
 
       const handler = new ActionTransitionHandler(transition.id, transition)
 
-      const mockEffectFn = { name: 'lookupAddress', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([['lookupAddress', mockEffectFn]]),
-      })
+      const mockContext = createMockContext()
+      const capturedEffect = { effectName: 'lookupAddress', args: [] as unknown[], nodeId: effect.id }
 
       const invokedIds: string[] = []
       const mockInvoker = createMockInvoker({
@@ -70,7 +68,7 @@ describe('ActionTransitionHandler', () => {
           }
 
           if (nodeId === effect.id) {
-            return { value: { effectName: 'lookupAddress', args: [], nodeId: effect.id }, metadata: mockMetadata() }
+            return { value: capturedEffect, metadata: mockMetadata() }
           }
 
           return { value: undefined, metadata: mockMetadata() }
@@ -81,10 +79,9 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true })
+      expect(result.value).toEqual({ executed: true, effects: [capturedEffect] })
       expect(invokedIds).toContain(whenPredicate.id)
       expect(invokedIds).toContain(effect.id)
-      expect(mockEffectFn.evaluate).toHaveBeenCalled()
     })
 
     it('should not invoke effects when when predicate fails', async () => {
@@ -121,7 +118,7 @@ describe('ActionTransitionHandler', () => {
       expect(invokedIds).not.toContain(effect.id)
     })
 
-    it('should return executed: false when when predicate evaluation errors', async () => {
+    it('should return executed: false with empty effects when when predicate evaluation errors', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
@@ -155,10 +152,10 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false })
+      expect(result.value).toEqual({ executed: false, effects: [] })
     })
 
-    it('should execute multiple effects when when predicate passes', async () => {
+    it('should capture multiple effects when when predicate passes', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
@@ -171,14 +168,9 @@ describe('ActionTransitionHandler', () => {
 
       const handler = new ActionTransitionHandler(transition.id, transition)
 
-      const mockEffectFn1 = { name: 'effect1', evaluate: jest.fn() }
-      const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([
-          ['effect1', mockEffectFn1],
-          ['effect2', mockEffectFn2],
-        ]),
-      })
+      const mockContext = createMockContext()
+      const capturedEffect1 = { effectName: 'effect1', args: [] as unknown[], nodeId: effect1.id }
+      const capturedEffect2 = { effectName: 'effect2', args: [] as unknown[], nodeId: effect2.id }
 
       const invokedIds: string[] = []
       const mockInvoker = createMockInvoker({
@@ -190,11 +182,11 @@ describe('ActionTransitionHandler', () => {
           }
 
           if (nodeId === effect1.id) {
-            return { value: { effectName: 'effect1', args: [], nodeId: effect1.id }, metadata: mockMetadata() }
+            return { value: capturedEffect1, metadata: mockMetadata() }
           }
 
           if (nodeId === effect2.id) {
-            return { value: { effectName: 'effect2', args: [], nodeId: effect2.id }, metadata: mockMetadata() }
+            return { value: capturedEffect2, metadata: mockMetadata() }
           }
 
           return { value: undefined, metadata: mockMetadata() }
@@ -205,14 +197,12 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true })
+      expect(result.value).toEqual({ executed: true, effects: [capturedEffect1, capturedEffect2] })
       expect(invokedIds).toContain(effect1.id)
       expect(invokedIds).toContain(effect2.id)
-      expect(mockEffectFn1.evaluate).toHaveBeenCalled()
-      expect(mockEffectFn2.evaluate).toHaveBeenCalled()
     })
 
-    it('should return executed: true with empty effects array when when passes', async () => {
+    it('should return executed: true with empty effects array when when passes and no effects defined', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
 
@@ -238,10 +228,10 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true })
+      expect(result.value).toEqual({ executed: true, effects: [] })
     })
 
-    it('should continue with remaining effects when one effect evaluation fails', async () => {
+    it('should filter out failed effects and return only successful ones', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(LogicType.TEST).build()
       const failingEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'failingEffect')
@@ -254,10 +244,8 @@ describe('ActionTransitionHandler', () => {
 
       const handler = new ActionTransitionHandler(transition.id, transition)
 
-      const mockSuccessEffectFn = { name: 'successEffect', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([['successEffect', mockSuccessEffectFn]]),
-      })
+      const mockContext = createMockContext()
+      const capturedSuccessEffect = { effectName: 'successEffect', args: [] as unknown[], nodeId: successEffect.id }
 
       const mockInvoker = createMockInvoker({
         invokeImpl: async nodeId => {
@@ -277,10 +265,7 @@ describe('ActionTransitionHandler', () => {
           }
 
           if (nodeId === successEffect.id) {
-            return {
-              value: { effectName: 'successEffect', args: [], nodeId: successEffect.id },
-              metadata: mockMetadata(),
-            }
+            return { value: capturedSuccessEffect, metadata: mockMetadata() }
           }
 
           return { value: undefined, metadata: mockMetadata() }
@@ -291,11 +276,10 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true })
-      expect(mockSuccessEffectFn.evaluate).toHaveBeenCalled()
+      expect(result.value).toEqual({ executed: true, effects: [capturedSuccessEffect] })
     })
 
-    it('should return executed: false when when property is not an AST node', async () => {
+    it('should return executed: false with empty effects when when property is not an AST node', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
@@ -313,7 +297,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false })
+      expect(result.value).toEqual({ executed: false, effects: [] })
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
     })
   })

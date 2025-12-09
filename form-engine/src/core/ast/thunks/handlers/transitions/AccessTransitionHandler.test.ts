@@ -11,7 +11,7 @@ describe('AccessTransitionHandler', () => {
 
   describe('evaluate()', () => {
     describe('guards evaluation', () => {
-      it('should return passed: true when no guards are defined', async () => {
+      it('should return passed: true with empty effects when no guards are defined', async () => {
         // Arrange
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .build() as AccessTransitionASTNode
@@ -27,6 +27,7 @@ describe('AccessTransitionHandler', () => {
         // Assert
         expect(result.value.passed).toBe(true)
         expect(result.value.redirect).toBeUndefined()
+        expect(result.value.effects).toEqual([])
       })
 
       it('should return passed: true when guards predicate evaluates to true', async () => {
@@ -54,6 +55,7 @@ describe('AccessTransitionHandler', () => {
         expect(invoker.invoke).toHaveBeenCalledWith(guardsPredicate.id, mockContext)
         expect(result.value.passed).toBe(true)
         expect(result.value.redirect).toBeUndefined()
+        expect(result.value.effects).toEqual([])
       })
 
       it('should return passed: false when guards predicate evaluates to false', async () => {
@@ -79,6 +81,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(false)
+        expect(result.value.effects).toEqual([])
       })
 
       it('should return passed: false when guards predicate evaluation errors', async () => {
@@ -108,6 +111,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(false)
+        expect(result.value.effects).toEqual([])
       })
     })
 
@@ -234,7 +238,7 @@ describe('AccessTransitionHandler', () => {
     })
 
     describe('effects evaluation', () => {
-      it('should capture and commit effects regardless of guards result', async () => {
+      it('should capture and return effects regardless of guards result', async () => {
         // Arrange
         const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAccessAttempt', [])
         const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
@@ -251,6 +255,7 @@ describe('AccessTransitionHandler', () => {
 
         const handler = new AccessTransitionHandler(transition.id, transition)
 
+        // Mock effect function should NOT be called - effects are returned, not committed
         const mockEffectFn = { name: 'logAccessAttempt', evaluate: jest.fn() }
         const mockContext = createMockContext({
           mockRegisteredFunctions: new Map([['logAccessAttempt', mockEffectFn]]),
@@ -280,13 +285,17 @@ describe('AccessTransitionHandler', () => {
         // Act
         const result = await handler.evaluate(mockContext, invoker)
 
-        // Assert - effect was captured and committed
+        // Assert - effect was captured and returned
         expect(invocationOrder).toContain(effect.id)
-        expect(mockEffectFn.evaluate).toHaveBeenCalled()
         expect(result.value.passed).toBe(false)
+        expect(result.value.effects).toHaveLength(1)
+        expect(result.value.effects[0]).toEqual({ effectName: 'logAccessAttempt', args: [], nodeId: effect.id })
+
+        // Effect function should NOT have been called (LifecycleCoordinator commits them)
+        expect(mockEffectFn.evaluate).not.toHaveBeenCalled()
       })
 
-      it('should capture and commit effects before guards evaluation', async () => {
+      it('should capture effects before guards evaluation', async () => {
         // Arrange
         const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAccessAttempt', [])
         const condition = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isAuthenticated', [])
@@ -303,10 +312,7 @@ describe('AccessTransitionHandler', () => {
 
         const handler = new AccessTransitionHandler(transition.id, transition)
 
-        const mockEffectFn = { name: 'logAccessAttempt', evaluate: jest.fn() }
-        const mockContext = createMockContext({
-          mockRegisteredFunctions: new Map([['logAccessAttempt', mockEffectFn]]),
-        })
+        const mockContext = createMockContext()
 
         const invocationOrder: string[] = []
         const invoker = createMockInvoker({
@@ -334,7 +340,7 @@ describe('AccessTransitionHandler', () => {
         expect(effectIndex).toBeLessThan(guardsIndex)
       })
 
-      it('should capture and commit multiple effects sequentially', async () => {
+      it('should capture and return multiple effects', async () => {
         // Arrange
         const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1', [])
         const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2', [])
@@ -345,6 +351,7 @@ describe('AccessTransitionHandler', () => {
 
         const handler = new AccessTransitionHandler(transition.id, transition)
 
+        // Mock effect functions should NOT be called - effects are returned, not committed
         const mockEffectFn1 = { name: 'effect1', evaluate: jest.fn() }
         const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
         const mockContext = createMockContext({
@@ -378,15 +385,20 @@ describe('AccessTransitionHandler', () => {
         })
 
         // Act
-        await handler.evaluate(mockContext, invoker)
+        const result = await handler.evaluate(mockContext, invoker)
 
-        // Assert - effects were captured in order and committed
+        // Assert - effects were captured and returned
         expect(invocationOrder).toEqual([effect1.id, effect2.id])
-        expect(mockEffectFn1.evaluate).toHaveBeenCalled()
-        expect(mockEffectFn2.evaluate).toHaveBeenCalled()
+        expect(result.value.effects).toHaveLength(2)
+        expect(result.value.effects).toContainEqual({ effectName: 'effect1', args: [], nodeId: effect1.id })
+        expect(result.value.effects).toContainEqual({ effectName: 'effect2', args: [], nodeId: effect2.id })
+
+        // Effect functions should NOT have been called (LifecycleCoordinator commits them)
+        expect(mockEffectFn1.evaluate).not.toHaveBeenCalled()
+        expect(mockEffectFn2.evaluate).not.toHaveBeenCalled()
       })
 
-      it('should succeed when no effects defined', async () => {
+      it('should return empty effects array when no effects defined', async () => {
         // Arrange
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .build() as AccessTransitionASTNode
@@ -401,6 +413,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(true)
+        expect(result.value.effects).toEqual([])
       })
     })
   })

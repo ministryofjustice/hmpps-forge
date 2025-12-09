@@ -2,6 +2,8 @@ import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import {
+  AnswerHistory,
+  AnswerSource,
   EvaluatorRequestData,
   ThunkErrorType,
   ThunkInvocationAdapter,
@@ -10,12 +12,52 @@ import {
 } from '@form-engine/core/ast/thunks/types'
 
 /**
+ * Mock answer input - can be a simple value or a full AnswerHistory
+ * Simple values are converted to AnswerHistory with source 'load'
+ */
+export type MockAnswerInput = unknown | AnswerHistory
+
+/**
+ * Check if a value is an AnswerHistory (has current and mutations properties)
+ */
+function isAnswerHistory(input: unknown): input is AnswerHistory {
+  return typeof input === 'object' &&
+    input !== null &&
+    'current' in input &&
+    'mutations' in input &&
+    Array.isArray((input as AnswerHistory).mutations)
+}
+
+/**
+ * Convert mock answer input to AnswerHistory
+ * If already an AnswerHistory, return as-is. Otherwise wrap with default source 'load'.
+ */
+function toAnswerHistory(input: MockAnswerInput, defaultSource: AnswerSource = 'load'): AnswerHistory {
+  if (isAnswerHistory(input)) {
+    return input
+  }
+
+  return { current: input, mutations: [{ value: input, source: defaultSource }] }
+}
+
+/**
  * Options for creating a mock ThunkEvaluationContext
  */
 export interface MockContextOptions {
   mockRequest?: Partial<EvaluatorRequestData>
   mockData?: Record<string, unknown>
-  mockAnswers?: Record<string, unknown>
+  /**
+   * Mock answers - can be simple values or full AnswerHistory objects.
+   * Simple values are converted to AnswerHistory with source 'load'.
+   *
+   * @example
+   * // Simple value (source defaults to 'load')
+   * mockAnswers: { email: 'test@example.com' }
+   *
+   * // Full AnswerHistory (explicit mutations)
+   * mockAnswers: { email: { current: 'test@example.com', mutations: [{ value: 'test@example.com', source: 'action' }] } }
+   */
+  mockAnswers?: Record<string, MockAnswerInput>
   mockScope?: Record<string, unknown>[]
   mockNodes?: Map<NodeId, ASTNode | PseudoNode>
   mockRegisteredFunctions?: Map<string, any>
@@ -42,6 +84,7 @@ export interface MockContextOptions {
  */
 export function createMockContext(options: MockContextOptions = {}): ThunkEvaluationContext {
   const request: EvaluatorRequestData = {
+    method: options.mockRequest?.method ?? 'GET',
     post: options.mockRequest?.post ?? {},
     query: options.mockRequest?.query ?? {},
     params: options.mockRequest?.params ?? {},
@@ -49,9 +92,18 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     state: options.mockRequest?.state,
   }
 
+  // Convert mockAnswers to AnswerHistory format
+  const answers: Record<string, AnswerHistory> = {}
+
+  if (options.mockAnswers) {
+    Object.entries(options.mockAnswers).forEach(([key, value]) => {
+      answers[key] = toAnswerHistory(value)
+    })
+  }
+
   const global: ThunkEvaluationGlobalState = {
     data: options.mockData ?? {},
-    answers: options.mockAnswers ?? {},
+    answers,
   }
 
   const scope = options.mockScope ?? []

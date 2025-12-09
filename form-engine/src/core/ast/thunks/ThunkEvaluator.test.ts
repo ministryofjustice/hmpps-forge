@@ -331,6 +331,7 @@ describe('ThunkEvaluator', () => {
     it('should build context from request data', () => {
       // Arrange
       const request: EvaluatorRequestData = {
+        method: 'GET',
         post: { email: 'test@example.com' },
         query: { returnUrl: '/dashboard' },
         params: { id: '123' },
@@ -359,6 +360,7 @@ describe('ThunkEvaluator', () => {
       const childNode2: NodeId = 'compile_ast:102'
 
       const request: EvaluatorRequestData = {
+        method: 'GET',
         post: {},
         query: {},
         params: {},
@@ -416,6 +418,7 @@ describe('ThunkEvaluator', () => {
       const journeyNodeId: NodeId = 'compile_ast:200'
       const childNodeId: NodeId = 'compile_ast:201'
       const request: EvaluatorRequestData = {
+        method: 'GET',
         post: {},
         query: {},
         params: {},
@@ -476,6 +479,7 @@ describe('ThunkEvaluator', () => {
       const journeyNodeId: NodeId = 'compile_ast:300'
       const answerNodeId: PseudoNodeId = 'compile_pseudo:301'
       const request: EvaluatorRequestData = {
+        method: 'GET',
         post: {},
         query: {},
         params: {},
@@ -501,7 +505,10 @@ describe('ThunkEvaluator', () => {
         nodeId: answerNodeId,
         evaluate: jest.fn().mockImplementation(async (ctx: ThunkEvaluationContext) => {
           // Simulate handler populating answers
-          ctx.global.answers.email = 'test@example.com'
+          ctx.global.answers.email = {
+            current: 'test@example.com',
+            mutations: [{ value: 'test@example.com', source: 'post' }],
+          }
 
           return {
             value: 'test@example.com',
@@ -518,7 +525,10 @@ describe('ThunkEvaluator', () => {
       await evaluator.evaluate(context)
 
       // Assert
-      expect(context.global.answers.email).toBe('test@example.com')
+      expect(context.global.answers.email).toEqual({
+        current: 'test@example.com',
+        mutations: [{ value: 'test@example.com', source: 'post' }],
+      })
     })
   })
 })

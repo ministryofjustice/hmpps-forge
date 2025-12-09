@@ -32,6 +32,11 @@ export default class PostHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
+    // If field isn't in POST at all, return undefined
+    if (!Object.hasOwn(context.request.post, baseFieldCode)) {
+      return { value: undefined }
+    }
+
     // Read raw POST value from context
     const rawValue = context.request.post[baseFieldCode]
 
@@ -60,7 +65,7 @@ export default class PostHandler implements ThunkHandler {
     const fieldNode = context.nodeRegistry.get(fieldNodeId) as FieldBlockASTNode
 
     // If field has multiple: true, always return an array
-    if (fieldNode?.properties.multiple) {
+    if (fieldNode.properties.multiple) {
       if (Array.isArray(value)) {
         return value
       }
