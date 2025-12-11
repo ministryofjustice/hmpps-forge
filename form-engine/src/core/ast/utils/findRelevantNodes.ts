@@ -106,10 +106,8 @@ export function findRelevantNodes(
         return StructuralVisitResult.SKIP
       }
 
-      // Collect structural nodes
-      if (isJourneyStructNode(node) || isStepStructNode(node) || isBlockStructNode(node)) {
-        nodes.push(node)
-      }
+      // Collect all nodes that pass through the property filter
+      nodes.push(node)
 
       return StructuralVisitResult.CONTINUE
     },
@@ -125,7 +123,7 @@ export function findRelevantNodes(
 
       // Journey nodes: only traverse specific properties or collections
       if (isJourneyStructNode(parent)) {
-        const allowedProps = ['path', 'title', 'description', 'journeys', 'steps', 'onLoad']
+        const allowedProps = ['children', 'steps', 'view']
 
         if (allowedProps.includes(key)) {
           return StructuralVisitResult.CONTINUE
@@ -140,7 +138,7 @@ export function findRelevantNodes(
 
       // Step nodes (non-current): only traverse metadata/navigation properties
       if (isStepStructNode(parent)) {
-        const allowedProps = ['path', 'title', 'description', 'entry', 'onSubmission', 'blocks', 'onLoad']
+        const allowedProps = ['blocks', 'view']
 
         if (allowedProps.includes(key)) {
           return StructuralVisitResult.CONTINUE

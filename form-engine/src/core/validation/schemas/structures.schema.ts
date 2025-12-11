@@ -9,6 +9,15 @@ import {
 } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
+/**
+ * @see {@link ViewConfig}
+ */
+export const ViewConfigSchema = z.object({
+  template: z.string().optional(),
+  locals: z.record(z.string(), z.unknown()).optional(),
+  hiddenFromNavigation: z.boolean().optional(),
+})
+
 // TODO: Maybe add other Conditional like ConditionalBoolean etc.
 /**
  * @see {@link ConditionalString}
@@ -149,7 +158,7 @@ export const StepSchema = z.looseObject({
   onAction: z.array(ActionTransitionSchema).optional(),
   onSubmission: z.array(SubmitTransitionSchema).optional(),
   title: z.string(),
-  template: z.string().optional(),
+  view: ViewConfigSchema.optional(),
   isEntryPoint: z.boolean().optional(),
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
@@ -169,6 +178,7 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     children: z.array(JourneySchema).optional(),
     title: z.string(),
     description: z.string().optional(),
+    view: ViewConfigSchema.optional(),
     metadata: z.record(z.string(), z.any()).optional(),
   }),
 )

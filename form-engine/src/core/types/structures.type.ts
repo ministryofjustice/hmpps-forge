@@ -7,6 +7,7 @@ import {
   SubmitTransitionASTNode,
   ValidationASTNode,
 } from '@form-engine/core/types/expressions.type'
+import { ViewConfig } from '@form-engine/form/types/structures.type'
 
 /**
  * Journey AST node - represents the top-level form journey
@@ -23,6 +24,7 @@ export interface JourneyASTNode extends ASTNode {
     title: string
     description?: string
     version?: string
+    view?: ViewConfig
     metadata?: Record<string, any>
   }
 }
@@ -41,7 +43,7 @@ export interface StepASTNode extends ASTNode {
     blocks?: BlockASTNode[]
     title: string
     description?: string
-    template?: string
+    view?: ViewConfig
     isEntryPoint?: boolean
     backlink?: string
     metadata?: Record<string, any>

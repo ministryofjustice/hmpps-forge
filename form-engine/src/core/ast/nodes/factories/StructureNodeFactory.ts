@@ -121,6 +121,10 @@ export class StructureNodeFactory {
       properties.children = this.nodeFactory.transformValue(dataProperties.children)
     }
 
+    if (dataProperties.view !== undefined) {
+      properties.view = this.nodeFactory.transformValue(dataProperties.view)
+    }
+
     if (dataProperties.metadata !== undefined) {
       properties.metadata = dataProperties.metadata
     }
@@ -183,8 +187,8 @@ export class StructureNodeFactory {
       properties.blocks = this.nodeFactory.transformValue(dataProperties.blocks)
     }
 
-    if (dataProperties.template !== undefined) {
-      properties.template = dataProperties.template
+    if (dataProperties.view !== undefined) {
+      properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
     if (dataProperties.isEntryPoint !== undefined) {

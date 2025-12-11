@@ -17,6 +17,21 @@ import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
 import { StructureType, ExpressionType } from './enums'
 
 /**
+ * View configuration for journeys and steps.
+ * Controls rendering behavior including template selection and template locals.
+ */
+export interface ViewConfig {
+  /** Template to use for rendering (inherits from parent journey if not specified) */
+  template?: string
+
+  /** Arbitrary properties to pass to the template as locals */
+  locals?: Record<string, unknown>
+
+  /** If true, this step/journey will be marked as hidden in the navigation tree */
+  hiddenFromNavigation?: boolean
+}
+
+/**
  * Base interface for all block types in the form engine.
  * Blocks are the fundamental building units of form UI.
  */
@@ -145,6 +160,9 @@ export interface JourneyDefinition {
   /** Optional description of the journey's purpose */
   description?: string
 
+  /** View configuration for rendering (template, locals) */
+  view?: ViewConfig
+
   /** Optional metadata regarding the journey */
   metadata?: {
     [key: string]: any
@@ -179,8 +197,8 @@ export interface StepDefinition {
   /** Title for this step for displaying on the UI */
   title: string
 
-  /** Optional custom Nunjucks template for rendering the step */
-  template?: string
+  /** View configuration for rendering (template, locals) */
+  view?: ViewConfig
 
   /** Marks this as an entry point step in the journey */
   isEntryPoint?: boolean
