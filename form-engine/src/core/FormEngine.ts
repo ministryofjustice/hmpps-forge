@@ -6,8 +6,8 @@ import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import express from 'express'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { RegistryComponent } from '@form-engine/registry/types/components.type'
 import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
+import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
 
 export interface FormEngineOptions {
   disableBuiltInFunctions?: boolean
@@ -57,14 +57,14 @@ export default class FormEngine {
   }
 
   /** Add a new components to the form engine */
-  registerComponent(component: RegistryComponent<any>): this {
+  registerComponent(component: ComponentRegistryEntry<any>): this {
     this.componentRegistry.registerMany([component])
 
     return this
   }
 
   /** Add new components to the form engine */
-  registerComponents(components: RegistryComponent<any>[]): this {
+  registerComponents(components: ComponentRegistryEntry<any>[]): this {
     this.componentRegistry.registerMany(components)
 
     return this

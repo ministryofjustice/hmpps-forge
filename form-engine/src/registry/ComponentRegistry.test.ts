@@ -91,7 +91,7 @@ describe('ComponentRegistry', () => {
     })
 
     describe('validation errors', () => {
-      it('should throw RegistryValidationError for missing spec', () => {
+      it('should throw RegistryValidationError for missing variant', () => {
         const invalidComponent = {} as any
 
         expect(() => registry.registerMany([invalidComponent])).toThrow(AggregateError)
@@ -104,16 +104,14 @@ describe('ComponentRegistry', () => {
             expect(error.errors[0]).toBeInstanceOf(RegistryValidationError)
             const valError = error.errors[0] as RegistryValidationError
             expect(valError.registryType).toBe('component')
-            expect(valError.expected).toContain('spec with variant')
+            expect(valError.expected).toContain('variant')
           }
         }
       })
 
-      it('should throw RegistryValidationError for missing variant', () => {
+      it('should throw RegistryValidationError for component with render but no variant', () => {
         const invalidComponent = {
-          spec: {
-            render: async () => '<div />',
-          },
+          render: async () => '<div />',
         } as any
 
         expect(() => registry.registerMany([invalidComponent])).toThrow(AggregateError)
@@ -121,9 +119,7 @@ describe('ComponentRegistry', () => {
 
       it('should throw RegistryValidationError for missing render function', () => {
         const invalidComponent = {
-          spec: {
-            variant: 'test-component',
-          },
+          variant: 'test-component',
         } as any
 
         try {
@@ -141,10 +137,8 @@ describe('ComponentRegistry', () => {
 
       it('should throw RegistryValidationError for non-function render', () => {
         const invalidComponent = {
-          spec: {
-            variant: 'test-component',
-            render: 'not a function',
-          },
+          variant: 'test-component',
+          render: 'not a function',
         } as any
 
         expect(() => registry.registerMany([invalidComponent])).toThrow(AggregateError)
@@ -152,9 +146,9 @@ describe('ComponentRegistry', () => {
 
       it('should collect multiple validation errors', () => {
         const invalidComponents = [
-          {}, // missing spec
-          { spec: {} }, // missing variant
-          { spec: { variant: 'test', render: 'not a function' } }, // invalid render
+          {}, // missing variant
+          { render: async () => '<div />' }, // missing variant
+          { variant: 'test', render: 'not a function' }, // invalid render
         ] as any[]
 
         try {

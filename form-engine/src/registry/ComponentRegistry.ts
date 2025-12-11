@@ -1,68 +1,61 @@
 import { BlockDefinition } from '@form-engine/form/types/structures.type'
 import RegistryDuplicateError from '@form-engine/errors/RegistryDuplicateError'
 import RegistryValidationError from '@form-engine/errors/RegistryValidationError'
-import { govukFrontendComponents } from '@form-engine/registry/components/govuk-frontend'
-import { ComponentRenderer, RegistryComponent } from '@form-engine/registry/types/components.type'
-import { coreComponents } from '@form-engine/registry/components/core'
+import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { coreComponents } from '@form-engine/registry/components'
 
 /**
  * Registry for managing UI components in the form engine.
  * Components are stored by their variant name and can be retrieved during form rendering.
  */
 export default class ComponentRegistry {
-  private readonly components = new Map<
-    string,
-    {
-      variant: string
-      render: ComponentRenderer<any>
-    }
-  >()
+  private readonly components = new Map<string, ComponentRegistryEntry<any>>()
 
   /**
    * Register multiple components at once
-   * @param components - Array of registry components to register
+   * @param components - Array of components to register
    * @throws RegistryDuplicateError if a component with the same variant already exists
-   * @throws RegistryValidationError if a component has invalid spec
+   * @throws RegistryValidationError if a component is invalid
    * @throws AggregateError if multiple validation errors occur
    */
-  registerMany(components: RegistryComponent<any>[]): void {
+  registerMany(components: ComponentRegistryEntry<any>[]): void {
     if (!components || components.length === 0) {
       return
     }
 
     const errors: Error[] = []
 
-    for (const component of components) {
-      if (!component?.spec?.variant) {
+    components.forEach(component => {
+      if (!component?.variant) {
         errors.push(
           new RegistryValidationError({
             registryType: 'component',
-            expected: 'spec with variant property',
-            received: component?.spec ? 'spec without variant' : 'no spec',
-            message: 'Component must have a spec with a variant property',
+            expected: 'variant property',
+            received: 'no variant',
+            message: 'Component must have a variant property',
           }),
         )
-      } else if (!component.spec.render || typeof component.spec.render !== 'function') {
+      } else if (!component.render || typeof component.render !== 'function') {
         errors.push(
           new RegistryValidationError({
             registryType: 'component',
-            itemName: component.spec.variant,
-            expected: 'spec with render function',
-            received: typeof component.spec.render,
-            message: `Component "${component.spec.variant}" must have a spec with a render function`,
+            itemName: component.variant,
+            expected: 'render function',
+            received: typeof component.render,
+            message: `Component "${component.variant}" must have a render function`,
           }),
         )
-      } else if (this.components.has(component.spec.variant)) {
+      } else if (this.components.has(component.variant)) {
         errors.push(
           new RegistryDuplicateError({
             registryType: 'component',
-            itemName: component.spec.variant,
+            itemName: component.variant,
           }),
         )
       } else {
-        this.components.set(component.spec.variant, component.spec)
+        this.components.set(component.variant, component)
       }
-    }
+    })
 
     if (errors.length > 0) {
       throw new AggregateError(errors, 'Component registration failed')
@@ -70,20 +63,16 @@ export default class ComponentRegistry {
   }
 
   registerBuiltInComponents() {
-    this.registerMany([
-      ...coreComponents,
-      ...govukFrontendComponents,
-      // ...mojFrontendComponents
-    ])
+    this.registerMany([...coreComponents])
   }
 
   /**
    * Get a component by variant
    * @param variant - The variant of the component to retrieve
-   * @returns The component spec or undefined if not found
+   * @returns The component or undefined if not found
    */
-  get<T extends BlockDefinition>(variant: string): { variant: string; render: ComponentRenderer<T> } | undefined {
-    return this.components.get(variant) as { variant: string; render: ComponentRenderer<T> } | undefined
+  get<T extends BlockDefinition>(variant: string): ComponentRegistryEntry<T> | undefined {
+    return this.components.get(variant) as ComponentRegistryEntry<T> | undefined
   }
 
   /**
@@ -99,7 +88,7 @@ export default class ComponentRegistry {
    * Get all registered components
    * @returns Map of all registered components
    */
-  getAll(): Map<string, { variant: string; render: ComponentRenderer<any> }> {
+  getAll(): Map<string, ComponentRegistryEntry<any>> {
     return new Map(this.components)
   }
 
