@@ -14,10 +14,10 @@ export interface ActionTransitionResult {
   executed: boolean
 
   /**
-   * Captured effects to be committed by LifecycleCoordinator
+   * Captured effects to be committed by controller
    * Effects are captured with their evaluated arguments, deferred for commit
    */
-  effects: CapturedEffect[]
+  pendingEffects?: CapturedEffect[]
 }
 
 /**
@@ -64,7 +64,7 @@ export default class ActionTransitionHandler implements ThunkHandler {
       return {
         value: {
           executed: false,
-          effects: [],
+          pendingEffects: [],
         },
       }
     }
@@ -74,7 +74,7 @@ export default class ActionTransitionHandler implements ThunkHandler {
     return {
       value: {
         executed: true,
-        effects: capturedEffects,
+        pendingEffects: capturedEffects,
       },
     }
   }

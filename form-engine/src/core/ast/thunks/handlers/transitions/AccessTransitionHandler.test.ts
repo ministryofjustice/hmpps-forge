@@ -27,7 +27,7 @@ describe('AccessTransitionHandler', () => {
         // Assert
         expect(result.value.passed).toBe(true)
         expect(result.value.redirect).toBeUndefined()
-        expect(result.value.effects).toEqual([])
+        expect(result.value.pendingEffects).toEqual([])
       })
 
       it('should return passed: true when guards predicate evaluates to true', async () => {
@@ -55,7 +55,7 @@ describe('AccessTransitionHandler', () => {
         expect(invoker.invoke).toHaveBeenCalledWith(guardsPredicate.id, mockContext)
         expect(result.value.passed).toBe(true)
         expect(result.value.redirect).toBeUndefined()
-        expect(result.value.effects).toEqual([])
+        expect(result.value.pendingEffects).toEqual([])
       })
 
       it('should return passed: false when guards predicate evaluates to false', async () => {
@@ -81,7 +81,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(false)
-        expect(result.value.effects).toEqual([])
+        expect(result.value.pendingEffects).toEqual([])
       })
 
       it('should return passed: false when guards predicate evaluation errors', async () => {
@@ -111,7 +111,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(false)
-        expect(result.value.effects).toEqual([])
+        expect(result.value.pendingEffects).toEqual([])
       })
     })
 
@@ -288,8 +288,8 @@ describe('AccessTransitionHandler', () => {
         // Assert - effect was captured and returned
         expect(invocationOrder).toContain(effect.id)
         expect(result.value.passed).toBe(false)
-        expect(result.value.effects).toHaveLength(1)
-        expect(result.value.effects[0]).toEqual({ effectName: 'logAccessAttempt', args: [], nodeId: effect.id })
+        expect(result.value.pendingEffects).toHaveLength(1)
+        expect(result.value.pendingEffects[0]).toEqual({ effectName: 'logAccessAttempt', args: [], nodeId: effect.id })
 
         // Effect function should NOT have been called (LifecycleCoordinator commits them)
         expect(mockEffectFn.evaluate).not.toHaveBeenCalled()
@@ -389,9 +389,9 @@ describe('AccessTransitionHandler', () => {
 
         // Assert - effects were captured and returned
         expect(invocationOrder).toEqual([effect1.id, effect2.id])
-        expect(result.value.effects).toHaveLength(2)
-        expect(result.value.effects).toContainEqual({ effectName: 'effect1', args: [], nodeId: effect1.id })
-        expect(result.value.effects).toContainEqual({ effectName: 'effect2', args: [], nodeId: effect2.id })
+        expect(result.value.pendingEffects).toHaveLength(2)
+        expect(result.value.pendingEffects).toContainEqual({ effectName: 'effect1', args: [], nodeId: effect1.id })
+        expect(result.value.pendingEffects).toContainEqual({ effectName: 'effect2', args: [], nodeId: effect2.id })
 
         // Effect functions should NOT have been called (LifecycleCoordinator commits them)
         expect(mockEffectFn1.evaluate).not.toHaveBeenCalled()
@@ -413,7 +413,7 @@ describe('AccessTransitionHandler', () => {
 
         // Assert
         expect(result.value.passed).toBe(true)
-        expect(result.value.effects).toEqual([])
+        expect(result.value.pendingEffects).toEqual([])
       })
     })
   })

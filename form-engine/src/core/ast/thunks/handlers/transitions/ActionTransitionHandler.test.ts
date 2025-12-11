@@ -40,7 +40,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false, effects: [] })
+      expect(result.value).toEqual({ executed: false, pendingEffects: [] })
     })
 
     it('should return executed: true with captured effects when when predicate returns true', async () => {
@@ -79,7 +79,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true, effects: [capturedEffect] })
+      expect(result.value).toEqual({ executed: true, pendingEffects: [capturedEffect] })
       expect(invokedIds).toContain(whenPredicate.id)
       expect(invokedIds).toContain(effect.id)
     })
@@ -152,7 +152,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false, effects: [] })
+      expect(result.value).toEqual({ executed: false, pendingEffects: [] })
     })
 
     it('should capture multiple effects when when predicate passes', async () => {
@@ -197,7 +197,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true, effects: [capturedEffect1, capturedEffect2] })
+      expect(result.value).toEqual({ executed: true, pendingEffects: [capturedEffect1, capturedEffect2] })
       expect(invokedIds).toContain(effect1.id)
       expect(invokedIds).toContain(effect2.id)
     })
@@ -228,7 +228,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true, effects: [] })
+      expect(result.value).toEqual({ executed: true, pendingEffects: [] })
     })
 
     it('should filter out failed effects and return only successful ones', async () => {
@@ -276,7 +276,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: true, effects: [capturedSuccessEffect] })
+      expect(result.value).toEqual({ executed: true, pendingEffects: [capturedSuccessEffect] })
     })
 
     it('should return executed: false with empty effects when when property is not an AST node', async () => {
@@ -297,7 +297,7 @@ describe('ActionTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toEqual({ executed: false, effects: [] })
+      expect(result.value).toEqual({ executed: false, pendingEffects: [] })
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
     })
   })

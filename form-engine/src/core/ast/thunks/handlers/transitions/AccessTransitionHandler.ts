@@ -20,10 +20,10 @@ export interface AccessTransitionResult {
   redirect?: string
 
   /**
-   * Captured effects to be committed by LifecycleCoordinator
-   * Effects are captured with their evaluated arguments, deferred for commit
+   * Captured effects to be committed after access lifecycle completes
+   * Effects are captured with their evaluated arguments, deferred for later execution
    */
-  effects: CapturedEffect[]
+  pendingEffects?: CapturedEffect[]
 }
 
 /**
@@ -67,7 +67,7 @@ export default class AccessTransitionHandler implements ThunkHandler {
       return {
         value: {
           passed: true,
-          effects: capturedEffects,
+          pendingEffects: capturedEffects,
         },
       }
     }
@@ -79,7 +79,7 @@ export default class AccessTransitionHandler implements ThunkHandler {
       value: {
         passed: false,
         redirect,
-        effects: capturedEffects,
+        pendingEffects: capturedEffects,
       },
     }
   }
