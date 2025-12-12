@@ -836,4 +836,243 @@ describe('FormEngineRouter', () => {
       )
     })
   })
+
+  describe('basePath configuration', () => {
+    it('should prefix routes with basePath when configured', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms',
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      const routes = routerWithBasePath.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/forms/journey/step-one' })
+      expect(routes).toContainEqual({ method: 'POST', path: '/forms/journey/step-one' })
+    })
+
+    it('should include basePath in navigation metadata', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms',
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      const metadata = routerWithBasePath.getNavigationMetadata()
+      expect(metadata[0].path).toBe('/forms/journey')
+      expect(metadata[0].children[0]).toEqual({ title: 'Step One', path: '/forms/journey/step-one' })
+    })
+
+    it('should include basePath in redirect paths', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms',
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      journeyNode.properties.entryPath = '/first-step'
+      const stepNode = createMockStepNode('compile_ast:2', '/first-step')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        entryPath: '/first-step',
+        steps: [{ type: StructureType.STEP, path: '/first-step', title: 'First Step' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(
+        expect.anything(),
+        '/',
+        '/forms/journey/first-step',
+      )
+    })
+
+    it('should mount first journey router at basePath + journeyPath', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms',
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      expect(mockFrameworkAdapter.mountRouter).toHaveBeenCalledWith(mockMainRouter, '/forms/journey', expect.anything())
+    })
+
+    it('should normalize basePath by adding leading slash if missing', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: 'forms', // Missing leading slash
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      const routes = routerWithBasePath.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/forms/journey/step' })
+    })
+
+    it('should normalize basePath by removing trailing slash', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms/', // Has trailing slash
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      const routes = routerWithBasePath.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/forms/journey/step' })
+    })
+
+    it('should work with nested journeys when basePath is configured', () => {
+      // Arrange
+      const optionsWithBasePath: FormEngineOptions = {
+        ...mockOptions,
+        basePath: '/forms',
+      }
+
+      const routerWithBasePath = new FormEngineRouter(mockDependencies, optionsWithBasePath)
+
+      const parentJourney = createMockJourneyNode('compile_ast:1', '/parent', 'parent-journey')
+      const childJourney = createMockJourneyNode('compile_ast:2', '/child', 'child-journey')
+      const stepNode = createMockStepNode('compile_ast:3', '/step')
+      const artefact = createMockArtefact(
+        stepNode,
+        [parentJourney, childJourney],
+        [parentJourney.id, childJourney.id, stepNode.id],
+      )
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/parent',
+        code: 'parent-journey',
+        title: 'Parent Journey',
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child-journey',
+            title: 'Child Journey',
+            steps: [{ type: StructureType.STEP, path: '/step', title: 'Nested Step' }],
+          },
+        ],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      routerWithBasePath.mountForm(formInstance)
+
+      // Assert
+      const routes = routerWithBasePath.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/forms/parent/child/step' })
+      expect(routes).toContainEqual({ method: 'POST', path: '/forms/parent/child/step' })
+    })
+  })
 })

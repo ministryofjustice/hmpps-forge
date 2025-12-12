@@ -24,6 +24,8 @@ import type FormInstance from '@form-engine/core/FormInstance'
 export default class FormEngineRouter<TRouter> {
   private readonly router: TRouter
 
+  private readonly basePath: string
+
   private readonly routeMap: Map<string, CompilationArtefact> = new Map()
 
   private readonly registeredRoutes: Array<{ method: 'GET' | 'POST'; path: string }> = []
@@ -37,6 +39,31 @@ export default class FormEngineRouter<TRouter> {
     private readonly options: FormEngineOptions,
   ) {
     this.router = dependencies.frameworkAdapter.createRouter()
+    this.basePath = this.normalizeBasePath(options.basePath)
+  }
+
+  /**
+   * Normalize basePath to ensure consistent format.
+   * - Empty string if not provided
+   * - Ensure leading slash
+   * - Remove trailing slash
+   */
+  private normalizeBasePath(basePath?: string): string {
+    if (!basePath) {
+      return ''
+    }
+
+    let normalized = basePath
+
+    if (!normalized.startsWith('/')) {
+      normalized = `/${normalized}`
+    }
+
+    if (normalized.endsWith('/')) {
+      normalized = normalized.slice(0, -1)
+    }
+
+    return normalized
   }
 
   /**
@@ -128,7 +155,7 @@ export default class FormEngineRouter<TRouter> {
     journeyAncestry: JourneyASTNode[],
   ): { router: TRouter; basePath: string } {
     let currentRouter = rootRouter
-    let basePath = ''
+    let basePath = this.basePath
 
     journeyAncestry.forEach(journey => {
       const journeyPath = journey.properties.path
@@ -136,7 +163,10 @@ export default class FormEngineRouter<TRouter> {
 
       if (!this.journeyRouters.has(basePath)) {
         const newRouter = this.dependencies.frameworkAdapter.createRouter()
-        this.dependencies.frameworkAdapter.mountRouter(currentRouter, journeyPath, newRouter)
+
+        // First level mounts at basePath + journeyPath, nested levels just use journeyPath
+        const mountPath = currentRouter === rootRouter ? this.basePath + journeyPath : journeyPath
+        this.dependencies.frameworkAdapter.mountRouter(currentRouter, mountPath, newRouter)
         this.journeyRouters.set(basePath, newRouter)
 
         this.mountJourneyRedirectHandler(newRouter, basePath, journey)
@@ -182,7 +212,7 @@ export default class FormEngineRouter<TRouter> {
    * Store navigation metadata from journey definition
    */
   private storeNavigationMetadata(config: JourneyDefinition): void {
-    const metadata = this.extractJourneyMetadata(config, '')
+    const metadata = this.extractJourneyMetadata(config, this.basePath)
 
     this.navigationMetadata.push(metadata)
   }

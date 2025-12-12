@@ -24,6 +24,25 @@ export interface FormEngineOptions {
   logger?: Logger | Console
 
   /**
+   * Base path prefix for all form routes.
+   *
+   * When set, all routes will be mounted under this path automatically.
+   * Navigation metadata and redirects will include this prefix.
+   *
+   * @example
+   * ```typescript
+   * const formEngine = new FormEngine({
+   *   basePath: '/forms',
+   *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+   * })
+   * app.use(formEngine.getRouter())  // Routes at /forms/journey/step
+   * ```
+   *
+   * @default ''
+   */
+  basePath?: string
+
+  /**
    * Framework adapter builder for web framework integration.
    *
    * Use the static `configure()` method on your adapter class to create a builder.
