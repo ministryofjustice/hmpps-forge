@@ -134,7 +134,7 @@ describe('ValidationHandler', () => {
       expect(result.value?.details).toEqual(details)
     })
 
-    it('should return passed false when predicate evaluation fails', async () => {
+    it('should return passed false with user message when predicate evaluation fails', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(LogicType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
@@ -150,7 +150,7 @@ describe('ValidationHandler', () => {
 
       // Assert
       expect(result.value?.passed).toBe(false)
-      expect(result.value?.message).toBe('Validation evaluation failed')
+      expect(result.value?.message).toBe('Field is required')
     })
 
     it('should return empty string when message evaluation fails', async () => {

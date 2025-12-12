@@ -3,6 +3,26 @@ import { defineConditions } from '@form-engine/registry/utils/createRegisterable
 
 export const { conditions: NumberConditions, registry: NumberConditionsRegistry } = defineConditions({
   /**
+   * Checks if a value is a number (not NaN, not a string, not undefined)
+   * Use this to validate that a formatter successfully converted input to a number
+   * @param value - The value to test
+   * @returns true if value is a valid number
+   */
+  IsNumber: (value: unknown) => {
+    return typeof value === 'number' && !Number.isNaN(value)
+  },
+
+  /**
+   * Checks if a value is an integer (whole number)
+   * Use this to validate that input is a valid integer after formatting
+   * @param value - The value to test
+   * @returns true if value is a valid integer
+   */
+  IsInteger: (value: unknown) => {
+    return typeof value === 'number' && !Number.isNaN(value) && Number.isInteger(value)
+  },
+
+  /**
    * Checks if a number is greater than a threshold value
    * @param value - The number to test
    * @param threshold - The threshold to compare against

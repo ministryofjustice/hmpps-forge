@@ -57,20 +57,20 @@ export default class ValidationHandler implements ThunkHandler {
     // Evaluate the 'when' predicate
     const predicateResult = await invoker.invoke(this.node.properties.when.id, context)
 
-    // If predicate evaluation fails, treat as invalid
+    // Evaluate the message (needed for both success and error cases)
+    const message = await evaluateOperand(this.node.properties.message, context, invoker)
+
+    // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {
       return {
         value: {
           passed: false,
-          message: 'Validation evaluation failed',
+          message: String(message ?? 'Validation error'),
           submissionOnly: this.node.properties.submissionOnly ?? false,
           details: this.node.properties.details,
         },
       }
     }
-
-    // Evaluate the message
-    const message = await evaluateOperand(this.node.properties.message, context, invoker)
 
     return {
       value: {

@@ -37,7 +37,7 @@ export default class TestPredicateHandler implements ThunkHandler {
     const subjectResult = await invoker.invoke(subject.id, context)
 
     if (subjectResult.error) {
-      return { value: false }
+      return subjectResult
     }
 
     // Evaluate condition with subject value in scope
@@ -46,7 +46,7 @@ export default class TestPredicateHandler implements ThunkHandler {
     )
 
     if (conditionResult.error) {
-      return { value: false }
+      return conditionResult
     }
 
     // Get the boolean result from condition and apply negation if requested

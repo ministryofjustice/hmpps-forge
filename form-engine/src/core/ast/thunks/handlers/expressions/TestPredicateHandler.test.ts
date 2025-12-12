@@ -78,7 +78,7 @@ describe('TestPredicateHandler', () => {
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
     })
 
-    it('should return false when subject evaluation fails', async () => {
+    it('should propagate error when subject evaluation fails', async () => {
       // Arrange
       const handler = createTestPredicateHandler()
       const mockContext = createMockContext()
@@ -88,11 +88,12 @@ describe('TestPredicateHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toBe(false)
+      expect(result.error).toBeDefined()
+      expect(result.error?.message).toBe('Subject evaluation failed')
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(1)
     })
 
-    it('should return false when condition evaluation fails', async () => {
+    it('should propagate error when condition evaluation fails', async () => {
       // Arrange
       const handler = createTestPredicateHandler()
       const mockContext = createMockContext()
@@ -123,7 +124,8 @@ describe('TestPredicateHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toBe(false)
+      expect(result.error).toBeDefined()
+      expect(result.error?.message).toBe('Condition evaluation failed')
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
     })
   })

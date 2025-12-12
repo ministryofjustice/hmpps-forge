@@ -2,6 +2,81 @@ import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
 import { FunctionType } from '../../form/types/enums'
 
 describe('NumberConditions', () => {
+  describe('IsNumber', () => {
+    const { evaluate } = NumberConditionsRegistry.IsNumber
+
+    test('should return true for valid numbers', () => {
+      expect(evaluate(0)).toBe(true)
+      expect(evaluate(42)).toBe(true)
+      expect(evaluate(-5)).toBe(true)
+      expect(evaluate(3.14)).toBe(true)
+      expect(evaluate(Infinity)).toBe(true)
+      expect(evaluate(-Infinity)).toBe(true)
+    })
+
+    test('should return false for NaN', () => {
+      expect(evaluate(NaN)).toBe(false)
+    })
+
+    test('should return false for non-numbers', () => {
+      expect(evaluate('42')).toBe(false)
+      expect(evaluate('')).toBe(false)
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
+      expect(evaluate(true)).toBe(false)
+      expect(evaluate({})).toBe(false)
+      expect(evaluate([])).toBe(false)
+    })
+
+    test('should build correct expression object', () => {
+      const expr = NumberConditions.IsNumber()
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'IsNumber',
+        arguments: [],
+      })
+    })
+  })
+
+  describe('IsInteger', () => {
+    const { evaluate } = NumberConditionsRegistry.IsInteger
+
+    test('should return true for integers', () => {
+      expect(evaluate(0)).toBe(true)
+      expect(evaluate(42)).toBe(true)
+      expect(evaluate(-5)).toBe(true)
+      expect(evaluate(1000000)).toBe(true)
+    })
+
+    test('should return false for floats', () => {
+      expect(evaluate(3.14)).toBe(false)
+      expect(evaluate(0.5)).toBe(false)
+      expect(evaluate(-2.7)).toBe(false)
+    })
+
+    test('should return false for NaN and Infinity', () => {
+      expect(evaluate(NaN)).toBe(false)
+      expect(evaluate(Infinity)).toBe(false)
+      expect(evaluate(-Infinity)).toBe(false)
+    })
+
+    test('should return false for non-numbers', () => {
+      expect(evaluate('42')).toBe(false)
+      expect(evaluate('')).toBe(false)
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
+    })
+
+    test('should build correct expression object', () => {
+      const expr = NumberConditions.IsInteger()
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'IsInteger',
+        arguments: [],
+      })
+    })
+  })
+
   describe('GreaterThan', () => {
     const { evaluate } = NumberConditionsRegistry.GreaterThan
 

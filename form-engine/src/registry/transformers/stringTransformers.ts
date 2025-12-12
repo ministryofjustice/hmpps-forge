@@ -103,27 +103,50 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
 
   /**
    * Converts a string to an integer
+   * Throws on invalid input so pipeline errors and original value is preserved.
    * @example
    * // ToInt("123") returns 123
-   * // ToInt("123.45") returns 123
-   * // ToInt("0xFF") returns 255 (hexadecimal)
-   * // ToInt("not a number") returns NaN
+   * // ToInt("123.45") returns 123 (truncated)
+   * // ToInt("  123  ") returns 123
+   * // ToInt("") throws Error
+   * // ToInt("abc") throws Error
+   * // ToInt("123abc") throws Error (partial parse rejected)
    */
-  ToInt: (value: any, radix: number = 10) => {
+  ToInt: (value: any) => {
     assertString(value, 'Transformer.String.ToInt')
-    return parseInt(value, radix)
+
+    const trimmed = value.trim()
+    const parsed = Number(trimmed)
+
+    if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+      throw new Error(`Transformer.String.ToInt: "${value}" is not a valid number`)
+    }
+
+    return Math.trunc(parsed)
   },
 
   /**
    * Converts a string to a floating-point number
+   * Throws on invalid input so pipeline errors and original value is preserved.
    * @example
    * // ToFloat("123.45") returns 123.45
    * // ToFloat("3.14159") returns 3.14159
-   * // ToFloat("not a number") returns NaN
+   * // ToFloat("  123.45  ") returns 123.45
+   * // ToFloat("") throws Error
+   * // ToFloat("abc") throws Error
+   * // ToFloat("123abc") throws Error (partial parse rejected)
    */
   ToFloat: (value: any) => {
     assertString(value, 'Transformer.String.ToFloat')
-    return parseFloat(value)
+
+    const trimmed = value.trim()
+    const parsed = Number(trimmed)
+
+    if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+      throw new Error(`Transformer.String.ToFloat: "${value}" is not a valid number`)
+    }
+
+    return parsed
   },
 
   /**
@@ -143,33 +166,41 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
 
   /**
    * Converts a UK-formatted date string to a Date (local time).
-   * Returns Invalid Date if the input is empty or not a valid UK date
+   * Throws on invalid input so pipeline errors and original value is preserved.
    *
    * //TODO: This probably needs to support supplying/choosing a format.
    * @example
    * // ToDate("15/03/2024") -> 2024-03-15T00:00:00 local
    * // ToDate("15-03-2024") -> 2024-03-15T00:00:00 local
-   * // ToDate("2024-03-15") -> Invalid Date
+   * // ToDate("2024-03-15") -> throws Error (ISO format not supported)
+   * // ToDate("") -> throws Error
    */
   ToDate: (value: any) => {
     const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
     assertString(value, 'Transformer.String.ToDate')
 
-    const trimString = value.trim()
-    if (!trimString) {
-      return new Date(NaN)
+    const trimmed = value.trim()
+
+    if (!trimmed) {
+      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
     }
 
-    const matchString = UK_DATE_RE.exec(trimString)
-    if (!matchString) {
-      return new Date(NaN)
+    const match = UK_DATE_RE.exec(trimmed)
+
+    if (!match) {
+      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
     }
 
-    const day = Number(matchString[1])
-    const month = Number(matchString[2])
-    const year = Number(matchString[3])
+    const day = Number(match[1])
+    const month = Number(match[2])
+    const year = Number(match[3])
 
     const date = new Date(year, month - 1, day)
-    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : new Date(NaN)
+
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
+    }
+
+    return date
   },
 })
