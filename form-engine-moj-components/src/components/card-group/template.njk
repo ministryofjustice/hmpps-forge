@@ -1,0 +1,40 @@
+{#
+  MOJ Card Group Component
+  Displays multiple cards in a responsive grid layout.
+
+  Based on: https://design-patterns.service.justice.gov.uk/components/card/
+
+  The card group uses GOV.UK grid classes to arrange cards in columns.
+  Cards are wrapped in a semantic list structure.
+
+  Params:
+    - items: Array of card objects (required), each with card component params
+    - columns: Number of columns - 2, 3, or 4 (default: 3)
+    - classes: Additional CSS classes for the card group container
+    - attributes: Additional HTML attributes for the card group container
+#}
+{% from "macros/attributes.njk" import mojAttributes %}
+{% from "components/card/macro.njk" import mojCard %}
+
+{#- Map column count to GOV.UK grid class -#}
+{%- if params.columns == 2 -%}
+  {%- set columnClass = "one-half" -%}
+{%- elif params.columns == 4 -%}
+  {%- set columnClass = "one-quarter" -%}
+{%- else -%}
+  {%- set columnClass = "one-third" -%}
+{%- endif -%}
+
+{#- Build class list -#}
+{%- set classNames = "moj-card-group govuk-grid-row" -%}
+{%- if params.classes -%}
+  {%- set classNames = classNames + " " + params.classes -%}
+{%- endif -%}
+
+<ul class="{{ classNames }}"{{ mojAttributes(params.attributes) }}>
+  {%- for item in params.items %}
+  <li class="moj-card-group__item govuk-grid-column-{{ columnClass }}">
+    {{ mojCard(item) }}
+  </li>
+  {%- endfor %}
+</ul>

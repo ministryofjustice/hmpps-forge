@@ -1,0 +1,28 @@
+{#
+  Renders component attributes as string
+
+  Based on govuk-frontend attributes macro pattern.
+  Handles safe escaping of attribute names and values.
+
+  @example
+  ```njk
+  {{ mojAttributes({ "data-module": "moj-card", "aria-label": "Card title" }) }}
+  ```
+
+  @param {{ [attribute: string]: string | boolean | undefined }} attributes - Component attributes
+#}
+{% macro mojAttributes(attributes) -%}
+  {%- set attributesHtml = "" -%}
+  {%- if attributes -%}
+    {%- for name, value in attributes -%}
+      {%- if value === true -%}
+        {#- Boolean attribute (e.g., disabled, hidden) -#}
+        {% set attributesHtml = attributesHtml + " " + name | escape %}
+      {%- elif value !== false and value !== undefined and value !== null -%}
+        {#- Standard name="value" attribute -#}
+        {% set attributesHtml = attributesHtml + " " + name | escape + '="' + value | escape + '"' %}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {{- attributesHtml | safe -}}
+{%- endmacro %}

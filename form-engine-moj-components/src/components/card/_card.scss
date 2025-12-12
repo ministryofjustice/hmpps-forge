@@ -1,0 +1,61 @@
+// MOJ Card Component
+// Based on: https://design-patterns.service.justice.gov.uk/components/card/
+
+.moj-card {
+  margin-bottom: 40px;
+  background: #fff;
+  border: 1px solid #d9dadb;
+  position: relative;
+  width: 100%;
+  padding: 25px;
+}
+
+.moj-card__heading {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.moj-card__description {
+  margin-bottom: 0;
+}
+
+.moj-card__link {
+  // Make the link span the entire card for clickable variant
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+.moj-card--clickable {
+  border-bottom-width: 5px;
+
+  &:hover,
+  &:active {
+    cursor: pointer;
+    border-color: #b1b4b6;
+  }
+
+  &:active {
+    bottom: -1px;
+  }
+
+  &:hover .moj-card__link,
+  &:active .moj-card__link {
+    color: #003078;
+    text-decoration: none;
+  }
+
+  &:hover .moj-card__link:focus,
+  &:active .moj-card__link:focus {
+    outline: 3px solid transparent;
+    color: #0b0c0c;
+    background-color: #fd0;
+    box-shadow: 0 -2px #fd0, 0 4px #0b0c0c;
+    text-decoration: none;
+  }
+}

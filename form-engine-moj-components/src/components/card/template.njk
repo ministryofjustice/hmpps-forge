@@ -1,0 +1,59 @@
+{#
+  MOJ Card Component
+  Based on: https://design-patterns.service.justice.gov.uk/components/card/
+
+  Cards display a heading with a link and optional description text.
+  The clickable variant makes the entire card a click target using CSS.
+
+  Params:
+    - heading.text: Card heading text (required if heading.html not set)
+    - heading.html: Card heading HTML (required if heading.text not set)
+    - heading.level: Heading level 1-6 (default: 2)
+    - heading.classes: Additional classes for heading element
+    - href: Link URL for the card heading (required)
+    - description.text: Description text (optional, if description.html not set)
+    - description.html: Description HTML (optional, if description.text not set)
+    - description.classes: Additional classes for description element
+    - clickable: Makes entire card clickable via CSS (default: true)
+    - classes: Additional CSS classes for card container
+    - attributes: Additional HTML attributes for card container
+#}
+{% from "macros/attributes.njk" import mojAttributes %}
+
+{#- Set defaults -#}
+{%- set headingLevel = params.heading.level if params.heading and params.heading.level else 2 -%}
+{%- set isClickable = params.clickable if params.clickable is defined else true -%}
+
+{#- Build class list -#}
+{%- set classNames = "moj-card" -%}
+{%- if isClickable -%}
+  {%- set classNames = classNames + " moj-card--clickable" -%}
+{%- endif -%}
+{%- if params.classes -%}
+  {%- set classNames = classNames + " " + params.classes -%}
+{%- endif -%}
+
+{#- Build heading class list -#}
+{%- set headingClasses = "moj-card__heading govuk-heading-m" -%}
+{%- if params.heading and params.heading.classes -%}
+  {%- set headingClasses = headingClasses + " " + params.heading.classes -%}
+{%- endif -%}
+
+{#- Build description class list -#}
+{%- set descriptionClasses = "moj-card__description govuk-body" -%}
+{%- if params.description and params.description.classes -%}
+  {%- set descriptionClasses = descriptionClasses + " " + params.description.classes -%}
+{%- endif -%}
+
+<div class="{{ classNames }}"{{ mojAttributes(params.attributes) }}>
+  <h{{ headingLevel }} class="{{ headingClasses }}">
+    <a class="moj-card__link govuk-link govuk-link--no-visited-state" href="{{ params.href }}">
+      {{- params.heading.html | safe | trim if params.heading.html else params.heading.text -}}
+    </a>
+  </h{{ headingLevel }}>
+  {%- if params.description and (params.description.text or params.description.html) %}
+  <p class="{{ descriptionClasses }}">
+    {{- params.description.html | safe | trim if params.description.html else params.description.text -}}
+  </p>
+  {%- endif %}
+</div>

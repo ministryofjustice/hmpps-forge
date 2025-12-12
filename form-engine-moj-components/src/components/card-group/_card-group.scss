@@ -1,0 +1,41 @@
+// MOJ Card Group Component
+// Based on: https://design-patterns.service.justice.gov.uk/components/card/
+
+.moj-card-group {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  padding: 0;
+}
+
+@media (max-width: 48.0525em) {
+  .moj-card-group {
+    margin-bottom: 30px;
+  }
+}
+
+.moj-card-group__item {
+  display: flex;
+  list-style-type: none;
+  margin-bottom: 0;
+}
+
+@media (max-width: 48.0525em) {
+  .moj-card-group__item {
+    flex: 0 0 100%;
+  }
+}
+
+.moj-card-group__item .moj-card {
+  margin-bottom: 25px;
+}
+
+@media (max-width: 48.0525em) {
+  .moj-card-group__item .moj-card {
+    margin-bottom: 15px;
+  }
+
+  .moj-card-group__item:last-child .moj-card {
+    margin-bottom: 0;
+  }
+}
