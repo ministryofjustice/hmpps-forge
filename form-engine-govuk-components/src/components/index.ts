@@ -11,6 +11,9 @@ import {
   govukDateInputYearMonth,
   govukDateInputMonthDay,
 } from './date-input/govukDateInputVariants'
+import { govukDetails } from './details/govukDetails'
+import { govukPagination } from './pagination/govukPagination'
+import { govukWarningText } from './warning-text/govukWarningText'
 
 // Re-export types for consumers
 export type { GovUKButton, GovUKLinkButton } from './button/govukButton'
@@ -24,6 +27,9 @@ export type {
   GovUKDateInputYearMonth,
   GovUKDateInputMonthDay,
 } from './date-input/govukDateInputVariants'
+export type { GovUKDetails } from './details/govukDetails'
+export type { GovUKPagination, PaginationLink, PaginationItem } from './pagination/govukPagination'
+export type { GovUKWarningText } from './warning-text/govukWarningText'
 
 /** All GOV.UK component definitions */
 export const govukComponents: ComponentRegistryEntry<any>[] = [
@@ -37,4 +43,7 @@ export const govukComponents: ComponentRegistryEntry<any>[] = [
   govukDateInputFull,
   govukDateInputYearMonth,
   govukDateInputMonthDay,
+  govukDetails,
+  govukPagination,
+  govukWarningText,
 ]
