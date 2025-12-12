@@ -3,30 +3,45 @@ import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { formatBox } from '@form-engine/logging/formatBox'
 import FormInstance from '@form-engine/core/FormInstance'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
-import express from 'express'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
 import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
+import { FrameworkAdapterBuilder } from '@form-engine/core/runtime/routes/types'
+import FormEngineRouter from '@form-engine/core/runtime/routes/FormEngineRouter'
 
 export interface FormEngineOptions {
+  /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
   disableBuiltInFunctions?: boolean
+
+  /** Skip registering built-in components (html, collection-block). Default: false */
   disableBuiltInComponents?: boolean
-  basePath?: string
+
+  /** Enable debug logging for form compilation and evaluation. Default: false */
   debug?: boolean
-  logger: Logger | Console
+
+  /** Logger instance for form engine output */
+  logger?: Logger | Console
+
+  /**
+   * Framework adapter builder for web framework integration.
+   *
+   * Use the static `configure()` method on your adapter class to create a builder.
+   * FormEngine will call `build()` internally to provide its dependencies.
+   *
+   * @example
+   * ```typescript
+   * import { ExpressFrameworkAdapter } from '@form-engine-express-nunjucks'
+   *
+   * const nunjucksEnv = nunjucksSetup(app)
+   * frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv })
+   * ```
+   */
+  frameworkAdapter: FrameworkAdapterBuilder<any, any, any>
 }
 
 export default class FormEngine {
-  private static readonly DEFAULT_OPTIONS: Required<FormEngineOptions> = {
-    disableBuiltInFunctions: false,
-    disableBuiltInComponents: false,
-    basePath: '/forms',
-    debug: false,
-    logger: console,
-  }
-
-  private readonly options = FormEngine.DEFAULT_OPTIONS
+  private readonly options: FormEngineOptions
 
   private readonly functionRegistry = new FunctionRegistry()
 
@@ -36,15 +51,37 @@ export default class FormEngine {
 
   private readonly dependencies: FormInstanceDependencies
 
-  private readonly router = express.Router({ mergeParams: true })
+  private readonly formEngineRouter: FormEngineRouter<any>
 
-  constructor(constructorOptions: Partial<FormEngineOptions> = {}) {
-    this.options = { ...FormEngine.DEFAULT_OPTIONS, ...constructorOptions }
-
-    this.dependencies = {
-      functionRegistry: this.functionRegistry,
-      componentRegistry: this.componentRegistry,
-      logger: this.options.logger,
+  /**
+   * Create a new FormEngine instance
+   * Use this for form registration, component/function registries, and routing.
+   *
+   * @param constructorOptions - Configuration options for the form engine
+   *
+   * @example
+   * ```typescript
+   * import { FormEngine } from '@form-engine/core'
+   * import { ExpressFrameworkAdapter } from '@form-engine-express-nunjucks'
+   * import { govukComponents } from '@form-engine-govuk-components'
+   *
+   * const formEngine = new FormEngine({
+   *   logger,
+   *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+   * })
+   *   .registerComponents(govukComponents(nunjucksEnv))
+   *   .registerForm(myJourney)
+   *
+   * app.use(formEngine.getRouter() as express.Router)
+   * ```
+   */
+  constructor(constructorOptions: FormEngineOptions) {
+    this.options = {
+      disableBuiltInFunctions: false,
+      disableBuiltInComponents: false,
+      debug: false,
+      logger: console,
+      ...constructorOptions,
     }
 
     if (!this.options.disableBuiltInFunctions) {
@@ -54,9 +91,20 @@ export default class FormEngine {
     if (!this.options.disableBuiltInComponents) {
       this.componentRegistry.registerBuiltInComponents()
     }
+
+    this.dependencies = {
+      functionRegistry: this.functionRegistry,
+      componentRegistry: this.componentRegistry,
+      logger: this.options.logger,
+      frameworkAdapter: this.options.frameworkAdapter.build({
+        componentRegistry: this.componentRegistry,
+      }),
+    }
+
+    this.formEngineRouter = new FormEngineRouter(this.dependencies, this.options)
   }
 
-  /** Add a new components to the form engine */
+  /** Add a new component to the form engine */
   registerComponent(component: ComponentRegistryEntry<any>): this {
     this.componentRegistry.registerMany([component])
 
@@ -80,9 +128,9 @@ export default class FormEngine {
   /** Add a form to the form engine */
   registerForm(formConfiguration: string | JourneyDefinition): this {
     try {
-      const instance = FormInstance.createFromConfiguration(formConfiguration, this.dependencies, this.options)
+      const instance = FormInstance.createFromConfiguration(formConfiguration, this.dependencies)
 
-      this.router.use(this.options.basePath, instance.getRouter())
+      this.formEngineRouter.mountForm(instance)
 
       this.forms.set(instance.getFormCode(), instance)
 
@@ -95,15 +143,14 @@ export default class FormEngine {
   }
 
   private logFormRegistration(instance: FormInstance) {
-    const getRoutes = instance
+    const getRoutes = this.formEngineRouter
       .getRegisteredRoutes()
       .filter(route => route.method === 'GET')
-      .map(route => `${this.options.basePath}${route.path}`)
+      .map(route => route.path)
 
     const message = [
       { label: 'Form', value: instance.getFormTitle() },
       { label: 'Code', value: instance.getFormCode() },
-      { label: 'Base Path', value: this.options.basePath },
       { label: 'Routes', value: `${getRoutes.length} registered` },
     ]
 
@@ -127,10 +174,11 @@ export default class FormEngine {
   }
 
   /**
-   * Get the main Express router that has all registered form routes
+   * Get the main router that has all registered form routes.
+   * The router type depends on the framework adapter used.
    */
-  getRouter(): express.Router {
-    return this.router
+  getRouter(): unknown {
+    return this.formEngineRouter.getRouter()
   }
 
   /**

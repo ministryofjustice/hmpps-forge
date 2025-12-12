@@ -125,6 +125,10 @@ export class StructureNodeFactory {
       properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
+    if (dataProperties.entryPath !== undefined) {
+      properties.entryPath = dataProperties.entryPath
+    }
+
     if (dataProperties.metadata !== undefined) {
       properties.metadata = dataProperties.metadata
     }

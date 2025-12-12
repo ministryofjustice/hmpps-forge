@@ -151,6 +151,15 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   redirect(res: TResponse, url: string): void
 
   /**
+   * Register a route that redirects to another path
+   *
+   * @param router - Router to register the redirect on
+   * @param fromPath - Path to redirect from
+   * @param toPath - Path to redirect to
+   */
+  registerRedirect(router: TRouter, fromPath: string, toPath: string): void
+
+  /**
    * Forward an error to the framework's error handler
    *
    * @param res - Native framework response

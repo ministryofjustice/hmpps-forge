@@ -179,6 +179,7 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     title: z.string(),
     description: z.string().optional(),
     view: ViewConfigSchema.optional(),
+    entryPath: z.string().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
   }),
 )

@@ -163,6 +163,12 @@ export interface JourneyDefinition {
   /** View configuration for rendering (template, locals) */
   view?: ViewConfig
 
+  /**
+   * Path to redirect to when journey root is accessed.
+   * Takes priority over isEntryPoint, if no value, first `isEntryPoint` is used.
+   */
+  entryPath?: string
+
   /** Optional metadata regarding the journey */
   metadata?: {
     [key: string]: any

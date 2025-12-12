@@ -2,11 +2,13 @@ import type Logger from 'bunyan'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import { FrameworkAdapter } from '@form-engine/core/runtime/routes/types'
 
 export interface FormInstanceDependencies {
   componentRegistry: ComponentRegistry
   functionRegistry: FunctionRegistry
   logger: Logger | Console
+  frameworkAdapter: FrameworkAdapter<any, any, any>
 }
 
 /**

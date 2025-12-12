@@ -25,6 +25,7 @@ export interface JourneyASTNode extends ASTNode {
     description?: string
     version?: string
     view?: ViewConfig
+    entryPath?: string
     metadata?: Record<string, any>
   }
 }

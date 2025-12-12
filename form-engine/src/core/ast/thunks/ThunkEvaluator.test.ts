@@ -123,6 +123,7 @@ describe('ThunkEvaluator', () => {
       componentRegistry: mockComponentRegistry,
       functionRegistry: mockFunctionRegistry,
       logger: mockLogger,
+      frameworkAdapter: {} as any,
     } as jest.Mocked<FormInstanceDependencies>
 
     evaluator = new ThunkEvaluator(mockCompilationDependencies, mockFormInstanceDependencies, mockRuntimeOverlayBuilder)
