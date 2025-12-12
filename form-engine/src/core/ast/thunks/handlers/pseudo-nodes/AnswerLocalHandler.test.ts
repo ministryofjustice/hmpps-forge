@@ -490,5 +490,160 @@ describe('AnswerLocalHandler', () => {
         ],
       })
     })
+
+    it('should clear answer when dependent condition is false on POST', async () => {
+      // Arrange - field with dependent condition that evaluates to false
+      const dependentNode = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('conditionalField')
+        .withProperty('dependent', dependentNode)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('conditionalField')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('conditionalField', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({
+          value: 'user-input',
+          metadata: { source: 'POST', timestamp: Date.now() },
+        })
+        .mockResolvedValueOnce({
+          value: false,
+          metadata: { source: 'dependent', timestamp: Date.now() },
+        })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { conditionalField: 'user-input' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - value is cleared because dependent is false
+      expect(result.value).toBeUndefined()
+      expect(mockContext.global.answers.conditionalField).toEqual({
+        current: undefined,
+        mutations: [
+          { value: 'user-input', source: 'post' },
+          { value: undefined, source: 'dependent' },
+        ],
+      })
+    })
+
+    it('should keep answer when dependent condition is true on POST', async () => {
+      // Arrange - field with dependent condition that evaluates to true
+      const dependentNode = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('conditionalField')
+        .withProperty('dependent', dependentNode)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('conditionalField')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('conditionalField', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({
+          value: 'user-input',
+          metadata: { source: 'POST', timestamp: Date.now() },
+        })
+        .mockResolvedValueOnce({
+          value: true,
+          metadata: { source: 'dependent', timestamp: Date.now() },
+        })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { conditionalField: 'user-input' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - value is kept because dependent is true
+      expect(result.value).toBe('user-input')
+      expect(mockContext.global.answers.conditionalField).toEqual({
+        current: 'user-input',
+        mutations: [{ value: 'user-input', source: 'post' }],
+      })
+    })
+
+    it('should keep answer when dependent evaluation returns error on POST', async () => {
+      // Arrange - dependent condition evaluation fails
+      const dependentNode = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('conditionalField')
+        .withProperty('dependent', dependentNode)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('conditionalField')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('conditionalField', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({
+          value: 'user-input',
+          metadata: { source: 'POST', timestamp: Date.now() },
+        })
+        .mockResolvedValueOnce({
+          error: {
+            type: 'EVALUATION_FAILED',
+            nodeId: dependentNode.id,
+            message: 'Dependent evaluation failed',
+          },
+          metadata: { source: 'dependent', timestamp: Date.now() },
+        })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { conditionalField: 'user-input' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - value is kept because dependent evaluation failed (fail open)
+      expect(result.value).toBe('user-input')
+      expect(mockContext.global.answers.conditionalField).toEqual({
+        current: 'user-input',
+        mutations: [{ value: 'user-input', source: 'post' }],
+      })
+    })
+
+    it('should not check dependent condition on GET request', async () => {
+      // Arrange - field with dependent condition, but request is GET
+      const dependentNode = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('conditionalField')
+        .withProperty('dependent', dependentNode)
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('conditionalField', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([[fieldNode.id, fieldNode]]),
+        mockAnswers: { conditionalField: 'existing-value' },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - value is returned without checking dependent (GET doesn't check dependent)
+      expect(result.value).toBe('existing-value')
+      // Dependent node should NOT have been invoked
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(dependentNode.id, mockContext)
+    })
   })
 })

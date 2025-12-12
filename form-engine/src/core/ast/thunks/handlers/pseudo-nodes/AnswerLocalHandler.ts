@@ -23,6 +23,7 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * 1. Check action-protected answers → return existing (protected from override)
  * 2. Record raw POST data → source: 'post'
  * 3. If formatPipeline exists, layer on processed value → source: 'processed'
+ * 4. If dependent condition exists and is false → clear value, source: 'dependent'
  *
  * GET request (page load)
  * 1. Try existing answer (from previous submissions or onLoad effects)
@@ -32,6 +33,10 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * If a field isn't in POST data (e.g., unchecked checkboxes), that's the user's
  * submission - they cleared it. On GET, we show existing answers and defaults
  * so users can see their previous submissions or pre-populated values.
+ *
+ * Dependent fields: If a field has a `dependent` expression, it represents a
+ * condition that must be true for the field's value to be kept. If the dependent
+ * evaluates to false on POST, the answer is cleared with source 'dependent'.
  */
 export default class AnswerLocalHandler implements ThunkHandler {
   constructor(
@@ -99,18 +104,32 @@ export default class AnswerLocalHandler implements ThunkHandler {
 
     // If there's a format pipeline, run it and layer on processed value
     const formatPipeline = fieldNode.properties.formatPipeline
+    let resolvedValue = rawValue
 
     if (formatPipeline && isASTNode(formatPipeline)) {
       const pipelineResult = await invoker.invoke(formatPipeline.id, context)
 
       if (!pipelineResult.error && pipelineResult.value !== undefined) {
         this.pushMutation(context, baseFieldCode, pipelineResult.value, 'processed')
-
-        return { value: pipelineResult.value }
+        resolvedValue = pipelineResult.value
       }
     }
 
-    return { value: rawValue }
+    // After POST resolution, check if this field has a dependent condition
+    // If dependent evaluates to false, clear the answer
+    const dependent = fieldNode.properties.dependent
+
+    if (dependent && isASTNode(dependent)) {
+      const dependentResult = await invoker.invoke(dependent.id, context)
+
+      if (!dependentResult.error && !dependentResult.value) {
+        this.pushMutation(context, baseFieldCode, undefined, 'dependent')
+
+        return { value: undefined }
+      }
+    }
+
+    return { value: resolvedValue }
   }
 
   /**

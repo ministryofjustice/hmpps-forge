@@ -25,8 +25,9 @@ export type TransitionType = 'load' | 'access' | 'action' | 'submit'
  * - post: Raw value from POST form data
  * - processed: Value after running through formatter pipeline
  * - default: Value from field's defaultValue
+ * - dependent: Value cleared because field's dependent condition was false
  */
-export type AnswerSource = TransitionType | 'post' | 'processed' | 'default'
+export type AnswerSource = TransitionType | 'post' | 'processed' | 'default' | 'dependent'
 
 /**
  * A single mutation to an answer value
