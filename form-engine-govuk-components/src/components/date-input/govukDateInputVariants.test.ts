@@ -125,7 +125,7 @@ describe('govukDateInputVariants', () => {
           code: 'test-date',
           hint: undefined,
         })
-        expect(params.hint).toEqual({ text: undefined })
+        expect(params.hint).toBeUndefined()
       })
     })
 

@@ -241,8 +241,8 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextI
   const params = {
     id: block.id ?? block.code,
     name: block.code,
-    label: typeof block.label === 'object' ? block.label : { text: block.label },
-    hint: typeof block.hint === 'object' ? block.hint : { text: block.hint },
+    label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
+    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     value: block.value,
     type: block.inputType ?? 'text',
     inputmode: block.inputMode,

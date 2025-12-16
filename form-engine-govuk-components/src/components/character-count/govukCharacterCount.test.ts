@@ -148,7 +148,7 @@ describe('govukCharacterCount', () => {
         code: 'test-field',
         hint: undefined,
       })
-      expect(params.hint).toEqual({ text: undefined })
+      expect(params.hint).toBeUndefined()
     })
   })
 

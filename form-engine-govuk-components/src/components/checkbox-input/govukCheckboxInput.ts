@@ -303,7 +303,7 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
       idPrefix: block.idPrefix || block.code,
       name: block.name || block.code,
       formGroup: block.formGroup,
-      hint: typeof block.hint === 'object' ? block.hint : { text: block.hint },
+      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
       items,
       classes: block.classes,
       attributes: block.attributes,

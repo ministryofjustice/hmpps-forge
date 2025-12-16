@@ -2,6 +2,7 @@ import { ComponentRegistryEntry } from '@form-engine/registry/types/components.t
 
 import { govukButton, govukLinkButton } from './button/govukButton'
 import { govukTextInput } from './text-input/govukTextInput'
+import { govukSelectInput } from './select-input/govukSelectInput'
 import { govukRadioInput } from './radio-input/govukRadioInput'
 import { govukCheckboxInput } from './checkbox-input/govukCheckboxInput'
 import { govukTextareaInput } from './textarea-input/govukTextareaInput'
@@ -18,6 +19,7 @@ import { govukWarningText } from './warning-text/govukWarningText'
 // Re-export types for consumers
 export type { GovUKButton, GovUKLinkButton } from './button/govukButton'
 export type { GovUKTextInput } from './text-input/govukTextInput'
+export type { GovUKSelectInput, SelectItem } from './select-input/govukSelectInput'
 export type { GovUKRadioInput } from './radio-input/govukRadioInput'
 export type { GovUKCheckboxInput } from './checkbox-input/govukCheckboxInput'
 export type { GovukTextareaInput } from './textarea-input/govukTextareaInput'
@@ -36,6 +38,7 @@ export const govukComponents: ComponentRegistryEntry<any>[] = [
   govukButton,
   govukLinkButton,
   govukTextInput,
+  govukSelectInput,
   govukRadioInput,
   govukCheckboxInput,
   govukTextareaInput,

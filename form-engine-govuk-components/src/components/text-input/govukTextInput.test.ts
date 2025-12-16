@@ -100,7 +100,7 @@ describe('govukTextInput', () => {
         code: 'test-input',
         hint: undefined,
       })
-      expect(params.hint).toEqual({ text: undefined })
+      expect(params.hint).toBeUndefined()
     })
   })
 

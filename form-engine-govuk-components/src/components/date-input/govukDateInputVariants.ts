@@ -320,7 +320,7 @@ function buildParams(block: EvaluatedBlock<GovUKDateInputBase>, items: ReturnTyp
         text: block.label,
       },
     },
-    hint: typeof block.hint === 'object' ? block.hint : { text: block.hint },
+    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     errorMessage: block.errors?.length && { text: block.errors[0].message },
     formGroup: block.formGroup,
     items,

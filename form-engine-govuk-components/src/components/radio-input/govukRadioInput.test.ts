@@ -108,7 +108,7 @@ describe('govukRadioInput', () => {
         hint: undefined,
         items: [],
       })
-      expect(params.hint).toEqual({ text: undefined })
+      expect(params.hint).toBeUndefined()
     })
   })
 

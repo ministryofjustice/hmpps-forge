@@ -263,7 +263,7 @@ export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>(
       name: block.code,
       value: block.value,
       formGroup: block.formGroup,
-      hint: typeof block.hint === 'object' ? block.hint : { text: block.hint },
+      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
       items,
       classes: block.classes,
       attributes: block.attributes,
