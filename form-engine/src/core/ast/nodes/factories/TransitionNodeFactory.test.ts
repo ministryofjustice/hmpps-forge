@@ -59,6 +59,7 @@ describe('TransitionNodeFactory', () => {
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
+        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       const result = transitionFactory.create(json) as AccessTransitionASTNode
@@ -201,6 +202,7 @@ describe('TransitionNodeFactory', () => {
       const json = {
         type: TransitionType.ACCESS,
         guards,
+        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       const result = transitionFactory.create(json) as AccessTransitionASTNode
@@ -223,6 +225,7 @@ describe('TransitionNodeFactory', () => {
       const json = {
         type: TransitionType.ACCESS,
         effects: [{ type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] }],
+        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       const result = transitionFactory.create(json) as AccessTransitionASTNode

@@ -1,5 +1,7 @@
 import {
   isAccessTransition,
+  isAccessTransitionRedirect,
+  isAccessTransitionError,
   isActionTransition,
   isLoadTransition,
   isSubmitTransition,
@@ -84,6 +86,7 @@ export class TransitionNodeFactory {
   /**
    * Transform Access transition: Guards and analytics
    * Controls access and tracks user navigation
+   * Handles both redirect-based and error response-based access transitions.
    */
   private createAccessTransition(json: AccessTransition): AccessTransitionASTNode {
     const properties: AccessTransitionASTNode['properties'] = {}
@@ -96,8 +99,13 @@ export class TransitionNodeFactory {
       properties.effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
     }
 
-    if (Array.isArray(json.redirect)) {
+    if (isAccessTransitionRedirect(json)) {
       properties.redirect = json.redirect.map((r: any) => this.nodeFactory.createNode(r))
+    }
+
+    if (isAccessTransitionError(json)) {
+      properties.status = json.status
+      properties.message = typeof json.message === 'string' ? json.message : this.nodeFactory.createNode(json.message)
     }
 
     return {

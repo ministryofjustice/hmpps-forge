@@ -191,6 +191,8 @@ export interface AccessTransitionASTNode extends TransitionASTNode {
     guards?: ASTNode
     effects?: ASTNode[]
     redirect?: ASTNode[]
+    status?: number
+    message?: ASTNode | string
   }
 }
 

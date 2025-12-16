@@ -1,4 +1,4 @@
-import { Forbidden } from 'http-errors'
+import createHttpError, { Forbidden } from 'http-errors'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationFactory'
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
@@ -74,6 +74,10 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
           return this.redirect(res, req, accessResult.redirect)
         }
 
+        if (accessResult.status !== undefined) {
+          throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
+        }
+
         throw new Forbidden(`Access denied to step`)
       }
     }
@@ -103,6 +107,10 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       if (!accessResult.passed) {
         if (accessResult.redirect) {
           return this.redirect(res, req, accessResult.redirect)
+        }
+
+        if (accessResult.status !== undefined) {
+          throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
         }
 
         throw new Forbidden(`Access denied to step`)

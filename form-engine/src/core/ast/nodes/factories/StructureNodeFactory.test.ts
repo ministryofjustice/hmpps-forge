@@ -249,6 +249,7 @@ describe('StructureNodeFactory', () => {
         onAccess: [
           {
             type: TransitionType.ACCESS,
+            redirect: [] as NextExpr[],
           } satisfies AccessTransition,
         ],
       } satisfies StepDefinition

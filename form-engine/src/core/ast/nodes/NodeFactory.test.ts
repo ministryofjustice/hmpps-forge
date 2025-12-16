@@ -345,6 +345,7 @@ describe('NodeFactory', () => {
       it('should route Access transitions to TransitionNodeFactory', () => {
         const json = {
           type: TransitionType.ACCESS,
+          redirect: [] as NextExpr[],
         } satisfies AccessTransition
 
         const result = nodeFactory.createNode(json) as TransitionASTNode

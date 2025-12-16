@@ -20,6 +20,18 @@ export interface AccessTransitionResult {
   redirect?: string
 
   /**
+   * HTTP status code for error response (e.g., 401, 403, 404)
+   * Only present if access transition uses error response instead of redirect
+   */
+  status?: number
+
+  /**
+   * Error message for error response
+   * Only present if access transition uses error response instead of redirect
+   */
+  message?: string
+
+  /**
    * Captured effects to be committed after access lifecycle completes
    * Effects are captured with their evaluated arguments, deferred for later execution
    */
@@ -72,7 +84,24 @@ export default class AccessTransitionHandler implements ThunkHandler {
       }
     }
 
-    // Guards failed - evaluate redirect to get navigation target
+    // Guards failed - check if this is an error response or redirect
+    const { status } = this.node.properties
+
+    if (status !== undefined) {
+      // Error response - evaluate message and return status/message
+      const message = await this.evaluateMessage(context, invoker)
+
+      return {
+        value: {
+          passed: false,
+          status,
+          message,
+          pendingEffects: capturedEffects,
+        },
+      }
+    }
+
+    // Redirect-based - evaluate redirect to get navigation target
     const redirect = await this.evaluateRedirect(context, invoker)
 
     return {
@@ -147,5 +176,34 @@ export default class AccessTransitionHandler implements ThunkHandler {
     const result = await evaluateUntilFirstMatch(redirectIds, context, invoker)
 
     return result !== undefined ? String(result) : undefined
+  }
+
+  /**
+   * Evaluate the message expression for error responses
+   * Message can be a static string or a dynamic expression (e.g., Format)
+   */
+  private async evaluateMessage(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Promise<string | undefined> {
+    const { message } = this.node.properties
+
+    if (message === undefined) {
+      return undefined
+    }
+
+    // Static string - return directly
+    if (typeof message === 'string') {
+      return message
+    }
+
+    // Expression node (e.g., Format) - evaluate and return result
+    if (isASTNode(message)) {
+      const result = await invoker.invoke<string>(message.id, context)
+
+      return result.error ? undefined : String(result.value)
+    }
+
+    return undefined
   }
 }

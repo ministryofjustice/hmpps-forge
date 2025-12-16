@@ -86,14 +86,35 @@ export const LoadTransitionSchema = z.object({
 })
 
 /**
- * @see {@link AccessTransition}
+ * Base properties shared by all access transitions
  */
-export const AccessTransitionSchema = z.object({
+const AccessTransitionBaseSchema = z.object({
   type: z.literal(TransitionType.ACCESS),
   guards: PredicateExprSchema.optional(),
   effects: z.array(EffectFunctionExprSchema).optional(),
-  redirect: z.array(NextExprSchema).optional(),
 })
+
+/**
+ * Access transition with redirect (navigates to another page)
+ */
+const AccessTransitionRedirectSchema = AccessTransitionBaseSchema.extend({
+  redirect: z.array(NextExprSchema),
+})
+
+/**
+ * Access transition with error response (returns HTTP status code)
+ */
+const AccessTransitionErrorSchema = AccessTransitionBaseSchema.extend({
+  status: z.number().int().min(100).max(599),
+  message: z.union([z.string(), FormatExprSchema, ConditionalExprSchema]),
+})
+
+/**
+ * @see {@link AccessTransition}
+ *
+ * Discriminated union: either redirect-based or error-based
+ */
+export const AccessTransitionSchema = z.union([AccessTransitionRedirectSchema, AccessTransitionErrorSchema])
 
 /**
  * @see {@link ActionTransition}

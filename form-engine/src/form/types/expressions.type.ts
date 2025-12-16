@@ -525,60 +525,52 @@ export interface LoadTransition {
 }
 
 /**
- * Lifecycle transition for access control and non-loading effects.
- * Runs after data loading, before rendering.
+ * Base interface for access transitions.
+ * Guards define denial conditions - when TRUE, access is DENIED.
  */
-export interface AccessTransition {
+interface AccessTransitionBase {
   type: TransitionType.ACCESS
-  /** Guard conditions that must be met to access this step/journey */
+  /** Guard conditions - when TRUE, access is DENIED and redirect/error triggers */
   guards?: PredicateExpr
-
-  /** Optional effects to execute (analytics, logging, etc.) */
+  /** Optional effects to execute before redirect/error (analytics, logging, etc.) */
   effects?: EffectFunctionExpr<any>[]
-
-  /** Navigation rules if guards fail */
-  redirect?: NextExpr[]
 }
 
 /**
- * Lifecycle transition for data submission.
- * Runs after data loading, on form submission.
+ * Access transition that redirects to another page when guards match.
+ * Use for cases like redirecting to login or a prerequisite step.
+ */
+interface AccessTransitionRedirect extends AccessTransitionBase {
+  /** Navigation rules when guards match (access denied) */
+  redirect: NextExpr[]
+  status?: never
+  message?: never
+}
+
+/**
+ * Access transition that returns an HTTP error response when guards match.
+ * Use for cases like 404 Not Found or 403 Forbidden.
+ */
+interface AccessTransitionError extends AccessTransitionBase {
+  redirect?: never
+  /** HTTP status code to return (e.g., 401, 403, 404) */
+  status: number
+  /** Error message to display - can be static string or dynamic expression like Format() */
+  message: string | ValueExpr
+}
+
+/**
+ * Lifecycle transition for access control.
+ * Runs after data loading, before rendering.
  *
- * @example
- * // Simple validation - validate and re-render on failure
- * submitTransition({ validate: true })
- *
- * @example
- * // Standard form progression with validation
- * submitTransition({
- *   validate: true,
- *   onValid: {
- *     effects: [MyEffects.save()],
- *     next: [next({ goto: '/next-step' })]
- *   }
- * })
- *
- * @example
- * // Skip validation (drafts, collection operations)
- * submitTransition({
- *   validate: false,
- *   onAlways: {
- *     effects: [MyEffects.saveDraft()],
- *     next: [next({ goto: '/dashboard' })]
- *   }
- * })
- *
- * @example
- * // With onAlways for effects that run regardless of validation result
- * submitTransition({
- *   validate: true,
- *   onAlways: {
- *     effects: [MyEffects.logSubmission()]
- *   },
- *   onValid: {
- *     next: [next({ goto: '/next-step' })]
- *   }
- * })
+ * Either redirects to another page OR returns an HTTP error response.
+ * TypeScript enforces that redirect and status/message are mutually exclusive.
+ */
+export type AccessTransition = AccessTransitionRedirect | AccessTransitionError
+
+/**
+ * Base interface for submission transition types.
+ * Submission transitions control how users move between steps when submitting forms.
  */
 export interface SubmitTransition {
   type: TransitionType.SUBMIT
