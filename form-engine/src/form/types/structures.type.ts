@@ -2,7 +2,6 @@ import {
   FunctionExpr,
   PipelineExpr,
   PredicateExpr,
-  PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
   SubmitTransition,
@@ -40,6 +39,9 @@ export interface BlockDefinition {
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
+
+  /** Conditional visibility - block is hidden when this evaluates to truthy */
+  hidden?: boolean | PredicateExpr | PredicateTestExprBuilder
 
   /** Optional metadata regarding the step */
   metadata?: {
@@ -110,7 +112,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
   formatters?: TransformerFunctionExpr[]
 
   /** Conditional visibility - field is hidden when this evaluates to truthy */
-  hidden?: PredicateTestExpr | PredicateTestExprBuilder
+  hidden?: boolean | PredicateExpr
 
   /** Array of validation errors currently active on the field */
   errors?: { message: string; details?: Record<string, any> }[]
@@ -119,7 +121,7 @@ export interface FieldBlockDefinition extends BlockDefinition {
   validate?: ValidationExpr[]
 
   /** Marks field as dependent on other fields - used for validation ordering */
-  dependent?: PredicateExpr | PredicateTestExprBuilder
+  dependent?: PredicateExpr
 
   /**
    * Whether to keep all values when an array is returned.

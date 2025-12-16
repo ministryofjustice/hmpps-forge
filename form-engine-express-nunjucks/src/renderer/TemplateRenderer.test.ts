@@ -576,6 +576,48 @@ describe('TemplateRenderer', () => {
       expect(parentCallArgs.items[0].html).toBe('<div>Block</div>')
     })
 
+    it('should filter out hidden nested blocks from arrays', async () => {
+      // Arrange
+      const mockRender = jest.fn().mockResolvedValue('<div>Block</div>')
+      mockComponentRegistry.get.mockReturnValue({
+        variant: 'html',
+        render: mockRender,
+      })
+
+      const visibleBlock: Evaluated<BlockASTNode> = {
+        id: 'compile_ast:20',
+        type: ASTNodeType.BLOCK,
+        variant: 'html',
+        blockType: 'basic',
+        properties: {},
+      }
+
+      const hiddenBlock: Evaluated<BlockASTNode> = {
+        id: 'compile_ast:21',
+        type: ASTNodeType.BLOCK,
+        variant: 'html',
+        blockType: 'basic',
+        properties: { hidden: true },
+      }
+
+      const context = createRenderContext({
+        blocks: [
+          createMockBlock({
+            variant: 'html',
+            properties: { items: [visibleBlock, hiddenBlock] },
+          }),
+        ],
+      })
+
+      // Act
+      await renderer.render(context)
+
+      // Assert
+      const parentCallArgs = mockRender.mock.calls[1][0]
+      expect(parentCallArgs.items).toHaveLength(1)
+      expect(parentCallArgs.items[0].html).toBe('<div>Block</div>')
+    })
+
     it('should recursively transform nested objects', async () => {
       // Arrange
       const mockRender = jest.fn().mockResolvedValue('<span>Hint</span>')
