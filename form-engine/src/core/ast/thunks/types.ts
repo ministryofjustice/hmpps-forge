@@ -23,11 +23,12 @@ export type TransitionType = 'load' | 'access' | 'action' | 'submit'
  *
  * Extends TransitionType with non-transition sources:
  * - post: Raw value from POST form data
+ * - sanitized: Value after HTML entity sanitization
  * - processed: Value after running through formatter pipeline
  * - default: Value from field's defaultValue
  * - dependent: Value cleared because field's dependent condition was false
  */
-export type AnswerSource = TransitionType | 'post' | 'processed' | 'default' | 'dependent'
+export type AnswerSource = TransitionType | 'post' | 'sanitized' | 'processed' | 'default' | 'dependent'
 
 /**
  * A single mutation to an answer value

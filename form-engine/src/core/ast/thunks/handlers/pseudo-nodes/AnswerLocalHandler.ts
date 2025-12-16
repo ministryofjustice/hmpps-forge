@@ -11,6 +11,7 @@ import {
 } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
+import { sanitizeValue } from '@form-engine/core/ast/utils/sanitize'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
 
@@ -22,8 +23,9 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * POST request (form submission)
  * 1. Check action-protected answers → return existing (protected from override)
  * 2. Record raw POST data → source: 'post'
- * 3. If formatPipeline exists, layer on processed value → source: 'processed'
- * 4. If dependent condition exists and is false → clear value, source: 'dependent'
+ * 3. If sanitize !== false, sanitize string values → source: 'sanitized' (if changed)
+ * 4. If formatPipeline exists, layer on processed value → source: 'processed'
+ * 5. If dependent condition exists and is false → clear value, source: 'dependent'
  *
  * GET request (page load)
  * 1. Try existing answer (from previous submissions or onLoad effects)
@@ -37,6 +39,9 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * Dependent fields: If a field has a `dependent` expression, it represents a
  * condition that must be true for the field's value to be kept. If the dependent
  * evaluates to false on POST, the answer is cleared with source 'dependent'.
+ *
+ * Sanitization: By default, string values are HTML entity encoded to prevent XSS.
+ * Set `sanitize: false` on a field to allow raw HTML (e.g., for rich text editors).
  */
 export default class AnswerLocalHandler implements ThunkHandler {
   constructor(
@@ -99,12 +104,27 @@ export default class AnswerLocalHandler implements ThunkHandler {
       }
     }
 
-    // Always record the raw POST mutation
+    // Always record the raw POST mutation (preserves original for audit)
     this.pushMutation(context, baseFieldCode, rawValue, 'post')
+
+    // Apply sanitization if enabled (defaults to true)
+    // Sanitization happens BEFORE formatPipeline so formatters receive safe input
+    const shouldSanitize = fieldNode.properties.sanitize !== false
+    let sanitizedValue = rawValue
+
+    if (shouldSanitize) {
+      sanitizedValue = sanitizeValue(rawValue)
+
+      // Only record sanitized mutation if value actually changed
+      // This could be used to audit users being meanies and trying to run hax.
+      if (sanitizedValue !== rawValue) {
+        this.pushMutation(context, baseFieldCode, sanitizedValue, 'sanitized')
+      }
+    }
 
     // If there's a format pipeline, run it and layer on processed value
     const formatPipeline = fieldNode.properties.formatPipeline
-    let resolvedValue = rawValue
+    let resolvedValue = sanitizedValue
 
     if (formatPipeline && isASTNode(formatPipeline)) {
       const pipelineResult = await invoker.invoke(formatPipeline.id, context)

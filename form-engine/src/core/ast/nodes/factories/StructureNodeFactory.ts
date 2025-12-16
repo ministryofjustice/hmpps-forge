@@ -285,6 +285,11 @@ export class StructureNodeFactory {
       properties.metadata = dataProperties.metadata
     }
 
+    // Handle sanitize property - stored directly as boolean (defaults to true if not specified)
+    if (dataProperties.sanitize !== undefined) {
+      properties.sanitize = dataProperties.sanitize
+    }
+
     // This gets injected by the AddSelfValueToFields normalizer, so doesn't appear on the type.
     if ((dataProperties as any).value !== undefined) {
       properties.value = this.nodeFactory.transformValue((dataProperties as any).value)
@@ -292,7 +297,9 @@ export class StructureNodeFactory {
 
     // Transform all other properties as component-specific params
     Object.entries(dataProperties).forEach(([key, value]) => {
-      if (!['code', 'defaultValue', 'formatters', 'hidden', 'validate', 'dependent', 'value'].includes(key)) {
+      if (
+        !['code', 'defaultValue', 'formatters', 'hidden', 'validate', 'dependent', 'value', 'sanitize'].includes(key)
+      ) {
         properties[key] = this.nodeFactory.transformValue(value)
       }
     })

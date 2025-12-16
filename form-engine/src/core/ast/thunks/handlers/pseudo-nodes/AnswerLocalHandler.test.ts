@@ -646,4 +646,187 @@ describe('AnswerLocalHandler', () => {
       expect(mockInvoker.invoke).not.toHaveBeenCalledWith(dependentNode.id, mockContext)
     })
   })
+
+  describe('sanitization', () => {
+    it('should sanitize string values with HTML characters by default', async () => {
+      // Arrange
+      const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('comment').build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('comment')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('comment', fieldNode.id)
+      const mockInvoker = createMockInvoker({ defaultValue: '<script>alert("xss")</script>' })
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { comment: '<script>alert("xss")</script>' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;')
+      expect(mockContext.global.answers.comment).toEqual({
+        current: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+        mutations: [
+          { value: '<script>alert("xss")</script>', source: 'post' },
+          { value: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;', source: 'sanitized' },
+        ],
+      })
+    })
+
+    it('should not add sanitized mutation when value has no HTML characters', async () => {
+      // Arrange - value has no characters to escape
+      const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('name').build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('name')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('name', fieldNode.id)
+      const mockInvoker = createMockInvoker({ defaultValue: 'John Doe' })
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { name: 'John Doe' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - no 'sanitized' mutation because value didn't change
+      expect(result.value).toBe('John Doe')
+      expect(mockContext.global.answers.name).toEqual({
+        current: 'John Doe',
+        mutations: [{ value: 'John Doe', source: 'post' }],
+      })
+    })
+
+    it('should skip sanitization when sanitize is explicitly false', async () => {
+      // Arrange
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('htmlContent')
+        .withProperty('sanitize', false)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('htmlContent')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('htmlContent', fieldNode.id)
+      const mockInvoker = createMockInvoker({ defaultValue: '<b>Bold</b>' })
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { htmlContent: '<b>Bold</b>' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - raw HTML preserved
+      expect(result.value).toBe('<b>Bold</b>')
+      expect(mockContext.global.answers.htmlContent).toEqual({
+        current: '<b>Bold</b>',
+        mutations: [{ value: '<b>Bold</b>', source: 'post' }],
+      })
+    })
+
+    it('should not sanitize non-string values like arrays', async () => {
+      // Arrange - array of values (checkboxes)
+      const fieldNode = ASTTestFactory.block('CheckboxInput', 'field')
+        .withCode('options')
+        .withProperty('multiple', true)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('options')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('options', fieldNode.id)
+      const mockInvoker = createMockInvoker({ defaultValue: ['<a>', '<b>'] })
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { options: ['<a>', '<b>'] } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - arrays pass through unchanged (sanitizeValue only affects strings)
+      expect(result.value).toEqual(['<a>', '<b>'])
+      expect(mockContext.global.answers.options).toEqual({
+        current: ['<a>', '<b>'],
+        mutations: [{ value: ['<a>', '<b>'], source: 'post' }],
+      })
+    })
+
+    it('should sanitize before formatPipeline runs', async () => {
+      // Arrange
+      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('email')
+        .withProperty('formatPipeline', formatPipelineNode)
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('email')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('email', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      // Pipeline receives sanitized value and transforms it further (e.g., uppercase)
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({
+          value: '<script>test</script>',
+          metadata: { source: 'POST', timestamp: Date.now() },
+        })
+        .mockResolvedValueOnce({
+          value: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;', // Pipeline uppercased sanitized value
+          metadata: { source: 'formatPipeline', timestamp: Date.now() },
+        })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { email: '<script>test</script>' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - mutations show full pipeline: post -> sanitized -> processed
+      expect(result.value).toBe('&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;')
+      expect(mockContext.global.answers.email).toEqual({
+        current: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;',
+        mutations: [
+          { value: '<script>test</script>', source: 'post' },
+          { value: '&lt;script&gt;test&lt;/script&gt;', source: 'sanitized' },
+          { value: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;', source: 'processed' },
+        ],
+      })
+    })
+
+    it('should sanitize common XSS payloads', async () => {
+      // Arrange
+      const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('input').build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('input')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('input', fieldNode.id)
+      const mockInvoker = createMockInvoker({ defaultValue: '<img src=x onerror="alert(\'XSS\')">' })
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+        ]),
+        mockRequest: { method: 'POST', post: { input: '<img src=x onerror="alert(\'XSS\')">' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('&lt;img src=x onerror=&quot;alert(&#39;XSS&#39;)&quot;&gt;')
+    })
+  })
 })
