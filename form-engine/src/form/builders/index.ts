@@ -20,9 +20,7 @@ import {
   NextExpr,
   PipelineExpr,
   ReferenceExpr,
-  SkipValidationTransition,
   SubmitTransition,
-  ValidatingTransition,
 } from '../types/expressions.type'
 import { ExpressionType, StructureType, TransitionType } from '../types/enums'
 
@@ -91,8 +89,6 @@ export function createFormPackage<TDeps = void>(pkg: FormPackage<TDeps>): FormPa
  * Creates a submission transition for handling form submissions.
  * Use this in the onSubmission array of steps.
  */
-export function submitTransition(definition: Omit<ValidatingTransition, 'type'>): ValidatingTransition
-export function submitTransition(definition: Omit<SkipValidationTransition, 'type'>): SkipValidationTransition
 export function submitTransition(definition: Omit<SubmitTransition, 'type'>): SubmitTransition {
   return finaliseBuilders({ ...definition, type: TransitionType.SUBMIT }) as SubmitTransition
 }
@@ -263,15 +259,15 @@ export const Format = (template: string, ...args: ConditionalString[]): FormatEx
  *   fallback: [block({ variant: 'html', content: 'No items found' })]
  * })
  */
-export const Collection = <T = any>({
+export function Collection<T = any, F = T>({
   collection,
   template,
   fallback,
 }: {
   collection: ReferenceExpr | PipelineExpr | any[]
   template: T[]
-  fallback?: T[]
-}): CollectionExpr<T> => {
+  fallback?: F[]
+}): CollectionExpr<T, F> {
   return {
     type: ExpressionType.COLLECTION,
     collection,

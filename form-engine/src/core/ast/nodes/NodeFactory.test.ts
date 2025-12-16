@@ -15,7 +15,7 @@ import {
   PredicateTestExpr,
   PredicateXorExpr,
   ReferenceExpr,
-  ValidatingTransition,
+  SubmitTransition,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
 import {
@@ -362,7 +362,7 @@ describe('NodeFactory', () => {
           onInvalid: {
             next: [] as NextExpr[],
           },
-        } satisfies ValidatingTransition
+        } satisfies SubmitTransition
 
         const result = nodeFactory.createNode(json) as TransitionASTNode
 

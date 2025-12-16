@@ -105,46 +105,32 @@ export const ActionTransitionSchema = z.object({
 })
 
 /**
- * @see {@link SkipValidationTransition}
+ * @see {@link SubmitTransition}
  */
-export const SkipValidationTransitionSchema = z.object({
+export const SubmitTransitionSchema = z.object({
   type: z.literal(TransitionType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
-  validate: z.literal(false),
-  onAlways: z.object({
-    effects: z.array(EffectFunctionExprSchema).optional(),
-    next: z.array(NextExprSchema).optional(),
-  }),
-})
-
-/**
- * @see {@link ValidatingTransition}
- */
-export const ValidatingTransitionSchema = z.object({
-  type: z.literal(TransitionType.SUBMIT),
-  when: PredicateExprSchema.optional(),
-  guards: PredicateExprSchema.optional(),
-  validate: z.literal(true),
+  validate: z.boolean().optional(),
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
+      next: z.array(NextExprSchema).optional(),
     })
     .optional(),
-  onValid: z.object({
-    effects: z.array(EffectFunctionExprSchema).optional(),
-    next: z.array(NextExprSchema).optional(),
-  }),
-  onInvalid: z.object({
-    effects: z.array(EffectFunctionExprSchema).optional(),
-    next: z.array(NextExprSchema).optional(),
-  }),
+  onValid: z
+    .object({
+      effects: z.array(EffectFunctionExprSchema).optional(),
+      next: z.array(NextExprSchema).optional(),
+    })
+    .optional(),
+  onInvalid: z
+    .object({
+      effects: z.array(EffectFunctionExprSchema).optional(),
+      next: z.array(NextExprSchema).optional(),
+    })
+    .optional(),
 })
-
-/**
- * @see {@link SubmitTransition}
- */
-export const SubmitTransitionSchema = z.union([SkipValidationTransitionSchema, ValidatingTransitionSchema])
 
 /**
  * @see {@link StepDefinition}

@@ -5,11 +5,14 @@ import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/ty
 
 /**
  * Collection block component for rendering repeated blocks based on a collection.
+ *
+ * @template T - Type of blocks in the template array
+ * @template F - Type of blocks in the fallback array (defaults to T)
  */
-export interface CollectionBlock<T = BlockDefinition> extends BlockDefinition {
+export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition {
   variant: 'collection-block'
 
-  collection: CollectionExpr<T>
+  collection: CollectionExpr<T, F>
 
   /** Additional CSS classes to apply to wrapper div (optional) */
   classes?: ConditionalString
