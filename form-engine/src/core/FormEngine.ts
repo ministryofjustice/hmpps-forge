@@ -2,7 +2,7 @@ import type Logger from 'bunyan'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { formatBox } from '@form-engine/logging/formatBox'
 import FormInstance from '@form-engine/core/FormInstance'
-import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
+import { FormInstanceDependencies, FormPackage } from '@form-engine/core/types/engine.type'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
@@ -157,6 +157,39 @@ export default class FormEngine {
     } catch (e) {
       this.logRegistrationError(e)
     }
+
+    return this
+  }
+
+  /**
+   * Register a form package (journey + custom functions + components) with optional dependencies.
+   *
+   * This is a convenience method that registers components, functions, and the form
+   * in the correct order.
+   *
+   * @param pkg - The form package containing journey, registry factory, and optional components
+   * @param deps - Dependencies required by the package's createRegistries function (optional for forms with no deps)
+   *
+   * @example
+   * ```typescript
+   * // Form with dependencies
+   * formEngine.registerFormPackage(myFormPackage, { api: services.apiClient })
+   *
+   * // Form without dependencies
+   * formEngine.registerFormPackage(simpleFormPackage)
+   * ```
+   */
+  registerFormPackage<TDeps>(pkg: FormPackage<TDeps>, deps?: TDeps): this {
+    if (pkg.components) {
+      this.registerComponents(pkg.components)
+    }
+
+    if (pkg.createRegistries) {
+      const registries = pkg.createRegistries(deps)
+      this.registerFunctions(registries)
+    }
+
+    this.registerForm(pkg.journey)
 
     return this
   }

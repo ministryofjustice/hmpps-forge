@@ -3,6 +3,9 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import { FrameworkAdapter } from '@form-engine/core/runtime/routes/types'
+import { JourneyDefinition } from '@form-engine/form/types/structures.type'
+import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
+import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
 
 export interface FormInstanceDependencies {
   componentRegistry: ComponentRegistry
@@ -39,3 +42,19 @@ export type NodeId = CompileAstNodeId | CompilePseudoNodeId | RuntimeAstNodeId |
  */
 export type AstNodeId = CompileAstNodeId | RuntimeAstNodeId
 export type PseudoNodeId = CompilePseudoNodeId | RuntimePseudoNodeId
+
+/**
+ * A form package bundles a journey definition with its custom registries.
+ *
+ * Use this to export forms as self-contained packages that include their
+ * effects, transformers, conditions, and components alongside the journey definition.
+ *
+ * @typeParam TDeps - Dependencies required to create the function registries
+ *
+ * @see {@link createFormPackage} for the recommended way to create form packages
+ */
+export interface FormPackage<TDeps = void> {
+  journey: JourneyDefinition
+  createRegistries?: (deps?: TDeps) => FunctionRegistryObject
+  components?: ComponentRegistryEntry<any>[]
+}

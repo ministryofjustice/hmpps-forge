@@ -1,6 +1,7 @@
 import { BuildableReference, createReference } from '@form-engine/form/builders/utils/createReference'
 import { createScopedReference, CreateScopedReference } from '@form-engine/form/builders/utils/createScopedReference'
 import { isFieldBlockDefinition } from '@form-engine/form/typeguards/structures'
+import { FormPackage } from '@form-engine/core/types/engine.type'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import {
   BlockDefinition,
@@ -51,6 +52,39 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>
     ...definition,
     type: StructureType.JOURNEY,
   }) as D
+}
+
+/**
+ * Create a form package that bundles a journey with its custom registries.
+ *
+ * @param pkg - The form package configuration
+ * @returns The same package with proper typing
+ *
+ * @example
+ * ```typescript
+ * // Form with dependencies and custom functions
+ * export default createFormPackage({
+ *   journey: myJourney,
+ *   createRegistries: (deps: MyDeps) => ({
+ *     ...createMyEffectsRegistry(deps),
+ *     ...MyTransformersRegistry,
+ *   }),
+ * })
+ *
+ * // Form with custom components
+ * export default createFormPackage({
+ *   journey: myJourney,
+ *   components: [myCustomComponent],
+ * })
+ *
+ * // Journey only (no custom registries)
+ * export default createFormPackage({
+ *   journey: simpleJourney,
+ * })
+ * ```
+ */
+export function createFormPackage<TDeps = void>(pkg: FormPackage<TDeps>): FormPackage<TDeps> {
+  return pkg
 }
 
 /**
