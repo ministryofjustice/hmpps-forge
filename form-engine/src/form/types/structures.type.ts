@@ -13,6 +13,7 @@ import {
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
+import { ChainableExpr, ChainableRef } from '../builders/types'
 import { StructureType, ExpressionType } from './enums'
 
 /**
@@ -235,12 +236,35 @@ export type ConditionalString =
   | PipelineExpr
   | ConditionalExpr
   | ConditionalExprBuilder
+  | ChainableRef
+  | ChainableExpr<any>
 
-export type ConditionalBoolean = boolean | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+export type ConditionalBoolean =
+  | boolean
+  | ReferenceExpr
+  | PipelineExpr
+  | ConditionalExpr
+  | ConditionalExprBuilder
+  | ChainableRef
+  | ChainableExpr<any>
 
-export type ConditionalNumber = number | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+export type ConditionalNumber =
+  | number
+  | ReferenceExpr
+  | PipelineExpr
+  | ConditionalExpr
+  | ConditionalExprBuilder
+  | ChainableRef
+  | ChainableExpr<any>
 
-export type ConditionalArray<T> = T[] | ReferenceExpr | PipelineExpr | ConditionalExpr | ConditionalExprBuilder
+export type ConditionalArray<T> =
+  | T[]
+  | ReferenceExpr
+  | PipelineExpr
+  | ConditionalExpr
+  | ConditionalExprBuilder
+  | ChainableRef
+  | ChainableExpr<any>
 
 export type RenderedBlock = {
   block: BlockDefinition

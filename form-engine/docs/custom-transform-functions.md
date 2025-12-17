@@ -169,16 +169,14 @@ For transformers that need external dependencies, use `defineTransformersWithDep
 ```typescript
 import { defineTransformersWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 
-const deps = {
-  formatter: new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP'
-  }),
-  dateFormatter: new Intl.DateTimeFormat('en-GB'),
-  apiClient: new ApiClient()
+interface MyDeps {
+  formatter: Intl.NumberFormat
+  dateFormatter: Intl.DateTimeFormat
+  apiClient: ApiClient
 }
 
-const { transformers, registry } = defineTransformersWithDeps(deps, {
+// Define transformers - builders are available immediately without deps
+export const { transformers: MyTransformers, createRegistry } = defineTransformersWithDeps<MyDeps>()({
   FormatCurrency: (deps) => (value: number) => {
     if (typeof value !== 'number') return value
     return deps.formatter.format(value)
@@ -196,7 +194,20 @@ const { transformers, registry } = defineTransformersWithDeps(deps, {
     return { ...value, ...data }
   }
 })
+
+// In app.ts - create registry with real dependencies at runtime
+const deps: MyDeps = {
+  formatter: new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }),
+  dateFormatter: new Intl.DateTimeFormat('en-GB'),
+  apiClient: new ApiClient()
+}
+const registry = createRegistry(deps)
+formEngine.registerFunctions(registry)
 ```
+
+This pattern separates the transformer builders (for use in form definitions) from the registry
+creation (which needs real dependencies). The builders can be imported and used in form
+definitions without needing to provide dependencies upfront.
 
 ## Using Transformers in Pipelines
 Transformers are commonly used in pipeline expressions to chain multiple transformations:

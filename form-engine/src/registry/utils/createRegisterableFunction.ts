@@ -93,32 +93,6 @@ function defineFunctionSet<
 }
 
 /**
- * Helper function that materializes dependency-based evaluator functions.
- * Takes factory functions that accept dependencies and returns the actual evaluators.
- *
- * @template D - The dependencies type
- * @template Fns - Record of factory functions that create evaluators
- *
- * @param deps - Dependencies to inject into the factory functions
- * @param factories - Object mapping names to factory functions
- *
- * @returns Object with the same keys but with materialized evaluator functions
- *
- * @example
- * const deps = { apiClient: new ApiClient() }
- * const factories = {
- *   ValidateEmail: (deps) => (email: string) => deps.apiClient.validateEmail(email)
- * }
- * const evaluators = withDeps(deps, factories)
- * // evaluators.ValidateEmail is now (email: string) => boolean
- */
-function withDeps<D, Fns extends Record<string, (deps: D) => (...args: any[]) => any>>(deps: D, factories: Fns) {
-  return Object.fromEntries(Object.entries(factories).map(([name, make]) => [name, make(deps)])) as {
-    [K in keyof Fns]: ReturnType<Fns[K]>
-  }
-}
-
-/**
  * Creates effect functions and their registry from evaluator functions.
  * Effects are side effect operations that can be triggered during form processing.
  *
@@ -168,13 +142,60 @@ type EvaluatorFromFactory<F> = F extends (deps: any) => infer E ? E : never
 type SafeTailParams<F> = F extends (...args: any[]) => any ? Tail<Parameters<F>> : any[]
 
 /**
- * Type helper to build the effect builders type from factory functions.
- * Maps each factory to a builder function that takes the args (minus context) and returns an expression.
+ * Type helper to build function builders from factory functions for a given function type.
+ * Maps each factory to a builder function that takes the args (minus context/value) and returns an expression.
  */
-type EffectBuildersFromFactories<Fns> = {
+type FunctionBuildersFromFactories<Fns, FT extends FunctionType> = {
   [K in keyof Fns]: (
     ...args: SafeTailParams<EvaluatorFromFactory<Fns[K]>>
-  ) => EffectFunctionExpr<SafeTailParams<EvaluatorFromFactory<Fns[K]>>>
+  ) => ExprFor<FT, SafeTailParams<EvaluatorFromFactory<Fns[K]>>>
+}
+
+/**
+ * Generic helper to create function definitions with dependency injection.
+ * This is the core implementation used by defineEffectsWithDeps, defineConditionsWithDeps,
+ * and defineTransformersWithDeps.
+ *
+ * The curried pattern separates builder creation from registry creation:
+ * - Builders can be used in form definitions without dependencies
+ * - Registry is created at runtime with real dependencies
+ *
+ * @template D - The dependencies type
+ * @template FT - The FunctionType (EFFECT, CONDITION, or TRANSFORMER)
+ *
+ * @param functionType - The FunctionType enum value
+ *
+ * @returns A curried function that accepts factory definitions and returns { functions, createRegistry }
+ */
+function defineFunctionsWithDeps<D, FT extends FunctionType>(functionType: FT) {
+  return <Fns extends Record<string, (deps: D) => (...args: any[]) => any>>(factories: Fns) => {
+    type Builders = FunctionBuildersFromFactories<Fns, FT>
+
+    // Create builders from factory keys only - no deps needed
+    const functions = {} as Builders
+
+    Object.keys(factories).forEach(name => {
+      ;(functions as any)[name] = (...args: any[]): FunctionExpr<any> => ({
+        type: functionType,
+        name,
+        arguments: args,
+      })
+    })
+
+    // Factory function to create registry with real dependencies
+    const createRegistry = (deps: D): FunctionRegistryObject => {
+      const registry = {} as FunctionRegistryObject
+
+      Object.entries(factories).forEach(([name, factory]) => {
+        const evaluate = factory(deps)
+        ;(registry as any)[name] = { name, evaluate }
+      })
+
+      return registry
+    }
+
+    return { functions, createRegistry }
+  }
 }
 
 /**
@@ -186,13 +207,8 @@ type EffectBuildersFromFactories<Fns> = {
  * - `createRegistry`: Factory function to create registry with real dependencies at runtime
  *
  * @template D - The dependencies type
- * @template Fns - Record of factory functions that create effect evaluators
  *
- * @param factories - Object mapping effect names to factory functions
- *
- * @returns Object containing:
- * - `effects`: Function builders for creating effect expressions (deps-free)
- * - `createRegistry`: Function that takes deps and returns registry for runtime use
+ * @returns A curried function that accepts factory definitions
  *
  * @example
  * // effects.ts - define effects with factory pattern
@@ -221,32 +237,11 @@ export function defineEffectsWithDeps<D>() {
   >(
     factories: Fns,
   ) => {
-    type Builders = EffectBuildersFromFactories<Fns>
+    const { functions, createRegistry } = defineFunctionsWithDeps<D, FunctionType.EFFECT>(FunctionType.EFFECT)(
+      factories,
+    )
 
-    // Create builders from factory keys only - no deps needed
-    const effects = {} as Builders
-
-    Object.keys(factories).forEach(name => {
-      ;(effects as any)[name] = (...args: any[]): FunctionExpr<any> => ({
-        type: FunctionType.EFFECT,
-        name,
-        arguments: args,
-      })
-    })
-
-    // Factory function to create registry with real dependencies
-    const createRegistry = (deps: D): FunctionRegistryObject => {
-      const registry = {} as FunctionRegistryObject
-
-      Object.entries(factories).forEach(([name, factory]) => {
-        const evaluate = factory(deps)
-        ;(registry as any)[name] = { name, evaluate }
-      })
-
-      return registry
-    }
-
-    return { effects, createRegistry }
+    return { effects: functions, createRegistry }
   }
 }
 
@@ -291,17 +286,17 @@ export function defineConditions<
  * Creates condition functions with dependency injection from factory functions.
  * This variant allows conditions to depend on external services, APIs, or configuration.
  *
+ * Unlike defineConditions, this separates builder creation from registry creation:
+ * - `conditions`: Available immediately for use in form definitions (no deps needed)
+ * - `createRegistry`: Factory function to create registry with real dependencies at runtime
+ *
  * @template D - The dependencies type
- * @template Fns - Record of factory functions that create condition evaluators
  *
- * @param deps - Dependencies to inject into the condition factories
- * @param factories - Object mapping condition names to factory functions
- *
- * @returns Same as defineConditions - object with condition builders and registry
+ * @returns A curried function that accepts factory definitions
  *
  * @example
- * const deps = { apiClient: new ValidationAPI(), config: { minAge: 18 } }
- * const { conditions, registry } = defineConditionsWithDeps(deps, {
+ * // conditions.ts - define conditions with factory pattern
+ * export const { conditions: MyConditions, createRegistry } = defineConditionsWithDeps<MyDeps>()({
  *   IsValidUser: (deps) => async (userId: string) => {
  *     return deps.apiClient.validateUser(userId)
  *   },
@@ -309,12 +304,26 @@ export function defineConditions<
  *     return age >= deps.config.minAge
  *   }
  * })
+ *
+ * // app.ts - create registry with real dependencies
+ * const registry = createRegistry({ apiClient, config })
+ * formEngine.registerFunctions(registry)
+ *
+ * // step.ts - use conditions in form definitions (no deps needed)
+ * validation({ when: Self().not.match(MyConditions.IsValidUser()) })
  */
-export function defineConditionsWithDeps<
-  D,
-  Fns extends Record<string, (deps: D) => (value: ValueExpr, ...args: ValueExpr[]) => boolean | Promise<boolean>>,
->(deps: D, factories: Fns) {
-  return defineConditions(withDeps(deps, factories))
+export function defineConditionsWithDeps<D>() {
+  return <
+    Fns extends Record<string, (deps: D) => (value: ValueExpr, ...args: ValueExpr[]) => boolean | Promise<boolean>>,
+  >(
+    factories: Fns,
+  ) => {
+    const { functions, createRegistry } = defineFunctionsWithDeps<D, FunctionType.CONDITION>(FunctionType.CONDITION)(
+      factories,
+    )
+
+    return { conditions: functions, createRegistry }
+  }
 }
 
 /**
@@ -363,20 +372,17 @@ export function defineTransformers<
  * Creates transformer functions with dependency injection from factory functions.
  * This variant allows transformers to depend on external services, formatters, or configuration.
  *
+ * Unlike defineTransformers, this separates builder creation from registry creation:
+ * - `transformers`: Available immediately for use in form definitions (no deps needed)
+ * - `createRegistry`: Factory function to create registry with real dependencies at runtime
+ *
  * @template D - The dependencies type
- * @template Fns - Record of factory functions that create transformer evaluators
  *
- * @param deps - Dependencies to inject into the transformer factories
- * @param factories - Object mapping transformer names to factory functions
- *
- * @returns Same as defineTransformers - object with transformer builders and registry
+ * @returns A curried function that accepts factory definitions
  *
  * @example
- * const deps = {
- *   formatter: new DateFormatter(),
- *   config: { defaultLocale: 'en-US' }
- * }
- * const { transformers, registry } = defineTransformersWithDeps(deps, {
+ * // transformers.ts - define transformers with factory pattern
+ * export const { transformers: MyTransformers, createRegistry } = defineTransformersWithDeps<MyDeps>()({
  *   FormatDate: (deps) => (value: Date, format?: string) => {
  *     return deps.formatter.format(value, format, deps.config.defaultLocale)
  *   },
@@ -384,10 +390,24 @@ export function defineTransformers<
  *     return value.toLocaleString(deps.config.defaultLocale)
  *   }
  * })
+ *
+ * // app.ts - create registry with real dependencies
+ * const registry = createRegistry({ formatter, config })
+ * formEngine.registerFunctions(registry)
+ *
+ * // step.ts - use transformers in form definitions (no deps needed)
+ * formatters: [MyTransformers.FormatDate('YYYY-MM-DD')]
  */
-export function defineTransformersWithDeps<
-  D,
-  Fns extends Record<string, (deps: D) => (value: ValueExpr, ...args: ValueExpr[]) => ValueExpr | Promise<ValueExpr>>,
->(deps: D, factories: Fns) {
-  return defineTransformers(withDeps(deps, factories))
+export function defineTransformersWithDeps<D>() {
+  return <
+    Fns extends Record<string, (deps: D) => (value: ValueExpr, ...args: ValueExpr[]) => ValueExpr | Promise<ValueExpr>>,
+  >(
+    factories: Fns,
+  ) => {
+    const { functions, createRegistry } = defineFunctionsWithDeps<D, FunctionType.TRANSFORMER>(
+      FunctionType.TRANSFORMER,
+    )(factories)
+
+    return { transformers: functions, createRegistry }
+  }
 }

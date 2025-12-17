@@ -52,7 +52,11 @@ describe('ConditionalExprBuilder', () => {
       const valueExpr = Answer('someField')
       const result = finaliseBuilders(when(simplePredicate()).then(valueExpr)) as ConditionalExpr
 
-      expect(result.thenValue).toBe(valueExpr)
+      // After finaliseBuilders, the ReferenceBuilder is converted to a ReferenceExpr
+      expect(result.thenValue).toEqual({
+        type: ExpressionType.REFERENCE,
+        path: ['answers', 'someField'],
+      })
     })
   })
 
@@ -75,7 +79,11 @@ describe('ConditionalExprBuilder', () => {
       const valueExpr = Answer('fallbackField')
       const result = finaliseBuilders(when(simplePredicate()).else(valueExpr)) as ConditionalExpr
 
-      expect(result.elseValue).toBe(valueExpr)
+      // After finaliseBuilders, the ReferenceBuilder is converted to a ReferenceExpr
+      expect(result.elseValue).toEqual({
+        type: ExpressionType.REFERENCE,
+        path: ['answers', 'fallbackField'],
+      })
     })
   })
 

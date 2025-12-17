@@ -269,7 +269,7 @@ field({
 
 ```typescript
 // Reference specific properties of the current item
-when(Item().property('isAdmin').match(Condition.MatchesValue(true)))
+when(Item().path('isAdmin').match(Condition.MatchesValue(true)))
   .then('Show edit controls')
 ```
 
@@ -278,9 +278,9 @@ For when you have collections within collections
 
 ```typescript
 code: Format('org_%1_dept_%2_emp_%3_name',
-  Item().parent.parent.property('organisationId'),  // Organization ID
-  Item().parent.property('departmentId'),           // Department ID
-  Item().property('employeeId')                     // Employee ID
+  Item().parent.parent.path('organisationId'),  // Organization ID
+  Item().parent.path('departmentId'),           // Department ID
+  Item().path('employeeId')                     // Employee ID
 ),
 ```
 
@@ -290,9 +290,9 @@ code: Format('org_%1_dept_%2_emp_%3_name',
 // Multiple item property checks
 dependent: when(
   and(
-    Item.property('available').match(Condition.MatchesValue(true)),
-    Item.index().match(Condition.GreaterThan(0)),
-    Item.property('category').not.match(Condition.MatchesValue('restricted'))
+    Item().path('available').match(Condition.MatchesValue(true)),
+    Item().index().match(Condition.GreaterThan(0)),
+    Item().path('category').not.match(Condition.MatchesValue('restricted'))
   )
 )
 
@@ -300,7 +300,7 @@ dependent: when(
 validate: [
   validation({
     when: and(
-      Item.property('required').match(Condition.MatchesValue(true)),
+      Item().path('required').match(Condition.MatchesValue(true)),
       Self().not.match(Condition.IsRequired())
     ),
     message: 'This item requires a value'
@@ -308,10 +308,10 @@ validate: [
 
   validation({
     when: and(
-      Item.property('maxLength').match(Condition.IsRequired()),
-      Self().not.match(Condition.HasMaxLength(Item.property('maxLength')))
+      Item().path('maxLength').match(Condition.IsRequired()),
+      Self().not.match(Condition.HasMaxLength(Item().path('maxLength')))
     ),
-    message: Format('Must be %1 characters or less', Item.property('maxLength'))
+    message: Format('Must be %1 characters or less', Item().path('maxLength'))
   })
 ]
 ```

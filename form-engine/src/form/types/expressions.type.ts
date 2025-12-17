@@ -1,4 +1,5 @@
 import { FunctionType, ExpressionType, LogicType, TransitionType } from './enums'
+import type { ChainableExpr, ChainableRef } from '../builders/types'
 
 /**
  * Represents a reference to a value in the form context.
@@ -255,7 +256,7 @@ export interface CollectionExpr<T = any, F = T> {
    * The data source to iterate over.
    * Can be a reference expression or a static array.
    */
-  collection: ReferenceExpr | PipelineExpr | any[]
+  collection: ReferenceExpr | PipelineExpr | ChainableRef | ChainableExpr<any> | any[]
 
   /**
    * Template blocks to render for each item in the collection.

@@ -150,12 +150,13 @@ For conditions that need external dependencies, use `defineConditionsWithDeps`:
 ```typescript
 import { defineConditionsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 
-const deps = {
-  apiClient: new ApiClient(),
-  config: { minAge: 18, maxRetries: 3 }
+interface MyDeps {
+  apiClient: ApiClient
+  config: { minAge: number; maxRetries: number }
 }
 
-const { conditions, registry } = defineConditionsWithDeps(deps, {
+// Define conditions - builders are available immediately without deps
+export const { conditions: MyConditions, createRegistry } = defineConditionsWithDeps<MyDeps>()({
   IsValidUser: (deps) => async (userId: string) => {
     try {
       const user = await deps.apiClient.getUser(userId)
@@ -169,7 +170,19 @@ const { conditions, registry } = defineConditionsWithDeps(deps, {
     return age >= deps.config.minAge
   }
 })
+
+// In app.ts - create registry with real dependencies at runtime
+const deps: MyDeps = {
+  apiClient: new ApiClient(),
+  config: { minAge: 18, maxRetries: 3 }
+}
+const registry = createRegistry(deps)
+formEngine.registerFunctions(registry)
 ```
+
+This pattern separates the condition builders (for use in form definitions) from the registry
+creation (which needs real dependencies). The builders can be imported and used in form
+definitions without needing to provide dependencies upfront.
 
 ## Registration
 

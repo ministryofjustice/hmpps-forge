@@ -7,25 +7,37 @@ const isBuildable = (value: unknown): value is Buildable => {
 }
 
 /**
- * Convert form configuration from builders into JSON
+ * Convert form configuration from builders into JSON.
+ * Recursively processes objects and arrays, calling build() on any Buildable instances.
+ *
  * @param input - Objects, arrays that contain builders
  */
-export const finaliseBuilders = <T>(input: T): unknown => {
+export const finaliseBuilders = <T>(input: T, visited: WeakSet<object> = new WeakSet()): unknown => {
   if (input === null || typeof input !== 'object') {
     return input
   }
 
+  // Prevent infinite recursion from circular references
+  if (visited.has(input)) {
+    return input
+  }
+
+  visited.add(input)
+
   if (Array.isArray(input)) {
-    return input.map(finaliseBuilders)
+    return input.map(item => finaliseBuilders(item, visited))
   }
 
   if (isBuildable(input)) {
-    return input.build()
+    // Recursively finalise in case build() returns more builders
+    return finaliseBuilders(input.build(), visited)
   }
 
   const result: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(input)) {
-    result[key] = finaliseBuilders(value)
-  }
+
+  Object.entries(input).forEach(([key, value]) => {
+    result[key] = finaliseBuilders(value, visited)
+  })
+
   return result
 }

@@ -98,21 +98,31 @@ describe('createRegisterableFunction', () => {
 
   describe('defineConditionsWithDeps', () => {
     it('should create conditions with dependency injection', () => {
-      const deps = {
+      interface TestDeps {
+        minAge: number
+        apiClient: {
+          validateUser: (id: string) => boolean
+        }
+      }
+
+      const deps: TestDeps = {
         minAge: 18,
         apiClient: {
           validateUser: (id: string) => id === 'valid-user',
         },
       }
 
-      const { conditions, registry } = defineConditionsWithDeps(deps, {
+      const { conditions, createRegistry } = defineConditionsWithDeps<TestDeps>()({
         MeetsAgeRequirement: d => (age: number) => age >= d.minAge,
         IsValidUser: d => (userId: string) => d.apiClient.validateUser(userId),
       })
 
-      // Test function builders exist
+      // Test function builders exist (no deps needed)
       expect(typeof conditions.MeetsAgeRequirement).toBe('function')
       expect(typeof conditions.IsValidUser).toBe('function')
+
+      // Create registry with real dependencies
+      const registry = createRegistry(deps)
 
       // Test registry evaluators work with injected dependencies
       expect(registry.MeetsAgeRequirement.evaluate(20)).toBe(true)
@@ -123,8 +133,11 @@ describe('createRegisterableFunction', () => {
     })
 
     it('should create correct expressions with dependencies', () => {
-      const deps = { minValue: 10 }
-      const { conditions } = defineConditionsWithDeps(deps, {
+      interface TestDeps {
+        minValue: number
+      }
+
+      const { conditions } = defineConditionsWithDeps<TestDeps>()({
         ExceedsMin: d => (value: number) => value > d.minValue,
       })
 
@@ -215,21 +228,31 @@ describe('createRegisterableFunction', () => {
 
   describe('defineTransformersWithDeps', () => {
     it('should create transformers with dependency injection', () => {
-      const deps = {
+      interface TestDeps {
+        prefix: string
+        formatter: {
+          currency: (value: number) => string
+        }
+      }
+
+      const deps: TestDeps = {
         prefix: 'PREFIX:',
         formatter: {
           currency: (value: number) => `$${value.toFixed(2)}`,
         },
       }
 
-      const { transformers, registry } = defineTransformersWithDeps(deps, {
+      const { transformers, createRegistry } = defineTransformersWithDeps<TestDeps>()({
         AddPrefix: d => (value: string) => d.prefix + value,
         FormatCurrency: d => (value: number) => d.formatter.currency(value),
       })
 
-      // Test function builders exist
+      // Test function builders exist (no deps needed)
       expect(typeof transformers.AddPrefix).toBe('function')
       expect(typeof transformers.FormatCurrency).toBe('function')
+
+      // Create registry with real dependencies
+      const registry = createRegistry(deps)
 
       // Test registry evaluators work with injected dependencies
       expect(registry.AddPrefix.evaluate('test')).toBe('PREFIX:test')
@@ -405,7 +428,24 @@ describe('createRegisterableFunction', () => {
     })
 
     it('should handle dependency injection with complex dependency structures', () => {
-      const complexDeps = {
+      interface ComplexDeps {
+        config: {
+          api: {
+            baseUrl: string
+            timeout: number
+          }
+          validation: {
+            emailRegex: RegExp
+          }
+        }
+        services: {
+          http: {
+            get: (url: string) => { data: string }
+          }
+        }
+      }
+
+      const complexDeps: ComplexDeps = {
         config: {
           api: {
             baseUrl: 'https://api.example.com',
@@ -422,7 +462,7 @@ describe('createRegisterableFunction', () => {
         },
       }
 
-      const { registry } = defineConditionsWithDeps(complexDeps, {
+      const { createRegistry } = defineConditionsWithDeps<ComplexDeps>()({
         IsValidEmailFormat: d => (email: string) => {
           return d.config.validation.emailRegex.test(email)
         },
@@ -432,6 +472,8 @@ describe('createRegisterableFunction', () => {
           return response.data.includes('mock-data')
         },
       })
+
+      const registry = createRegistry(complexDeps)
 
       expect(registry.IsValidEmailFormat.evaluate('test@example.com')).toBe(true)
       expect(registry.IsValidEmailFormat.evaluate('invalid-email')).toBe(false)

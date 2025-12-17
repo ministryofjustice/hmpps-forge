@@ -1,7 +1,8 @@
-import { BuildableReference, createReference } from '@form-engine/form/builders/utils/createReference'
-import { createScopedReference, CreateScopedReference } from '@form-engine/form/builders/utils/createScopedReference'
 import { isFieldBlockDefinition } from '@form-engine/form/typeguards/structures'
 import { FormPackage } from '@form-engine/core/types/engine.type'
+import { ReferenceBuilder } from './ReferenceBuilder'
+import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
+import { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import {
   BlockDefinition,
@@ -23,6 +24,20 @@ import {
   SubmitTransition,
 } from '../types/expressions.type'
 import { ExpressionType, StructureType, TransitionType } from '../types/enums'
+
+// Re-export public interfaces (for type annotations)
+export type { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
+
+// Re-export builder classes (for advanced use cases)
+export { ExpressionBuilder } from './ExpressionBuilder'
+export { ReferenceBuilder } from './ReferenceBuilder'
+export { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
+
+// Re-export predicate combinators
+export { and, or, xor, not } from './PredicateTestExprBuilder'
+
+// Re-export conditional builders
+export { when, Conditional } from './ConditionalExprBuilder'
 
 export function block<D extends BlockDefinition>(definition: Omit<D, 'type'>): D {
   return finaliseBuilders({
@@ -138,103 +153,104 @@ export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
 
 /**
  * Split a key string into path segments
- * 'user.name' → ['user', 'name']
- * 'simple' → ['simple']
+ * 'user.name' -> ['user', 'name']
+ * 'simple' -> ['simple']
  */
 const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
 
 /**
- * References POST body data from form submission
+ * References POST body data from form submission.
  */
-export function Post(key: string): BuildableReference {
-  return createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['post', ...splitKey(key)],
-  })
+export function Post(key: string): ChainableRef {
+  return ReferenceBuilder.create(['post', ...splitKey(key)])
 }
 
 /**
- * References URL parameters (e.g., /users/:id)
+ * References URL parameters (e.g., /users/:id).
  */
-export function Params(key: string): BuildableReference {
-  return createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['params', ...splitKey(key)],
-  })
+export function Params(key: string): ChainableRef {
+  return ReferenceBuilder.create(['params', ...splitKey(key)])
 }
 
 /**
- * References query string parameters (e.g., ?search=test)
+ * References query string parameters (e.g., ?search=test).
  */
-export function Query(key: string): BuildableReference {
-  return createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['query', ...splitKey(key)],
-  })
+export function Query(key: string): ChainableRef {
+  return ReferenceBuilder.create(['query', ...splitKey(key)])
 }
 
 /**
- * References data defined for the step
+ * References data defined for the step.
  */
-export const Data = (key: string): BuildableReference =>
-  createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['data', ...splitKey(key)],
-  })
+export function Data(key: string): ChainableRef {
+  return ReferenceBuilder.create(['data', ...splitKey(key)])
+}
 
 /**
- * References an answer using its target field, or a string
+ * References an answer using its target field or a string code.
+ *
+ * @example
+ * Answer('email')  // Reference by code string
+ * Answer(emailField)  // Reference by field definition
+ * Answer('user.address.postcode')  // Nested path
  */
-export const Answer = (target: FieldBlockDefinition | ConditionalString): BuildableReference => {
+export function Answer(target: FieldBlockDefinition | ConditionalString): ChainableRef {
   // If it's a field block definition, use its code property
   if (isFieldBlockDefinition(target)) {
     const { code } = target
 
     // String code - split dot notation
     if (typeof code === 'string') {
-      return createReference({
-        type: ExpressionType.REFERENCE,
-        path: ['answers', ...splitKey(code)],
-      })
+      return ReferenceBuilder.create(['answers', ...splitKey(code)])
     }
 
     // Dynamic code (expression) - pass through
-    return createReference({
-      type: ExpressionType.REFERENCE,
-      path: ['answers', code as any],
-    })
+    return ReferenceBuilder.create(['answers', code as any])
   }
 
   // String target - split dot notation
   if (typeof target === 'string') {
-    return createReference({
-      type: ExpressionType.REFERENCE,
-      path: ['answers', ...splitKey(target)],
-    })
+    return ReferenceBuilder.create(['answers', ...splitKey(target)])
   }
 
   // Otherwise, use the target directly (expression types like Format)
-  return createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['answers', target as any],
-  })
+  return ReferenceBuilder.create(['answers', target as any])
 }
 
 /**
- * References the current collection item when inside a collection scope
+ * References the current collection item when inside a collection scope.
+ *
+ * @example
+ * Item().path('name')  // Access item.name
+ * Item().value()  // Access the whole item
+ * Item().index()  // Access iteration index
+ * Item().parent.path('groupId')  // Access parent item's property
  */
-export const Item = (): CreateScopedReference => createScopedReference(0)
+export function Item(): ChainableScopedRef {
+  return ScopedReferenceBuilder.create(0)
+}
 
 /**
- * References the block/field it's in scope of
+ * References the block/field it's in scope of.
+ *
+ * @example
+ * Self().match(Condition.IsRequired())
+ * Self().not.match(Condition.String.IsEmpty())
+ * Self().pipe(Transformer.String.Trim).match(Condition.IsRequired())
  */
-export const Self = (): BuildableReference =>
-  createReference({
-    type: ExpressionType.REFERENCE,
-    path: ['answers', '@self'],
-  })
+export function Self(): ChainableRef {
+  return ReferenceBuilder.create(['answers', '@self'])
+}
 
-export const Format = (template: string, ...args: ConditionalString[]): FormatExpr => {
+/**
+ * Creates a string formatting expression with placeholder substitution.
+ * Placeholders are %1, %2, etc.
+ *
+ * @example
+ * Format('Hello %1!', Answer('name'))
+ * Format('%1 %2', Answer('firstName'), Answer('lastName'))
+ */
+export function Format(template: string, ...args: ConditionalString[]): FormatExpr {
   return {
     type: ExpressionType.FORMAT,
     template,
@@ -252,19 +268,19 @@ export const Format = (template: string, ...args: ConditionalString[]): FormatEx
  * @returns Collection expression
  *
  * @example
- * // With fallback
  * Collection({
  *   collection: Data('items'),
  *   template: [field({ code: 'item_name', variant: 'text' })],
  *   fallback: [block({ variant: 'html', content: 'No items found' })]
  * })
  */
+
 export function Collection<T = any, F = T>({
   collection,
   template,
   fallback,
 }: {
-  collection: ReferenceExpr | PipelineExpr | any[]
+  collection: ReferenceExpr | PipelineExpr | ChainableRef | ChainableExpr<any> | any[]
   template: T[]
   fallback?: F[]
 }): CollectionExpr<T, F> {
