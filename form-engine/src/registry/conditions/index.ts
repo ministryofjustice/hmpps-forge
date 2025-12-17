@@ -6,6 +6,7 @@ import { DateConditions, DateConditionsRegistry } from '@form-engine/registry/co
 import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
 import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
 import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
+import { ObjectConditions, ObjectConditionsRegistry } from './objectConditions'
 
 export const Condition = {
   ...GeneralConditions,
@@ -30,6 +31,9 @@ export const Condition = {
 
   /** Conditions for handling arrays */
   Array: ArrayConditions,
+
+  /** Conditions for handling objects */
+  Object: ObjectConditions,
 }
 
 export const ConditionsRegistry = {
@@ -41,4 +45,5 @@ export const ConditionsRegistry = {
   ...DateConditionsRegistry,
   ...NumberConditionsRegistry,
   ...ArrayConditionsRegistry,
+  ...ObjectConditionsRegistry,
 }

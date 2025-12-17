@@ -2,6 +2,13 @@ import { assertArray } from '@form-engine/registry/utils/asserts'
 import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 import { ValueExpr } from '../../form/types/expressions.type'
 
+/**
+ * Array conditions for collection validation
+ *
+ * All config arguments accept both static values and expressions:
+ * - Static: Condition.Array.Contains('admin')
+ * - Dynamic: Condition.Array.Contains(Answer('requiredRole'))
+ */
 export const { conditions: ArrayConditions, registry: ArrayConditionsRegistry } = defineConditions({
   /**
    * Checks if a value exists within an array of options
@@ -10,8 +17,8 @@ export const { conditions: ArrayConditions, registry: ArrayConditionsRegistry } 
    * @param expected - The array of options to search within
    * @returns true if the value is found in the expected array
    */
-  IsIn: (value, expected: any[]) => {
-    assertArray(expected, 'Condition.Array.IsIn')
+  IsIn: (value, expected: any[] | ValueExpr) => {
+    assertArray(expected, 'Condition.Array.IsIn (expected)')
 
     return expected.includes(value)
   },
@@ -37,8 +44,9 @@ export const { conditions: ArrayConditions, registry: ArrayConditionsRegistry } 
    * @param expected - The array of values to search for
    * @returns true if the value array contains at least one item from the expected array
    */
-  ContainsAny: (value: any[], expected: any[]) => {
+  ContainsAny: (value: any[], expected: any[] | ValueExpr) => {
     assertArray(value, 'Condition.Array.ContainsAny')
+    assertArray(expected, 'Condition.Array.ContainsAny (expected)')
     if (value.length === 0 && expected.length === 0) {
       return true
     }
@@ -55,8 +63,9 @@ export const { conditions: ArrayConditions, registry: ArrayConditionsRegistry } 
    * @param expected - The array that should contain all items from value
    * @returns true if every item in the value array exists in the expected array
    */
-  ContainsAll: (value: any[], expected: any[]) => {
+  ContainsAll: (value: any[], expected: any[] | ValueExpr) => {
     assertArray(value, 'Condition.Array.ContainsAll')
+    assertArray(expected, 'Condition.Array.ContainsAll (expected)')
     if (value.length === 0 && expected.length === 0) {
       return true
     }

@@ -41,7 +41,7 @@ describe('Object Transformers', () => {
 
     it('should handle missing properties gracefully', () => {
       const dateObject = { month: '3', year: '2024' }
-      const result = evaluate(dateObject, { year: 'year', month: 'month', day: 'missing' })
+      const result = evaluate(dateObject, { year: 'year', month: 'month' })
       expect(result).toBe('2024-03')
     })
 

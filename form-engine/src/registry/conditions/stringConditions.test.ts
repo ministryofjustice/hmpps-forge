@@ -59,7 +59,7 @@ describe('StringConditions', () => {
 
     test('should throw error when min is not a valid number', () => {
       expect(() => evaluate('test', -1)).toThrow('Condition.String.HasMinLength: min must be a non-negative number')
-      expect(() => evaluate('test', 'abc')).toThrow('Condition.String.HasMinLength: min must be a non-negative number')
+      expect(() => evaluate('test', 'abc')).toThrow('Condition.String.HasMinLength (min) expects a number')
     })
 
     test('should build correct expression object', () => {
@@ -407,6 +407,116 @@ describe('StringConditions', () => {
         type: FunctionType.CONDITION,
         name: 'AlphanumericWithAllSafeSymbols',
         arguments: [],
+      })
+    })
+  })
+
+  describe('StartsWith', () => {
+    const { evaluate } = StringConditionsRegistry.StartsWith
+
+    test('should return true when string starts with the prefix', () => {
+      expect(evaluate('hello world', 'hello')).toBe(true)
+      expect(evaluate('hello', 'h')).toBe(true)
+      expect(evaluate('hello', 'hello')).toBe(true)
+      expect(evaluate('hello', '')).toBe(true)
+    })
+
+    test('should return false when string does not start with the prefix', () => {
+      expect(evaluate('hello world', 'world')).toBe(false)
+      expect(evaluate('hello', 'Hello')).toBe(false)
+      expect(evaluate('', 'h')).toBe(false)
+    })
+
+    test('should throw error when value is not a string', () => {
+      expect(() => evaluate(123, 'prefix')).toThrow('Condition.String.StartsWith expects a string but received number')
+    })
+
+    test('should throw error when prefix is not a string', () => {
+      expect(() => evaluate('test', 123)).toThrow(
+        'Condition.String.StartsWith (prefix) expects a string but received number',
+      )
+    })
+
+    test('should build correct expression object', () => {
+      const expr = StringConditions.StartsWith('hello')
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'StartsWith',
+        arguments: ['hello'],
+      })
+    })
+  })
+
+  describe('EndsWith', () => {
+    const { evaluate } = StringConditionsRegistry.EndsWith
+
+    test('should return true when string ends with the suffix', () => {
+      expect(evaluate('hello world', 'world')).toBe(true)
+      expect(evaluate('hello', 'o')).toBe(true)
+      expect(evaluate('hello', 'hello')).toBe(true)
+      expect(evaluate('hello', '')).toBe(true)
+    })
+
+    test('should return false when string does not end with the suffix', () => {
+      expect(evaluate('hello world', 'hello')).toBe(false)
+      expect(evaluate('hello', 'Hello')).toBe(false)
+      expect(evaluate('', 'o')).toBe(false)
+    })
+
+    test('should throw error when value is not a string', () => {
+      expect(() => evaluate(null, 'suffix')).toThrow('Condition.String.EndsWith expects a string but received object')
+    })
+
+    test('should throw error when suffix is not a string', () => {
+      expect(() => evaluate('test', undefined)).toThrow(
+        'Condition.String.EndsWith (suffix) expects a string but received undefined',
+      )
+    })
+
+    test('should build correct expression object', () => {
+      const expr = StringConditions.EndsWith('.com')
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'EndsWith',
+        arguments: ['.com'],
+      })
+    })
+  })
+
+  describe('Contains', () => {
+    const { evaluate } = StringConditionsRegistry.Contains
+
+    test('should return true when string contains the substring', () => {
+      expect(evaluate('hello world', 'lo wo')).toBe(true)
+      expect(evaluate('hello', 'ell')).toBe(true)
+      expect(evaluate('hello', 'hello')).toBe(true)
+      expect(evaluate('hello', '')).toBe(true)
+      expect(evaluate('hello', 'h')).toBe(true)
+      expect(evaluate('hello', 'o')).toBe(true)
+    })
+
+    test('should return false when string does not contain the substring', () => {
+      expect(evaluate('hello world', 'xyz')).toBe(false)
+      expect(evaluate('hello', 'Hello')).toBe(false)
+      expect(evaluate('', 'a')).toBe(false)
+    })
+
+    test('should throw error when value is not a string', () => {
+      expect(() => evaluate([], 'substring')).toThrow('Condition.String.Contains expects a string but received object')
+    })
+
+    test('should throw error when substring is not a string', () => {
+      expect(() => evaluate('test', {})).toThrow(
+        'Condition.String.Contains (substring) expects a string but received object',
+      )
+    })
+
+    test('should build correct expression object', () => {
+      const expr = StringConditions.Contains('@')
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'Contains',
+        arguments: ['@'],
       })
     })
   })

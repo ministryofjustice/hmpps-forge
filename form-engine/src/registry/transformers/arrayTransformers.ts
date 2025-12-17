@@ -1,8 +1,13 @@
-import { assertArray } from '@form-engine/registry/utils/asserts'
+import { assertArray, assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
+import { ValueExpr } from '@form-engine/form/types/expressions.type'
 
 /**
  * Array transformation functions for manipulating collections of data
+ *
+ * All config arguments accept both static values and expressions:
+ * - Static: Transformer.Array.Slice(0, 5)
+ * - Dynamic: Transformer.Array.Slice(0, Answer('limit'))
  */
 export const { transformers: ArrayTransformers, registry: ArrayTransformersRegistry } = defineTransformers({
   /**
@@ -50,8 +55,9 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Join([1, 2, 3], ", ") returns "1, 2, 3"
    */
-  Join: (value: any, separator: string = ',') => {
+  Join: (value: any, separator: string | ValueExpr = ',') => {
     assertArray(value, 'Transformer.Array.Join')
+    assertString(separator, 'Transformer.Array.Join (separator)')
     return value.join(separator)
   },
 
@@ -60,9 +66,14 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Slice([1, 2, 3, 4, 5], 1, 4) returns [2, 3, 4]
    */
-  Slice: (value: any, start: number, end?: number) => {
+  Slice: (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Slice')
-    return value.slice(start, end)
+    assertNumber(start, 'Transformer.Array.Slice (start)')
+    if (end !== undefined) {
+      assertNumber(end, 'Transformer.Array.Slice (end)')
+      return value.slice(start, end)
+    }
+    return value.slice(start)
   },
 
   /**
@@ -70,14 +81,12 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Concat([1, 2], [3, 4]) returns [1, 2, 3, 4]
    */
-  Concat: (value: any, ...arrays: any[][]) => {
+  Concat: (value: any, ...arrays: (any[] | ValueExpr)[]) => {
     assertArray(value, 'Transformer.Array.Concat')
     arrays.forEach((arr, index) => {
-      if (!Array.isArray(arr)) {
-        throw new Error(`Expected array at position ${index + 1} for Transformer.Array.Concat`)
-      }
+      assertArray(arr, `Transformer.Array.Concat (array at position ${index + 1})`)
     })
-    return value.concat(...arrays)
+    return value.concat(...(arrays as any[][]))
   },
 
   /**
@@ -110,7 +119,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Filter([1, 2, 2, 3], 2) returns [2, 2]
    */
-  Filter: (value: any, filterValue: any) => {
+  Filter: (value: any, filterValue: any | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Filter')
     return value.filter((item: any) => item === filterValue)
   },
@@ -121,8 +130,11 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * // Map([{name: 'John'}, {name: 'Jane'}], 'name') returns ['John', 'Jane']
    * // Map([[1, 2], [3, 4]], 0) returns [1, 3]
    */
-  Map: (value: any, property: string | number) => {
+  Map: (value: any, property: string | number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Map')
+    if (typeof property !== 'string' && typeof property !== 'number') {
+      throw new Error(`Transformer.Array.Map (property) expects a string or number but received ${typeof property}.`)
+    }
     return value.map((item: any) => {
       if (typeof property === 'number' && Array.isArray(item)) {
         return item[property]

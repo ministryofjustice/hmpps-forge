@@ -41,13 +41,17 @@ describe('ArrayConditions', () => {
 
     test('should throw error when expected is not an array', () => {
       expect(() => evaluate('test', 'not-an-array' as any)).toThrow(
-        'Condition.Array.IsIn expects an array but received string',
+        'Condition.Array.IsIn (expected) expects an array but received string',
       )
-      expect(() => evaluate('test', null as any)).toThrow('Condition.Array.IsIn expects an array but received object')
+      expect(() => evaluate('test', null as any)).toThrow(
+        'Condition.Array.IsIn (expected) expects an array but received object',
+      )
       expect(() => evaluate('test', undefined as any)).toThrow(
-        'Condition.Array.IsIn expects an array but received undefined',
+        'Condition.Array.IsIn (expected) expects an array but received undefined',
       )
-      expect(() => evaluate('test', 123 as any)).toThrow('Condition.Array.IsIn expects an array but received number')
+      expect(() => evaluate('test', 123 as any)).toThrow(
+        'Condition.Array.IsIn (expected) expects an array but received number',
+      )
     })
 
     test('should build correct expression object', () => {

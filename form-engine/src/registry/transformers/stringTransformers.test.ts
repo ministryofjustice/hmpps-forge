@@ -575,4 +575,80 @@ describe('String Transformers', () => {
       })
     })
   })
+
+  describe('ToISODate', () => {
+    const { evaluate } = StringTransformersRegistry.ToISODate
+
+    it('should convert UK date format to ISO format', () => {
+      expect(evaluate('15/03/2024')).toBe('2024-03-15')
+    })
+
+    it('should handle single digit day and month', () => {
+      expect(evaluate('5/3/2024')).toBe('2024-03-05')
+      expect(evaluate('1/1/2024')).toBe('2024-01-01')
+    })
+
+    it('should handle dash separator', () => {
+      expect(evaluate('15-03-2024')).toBe('2024-03-15')
+    })
+
+    it('should handle leading/trailing whitespace', () => {
+      expect(evaluate('  15/03/2024  ')).toBe('2024-03-15')
+    })
+
+    it('should handle end of year dates', () => {
+      expect(evaluate('31/12/2024')).toBe('2024-12-31')
+    })
+
+    it('should handle leap year dates', () => {
+      expect(evaluate('29/02/2024')).toBe('2024-02-29')
+    })
+
+    it('should throw for empty string', () => {
+      expect(() => evaluate('')).toThrow('is not a valid date')
+    })
+
+    it('should throw for whitespace only', () => {
+      expect(() => evaluate('   ')).toThrow('is not a valid date')
+    })
+
+    it('should throw for ISO format input', () => {
+      expect(() => evaluate('2024-03-15')).toThrow('is not a valid UK date')
+    })
+
+    it('should throw for invalid day', () => {
+      expect(() => evaluate('32/03/2024')).toThrow('is not a valid date')
+    })
+
+    it('should throw for invalid month', () => {
+      expect(() => evaluate('15/13/2024')).toThrow('is not a valid date')
+    })
+
+    it('should throw for invalid leap year date', () => {
+      expect(() => evaluate('29/02/2023')).toThrow('is not a valid date')
+    })
+
+    it('should throw for wrong format', () => {
+      expect(() => evaluate('2024/03/15')).toThrow('is not a valid UK date')
+    })
+
+    it('should throw for partial dates', () => {
+      expect(() => evaluate('15/03')).toThrow('is not a valid UK date')
+    })
+
+    it('should throw error for non-string values', () => {
+      expect(() => evaluate(123)).toThrow('Transformer.String.ToISODate expects a string but received number.')
+      expect(() => evaluate(null)).toThrow('Transformer.String.ToISODate expects a string but received object.')
+      expect(() => evaluate(undefined)).toThrow('Transformer.String.ToISODate expects a string but received undefined.')
+    })
+
+    it('should return a function expression when called', () => {
+      const expr = StringTransformers.ToISODate()
+      expect(expr).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'ToISODate',
+        arguments: [],
+      })
+    })
+  })
 })

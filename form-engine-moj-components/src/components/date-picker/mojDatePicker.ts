@@ -157,6 +157,27 @@ export interface MOJDatePicker extends FieldBlockDefinition {
 }
 
 /**
+ * Converts an ISO date string (YYYY-MM-DD) to UK format (DD/MM/YYYY).
+ * If the value is already in UK format or not a valid date string, returns as-is.
+ */
+function toUKDateFormat(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value) {
+    return undefined
+  }
+
+  // Check if it's ISO format (YYYY-MM-DD)
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch
+    return `${day}/${month}/${year}`
+  }
+
+  // Already UK format or other string - return as-is
+  return value
+}
+
+/**
  * Renders an MOJ Date Picker component using Nunjucks template
  */
 async function datePickerRenderer(
@@ -166,7 +187,7 @@ async function datePickerRenderer(
   const params = {
     id: block.id ?? block.code,
     name: block.code,
-    value: block.value,
+    value: toUKDateFormat(block.value),
     label: typeof block.label === 'object' ? block.label : { text: block.label },
     hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     errorMessage: block.errors?.length ? { text: block.errors[0].message } : undefined,

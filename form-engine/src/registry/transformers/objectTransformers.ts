@@ -36,6 +36,14 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
     const month = paths.month ? getByPath<string>(value, paths.month) : undefined
     const day = paths.day ? getByPath<string>(value, paths.day) : undefined
 
+    // If all three paths are specified (full date expected), require all three values
+    // This ensures field-specific validation can run when any field is empty
+    if (paths.year && paths.month && paths.day) {
+      if (!year || !month || !day) {
+        throw new Error('Transformer.Object.ToISO: Full date requested but not all fields provided')
+      }
+    }
+
     // Validate extracted values are numeric strings if present
     if (year && !/^\d{1,4}$/.test(year)) {
       throw new Error(`Transformer.Object.ToISO: Invalid year value "${year}"`)
@@ -67,15 +75,17 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
     // Build ISO string based on what's provided
     if (year && month && day) {
       // Full date: YYYY-MM-DD
+      const paddedYear = year.padStart(4, '0')
       const paddedMonth = month.padStart(2, '0')
       const paddedDay = day.padStart(2, '0')
-      return `${year}-${paddedMonth}-${paddedDay}`
+      return `${paddedYear}-${paddedMonth}-${paddedDay}`
     }
 
     if (year && month) {
       // Year-Month: YYYY-MM
+      const paddedYear = year.padStart(4, '0')
       const paddedMonth = month.padStart(2, '0')
-      return `${year}-${paddedMonth}`
+      return `${paddedYear}-${paddedMonth}`
     }
 
     if (month && day) {
@@ -87,7 +97,7 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
 
     if (year) {
       // Year only: YYYY
-      return year
+      return year.padStart(4, '0')
     }
 
     // No valid date components found

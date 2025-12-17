@@ -1,6 +1,14 @@
-import { assertString } from '@form-engine/registry/utils/asserts'
+import { assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
+import { ValueExpr } from '@form-engine/form/types/expressions.type'
 
+/**
+ * String conditions for text validation and pattern matching
+ *
+ * All config arguments accept both static values and expressions:
+ * - Static: Condition.String.HasMinLength(5)
+ * - Dynamic: Condition.String.HasMinLength(Answer('requiredLength'))
+ */
 export const { conditions: StringConditions, registry: StringConditionsRegistry } = defineConditions({
   /**
    * Checks if a string matches a regular expression pattern
@@ -8,8 +16,9 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
    * @param pattern - The regex pattern to match against
    * @returns true if the string matches the pattern
    */
-  MatchesRegex: (value, pattern: string) => {
+  MatchesRegex: (value, pattern: string | ValueExpr) => {
     assertString(value, 'Condition.String.MatchesRegex')
+    assertString(pattern, 'Condition.String.MatchesRegex (pattern)')
 
     try {
       return new RegExp(pattern).test(value)
@@ -25,10 +34,11 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
    * @param min - The minimum length required
    * @returns true if the string length is >= min
    */
-  HasMinLength: (value, min: number) => {
+  HasMinLength: (value, min: number | ValueExpr) => {
     assertString(value, 'Condition.String.HasMinLength')
+    assertNumber(min, 'Condition.String.HasMinLength (min)')
 
-    if (typeof min !== 'number' || min < 0) {
+    if (min < 0) {
       throw new Error('Condition.String.HasMinLength: min must be a non-negative number')
     }
 
@@ -41,10 +51,11 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
    * @param max - The maximum length allowed
    * @returns true if the string length is <= max
    */
-  HasMaxLength: (value, max: number) => {
+  HasMaxLength: (value, max: number | ValueExpr) => {
     assertString(value, 'Condition.String.HasMaxLength')
+    assertNumber(max, 'Condition.String.HasMaxLength (max)')
 
-    if (typeof max !== 'number' || max < 0) {
+    if (max < 0) {
       throw new Error('Condition.String.HasMaxLength: max must be a non-negative number')
     }
 
@@ -57,10 +68,11 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
    * @param len - The exact length required
    * @returns true if the string length equals len
    */
-  HasExactLength: (value, len: number) => {
+  HasExactLength: (value, len: number | ValueExpr) => {
     assertString(value, 'Condition.String.HasExactLength')
+    assertNumber(len, 'Condition.String.HasExactLength (len)')
 
-    if (typeof len !== 'number' || len < 0) {
+    if (len < 0) {
       throw new Error('Condition.String.HasExactLength: len must be a non-negative number')
     }
 
@@ -73,10 +85,11 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
    * @param maxWords - The maximum number of words allowed
    * @returns true if the word count is <= maxWords
    */
-  HasMaxWords: (value, maxWords: number) => {
+  HasMaxWords: (value, maxWords: number | ValueExpr) => {
     assertString(value, 'Condition.String.HasMaxWords')
+    assertNumber(maxWords, 'Condition.String.HasMaxWords (maxWords)')
 
-    if (typeof maxWords !== 'number' || maxWords < 0) {
+    if (maxWords < 0) {
       throw new Error('Condition.String.HasMaxWords: maxWords must be a non-negative number')
     }
 
@@ -160,5 +173,41 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
   AlphanumericWithAllSafeSymbols: value => {
     assertString(value, 'Condition.String.AlphanumericWithAllSafeSymbols')
     return /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)
+  },
+
+  /**
+   * Checks if a string starts with the specified prefix
+   * @param value - The string to test
+   * @param prefix - The prefix to check for
+   * @returns true if the string starts with the prefix
+   */
+  StartsWith: (value, prefix: string | ValueExpr) => {
+    assertString(value, 'Condition.String.StartsWith')
+    assertString(prefix, 'Condition.String.StartsWith (prefix)')
+    return value.startsWith(prefix)
+  },
+
+  /**
+   * Checks if a string ends with the specified suffix
+   * @param value - The string to test
+   * @param suffix - The suffix to check for
+   * @returns true if the string ends with the suffix
+   */
+  EndsWith: (value, suffix: string | ValueExpr) => {
+    assertString(value, 'Condition.String.EndsWith')
+    assertString(suffix, 'Condition.String.EndsWith (suffix)')
+    return value.endsWith(suffix)
+  },
+
+  /**
+   * Checks if a string contains the specified substring
+   * @param value - The string to test
+   * @param substring - The substring to check for
+   * @returns true if the string contains the substring
+   */
+  Contains: (value, substring: string | ValueExpr) => {
+    assertString(value, 'Condition.String.Contains')
+    assertString(substring, 'Condition.String.Contains (substring)')
+    return value.includes(substring)
   },
 })

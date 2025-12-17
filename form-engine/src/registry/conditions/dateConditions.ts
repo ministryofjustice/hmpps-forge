@@ -1,5 +1,6 @@
 import { assertString } from '@form-engine/registry/utils/asserts'
 import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
+import { ValueExpr } from '@form-engine/form/types/expressions.type'
 
 /**
  * Helper function to parse and validate ISO-8601 date format (YYYY-MM-DD)
@@ -120,8 +121,9 @@ export const { conditions: DateConditions, registry: DateConditionsRegistry } = 
    * @param dateStr - The comparison ISO date string
    * @returns true if value is before the comparison date
    */
-  IsBefore: (value, dateStr: string) => {
+  IsBefore: (value, dateStr: string | ValueExpr) => {
     assertString(value, 'Condition.Date.IsBefore')
+    assertString(dateStr, 'Condition.Date.IsBefore (dateStr)')
 
     const valueParsed = parseISODate(value)
     const compareParsed = parseISODate(dateStr)
@@ -145,8 +147,9 @@ export const { conditions: DateConditions, registry: DateConditionsRegistry } = 
    * @param dateStr - The comparison ISO date string
    * @returns true if value is after the comparison date
    */
-  IsAfter: (value, dateStr: string) => {
+  IsAfter: (value, dateStr: string | ValueExpr) => {
     assertString(value, 'Condition.Date.IsAfter')
+    assertString(dateStr, 'Condition.Date.IsAfter (dateStr)')
 
     const valueParsed = parseISODate(value)
     if (!valueParsed) {

@@ -29,6 +29,17 @@ This strict order ensures that:
 - Access control happens before rendering
 - Form state is consistent throughout the lifecycle
 
+## Execution Semantics
+
+**Critical**: Not all transition arrays execute the same way:
+
+| Hook | Execution | Rationale |
+|------|-----------|-----------|
+| `onLoad[]` | **ALL** transitions execute | Load multiple data sources |
+| `onAccess[]` | **First match** executes | First denial condition that matches triggers redirect |
+| `onAction[]` | **First match** executes | Pick one action to handle |
+| `onSubmission[]` | **First match** executes | Pick one submission path |
+
 ## The Lifecycle Hooks
 
 ### 1. onLoad - Data Loading
@@ -36,6 +47,7 @@ This strict order ensures that:
 **Purpose**: Load data needed for the journey or step
 **When it runs**: Before access control checks
 **Can include**: Effects only (no guards, as the data they'd check isn't loaded yet)
+**Execution**: **ALL** transitions in the array execute (not first-match)
 
 ```typescript
 interface LoadTransition {
@@ -80,26 +92,36 @@ step({
 **Purpose**: Check permissions and track access
 **When it runs**: After data loading, before rendering
 **Can include**: Guards, effects, and navigation
+**Execution**: **First match** executes (guards define denial conditions)
 
 ```typescript
 interface AccessTransition {
-  guards?: PredicateExpr          // Access control conditions
-  effects?: EffectFunctionExpr[]  // Analytics, logging, etc.
-  redirect?: NextExpr[]               // Where to go if guards fail
+  guards?: PredicateExpr          // Denial condition - when TRUE, redirect
+  effects?: EffectFunctionExpr[]  // Run before redirect (analytics, logging)
+  redirect?: NextExpr[]           // Where to go when guards match
 }
 ```
 
+**Guard Semantics:**
+- `guards: <predicate>` → when predicate is **true**, access is **denied** → `redirect` triggers
+- When predicate is **false** → continue (check next transition or grant access)
+- If **no** guards match → access is granted
+- Similar to validation: "when this denial condition is true, redirect"
+
 **Usage:**
 ```typescript
-// Journey-level access control
+// Journey-level access control (denial conditions)
 journey({
   onAccess: [accessTransition({
-    guards: and(
-      Data('user.authenticated').match(Condition.Equals(true)),
-      Data('user.hasPermission').match(Condition.Equals(true))
-    ),
-    effects: [Analytics.TrackJourneyStart()],
-    redirect: [{ goto: '/unauthorized' }]  // Redirect if guards fail
+    // Denial: user is NOT authenticated
+    guards: Data('user.authenticated').not.match(Condition.Equals(true)),
+    effects: [Analytics.TrackAccessDenied()],
+    redirect: [{ goto: '/login' }]
+  }),
+  accessTransition({
+    // Denial: user does NOT have permission
+    guards: Data('user.hasPermission').not.match(Condition.Equals(true)),
+    redirect: [{ goto: '/unauthorized' }]
   })],
   // ...
 })
@@ -108,16 +130,18 @@ journey({
 step({
   path: '/step-2',
   onAccess: [accessTransition({
-    guards: Answer('step_1_complete').match(Condition.Equals(true)),
-    redirect: [{ goto: '/step-1' }]  // Must complete step 1 first
+    // Denial: step 1 is NOT complete
+    guards: Answer('step_1_complete').not.match(Condition.Equals(true)),
+    redirect: [{ goto: '/step-1' }]
   })],
   // ...
 })
 ```
 
 **Key Points:**
-- Guards can reference data loaded in `onLoad`
-- If guards fail, navigation in `redirect` is triggered
+- Guards define denial conditions (like validation's "when error condition is true")
+- First matching guard triggers its redirect
+- If no guards match, access is granted
 
 ### 3. onAction - In-Page Actions
 
@@ -125,6 +149,7 @@ step({
 **When it runs**: On POST requests, after access control, before block evaluation
 **Can include**: Trigger condition and effects
 **Step-level only**: Not available on Journey nodes
+**Execution**: **First match** executes (only the first actionTransition with matching `when` runs)
 
 ```typescript
 interface ActionTransition {
@@ -193,6 +218,7 @@ step({
 **Purpose**: Handle form submissions, validation, and navigation
 **When it runs**: When user submits the form
 **Can include**: Validation, effects, conditional navigation
+**Execution**: **First match** executes (only the first submitTransition with matching `when` runs)
 
 ```typescript
 interface SubmitTransition {
@@ -229,7 +255,7 @@ step({
       },
       onInvalid: {
         effects: [Effect.SaveDraft()],
-        next: [{ goto: '@self' }]  // Stay on current step
+        // No `next` - stays on current step
       }
     })
   ]
@@ -269,9 +295,7 @@ step({
         effects: [Effect.Save()],
         next: [{ goto: '/next-step' }]
       },
-      onInvalid: {
-        next: [{ goto: '@self' }]
-      }
+      // onInvalid not needed - omitting `next` stays on current step
     })
   ]
 })
@@ -309,12 +333,22 @@ submitTransition({
 5. **Outcome Effects** - Execute `onValid.effects` or `onInvalid.effects`
 6. **Navigation** - Process appropriate `next` array
 
+**Validation Behaviour:**
+
+Validation always runs internally on every request. The `validate` property controls:
+
+| `validate` | Error messages | Available paths |
+|------------|----------------|-----------------|
+| `true` | Visible to user | `onValid`, `onInvalid`, `onAlways` |
+| `false` | Hidden | `onAlways` only |
+
 **Key Points:**
 - Transitions are evaluated in array order (first match wins)
 - Place more specific conditions before general ones
-- `validate: false` skips validation entirely
-- `onAlways` runs before validation (useful for collection updates)
+- `validate: false` hides validation errors and only allows `onAlways` path
+- `onAlways` runs regardless of validation result (useful for collection updates)
 - Guards should not reference `Post()` data when used for journey traversal
+- Omit the `next` array to stay on the current step (e.g., after invalid submission)
 
 ## Navigation System
 
@@ -355,10 +389,20 @@ next: [
 ]
 ```
 
-### Special Navigation Values
-- `@self` - Stay on current step
-- `/path` - Navigate to specific step
-- `Format(...)` - Dynamic path construction
+### Staying on Current Step
+
+To stay on the current step (e.g., after an invalid submission), **omit the `next` array entirely**:
+
+```typescript
+onInvalid: {
+  effects: [Effect.SaveDraft()],
+  // No `next` array - stays on current step
+}
+```
+
+### Path Formats
+- `/path` or `path` - Navigate to specific step
+- `Format('/path/%1', Answer('id'))` - Dynamic path construction
 
 ## Common Patterns
 
@@ -396,9 +440,7 @@ step({
         effects: [Effect.Save()],
         next: [{ goto: '/contact-details' }]
       },
-      onInvalid: {
-        next: [{ goto: '@self' }]
-      }
+      // onInvalid not needed - omitting stays on current step
     })
   ]
 })
@@ -419,7 +461,7 @@ step({
             item: { /* new item */ }
           })
         ],
-        next: [{ goto: '@self' }]
+        // No `next` - stays on current step to show updated collection
       }
     }),
 
@@ -434,7 +476,7 @@ step({
             index: /* extract from regex */
           })
         ],
-        next: [{ goto: '@self' }]
+        // No `next` - stays on current step to show updated collection
       }
     })
   ]

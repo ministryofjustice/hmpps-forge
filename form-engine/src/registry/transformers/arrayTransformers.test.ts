@@ -190,7 +190,9 @@ describe('Array Transformers', () => {
     })
 
     it('should throw error if any argument is not an array', () => {
-      expect(() => evaluate([1, 2], 'hello')).toThrow('Expected array at position 1 for Transformer.Array.Concat')
+      expect(() => evaluate([1, 2], 'hello')).toThrow(
+        'Transformer.Array.Concat (array at position 1) expects an array but received string.',
+      )
     })
 
     it('should throw error for non-array input', () => {

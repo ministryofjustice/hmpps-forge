@@ -1,17 +1,24 @@
 import { assertNumber } from '@form-engine/registry/utils/asserts'
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
+import { ValueExpr } from '@form-engine/form/types/expressions.type'
 
 /**
  * Number transformation functions for mathematical operations and formatting
+ *
+ * All config arguments accept both static values and expressions:
+ * - Static: Transformer.Number.Add(5)
+ * - Dynamic: Transformer.Number.Add(Answer('quantity'))
  */
 export const { transformers: NumberTransformers, registry: NumberTransformersRegistry } = defineTransformers({
   /**
    * Adds a number to the input value
    * @example
    * // Add(5, 3) returns 8
+   * // Add(Answer('price'), Answer('tax')) - dynamic addition
    */
-  Add: (value: any, addend: number) => {
+  Add: (value: any, addend: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Add')
+    assertNumber(addend, 'Transformer.Number.Add (addend)')
     return value + addend
   },
 
@@ -20,8 +27,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // Subtract(10, 3) returns 7
    */
-  Subtract: (value: any, subtrahend: number) => {
+  Subtract: (value: any, subtrahend: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Subtract')
+    assertNumber(subtrahend, 'Transformer.Number.Subtract (subtrahend)')
     return value - subtrahend
   },
 
@@ -29,9 +37,11 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * Multiplies the input value by a number
    * @example
    * // Multiply(4, 3) returns 12
+   * // Multiply(Answer('price'), Answer('quantity')) - dynamic multiplication
    */
-  Multiply: (value: any, multiplier: number) => {
+  Multiply: (value: any, multiplier: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Multiply')
+    assertNumber(multiplier, 'Transformer.Number.Multiply (multiplier)')
     return value * multiplier
   },
 
@@ -40,8 +50,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // Divide(15, 3) returns 5
    */
-  Divide: (value: any, divisor: number) => {
+  Divide: (value: any, divisor: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Divide')
+    assertNumber(divisor, 'Transformer.Number.Divide (divisor)')
     if (divisor === 0) {
       throw new Error('Division by zero is not allowed in Transformer.Number.Divide')
     }
@@ -93,8 +104,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // ToFixed(3.14159, 2) returns 3.14
    */
-  ToFixed: (value: any, decimals: number) => {
+  ToFixed: (value: any, decimals: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.ToFixed')
+    assertNumber(decimals, 'Transformer.Number.ToFixed (decimals)')
     return parseFloat(value.toFixed(decimals))
   },
 
@@ -103,8 +115,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // Max(5, 10) returns 10
    */
-  Max: (value: any, comparison: number) => {
+  Max: (value: any, comparison: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Max')
+    assertNumber(comparison, 'Transformer.Number.Max (comparison)')
     return Math.max(value, comparison)
   },
 
@@ -113,8 +126,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // Min(5, 10) returns 5
    */
-  Min: (value: any, comparison: number) => {
+  Min: (value: any, comparison: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Min')
+    assertNumber(comparison, 'Transformer.Number.Min (comparison)')
     return Math.min(value, comparison)
   },
 
@@ -123,8 +137,9 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * @example
    * // Power(2, 3) returns 8
    */
-  Power: (value: any, exponent: number) => {
+  Power: (value: any, exponent: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Power')
+    assertNumber(exponent, 'Transformer.Number.Power (exponent)')
     return value ** exponent
   },
 
@@ -148,8 +163,10 @@ export const { transformers: NumberTransformers, registry: NumberTransformersReg
    * // Clamp(3, 5, 10) returns 5
    * // Clamp(7, 5, 10) returns 7
    */
-  Clamp: (value: any, min: number, max: number) => {
+  Clamp: (value: any, min: number | ValueExpr, max: number | ValueExpr) => {
     assertNumber(value, 'Transformer.Number.Clamp')
+    assertNumber(min, 'Transformer.Number.Clamp (min)')
+    assertNumber(max, 'Transformer.Number.Clamp (max)')
     return Math.min(Math.max(value, min), max)
   },
 })

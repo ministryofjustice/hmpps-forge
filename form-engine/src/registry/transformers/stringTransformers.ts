@@ -1,8 +1,13 @@
-import { assertString } from '@form-engine/registry/utils/asserts'
+import { assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
+import { ValueExpr } from '@form-engine/form/types/expressions.type'
 
 /**
  * String transformation functions for data processing
+ *
+ * All config arguments accept both static values and expressions:
+ * - Static: Transformer.String.Substring(0, 5)
+ * - Dynamic: Transformer.String.Replace(Answer('search'), Answer('replace'))
  */
 export const { transformers: StringTransformers, registry: StringTransformersRegistry } = defineTransformers({
   /**
@@ -61,9 +66,14 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Substring("hello", 1, 4) returns "ell"
    */
-  Substring: (value: any, start: number, end?: number) => {
+  Substring: (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
     assertString(value, 'Transformer.String.Substring')
-    return value.substring(start, end)
+    assertNumber(start, 'Transformer.String.Substring (start)')
+    if (end !== undefined) {
+      assertNumber(end, 'Transformer.String.Substring (end)')
+      return value.substring(start, end)
+    }
+    return value.substring(start)
   },
 
   /**
@@ -71,8 +81,10 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Replace("hello world", "world", "universe") returns "hello universe"
    */
-  Replace: (value: any, searchValue: string, replaceValue: string) => {
+  Replace: (value: any, searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => {
     assertString(value, 'Transformer.String.Replace')
+    assertString(searchValue, 'Transformer.String.Replace (searchValue)')
+    assertString(replaceValue, 'Transformer.String.Replace (replaceValue)')
     return value.replaceAll(searchValue, replaceValue)
   },
 
@@ -81,8 +93,10 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // PadStart("5", 3) returns "  5"
    */
-  PadStart: (value: any, targetLength: number, padString: string = ' ') => {
+  PadStart: (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
     assertString(value, 'Transformer.String.PadStart')
+    assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
+    assertString(padString, 'Transformer.String.PadStart (padString)')
     return value.padStart(targetLength, padString)
   },
 
@@ -91,8 +105,10 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // PadEnd("5", 3) returns "5  "
    */
-  PadEnd: (value: any, targetLength: number, padString: string = ' ') => {
+  PadEnd: (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
     assertString(value, 'Transformer.String.PadEnd')
+    assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
+    assertString(padString, 'Transformer.String.PadEnd (padString)')
     return value.padEnd(targetLength, padString)
   },
 
@@ -156,11 +172,12 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToArray("hello,world", ",") returns ["hello", "world"]
    * // ToArray("a-b-c", "-") returns ["a", "b", "c"]
    */
-  ToArray: (value: any, separator?: string) => {
+  ToArray: (value: any, separator?: string | ValueExpr) => {
     assertString(value, 'Transformer.String.ToArray')
     if (separator === undefined) {
       return value.split('')
     }
+    assertString(separator, 'Transformer.String.ToArray (separator)')
     return value.split(separator)
   },
 
@@ -202,5 +219,52 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
     }
 
     return date
+  },
+
+  /**
+   * Converts a UK-formatted date string (DD/MM/YYYY) to ISO-8601 format (YYYY-MM-DD).
+   * Throws on invalid input so pipeline errors and original value is preserved.
+   *
+   * Use this with MOJ Date Picker which outputs UK format dates.
+   * @example
+   * // ToISODate("15/03/2024") -> "2024-03-15"
+   * // ToISODate("5/3/2024") -> "2024-03-05"
+   * // ToISODate("15-03-2024") -> "2024-03-15"
+   * // ToISODate("") -> throws Error
+   * // ToISODate("31/02/2024") -> throws Error (invalid date)
+   */
+  ToISODate: (value: any) => {
+    const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
+    assertString(value, 'Transformer.String.ToISODate')
+
+    const trimmed = value.trim()
+
+    if (!trimmed) {
+      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+    }
+
+    const match = UK_DATE_RE.exec(trimmed)
+
+    if (!match) {
+      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
+    }
+
+    const day = Number(match[1])
+    const month = Number(match[2])
+    const year = Number(match[3])
+
+    // Validate the date is real (handles leap years, month lengths, etc.)
+    const date = new Date(year, month - 1, day)
+
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+    }
+
+    // Format as ISO-8601: YYYY-MM-DD
+    const paddedYear = String(year).padStart(4, '0')
+    const paddedMonth = String(month).padStart(2, '0')
+    const paddedDay = String(day).padStart(2, '0')
+
+    return `${paddedYear}-${paddedMonth}-${paddedDay}`
   },
 })

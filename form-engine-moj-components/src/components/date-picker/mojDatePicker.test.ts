@@ -35,7 +35,7 @@ describe('mojDatePicker', () => {
       expect(params.name).toBe('appointment-date')
     })
 
-    it('should pass through value', async () => {
+    it('should pass through UK format value unchanged', async () => {
       // Arrange & Act
       const params = await helper.getParams({
         code: 'appointment-date',
@@ -45,6 +45,41 @@ describe('mojDatePicker', () => {
 
       // Assert
       expect(params.value).toBe('25/12/2025')
+    })
+
+    it('should convert ISO format value to UK format for display', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        code: 'appointment-date',
+        label: 'Date',
+        value: '2025-12-25',
+      })
+
+      // Assert
+      expect(params.value).toBe('25/12/2025')
+    })
+
+    it('should handle empty value', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        code: 'appointment-date',
+        label: 'Date',
+        value: '',
+      })
+
+      // Assert
+      expect(params.value).toBeUndefined()
+    })
+
+    it('should handle undefined value', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        code: 'appointment-date',
+        label: 'Date',
+      })
+
+      // Assert
+      expect(params.value).toBeUndefined()
     })
   })
 

@@ -209,20 +209,37 @@ export interface GovUKDateInputMonthDay extends GovUKDateInputBase {
 }
 
 /**
- * Parse ISO date strings back to individual date parts.
- * Handles the specific date formats used by our date input variants:
+ * Parse date values back to individual date parts.
+ * Handles both ISO strings and raw objects (when ToISO formatter fails):
  * - Full dates: YYYY-MM-DD (e.g., "1980-03-31")
  * - Year-Month: YYYY-MM (e.g., "2025-03")
  * - Month-Day: MM-DD (e.g., "12-25") or --MM-DD (ISO 8601 recurring format)
+ * - Year only: YYYY (e.g., "2024")
+ * - Raw object: { day, month, year } (when formatter fails)
  */
-function parseISOToDateParts(iso: string | undefined): {
+function parseISOToDateParts(value: string | Record<string, string> | undefined): {
   year?: string
   month?: string
   day?: string
 } {
-  if (!iso || typeof iso !== 'string') {
+  if (!value) {
     return {}
   }
+
+  // Handle raw object (when ToISO formatter failed)
+  if (typeof value === 'object' && value !== null) {
+    return {
+      year: value.year || undefined,
+      month: value.month || undefined,
+      day: value.day || undefined,
+    }
+  }
+
+  if (typeof value !== 'string') {
+    return {}
+  }
+
+  const iso = value
 
   // Full date: YYYY-MM-DD
   const fullDateMatch = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -249,6 +266,14 @@ function parseISOToDateParts(iso: string | undefined): {
     return {
       month: monthDayMatch[1],
       day: monthDayMatch[2],
+    }
+  }
+
+  // Year only: YYYY (when month/day are empty)
+  const yearOnlyMatch = iso.match(/^(\d{4})$/)
+  if (yearOnlyMatch) {
+    return {
+      year: yearOnlyMatch[1],
     }
   }
 
@@ -336,7 +361,7 @@ function buildParams(block: EvaluatedBlock<GovUKDateInputBase>, items: ReturnTyp
 export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
   'govukDateInputFull',
   async (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string)
+    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
@@ -363,7 +388,7 @@ export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
 export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYearMonth>(
   'govukDateInputYearMonth',
   async (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string)
+    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
@@ -389,7 +414,7 @@ export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYear
 export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonthDay>(
   'govukDateInputMonthDay',
   async (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string)
+    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
