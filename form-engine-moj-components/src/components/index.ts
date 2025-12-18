@@ -3,6 +3,7 @@ import { ComponentRegistryEntry } from '@form-engine/registry/types/components.t
 import { mojCard } from './card/mojCard'
 import { mojCardGroup } from './card-group/mojCardGroup'
 import { mojDatePicker } from './date-picker/mojDatePicker'
+import { mojSideNavigation } from './side-navigation/mojSideNavigation'
 
 // Re-export types for consumers
 export type { MOJCard, MOJCardHeading, MOJCardDescription } from './card/mojCard'
@@ -18,6 +19,12 @@ export type {
   MOJDatePickerHint,
   MOJDatePickerFormGroup,
 } from './date-picker/mojDatePicker'
+export type {
+  MOJSideNavigation,
+  MOJSideNavigationItem,
+  MOJSideNavigationSection,
+  MOJSideNavigationHeading,
+} from './side-navigation/mojSideNavigation'
 
 /** All MOJ component definitions */
-export const mojComponents: ComponentRegistryEntry<any>[] = [mojCard, mojCardGroup, mojDatePicker]
+export const mojComponents: ComponentRegistryEntry<any>[] = [mojCard, mojCardGroup, mojDatePicker, mojSideNavigation]
