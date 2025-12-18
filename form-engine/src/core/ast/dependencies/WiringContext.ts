@@ -39,32 +39,11 @@ export class WiringContext {
   }
 
   findPseudoNodesByType<T extends PseudoNode>(type: PseudoNodeType): T[] {
-    return Array.from(this.nodeRegistry.getAll().values()).filter(
-      (node): node is T => 'type' in node && node.type === type,
-    )
+    return this.nodeRegistry.findByType<T>(type)
   }
 
   findPseudoNode<T extends PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
-    const allPseudoNodes = this.findPseudoNodesByType<T>(type)
-
-    return allPseudoNodes.find(node => {
-      const props = node.properties
-
-      switch (type) {
-        case PseudoNodeType.ANSWER_LOCAL:
-        case PseudoNodeType.ANSWER_REMOTE:
-        case PseudoNodeType.POST:
-        case PseudoNodeType.DATA:
-          return 'baseFieldCode' in props && props.baseFieldCode === key
-
-        case PseudoNodeType.QUERY:
-        case PseudoNodeType.PARAMS:
-          return 'paramName' in props && props.paramName === key
-
-        default:
-          return false
-      }
-    })
+    return this.nodeRegistry.findPseudoNode<T>(type, key)
   }
 
   findReferenceNodes(referenceSource: 'post' | 'query' | 'params' | 'data' | 'answers'): ReferenceASTNode[] {

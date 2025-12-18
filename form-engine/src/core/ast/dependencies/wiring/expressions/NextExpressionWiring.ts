@@ -2,6 +2,7 @@ import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionASTNode, NextASTNode } from '@form-engine/core/types/expressions.type'
+import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { isNextExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
@@ -26,6 +27,18 @@ export default class NextExpressionWiring {
     const expressionNodes = this.wiringContext.findNodesByType<ExpressionASTNode>(ASTNodeType.EXPRESSION)
 
     expressionNodes
+      .filter(isNextExprNode)
+      .forEach(nextNode => {
+        this.wireNext(nextNode)
+      })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
       .filter(isNextExprNode)
       .forEach(nextNode => {
         this.wireNext(nextNode)

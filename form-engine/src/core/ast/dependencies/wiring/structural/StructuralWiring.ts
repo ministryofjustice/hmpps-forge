@@ -1,6 +1,7 @@
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
+import { NodeId } from '@form-engine/core/types/engine.type'
 
 /**
  * StructuralWiring: Wires parent-child relationships in the AST hierarchy
@@ -21,32 +22,41 @@ export default class StructuralWiring {
    * Wire all structural parent → child relationships
    */
   wire() {
-    this.wireStructuralHierarchy()
-  }
-
-  /**
-   * Wire structural edges from parents to their direct children
-   * Uses metadata registry to find parent-child relationships
-   */
-  private wireStructuralHierarchy() {
     const allNodes = Array.from(this.wiringContext.nodeRegistry.getAll().values())
 
     allNodes.forEach(node => {
-      const parentId = this.wiringContext.getParentNodeId(node.id)
-
-      if (!parentId) {
-        return
-      }
-
-      const parentNode = this.wiringContext.nodeRegistry.get(parentId)
-
-      // Only wire if parent is a structural node
-      // Edge direction: child → parent (children evaluated before parents)
-      if (isJourneyStructNode(parentNode) || isStepStructNode(parentNode) || isBlockStructNode(parentNode)) {
-        this.wiringContext.graph.addEdge(node.id, parentId, DependencyEdgeType.STRUCTURAL, {
-          type: 'child-parent',
-        })
-      }
+      this.wireNodeToParent(node.id)
     })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Each node wires itself to its parent
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds.forEach(nodeId => {
+      this.wireNodeToParent(nodeId)
+    })
+  }
+
+  /**
+   * Wire a single node to its structural parent
+   */
+  private wireNodeToParent(nodeId: NodeId) {
+    const parentId = this.wiringContext.getParentNodeId(nodeId)
+
+    if (!parentId) {
+      return
+    }
+
+    const parentNode = this.wiringContext.nodeRegistry.get(parentId)
+
+    // Only wire if parent is a structural node
+    // Edge direction: child → parent (children evaluated before parents)
+    if (isJourneyStructNode(parentNode) || isStepStructNode(parentNode) || isBlockStructNode(parentNode)) {
+      this.wiringContext.graph.addEdge(nodeId, parentId, DependencyEdgeType.STRUCTURAL, {
+        type: 'child-parent',
+      })
+    }
   }
 }

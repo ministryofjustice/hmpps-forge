@@ -4,7 +4,7 @@ import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType } from '@form-engine/form/types/enums'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
-import { isSubmitTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
+import { isSubmitTransitionNode, isTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
@@ -24,6 +24,21 @@ export default class OnSubmitTransitionWiring {
    */
   wire() {
     this.wireOnSubmitTransitions()
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Filters to SubmitTransitionASTNodes in nodeIds and wires their properties
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
+      .filter(isTransitionNode)
+      .filter(isSubmitTransitionNode)
+      .forEach(submitTransition => {
+        this.wiringContext.graph.addNode(submitTransition.id)
+        this.wireTransitionProperties(submitTransition)
+      })
   }
 
   private wireOnSubmitTransitions() {

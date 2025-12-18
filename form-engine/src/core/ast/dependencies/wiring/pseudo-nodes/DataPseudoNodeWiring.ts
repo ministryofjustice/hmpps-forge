@@ -1,6 +1,9 @@
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import { DataPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { NodeId } from '@form-engine/core/types/engine.type'
+import { isPseudoNode } from '@form-engine/core/typeguards/nodes'
+import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
 /**
  * DataPseudoNodeWiring: Wires Data pseudo nodes to their data sources and consumers
@@ -25,6 +28,51 @@ export default class DataPseudoNodeWiring {
         this.wireProducers(dataPseudoNode)
         this.wireConsumers(dataPseudoNode)
       })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Handles both directions:
+   * - New pseudo nodes: wire producers only (consumers handled below via new references)
+   * - New references: wire existing/new pseudo nodes to them
+   *
+   * Note: We don't call wireConsumers for new pseudo nodes because:
+   * 1. Existing references can't reference a data key that was just created
+   * 2. New references in the same batch are handled by the "Handle new references" section
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    const nodes = nodeIds.map(id => this.wiringContext.nodeRegistry.get(id))
+
+    // Handle new Data pseudo nodes (PULL producers only)
+    // Consumers are wired below when we process new references
+    nodes
+      .filter(isPseudoNode)
+      .filter((node): node is DataPseudoNode => node.type === PseudoNodeType.DATA)
+      .forEach(pseudoNode => {
+        this.wireProducers(pseudoNode)
+      })
+
+    // Handle new Data() references (PUSH: existing pseudo node → new reference)
+    const dataRefs = nodes
+      .filter(isReferenceExprNode)
+      .filter(ref => {
+        const path = ref.properties.path
+
+        return Array.isArray(path) && path.length >= 2 && path[0] === 'data'
+      })
+
+    dataRefs.forEach(refNode => {
+      const baseProperty = refNode.properties.path[1] as string
+
+      const pseudoNode = this.wiringContext.findPseudoNode<DataPseudoNode>(PseudoNodeType.DATA, baseProperty)
+
+      if (pseudoNode) {
+        this.wiringContext.graph.addEdge(pseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
+          referenceType: 'data',
+          baseProperty,
+        })
+      }
+    })
   }
 
   /**

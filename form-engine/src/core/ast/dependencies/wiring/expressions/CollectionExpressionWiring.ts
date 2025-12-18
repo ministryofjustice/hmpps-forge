@@ -2,6 +2,7 @@ import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { CollectionASTNode, ExpressionASTNode } from '@form-engine/core/types/expressions.type'
+import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { isCollectionExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
@@ -26,6 +27,18 @@ export default class CollectionExpressionWiring {
     const expressionNodes = this.wiringContext.findNodesByType<ExpressionASTNode>(ASTNodeType.EXPRESSION)
 
     expressionNodes
+      .filter(isCollectionExprNode)
+      .forEach(collectionNode => {
+        this.wireCollection(collectionNode)
+      })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
       .filter(isCollectionExprNode)
       .forEach(collectionNode => {
         this.wireCollection(collectionNode)
