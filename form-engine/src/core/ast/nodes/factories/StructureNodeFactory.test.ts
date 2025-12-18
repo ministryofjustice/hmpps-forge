@@ -73,6 +73,7 @@ describe('StructureNodeFactory', () => {
     it('should route to createBlock for Block definitions', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'TestBlock',
       } satisfies BlockDefinition
 
@@ -199,10 +200,12 @@ describe('StructureNodeFactory', () => {
         blocks: [
           {
             type: StructureType.BLOCK,
+            blockType: 'basic',
             variant: 'Block1',
           } satisfies BlockDefinition,
           {
             type: StructureType.BLOCK,
+            blockType: 'basic',
             variant: 'Block2',
           } satisfies BlockDefinition,
         ],
@@ -304,6 +307,7 @@ describe('StructureNodeFactory', () => {
     it('should create a basic Block node', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'TestBlock',
       } satisfies BlockDefinition
 
@@ -319,6 +323,7 @@ describe('StructureNodeFactory', () => {
     it('should create a field Block node when code property exists', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'email',
       } satisfies FieldBlockDefinition
@@ -336,6 +341,7 @@ describe('StructureNodeFactory', () => {
     it('should exclude type and variant from properties', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'TestBlock',
         customProp: 'value',
       } satisfies BlockDefinition & { customProp: string }
@@ -350,15 +356,18 @@ describe('StructureNodeFactory', () => {
     it('should transform nested blocks in block', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'Fieldset',
         blocks: [
           {
             type: StructureType.BLOCK,
+            blockType: 'field',
             variant: 'TextInput',
             code: 'field1',
           } satisfies FieldBlockDefinition,
           {
             type: StructureType.BLOCK,
+            blockType: 'field',
             variant: 'TextInput',
             code: 'field2',
           } satisfies FieldBlockDefinition,
@@ -380,6 +389,7 @@ describe('StructureNodeFactory', () => {
     it('should handle field block with validation', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'email',
         validate: [
@@ -407,6 +417,7 @@ describe('StructureNodeFactory', () => {
     it('should handle field block with dependent property', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'details',
         dependent: {
@@ -426,6 +437,7 @@ describe('StructureNodeFactory', () => {
     it('should handle field block with custom properties', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'email',
         label: 'Email Address',
@@ -440,6 +452,7 @@ describe('StructureNodeFactory', () => {
     it('should handle block with all properties', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'email',
         dependent: {
@@ -475,6 +488,7 @@ describe('StructureNodeFactory', () => {
     it('should determine field type correctly', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'TextInput',
         code: 'email',
       } satisfies FieldBlockDefinition
@@ -487,6 +501,7 @@ describe('StructureNodeFactory', () => {
     it('should determine basic type correctly', () => {
       const json = {
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'Heading',
         text: 'Hello',
       }

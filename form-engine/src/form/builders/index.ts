@@ -39,17 +39,19 @@ export { and, or, xor, not } from './PredicateTestExprBuilder'
 // Re-export conditional builders
 export { when, Conditional } from './ConditionalExprBuilder'
 
-export function block<D extends BlockDefinition>(definition: Omit<D, 'type'>): D {
+export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
   return finaliseBuilders({
     ...definition,
     type: StructureType.BLOCK,
+    blockType: 'basic',
   }) as D
 }
 
-export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type'>): D {
+export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
   return finaliseBuilders({
     ...definition,
     type: StructureType.BLOCK,
+    blockType: 'field',
   }) as D
 }
 
@@ -274,7 +276,6 @@ export function Format(template: string, ...args: ConditionalString[]): FormatEx
  *   fallback: [block({ variant: 'html', content: 'No items found' })]
  * })
  */
-
 export function Collection<T = any, F = T>({
   collection,
   template,

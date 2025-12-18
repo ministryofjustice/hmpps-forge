@@ -41,6 +41,9 @@ export interface BlockDefinition {
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
 
+  /** Discriminator to distinguish field blocks from regular blocks */
+  blockType: 'basic' | 'field'
+
   /** Conditional visibility - block is hidden when this evaluates to truthy */
   hidden?: boolean | PredicateExpr | PredicateTestExprBuilder
 

@@ -85,6 +85,7 @@ describe('NodeFactory', () => {
       it('should route Block definitions to StructureNodeFactory', () => {
         const json = {
           type: StructureType.BLOCK,
+          blockType: 'basic',
           variant: 'TestBlock',
         } satisfies BlockDefinition
 
@@ -579,6 +580,7 @@ describe('NodeFactory', () => {
       it('should transform Block structures', () => {
         const json = {
           type: StructureType.BLOCK,
+          blockType: 'basic',
           variant: 'TestBlock',
         }
 
@@ -766,6 +768,7 @@ describe('NodeFactory', () => {
             blocks: [
               {
                 type: StructureType.BLOCK,
+                blockType: 'field',
                 variant: 'TextInput',
                 code: 'email',
                 validate: [
@@ -938,6 +941,7 @@ describe('NodeFactory', () => {
 
       const block = nodeFactory.createNode({
         type: StructureType.BLOCK,
+        blockType: 'basic',
         variant: 'Test',
       } satisfies BlockDefinition)
 

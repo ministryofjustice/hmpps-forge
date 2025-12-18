@@ -34,7 +34,13 @@ describe('CollectionHandler', () => {
       .withProperty('collection', { id: collectionSourceId })
       .withProperty(
         'template',
-        options.template ?? [{ type: StructureType.BLOCK, variant: 'text' } satisfies BlockDefinition],
+        options.template ?? [
+          {
+            type: StructureType.BLOCK,
+            variant: 'text',
+            blockType: 'basic',
+          } satisfies BlockDefinition,
+        ],
       )
 
     if (options.fallback) {
@@ -283,6 +289,7 @@ describe('CollectionHandler', () => {
           {
             type: StructureType.BLOCK,
             variant: 'html',
+            blockType: 'basic',
           } satisfies BlockDefinition,
           {
             type: StructureType.BLOCK,

@@ -528,7 +528,7 @@ describe('TemplateRenderer', () => {
       expect(mockRender).toHaveBeenCalledTimes(2)
       const parentCallArgs = mockRender.mock.calls[1][0]
       expect(parentCallArgs.children).toEqual({
-        block: { type: StructureType.BLOCK, variant: 'fieldset' },
+        block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'fieldset', content: 'Nested' },
         html: '<div>Nested content</div>',
       })
     })

@@ -1,14 +1,16 @@
-import { templateWrapper, EvaluatedTemplateWrapper } from './templateWrapper'
+import { EvaluatedBlock } from '@form-engine/form/types/structures.type'
+import { templateWrapper, TemplateWrapper } from './templateWrapper'
 import { StructureType } from '../../form/types/enums'
 
 describe('templateWrapper component', () => {
-  const mockBlock = (overrides?: Partial<EvaluatedTemplateWrapper>): EvaluatedTemplateWrapper =>
+  const mockBlock = (overrides?: Partial<EvaluatedBlock<TemplateWrapper>>): EvaluatedBlock<TemplateWrapper> =>
     ({
       type: StructureType.BLOCK,
+      blockType: 'basic',
       variant: 'templateWrapper',
       template: '<div>{{slot:content}}</div>',
       ...overrides,
-    }) as EvaluatedTemplateWrapper
+    }) as EvaluatedBlock<TemplateWrapper>
 
   describe('render()', () => {
     it('should render template with slot content', async () => {
@@ -17,8 +19,8 @@ describe('templateWrapper component', () => {
         template: '<section>{{slot:content}}</section>',
         slots: {
           content: [
-            { block: { type: StructureType.BLOCK, variant: 'html' }, html: '<p>Hello</p>' },
-            { block: { type: StructureType.BLOCK, variant: 'html' }, html: '<p>World</p>' },
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Hello</p>' },
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>World</p>' },
           ],
         },
       })
@@ -35,9 +37,13 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:header}}<main>{{slot:content}}</main>{{slot:footer}}</div>',
         slots: {
-          header: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<h1>Title</h1>' }],
-          content: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<p>Body</p>' }],
-          footer: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<footer>End</footer>' }],
+          header: [
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<h1>Title</h1>' },
+          ],
+          content: [{ block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Body</p>' }],
+          footer: [
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<footer>End</footer>' },
+          ],
         },
       })
 
@@ -74,7 +80,9 @@ describe('templateWrapper component', () => {
           footer: 'See also...',
         },
         slots: {
-          content: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<p>Content here</p>' }],
+          content: [
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Content here</p>' },
+          ],
         },
       })
 
@@ -90,7 +98,9 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:content}}{{slot:missing}}</div>',
         slots: {
-          content: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<p>Present</p>' }],
+          content: [
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Present</p>' },
+          ],
         },
       })
 
@@ -199,7 +209,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:content}}</div><div>{{slot:content}}</div>',
         slots: {
-          content: [{ block: { type: StructureType.BLOCK, variant: 'html' }, html: '<span>Repeated</span>' }],
+          content: [
+            {
+              block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' },
+              html: '<span>Repeated</span>',
+            },
+          ],
         },
       })
 

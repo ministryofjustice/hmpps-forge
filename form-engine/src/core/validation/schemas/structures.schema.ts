@@ -1,12 +1,7 @@
 import { z } from 'zod'
 import { StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
-import {
-  PredicateExprSchema,
-  PredicateTestExprSchema,
-  ConditionalExprSchema,
-  NextExprSchema,
-} from './predicates.schema'
+import { PredicateExprSchema, ConditionalExprSchema, NextExprSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
 /**
@@ -48,13 +43,14 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
     type: z.literal(StructureType.BLOCK),
     variant: z.string(),
+    hidden: z.union([z.boolean(), PredicateExprSchema]).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   })
 
   const fieldBlockProps = z.looseObject({
     code: ConditionalStringSchema,
     defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
-    hidden: PredicateTestExprSchema.optional(),
     errors: z
       .array(
         z.object({
@@ -64,17 +60,21 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
       )
       .optional(),
     validate: z.array(ValidationExprSchema).optional(),
-    dependent: PredicateTestExprSchema.optional(),
+    dependent: PredicateExprSchema.optional(),
     multiple: z.boolean().optional(),
+    sanitize: z.boolean().optional(),
   })
 
-  return z.union([
-    z.looseObject({
-      ...baseBlock.shape,
-      ...fieldBlockProps.shape,
-    }),
-    baseBlock,
-  ])
+  const fieldBlock = baseBlock.extend({
+    blockType: z.literal('field'),
+    ...fieldBlockProps.shape,
+  })
+
+  const basicBlock = baseBlock.extend({
+    blockType: z.literal('basic'),
+  })
+
+  return z.discriminatedUnion('blockType', [fieldBlock, basicBlock])
 })
 
 /**

@@ -1,6 +1,5 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
-import { StructureType } from '@form-engine/form/types/enums'
-import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/types/structures.type'
+import { BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/types/structures.type'
 
 /**
  * Template wrapper component for wrapping child blocks in an HTML template.
@@ -56,34 +55,10 @@ export interface TemplateWrapper extends BlockDefinition {
 }
 
 /**
- * Runtime representation of a template wrapper after evaluation.
- * Slot blocks are rendered to HTML and values are evaluated to strings.
- */
-export interface EvaluatedTemplateWrapper {
-  type: typeof StructureType.BLOCK
-  variant: 'templateWrapper'
-
-  /** The evaluated HTML template */
-  template: string
-
-  /** Evaluated string values */
-  values?: Record<string, string>
-
-  /** The rendered blocks for each slot */
-  slots?: Record<string, RenderedBlock[]>
-
-  /** Additional CSS classes applied to wrapper div */
-  classes?: string
-
-  /** Custom HTML attributes for wrapper div */
-  attributes?: Record<string, string>
-}
-
-/**
  * Renders the template wrapper by replacing slot markers with rendered block HTML
  * and value markers with their corresponding values.
  */
-const renderTemplateWrapper = async (block: EvaluatedTemplateWrapper): Promise<string> => {
+const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Promise<string> => {
   let content = block.template
 
   // Replace value markers: {{valueName}}

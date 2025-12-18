@@ -231,6 +231,7 @@ export default class TemplateRenderer {
     block: Evaluated<BlockASTNode>,
     showValidationFailures: boolean,
   ): Promise<RenderedBlock | null> {
+    const { hidden, ...properties } = block.properties
     // Skip hidden nested blocks
     if (block.properties.hidden === true) {
       return null
@@ -241,7 +242,9 @@ export default class TemplateRenderer {
     return {
       block: {
         type: StructureType.BLOCK,
+        blockType: block.blockType,
         variant: block.variant,
+        ...properties,
       },
       html,
     }
