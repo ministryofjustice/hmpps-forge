@@ -54,7 +54,7 @@ export interface MOJSideNavigationItem {
  */
 export interface MOJSideNavigationSection {
   /** Section heading configuration */
-  heading: MOJSideNavigationHeading
+  heading?: MOJSideNavigationHeading
 
   /** Array of navigation items in this section */
   items: ConditionalArray<MOJSideNavigationItem>
