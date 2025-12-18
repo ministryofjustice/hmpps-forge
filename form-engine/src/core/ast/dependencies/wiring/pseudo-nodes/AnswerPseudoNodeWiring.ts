@@ -7,8 +7,9 @@ import {
 } from '@form-engine/core/types/pseudoNodes.type'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
-import { isASTNode } from '@form-engine/core/typeguards/nodes'
-import { isPipelineExprNode } from '@form-engine/core/typeguards/expression-nodes'
+import { NodeId } from '@form-engine/core/types/engine.type'
+import { isASTNode, isPseudoNode } from '@form-engine/core/typeguards/nodes'
+import { isPipelineExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
 /**
  * AnswerPseudoNodeWiring: Wires Answer pseudo nodes to their data sources and consumers
@@ -47,6 +48,61 @@ export default class AnswerPseudoNodeWiring {
         this.wireRemoteProducers(answerPseudoNode)
         this.wireConsumers(answerPseudoNode)
       })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Handles both directions:
+   * - New pseudo nodes: wire producers only (consumers handled below via new references)
+   * - New references: wire existing/new pseudo nodes to them
+   *
+   * Note: We don't call wireConsumers for new pseudo nodes because:
+   * 1. Existing references can't reference a field code that was just created
+   * 2. New references in the same batch are handled by the "Handle new references" section
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    const nodes = nodeIds.map(id => this.wiringContext.nodeRegistry.get(id))
+
+    // Handle new Answer pseudo nodes (PULL producers only)
+    // Consumers are wired below when we process new references
+    nodes
+      .filter(isPseudoNode)
+      .filter((node): node is AnswerLocalPseudoNode => node.type === PseudoNodeType.ANSWER_LOCAL)
+      .forEach(pseudoNode => {
+        this.wireLocalProducers(pseudoNode)
+      })
+
+    nodes
+      .filter(isPseudoNode)
+      .filter((node): node is AnswerRemotePseudoNode => node.type === PseudoNodeType.ANSWER_REMOTE)
+      .forEach(pseudoNode => {
+        this.wireRemoteProducers(pseudoNode)
+      })
+
+    // Handle new Answer() references (PUSH: existing pseudo node → new reference)
+    const answerRefs = nodes
+      .filter(isReferenceExprNode)
+      .filter(ref => {
+        const path = ref.properties.path
+
+        return Array.isArray(path) && path.length >= 2 && path[0] === 'answers'
+      })
+
+    answerRefs.forEach(refNode => {
+      const baseFieldCode = refNode.properties.path[1] as string
+
+      // Find the matching pseudo node (could be local or remote)
+      const pseudoNode =
+        this.wiringContext.findPseudoNode<AnswerLocalPseudoNode>(PseudoNodeType.ANSWER_LOCAL, baseFieldCode) ??
+        this.wiringContext.findPseudoNode<AnswerRemotePseudoNode>(PseudoNodeType.ANSWER_REMOTE, baseFieldCode)
+
+      if (pseudoNode) {
+        this.wiringContext.graph.addEdge(pseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
+          referenceType: 'answer',
+          fieldCode: baseFieldCode,
+        })
+      }
+    })
   }
 
   /**

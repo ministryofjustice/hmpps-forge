@@ -6,14 +6,14 @@ import DependencyGraph from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
-import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
-import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 
 function createMockNodeRegistry(): jest.Mocked<NodeRegistry> {
   return {
     findByType: jest.fn().mockReturnValue([]),
+    findPseudoNode: jest.fn().mockReturnValue(undefined),
     get: jest.fn().mockReturnValue(undefined),
     getAll: jest.fn().mockReturnValue(new Map()),
   } as unknown as jest.Mocked<NodeRegistry>
@@ -73,95 +73,96 @@ describe('WiringContext', () => {
 
   describe('findPseudoNodesByType', () => {
     it('should return all pseudo nodes of specified type', () => {
+      // Arrange
       const postNode1 = ASTTestFactory.postPseudoNode('firstName')
       const postNode2 = ASTTestFactory.postPseudoNode('lastName')
-      const queryNode = ASTTestFactory.queryPseudoNode('id')
 
-      const allNodes = new Map<NodeId, ASTNode | PseudoNode>([
-        [postNode1.id, postNode1],
-        [postNode2.id, postNode2],
-        [queryNode.id, queryNode],
-      ])
+      when(mockNodeRegistry.findByType)
+        .calledWith(PseudoNodeType.POST)
+        .mockReturnValue([postNode1, postNode2])
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNodesByType(PseudoNodeType.POST)
 
+      // Assert
       expect(result).toHaveLength(2)
       expect(result).toContain(postNode1)
       expect(result).toContain(postNode2)
     })
 
     it('should return empty array when no pseudo nodes of type exist', () => {
-      const queryNode = ASTTestFactory.queryPseudoNode('id')
-      const allNodes = new Map([[queryNode.id, queryNode]])
+      // Arrange
+      when(mockNodeRegistry.findByType)
+        .calledWith(PseudoNodeType.POST)
+        .mockReturnValue([])
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNodesByType(PseudoNodeType.POST)
 
+      // Assert
       expect(result).toEqual([])
     })
 
-    it('should filter out regular AST nodes', () => {
+    it('should delegate to nodeRegistry.findByType', () => {
+      // Arrange
       const postNode = ASTTestFactory.postPseudoNode('firstName')
-      const step = ASTTestFactory.step().build()
 
-      const allNodes = new Map<NodeId, ASTNode | PseudoNode>([
-        [postNode.id, postNode],
-        [step.id, step],
-      ])
+      when(mockNodeRegistry.findByType)
+        .calledWith(PseudoNodeType.POST)
+        .mockReturnValue([postNode])
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNodesByType(PseudoNodeType.POST)
 
+      // Assert
       expect(result).toHaveLength(1)
       expect(result).toContain(postNode)
+      expect(mockNodeRegistry.findByType).toHaveBeenCalledWith(PseudoNodeType.POST)
     })
   })
 
   describe('findPseudoNode', () => {
-    it('should find pseudo node by baseFieldCode for field-based types', () => {
-      const postNode1 = ASTTestFactory.postPseudoNode('firstName')
-      const postNode2 = ASTTestFactory.postPseudoNode('lastName')
+    it('should find pseudo node by type and key', () => {
+      // Arrange
+      const postNode = ASTTestFactory.postPseudoNode('lastName')
 
-      const allNodes = new Map([
-        [postNode1.id, postNode1],
-        [postNode2.id, postNode2],
-      ])
+      when(mockNodeRegistry.findPseudoNode)
+        .calledWith(PseudoNodeType.POST, 'lastName')
+        .mockReturnValue(postNode)
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNode(PseudoNodeType.POST, 'lastName')
 
-      expect(result).toBe(postNode2)
+      // Assert
+      expect(result).toBe(postNode)
     })
 
-    it('should find pseudo node by paramName for param-based types', () => {
-      const queryNode1 = ASTTestFactory.queryPseudoNode('id')
-      const queryNode2 = ASTTestFactory.queryPseudoNode('page')
+    it('should delegate to nodeRegistry.findPseudoNode', () => {
+      // Arrange
+      const queryNode = ASTTestFactory.queryPseudoNode('page')
 
-      const allNodes = new Map([
-        [queryNode1.id, queryNode1],
-        [queryNode2.id, queryNode2],
-      ])
+      when(mockNodeRegistry.findPseudoNode)
+        .calledWith(PseudoNodeType.QUERY, 'page')
+        .mockReturnValue(queryNode)
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNode(PseudoNodeType.QUERY, 'page')
 
-      expect(result).toBe(queryNode2)
+      // Assert
+      expect(result).toBe(queryNode)
+      expect(mockNodeRegistry.findPseudoNode).toHaveBeenCalledWith(PseudoNodeType.QUERY, 'page')
     })
 
     it('should return undefined when no matching pseudo node exists', () => {
-      const postNode = ASTTestFactory.postPseudoNode('firstName')
-      const allNodes = new Map([[postNode.id, postNode]])
+      // Arrange
+      when(mockNodeRegistry.findPseudoNode)
+        .calledWith(PseudoNodeType.POST, 'lastName')
+        .mockReturnValue(undefined)
 
-      when(mockNodeRegistry.getAll).calledWith().mockReturnValue(allNodes)
-
+      // Act
       const result = context.findPseudoNode(PseudoNodeType.POST, 'lastName')
 
+      // Assert
       expect(result).toBeUndefined()
     })
   })

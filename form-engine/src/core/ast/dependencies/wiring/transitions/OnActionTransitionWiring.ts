@@ -3,7 +3,7 @@ import { ActionTransitionASTNode, TransitionASTNode } from '@form-engine/core/ty
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { isActionTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -28,6 +28,20 @@ export default class OnActionTransitionWiring {
    */
   wire() {
     this.wireOnActionTransitions()
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Filters to ActionTransitionASTNodes in nodeIds and wires their properties
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
+      .filter(isActionTransitionNode)
+      .forEach(actionTransition => {
+        this.wiringContext.graph.addNode(actionTransition.id)
+        this.wireTransitionProperties(actionTransition)
+      })
   }
 
   private wireOnActionTransitions() {

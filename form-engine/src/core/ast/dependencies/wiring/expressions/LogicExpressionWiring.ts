@@ -9,6 +9,7 @@ import {
   OrPredicateASTNode,
   XorPredicateASTNode,
 } from '@form-engine/core/types/expressions.type'
+import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { LogicType } from '@form-engine/form/types/enums'
 import { isPredicateNode } from '@form-engine/core/typeguards/predicate-nodes'
@@ -39,25 +40,44 @@ export default class LogicExpressionWiring {
     expressionNodes
       .filter(isPredicateNode)
       .forEach(predicateNode => {
-        switch (predicateNode.expressionType) {
-          case LogicType.TEST:
-            this.wireTestPredicate(predicateNode as TestPredicateASTNode)
-            break
-
-          case LogicType.AND:
-          case LogicType.OR:
-          case LogicType.XOR:
-            this.wireLogicOperator(predicateNode as AndPredicateASTNode | OrPredicateASTNode | XorPredicateASTNode)
-            break
-
-          case LogicType.NOT:
-            this.wireUnaryOperator(predicateNode as NotPredicateASTNode)
-            break
-
-          default:
-            break
-        }
+        this.wirePredicateNode(predicateNode)
       })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   */
+  wireNodes(nodeIds: NodeId[]): void {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
+      .filter(isPredicateNode)
+      .forEach(predicateNode => {
+        this.wirePredicateNode(predicateNode)
+      })
+  }
+
+  /**
+   * Wire a predicate node based on its type
+   */
+  private wirePredicateNode(predicateNode: ExpressionASTNode) {
+    switch (predicateNode.expressionType) {
+      case LogicType.TEST:
+        this.wireTestPredicate(predicateNode as TestPredicateASTNode)
+        break
+
+      case LogicType.AND:
+      case LogicType.OR:
+      case LogicType.XOR:
+        this.wireLogicOperator(predicateNode as AndPredicateASTNode | OrPredicateASTNode | XorPredicateASTNode)
+        break
+
+      case LogicType.NOT:
+        this.wireUnaryOperator(predicateNode as NotPredicateASTNode)
+        break
+
+      default:
+        break
+    }
   }
 
   /**

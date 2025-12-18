@@ -1,6 +1,8 @@
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import { QueryPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { NodeId } from '@form-engine/core/types/engine.type'
+import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
 /**
  * QueryPseudoNodeWiring: Wires Query pseudo nodes to their consumers
@@ -26,6 +28,45 @@ export default class QueryPseudoNodeWiring {
       .forEach(queryPseudoNode => {
         this.wireConsumers(queryPseudoNode)
       })
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Handles both directions:
+   * - New pseudo nodes: no wiring needed (no producers, consumers handled below)
+   * - New references: wire existing/new pseudo nodes to them
+   *
+   * Note: We don't call wireConsumers for new pseudo nodes because:
+   * 1. Existing references can't reference a param that was just created
+   * 2. New references in the same batch are handled by the "Handle new references" section
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    const nodes = nodeIds.map(id => this.wiringContext.nodeRegistry.get(id))
+
+    // New Query pseudo nodes don't need producer wiring (URL input)
+    // Consumers are wired below when we process new references
+
+    // Handle new Query() references (PUSH: existing pseudo node → new reference)
+    const queryRefs = nodes
+      .filter(isReferenceExprNode)
+      .filter(ref => {
+        const path = ref.properties.path
+
+        return Array.isArray(path) && path.length >= 2 && path[0] === 'query'
+      })
+
+    queryRefs.forEach(refNode => {
+      const paramName = refNode.properties.path[1] as string
+
+      const pseudoNode = this.wiringContext.findPseudoNode<QueryPseudoNode>(PseudoNodeType.QUERY, paramName)
+
+      if (pseudoNode) {
+        this.wiringContext.graph.addEdge(pseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
+          referenceType: 'query',
+          paramName,
+        })
+      }
+    })
   }
 
   /**

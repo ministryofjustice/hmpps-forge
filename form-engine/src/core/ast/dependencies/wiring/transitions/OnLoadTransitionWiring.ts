@@ -3,6 +3,8 @@ import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { LoadTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { NodeId } from '@form-engine/core/types/engine.type'
+import { isLoadTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
 
 /**
  * OnLoadTransitionWiring: Wires onLoad transitions both within and across hierarchy levels
@@ -21,6 +23,23 @@ export default class OnLoadTransitionWiring {
   wire() {
     this.wireSameDepthTransitions()
     this.wireCrossDepthTransitions()
+  }
+
+  /**
+   * Wire only the specified nodes (scoped wiring for runtime nodes)
+   * Filters to LoadTransitionASTNodes in nodeIds and wires their effects
+   *
+   * Note: Cross-depth and same-depth chaining is compile-time only
+   * Runtime load transitions just need their effects wired
+   */
+  wireNodes(nodeIds: NodeId[]) {
+    nodeIds
+      .map(id => this.wiringContext.nodeRegistry.get(id))
+      .filter(isLoadTransitionNode)
+      .forEach(loadTransition => {
+        this.wiringContext.graph.addNode(loadTransition.id)
+        this.wireTransitionEffects(loadTransition)
+      })
   }
 
   /**
