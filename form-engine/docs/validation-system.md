@@ -1,251 +1,676 @@
 # Validation System
 
-## Overview
+The form-engine uses a declarative validation system where you define conditions that trigger error messages. Validation rules specify *when* an error should appear and *what* message to display.
 
-The form engine uses a structured validation system with `ValidationExpr` objects
-that support both regular validations and submission-only validations. This
-system allows for precise control over when validation rules are applied and provides
-a clear separation between journey traversal validation and final submission validation.
+## How Validation Works
 
-## ValidationExpr
+Each field can have a `validate` array containing validation rules. Each rule specifies:
 
-Validation rules define conditions that determine when a field's value is invalid and should
-display an error message to the user. They integrate seamlessly with the form engine's
-predicate system and support enhanced error handling for complex field types.
+- **when** - A predicate that, when `true`, triggers the error
+- **message** - The error message to display
 
-### Structure
+Think of it as: *"Show this error **when** this condition is true."*
+
+### Import
 
 ```typescript
-interface ValidationExpr {
-  type: 'validation'              // Type identifier
-  when: PredicateExpr             // Condition that triggers validation failure
-  message: string                 // Error message to display
-  submissionOnly?: boolean        // Optional: only check at submission time
-  details?: Record<string, any>   // Optional: enhanced error handling details
-}
+import {
+  field, validation,
+  Self, Answer,
+  Condition,
+  and, or, not
+} from '@form-engine/form/builders'
 ```
 
-### Examples
+---
+
+## The validation() Builder
 
 ```typescript
-// Basic required field validation
+validation({
+  when: PredicateExpr,      // Required: condition that triggers the error
+  message: string,          // Required: error message to display
+  submissionOnly?: boolean, // Optional: only check at final submission
+  details?: object,         // Optional: metadata for complex fields
+})
+```
+
+### `when` (Required)
+
+A predicate expression that, when **true**, triggers the error. Typically uses `Self()` to reference the current field's value with negative matching:
+
+```typescript
+// "Show error when value is NOT required (is empty)"
 validation({
   when: Self().not.match(Condition.IsRequired()),
-  message: 'This field is required'
-})
-
-// Format validation with enhanced error details
-validation({
-  when: Self().not.match(Condition.Date.IsValid()),
-  message: 'Enter a valid date',
-  details: {
-    field: 'day'  // Highlight specific sub-field in composite components
-  }
-})
-
-// Submission-only validation for external API calls
-validation({
-  when: Self().not.match(Condition.Username.IsUnique()),
-  message: 'This username is already taken',
-  submissionOnly: true
+  message: 'Enter your email address',
 })
 ```
 
-### Concepts
+### `message` (Required)
 
-#### `type`
-All validation expressions are marked with `type: 'validation'` for identification during JSON parsing and processing.
+The error message shown to the user. Follow GOV.UK guidelines: be specific, tell users what to do, and avoid jargon.
 
-#### `when`
-The predicate expression that determines when validation should fail. This _often_ uses negative logic
-(with `.not.match()`) to check for invalid conditions rather than valid ones. This approach allows
-the system to identify and report specific validation failures.
+```typescript
+// DO: Specific and actionable
+'Enter your email address'
+'Enter a valid UK postcode'
+'Select at least one option'
+'Date of birth must be in the past'
 
-#### `message`
-The error message displayed to the user when validation fails. Should be clear, specific,
-and actionable, following accessibility guidelines and design system patterns.
+// DON'T: Vague or technical
+'This field is required'
+'Invalid format'
+'Validation failed'
+```
 
-#### `submissionOnly`
-When `true`, this validation is only checked at final form submission, not during journey
-path traversal. This is essential for validations that:
+### `submissionOnly` (Optional)
 
-- Make external API calls (like username uniqueness checks)
-- Depend on data that may change between form steps
-- Are expensive to compute and shouldn't run repeatedly
-- Are time-dependent (like future date validations)
+When `true`, validation only runs on final form submission, not during navigation. Use for:
 
-**Journey Path Traversal**: The form engine validates that users can legitimately reach each
-step by re-running validations. Submission-only validations are excluded from this process
-to avoid blocking users with expensive or time-sensitive checks.
+- Expensive API calls (uniqueness checks)
+- Time-sensitive validations (future date checks)
+- Checks that depend on data that may change
 
-#### `details`
-Optional metadata that provides additional context for error handling, particularly useful
-for composite fields where you need to specify which sub-component should be highlighted.
+```typescript
+validation({
+  when: Self().not.match(Condition.Custom.UniqueUsername()),
+  message: 'This username is already taken',
+  submissionOnly: true,
+})
+```
 
-Common patterns include:
-- `field: string` - Target a specific sub-field in composite components
-- `priority: number` - Prioritize certain errors
-- Custom data for specialized error processing
+### `details` (Optional)
 
-## Validation Execution Context
+Metadata for error handling, particularly useful for composite fields like date inputs:
 
-The form engine runs validation in two distinct contexts, each serving different purposes
-in ensuring form integrity and user experience.
+```typescript
+validation({
+  when: Self().path('month').not.match(Condition.Number.Between(1, 12)),
+  message: 'Month must be between 1 and 12',
+  details: { field: 'month' },  // Highlights the month input
+})
+```
 
-### Journey Traversal Validation
-Occurs when the system verifies that users can legitimately reach each step:
+---
 
-- Checks basic field requirements and format validation
-- Ensures users followed the correct path through the form
-- Uses only validations where `submissionOnly` is false or undefined
-- Prevents expensive operations from blocking navigation
+## Validation Order
 
-### Submission Validation
-Occurs during final form submission:
+Rules are checked in array order. The **first failing rule's message** is shown. Order from most basic to most specific:
 
-- Runs ALL validation rules (both regular and submission-only)
-- Performs comprehensive checks before data processing
-- Includes expensive operations like API calls and uniqueness checks
+1. **Required** - Is the field empty?
+2. **Format** - Is it the right type/format?
+3. **Business rules** - Is the value valid for this context?
+
+```typescript
+validate: [
+  // 1. Required
+  validation({
+    when: Self().not.match(Condition.IsRequired()),
+    message: 'Enter your age',
+  }),
+
+  // 2. Format
+  validation({
+    when: Self().not.match(Condition.Number.IsInteger()),
+    message: 'Age must be a whole number',
+  }),
+
+  // 3. Business rule
+  validation({
+    when: Self().not.match(Condition.Number.Between(18, 120)),
+    message: 'You must be between 18 and 120 years old',
+  }),
+]
+```
+
+---
+
+## The "Negative Match" Pattern
+
+Validation uses negative matching: *"show error when value is NOT valid"*.
+
+```typescript
+// DO: Negative match - "show error when NOT valid"
+validation({
+  when: Self().not.match(Condition.IsRequired()),
+  message: 'Enter your email address',
+})
+
+// DON'T: Positive match (confusing - shows error when field IS valid)
+validation({
+  when: Self().match(Condition.IsRequired()),
+  message: 'Enter your email address',
+})
+```
+
+The only exception is checking for invalid states directly:
+
+```typescript
+// Checking for a positive invalid state (date IS in future)
+validation({
+  when: Self().match(Condition.Date.IsFutureDate()),
+  message: 'Date of birth must be in the past',
+})
+```
+
+---
+
+## `Self()` vs `Answer()`
+
+Use `Self()` when validating the current field - it's clearer and automatically resolves to the field's code:
+
+```typescript
+// DO: Use Self() for current field
+validation({
+  when: Self().not.match(Condition.IsRequired()),
+  message: 'Enter your email',
+})
+
+// DON'T: Use Answer() for same field
+validation({
+  when: Answer('email').not.match(Condition.IsRequired()),
+  message: 'Enter your email',
+})
+```
+
+Use `Answer()` when referencing **other** fields:
+
+```typescript
+validation({
+  when: Self().not.match(Condition.Equals(Answer('email'))),
+  message: 'Email addresses do not match',
+})
+```
+
+---
 
 ## Common Patterns
 
 ### Basic Field Validation
+
 ```typescript
-const nameField = field({
-  code: 'full_name',
+field<GovUKTextInput>({
   variant: 'govukTextInput',
-  label: 'Full name',
+  code: 'email',
+  label: 'Email address',
   validate: [
     validation({
       when: Self().not.match(Condition.IsRequired()),
-      message: 'Enter your full name'
+      message: 'Enter your email address',
     }),
     validation({
-      when: Self().not.match(Condition.String.HasMaxLength(100)),
-      message: 'Name must be 100 characters or less'
-    })
-  ]
+      when: Self().not.match(Condition.Email.IsValidEmail()),
+      message: 'Enter a valid email address',
+    }),
+  ],
 })
 ```
 
-### Conditional Validation
+### Confirm Field Matches
+
+Ensure a confirmation field matches the original:
+
 ```typescript
-const ageField = field({
-  code: 'age',
+// Original field
+field<GovUKTextInput>({
   variant: 'govukTextInput',
-  label: 'Age',
+  code: 'email',
+  label: 'Email address',
   validate: [
     validation({
       when: Self().not.match(Condition.IsRequired()),
-      message: 'Enter your age'
+      message: 'Enter your email address',
     }),
-    validation({
-      when: Self().not.match(Condition.Number.IsInteger()),
-      message: 'Age must be a whole number'
-    }),
-    validation({
-      when: Self().not.match(Condition.Number.IsBetween(16, 120)),
-      message: 'Age must be between 16 and 120'
-    })
-  ]
+  ],
 })
-```
 
-### Mixed Regular and Submission-Only Validation
-```typescript
-const usernameField = field({
-  code: 'username',
+// Confirmation field - validates against the original
+field<GovUKTextInput>({
   variant: 'govukTextInput',
-  label: 'Choose a username',
+  code: 'confirmEmail',
+  label: 'Confirm email address',
   validate: [
-    // Regular validation - checked during traversal and submission
     validation({
       when: Self().not.match(Condition.IsRequired()),
-      message: 'Enter a username'
+      message: 'Confirm your email address',
     }),
     validation({
-      when: Self().not.match(Condition.String.HasMinLength(3)),
-      message: 'Username must be at least 3 characters'
+      when: Self().not.match(Condition.Equals(Answer('email'))),
+      message: 'Email addresses do not match',
     }),
-    validation({
-      when: Self().not.match(Condition.String.MatchesRegex(/^[a-zA-Z0-9_]+$/)),
-      message: 'Username can only contain letters, numbers, and underscores'
-    }),
-    // Submission-only validation - only checked at final submission
-    validation({
-      when: Self().not.match(Condition.IsUniqueUsername()),
-      message: 'This username is already taken',
-      submissionOnly: true
-    })
-  ]
+  ],
 })
 ```
 
-### Validation with Additional Details
+### Conditional Required Field
+
+Make a field required only when another field has a specific value:
+
 ```typescript
-const appointmentDateField = field({
-  code: 'appointment_date',
-  variant: 'govukDateInput',
-  label: 'Preferred appointment date',
+// Trigger field
+field<GovUKRadioInput>({
+  variant: 'govukRadioInput',
+  code: 'contactMethod',
+  fieldset: { legend: { text: 'How should we contact you?' } },
+  items: [
+    { value: 'email', text: 'Email' },
+    { value: 'phone', text: 'Phone' },
+    { value: 'other', text: 'Other' },
+  ],
+})
+
+// Dependent field - only shown and validated when 'other' is selected
+field<GovUKTextInput>({
+  variant: 'govukTextInput',
+  code: 'otherContactMethod',
+  label: 'Please specify',
+
+  // Hide when contactMethod is NOT 'other'
+  hidden: Answer('contactMethod').not.match(Condition.Equals('other')),
+
+  // Only validate when contactMethod IS 'other'
+  dependent: Answer('contactMethod').match(Condition.Equals('other')),
+
   validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter your preferred contact method',
+    }),
+  ],
+})
+```
+
+### Date Comparison
+
+Ensure one date comes after another:
+
+```typescript
+field<GovUKDateInputFull>({
+  variant: 'govukDateInputFull',
+  code: 'startDate',
+  fieldset: { legend: { text: 'Start date' } },
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter a start date',
+    }),
     validation({
       when: Self().not.match(Condition.Date.IsValid()),
-      message: 'Enter a valid date',
-      details: {
-        field: 'day'  // Highlight the day field in a multi-field date input
-      }
+      message: 'Enter a valid start date',
+    }),
+  ],
+})
+
+field<GovUKDateInputFull>({
+  variant: 'govukDateInputFull',
+  code: 'endDate',
+  fieldset: { legend: { text: 'End date' } },
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter an end date',
+    }),
+    validation({
+      when: Self().not.match(Condition.Date.IsValid()),
+      message: 'Enter a valid end date',
+    }),
+    validation({
+      when: Self().not.match(Condition.Date.IsAfter(Answer('startDate'))),
+      message: 'End date must be after the start date',
+    }),
+  ],
+})
+```
+
+### Date in Past or Future
+
+```typescript
+// Date must be in the past (e.g., date of birth)
+field<GovUKDateInputFull>({
+  variant: 'govukDateInputFull',
+  code: 'dateOfBirth',
+  fieldset: { legend: { text: 'Date of birth' } },
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter your date of birth',
+    }),
+    validation({
+      when: Self().not.match(Condition.Date.IsValid()),
+      message: 'Date of birth must be a real date',
+    }),
+    validation({
+      // Positive match: show error when date IS in the future
+      when: Self().match(Condition.Date.IsFutureDate()),
+      message: 'Date of birth must be in the past',
+    }),
+  ],
+})
+
+// Date must be in the future (e.g., appointment)
+field<GovUKDateInputFull>({
+  variant: 'govukDateInputFull',
+  code: 'appointmentDate',
+  fieldset: { legend: { text: 'Appointment date' } },
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter an appointment date',
     }),
     validation({
       when: Self().not.match(Condition.Date.IsFutureDate()),
-      message: 'Appointment date must be in the future',
-      submissionOnly: true  // Only check at submission as "future" changes over time
-    })
-  ]
+      message: 'Appointment must be in the future',
+    }),
+  ],
 })
 ```
 
-## Best Practices
+### Checkbox Validation
 
-### When to Use Submission-Only Validations
-Use `submissionOnly: true` for validations that:
-
-1. **Make external API calls**: Uniqueness checks, service availability, etc.
-2. **Time-dependent validations**: Future date checks, age calculations, etc.
-3. **Expensive computations**: Complex calculations that shouldn't run repeatedly
-4. **Dynamic data**: Validations against data that may change between form steps
-
-### When to Use Regular Validations
-Use regular validations (default behavior) for:
-
-1. **Format validation**: Email format, phone numbers, postal codes
-2. **Required field checks**: Basic field presence validation
-3. **Static rules**: Length limits, character restrictions, etc.
-4. **Cross-field validation**: Between fields that don't change during the journey
-
-### Using the Details Property Effectively
-The `details` property should be used to enhance error handling for complex fields:
-
-1. **Field targeting**: Use `field` to specify which sub-component should be highlighted
-2. **Error classification**: Use `errorType` to categorize errors for consistent styling
-3. **Additional context**: Include any extra data needed for error processing
-4. **Keep it simple**: Only include details that will be used by your UI components
-
-### Error Message Guidelines
-- Use clear, specific error messages
-- Follow GOV.UK Design System patterns for error messages (or have content designers write these!)
-- Be consistent with terminology across your form
-- Provide guidance on how to fix the error when possible
+At least one selection:
 
 ```typescript
-// Avoid: Vague or technical
+field<GovUKCheckboxInput>({
+  variant: 'govukCheckboxInput',
+  code: 'interests',
+  multiple: true,
+  fieldset: { legend: { text: 'What are you interested in?' } },
+  items: [
+    { value: 'sports', text: 'Sports' },
+    { value: 'music', text: 'Music' },
+    { value: 'art', text: 'Art' },
+  ],
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Select at least one interest',
+    }),
+  ],
+})
+```
+
+Maximum selections:
+
+```typescript
+field<GovUKCheckboxInput>({
+  variant: 'govukCheckboxInput',
+  code: 'topPriorities',
+  multiple: true,
+  fieldset: { legend: { text: 'Select your top 3 priorities' } },
+  hint: 'Choose up to 3 options',
+  items: [
+    { value: 'cost', text: 'Cost' },
+    { value: 'quality', text: 'Quality' },
+    { value: 'speed', text: 'Speed' },
+    { value: 'reliability', text: 'Reliability' },
+  ],
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Select at least one priority',
+    }),
+    validation({
+      when: Self().pipe(Transformer.Array.Length())
+        .not.match(Condition.Number.LessThanOrEqual(3)),
+      message: 'Select no more than 3 priorities',
+    }),
+  ],
+})
+```
+
+### Complex Cross-Field Validation
+
+Using combinators for complex conditions:
+
+```typescript
+import { and, or } from '@form-engine/form/builders'
+
+// Phone number required if contact method is "phone" OR opted into SMS
+field<GovUKTextInput>({
+  variant: 'govukTextInput',
+  code: 'phoneNumber',
+  label: 'Phone number',
+  validate: [
+    validation({
+      when: and(
+        or(
+          Answer('contactMethod').match(Condition.Equals('phone')),
+          Answer('smsNotifications').match(Condition.Equals('yes'))
+        ),
+        Self().not.match(Condition.IsRequired())
+      ),
+      message: 'Enter a phone number',
+    }),
+    validation({
+      when: and(
+        Self().match(Condition.IsRequired()),
+        Self().not.match(Condition.Phone.IsValidPhoneNumber())
+      ),
+      message: 'Enter a valid phone number',
+    }),
+  ],
+})
+```
+
+### At Least One of Multiple Fields
+
+```typescript
+// Place this validation on the first field
 validation({
-  when: Self().not.match(Condition.Email.IsValid()),
-  message: 'Invalid format'
+  when: not(
+    or(
+      Answer('email').match(Condition.IsRequired()),
+      Answer('phone').match(Condition.IsRequired()),
+      Answer('address').match(Condition.IsRequired())
+    )
+  ),
+  message: 'Provide at least one contact method',
+})
+```
+
+---
+
+## The `dependent` Property
+
+Use `dependent` when a conditionally hidden field has validation. This applies to:
+
+- Fields with `hidden` that also have `validate` rules
+- Nested conditional fields inside GOV.UK Radio/Checkbox items
+
+The `hidden` and `dependent` properties are typically logical opposites:
+
+- `hidden`: "Hide this field when the condition is true"
+- `dependent`: "Only validate this field when the condition is true"
+
+### Standalone Conditional Fields
+
+```typescript
+// Field is hidden AND has validation → use dependent
+field<GovUKTextInput>({
+  code: 'otherMethod',
+  hidden: Answer('contactMethod').not.match(Condition.Equals('other')),
+  dependent: Answer('contactMethod').match(Condition.Equals('other')),
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter your preferred contact method',
+    }),
+  ],
 })
 
-// Good: Specific and actionable
+// Field is hidden but NO validation → dependent not needed
+field<GovUKTextInput>({
+  code: 'optionalNote',
+  hidden: Answer('showNote').not.match(Condition.Equals('yes')),
+  // No validate array, so no dependent needed
+})
+```
+
+### Nested Conditional Fields in Radio/Checkbox Items
+
+GOV.UK Radio and Checkbox components support conditional content that reveals additional fields when a specific option is selected. These nested fields also need `dependent` to ensure validation only runs when visible:
+
+```typescript
+field<GovUKRadioInput>({
+  variant: 'govukRadioInput',
+  code: 'contactMethod',
+  fieldset: { legend: { text: 'How should we contact you?' } },
+  items: [
+    { value: 'email', text: 'Email' },
+    { value: 'phone', text: 'Phone' },
+    {
+      value: 'other',
+      text: 'Other',
+      // Nested field appears when 'other' is selected
+      block: field<GovUKTextInput>({
+        variant: 'govukTextInput',
+        code: 'otherContactMethod',
+        label: 'Please specify your contact method',
+
+        // dependent ensures validation only runs when 'other' is selected
+        dependent: Answer('contactMethod').match(Condition.Equals('other')),
+
+        validate: [
+          validation({
+            when: Self().not.match(Condition.IsRequired()),
+            message: 'Enter your preferred contact method',
+          }),
+        ],
+      }),
+    },
+  ],
+})
+```
+
+Without `dependent`, the nested field would fail validation even when hidden (because the user selected a different radio option).
+
+---
+
+## When Validation Runs
+
+### Regular Validation
+
+By default, validation runs when the current step is submitted. All validation rules in the `validate` array are checked in order, and the first failing rule's message is displayed.
+
+### submissionOnly Validation
+
+When `submissionOnly: true` is set, the validation **only** runs when the current step is submitted - it's skipped during other operations like journey traversal validation (checking if users can legitimately reach a step).
+
+Use `submissionOnly` for:
+- Expensive API calls (e.g., uniqueness checks)
+- Time-sensitive validations (e.g., "must be a future date" which changes over time)
+- Checks that shouldn't block navigation through previously completed steps
+
+---
+
+## Best Practices
+
+### Order Validations Correctly
+
+Always: Required → Format → Business Rules
+
+```typescript
+validate: [
+  // 1. Required check first
+  validation({
+    when: Self().not.match(Condition.IsRequired()),
+    message: 'Enter your email address',
+  }),
+
+  // 2. Format check second
+  validation({
+    when: Self().not.match(Condition.Email.IsValidEmail()),
+    message: 'Enter a valid email address',
+  }),
+
+  // 3. Business rules last
+  validation({
+    when: Self().not.match(Condition.Equals(Answer('confirmEmail'))),
+    message: 'Email addresses do not match',
+  }),
+]
+```
+
+### Use IsRequired() for Empty Checks
+
+`Condition.IsRequired()` handles strings, null, undefined, and empty arrays:
+
+```typescript
+// DO: Use IsRequired
 validation({
-  when: Self().not.match(Condition.Email.IsValid()),
-  message: 'Enter an email address in the correct format, like name@example.com'
+  when: Self().not.match(Condition.IsRequired()),
+  message: 'Enter your full name',
+})
+
+// DON'T: Use String.IsEmpty (doesn't handle all cases)
+validation({
+  when: Self().match(Condition.String.IsEmpty()),
+  message: 'Enter your full name',
+})
+```
+
+### Write Actionable Error Messages
+
+```typescript
+// DO: Tell users what to do
+'Enter your email address'
+'Enter a date in the past'
+'Select at least one option'
+
+// DON'T: State what went wrong
+'This field is required'
+'Invalid date'
+'Validation error'
+```
+
+### Use Formatters to Clean Input
+
+Trim whitespace so `"  "` isn't considered valid:
+
+```typescript
+field<GovUKTextInput>({
+  code: 'email',
+  label: 'Email address',
+  formatters: [
+    Transformer.String.Trim(),
+    Transformer.String.ToLowerCase(),
+  ],
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter your email address',
+    }),
+  ],
+})
+```
+
+### Place Cross-Field Validation on the Dependent Field
+
+```typescript
+// Email field - only validates itself
+field<GovUKTextInput>({
+  code: 'email',
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Enter your email address',
+    }),
+  ],
+})
+
+// Confirm field - validates against the source
+field<GovUKTextInput>({
+  code: 'confirmEmail',
+  validate: [
+    validation({
+      when: Self().not.match(Condition.IsRequired()),
+      message: 'Confirm your email address',
+    }),
+    validation({
+      when: Self().not.match(Condition.Equals(Answer('email'))),
+      message: 'Email addresses do not match',
+    }),
+  ],
 })
 ```

@@ -1,505 +1,394 @@
-# Journeys and Steps Documentation
+# Journeys and Steps
 
-## Overview
+Forms are built from journeys and steps. A journey is the top-level container that defines the form's identity and configuration. Steps are the individual pages within a journey.
 
-The form system is built on a hierarchical structure where **Journeys** represent
-complete multi-step form flows (like wizards), and **Steps** are the individual pages
-within those journeys. This architecture enables complex, branching form flows with
-conditional paths, data loading, and validation at each stage.
+## What is a Journey?
 
-```
-Journey (Complete flow)
-├── Step 1 (Individual page)
-├── Step 2 (Individual page)
-├── Step 3 (Individual page)
-└── Child Journey (Sub-flow)
-    ├── Step A
-    └── Step B
-```
+A journey is the root structure for a form. It defines:
 
-## Journeys
+- A unique identifier (`code`) for the form
+- The base URL path where the form lives
+- Configuration for rendering and behaviour
+- The steps that make up the form flow
+- Optional child journeys for nested structures
 
-Journeys are the top-level containers that define an entire form flow from start to finish.
-They orchestrate how users move through your forms, managing the overall structure and flow control.
-
-### Structure
+### Import
 
 ```typescript
-interface JourneyDefinition {
-  type: StructureType.JOURNEY     // Type identifier for JSON parsing
-  code: string                    // Unique identifier for the journey
-  title: string                   // Display title
-  description?: string            // Optional description
-  path?: string                   // Base URL path for the journey
-  version?: string                // Version identifier for journey/form version
-  controller?: string             // Custom Express controller (?)
-  onLoad?: LoadTransition[]       // Load journey-specific data when accessed
-  onAccess?: AccessTransition[]   // Check access and run analytics
-  steps?: StepDefinition[]        // Steps/pages that make up the journey
-  children?: JourneyDefinition[]  // Sub-journeys
-}
+import { journey, step } from '@form-engine/form/builders'
 ```
 
-### Basic Journey
+---
 
-```typescript
-const registrationJourney = journey({
-  code: 'user-registration',
-  title: 'Create Your Account',
-  description: 'Register for our service in just a few steps',
-  version: '1.0',
-  steps: [
-    step({ path: '/personal-details', blocks: [...] }),
-    step({ path: '/contact-info', blocks: [...] }),
-    step({ path: '/preferences', blocks: [...] }),
-    step({ path: '/review', blocks: [...] }),
-    step({ path: '/confirmation', blocks: [...] }),
-  ],
-})
+## What is a Step?
+
+A step is a single page within a journey. Each step:
+
+- Has its own URL path (relative to the journey)
+- Contains blocks for displaying content
+- Contains fields for collecting user input
+- Can handle form submissions and navigation
+
+---
+
+## The Hierarchy
+
+Forms follow a strict containment hierarchy:
+
+```
+Journey
+├── Step
+│     ├── Block (display content)
+│     ├── Field (collect input)
+│     └── Field
+├── Step
+│     └── Block
+└── Child Journey (optional)
+      └── Step
+            └── Block
 ```
 
-### Journey with Child Journeys
+### Path Composition
 
-Child journeys allow you to compose complex flows from smaller, sub-journeys.
-They can be conditionally included based on user data or choices using each sub-journey's guard.
+URLs are composed by concatenating journey and step paths:
 
-> [!NOTE]
-> Maybe there's some eventual use here for re-useable sub-journeys?
-
-```typescript
-const sanAssessmentJourney = journey({
-  code: 'san-assessment',
-  title: 'Strengths and Needs Assessment',
-  version: '1.1',
-  children: [
-    accommodationJourney,
-    healthAndWellbeingJourney,
-    drugUseJourney
-  ],
-})
+```
+/forms/food-business-registration/personal-details
+       └── journey.path ─────────┘└── step.path ──┘
 ```
 
-### Journey Properties
+---
 
-#### `code`
-Unique identifier used for routing, data storage, and journey references.
-Should be URL-safe and descriptive.
+## Journey Properties
 
-#### `title` and `description`
-Human-readable text for UI display and documentation.
-The title typically appears in progress indicators and navigation.
+### `code` (Required)
 
-#### `path`
-Optional base URL path that prefixes all step paths within the journey.
-Useful for organizing related journeys under common routes.
+Unique identifier for the journey. Used for storing and looking up form instances:
 
 ```typescript
-journey({
-  code: 'example-journey',
-  path: '/an-example-journey',  // Base path
-  steps: [
-    step({ path: '/step-1' }),    // Accessible at /an-example-journey/step-1
-    step({ path: '/step-2' }),    // Accessible at /an-example-journey/step-2
-    step({ path: '/step-3' }),    // Accessible at /an-example-journey/step-3
-  ]
-})
+code: 'food-business-registration'
 ```
 
-#### `version`
-Tracks form version and enables migration strategies when form structures change over time.
+### `path` (Required)
 
-> [!NOTE]
-> For this, we'll need to build a system that takes transform functions tied to form version numbers
-> i.e. 1.1 -> `Transform1.1()`, 1.2 -> `Transform1.2()` - and apply these in sequence over the existing submission data
-> to migrate an existing submission to the latest version
-
-#### `guard`
-Conditional predicate that determines if the entire journey should be accessible.
-Useful for feature flags or user-specific flows.
+URL path segment for the journey. All steps are prefixed with this path:
 
 ```typescript
-journey({
-  code: 'san-prison-journey',
-  guard: and(
-    Data('features.prisonEnabled').match(Condition.MatchesValue(true)),
-    Data('user.location').match(Condition.MatchesValue('PRISON'))
-  ),
-  // ...
-})
+path: '/food-business-registration'
 ```
 
-## Steps
+### `title` (Required)
 
-Steps represent individual pages in your form journey. Each step contains blocks (UI components),
-handles data loading, defines transitions to other steps, and manages validation.
-
-### Structure
-> [!NOTE]
-> There's probably some important options I'm missing here in terms of `revalidate` etc as seen
-> in HMPO Form Wizard, I've not spent long enough investigating that so would be good to get some opinions.
+Human-readable title. Used in navigation, progress indicators, and page titles:
 
 ```typescript
-interface StepDefinition {
-  type: StructureType.STEP             // Type identifier for JSON parsing
-  path: string                         // URL path for this step
-  blocks: BlockDefinition[]            // UI components to render
-  onLoad?: LoadTransition[]            // Load step-specific data when accessed
-  onAccess?: AccessTransition[]        // Check access and run analytics
-  onSubmission?: SubmitTransition[]    // Handle form submission transitions
-  controller?: string                  // Custom Express controller (rare)
-  template?: string                    // Custom Nunjucks template
-  entry?: boolean                      // Mark as valid entry point
-  checkJourneyTraversal?: boolean      // Verify user can reach this step
-  backlink?: string                    // Override automatic back button
-}
+title: 'Register a Food Business'
 ```
 
-### Basic Step
+### `steps` (Optional)
+
+Array of step definitions that make up the journey:
 
 ```typescript
-const personalDetailsStep = step({
-  path: '/personal-details',
-  blocks: [
-    field({
-      variant: 'text',
-      code: 'first_name',
-      label: 'First Name',
-      validate: [ validation({
-        when: Self().not.match(Condition.IsRequired()),
-        message: 'First name is required'
-      }) ],
-    }),
-    field({
-      variant: 'text',
-      code: 'last_name',
-      label: 'Last Name',
-      validate: [ validation({
-        when: Self().not.match(Condition.IsRequired()),
-        message: 'Last name is required'
-      }) ],
-    }),
-    block({
-      variant: 'button-group',
-      blocks: [
-        block({
-          variant: 'button',
-          buttonType: 'submit',
-          name: 'action',
-          value: 'continue'
-        })
-      ]
-    })
-  ],
-  onSubmission: [
-    submitTransition({
-      when: Post('action').match(Condition.MatchesValue('continue')),
-      validate: true,
-      onValid: {
-        effects: [Effect.save()],
-        next: [{ goto: '/contact-info' }],
-      },
-      onInvalid: {
-        next: [{ goto: '/personal-details' }],
-      },
-    }),
-  ],
-})
-```
-
-### Step with Data Loading
-Steps can load external data using the `onLoad` hook, making it available to blocks and logic within the step.
-
-```typescript
-step({
-  path: '/location-selection',
-
-  // Load data using the onLoad hook
-  onLoad: loadTransition({
-    effects: [
-      Effect.LoadCountries(),  // Loads data to Data('countries')
-      Effect.LoadUserSavedLocations(),  // Loads data to Data('savedLocations')
-    ]
-  }),
-
-  blocks: [
-    field({
-      variant: 'select',
-      code: 'country',
-      label: 'Select Country',
-      items: Data('countries'), // Use loaded data
-    }),
-    field({
-      variant: 'select',
-      code: 'saved_location',
-      label: 'Or choose a saved location',
-      items: Data('savedLocations'),
-      dependent: when(Data('savedLocations').match(Condition.LengthGreaterThan(0))),
-    }),
-    // ...
-  ],
-  // ...
-})
-```
-
-### Step Properties
-
-#### `path`
-The URL path where this step is accessible. Can include parameters for dynamic routing.
-
-> [!IMPORTANT]
-> Any step that has a dynamic URL needs to have disabled `checkJourneyTraversal`.
-
-```typescript
-// Static path
-step({ path: '/review' })
-
-// Dynamic path with parameters
-step({ path: '/items/:itemId/edit' })
-```
-
-These are then accessible using `Params('param-name')`
-
-#### `blocks`
-Array of UI components that make up the step's interface. These are rendered in order
-and can include fields, blocks, and collection blocks.
-See `block-type-documentation.md` for more details.
-
-#### `onLoad`
-Optional hook for loading step-specific data when the step is accessed. Uses effects to populate
-the Data context, making it available for use in field configurations, validation, and conditional logic.
-See `hooks-documentation.md` for more details.
-
-#### `onAccess`
-Optional hook for checking access permissions and running analytics when the step is accessed.
-Can include guards, effects, and navigation logic. See `hooks-documentation.md` for more details.
-
-#### `onSubmission`
-Array of submission transition definitions that control how users move from this step to others
-when the form is submitted. Transitions are evaluated in order, with the first matching transition being executed.
-See `transition-documentation.md` for more details.
-
-```typescript
-onSubmission: [
-  submitTransition({ when: Post('action').match(Condition.MatchesValue('save-draft')), validate: false, /* ... */ }),
-  submitTransition({ when: Post('action').match(Condition.MatchesValue('continue')), validate: true, /* ... */ }),
+steps: [
+  welcomeStep,
+  personalDetailsStep,
+  businessDetailsStep,
+  reviewStep,
 ]
 ```
 
-#### `entry`
-Marks a step as a valid entry point to the journey.
-Users can navigate directly to entry steps without following the normal flow.
+### `children` (Optional)
+
+Array of child journeys for nested structures. Child paths are prefixed with the parent path:
 
 ```typescript
-step({
-  path: '/summary',
-  entry: true,  // Users can jump directly to summary
-  // ...
-})
+children: [
+  journey({
+    code: 'business-details',
+    title: 'Business Details',
+    path: '/business-details',
+    steps: [/* ... */],
+  }),
+]
 ```
 
-#### `checkJourneyTraversal`
-When `true`, validates that the user reached this step through valid navigation paths.
-Prevents users from jumping to steps they shouldn't access yet.
+### `entryPath` (Optional)
+
+Override the default entry point. When users navigate to the journey root, they're redirected here:
 
 ```typescript
-step({
-  path: '/payment',
-  checkJourneyTraversal: true,  // Must have completed previous steps
-  // ...
-})
+entryPath: '/welcome'
 ```
 
-#### `backlink`
-Override the automatically calculated back button destination.
-Useful for complex flows where the default back navigation isn't appropriate.
+**Resolution priority:**
+1. `entryPath` on the journey (if specified)
+2. First step with `isEntryPoint: true`
+
+### `view` (Optional)
+
+Configuration for how the journey renders:
 
 ```typescript
-step({
-  path: '/error-recovery',
-  backlink: '/dashboard',  // Always go back to dashboard
-  // ...
-})
+view: {
+  template: 'partials/form-step',
+  locals: {
+    serviceName: 'Food Business Registration',
+    showProgress: true,
+  },
+}
 ```
 
-#### `template`
-Specify a custom Nunjucks template for rendering this step.
-Useful when you need custom HTML structure beyond what the default template provides.
+Steps inherit this configuration unless they override it.
+
+### `metadata` (Optional)
+
+Custom data for application-specific logic:
 
 ```typescript
-step({
-  path: '/custom-layout',
-  template: 'templates/special-step.njk',
-  // ...
-})
+metadata: {
+  version: '1.0',
+  category: 'registration',
+  requiresAuth: true,
+}
 ```
 
-## Common Patterns
+### `onLoad`, `onAccess` (Optional)
 
-### 1. Linear Flow
-Simple progression through steps in order:
+Journeys can define `onLoad` and `onAccess` transitions that run for every step. See [Transitions](./transitions.md).
+
+---
+
+## Step Properties
+
+### `path` (Required)
+
+URL path segment for this step. Combined with the journey path:
 
 ```typescript
-journey({
-  code: 'simple-survey',
+path: '/personal-details'
+```
+
+### `title` (Required)
+
+Human-readable title for the step:
+
+```typescript
+title: 'Enter your personal details'
+```
+
+### `blocks` (Required)
+
+Array of block and field definitions. See [Blocks and Fields](./blocks-and-fields.md):
+
+```typescript
+blocks: [
+  block<HtmlBlock>({
+    variant: 'html',
+    content: '<h1>Welcome</h1>',
+  }),
+  field<GovUKTextInput>({
+    variant: 'govukTextInput',
+    code: 'fullName',
+    label: 'Full name',
+  }),
+]
+```
+
+### `isEntryPoint` (Optional)
+
+Marks this step as an entry point. Entry points are exempt from reachability validation and the first entry point becomes the default redirect for the journey root:
+
+```typescript
+isEntryPoint: true
+```
+
+Multiple steps can have `isEntryPoint: true` - useful for hub-and-spoke patterns.
+
+### `view` (Optional)
+
+Override the journey's view configuration for this step:
+
+```typescript
+view: {
+  template: 'partials/confirmation-page',
+  locals: {
+    showConfetti: true,
+  },
+}
+```
+
+### `backlink` (Optional)
+
+Override the default back link. By default, steps show a back link to the previous step:
+
+```typescript
+// Custom URL
+backlink: '/forms/my-journey/previous-section'
+
+// Disable back link
+backlink: ''
+```
+
+### `metadata` (Optional)
+
+Custom data for this step:
+
+```typescript
+metadata: {
+  section: 'personal-info',
+  analyticsPageName: 'Personal Details Entry',
+}
+```
+
+### `onLoad`, `onAccess`, `onAction`, `onSubmission` (Optional)
+
+Steps can define these lifecycle transitions. See [Transitions](./transitions.md).
+
+---
+
+## Basic Usage
+
+### Simple Journey
+
+```typescript
+import { journey, step, block, field } from '@form-engine/form/builders'
+import { HtmlBlock } from '@form-engine/registry/components/html'
+import { GovUKTextInput, GovUKButton } from '@form-engine-govuk-components/components'
+
+export default journey({
+  code: 'contact-form',
+  title: 'Contact Us',
+  path: '/contact',
+
   steps: [
     step({
-      path: '/question-1',
-      blocks: [ /*...*/ ],
-      onSubmission: [
-        submitTransition({
-          validate: true,
-          onValid: { next: [{ goto: '/question-2' }] },
-          onInvalid: { next: [{ goto: '/question-1' }] },
-        }),
-      ],
-    }),
-    step({
-      path: '/question-2',
-      blocks: [ /*...*/ ],
-      onSubmission: [
-        submitTransition({
-          validate: true,
-          onValid: { next: [{ goto: '/question-3' }] },
-          onInvalid: { next: [{ goto: '/question-2' }] },
-        }),
-      ],
-    }),
-    step({
-      path: '/question-3',
-      blocks: [ /*...*/ ],
-      onSubmission: [
-        submitTransition({
-          validate: true,
-          onValid: { next: [{ goto: '/complete' }] },
-          onInvalid: { next: [{ goto: '/question-3' }] },
-        }),
-      ],
-    }),
-  ],
-})
-```
-
-### 2. Branching Flow
-Different paths based on user input:
-
-```typescript
-journey({
-  code: 'application-flow',
-  steps: [
-    step({
-      path: '/applicant-type',
+      path: '/details',
+      title: 'Your Details',
+      isEntryPoint: true,
       blocks: [
-        field({
-          variant: 'radio',
-          code: 'type',
-          items: [
-            { value: 'individual', label: 'Individual' },
-            { value: 'business', label: 'Business' },
-          ],
+        block<HtmlBlock>({
+          variant: 'html',
+          content: '<h1 class="govuk-heading-l">Contact Us</h1>',
         }),
-      ],
-      onSubmission: [
-        submitTransition({
-          validate: true,
-          onValid: {
-            next: [
-              {
-                when: Answer('type').match(Condition.MatchesValue('individual')),
-                goto: '/individual-details',
-              },
-              {
-                when: Answer('type').match(Condition.MatchesValue('business')),
-                goto: '/business-details',
-              },
-            ],
-          },
-          onInvalid: { next: [{ goto: '/applicant-type' }] },
+        field<GovUKTextInput>({
+          variant: 'govukTextInput',
+          code: 'name',
+          label: 'Your name',
+        }),
+        field<GovUKTextInput>({
+          variant: 'govukTextInput',
+          code: 'email',
+          label: 'Email address',
+        }),
+        block<GovUKButton>({
+          variant: 'govukButton',
+          text: 'Submit',
         }),
       ],
     }),
-    // Separate paths for different types
-    step({ path: '/individual-details', /* ... */ }),
-    step({ path: '/business-details', /* ... */ }),
   ],
 })
 ```
 
-### 3. Multi-Step with Summary
-Collect data across multiple steps, then review:
+### Multi-Step Journey
 
 ```typescript
-journey({
-  code: 'application',
+import { journey } from '@form-engine/form/builders'
+import { personalDetailsStep } from './steps/personal-details'
+import { businessDetailsStep } from './steps/business-details'
+import { reviewStep } from './steps/review'
+import { confirmationStep } from './steps/confirmation'
+
+export default journey({
+  code: 'food-business-registration',
+  title: 'Register a Food Business',
+  path: '/food-business-registration',
+
+  view: {
+    template: 'partials/form-step',
+    locals: {
+      serviceName: 'Food Business Registration',
+    },
+  },
+
   steps: [
-    step({ path: '/personal', /* ... */ }),
-    step({ path: '/employment', /* ... */ }),
-    step({ path: '/financial', /* ... */ }),
-    // Save as draft for each step
-    step({
-      path: '/review',
-      entry: true,  // Allow returning to review
-      blocks: [
-        // Summary of all collected data
-        // With change links back to each section
-      ],
-      onSubmission: [
-        submitTransition({
-          when: Post('action').match(Condition.MatchesValue('submit')),
-          validate: false,  // No validation needed on review
-          onAlways: {
-            effects: [Effect.save()], // Commit to saved.
-            next: [{ goto: '/confirmation' }],
-          },
-        }),
-      ],
-    }),
+    personalDetailsStep,
+    businessDetailsStep,
+    reviewStep,
+    confirmationStep,
   ],
 })
 ```
+
+### Nested Journeys
+
+```typescript
+import { journey } from '@form-engine/form/builders'
+import { hubStep } from './steps/hub'
+import { personalSection } from './sections/personal'
+import { businessSection } from './sections/business'
+
+export default journey({
+  code: 'registration',
+  title: 'Registration',
+  path: '/registration',
+
+  steps: [hubStep],
+
+  children: [
+    personalSection,   // path: /registration/personal/...
+    businessSection,   // path: /registration/business/...
+  ],
+})
+```
+
+---
 
 ## Best Practices
 
-### 1. Path Naming
-Use clear, hierarchical paths that reflect the journey structure:
+### Use Descriptive Paths
 
 ```typescript
-// Good
-'/personal-details'
-'/contact/address'
-'/payment/card-details'
+// DO: Descriptive, kebab-case
+path: '/personal-details'
+path: '/business-address'
 
-// Avoid
-'/step1'
-'/page2'
-'/form_part_3'
+// DON'T: Vague or inconsistent
+path: '/step1'
+path: '/personalDetails'
 ```
 
-### 2. Entry Points
-Mark appropriate steps as entry points for better user experience:
+### Organise Steps in Separate Files
 
-```typescript
-// Allow users to return to summary without re-doing the form
-step({
-  path: '/summary',
-  entry: true,
-  checkJourneyTraversal: false,  // Don't enforce traversal for entry points
-})
+For larger journeys, keep each step in its own file:
+
+```
+my-journey/
+├── index.ts           # journey definition
+├── effects.ts         # shared effects
+└── steps/
+    ├── personal-details.ts
+    ├── business-details.ts
+    └── review.ts
 ```
 
-
-### 3. Journey Traversal
-Use `checkJourneyTraversal` to enforce flow integrity where needed:
+### Use Entry Points for Hub-and-Spoke
 
 ```typescript
-// Enforce for sensitive steps
+// Hub step
 step({
-  path: '/payment',
-  checkJourneyTraversal: true,  // Must follow proper flow
+  path: '/hub',
+  title: 'Task List',
+  isEntryPoint: true,
+  // ...
 })
 
-// Skip for informational pages
+// Section steps - also entry points so users can bookmark them
 step({
-  path: '/help',
-  checkJourneyTraversal: false,  // Can access directly
+  path: '/personal',
+  title: 'Personal Details',
+  isEntryPoint: true,
+  // ...
 })
 ```
