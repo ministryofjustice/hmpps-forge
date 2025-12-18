@@ -1,7 +1,7 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { PostPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
-import { ThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
 import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
@@ -16,13 +16,15 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  *
  * Nested property access is handled by Reference expression handlers.
  */
-export default class PostHandler implements ThunkHandler {
+export default class PostHandler implements SyncThunkHandler {
+  readonly isAsync = false as const
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: PostPseudoNode,
   ) {}
 
-  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+  evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { baseFieldCode, fieldNodeId } = this.pseudoNode.properties
 
     // Validate field code is safe before using as property key

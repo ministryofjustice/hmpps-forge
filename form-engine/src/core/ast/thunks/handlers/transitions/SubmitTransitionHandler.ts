@@ -1,10 +1,19 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  CapturedEffect,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { evaluateUntilFirstMatch } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import {
+  evaluateUntilFirstMatch,
+  evaluateUntilFirstMatchSync,
+} from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
 import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
 
 /**
@@ -65,11 +74,154 @@ export interface SubmitTransitionResult {
  * - Skips validation
  * - Executes onAlways branch
  */
-export default class SubmitTransitionHandler implements ThunkHandler {
+export default class SubmitTransitionHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: SubmitTransitionASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const { when, guards, onAlways, onValid, onInvalid } = this.node.properties
+
+    // Check when predicate
+    if (isASTNode(when)) {
+      const handler = deps.thunkHandlerRegistry.get(when.id)
+      if (handler?.isAsync ?? true) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check guards predicate
+    if (isASTNode(guards)) {
+      const handler = deps.thunkHandlerRegistry.get(guards.id)
+      if (handler?.isAsync ?? true) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check branches
+    const branches = [onAlways, onValid, onInvalid].filter(Boolean)
+
+    for (const branch of branches) {
+      // Check effects in branch
+      if (branch?.effects && Array.isArray(branch.effects)) {
+        const hasAsyncEffect = branch.effects.filter(isASTNode).some(effect => {
+          const handler = deps.thunkHandlerRegistry.get(effect.id)
+          return handler?.isAsync ?? true
+        })
+        if (hasAsyncEffect) {
+          this.isAsync = true
+          return
+        }
+      }
+
+      // Check next expressions in branch
+      if (branch?.next && Array.isArray(branch.next)) {
+        const hasAsyncNext = branch.next.filter(isASTNode).some(node => {
+          const handler = deps.thunkHandlerRegistry.get(node.id)
+          return handler?.isAsync ?? true
+        })
+        if (hasAsyncNext) {
+          this.isAsync = true
+          return
+        }
+      }
+    }
+
+    // TODO: Wire SubmitTransition to its parent step's blocks in the dependency graph
+    // Currently, there's no explicit edge from SubmitTransition to the blocks it validates,
+    // so the topological sort can't guarantee blocks are processed before this transition.
+    // This causes us to check isAsync on block handlers that may not have been computed yet.
+    // For now, we conservatively mark as async if validate=true.
+    //
+    // Proper fix: During dependency wiring, add edges from SubmitTransition (with validate=true)
+    // to all field blocks in its parent step. This ensures blocks compute isAsync first.
+    if (this.node.properties.validate === true) {
+      this.isAsync = true
+      return
+    }
+
+    this.isAsync = false
+  }
+
+  evaluateSync(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): HandlerResult<SubmitTransitionResult> {
+    // Check when predicate
+    const whenPassed = this.evaluateWhenPredicateSync(context, invoker)
+
+    if (!whenPassed) {
+      return {
+        value: {
+          executed: false,
+          validated: false,
+        },
+      }
+    }
+
+    // Check guards predicate
+    const guardsPassed = this.evaluateGuardsPredicateSync(context, invoker)
+
+    if (!guardsPassed) {
+      return {
+        value: {
+          executed: false,
+          validated: false,
+        },
+      }
+    }
+
+    // Determine validation state
+    const validate = this.node.properties.validate
+    let isValid: boolean | undefined
+
+    if (validate === true) {
+      isValid = this.evaluateValidationsSync(context, invoker)
+    }
+
+    // Collect effects and next from appropriate branch (capture effects without executing)
+    let next: string | undefined
+    const pendingEffects: CapturedEffect[] = []
+
+    if (validate === true) {
+      // Validating transition
+      const onAlwaysEffects = this.captureEffectsSync(this.node.properties.onAlways?.effects, context, invoker)
+      pendingEffects.push(...onAlwaysEffects)
+
+      if (isValid) {
+        const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onValid, context, invoker)
+
+        pendingEffects.push(...effects)
+        next = branchNext
+      } else {
+        const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onInvalid, context, invoker)
+
+        pendingEffects.push(...effects)
+        next = branchNext
+      }
+    } else {
+      // Skip validation transition
+      const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onAlways, context, invoker)
+
+      pendingEffects.push(...effects)
+      next = branchNext
+    }
+
+    return {
+      value: {
+        executed: true,
+        validated: validate === true,
+        isValid,
+        next,
+        pendingEffects: pendingEffects.length > 0 ? pendingEffects : undefined,
+      },
+    }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,
@@ -353,6 +505,124 @@ export default class SubmitTransitionHandler implements ThunkHandler {
   ): Promise<string | undefined> {
     const nextIds = nextExpressions.filter(isASTNode).map(node => node.id)
     const result = await evaluateUntilFirstMatch(nextIds, context, invoker)
+
+    return result !== undefined ? String(result) : undefined
+  }
+
+  // Sync versions of private methods
+
+  private evaluateWhenPredicateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
+    const when = this.node.properties.when
+
+    if (!isASTNode(when)) {
+      return true
+    }
+
+    const result = invoker.invokeSync(when.id, context)
+
+    if (result.error) {
+      return false
+    }
+
+    return Boolean(result.value)
+  }
+
+  private evaluateGuardsPredicateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
+    const guards = this.node.properties.guards
+
+    if (!isASTNode(guards)) {
+      return true
+    }
+
+    const result = invoker.invokeSync(guards.id, context)
+
+    if (result.error) {
+      return false
+    }
+
+    return Boolean(result.value)
+  }
+
+  private evaluateValidationsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
+    try {
+      const parentStepId = this.findParentStepIdForNode(this.nodeId, context)
+
+      if (!parentStepId) {
+        return true
+      }
+
+      const blockIds = this.findBlocksForStep(parentStepId, context)
+
+      if (blockIds.length === 0) {
+        return true
+      }
+
+      const blockResults = blockIds.map(blockId => {
+        const result = invoker.invokeSync(blockId, context)
+
+        if (result.error) {
+          return { properties: { validate: [] } }
+        }
+
+        return result.value as { properties?: { validate?: Array<{ passed: boolean }> } }
+      })
+
+      const allValidations = blockResults.flatMap(block => {
+        if (!block.properties || !Array.isArray(block.properties.validate)) {
+          return []
+        }
+
+        return block.properties.validate as Array<{ passed: boolean }>
+      })
+
+      if (allValidations.length === 0) {
+        return true
+      }
+
+      return allValidations.every(validation => validation.passed === true)
+    } catch {
+      return false
+    }
+  }
+
+  private captureEffectsSync(
+    effects: unknown[] | undefined,
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): CapturedEffect[] {
+    if (!effects) {
+      return []
+    }
+
+    return effects
+      .filter(isASTNode)
+      .map(effectNode => invoker.invokeSync<CapturedEffect>(effectNode.id, context))
+      .filter(result => !result.error && result.value)
+      .map(result => result.value!)
+  }
+
+  private collectBranchSync(
+    branch: { effects?: unknown[]; next?: unknown[] } | undefined,
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): { effects: CapturedEffect[]; next: string | undefined } {
+    if (!branch) {
+      return { effects: [], next: undefined }
+    }
+
+    const effects = this.captureEffectsSync(branch.effects, context, invoker)
+    const next = branch.next ? this.evaluateNextSync(branch.next, context, invoker) : undefined
+
+    return { effects, next }
+  }
+
+  private evaluateNextSync(
+    nextExpressions: unknown[],
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): string | undefined {
+    const nextIds = nextExpressions.filter(isASTNode).map(node => node.id)
+    const result = evaluateUntilFirstMatchSync(nextIds, context, invoker)
 
     return result !== undefined ? String(result) : undefined
   }

@@ -6,7 +6,12 @@ import DependencyGraph from '@form-engine/core/ast/dependencies/DependencyGraph'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { ThunkHandler, RuntimeOverlayBuilder, EvaluatorRequestData } from '@form-engine/core/ast/thunks/types'
+import {
+  ThunkHandler,
+  AsyncThunkHandler,
+  RuntimeOverlayBuilder,
+  EvaluatorRequestData,
+} from '@form-engine/core/ast/thunks/types'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
@@ -138,66 +143,70 @@ describe('ThunkEvaluator', () => {
     })
 
     it('should return cached value result with cached flag when result is cached', async () => {
-      // Arrange
+      // Arrange - use pseudo node ID since only pseudo nodes are cached
+      const pseudoNodeId: NodeId = 'compile_pseudo:1'
       const mockHandler: jest.Mocked<ThunkHandler> = {
-        nodeId,
+        nodeId: pseudoNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockResolvedValue({
           value: 'test-value',
           metadata: { source: 'test', timestamp: 123456 },
         }),
       }
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).mockReturnValue(mockHandler)
 
       // Act
-      const firstResult = await evaluator.invoke(nodeId, mockContext)
+      const firstResult = await evaluator.invoke(pseudoNodeId, mockContext)
 
       // Assert
       expect(firstResult.value).toBe('test-value')
-      expect(firstResult.metadata.cached).toBeUndefined()
+      expect(firstResult.metadata?.cached).toBeUndefined()
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
 
       // Act - Second call should use cache
-      const secondResult = await evaluator.invoke(nodeId, mockContext)
+      const secondResult = await evaluator.invoke(pseudoNodeId, mockContext)
 
       // Assert
       expect(secondResult.value).toBe('test-value')
-      expect(secondResult.metadata.cached).toBe(true)
-      expect(secondResult.metadata.source).toBe('test')
+      expect(secondResult.metadata?.cached).toBe(true)
+      expect(secondResult.metadata?.source).toBe('test')
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
     })
 
     it('should return cached error result with cached flag when error result is cached', async () => {
-      // Arrange
+      // Arrange - use pseudo node ID since only pseudo nodes are cached
+      const pseudoNodeId: NodeId = 'compile_pseudo:2'
       const mockHandler: jest.Mocked<ThunkHandler> = {
-        nodeId,
+        nodeId: pseudoNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockResolvedValue({
           error: {
             type: 'EVALUATION_FAILED',
-            nodeId,
+            nodeId: pseudoNodeId,
             message: 'Test error',
           },
           metadata: { source: 'test', timestamp: 123456 },
         }),
       }
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).mockReturnValue(mockHandler)
 
       // Act
-      const firstResult = await evaluator.invoke(nodeId, mockContext)
+      const firstResult = await evaluator.invoke(pseudoNodeId, mockContext)
 
       // Assert
       expect(firstResult.error).toBeDefined()
       expect(firstResult.error?.message).toBe('Test error')
-      expect(firstResult.metadata.cached).toBeUndefined()
+      expect(firstResult.metadata?.cached).toBeUndefined()
 
       // Act - Second call should use cached error
-      const secondResult = await evaluator.invoke(nodeId, mockContext)
+      const secondResult = await evaluator.invoke(pseudoNodeId, mockContext)
 
       // Assert
       expect(secondResult.error).toBeDefined()
       expect(secondResult.error?.message).toBe('Test error')
-      expect(secondResult.metadata.cached).toBe(true)
+      expect(secondResult.metadata?.cached).toBe(true)
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
     })
 
@@ -221,6 +230,7 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockResolvedValue({
           value: 42,
           metadata: { source: 'handler', timestamp: Date.now() },
@@ -253,6 +263,7 @@ describe('ThunkEvaluator', () => {
       const thrownError = new Error('Handler crashed')
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockRejectedValue(thrownError),
       }
 
@@ -268,13 +279,13 @@ describe('ThunkEvaluator', () => {
       expect(result.error?.message).toContain('evaluation failed')
       expect(result.error?.message).toContain('Handler crashed')
       expect(result.error?.cause).toBeInstanceOf(Error)
-      expect(result.metadata.source).toBeDefined()
     })
 
     it('should handle non-Error exceptions when handler throws', async () => {
       // Arrange
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockRejectedValue('String error'),
       }
 
@@ -299,6 +310,7 @@ describe('ThunkEvaluator', () => {
 
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockImplementation(async () => {
           await evaluationPromise
 
@@ -374,9 +386,10 @@ describe('ThunkEvaluator', () => {
 
       const evaluationOrder: NodeId[] = []
 
-      const createHandler = (id: NodeId, childIds: NodeId[] = []): jest.Mocked<ThunkHandler> => {
+      const createHandler = (id: NodeId, childIds: NodeId[] = []): jest.Mocked<AsyncThunkHandler> => {
         return {
           nodeId: id,
+          isAsync: true as const,
           evaluate: jest.fn().mockImplementation(async (ctx, invoker, hooks) => {
             evaluationOrder.push(id)
 
@@ -433,6 +446,7 @@ describe('ThunkEvaluator', () => {
 
       const journeyHandler: jest.Mocked<ThunkHandler> = {
         nodeId: journeyNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockImplementation(async (ctx, invoker) => {
           await invoker.invoke(childNodeId, ctx)
 
@@ -442,6 +456,7 @@ describe('ThunkEvaluator', () => {
 
       const childHandler: jest.Mocked<ThunkHandler> = {
         nodeId: childNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockImplementation(async () => {
           callCount += 1
 
@@ -492,6 +507,7 @@ describe('ThunkEvaluator', () => {
 
       const journeyHandler: jest.Mocked<ThunkHandler> = {
         nodeId: journeyNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockImplementation(async (ctx, invoker) => {
           await invoker.invoke(answerNodeId, ctx)
 
@@ -504,6 +520,7 @@ describe('ThunkEvaluator', () => {
 
       const answerHandler: jest.Mocked<ThunkHandler> = {
         nodeId: answerNodeId,
+        isAsync: true as const,
         evaluate: jest.fn().mockImplementation(async (ctx: ThunkEvaluationContext) => {
           // Simulate handler populating answers
           ctx.global.answers.email = {

@@ -1,6 +1,8 @@
 import { NodeId, FormInstanceDependencies, ASTNode } from '@form-engine/core/types/engine.type'
 import {
   ThunkHandler,
+  SyncThunkHandler,
+  HybridThunkHandler,
   ThunkInvocationAdapter,
   ThunkResult,
   ThunkRuntimeHooks,
@@ -8,6 +10,7 @@ import {
   RuntimeOverlayConfigurator,
   EvaluatorRequestData,
 } from '@form-engine/core/ast/thunks/types'
+import { isSyncHandler } from '@form-engine/core/ast/thunks/typeguards'
 import ThunkHandlerRegistryError from '@form-engine/errors/ThunkHandlerRegistryError'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import ThunkCompilerFactory from '@form-engine/core/ast/thunks/factories/ThunkCompilerFactory'
@@ -154,11 +157,76 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
    * @returns Promise resolving to the evaluation result
    */
   async invoke<T = unknown>(nodeId: NodeId, context: ThunkEvaluationContext): Promise<ThunkResult<T>> {
+    // Check cache result before creating isolated context waste
+    const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
+
+    if (cachedResult) {
+      return cachedResult
+    }
+
     // Create isolated scope for this invocation to prevent scope pollution
     // when multiple evaluations run in parallel (e.g., Promise.all in BlockHandler)
     const isolatedContext = context.withIsolatedScope()
 
     return this.invokeWithRetry(nodeId, isolatedContext, 10)
+  }
+
+  /**
+   * Invoke a handler synchronously (ThunkInvocationAdapter implementation)
+   *
+   * This is the fast path for handlers known to be synchronous - no Promise
+   * overhead, no microtask queue. Throws if handler is not synchronous.
+   *
+   * This method handles:
+   * 1. Cache lookup (return cached result if available)
+   * 2. Handler lookup (find handler for nodeId)
+   * 3. Verify handler is sync (throws if not)
+   * 4. Handler execution (call handler.evaluateSync())
+   * 5. Cache storage (store result for future invocations)
+   *
+   * @param nodeId - The node to evaluate
+   * @param context - Runtime evaluation context
+   * @returns The evaluation result (no Promise)
+   * @throws Error if handler is not synchronous
+   */
+  invokeSync<T = unknown>(nodeId: NodeId, context: ThunkEvaluationContext): ThunkResult<T> {
+    // Fast path: Check cache
+    const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
+
+    if (cachedResult) {
+      return cachedResult
+    }
+
+    // Lookup handler
+    const handler = this.compilationDependencies.thunkHandlerRegistry.get(nodeId)
+
+    if (!handler) {
+      const registry = this.compilationDependencies.thunkHandlerRegistry
+      const error = ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
+
+      const errorResult: ThunkResult<T> = {
+        error: error.toThunkError(),
+        metadata: { source: 'ThunkEvaluator.invokeSync', timestamp: Date.now() },
+      }
+
+      this.cacheManager.set(nodeId, errorResult)
+
+      return errorResult
+    }
+
+    // Verify handler is actually sync
+    if (!isSyncHandler(handler)) {
+      throw new Error(
+        `invokeSync() called on async handler: ${nodeId} (${handler.constructor.name}). ` +
+          `Use invoke() instead or convert handler to SyncThunkHandler.`,
+      )
+    }
+
+    // Execute synchronously - NO Promise overhead!
+    const result = this.executeSyncHandler<T>(nodeId, handler, context)
+    this.cacheManager.set(nodeId, result)
+
+    return result
   }
 
   /**
@@ -176,14 +244,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     context: ThunkEvaluationContext,
     maxRetries: number,
   ): Promise<ThunkResult<T>> {
-    // 1. Check cache for existing result (memoization)
-    const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
-
-    if (cachedResult) {
-      return cachedResult
-    }
-
-    // 2. Look up handler from registry
+    // Look up handler from registry
     const handler = this.compilationDependencies.thunkHandlerRegistry.get(nodeId)
 
     if (!handler) {
@@ -203,8 +264,23 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
       return errorResult
     }
 
-    // 3. Dedupe concurrent evaluations and execute
-    return this.withInFlightTracking(nodeId, () => this.evaluateWithRetry<T>(nodeId, handler, context, maxRetries))
+    // Branch based on handler type
+    if (isSyncHandler(handler)) {
+      // SYNC PATH: Execute immediately, no async overhead
+      const result = this.executeSyncHandler<T>(nodeId, handler, context)
+
+      // Cache result
+      this.cacheManager.set(nodeId, result)
+
+      return result
+    }
+
+    // ASYNC PATH: Dedupe concurrent evaluations and execute
+    const { result } = await this.withInFlightTracking(nodeId, () =>
+      this.evaluateWithRetry<T>(nodeId, handler, context, maxRetries),
+    )
+
+    return result
   }
 
   /**
@@ -215,16 +291,17 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
    *
    * @param nodeId - The node being evaluated
    * @param compute - Function that performs the actual evaluation
-   * @returns Promise resolving to the evaluation result
+   * @returns Promise resolving to the evaluation result with deduped flag
    */
   private async withInFlightTracking<T>(
     nodeId: NodeId,
     compute: () => Promise<ThunkResult<T>>,
-  ): Promise<ThunkResult<T>> {
+  ): Promise<{ result: ThunkResult<T>; wasDeduplicated: boolean }> {
     const existing = this.inFlightEvaluations.get(nodeId)
 
     if (existing) {
-      return existing as Promise<ThunkResult<T>>
+      const result = (await existing) as ThunkResult<T>
+      return { result, wasDeduplicated: true }
     }
 
     const promise = compute()
@@ -232,7 +309,8 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     this.inFlightEvaluations.set(nodeId, promise as Promise<ThunkResult>)
 
     try {
-      return await promise
+      const result = await promise
+      return { result, wasDeduplicated: false }
     } finally {
       this.inFlightEvaluations.delete(nodeId)
     }
@@ -296,10 +374,6 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
   /**
    * Execute handler and wrap any errors in structured ThunkError
    *
-   * Merges infrastructure-provided metadata (source from handler class name, timestamp)
-   * with any handler-provided metadata. Handler metadata is appended and can override
-   * defaults if needed.
-   *
    * @param nodeId - The node being evaluated
    * @param handler - The handler to execute
    * @param context - Runtime evaluation context
@@ -313,29 +387,47 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     hooks: ThunkRuntimeHooks,
   ): Promise<ThunkResult<T>> {
     try {
-      const result = await handler.evaluate(context, this, hooks)
+      // TypeScript doesn't know that handler must be AsyncThunkHandler here
+      // (because SyncThunkHandler was already handled in invokeWithRetry)
+      // So we need to cast or check again
+      if (isSyncHandler(handler)) {
+        // This shouldn't happen (sync handlers are fast-pathed in invokeWithRetry)
+        // but TypeScript doesn't know that, so we handle it gracefully
+        return handler.evaluateSync(context, this) as ThunkResult<T>
+      }
 
-      // Infrastructure provides defaults, handler metadata appends/overrides
-      return {
-        ...result,
-        metadata: {
-          source: handler.constructor.name,
-          timestamp: Date.now(),
-          ...result.metadata,
-        },
-      } as ThunkResult<T>
+      return (await handler.evaluate(context, this, hooks)) as ThunkResult<T>
     } catch (cause) {
       // Wrap any thrown errors in structured ThunkError
       const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
       const error = ThunkEvaluationError.failed(nodeId, wrappedCause, handler.constructor.name)
 
-      return {
-        error: error.toThunkError(),
-        metadata: {
-          source: handler.constructor.name,
-          timestamp: Date.now(),
-        },
-      }
+      return { error: error.toThunkError() }
+    }
+  }
+
+  /**
+   * Execute sync handler and wrap any errors in structured ThunkError
+   *
+   * Direct synchronous execution - no Promise overhead, no async machinery.
+   *
+   * @param nodeId - The node being evaluated
+   * @param handler - The sync handler to execute
+   * @param context - Runtime evaluation context
+   * @returns Evaluation result (success or wrapped error)
+   */
+  private executeSyncHandler<T>(
+    nodeId: NodeId,
+    handler: SyncThunkHandler | HybridThunkHandler,
+    context: ThunkEvaluationContext,
+  ): ThunkResult<T> {
+    try {
+      return handler.evaluateSync(context, this) as ThunkResult<T>
+    } catch (cause) {
+      const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
+      const error = ThunkEvaluationError.failed(nodeId, wrappedCause, handler.constructor.name)
+
+      return { error: error.toThunkError() }
     }
   }
 

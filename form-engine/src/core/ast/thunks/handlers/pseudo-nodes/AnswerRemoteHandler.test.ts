@@ -15,7 +15,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { businessType: 'food-stall' } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('food-stall')
@@ -29,7 +29,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { businessType: 'food-stall' } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -48,7 +48,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { address: addressAnswer } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(addressAnswer)
@@ -63,7 +63,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { interests } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(interests)
@@ -78,7 +78,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { acceptTerms: true } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe(true)
@@ -93,7 +93,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { age: 25 } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe(25)
@@ -108,7 +108,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { optionalField: null } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeNull()
@@ -122,7 +122,7 @@ describe('AnswerRemoteHandler', () => {
       const mockContext = createMockContext({ mockAnswers: { optionalText: '' } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('')

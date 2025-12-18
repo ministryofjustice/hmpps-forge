@@ -1,5 +1,6 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import PseudoNodeTraverser from '@form-engine/core/ast/registration/PseudoNodeTraverser'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import { MetadataTraverser } from '@form-engine/core/ast/registration/MetadataTraverser'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { AddSelfValueToFieldsNormalizer } from '@form-engine/core/ast/normalizers/AddSelfValueToFields'
@@ -221,9 +222,13 @@ export class NodeCompilationPipeline {
    * Creates thunk handlers for all nodes in the registry.
    * Handlers are registered in the thunkHandlerRegistry for runtime evaluation.
    *
-   * @param compilationDependencies
+   * Pass 1: Creates all handlers
+   * Pass 2: Computes isAsync metadata for hybrid handlers
+   *
+   * @param compilationDependencies - Contains all compilation artifacts
+   * @param functionRegistry - Registry of user-defined functions (for async metadata)
    */
-  static compileThunks(compilationDependencies: CompilationDependencies): void {
-    new ThunkCompilerFactory().compile(compilationDependencies)
+  static compileThunks(compilationDependencies: CompilationDependencies, functionRegistry: FunctionRegistry): void {
+    new ThunkCompilerFactory().compile(compilationDependencies, functionRegistry)
   }
 }

@@ -1,6 +1,6 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { QueryPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { ThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
@@ -14,13 +14,15 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  * Returns the complete value (string | string[] | undefined) for the parameter.
  * Nested property access is handled by Reference expression handlers.
  */
-export default class QueryHandler implements ThunkHandler {
+export default class QueryHandler implements SyncThunkHandler {
+  readonly isAsync = false as const
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: QueryPseudoNode,
   ) {}
 
-  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+  evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { paramName } = this.pseudoNode.properties
 
     // Validate parameter name is safe before using as property key
@@ -30,7 +32,7 @@ export default class QueryHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
-    // Read query parameter value from context
+    // Read query parameter value from context - direct return, no Promise!
     return { value: context.request.query[paramName] }
   }
 }

@@ -1,8 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ValidationASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Result of a validation evaluation
@@ -43,12 +49,72 @@ export interface ValidationResult {
  * 3. Evaluating the resolved block code (if it's an AST node)
  *
  * Returns a ValidationResult object with isValid, message, and metadata
+ *
+ * Synchronous when when predicate and message are sync.
+ * Asynchronous when when predicate or message is async.
  */
-export default class ValidationHandler implements ThunkHandler {
+export default class ValidationHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: ValidationASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    // Check when predicate
+    const whenHandler = deps.thunkHandlerRegistry.get(this.node.properties.when.id)
+    const whenIsAsync = whenHandler?.isAsync ?? true
+
+    // Check message
+    let messageIsAsync = false
+
+    if (isASTNode(this.node.properties.message)) {
+      const messageHandler = deps.thunkHandlerRegistry.get(this.node.properties.message.id)
+
+      messageIsAsync = messageHandler?.isAsync ?? true
+    }
+
+    // Async if when or message is async
+    this.isAsync = whenIsAsync || messageIsAsync
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ValidationResult> {
+    // Evaluate the 'when' predicate
+    const predicateResult = invoker.invokeSync(this.node.properties.when.id, context)
+
+    // Evaluate the message (needed for both success and error cases)
+    let message: unknown
+
+    if (isASTNode(this.node.properties.message)) {
+      const result = invoker.invokeSync(this.node.properties.message.id, context)
+
+      message = result.error ? undefined : result.value
+    } else {
+      message = this.node.properties.message
+    }
+
+    // If predicate evaluation fails, treat as invalid with the user's message
+    if (predicateResult.error) {
+      return {
+        value: {
+          passed: false,
+          message: String(message ?? 'Validation error'),
+          submissionOnly: this.node.properties.submissionOnly ?? false,
+          details: this.node.properties.details,
+        },
+      }
+    }
+
+    return {
+      value: {
+        passed: !predicateResult.value,
+        message: String(message ?? ''),
+        submissionOnly: this.node.properties.submissionOnly ?? false,
+        details: this.node.properties.details,
+      },
+    }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,

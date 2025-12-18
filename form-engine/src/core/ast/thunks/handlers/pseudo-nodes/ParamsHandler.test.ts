@@ -17,7 +17,7 @@ describe('ParamsHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('12345')
@@ -33,7 +33,7 @@ describe('ParamsHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -49,7 +49,7 @@ describe('ParamsHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('A1234BC')
@@ -65,7 +65,7 @@ describe('ParamsHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('999')
@@ -83,7 +83,7 @@ describe('ParamsHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe(uuid)

@@ -1,6 +1,6 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { DataPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { ThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
 import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
@@ -17,13 +17,15 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  * Example: If context.data = { user: { profile: { name: 'John' } } }
  * and baseProperty = 'user', this returns the entire user object.
  */
-export default class DataHandler implements ThunkHandler {
+export default class DataHandler implements SyncThunkHandler {
+  readonly isAsync = false as const
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: DataPseudoNode,
   ) {}
 
-  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+  evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { baseProperty } = this.pseudoNode.properties
 
     // Validate property name is safe before using as property key
@@ -33,7 +35,7 @@ export default class DataHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
-    // Read external data value from context
+    // Read external data value from context - direct return, no Promise!
     return { value: context.global.data[baseProperty] }
   }
 }

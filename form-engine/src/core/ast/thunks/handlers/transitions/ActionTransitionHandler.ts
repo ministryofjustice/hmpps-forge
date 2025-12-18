@@ -1,6 +1,12 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ActionTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  CapturedEffect,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
@@ -48,11 +54,65 @@ export interface ActionTransitionResult {
  * Only the first matching onAction executes (controlled by LifecycleCoordinator).
  * This handler just evaluates a single transition; the coordinator handles iteration.
  */
-export default class ActionTransitionHandler implements ThunkHandler {
+export default class ActionTransitionHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: ActionTransitionASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const { when, effects } = this.node.properties
+
+    // Check when predicate
+    if (isASTNode(when)) {
+      const handler = deps.thunkHandlerRegistry.get(when.id)
+      if (handler?.isAsync ?? true) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check effects
+    if (effects && Array.isArray(effects)) {
+      const hasAsyncEffect = effects.filter(isASTNode).some(effect => {
+        const handler = deps.thunkHandlerRegistry.get(effect.id)
+        return handler?.isAsync ?? true
+      })
+      if (hasAsyncEffect) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    this.isAsync = false
+  }
+
+  evaluateSync(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): HandlerResult<ActionTransitionResult> {
+    const whenPassed = this.evaluateWhenPredicateSync(context, invoker)
+
+    if (!whenPassed) {
+      return {
+        value: {
+          executed: false,
+          pendingEffects: [],
+        },
+      }
+    }
+
+    const capturedEffects = this.captureEffectsSync(context, invoker)
+
+    return {
+      value: {
+        executed: true,
+        pendingEffects: capturedEffects,
+      },
+    }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,
@@ -124,5 +184,37 @@ export default class ActionTransitionHandler implements ThunkHandler {
     const results = await Promise.all(effectNodes.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
 
     return results.filter(result => !result.error && result.value).map(result => result.value!)
+  }
+
+  // Sync versions of private methods
+
+  private evaluateWhenPredicateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
+    const when = this.node.properties.when
+
+    if (!isASTNode(when)) {
+      return false
+    }
+
+    const result = invoker.invokeSync(when.id, context)
+
+    if (result.error) {
+      return false
+    }
+
+    return Boolean(result.value)
+  }
+
+  private captureEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): CapturedEffect[] {
+    const effects = this.node.properties.effects as FunctionASTNode[]
+
+    if (!Array.isArray(effects) || effects.length === 0) {
+      return []
+    }
+
+    return effects
+      .filter(isASTNode)
+      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
+      .filter(result => !result.error && result.value)
+      .map(result => result.value!)
   }
 }

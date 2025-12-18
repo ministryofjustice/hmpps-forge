@@ -1,8 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { AndPredicateASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for AND predicate expression nodes
@@ -17,12 +23,71 @@ import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/eva
  * - Primitive values (checked for truthiness as-is)
  *
  * Short-circuit evaluation: Stops evaluating as soon as a falsy operand is found
+ *
+ * Synchronous when all operands are primitives or sync nodes.
+ * Asynchronous when any operand is an async node.
  */
-export default class AndPredicateHandler implements ThunkHandler {
+export default class AndPredicateHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: AndPredicateASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const operands = this.node.properties.operands
+
+    // Check if any operand is an async AST node
+    this.isAsync = operands.some(operand => {
+      if (isASTNode(operand)) {
+        const handler = deps.thunkHandlerRegistry.get(operand.id)
+
+        return handler?.isAsync ?? true
+      }
+
+      return false
+    })
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
+    const operands = this.node.properties.operands
+
+    // Empty operands array returns true (vacuous truth)
+    if (operands.length === 0) {
+      return { value: true }
+    }
+
+    // Evaluate all operands with short-circuit evaluation
+    for (const operand of operands) {
+      let operandValue: unknown
+
+      if (isASTNode(operand)) {
+        const result = invoker.invokeSync(operand.id, context)
+
+        if (result.error) {
+          return { value: false }
+        }
+
+        operandValue = result.value
+      } else {
+        operandValue = operand
+      }
+
+      // If operand evaluation failed, return false
+      if (operandValue === undefined) {
+        return { value: false }
+      }
+
+      // Short-circuit: if any operand is falsy, return false immediately
+      if (!operandValue) {
+        return { value: false }
+      }
+    }
+
+    // All operands are truthy
+    return { value: true }
+  }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const operands = this.node.properties.operands

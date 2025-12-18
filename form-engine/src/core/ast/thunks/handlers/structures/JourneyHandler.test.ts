@@ -232,7 +232,7 @@ describe('JourneyHandler', () => {
         .withProperty('path', '/food-business')
         .withCode('food-business-registration')
         .withTitle('Food Business Registration')
-        .withProperty('onLoad', [
+        .withProperty('customActions', [
           { action: ref1, priority: 1 },
           { action: ref2, priority: 2 },
           { action: 'static-action', priority: 3 },
@@ -251,6 +251,8 @@ describe('JourneyHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
+      // Note: onLoad/onAccess are transition properties handled by FormStepController,
+      // so we test with a custom property instead
       expect(result.value).toEqual({
         id: journey.id,
         type: ASTNodeType.JOURNEY,
@@ -258,7 +260,7 @@ describe('JourneyHandler', () => {
           path: '/food-business',
           code: 'food-business-registration',
           title: 'Food Business Registration',
-          onLoad: [
+          customActions: [
             { action: 'transition-1', priority: 1 },
             { action: 'transition-2', priority: 2 },
             { action: 'static-action', priority: 3 },

@@ -45,38 +45,64 @@ export default class ThunkRuntimeHooksFactory {
     }
 
     const registerRuntimeNode = (node: ASTNode, property: string): void => {
+      // Simple single-node registration without dynamic code resolution
+      // Use registerRuntimeNodesBatch for fields with dynamic codes
+      NodeCompilationPipeline.normalize(node, this.compilationDependencies, NodeIDCategory.RUNTIME_AST)
+      new RegistrationTraverser(this.compilationDependencies.nodeRegistry).register(node)
+
+      this.compilationDependencies.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
+      this.compilationDependencies.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
+      NodeCompilationPipeline.setRuntimeMetadata(node, this.compilationDependencies)
+
+      builder.runtimeNodes.set(node.id, node)
+
+      // Create pseudo nodes and wire dependencies
+      NodeCompilationPipeline.createPseudoNodes(this.compilationDependencies)
+      NodeCompilationPipeline.wireDependencies(this.compilationDependencies)
+
+      // Compile handler
+      const compiledHandler = this.compiler.compileASTNode(node.id, node as any)
+      builder.handlerRegistry.register(node.id, compiledHandler)
+
+      // Invalidate caches
+      this.cacheManager.invalidateCascading(node.id, builder.dependencyGraph)
+    }
+
+    const registerRuntimeNodesBatch = async (nodes: ASTNode[], property: string): Promise<void> => {
+      if (nodes.length === 0) {
+        return
+      }
+
       const {
         deps: pendingCompilationDependencies,
         flush,
         getPendingNodeIds,
       } = this.compilationDependencies.createPendingView()
 
-      // Normalize runtime subtree in place so it matches compile-time expectations
-      NodeCompilationPipeline.normalize(node, pendingCompilationDependencies, NodeIDCategory.RUNTIME_AST)
+      // Phase 1: Normalize and register all nodes
+      nodes.forEach(node => {
+        NodeCompilationPipeline.normalize(node, pendingCompilationDependencies, NodeIDCategory.RUNTIME_AST)
+        new RegistrationTraverser(pendingCompilationDependencies.nodeRegistry).register(node)
 
-      // Register the entire subtree (root + children)
-      new RegistrationTraverser(pendingCompilationDependencies.nodeRegistry).register(node)
+        pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
+        pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
+        NodeCompilationPipeline.setRuntimeMetadata(node, pendingCompilationDependencies)
+      })
 
-      getPendingNodeIds()
+      // Add all registered nodes to the runtime nodes map
+      const pendingIds = getPendingNodeIds()
+
+      pendingIds
         .map(id => pendingCompilationDependencies.nodeRegistry.get(id))
         .forEach((runtimeNode: ASTNode) => {
           builder.runtimeNodes.set(runtimeNode.id, runtimeNode)
         })
 
-      // Attach parent metadata so runtime traversal knows where this node was attached
-      // Set metadata for runtime subtree using the parent chain above (single traversal from root)
-      pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
-      pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
-
-      NodeCompilationPipeline.setRuntimeMetadata(node, pendingCompilationDependencies)
-
-      // Create pseudo nodes for any new references introduced at runtime (scoped to pending registry)
+      // Phase 2: Create pseudo nodes and wire dependencies ONCE for all nodes
       NodeCompilationPipeline.createPseudoNodes(pendingCompilationDependencies)
-
-      // Wire dependencies so runtime nodes participate in the graph (scoped to pending registry)
       NodeCompilationPipeline.wireDependencies(pendingCompilationDependencies)
 
-      // Compile and register handlers for all newly registered nodes (including pseudo nodes)
+      // Phase 3: Compile handlers for all newly registered nodes
       getPendingNodeIds().forEach(nodeId => {
         const registeredNode = pendingCompilationDependencies.nodeRegistry.get(nodeId)
 
@@ -88,11 +114,13 @@ export default class ThunkRuntimeHooksFactory {
         builder.handlerRegistry.register(nodeId, compiledHandler)
       })
 
-      // Merge pending → main
+      // Phase 4: Merge pending → main
       flush()
 
-      // Invalidate caches for nodes that now depend on this runtime subtree
-      this.cacheManager.invalidateCascading(node.id, builder.dependencyGraph)
+      // Phase 5: Invalidate caches
+      nodes.forEach(node => {
+        this.cacheManager.invalidateCascading(node.id, builder.dependencyGraph)
+      })
     }
 
     const createPseudoNode = (type: PseudoNodeType, properties: Record<string, unknown>): PseudoNode => {
@@ -143,6 +171,7 @@ export default class ThunkRuntimeHooksFactory {
     return {
       createNode,
       registerRuntimeNode,
+      registerRuntimeNodesBatch,
       createPseudoNode,
       registerPseudoNode,
     }

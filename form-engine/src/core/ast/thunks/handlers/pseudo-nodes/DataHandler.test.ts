@@ -16,7 +16,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { user: userData } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(userData)
@@ -30,7 +30,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { user: { name: 'John' } } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -51,7 +51,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { address: addressData } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(addressData)
@@ -72,7 +72,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { items } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(items)
@@ -87,7 +87,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { isActive: true } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe(true)
@@ -102,7 +102,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { nullableField: null } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeNull()
@@ -129,7 +129,7 @@ describe('DataHandler', () => {
       const mockContext = createMockContext({ mockData: { business: businessData } })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(businessData)

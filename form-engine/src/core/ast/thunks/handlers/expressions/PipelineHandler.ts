@@ -1,12 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { PipelineASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import {
   evaluateOperandWithErrorTracking,
   evaluateWithScope,
 } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Pipeline expression nodes
@@ -30,12 +36,102 @@ import {
  * - If input evaluation fails, returns error
  * - If any step evaluation fails, returns error
  * - Pipeline stops at first error
+ *
+ * Synchronous when input and all steps are sync.
+ * Asynchronous when input or any step is async.
  */
-export default class PipelineHandler implements ThunkHandler {
+export default class PipelineHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: PipelineASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const { input, steps } = this.node.properties
+
+    // Check if input is async
+    let inputIsAsync = false
+
+    if (isASTNode(input)) {
+      const inputHandler = deps.thunkHandlerRegistry.get(input.id)
+
+      inputIsAsync = inputHandler?.isAsync ?? true
+    }
+
+    // Check if any step is async
+    const anyStepIsAsync = steps.some(step => {
+      if (isASTNode(step)) {
+        const stepHandler = deps.thunkHandlerRegistry.get(step.id)
+
+        return stepHandler?.isAsync ?? true
+      }
+
+      return false
+    })
+
+    // Async if input is async OR any step is async
+    this.isAsync = inputIsAsync || anyStepIsAsync
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
+    const input = this.node.properties.input
+    const steps = this.node.properties.steps
+
+    // Evaluate the input expression
+    let currentValue: unknown
+
+    if (isASTNode(input)) {
+      const result = invoker.invokeSync(input.id, context)
+
+      if (result.error) {
+        const error = ThunkEvaluationError.failed(
+          this.nodeId,
+          new Error('Pipeline input evaluation failed'),
+          'PipelineHandler',
+        )
+
+        return { error: error.toThunkError() }
+      }
+
+      currentValue = result.value
+    } else {
+      currentValue = input
+    }
+
+    // Apply each transformation step sequentially
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = steps[i]
+
+      // Push current value onto scope
+      context.scope.push({ '@value': currentValue })
+
+      try {
+        if (isASTNode(step)) {
+          const result = invoker.invokeSync(step.id, context)
+
+          if (result.error) {
+            const error = ThunkEvaluationError.failed(
+              this.nodeId,
+              new Error(`Pipeline step ${i} evaluation failed`),
+              'PipelineHandler',
+            )
+
+            return { error: error.toThunkError() }
+          }
+
+          currentValue = result.value
+        } else {
+          currentValue = step
+        }
+      } finally {
+        context.scope.pop()
+      }
+    }
+
+    return { value: currentValue }
+  }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const input = this.node.properties.input

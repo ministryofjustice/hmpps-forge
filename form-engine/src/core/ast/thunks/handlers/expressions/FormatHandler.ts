@@ -1,9 +1,15 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { FormatASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Format expression nodes
@@ -25,12 +31,60 @@ import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/eva
  * - etc.
  *
  * This ensures all arguments are evaluated before the format executes.
+ *
+ * Synchronous when all arguments are primitives or sync nodes.
+ * Asynchronous when any argument is an async node.
  */
-export default class FormatHandler implements ThunkHandler {
+export default class FormatHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: FormatASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const rawArguments = this.node.properties.arguments
+
+    // Check if any argument is async
+    this.isAsync = rawArguments.some(arg => {
+      if (isASTNode(arg)) {
+        const handler = deps.thunkHandlerRegistry.get(arg.id)
+
+        return handler?.isAsync ?? true
+      }
+
+      return false
+    })
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
+    const template = this.node.properties.template
+    const rawArguments = this.node.properties.arguments
+
+    // Evaluate all arguments (AST nodes invoked, primitives passed through)
+    const evaluatedArguments = rawArguments.map(arg => {
+      if (isASTNode(arg)) {
+        const result = invoker.invokeSync(arg.id, context)
+
+        return result.error ? undefined : result.value
+      }
+
+      return arg
+    })
+
+    // Substitute arguments into template
+    try {
+      const result = this.formatTemplate(template, evaluatedArguments)
+
+      return { value: result }
+    } catch (cause) {
+      const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
+      const error = ThunkEvaluationError.failed(this.nodeId, wrappedCause, 'FormatHandler')
+
+      return { error: error.toThunkError() }
+    }
+  }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const template = this.node.properties.template

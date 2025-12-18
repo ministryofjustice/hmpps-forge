@@ -1,6 +1,11 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { getByPath } from '@form-engine/utils/utils'
 
@@ -11,15 +16,23 @@ import { getByPath } from '@form-engine/utils/utils'
  * at the specified level and navigating into the result.
  *
  * Level index: '0' = current scope, '1' = parent scope, '2' = grandparent, etc.
+ *
+ * Always synchronous - scope access is a pure property lookup.
  */
-export default class ScopeReferenceHandler implements ThunkHandler {
+export default class ScopeReferenceHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: ReferenceASTNode,
   ) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
+  computeIsAsync(_deps: MetadataComputationDependencies): void {
+    // Scope references are always sync - pure property lookup
+    this.isAsync = false
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, _invoker: ThunkInvocationAdapter): HandlerResult {
     const path = this.node.properties.path
 
     const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
@@ -38,5 +51,10 @@ export default class ScopeReferenceHandler implements ThunkHandler {
     const baseValue = context.scope[scopeStackIndex]
 
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
+  }
+
+  async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
+    // Delegate to sync implementation
+    return this.evaluateSync(context, invoker)
   }
 }

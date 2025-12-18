@@ -1,6 +1,6 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { AnswerRemotePseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { ThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
@@ -11,13 +11,15 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  * Returns resolved field answers from other steps (not the current step).
  * The answer has already been resolved and stored in context.answers by a previous OnLoad transition.
  */
-export default class AnswerRemoteHandler implements ThunkHandler {
+export default class AnswerRemoteHandler implements SyncThunkHandler {
+  readonly isAsync = false as const
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: AnswerRemotePseudoNode,
   ) {}
 
-  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+  evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { baseFieldCode } = this.pseudoNode.properties
 
     // Validate field code is safe before using as property key
@@ -27,7 +29,7 @@ export default class AnswerRemoteHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
-    // Read previously resolved answer from context
+    // Read previously resolved answer from context - direct return, no Promise!
     return { value: context.global.answers[baseFieldCode]?.current }
   }
 }

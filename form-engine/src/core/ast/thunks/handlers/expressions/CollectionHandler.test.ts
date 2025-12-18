@@ -88,7 +88,9 @@ describe('CollectionHandler', () => {
       // Assert
       expect(result.value).toEqual(['block-result-1', 'block-result-2', 'block-result-3'])
       expect(mockHooks.createNode).toHaveBeenCalledTimes(3)
-      expect(mockHooks.registerRuntimeNode).toHaveBeenCalledTimes(3)
+      // registerRuntimeNodesBatch is called once with all nodes batched
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledTimes(1)
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledWith(runtimeNodes, 'template')
       expect(mockContext.scope).toHaveLength(0)
     })
 
@@ -98,6 +100,7 @@ describe('CollectionHandler', () => {
       const collectionId = 'compile_ast:2'
       const templateJson = {
         type: StructureType.BLOCK,
+        blockType: 'field',
         variant: 'text',
         code: {
           type: ExpressionType.FORMAT,
@@ -145,8 +148,9 @@ describe('CollectionHandler', () => {
       // Act
       await handler.evaluate(mockContext, mockInvoker, mockHooks)
 
-      // Assert
-      expect(mockHooks.registerRuntimeNode).toHaveBeenCalledTimes(2)
+      // Assert - registerRuntimeNodesBatch is called once with all nodes batched
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledTimes(1)
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledWith(runtimeNodes, 'template')
     })
 
     it('should skip null and undefined items when collection source is an array', async () => {
@@ -173,7 +177,9 @@ describe('CollectionHandler', () => {
       // Assert
       expect(mockHooks.createNode).toHaveBeenCalledTimes(2)
       expect(result.value).toHaveLength(2)
-      expect(mockHooks.registerRuntimeNode).toHaveBeenCalledTimes(2)
+      // registerRuntimeNodesBatch is called once with all nodes batched
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledTimes(1)
+      expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledWith(runtimeNodes, 'template')
       expect(mockContext.scope).toHaveLength(0)
     })
 

@@ -1,7 +1,7 @@
-import { NodeId } from '@form-engine/core/types/engine.type'
+import { NodeId, ASTNode } from '@form-engine/core/types/engine.type'
 import { CollectionASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  ThunkHandler,
+  AsyncThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   ThunkRuntimeHooks,
@@ -9,14 +9,21 @@ import {
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import ThunkTypeMismatchError from '@form-engine/errors/ThunkTypeMismatchError'
 import { evaluateWithScope } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { structuralTraverse, StructuralVisitResult } from '@form-engine/core/ast/traverser/StructuralTraverser'
+import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Collection expressions
  *
  * Evaluates collection data source and instantiates template nodes for each item.
  * Runtime nodes are registered via hooks and wired with structural edges.
+ *
+ * Always asynchronous due to runtime node creation and hooks usage.
  */
-export default class CollectionHandler implements ThunkHandler {
+export default class CollectionHandler implements AsyncThunkHandler {
+  readonly isAsync = true as const
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: CollectionASTNode,
@@ -28,13 +35,22 @@ export default class CollectionHandler implements ThunkHandler {
     hooks: ThunkRuntimeHooks,
   ): Promise<HandlerResult> {
     // 1. Evaluate collection source to get array of items
-    const collectionResult = await invoker.invoke(this.node.properties.collection.id, context)
+    const collectionSource = this.node.properties.collection
 
-    if (collectionResult.error) {
-      return { error: collectionResult.error }
+    let collectionData: unknown
+
+    // Check if collection is a literal array or an AST node reference
+    if (Array.isArray(collectionSource)) {
+      collectionData = collectionSource
+    } else {
+      const collectionResult = await invoker.invoke(collectionSource.id, context)
+
+      if (collectionResult.error) {
+        return { error: collectionResult.error }
+      }
+
+      collectionData = collectionResult.value
     }
-
-    const collectionData = collectionResult.value
 
     // 2. Validate it's an array
     if (!Array.isArray(collectionData)) {
@@ -68,29 +84,50 @@ export default class CollectionHandler implements ThunkHandler {
     // Filter non-null items with their indices
     const validItems = collectionData.map((item, index) => ({ item, index })).filter(({ item }) => item != null)
 
-    // Process each valid item sequentially
+    // Phase 1: Create all nodes with their scopes
+    const nodesToRegister: { node: any; itemScope: Record<string, unknown> }[] = []
+
     for (const { item, index: itemIndex } of validItems) {
-      // Build scope bindings for template evaluation
-      // Store item properties directly in scope for easy access via @scope.property
       const itemScope: Record<string, unknown> =
         typeof item === 'object' && item !== null ? { ...item } : { '@value': item }
       itemScope['@index'] = itemIndex
 
+      for (const templateJson of this.node.properties.template) {
+        const runtimeNode = hooks.createNode(templateJson)
+        nodesToRegister.push({ node: runtimeNode, itemScope })
+      }
+    }
+
+    // Phase 2a: Resolve dynamic codes for each node (needs scope per item for @index)
+    for (const { node, itemScope } of nodesToRegister) {
+      const fieldsWithExprCodes = this.findFieldsWithExpressionCodes(node)
+
+      if (fieldsWithExprCodes.length > 0) {
+        // eslint-disable-next-line no-await-in-loop
+        await evaluateWithScope(itemScope, context, async () => {
+          const exprNodes = fieldsWithExprCodes.map(f => f.properties.code as ASTNode)
+          await hooks.registerRuntimeNodesBatch(exprNodes, 'code')
+
+          for (const field of fieldsWithExprCodes) {
+            const codeNode = field.properties.code as ASTNode
+            // eslint-disable-next-line no-await-in-loop
+            const result = await invoker.invoke(codeNode.id, context)
+            field.properties.code = String(result.value)
+          }
+        })
+      }
+    }
+
+    // Phase 2b: Batch register all template nodes (codes are now resolved strings)
+    const allNodes = nodesToRegister.map(({ node }) => node)
+    await hooks.registerRuntimeNodesBatch(allNodes, 'template')
+
+    // Phase 3: Evaluate each node with its proper scope
+    for (const { node, itemScope } of nodesToRegister) {
       // eslint-disable-next-line no-await-in-loop
       await evaluateWithScope(itemScope, context, async () => {
-        // Instantiate and evaluate each template element for this item
-        for (const templateJson of this.node.properties.template) {
-          const runtimeNode = hooks.createNode(templateJson)
-
-          // Register runtime subtree (root + children). This may compile handlers when a runtime builder is present.
-          hooks.registerRuntimeNode(runtimeNode, 'template')
-
-          // Evaluate the runtime node with the scoped context
-          // eslint-disable-next-line no-await-in-loop
-          const result = await invoker.invoke(runtimeNode.id, context)
-
-          runtimeResults.push(result.value)
-        }
+        const result = await invoker.invoke(node.id, context)
+        runtimeResults.push(result.value)
       })
     }
 
@@ -99,5 +136,25 @@ export default class CollectionHandler implements ThunkHandler {
       value: runtimeResults,
       metadata: { dependencies: [this.node.properties.collection.id] },
     }
+  }
+
+  /**
+   * Find all field blocks within a node tree that have expression codes (AST nodes)
+   * rather than string codes. These need their codes resolved before registration.
+   */
+  private findFieldsWithExpressionCodes(node: ASTNode): ASTNode[] {
+    const fields: ASTNode[] = []
+
+    structuralTraverse(node, {
+      enterNode(n) {
+        if (isFieldBlockStructNode(n) && isASTNode(n.properties.code)) {
+          fields.push(n)
+        }
+
+        return StructuralVisitResult.CONTINUE
+      },
+    })
+
+    return fields
   }
 }

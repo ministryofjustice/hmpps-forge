@@ -121,6 +121,7 @@ describe('EffectHandler', () => {
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'saveAnswer',
         evaluate: jest.fn(),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({

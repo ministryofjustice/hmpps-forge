@@ -4,6 +4,7 @@ import ThunkHandlerRegistry from './ThunkHandlerRegistry'
 
 const createHandler = (id: NodeId): ThunkHandler => ({
   nodeId: id,
+  isAsync: true as const,
   async evaluate() {
     const result: ThunkResult = {
       value: id,

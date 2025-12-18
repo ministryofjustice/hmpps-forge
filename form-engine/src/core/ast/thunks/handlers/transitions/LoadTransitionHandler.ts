@@ -1,6 +1,12 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { LoadTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  CapturedEffect,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 
 /**
@@ -37,11 +43,44 @@ export interface LoadTransitionResult {
  * ## Return Value
  * Returns LoadTransitionResult containing captured effects.
  */
-export default class LoadTransitionHandler implements ThunkHandler {
+export default class LoadTransitionHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: LoadTransitionASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const effects = this.node.properties.effects as FunctionASTNode[]
+
+    if (!Array.isArray(effects) || effects.length === 0) {
+      this.isAsync = false
+      return
+    }
+
+    // Check if any effect handler is async
+    this.isAsync = effects.some(effect => {
+      const handler = deps.thunkHandlerRegistry.get(effect.id)
+      return handler?.isAsync ?? true
+    })
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<LoadTransitionResult> {
+    const effects = this.node.properties.effects as FunctionASTNode[]
+
+    if (!Array.isArray(effects) || effects.length === 0) {
+      return { value: { effects: [] } }
+    }
+
+    // Capture effects synchronously
+    const capturedEffects = effects
+      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
+      .filter(result => !result.error && result.value)
+      .map(result => result.value!)
+
+    return { value: { effects: capturedEffects } }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,

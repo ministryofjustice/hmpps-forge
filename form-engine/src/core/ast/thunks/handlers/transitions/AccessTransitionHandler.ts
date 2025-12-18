@@ -1,9 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { AccessTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  CapturedEffect,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateUntilFirstMatch } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import {
+  evaluateUntilFirstMatch,
+  evaluateUntilFirstMatchSync,
+} from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
 
 /**
  * Result of an access transition evaluation
@@ -44,26 +53,128 @@ export interface AccessTransitionResult {
  * Evaluates onAccess transitions by:
  * 1. Capturing effects (analytics, logging, etc.)
  * 2. Evaluating guards predicate
- * 3. If guards fail → evaluating redirect expressions for navigation target
+ * 3. If guards match → evaluating redirect expressions for navigation target
  * 4. Returning result with captured effects for LifecycleCoordinator to commit
  *
  * ## Lifecycle Position
  * Access transitions run after onLoad at each hierarchy level:
  * OUTER onLoad → OUTER onAccess → INNER onLoad → INNER onAccess → Step onLoad → Step onAccess
  *
- * ## Guards Semantics
- * - guards: true (or absent) → access granted, continue to next level
- * - guards: false → access denied, evaluate redirect for navigation target
+ * ## Guards Semantics (denial conditions, like validation)
+ * Guards define denial conditions - when the predicate is true, access is denied:
+ * - guards: true → denial condition matched → access denied, evaluate redirect
+ * - guards: false (or absent) → no denial → access granted, continue to next level
+ *
+ * Example: `guards: Data('itemNotFound').match(Condition.Equals(true))`
+ * When itemNotFound is true, the guard matches and access is denied.
  *
  * ## Effects
  * Effects are captured and returned for LifecycleCoordinator to commit immediately.
  * They are captured BEFORE guards are evaluated.
  */
-export default class AccessTransitionHandler implements ThunkHandler {
+export default class AccessTransitionHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: AccessTransitionASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const { effects, guards, redirect, message } = this.node.properties
+
+    // Check effects
+    if (effects && Array.isArray(effects)) {
+      const hasAsyncEffect = effects.filter(isASTNode).some(effect => {
+        const handler = deps.thunkHandlerRegistry.get(effect.id)
+        return handler?.isAsync ?? true
+      })
+      if (hasAsyncEffect) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check guards
+    if (isASTNode(guards)) {
+      const handler = deps.thunkHandlerRegistry.get(guards.id)
+      if (handler?.isAsync ?? true) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check redirect expressions
+    if (redirect && Array.isArray(redirect)) {
+      const hasAsyncRedirect = redirect.filter(isASTNode).some(node => {
+        const handler = deps.thunkHandlerRegistry.get(node.id)
+        return handler?.isAsync ?? true
+      })
+      if (hasAsyncRedirect) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    // Check message expression
+    if (isASTNode(message)) {
+      const handler = deps.thunkHandlerRegistry.get(message.id)
+      if (handler?.isAsync ?? true) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    this.isAsync = false
+  }
+
+  evaluateSync(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): HandlerResult<AccessTransitionResult> {
+    // Capture effects first (logging, analytics, etc.)
+    const capturedEffects = this.captureEffectsSync(context, invoker)
+
+    // Evaluate guards predicate (true = denial condition matched, like validation)
+    const guardsMatched = this.evaluateGuardsPredicateSync(context, invoker)
+
+    if (!guardsMatched) {
+      return {
+        value: {
+          passed: true,
+          pendingEffects: capturedEffects,
+        },
+      }
+    }
+
+    // Guards failed - check if this is an error response or redirect
+    const { status } = this.node.properties
+
+    if (status !== undefined) {
+      // Error response - evaluate message and return status/message
+      const messageResult = this.evaluateMessageSync(context, invoker)
+
+      return {
+        value: {
+          passed: false,
+          status,
+          message: messageResult,
+          pendingEffects: capturedEffects,
+        },
+      }
+    }
+
+    // Redirect-based - evaluate redirect to get navigation target
+    const redirectResult = this.evaluateRedirectSync(context, invoker)
+
+    return {
+      value: {
+        passed: false,
+        redirect: redirectResult,
+        pendingEffects: capturedEffects,
+      },
+    }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,
@@ -72,10 +183,10 @@ export default class AccessTransitionHandler implements ThunkHandler {
     // Capture effects first (logging, analytics, etc.)
     const capturedEffects = await this.captureEffects(context, invoker)
 
-    // Evaluate guards predicate
-    const guardsPassed = await this.evaluateGuardsPredicate(context, invoker)
+    // Evaluate guards predicate (true = denial condition matched, like validation)
+    const guardsMatched = await this.evaluateGuardsPredicate(context, invoker)
 
-    if (guardsPassed) {
+    if (!guardsMatched) {
       return {
         value: {
           passed: true,
@@ -200,6 +311,73 @@ export default class AccessTransitionHandler implements ThunkHandler {
     // Expression node (e.g., Format) - evaluate and return result
     if (isASTNode(message)) {
       const result = await invoker.invoke<string>(message.id, context)
+
+      return result.error ? undefined : String(result.value)
+    }
+
+    return undefined
+  }
+
+  // Sync versions of private methods
+
+  private evaluateGuardsPredicateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
+    const guards = this.node.properties.guards
+
+    if (!isASTNode(guards)) {
+      return true
+    }
+
+    const result = invoker.invokeSync(guards.id, context)
+
+    if (result.error) {
+      return false
+    }
+
+    return Boolean(result.value)
+  }
+
+  private captureEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): CapturedEffect[] {
+    const effects = this.node.properties.effects as FunctionASTNode[] | undefined
+
+    if (!effects || !Array.isArray(effects) || effects.length === 0) {
+      return []
+    }
+
+    return effects
+      .filter(isASTNode)
+      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
+      .filter(result => !result.error && result.value)
+      .map(result => result.value!)
+  }
+
+  private evaluateRedirectSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): string | undefined {
+    const redirect = this.node.properties.redirect
+
+    if (!redirect || !Array.isArray(redirect)) {
+      return undefined
+    }
+
+    const redirectIds = redirect.filter(isASTNode).map(node => node.id)
+    const result = evaluateUntilFirstMatchSync(redirectIds, context, invoker)
+
+    return result !== undefined ? String(result) : undefined
+  }
+
+  private evaluateMessageSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): string | undefined {
+    const { message } = this.node.properties
+
+    if (message === undefined) {
+      return undefined
+    }
+
+    // Static string - return directly
+    if (typeof message === 'string') {
+      return message
+    }
+
+    // Expression node (e.g., Format) - evaluate and return result
+    if (isASTNode(message)) {
+      const result = invoker.invokeSync<string>(message.id, context)
 
       return result.error ? undefined : String(result.value)
     }

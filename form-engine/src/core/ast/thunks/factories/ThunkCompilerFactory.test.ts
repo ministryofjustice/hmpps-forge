@@ -7,15 +7,30 @@ import ThunkHandlerRegistry from '@form-engine/core/ast/thunks/registries/ThunkH
 import PostHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/PostHandler'
 import QueryHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/QueryHandler'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 
 describe('ThunkCompilerFactory', () => {
   let compiler: ThunkCompilerFactory
   let mockNodeRegistry: jest.Mocked<NodeRegistry>
   let mockThunkHandlerRegistry: jest.Mocked<ThunkHandlerRegistry>
   let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
+  let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
+  const mockDependencyGraph = {
+    topologicalSort: jest.fn().mockReturnValue({ sort: [] }),
+  }
+  const mockMetadataRegistry = {
+    get: jest.fn(),
+    set: jest.fn(),
+    has: jest.fn(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    mockDependencyGraph.topologicalSort.mockClear()
+    mockDependencyGraph.topologicalSort.mockReturnValue({ sort: [] })
+    mockMetadataRegistry.get.mockClear()
+    mockMetadataRegistry.set.mockClear()
+    mockMetadataRegistry.has.mockClear()
 
     mockNodeRegistry = {
       get: jest.fn(),
@@ -28,13 +43,22 @@ describe('ThunkCompilerFactory', () => {
     mockThunkHandlerRegistry = {
       register: jest.fn(),
       get: jest.fn(),
+      getAll: jest.fn().mockReturnValue(new Map()),
       has: jest.fn(),
       size: jest.fn(),
     } as unknown as jest.Mocked<ThunkHandlerRegistry>
 
+    mockFunctionRegistry = {
+      get: jest.fn(),
+      has: jest.fn(),
+      size: jest.fn(),
+    } as unknown as jest.Mocked<FunctionRegistry>
+
     mockCompilationDependencies = {
       nodeRegistry: mockNodeRegistry,
       thunkHandlerRegistry: mockThunkHandlerRegistry,
+      dependencyGraph: mockDependencyGraph as any,
+      metadataRegistry: mockMetadataRegistry as any,
     } as unknown as jest.Mocked<CompilationDependencies>
 
     compiler = new ThunkCompilerFactory()
@@ -46,7 +70,7 @@ describe('ThunkCompilerFactory', () => {
       when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(new Map())
 
       // Act
-      compiler.compile(mockCompilationDependencies)
+      compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
 
       // Assert
       expect(mockThunkHandlerRegistry.register).not.toHaveBeenCalled()
@@ -68,7 +92,7 @@ describe('ThunkCompilerFactory', () => {
       when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
 
       // Act
-      compiler.compile(mockCompilationDependencies)
+      compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
 
       // Assert
       expect(mockThunkHandlerRegistry.register).toHaveBeenCalledTimes(1)
@@ -91,7 +115,7 @@ describe('ThunkCompilerFactory', () => {
       when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
 
       // Act
-      compiler.compile(mockCompilationDependencies)
+      compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
 
       // Assert
       expect(mockThunkHandlerRegistry.register).toHaveBeenCalledTimes(1)
@@ -123,7 +147,7 @@ describe('ThunkCompilerFactory', () => {
       when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
 
       // Act
-      compiler.compile(mockCompilationDependencies)
+      compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
 
       // Assert
       expect(mockThunkHandlerRegistry.register).toHaveBeenCalledTimes(2)
@@ -149,7 +173,7 @@ describe('ThunkCompilerFactory', () => {
       when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
 
       // Act
-      compiler.compile(mockCompilationDependencies)
+      compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
 
       // Assert
       expect(mockThunkHandlerRegistry.register).toHaveBeenCalledTimes(1)

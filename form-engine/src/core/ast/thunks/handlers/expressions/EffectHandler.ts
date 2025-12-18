@@ -1,8 +1,15 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  CapturedEffect,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Effect expression nodes (FunctionType.EFFECT)
@@ -18,12 +25,57 @@ import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/eva
  * Arguments are evaluated at capture time to preserve the state at the
  * moment the effect was encountered. This ensures effects operate on
  * the values that existed when they were triggered.
+ *
+ * Synchronous when all arguments are primitives or sync nodes.
+ * Asynchronous when any argument is an async node.
  */
-export default class EffectHandler implements ThunkHandler {
+export default class EffectHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: FunctionASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const rawArguments = this.node.properties.arguments
+
+    // Check if any argument is async
+    this.isAsync = rawArguments.some(arg => {
+      if (isASTNode(arg)) {
+        const handler = deps.thunkHandlerRegistry.get(arg.id)
+
+        return handler?.isAsync ?? true
+      }
+
+      return false
+    })
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<CapturedEffect> {
+    const effectName = this.node.properties.name
+    const rawArguments = this.node.properties.arguments
+
+    // Evaluate all arguments NOW - capture the values at this moment
+    const args = rawArguments.map(arg => {
+      if (isASTNode(arg)) {
+        const result = invoker.invokeSync(arg.id, context)
+
+        return result.error ? undefined : result.value
+      }
+
+      return arg
+    })
+
+    // Return captured intent
+    return {
+      value: {
+        effectName,
+        args,
+        nodeId: this.nodeId,
+      },
+    }
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,

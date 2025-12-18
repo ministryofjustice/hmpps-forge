@@ -17,7 +17,7 @@ describe('QueryHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('/dashboard')
@@ -33,7 +33,7 @@ describe('QueryHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -49,7 +49,7 @@ describe('QueryHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(['urgent', 'important', 'review'])
@@ -66,7 +66,7 @@ describe('QueryHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('')
@@ -82,7 +82,7 @@ describe('QueryHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('Hello World!')

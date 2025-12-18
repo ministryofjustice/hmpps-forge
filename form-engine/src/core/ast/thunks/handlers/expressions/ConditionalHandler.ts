@@ -1,8 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ConditionalASTNode } from '@form-engine/core/types/expressions.type'
-import { ThunkHandler, ThunkInvocationAdapter, HandlerResult } from '@form-engine/core/ast/thunks/types'
+import {
+  HybridThunkHandler,
+  ThunkInvocationAdapter,
+  HandlerResult,
+  MetadataComputationDependencies,
+} from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Conditional expression nodes (if-then-else logic)
@@ -16,12 +22,68 @@ import { evaluateOperand } from '@form-engine/core/ast/thunks/handlers/utils/eva
  * - AST nodes (evaluated dynamically)
  * - Primitive values (returned as-is)
  * - Undefined (default if not specified)
+ *
+ * Synchronous when predicate, thenValue, and elseValue are all sync.
+ * Asynchronous when any of them is async.
  */
-export default class ConditionalHandler implements ThunkHandler {
+export default class ConditionalHandler implements HybridThunkHandler {
+  isAsync = true
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: ConditionalASTNode,
   ) {}
+
+  computeIsAsync(deps: MetadataComputationDependencies): void {
+    const { predicate, thenValue, elseValue } = this.node.properties
+
+    // Check predicate
+    const predicateHandler = deps.thunkHandlerRegistry.get(predicate.id)
+    const predicateIsAsync = predicateHandler?.isAsync ?? true
+
+    // Check thenValue
+    let thenIsAsync = false
+
+    if (isASTNode(thenValue)) {
+      const thenHandler = deps.thunkHandlerRegistry.get(thenValue.id)
+
+      thenIsAsync = thenHandler?.isAsync ?? true
+    }
+
+    // Check elseValue
+    let elseIsAsync = false
+
+    if (elseValue && isASTNode(elseValue)) {
+      const elseHandler = deps.thunkHandlerRegistry.get(elseValue.id)
+
+      elseIsAsync = elseHandler?.isAsync ?? true
+    }
+
+    // Async if ANY component is async (we don't know which branch will be taken)
+    this.isAsync = predicateIsAsync || thenIsAsync || elseIsAsync
+  }
+
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
+    const predicateResult = invoker.invokeSync(this.node.properties.predicate.id, context)
+
+    if (predicateResult.error) {
+      return { value: undefined }
+    }
+
+    const selectedValue = predicateResult.value ? this.node.properties.thenValue : this.node.properties.elseValue
+
+    let value: unknown
+
+    if (isASTNode(selectedValue)) {
+      const result = invoker.invokeSync(selectedValue.id, context)
+
+      value = result.error ? undefined : result.value
+    } else {
+      value = selectedValue
+    }
+
+    return { value }
+  }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const predicateResult = await invoker.invoke(this.node.properties.predicate.id, context)

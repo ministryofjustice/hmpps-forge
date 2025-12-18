@@ -18,7 +18,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('user@example.com')
@@ -34,7 +34,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -50,7 +50,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('coding')
@@ -71,7 +71,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(['coding', 'reading', 'gaming'])
@@ -93,7 +93,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual(['coding'])
@@ -115,7 +115,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBeUndefined()
@@ -136,7 +136,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toEqual([])
@@ -158,7 +158,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('first')
@@ -174,7 +174,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('actual-value')
@@ -190,7 +190,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('  JOHN DOE  ')
@@ -206,7 +206,7 @@ describe('PostHandler', () => {
       })
 
       // Act
-      const result = await handler.evaluate(mockContext)
+      const result = handler.evaluateSync(mockContext)
 
       // Assert
       expect(result.value).toBe('')

@@ -14,13 +14,14 @@ describe('FunctionHandler', () => {
   })
 
   describe('evaluate()', () => {
-    it('should call function with no arguments when function exists in registry', async () => {
+    it('should call generator function with no arguments (generators do not receive @value)', async () => {
       // Arrange
       const functionNode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'generateId')
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'generateId',
         evaluate: jest.fn().mockReturnValue('generated-id-123'),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -34,7 +35,7 @@ describe('FunctionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined)
+      expect(mockFunction.evaluate).toHaveBeenCalledWith()
       expect(result.value).toBe('generated-id-123')
     })
 
@@ -45,6 +46,7 @@ describe('FunctionHandler', () => {
       const mockFunction: FunctionRegistryEntry = {
         name: 'equals',
         evaluate: jest.fn().mockReturnValue(false),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -71,6 +73,7 @@ describe('FunctionHandler', () => {
       const mockFunction: FunctionRegistryEntry = {
         name: 'uppercase',
         evaluate: jest.fn((_, str: string) => str.toUpperCase()),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -99,6 +102,7 @@ describe('FunctionHandler', () => {
       const mockFunction: FunctionRegistryEntry = {
         name: 'greaterThan',
         evaluate: jest.fn((_, a: number, b: number) => a > b),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -126,6 +130,7 @@ describe('FunctionHandler', () => {
       const mockFunction: FunctionRegistryEntry = {
         name: 'isPresent',
         evaluate: jest.fn((value: any) => value !== undefined && value !== null),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -180,6 +185,7 @@ describe('FunctionHandler', () => {
         evaluate: jest.fn(() => {
           throw new Error('Division by zero')
         }),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({
@@ -210,6 +216,7 @@ describe('FunctionHandler', () => {
       const mockFunction: FunctionRegistryEntry = {
         name: 'concat',
         evaluate: jest.fn((_, a: string, b: string) => `${a}${b}`),
+        isAsync: false,
       }
 
       const mockContext = createMockContext({

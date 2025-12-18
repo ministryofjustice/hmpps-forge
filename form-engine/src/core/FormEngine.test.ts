@@ -168,8 +168,8 @@ describe('FormEngine', () => {
     it('should register a function registry object', () => {
       const engine = new FormEngine(createDefaultOptions())
       const mockRegistry = {
-        Function1: { name: 'Function1', evaluate: () => true },
-        Function2: { name: 'Function2', evaluate: (x: any) => x },
+        Function1: { name: 'Function1', evaluate: () => true, isAsync: false },
+        Function2: { name: 'Function2', evaluate: (x: any) => x, isAsync: false },
       }
 
       engine.registerFunctions(mockRegistry)
@@ -367,10 +367,10 @@ describe('FormEngine', () => {
       const component1 = buildComponent('comp-1', async () => '<div>1</div>')
       const component2 = buildComponent('comp-2', async () => '<div>2</div>')
       const functions1 = {
-        Func1: { name: 'Func1', evaluate: () => true },
+        Func1: { name: 'Func1', evaluate: () => true, isAsync: false },
       }
       const functions2 = {
-        Func2: { name: 'Func2', evaluate: (x: any) => x },
+        Func2: { name: 'Func2', evaluate: (x: any) => x, isAsync: false },
       }
 
       const result = engine
@@ -412,6 +412,7 @@ describe('FormEngine', () => {
         CustomValidator: {
           name: 'CustomValidator',
           evaluate: (value: any) => value !== null,
+          isAsync: false,
         },
       }
 

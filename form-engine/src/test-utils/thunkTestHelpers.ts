@@ -271,8 +271,22 @@ export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked
     }
   }
 
+  // invokeSync implementation - returns result directly (no Promise)
+  const defaultSyncImpl = (nodeId: NodeId) => {
+    const value = options.returnValueMap?.get(nodeId) ?? options.defaultValue
+
+    return {
+      value,
+      metadata: {
+        source: 'mockInvoker',
+        timestamp: Date.now(),
+      },
+    }
+  }
+
   return {
     invoke: jest.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
+    invokeSync: jest.fn().mockImplementation(options.invokeSyncImpl ?? defaultSyncImpl),
   }
 }
 
@@ -373,6 +387,7 @@ export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
   return {
     createNode: jest.fn(),
     registerRuntimeNode: jest.fn(),
+    registerRuntimeNodesBatch: jest.fn(),
     createPseudoNode: jest.fn().mockImplementation((type: PseudoNodeType, properties: Record<string, unknown>) => {
       pseudoNodeCounter += 1
 
