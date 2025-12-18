@@ -19,6 +19,7 @@ describe('PseudoNodeTraverser', () => {
     ASTTestFactory.resetIds()
     mockNodeRegistry = {
       findByType: jest.fn().mockReturnValue([]),
+      findPseudoNode: jest.fn().mockReturnValue(undefined),
       register: jest.fn(),
     } as unknown as jest.Mocked<NodeRegistry>
 

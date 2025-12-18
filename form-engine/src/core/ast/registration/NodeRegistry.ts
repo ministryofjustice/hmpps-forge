@@ -1,6 +1,8 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import { isPseudoNode } from '@form-engine/core/typeguards/nodes'
+import { getPseudoNodeKey } from './pseudoNodeKeyExtractor'
 
 /**
  * Metadata stored for each registered node
@@ -17,6 +19,12 @@ export default class NodeRegistry {
   private readonly nodes: Map<NodeId, NodeRegistryEntry> = new Map()
 
   /**
+   * Secondary index for O(1) pseudo node lookups
+   * Map<PseudoNodeType, Map<key, NodeId>>
+   */
+  private readonly pseudoNodeIndex: Map<PseudoNodeType, Map<string, NodeId>> = new Map()
+
+  /**
    * Register a node with its ID and path
    * @param id The unique ID for the node
    * @param node The AST node to register
@@ -29,6 +37,31 @@ export default class NodeRegistry {
     }
 
     this.nodes.set(id, { node: Object.freeze(node), path })
+
+    // Update pseudo node index for O(1) lookups
+    if (isPseudoNode(node)) {
+      this.indexPseudoNode(id, node)
+    }
+  }
+
+  /**
+   * Index a pseudo node for O(1) lookup by type and key
+   */
+  private indexPseudoNode(id: NodeId, node: PseudoNode): void {
+    const key = getPseudoNodeKey(node)
+
+    if (key === undefined) {
+      return
+    }
+
+    let typeIndex = this.pseudoNodeIndex.get(node.type)
+
+    if (!typeIndex) {
+      typeIndex = new Map()
+      this.pseudoNodeIndex.set(node.type, typeIndex)
+    }
+
+    typeIndex.set(key, id)
   }
 
   /**
@@ -131,10 +164,54 @@ export default class NodeRegistry {
   }
 
   /**
+   * Find a pseudo node by type and key in O(1) time
+   *
+   * @param type The pseudo node type
+   * @param key The lookup key (baseProperty, baseFieldCode, or paramName depending on type)
+   * @returns The pseudo node, or undefined if not found
+   */
+  findPseudoNode<T extends PseudoNode = PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
+    const typeIndex = this.pseudoNodeIndex.get(type)
+
+    if (!typeIndex) {
+      return undefined
+    }
+
+    const nodeId = typeIndex.get(key)
+
+    if (!nodeId) {
+      return undefined
+    }
+
+    return this.get(nodeId) as T | undefined
+  }
+
+  /**
+   * Find a pseudo node by key, checking multiple types in order
+   * Used when a lookup could match different pseudo node types (e.g., ANSWER_LOCAL or ANSWER_REMOTE)
+   *
+   * @param types Array of pseudo node types to check (in order)
+   * @param key The lookup key
+   * @returns The first matching pseudo node, or undefined if none found
+   */
+  findPseudoNodeByTypes<T extends PseudoNode = PseudoNode>(types: PseudoNodeType[], key: string): T | undefined {
+    for (const type of types) {
+      const node = this.findPseudoNode<T>(type, key)
+
+      if (node) {
+        return node
+      }
+    }
+
+    return undefined
+  }
+
+  /**
    * Clear all registered nodes
    */
   clear(): void {
     this.nodes.clear()
+    this.pseudoNodeIndex.clear()
   }
 
   /**
@@ -146,8 +223,16 @@ export default class NodeRegistry {
   clone(): NodeRegistry {
     const cloned = Object.create(Object.getPrototypeOf(this)) as NodeRegistry
 
+    // Clone the pseudo node index (deep copy of nested maps)
+    const clonedIndex = new Map<PseudoNodeType, Map<string, NodeId>>()
+
+    this.pseudoNodeIndex.forEach((typeIndex, type) => {
+      clonedIndex.set(type, new Map(typeIndex))
+    })
+
     return Object.assign(cloned, {
       nodes: new Map(this.nodes),
+      pseudoNodeIndex: clonedIndex,
     })
   }
 }

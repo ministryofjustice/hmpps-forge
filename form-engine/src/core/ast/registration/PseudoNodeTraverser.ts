@@ -121,15 +121,18 @@ export default class PseudoNodeTraverser {
    * Create a POST pseudo node with deduplication
    */
   private createPostPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): void {
-    // Check if already created
-    if (this.created.get(PseudoNodeType.POST).has(baseFieldCode)) {
+    // Check if already created in this traversal OR already exists in registry
+    if (
+      this.created.get(PseudoNodeType.POST)!.has(baseFieldCode) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.POST, baseFieldCode)
+    ) {
       return
     }
 
     const node = this.pseudoNodeFactory.createPostPseudoNode(baseFieldCode, fieldNodeId)
 
     this.nodeRegistry.register(node.id, node)
-    this.created.get(PseudoNodeType.POST).add(baseFieldCode)
+    this.created.get(PseudoNodeType.POST)!.add(baseFieldCode)
   }
 
   /**
@@ -137,11 +140,13 @@ export default class PseudoNodeTraverser {
    * Creates ANSWER_REMOTE for representing Answers that are not also fields on the current Step.
    */
   private createAnswerRemotePseudoNode(baseFieldCode: string): void {
-    // Check if already created
+    // Check if already created in this traversal OR already exists in registry
     // Note: Also checks if the `local` equivalent exists, as that takes preference.
     if (
-      this.created.get(PseudoNodeType.ANSWER_REMOTE).has(baseFieldCode) ||
-      this.created.get(PseudoNodeType.ANSWER_LOCAL).has(baseFieldCode)
+      this.created.get(PseudoNodeType.ANSWER_REMOTE)!.has(baseFieldCode) ||
+      this.created.get(PseudoNodeType.ANSWER_LOCAL)!.has(baseFieldCode) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_REMOTE, baseFieldCode) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_LOCAL, baseFieldCode)
     ) {
       return
     }
@@ -149,7 +154,7 @@ export default class PseudoNodeTraverser {
     const answerPseudoNode = this.pseudoNodeFactory.createAnswerRemotePseudoNode(baseFieldCode)
 
     this.nodeRegistry.register(answerPseudoNode.id, answerPseudoNode)
-    this.created.get(PseudoNodeType.ANSWER_REMOTE).add(baseFieldCode)
+    this.created.get(PseudoNodeType.ANSWER_REMOTE)!.add(baseFieldCode)
   }
 
   /**
@@ -157,60 +162,72 @@ export default class PseudoNodeTraverser {
    * Creates ANSWER_LOCAL for representing Answers that are fields on the current Step.
    */
   private createAnswerLocalPseudoNode(fieldNode: BlockASTNode, fieldCode: string): void {
-    // Check if already created
+    // Check if already created in this traversal OR already exists in registry
     // Note: this shouldn't ever occur, unless someone fudged up and made 2 fields with the same code on a single step
-    if (this.created.get(PseudoNodeType.ANSWER_LOCAL).has(fieldCode)) {
+    if (
+      this.created.get(PseudoNodeType.ANSWER_LOCAL)!.has(fieldCode) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_LOCAL, fieldCode)
+    ) {
       return
     }
 
     const answerPseudoNode = this.pseudoNodeFactory.createAnswerLocalPseudoNode(fieldCode, fieldNode.id)
 
     this.nodeRegistry.register(answerPseudoNode.id, answerPseudoNode)
-    this.created.get(PseudoNodeType.ANSWER_LOCAL).add(fieldCode)
+    this.created.get(PseudoNodeType.ANSWER_LOCAL)!.add(fieldCode)
   }
 
   /**
    * Create a QUERY pseudo node with deduplication
    */
   private createQueryPseudoNode(paramName: string): void {
-    // Check if already created
-    if (this.created.get(PseudoNodeType.QUERY).has(paramName)) {
+    // Check if already created in this traversal OR already exists in registry
+    if (
+      this.created.get(PseudoNodeType.QUERY)!.has(paramName) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.QUERY, paramName)
+    ) {
       return
     }
 
     const node = this.pseudoNodeFactory.createQueryPseudoNode(paramName)
 
     this.nodeRegistry.register(node.id, node)
-    this.created.get(PseudoNodeType.QUERY).add(paramName)
+    this.created.get(PseudoNodeType.QUERY)!.add(paramName)
   }
 
   /**
    * Create a PARAMS pseudo node with deduplication
    */
   private createParamsPseudoNode(paramName: string): void {
-    // Check if already created
-    if (this.created.get(PseudoNodeType.PARAMS).has(paramName)) {
+    // Check if already created in this traversal OR already exists in registry
+    if (
+      this.created.get(PseudoNodeType.PARAMS)!.has(paramName) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.PARAMS, paramName)
+    ) {
       return
     }
 
     const node = this.pseudoNodeFactory.createParamsPseudoNode(paramName)
 
     this.nodeRegistry.register(node.id, node)
-    this.created.get(PseudoNodeType.PARAMS).add(paramName)
+    this.created.get(PseudoNodeType.PARAMS)!.add(paramName)
   }
 
   /**
    * Create a DATA pseudo node with deduplication
    */
   private createDataPseudoNode(baseProperty: string): void {
-    // Check if already created
-    if (this.created.get(PseudoNodeType.DATA).has(baseProperty)) {
+    // Check if already created in this traversal OR already exists in registry
+    if (
+      this.created.get(PseudoNodeType.DATA)!.has(baseProperty) ||
+      this.nodeRegistry.findPseudoNode(PseudoNodeType.DATA, baseProperty)
+    ) {
       return
     }
 
     const node = this.pseudoNodeFactory.createDataPseudoNode(baseProperty)
 
     this.nodeRegistry.register(node.id, node)
-    this.created.get(PseudoNodeType.DATA).add(baseProperty)
+    this.created.get(PseudoNodeType.DATA)!.add(baseProperty)
   }
 }

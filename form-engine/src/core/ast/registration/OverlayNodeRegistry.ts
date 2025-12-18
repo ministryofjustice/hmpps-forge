@@ -85,6 +85,48 @@ export default class OverlayNodeRegistry extends NodeRegistry {
     return results
   }
 
+  /**
+   * Find a pseudo node by type and key
+   * Checks pending registry first, then main registry
+   */
+  findPseudoNode<T extends PseudoNode = PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
+    // Check pending first
+    const pendingResult = this.pending.findPseudoNode<T>(type, key)
+
+    if (pendingResult) {
+      return pendingResult
+    }
+
+    // Fall back to main
+    return this.main.findPseudoNode<T>(type, key)
+  }
+
+  /**
+   * Find a pseudo node by key, checking multiple types
+   * Checks pending registry first for each type, then main registry
+   */
+  findPseudoNodeByTypes<T extends PseudoNode = PseudoNode>(types: PseudoNodeType[], key: string): T | undefined {
+    // Check pending first for all types
+    for (const type of types) {
+      const pendingResult = this.pending.findPseudoNode<T>(type, key)
+
+      if (pendingResult) {
+        return pendingResult
+      }
+    }
+
+    // Fall back to main for all types
+    for (const type of types) {
+      const mainResult = this.main.findPseudoNode<T>(type, key)
+
+      if (mainResult) {
+        return mainResult
+      }
+    }
+
+    return undefined
+  }
+
   clear(): void {
     this.clearPending()
   }

@@ -10,6 +10,8 @@ import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import { cloneASTValue } from '@form-engine/core/ast/utils/cloneASTValue'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 function findContainingField(ancestors: any[], self: ASTNode): FieldBlockASTNode | undefined {
   for (let i = ancestors.length - 1; i >= 0; i -= 1) {
@@ -28,6 +30,36 @@ function isPropertySentinel(obj: any): obj is { kind: 'property'; key: string; o
 }
 
 /**
+ * Recursively assign new IDs to all AST nodes in a cloned value tree.
+ * This is needed when embedding cloned AST nodes inside other nodes' properties,
+ * since cloneASTValue strips IDs expecting re-registration.
+ */
+function assignIdsToClonedValue(
+  value: any,
+  nodeIdGenerator: NodeIDGenerator,
+  category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+): void {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(item => assignIdsToClonedValue(item, nodeIdGenerator, category))
+    return
+  }
+
+  // If this is an AST node without an ID, assign one
+  if (isASTNode(value) && !value.id) {
+    ;(value as any).id = nodeIdGenerator.next(category)
+  }
+
+  // Recursively process all properties (including nested nodes in 'properties')
+  Object.values(value).forEach(propValue => {
+    assignIdsToClonedValue(propValue, nodeIdGenerator, category)
+  })
+}
+
+/**
  * Normalizer that resolves Self() references by replacing `answers('@self')` path segment
  * with the nearest containing field's `code` property (string or expression AST).
  *
@@ -36,6 +68,11 @@ function isPropertySentinel(obj: any): obj is { kind: 'property'; key: string; o
  * - Throws when Self() is used inside the field's own `code` property to avoid recursion.
  */
 export class ResolveSelfReferencesNormalizer implements StructuralVisitor {
+  constructor(
+    private readonly nodeIdGenerator: NodeIDGenerator,
+    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+  ) {}
+
   /**
    * Visitor method: called when entering a node during traversal
    */
@@ -109,7 +146,10 @@ export class ResolveSelfReferencesNormalizer implements StructuralVisitor {
 
     // Replace the '@self' segment with a deep-cloned field code value
     // to avoid aliasing the same AST node in multiple locations.
-    refPath[1] = cloneASTValue(codeValue)
+    // After cloning, assign IDs to any embedded AST nodes since cloneASTValue strips them.
+    const clonedCode = cloneASTValue(codeValue)
+    assignIdsToClonedValue(clonedCode, this.nodeIdGenerator, this.category)
+    refPath[1] = clonedCode
 
     return StructuralVisitResult.CONTINUE
   }

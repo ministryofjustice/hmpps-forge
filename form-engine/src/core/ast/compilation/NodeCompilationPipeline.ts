@@ -71,7 +71,7 @@ export class NodeCompilationPipeline {
     const normalizers = [
       new AddSelfValueToFieldsNormalizer(compilationDependencies.nodeFactory),
       new ConvertFormattersToPipelineNormalizer(compilationDependencies.nodeIdGenerator, idCategory),
-      new ResolveSelfReferencesNormalizer(),
+      new ResolveSelfReferencesNormalizer(compilationDependencies.nodeIdGenerator, idCategory),
     ]
 
     // Run each normalizer on each node

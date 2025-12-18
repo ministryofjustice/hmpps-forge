@@ -116,10 +116,59 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     getAll: jest.fn(() => options.mockRegisteredFunctions ?? new Map()),
   }
 
+  // Helper to find pseudo node by type and key
+  const findPseudoNodeImpl = (type: PseudoNodeType, key: string) => {
+    if (!options.mockNodes) {
+      return undefined
+    }
+
+    for (const node of options.mockNodes.values()) {
+      if ('type' in node && node.type === type) {
+        const props = (node as PseudoNode).properties
+
+        if (type === PseudoNodeType.DATA && 'baseProperty' in props && props.baseProperty === key) {
+          return node
+        }
+
+        if (
+          (type === PseudoNodeType.POST ||
+            type === PseudoNodeType.ANSWER_LOCAL ||
+            type === PseudoNodeType.ANSWER_REMOTE) &&
+          'baseFieldCode' in props &&
+          props.baseFieldCode === key
+        ) {
+          return node
+        }
+
+        if (
+          (type === PseudoNodeType.QUERY || type === PseudoNodeType.PARAMS) &&
+          'paramName' in props &&
+          props.paramName === key
+        ) {
+          return node
+        }
+      }
+    }
+
+    return undefined
+  }
+
   const mockNodeRegistry = {
     getAll: jest.fn(() => options.mockNodes ?? new Map()),
     get: jest.fn((nodeId: NodeId) => options.mockNodes?.get(nodeId)),
     has: jest.fn((nodeId: NodeId) => options.mockNodes?.has(nodeId) ?? false),
+    findPseudoNode: jest.fn(findPseudoNodeImpl),
+    findPseudoNodeByTypes: jest.fn((types: PseudoNodeType[], key: string) => {
+      for (const type of types) {
+        const result = findPseudoNodeImpl(type, key)
+
+        if (result) {
+          return result
+        }
+      }
+
+      return undefined
+    }),
   }
 
   return {
@@ -164,6 +213,11 @@ export interface MockInvokerOptions {
    * Custom invoke implementation
    */
   invokeImpl?: (nodeId: NodeId, context: ThunkEvaluationContext, hooks: ThunkRuntimeHooks) => Promise<ThunkResult>
+
+  /**
+   * Custom invokeSync implementation
+   */
+  invokeSyncImpl?: (nodeId: NodeId, context: ThunkEvaluationContext) => ThunkResult
 }
 
 /**

@@ -4,12 +4,15 @@ import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { FunctionASTNode, PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 
 describe('ResolveSelfReferencesNormalizer', () => {
   let normalizer: ResolveSelfReferencesNormalizer
+  let nodeIdGenerator: NodeIDGenerator
 
   beforeEach(() => {
-    normalizer = new ResolveSelfReferencesNormalizer()
+    nodeIdGenerator = new NodeIDGenerator()
+    normalizer = new ResolveSelfReferencesNormalizer(nodeIdGenerator, NodeIDCategory.COMPILE_AST)
   })
 
   describe('normalize()', () => {
