@@ -175,4 +175,18 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
     assertDate(value, 'Transformer.Date.ToLocaleString')
     return locale ? value.toLocaleString(locale) : value.toLocaleString()
   },
+
+  /**
+   * Converts a Date to UK long date format (e.g., "18 March 2026")
+   * @example
+   * // ToUKLongDate() -> "18 March 2026"
+   */
+  ToUKLongDate: (value: any) => {
+    assertDate(value, 'Transformer.Date.ToUKLongDate')
+    return value.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  },
 })
