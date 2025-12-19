@@ -481,6 +481,23 @@ export interface RuntimeOverlayHooks {
   createNode: (json: any) => ASTNode
 
   /**
+   * Transform a value, recursively processing nested AST nodes
+   *
+   * Unlike createNode which requires a known node type, transformValue handles:
+   * - AST nodes (blocks, expressions, etc.) → creates proper AST nodes via createNode
+   * - Plain objects → recursively processes properties, transforming nested nodes
+   * - Arrays → recursively processes each element
+   * - Primitives → passed through as-is
+   *
+   * This enables Collection templates to contain plain objects with nested expressions,
+   * e.g., { value: Item().path('value'), text: Item().path('text') }
+   *
+   * @param value - The value to transform (can be any JSON value)
+   * @returns The transformed value with nested AST nodes created
+   */
+  transformValue: (value: any) => any
+
+  /**
    * Register a runtime node in the overlay
    *
    * Automatically tracks which node is currently being evaluated as the creator,

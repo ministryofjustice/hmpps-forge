@@ -89,4 +89,19 @@ export class ScopedReferenceBuilder {
   index(): ReferenceBuilder {
     return ReferenceBuilder.create(['@scope', this.level.toString(), '@index'])
   }
+
+  /**
+   * Get the key when iterating over an object.
+   * Only available when iterating over object entries (not arrays).
+   *
+   * @example
+   * // Given: { accommodation: { score: 5 }, finances: { score: 3 } }
+   * Data('scores').each(Iterator.Map({
+   *   slug: Item().key(),     // 'accommodation', 'finances'
+   *   score: Item().path('score')  // 5, 3
+   * }))
+   */
+  key(): ReferenceBuilder {
+    return ReferenceBuilder.create(['@scope', this.level.toString(), '@key'])
+  }
 }

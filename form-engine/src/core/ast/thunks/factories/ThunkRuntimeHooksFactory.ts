@@ -44,6 +44,10 @@ export default class ThunkRuntimeHooksFactory {
       return builder.nodeFactory.createNode(json)
     }
 
+    const transformValue = (value: any): any => {
+      return builder.nodeFactory.transformValue(value)
+    }
+
     const registerRuntimeNode = (node: ASTNode, property: string): void => {
       // Simple single-node registration without dynamic code resolution
       // Use registerRuntimeNodesBatch for fields with dynamic codes
@@ -170,6 +174,7 @@ export default class ThunkRuntimeHooksFactory {
 
     return {
       createNode,
+      transformValue,
       registerRuntimeNode,
       registerRuntimeNodesBatch,
       createPseudoNode,

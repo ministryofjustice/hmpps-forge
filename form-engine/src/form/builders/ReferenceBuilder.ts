@@ -1,5 +1,6 @@
 import {
   ConditionFunctionExpr,
+  IteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
   ReferenceExpr,
@@ -7,6 +8,7 @@ import {
 } from '../types/expressions.type'
 import { ExpressionType, LogicType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { IterableBuilder } from './IterableBuilder'
 
 /**
  * Split a key string into path segments.
@@ -89,6 +91,18 @@ export class ReferenceBuilder {
    */
   pipe(...steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return ExpressionBuilder.pipeline(this.reference, steps)
+  }
+
+  /**
+   * Enter per-item iteration mode with an iterator.
+   * Returns an IterableBuilder that can chain more .each() calls or exit via .pipe().
+   *
+   * @example
+   * Data('items').each(Iterator.Map({ label: Item().path('name') }))
+   * Data('items').each(Iterator.Filter(...)).each(Iterator.Map(...))
+   */
+  each(iterator: IteratorConfig): IterableBuilder {
+    return IterableBuilder.create(this.reference, iterator)
   }
 
   /**

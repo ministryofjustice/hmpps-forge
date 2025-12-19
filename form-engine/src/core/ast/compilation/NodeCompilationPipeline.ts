@@ -24,6 +24,7 @@ import ValidationExpressionWiring from '@form-engine/core/ast/dependencies/wirin
 import NextExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/NextExpressionWiring'
 import FormatExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/FormatExpressionWiring'
 import CollectionExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/CollectionExpressionWiring'
+import IterateExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/IterateExpressionWiring'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 import { NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import OnLoadTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnLoadTransitionWiring'
@@ -187,6 +188,7 @@ export class NodeCompilationPipeline {
       new NextExpressionWiring(wiringContext).wireNodes(nodeIds)
       new FormatExpressionWiring(wiringContext).wireNodes(nodeIds)
       new CollectionExpressionWiring(wiringContext).wireNodes(nodeIds)
+      new IterateExpressionWiring(wiringContext).wireNodes(nodeIds)
     } else {
       // Full wiring - existing behavior for compile-time
       new StructuralWiring(wiringContext).wire()
@@ -213,6 +215,7 @@ export class NodeCompilationPipeline {
       new NextExpressionWiring(wiringContext).wire()
       new FormatExpressionWiring(wiringContext).wire()
       new CollectionExpressionWiring(wiringContext).wire()
+      new IterateExpressionWiring(wiringContext).wire()
     }
   }
 

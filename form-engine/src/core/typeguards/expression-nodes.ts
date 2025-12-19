@@ -11,6 +11,7 @@ import {
   PredicateASTNode,
   FunctionASTNode,
   CollectionASTNode,
+  IterateASTNode,
 } from '@form-engine/core/types/expressions.type'
 
 /**
@@ -63,10 +64,17 @@ export function isValidationExprNode(obj: any): obj is ValidationASTNode {
 }
 
 /**
- * Check if an AST node is a Validation Expression node
+ * Check if an AST node is a Collection Expression node
  */
 export function isCollectionExprNode(obj: any): obj is CollectionASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.COLLECTION
+}
+
+/**
+ * Check if an AST node is an Iterate Expression node
+ */
+export function isIterateExprNode(obj: any): obj is IterateASTNode {
+  return isExpressionNode(obj) && obj.expressionType === ExpressionType.ITERATE
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   isFunctionExprNode,
   isEffectExprNode,
   isCollectionExprNode,
+  isIterateExprNode,
   isNextExprNode,
   isValidationExprNode,
 } from '@form-engine/core/typeguards/expression-nodes'
@@ -29,6 +30,7 @@ import PostReferenceHandler from '@form-engine/core/ast/thunks/handlers/referenc
 import QueryReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/QueryReferenceHandler'
 import ParamsReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/ParamsReferenceHandler'
 import CollectionHandler from '@form-engine/core/ast/thunks/handlers/expressions/CollectionHandler'
+import IterateHandler from '@form-engine/core/ast/thunks/handlers/expressions/IterateHandler'
 import ConditionalHandler from '@form-engine/core/ast/thunks/handlers/expressions/ConditionalHandler'
 import AndPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/AndPredicateHandler'
 import OrPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/OrPredicateHandler'
@@ -217,6 +219,11 @@ export default class ThunkCompilerFactory {
       return new CollectionHandler(nodeId, node)
     }
 
+    // Iterate expressions
+    if (isIterateExprNode(node)) {
+      return new IterateHandler(nodeId, node)
+    }
+
     // Conditional expressions
     if (isConditionalExprNode(node)) {
       return new ConditionalHandler(nodeId, node)
@@ -301,6 +308,7 @@ export default class ThunkCompilerFactory {
       'FORMAT',
       'PIPELINE',
       'COLLECTION',
+      'ITERATE',
       'CONDITIONAL',
       'TEST',
       'AND',

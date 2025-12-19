@@ -386,6 +386,7 @@ export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
 
   return {
     createNode: jest.fn(),
+    transformValue: jest.fn(),
     registerRuntimeNode: jest.fn(),
     registerRuntimeNodesBatch: jest.fn(),
     createPseudoNode: jest.fn().mockImplementation((type: PseudoNodeType, properties: Record<string, unknown>) => {

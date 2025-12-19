@@ -18,6 +18,13 @@ export enum ExpressionType {
   NEXT = 'ExpressionType.Next',
   VALIDATION = 'ExpressionType.Validation',
   COLLECTION = 'ExpressionType.Collection',
+  ITERATE = 'ExpressionType.Iterate',
+}
+
+export enum IteratorType {
+  MAP = 'IteratorType.Map',
+  FILTER = 'IteratorType.Filter',
+  FIND = 'IteratorType.Find',
 }
 
 export enum LogicType {

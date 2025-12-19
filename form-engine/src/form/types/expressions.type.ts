@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, LogicType, TransitionType } from './enums'
+import { FunctionType, ExpressionType, LogicType, TransitionType, IteratorType } from './enums'
 import type { ChainableExpr, ChainableRef } from '../builders/types'
 
 /**
@@ -297,6 +297,90 @@ export interface CollectionExpr<T = any, F = T> {
 }
 
 /**
+ * Configuration for Iterator.Map - transforms each item to a new shape.
+ *
+ * @example
+ * Iterator.Map({ label: Item().path('name'), value: Item().path('id') })
+ */
+export interface MapIteratorConfig {
+  type: IteratorType.MAP
+
+  /**
+   * Template with Item() references - evaluated per item to produce output.
+   * The template is instantiated for each item with Item() references resolved.
+   */
+  yield: unknown
+}
+
+/**
+ * Configuration for Iterator.Filter - keeps items matching a predicate.
+ *
+ * @example
+ * Iterator.Filter(Item().path('active').match(Condition.IsTrue()))
+ */
+export interface FilterIteratorConfig {
+  type: IteratorType.FILTER
+
+  /**
+   * Predicate evaluated per item - items where predicate is true are kept.
+   * Uses Item() references to access item properties.
+   */
+  predicate: PredicateExpr
+}
+
+/**
+ * Configuration for Iterator.Find - returns first item matching a predicate.
+ *
+ * @example
+ * Iterator.Find(Item().path('id').match(Condition.Equals(Params('userId'))))
+ */
+export interface FindIteratorConfig {
+  type: IteratorType.FIND
+
+  /**
+   * Predicate evaluated per item - returns first item where predicate is true.
+   * Returns undefined if no match found.
+   */
+  predicate: PredicateExpr
+}
+
+/**
+ * Union of all iterator configuration types.
+ */
+export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIteratorConfig
+
+/**
+ * Represents an iterate expression that applies an iterator to a source collection.
+ * Created by the .each() method on reference/expression builders.
+ *
+ * @example
+ * // Filter and map in sequence
+ * Data('items')
+ *   .each(Iterator.Filter(Item().path('active').match(Condition.IsTrue())))
+ *   .each(Iterator.Map({ label: Item().path('name'), value: Item().path('id') }))
+ *
+ * @example
+ * // Transform with pipeline on result
+ * Data('items')
+ *   .each(Iterator.Map(Item().path('name')))
+ *   .pipe(Transformer.Array.Slice(0, 10))
+ */
+export interface IterateExpr {
+  type: ExpressionType.ITERATE
+
+  /**
+   * The input source expression (array or prior iterate result).
+   * Can be a reference, pipeline, or another iterate expression for chaining.
+   */
+  input: ValueExpr
+
+  /**
+   * The iterator configuration (Map, Filter, etc.) to apply per item.
+   */
+  iterator: IteratorConfig
+}
+
+/**
  * Represents any expression that evaluates to a value.
  * This is the base type for all expressions in the form system.
  */
@@ -307,6 +391,7 @@ export type ValueExpr =
   | GeneratorFunctionExpr
   | PipelineExpr
   | CollectionExpr
+  | IterateExpr
   | ValueExpr[]
   | string
   | number

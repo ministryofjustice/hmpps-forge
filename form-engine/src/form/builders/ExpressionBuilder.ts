@@ -1,11 +1,13 @@
 import {
   ConditionFunctionExpr,
+  IteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
   TransformerFunctionExpr,
   ValueExpr,
 } from '../types/expressions.type'
 import { ExpressionType, LogicType } from '../types/enums'
+import { IterableBuilder } from './IterableBuilder'
 
 /**
  * Immutable builder for creating chainable value expressions.
@@ -78,6 +80,17 @@ export class ExpressionBuilder<T extends ValueExpr> {
    */
   pipe(...steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return ExpressionBuilder.pipeline(this.expression, steps)
+  }
+
+  /**
+   * Enter per-item iteration mode with an iterator.
+   * Returns an IterableBuilder that can chain more .each() calls or exit via .pipe().
+   *
+   * @example
+   * Literal(someArray).each(Iterator.Map(Item().path('name')))
+   */
+  each(iterator: IteratorConfig): IterableBuilder {
+    return IterableBuilder.create(this.expression, iterator)
   }
 
   /**

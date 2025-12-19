@@ -158,6 +158,7 @@ describe('ExpressionNodeFactory', () => {
           'Format',
           'Pipeline',
           'Collection',
+          'Iterate',
           'Validation',
           'Function',
           'Next',
@@ -430,7 +431,6 @@ describe('ExpressionNodeFactory', () => {
       // Assert - path should remain unchanged
       expect(result.properties.path).toEqual(['answers', 'fieldCode'])
     })
-
   })
 
   describe('createPipeline', () => {

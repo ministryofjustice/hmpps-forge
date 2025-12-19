@@ -28,12 +28,16 @@ import { ExpressionBuilder } from './ExpressionBuilder'
 import { ExpressionType, StructureType, TransitionType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
-export type { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
+export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
 
 // Re-export builder classes (for advanced use cases)
 export { ExpressionBuilder } from './ExpressionBuilder'
 export { ReferenceBuilder } from './ReferenceBuilder'
 export { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
+export { IterableBuilder } from './IterableBuilder'
+
+// Re-export Iterator namespace for iterator configuration
+export { Iterator } from './IteratorBuilder'
 
 // Re-export predicate combinators
 export { and, or, xor, not } from './PredicateTestExprBuilder'

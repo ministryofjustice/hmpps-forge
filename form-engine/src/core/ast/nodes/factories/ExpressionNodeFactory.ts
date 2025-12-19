@@ -3,19 +3,24 @@ import {
   isFormatExpr,
   isPipelineExpr,
   isCollectionExpr,
+  isIterateExpr,
+  isMapIteratorConfig,
+  isFilterIteratorConfig,
+  isFindIteratorConfig,
   isValidationExpr,
   isNextExpr,
   isExpression,
 } from '@form-engine/form/typeguards/expressions'
 import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { ExpressionType, IteratorType } from '@form-engine/form/types/enums'
 import {
   ExpressionASTNode,
   ReferenceASTNode,
   FormatASTNode,
   PipelineASTNode,
   CollectionASTNode,
+  IterateASTNode,
   ValidationASTNode,
   FunctionASTNode,
   NextASTNode,
@@ -28,6 +33,7 @@ import {
   CollectionExpr,
   FormatExpr,
   FunctionExpr,
+  IterateExpr,
   NextExpr,
   PipelineExpr,
   ReferenceExpr,
@@ -66,6 +72,10 @@ export class ExpressionNodeFactory {
       return this.createCollection(json)
     }
 
+    if (isIterateExpr(json)) {
+      return this.createIterate(json)
+    }
+
     if (isValidationExpr(json)) {
       return this.createValidation(json)
     }
@@ -81,7 +91,7 @@ export class ExpressionNodeFactory {
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['Reference', 'Format', 'Pipeline', 'Collection', 'Validation', 'Function', 'Next'],
+      validTypes: ['Reference', 'Format', 'Pipeline', 'Collection', 'Iterate', 'Validation', 'Function', 'Next'],
     })
   }
 
@@ -143,7 +153,7 @@ export class ExpressionNodeFactory {
    * Input flows through each step: input -> step1 -> step2 -> output
    */
   private createPipeline(json: PipelineExpr): PipelineASTNode {
-    // Initial value to transform (can be an AST node or a literal value from Literal() builder)
+    // Initial value to transform - use transformValue to support both AST nodes and literals
     const input = this.nodeFactory.transformValue(json.input)
 
     // Transform each pipeline step
@@ -191,6 +201,54 @@ export class ExpressionNodeFactory {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.COLLECTION,
+      properties,
+      raw: json,
+    }
+  }
+
+  /**
+   * Transform Iterate expression: Per-item iteration over collections
+   *
+   * IMPORTANT: Like Collection, the yield/predicate templates are stored as raw JSON,
+   * NOT pre-compiled AST nodes. At runtime, they are instantiated once per collection item,
+   * creating fresh AST nodes with unique runtime IDs. This allows Item() references to be
+   * substituted with actual item data before node creation.
+   */
+  private createIterate(json: IterateExpr): IterateASTNode {
+    const properties: {
+      input: ASTNode | any
+      iterator: {
+        type: IteratorType
+        yield?: any
+        predicate?: any
+      }
+    } = {
+      // Transform the input data source (this IS an expression that needs evaluation)
+      input: this.nodeFactory.transformValue(json.input),
+      iterator: {
+        type: json.iterator.type,
+      },
+    }
+
+    // For MAP: store yield template as raw JSON (instantiated at runtime per item)
+    if (isMapIteratorConfig(json.iterator)) {
+      properties.iterator.yield = json.iterator.yield
+    }
+
+    // For FILTER: store predicate as raw JSON (instantiated at runtime per item)
+    if (isFilterIteratorConfig(json.iterator)) {
+      properties.iterator.predicate = json.iterator.predicate
+    }
+
+    // For FIND: store predicate as raw JSON (instantiated at runtime per item)
+    if (isFindIteratorConfig(json.iterator)) {
+      properties.iterator.predicate = json.iterator.predicate
+    }
+
+    return {
+      id: this.nodeIDGenerator.next(this.category),
+      type: ASTNodeType.EXPRESSION,
+      expressionType: ExpressionType.ITERATE,
       properties,
       raw: json,
     }
