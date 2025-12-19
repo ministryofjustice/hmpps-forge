@@ -463,6 +463,55 @@ describe('LogicNodeFactory', () => {
       expect(() => logicFactory.create(json)).toThrow(InvalidNodeError)
       expect(() => logicFactory.create(json)).toThrow('Test predicate requires a condition')
     })
+
+    it('should support literal string as subject (for Literal() builder)', () => {
+      // Arrange
+      const json = {
+        type: LogicType.TEST,
+        subject: 'hello' as any,
+        negate: false,
+        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+      } satisfies PredicateTestExpr
+
+      // Act
+      const result = logicFactory.create(json) as TestPredicateASTNode
+
+      // Assert
+      expect(result.properties.subject).toBe('hello')
+    })
+
+    it('should support literal number as subject (for Literal() builder)', () => {
+      // Arrange
+      const json = {
+        type: LogicType.TEST,
+        subject: 42 as any,
+        negate: false,
+        condition: { type: FunctionType.CONDITION, name: 'GreaterThan', arguments: [0] as ValueExpr[] },
+      } satisfies PredicateTestExpr
+
+      // Act
+      const result = logicFactory.create(json) as TestPredicateASTNode
+
+      // Assert
+      expect(result.properties.subject).toBe(42)
+    })
+
+    it('should support literal array as subject (for Literal() builder)', () => {
+      // Arrange
+      const literalArray = [1, 2, 3]
+      const json = {
+        type: LogicType.TEST,
+        subject: literalArray as any,
+        negate: false,
+        condition: { type: FunctionType.CONDITION, name: 'HasLength', arguments: [3] as ValueExpr[] },
+      } satisfies PredicateTestExpr
+
+      // Act
+      const result = logicFactory.create(json) as TestPredicateASTNode
+
+      // Assert
+      expect(result.properties.subject).toEqual([1, 2, 3])
+    })
   })
 
   describe('createPredicate - NOT', () => {

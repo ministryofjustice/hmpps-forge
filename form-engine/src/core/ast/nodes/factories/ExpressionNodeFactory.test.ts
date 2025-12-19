@@ -542,6 +542,53 @@ describe('ExpressionNodeFactory', () => {
       expect(steps[1].properties.name).toBe('uppercase')
       expect(steps[1].properties.arguments).toEqual([])
     })
+
+    it('should support literal array as input (for Literal() builder)', () => {
+      // Arrange - simulates Literal([1, 2, 3]).pipe(...)
+      const literalArray = [1, 2, 3]
+      const json = {
+        type: ExpressionType.PIPELINE,
+        input: literalArray as any,
+        steps: [{ type: FunctionType.TRANSFORMER, name: 'filter', arguments: [] as any }],
+      } satisfies PipelineExpr
+
+      // Act
+      const result = expressionFactory.create(json) as PipelineASTNode
+
+      // Assert - input should be preserved as-is (arrays are transformed but values preserved)
+      expect(result.properties.input).toEqual([1, 2, 3])
+    })
+
+    it('should support literal string as input (for Literal() builder)', () => {
+      // Arrange - simulates Literal('hello').pipe(...)
+      const json = {
+        type: ExpressionType.PIPELINE,
+        input: 'hello' as any,
+        steps: [{ type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any }],
+      } satisfies PipelineExpr
+
+      // Act
+      const result = expressionFactory.create(json) as PipelineASTNode
+
+      // Assert - input should be preserved as-is
+      expect(result.properties.input).toBe('hello')
+    })
+
+    it('should support literal object as input (for Literal() builder)', () => {
+      // Arrange - simulates Literal({ name: 'test' }).pipe(...)
+      const literalObj = { name: 'test', count: 5 }
+      const json = {
+        type: ExpressionType.PIPELINE,
+        input: literalObj as any,
+        steps: [{ type: FunctionType.TRANSFORMER, name: 'transform', arguments: [] as any }],
+      } satisfies PipelineExpr
+
+      // Act
+      const result = expressionFactory.create(json) as PipelineASTNode
+
+      // Assert - input should be preserved as-is
+      expect(result.properties.input).toEqual({ name: 'test', count: 5 })
+    })
   })
 
   describe('createCollection', () => {

@@ -143,8 +143,8 @@ export class ExpressionNodeFactory {
    * Input flows through each step: input -> step1 -> step2 -> output
    */
   private createPipeline(json: PipelineExpr): PipelineASTNode {
-    // Initial value to transform
-    const input = this.nodeFactory.createNode(json.input)
+    // Initial value to transform (can be an AST node or a literal value from Literal() builder)
+    const input = this.nodeFactory.transformValue(json.input)
 
     // Transform each pipeline step
     const steps = json.steps.map((arg: any) => this.nodeFactory.transformValue(arg))

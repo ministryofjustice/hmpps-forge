@@ -139,7 +139,8 @@ export class LogicNodeFactory {
       type: ASTNodeType.EXPRESSION,
       expressionType: LogicType.TEST,
       properties: {
-        subject: this.nodeFactory.createNode(json.subject),
+        // Use transformValue to support both AST nodes and literals
+        subject: this.nodeFactory.transformValue(json.subject),
         condition: this.nodeFactory.createNode(json.condition),
         negate: json.negate ?? false,
       },

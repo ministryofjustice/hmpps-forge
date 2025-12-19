@@ -22,7 +22,9 @@ import {
   PipelineExpr,
   ReferenceExpr,
   SubmitTransition,
+  ValueExpr,
 } from '../types/expressions.type'
+import { ExpressionBuilder } from './ExpressionBuilder'
 import { ExpressionType, StructureType, TransitionType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
@@ -291,4 +293,30 @@ export function Collection<T = any, F = T>({
     template,
     fallback: fallback ?? [],
   }
+}
+
+/**
+ * Wraps a static/literal value to make it chainable with .pipe() and .match().
+ *
+ * Use this when you have static data that you want to transform or test
+ * using the fluent expression API.
+ *
+ * @param value - Any static value (array, object, primitive)
+ * @returns A chainable expression (only exposes .pipe(), .match(), .not)
+ *
+ * @example
+ * // Static array with transformations
+ * Literal(['apple', 'banana', 'cherry']).pipe(Transformer.Array.Filter(...))
+ *
+ * // Static value with condition
+ * Literal(42).match(Condition.Number.GreaterThan(0))
+ *
+ * // Use in Collection to generate checkbox items
+ * items: Collection({
+ *   collection: Literal(areasOfNeed),
+ *   template: [{ value: Item().path('value'), text: Item().path('text') }],
+ * })
+ */
+export function Literal<T extends ValueExpr>(value: T): ChainableExpr<T> {
+  return ExpressionBuilder.from(value)
 }
