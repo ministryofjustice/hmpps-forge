@@ -3,6 +3,7 @@ import {
   ConditionFunctionExpr,
   TransformerFunctionExpr,
   EffectFunctionExpr,
+  GeneratorFunctionExpr,
   FunctionExpr,
 } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
@@ -21,6 +22,10 @@ export function isTransformerFunctionExpr(obj: any): obj is TransformerFunctionE
 
 export function isEffectFunctionExpr(obj: any): obj is EffectFunctionExpr {
   return obj != null && obj.type === FunctionType.EFFECT
+}
+
+export function isGeneratorFunctionExpr(obj: any): obj is GeneratorFunctionExpr {
+  return obj != null && obj.type === FunctionType.GENERATOR
 }
 
 export function isFunctionExpr(obj: any): obj is FunctionExpr<any> {

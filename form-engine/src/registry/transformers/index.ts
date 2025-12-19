@@ -1,4 +1,5 @@
 import { ArrayTransformers, ArrayTransformersRegistry } from './arrayTransformers'
+import { DateTransformers, DateTransformersRegistry } from './dateTransformers'
 import { NumberTransformers, NumberTransformersRegistry } from './numberTransformers'
 import { ObjectTransformers, ObjectTransformersRegistry } from './objectTransformers'
 import { StringTransformers, StringTransformersRegistry } from './stringTransformers'
@@ -15,6 +16,9 @@ export const Transformer = {
 
   /** Transformers for handling objects */
   Object: ObjectTransformers,
+
+  /** Transformers for handling dates */
+  Date: DateTransformers,
 }
 
 export const TransformersRegistry = {
@@ -22,4 +26,5 @@ export const TransformersRegistry = {
   ...NumberTransformersRegistry,
   ...ArrayTransformersRegistry,
   ...ObjectTransformersRegistry,
+  ...DateTransformersRegistry,
 }

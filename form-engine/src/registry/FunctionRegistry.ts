@@ -2,6 +2,7 @@ import RegistryDuplicateError from '@form-engine/errors/RegistryDuplicateError'
 import RegistryValidationError from '@form-engine/errors/RegistryValidationError'
 import { ConditionsRegistry } from '@form-engine/registry/conditions'
 import { TransformersRegistry } from '@form-engine/registry/transformers'
+import { GeneratorsRegistry } from '@form-engine/registry/generators'
 import { FunctionRegistryEntry, FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
 
 /**
@@ -69,11 +70,12 @@ export default class FunctionRegistry {
   }
 
   /**
-   * Register all built-in conditions and transformers
+   * Register all built-in conditions, transformers, and generators
    */
   registerBuiltInFunctions() {
     this.register(ConditionsRegistry)
     this.register(TransformersRegistry)
+    this.register(GeneratorsRegistry)
   }
 
   /**

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { TransformerFunctionExprSchema } from './base.schema'
+import { TransformerFunctionExprSchema, GeneratorFunctionExprSchema } from './base.schema'
 
 /**
  * @see {@link ValueExpr}
@@ -10,6 +10,7 @@ export const ValueExprSchema: z.ZodType<any> = z.lazy(() =>
     ReferenceExprSchema,
     FormatExprSchema,
     TransformerFunctionExprSchema,
+    GeneratorFunctionExprSchema,
     PipelineExprSchema,
     CollectionExprSchema,
     z.array(ValueExprSchema),

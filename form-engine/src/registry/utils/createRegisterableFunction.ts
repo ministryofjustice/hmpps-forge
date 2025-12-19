@@ -4,9 +4,12 @@ import {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   FunctionExpr,
+  GeneratorFunctionExpr,
   TransformerFunctionExpr,
   ValueExpr,
 } from '../../form/types/expressions.type'
+import { GeneratorBuilder } from '../../form/builders/GeneratorBuilder'
+import { ChainableRef } from '../../form/builders/types'
 import { FunctionType } from '../../form/types/enums'
 
 /**
@@ -33,7 +36,24 @@ type ExprFor<FT, A extends any[]> = FT extends FunctionType.EFFECT
     ? ConditionFunctionExpr<A>
     : FT extends FunctionType.TRANSFORMER
       ? TransformerFunctionExpr<A>
-      : never
+      : FT extends FunctionType.GENERATOR
+        ? GeneratorFunctionExpr<A>
+        : never
+
+/**
+ * Detect if a function is async by checking its constructor
+ *
+ * Returns true for:
+ * - async function declarations: async function foo() {}
+ * - async arrow functions: async () => {}
+ * - async methods: async foo() {}
+ *
+ * Returns false for:
+ * - Regular functions that return Promises (requires async keyword)
+ */
+export function isAsyncFunction(fn: (...args: any[]) => any): boolean {
+  return fn.constructor.name === 'AsyncFunction'
+}
 
 /**
  * Core function that creates both function builders and registry entries from evaluator functions.
@@ -409,5 +429,142 @@ export function defineTransformersWithDeps<D>() {
     )(factories)
 
     return { transformers: functions, createRegistry }
+  }
+}
+
+/**
+ * Creates generator functions and their registry from evaluator functions.
+ * Generators produce values without requiring input, unlike conditions and transformers.
+ *
+ * @template E - Record of generator evaluator functions
+ *
+ * @param evaluators - Object mapping generator names to evaluator functions
+ *   Each evaluator receives only its arguments (no value parameter)
+ *
+ * @returns Object containing:
+ * - `generators`: Function builders for creating generator expressions in form definitions
+ * - `registry`: Registry entries for runtime value generation
+ *
+ * @example
+ * const { generators, registry } = defineGenerators({
+ *   Now: () => new Date(),
+ *   Today: () => {
+ *     const now = new Date()
+ *     return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+ *   },
+ *   UUID: (prefix?: string) => `${prefix ?? ''}${crypto.randomUUID()}`
+ * })
+ *
+ * // Usage in form definition:
+ * // generators.Now() creates a generator expression that returns a GeneratorBuilder
+ * // generators.UUID('id-') creates a generator expression with arguments
+ */
+export function defineGenerators<E extends Record<string, (...args: ValueExpr[]) => ValueExpr | Promise<ValueExpr>>>(
+  evaluators: E,
+) {
+  /**
+   * Type for the function builders that create generator expressions.
+   * Each function takes the same arguments as the evaluator and returns a ChainableRef.
+   * The return type hides internal methods like build() and expr, exposing only pipe/match/not.
+   */
+  type Proxies = {
+    [K in keyof E]: (...args: Parameters<E[K]>) => ChainableRef
+  }
+
+  const generators = {} as Proxies
+  const registry = {} as FunctionRegistryObject
+
+  Object.entries(evaluators).forEach(([name, evaluate]) => {
+    // Create function builder that generates a GeneratorBuilder
+    ;(generators as any)[name] = (...args: any[]) => GeneratorBuilder.create(name, args)
+
+    // Detect if function is async
+    const isAsync = isAsyncFunction(evaluate)
+
+    // Create registry entry for runtime evaluation
+    ;(registry as any)[name] = {
+      name,
+      evaluate,
+      isAsync,
+    }
+  })
+
+  return { generators, registry }
+}
+
+/**
+ * Creates generator functions with dependency injection from factory functions.
+ * This variant allows generators to depend on external services or configuration.
+ *
+ * Unlike defineGenerators, this separates builder creation from registry creation:
+ * - `generators`: Available immediately for use in form definitions (no deps needed)
+ * - `createRegistry`: Factory function to create registry with real dependencies at runtime
+ *
+ * @template D - The dependencies type
+ *
+ * @returns A curried function that accepts factory definitions
+ *
+ * @example
+ * // generators.ts - define generators with factory pattern
+ * export const { generators: MyGenerators, createRegistry } = defineGeneratorsWithDeps<MyDeps>()({
+ *   CurrentUser: (deps) => () => deps.userService.getCurrentUser(),
+ *   ServerTime: (deps) => async () => {
+ *     const response = await deps.timeApi.getServerTime()
+ *     return new Date(response.timestamp)
+ *   }
+ * })
+ *
+ * // app.ts - create registry with real dependencies
+ * const registry = createRegistry({ userService, timeApi })
+ * formEngine.registerFunctions(registry)
+ *
+ * // step.ts - use generators in form definitions (no deps needed)
+ * defaultValue: MyGenerators.CurrentUser()
+ */
+export function defineGeneratorsWithDeps<D>() {
+  return <Fns extends Record<string, (deps: D) => (...args: ValueExpr[]) => ValueExpr | Promise<ValueExpr>>>(
+    factories: Fns,
+  ) => {
+    /**
+     * Type for the function builders that create generator expressions.
+     * The return type hides internal methods like build() and expr, exposing only pipe/match/not.
+     */
+    type Builders = {
+      [K in keyof Fns]: Fns[K] extends (deps: D) => infer Eval
+        ? Eval extends (...args: infer A) => any
+          ? (...args: A) => ChainableRef
+          : never
+        : never
+    }
+
+    // Create builders from factory keys only - no deps needed
+    const generators = {} as Builders
+
+    Object.keys(factories).forEach(name => {
+      ;(generators as any)[name] = (...args: any[]) => GeneratorBuilder.create(name, args)
+    })
+
+    // Factory function to create registry with real dependencies
+    const createRegistry = (deps: D): FunctionRegistryObject => {
+      const registry = {} as FunctionRegistryObject
+
+      Object.entries(factories).forEach(([name, factory]) => {
+        const evaluate = factory(deps)
+
+        // Detect if function is async
+        const isAsync = isAsyncFunction(evaluate)
+
+        // FunctionHandler knows generators don't receive @value, so we pass the evaluator directly
+        ;(registry as any)[name] = {
+          name,
+          evaluate,
+          isAsync,
+        }
+      })
+
+      return registry
+    }
+
+    return { generators, createRegistry }
   }
 }

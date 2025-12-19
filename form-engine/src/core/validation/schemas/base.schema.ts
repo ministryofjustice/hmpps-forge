@@ -44,10 +44,20 @@ export const EffectFunctionExprSchema = z.object({
 })
 
 /**
+ * @see {@link GeneratorFunctionExpr}
+ */
+export const GeneratorFunctionExprSchema = z.object({
+  type: z.literal(FunctionType.GENERATOR),
+  name: z.string().trim().min(1),
+  arguments: z.array(FunctionArgumentSchema),
+})
+
+/**
  * @see {@link FunctionExpr}
  */
 export const FunctionExprSchema = z.union([
   ConditionFunctionExprSchema,
   TransformerFunctionExprSchema,
   EffectFunctionExprSchema,
+  GeneratorFunctionExprSchema,
 ])

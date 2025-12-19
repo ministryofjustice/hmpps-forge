@@ -223,6 +223,31 @@ export interface EffectFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends
 }
 
 /**
+ * Represents a generator function call expression.
+ * Generator functions produce values without requiring input.
+ * Unlike conditions and transformers, generators do not receive a value to process.
+ *
+ * @example
+ * // Generate current date
+ * {
+ *   type: 'FunctionType.Generator',
+ *   name: 'Now',
+ *   arguments: []
+ * }
+ *
+ * @example
+ * // Generate UUID with prefix
+ * {
+ *   type: 'FunctionType.Generator',
+ *   name: 'UUID',
+ *   arguments: ['prefix-']
+ * }
+ */
+export interface GeneratorFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
+  type: FunctionType.GENERATOR
+}
+
+/**
  * Represents a collection expression that iterates over data to produce repeated templates.
  * Collections allow dynamic generation of form elements based on arrays of data.
  *
@@ -279,6 +304,7 @@ export type ValueExpr =
   | ReferenceExpr
   | FormatExpr
   | TransformerFunctionExpr
+  | GeneratorFunctionExpr
   | PipelineExpr
   | CollectionExpr
   | ValueExpr[]
