@@ -240,6 +240,60 @@ describe('templateWrapper component', () => {
       // Assert
       expect(result).toBe('<span>Alice</span> and <span>Alice</span>')
     })
+
+    it('should join array values with empty string', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<ul>{{items}}</ul>',
+        values: {
+          items: ['<li>One</li>', '<li>Two</li>', '<li>Three</li>'] as unknown as string,
+        },
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<ul><li>One</li><li>Two</li><li>Three</li></ul>')
+    })
+
+    it('should extract html from rendered block values', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<div>{{content}}</div>',
+        values: {
+          content: {
+            block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' },
+            html: '<p>Rendered block content</p>',
+          } as unknown as string,
+        },
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<div><p>Rendered block content</p></div>')
+    })
+
+    it('should extract html from array of rendered blocks in values', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<ul>{{items}}</ul>',
+        values: {
+          items: [
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<li>First</li>' },
+            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<li>Second</li>' },
+          ] as unknown as string,
+        },
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<ul><li>First</li><li>Second</li></ul>')
+    })
   })
 
   it('should have the correct variant', () => {

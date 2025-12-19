@@ -1,6 +1,8 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
 import { CollectionExpr } from '@form-engine/form/types/expressions.type'
+import { ChainableExpr } from '@form-engine/form/builders'
 import { StructureType } from '@form-engine/form/types/enums'
+import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
 import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/types/structures.type'
 
 /**
@@ -12,7 +14,7 @@ import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/ty
 export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition {
   variant: 'collection-block'
 
-  collection: CollectionExpr<T, F>
+  collection: ChainableExpr<CollectionExpr<T, F>>
 
   /** Additional CSS classes to apply to wrapper div (optional) */
   classes?: ConditionalString
@@ -44,6 +46,24 @@ export interface EvaluatedCollectionBlock {
 }
 
 /**
+ * Extracts a string value from a collection item that could be:
+ * - A rendered block (with .html and .block properties)
+ * - A plain string
+ * - An array of either
+ */
+const extractItemValue = (item: unknown): string => {
+  if (Array.isArray(item)) {
+    return item.map(i => extractItemValue(i)).join('')
+  }
+
+  if (isRenderedBlock(item)) {
+    return item.html
+  }
+
+  return (item as string) ?? ''
+}
+
+/**
  * Render function for collection-block.
  * Cast to any because the generic EvaluatedBlock<CollectionBlock> type
  * cannot express that `collection` transforms from CollectionExpr to RenderedBlock[].
@@ -52,7 +72,7 @@ const renderCollectionBlock = async (block: EvaluatedCollectionBlock): Promise<s
   let content = ''
 
   if (block.collection && block.collection.length > 0) {
-    content = block.collection.map(b => b.html).join('')
+    content = block.collection.map(item => extractItemValue(item)).join('')
   }
 
   const hasWrapper = block.classes || block.attributes

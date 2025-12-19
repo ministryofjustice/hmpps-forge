@@ -147,4 +147,50 @@ describe('collectionBlock component', () => {
     // Assert
     expect(result).toBe('')
   })
+
+  it('should handle plain string items in collection', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: ['<li>Item 1</li>', '<li>Item 2</li>', '<li>Item 3</li>'] as unknown as any[],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<li>Item 1</li><li>Item 2</li><li>Item 3</li>')
+  })
+
+  it('should handle mixed rendered blocks and strings in collection', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [
+        mockRenderedBlock('<div>Block 1</div>'),
+        '<p>Plain string</p>',
+        mockRenderedBlock('<div>Block 2</div>'),
+      ] as unknown as any[],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<div>Block 1</div><p>Plain string</p><div>Block 2</div>')
+  })
+
+  it('should handle nested arrays in collection items', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [
+        ['<li>Nested 1</li>', '<li>Nested 2</li>'],
+        mockRenderedBlock('<li>Block item</li>'),
+      ] as unknown as any[],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<li>Nested 1</li><li>Nested 2</li><li>Block item</li>')
+  })
 })

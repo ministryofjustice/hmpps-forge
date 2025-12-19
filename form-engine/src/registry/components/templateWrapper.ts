@@ -1,4 +1,5 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
+import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
 import { BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/types/structures.type'
 
 /**
@@ -55,6 +56,24 @@ export interface TemplateWrapper extends BlockDefinition {
 }
 
 /**
+ * Extracts a string value from a value that could be:
+ * - A plain string
+ * - A rendered block (with .html and .block properties)
+ * - An array of strings or rendered blocks
+ */
+const extractStringValue = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value.map(v => extractStringValue(v)).join('')
+  }
+
+  if (isRenderedBlock(value)) {
+    return value.html
+  }
+
+  return (value as string) ?? ''
+}
+
+/**
  * Renders the template wrapper by replacing slot markers with rendered block HTML
  * and value markers with their corresponding values.
  */
@@ -65,7 +84,8 @@ const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Pr
   if (block.values) {
     Object.entries(block.values).forEach(([key, value]) => {
       const marker = `{{${key}}}`
-      content = content.split(marker).join(value ?? '')
+      const stringValue = extractStringValue(value)
+      content = content.split(marker).join(stringValue)
     })
   }
 

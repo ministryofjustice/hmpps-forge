@@ -5,7 +5,8 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
 } from '@form-engine/form/types/structures.type'
-import { FunctionExpr } from '@form-engine/form/types/expressions.type'
+import { CollectionExpr, FunctionExpr } from '@form-engine/form/types/expressions.type'
+import { ChainableExpr } from '@form-engine/form/builders'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 
 /**
@@ -156,6 +157,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
   /**
    * The checkbox items within the checkboxes component.
    * Can include both checkbox options and dividers for visual separation.
+   * Can also be a Collection expression for dynamic items.
    *
    * @example [
    *   { value: 'email', text: 'Email' },
@@ -163,8 +165,18 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    *   { divider: 'or' },
    *   { value: 'none', text: 'None of the above', behaviour: 'exclusive' }
    * ]
+   *
+   * @example
+   * // Dynamic items using Collection
+   * Collection({
+   *   collection: Data('areas'),
+   *   filter: Item().path('slug').not.match(Condition.Equals(Params('currentArea'))),
+   *   template: [{ value: Item().path('value'), text: Item().path('text') }]
+   * })
    */
-  items: (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
+  items:
+    | (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
+    | ChainableExpr<CollectionExpr<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>>
 }
 
 /**
@@ -292,7 +304,9 @@ interface GovUKCheckboxInputDivider {
 export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
   'govukCheckboxInput',
   async (block, nunjucksEnv) => {
-    const items = block.items.map(option => makeOption(option, block.value))
+    // At render time, items has been evaluated (Collection expressions resolved to arrays)
+    const evaluatedItems = block.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
+    const items = evaluatedItems.map(option => makeOption(option, block.value))
 
     const params = {
       fieldset: block.fieldset || {
