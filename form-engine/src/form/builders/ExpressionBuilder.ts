@@ -1,13 +1,24 @@
 import {
   ConditionFunctionExpr,
+  FilterIteratorConfig,
+  FindIteratorConfig,
   IteratorConfig,
+  MapIteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
+  ReferenceExpr,
   TransformerFunctionExpr,
   ValueExpr,
 } from '../types/expressions.type'
-import { ExpressionType, LogicType } from '../types/enums'
+import { ExpressionType, IteratorType, LogicType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
+
+/**
+ * Split a key string into path segments.
+ * 'user.name' -> ['user', 'name']
+ * 'simple' -> ['simple']
+ */
+const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
 
 /**
  * Immutable builder for creating chainable value expressions.
@@ -83,13 +94,66 @@ export class ExpressionBuilder<T extends ValueExpr> {
   }
 
   /**
-   * Enter per-item iteration mode with an iterator.
+   * Navigate into a property of the expression result.
+   * Creates a ReferenceExpr with this expression as its base.
+   *
+   * @param key - Property path to navigate into (supports dot notation)
+   * @returns ExpressionBuilder wrapping a ReferenceExpr
+   *
+   * @example
+   * // After a Find, navigate into the result
+   * Data('users').each(Iterator.Find(...)).path('profile.name')
+   */
+  path(key: string): ExpressionBuilder<ReferenceExpr> {
+    const referenceExpr: ReferenceExpr = {
+      type: ExpressionType.REFERENCE,
+      base: this.expression,
+      path: splitKey(key),
+    }
+
+    return ExpressionBuilder.from(referenceExpr)
+  }
+
+  /**
+   * Enter per-item iteration mode with a Find iterator.
+   * Returns an ExpressionBuilder since Find returns a single item, not an array.
+   *
+   * @example
+   * Data('users').each(Iterator.Find(Item().path('id').match(Condition.Equals(Params('userId')))))
+   *   .path('name')  // Navigate into the found item
+   */
+  each(iterator: FindIteratorConfig): ExpressionBuilder<ReferenceExpr>
+
+  /**
+   * Enter per-item iteration mode with a Map or Filter iterator.
    * Returns an IterableBuilder that can chain more .each() calls or exit via .pipe().
    *
    * @example
    * Literal(someArray).each(Iterator.Map(Item().path('name')))
    */
-  each(iterator: IteratorConfig): IterableBuilder {
+  each(iterator: MapIteratorConfig | FilterIteratorConfig): IterableBuilder
+
+  /**
+   * Enter per-item iteration mode with an iterator.
+   */
+  each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
+    if (iterator.type === IteratorType.FIND) {
+      // Find returns a single item - wrap in a reference with empty path
+      // so .path() works naturally
+      const iterateExpr = {
+        type: ExpressionType.ITERATE as const,
+        input: this.expression,
+        iterator,
+      }
+      const referenceExpr: ReferenceExpr = {
+        type: ExpressionType.REFERENCE,
+        base: iterateExpr,
+        path: [],
+      }
+
+      return ExpressionBuilder.from(referenceExpr)
+    }
+
     return IterableBuilder.create(this.expression, iterator)
   }
 

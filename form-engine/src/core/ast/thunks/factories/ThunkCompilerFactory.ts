@@ -28,6 +28,7 @@ import DataReferenceHandler from '@form-engine/core/ast/thunks/handlers/referenc
 import PostReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/PostReferenceHandler'
 import QueryReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/QueryReferenceHandler'
 import ParamsReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/ParamsReferenceHandler'
+import BaseReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/BaseReferenceHandler'
 import IterateHandler from '@form-engine/core/ast/thunks/handlers/expressions/IterateHandler'
 import ConditionalHandler from '@form-engine/core/ast/thunks/handlers/expressions/ConditionalHandler'
 import AndPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/AndPredicateHandler'
@@ -167,8 +168,14 @@ export default class ThunkCompilerFactory {
       }
     }
 
-    // Reference expressions - route by namespace
+    // Reference expressions - route by base or namespace
     if (isReferenceExprNode(node)) {
+      // If base is present, use BaseReferenceHandler to evaluate base first
+      if (node.properties.base) {
+        return new BaseReferenceHandler(nodeId, node)
+      }
+
+      // Route by namespace
       const namespace = node.properties.path[0]
 
       switch (namespace) {

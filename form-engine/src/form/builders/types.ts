@@ -1,21 +1,36 @@
 import {
   ConditionFunctionExpr,
-  IteratorConfig,
+  FilterIteratorConfig,
+  FindIteratorConfig,
+  MapIteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
+  ReferenceExpr,
   TransformerFunctionExpr,
   ValueExpr,
 } from '../types/expressions.type'
 
 /**
  * Public interface for chainable iterable expressions.
- * Created by .each() on references or expressions.
+ * Created by .each(Iterator.Map/Filter) on references or expressions.
  */
 export interface ChainableIterable {
   /**
-   * Chain another iterator operation.
+   * Chain a Find iterator.
+   * Returns a ChainableExpr since Find returns a single item, not an array.
    */
-  each(iterator: IteratorConfig): ChainableIterable
+  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+
+  /**
+   * Chain a Map or Filter iterator.
+   */
+  each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
+
+  /**
+   * Navigate into a property of the iteration result.
+   * Useful after Iterator.Find() to extract a specific property from the found item.
+   */
+  path(key: string): ChainableExpr<ReferenceExpr>
 
   /**
    * Transform the output array through a pipeline.
@@ -39,14 +54,26 @@ export interface ChainableIterable {
  */
 export interface ChainableExpr<T extends ValueExpr> {
   /**
+   * Navigate into a property of the expression result.
+   * Creates a reference with this expression as its base.
+   */
+  path(key: string): ChainableExpr<ReferenceExpr>
+
+  /**
    * Transform the value through a pipeline of transformers.
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr<PipelineExpr>
 
   /**
-   * Enter per-item iteration mode with an iterator.
+   * Enter per-item iteration mode with a Find iterator.
+   * Returns a ChainableExpr since Find returns a single item, not an array.
    */
-  each(iterator: IteratorConfig): ChainableIterable
+  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+
+  /**
+   * Enter per-item iteration mode with a Map or Filter iterator.
+   */
+  each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
 
   /**
    * Test the value against a condition.
@@ -76,9 +103,15 @@ export interface ChainableRef {
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr<PipelineExpr>
 
   /**
-   * Enter per-item iteration mode with an iterator.
+   * Enter per-item iteration mode with a Find iterator.
+   * Returns a ChainableExpr since Find returns a single item.
    */
-  each(iterator: IteratorConfig): ChainableIterable
+  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+
+  /**
+   * Enter per-item iteration mode with a Map or Filter iterator.
+   */
+  each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
 
   /**
    * Test the value against a condition.

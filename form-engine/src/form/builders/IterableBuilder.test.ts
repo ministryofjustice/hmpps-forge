@@ -305,6 +305,134 @@ describe('IterableBuilder', () => {
     })
   })
 
+  describe('path()', () => {
+    it('should create ReferenceExpr with iterate expression as base', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Find(mockPredicate())
+
+      // Act
+      const result = IterableBuilder.create(input, iterator).path('goals')
+
+      // Assert
+      const refExpr = result.expr as ReferenceExpr
+      expect(refExpr.type).toBe(ExpressionType.REFERENCE)
+      expect(refExpr.path).toEqual(['goals'])
+      expect(refExpr.base).toBeDefined()
+      expect((refExpr.base as IterateExpr).type).toBe(ExpressionType.ITERATE)
+    })
+
+    it('should split dot-notation path into segments', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Find(mockPredicate())
+
+      // Act
+      const result = IterableBuilder.create(input, iterator).path('profile.settings.theme')
+
+      // Assert
+      const refExpr = result.expr as ReferenceExpr
+      expect(refExpr.path).toEqual(['profile', 'settings', 'theme'])
+    })
+
+    it('should preserve the iterate expression in base', () => {
+      // Arrange - simulates: Data('areas').each(Iterator.Find(...)).path('goals')
+      const dataRef: ReferenceExpr = { type: ExpressionType.REFERENCE, path: ['data', 'areas'] }
+      const findIterator = Iterator.Find(mockPredicate())
+
+      // Act
+      const result = IterableBuilder.create(dataRef, findIterator).path('goals')
+
+      // Assert
+      const refExpr = result.expr as ReferenceExpr
+      const baseExpr = refExpr.base as IterateExpr
+      expect(baseExpr.type).toBe(ExpressionType.ITERATE)
+      expect(baseExpr.iterator.type).toBe(IteratorType.FIND)
+      expect(baseExpr.input).toEqual(dataRef)
+    })
+
+    it('should return ExpressionBuilder allowing further chaining with pipe()', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Find(mockPredicate())
+      const transformer = mockTransformer('toUpperCase')
+
+      // Act
+      const result = IterableBuilder.create(input, iterator).path('name').pipe(transformer)
+
+      // Assert
+      const pipelineExpr = result.expr as PipelineExpr
+      expect(pipelineExpr.type).toBe(ExpressionType.PIPELINE)
+      expect(pipelineExpr.steps).toEqual([transformer])
+      // Input to pipeline should be the reference with base
+      const inputRef = pipelineExpr.input as ReferenceExpr
+      expect(inputRef.type).toBe(ExpressionType.REFERENCE)
+      expect(inputRef.base).toBeDefined()
+    })
+
+    it('should return ExpressionBuilder allowing further chaining with match()', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Find(mockPredicate())
+      const condition = mockCondition('isNotEmpty')
+
+      // Act
+      const result = IterableBuilder.create(input, iterator).path('goals').match(condition)
+
+      // Assert
+      expect(result.type).toBe(LogicType.TEST)
+      expect(result.negate).toBe(false)
+      expect(result.condition).toEqual(condition)
+      // Subject should be the reference with base
+      const subject = result.subject as ReferenceExpr
+      expect(subject.type).toBe(ExpressionType.REFERENCE)
+      expect(subject.base).toBeDefined()
+    })
+
+    it('should work after chained each() calls', () => {
+      // Arrange - simulates: Data('items').each(Iterator.Filter(...)).each(Iterator.Find(...)).path('value')
+      const input = mockRef()
+      const filter = Iterator.Filter(mockPredicate())
+      const find = Iterator.Find(mockPredicate())
+
+      // Act
+      // Note: .each(Find) now returns ExpressionBuilder (not IterableBuilder)
+      // so the structure is: Reference(path: ['value'], base: Reference(path: [], base: Iterate(Find)))
+      const result = IterableBuilder.create(input, filter).each(find).path('value')
+
+      // Assert
+      const refExpr = result.expr as ReferenceExpr
+      expect(refExpr.type).toBe(ExpressionType.REFERENCE)
+      expect(refExpr.path).toEqual(['value'])
+
+      // Base is the reference wrapper from .each(Find)
+      const wrapperRef = refExpr.base as ReferenceExpr
+      expect(wrapperRef.type).toBe(ExpressionType.REFERENCE)
+      expect(wrapperRef.path).toEqual([])
+
+      // Which wraps the Find iterate
+      const findExpr = wrapperRef.base as IterateExpr
+      expect(findExpr.iterator.type).toBe(IteratorType.FIND)
+
+      // Which has the filter as its input
+      const filterExpr = findExpr.input as IterateExpr
+      expect(filterExpr.iterator.type).toBe(IteratorType.FILTER)
+    })
+
+    it('should not mutate original builder', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Find(mockPredicate())
+      const original = IterableBuilder.create(input, iterator)
+
+      // Act
+      original.path('goals')
+
+      // Assert
+      expect(original.expr.type).toBe(ExpressionType.ITERATE)
+    })
+  })
+
   describe('integration with ReferenceBuilder pattern', () => {
     it('should work with typical Data().each() pattern', () => {
       // This simulates: Data('items').each(Iterator.Filter(...)).each(Iterator.Map(...))

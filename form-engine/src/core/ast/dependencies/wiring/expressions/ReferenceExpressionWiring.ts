@@ -45,13 +45,23 @@ export default class ReferenceExpressionWiring {
   }
 
   /**
-   * Wire a reference expression to its dynamic path segments
+   * Wire a reference expression to its dependencies
    *
-   * Creates edges: pathSegment → reference (for each AST node in path)
+   * Creates edges:
+   * - base → reference (if base expression is present)
+   * - pathSegment → reference (for each AST node in path)
    */
   private wireReference(referenceNode: ReferenceASTNode) {
-    const path = referenceNode.properties.path
+    const { path, base } = referenceNode.properties
 
+    // Wire base expression dependency (evaluates before navigating into result)
+    if (isASTNode(base)) {
+      this.wiringContext.graph.addEdge(base.id, referenceNode.id, DependencyEdgeType.DATA_FLOW, {
+        property: 'base',
+      })
+    }
+
+    // Wire dynamic path segment dependencies
     path.forEach((segment, index) => {
       if (isASTNode(segment)) {
         this.wiringContext.graph.addEdge(segment.id, referenceNode.id, DependencyEdgeType.DATA_FLOW, {

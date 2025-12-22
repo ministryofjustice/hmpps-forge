@@ -91,15 +91,23 @@ export class ExpressionNodeFactory {
   /**
    * Transform Reference expression: Points to data in context
    * Examples: Answer('field'), Data('external.value'), Self(), Item()
+   *
+   * When `base` is present, the reference evaluates the base expression first
+   * and then navigates into the result using the path. Empty path is valid
+   * when base is present (returns base result directly).
    */
   private createReference(json: ReferenceExpr): ReferenceASTNode {
-    const path = this.buildReferencePath(json.path)
+    // Transform base expression if present
+    const base = json.base ? this.nodeFactory.transformValue(json.base) : undefined
+
+    // Build path - allow empty path when base is present
+    const path = this.buildReferencePath(json.path, !!base)
 
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
-      properties: { path },
+      properties: { path, base },
       raw: json,
     }
   }
@@ -107,9 +115,12 @@ export class ExpressionNodeFactory {
   /**
    * Build the reference path, transforming any dynamic expressions.
    * Path splitting is done at the builder level - factory just passes through.
+   *
+   * @param path - The path segments
+   * @param allowEmpty - Whether to allow empty path (valid when base is present)
    */
-  private buildReferencePath(path: any[]): any[] {
-    if (!Array.isArray(path) || path.length === 0) {
+  private buildReferencePath(path: any[], allowEmpty = false): any[] {
+    if (!Array.isArray(path) || (!allowEmpty && path.length === 0)) {
       throw new InvalidNodeError({
         message: 'Reference path must be a non-empty array',
         actual: JSON.stringify(path),

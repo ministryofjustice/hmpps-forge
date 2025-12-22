@@ -28,6 +28,21 @@ export interface ReferenceExpr {
    * Special paths include '@self' (current field) and '@item' (current collection item).
    */
   path: string[]
+
+  /**
+   * Optional base expression to evaluate first.
+   * When present, the reference evaluates the base expression and then
+   * navigates into the result using the path segments.
+   *
+   * @example
+   * // Navigate into the result of an iteration
+   * {
+   *   type: 'ExpressionType.Reference',
+   *   base: { type: 'ExpressionType.Iterate', ... },
+   *   path: ['goals']
+   * }
+   */
+  base?: ValueExpr
 }
 
 /**

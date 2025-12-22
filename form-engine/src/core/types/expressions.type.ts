@@ -17,6 +17,11 @@ export interface ReferenceASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.REFERENCE
   properties: {
     path: (ASTNode | string | number)[]
+    /**
+     * Optional base expression to evaluate first.
+     * When present, evaluates the base and navigates into the result using path.
+     */
+    base?: ASTNode
   }
 }
 

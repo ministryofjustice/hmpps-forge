@@ -1,12 +1,15 @@
 import {
   ConditionFunctionExpr,
+  FilterIteratorConfig,
+  FindIteratorConfig,
   IteratorConfig,
+  MapIteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { ExpressionType, LogicType } from '../types/enums'
+import { ExpressionType, IteratorType, LogicType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
 
@@ -94,14 +97,46 @@ export class ReferenceBuilder {
   }
 
   /**
-   * Enter per-item iteration mode with an iterator.
+   * Enter per-item iteration mode with a Find iterator.
+   * Returns an ExpressionBuilder since Find returns a single item, not an array.
+   *
+   * @example
+   * Data('users').each(Iterator.Find(Item().path('id').match(Condition.Equals(Params('userId')))))
+   *   .path('name')  // Navigate into the found item
+   */
+  each(iterator: FindIteratorConfig): ExpressionBuilder<ReferenceExpr>
+
+  /**
+   * Enter per-item iteration mode with a Map or Filter iterator.
    * Returns an IterableBuilder that can chain more .each() calls or exit via .pipe().
    *
    * @example
    * Data('items').each(Iterator.Map({ label: Item().path('name') }))
    * Data('items').each(Iterator.Filter(...)).each(Iterator.Map(...))
    */
-  each(iterator: IteratorConfig): IterableBuilder {
+  each(iterator: MapIteratorConfig | FilterIteratorConfig): IterableBuilder
+
+  /**
+   * Enter per-item iteration mode with an iterator.
+   */
+  each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
+    if (iterator.type === IteratorType.FIND) {
+      // Find returns a single item - wrap in a reference with empty path
+      // so .path() works naturally
+      const iterateExpr = {
+        type: ExpressionType.ITERATE as const,
+        input: this.reference,
+        iterator,
+      }
+      const referenceExpr: ReferenceExpr = {
+        type: ExpressionType.REFERENCE,
+        base: iterateExpr,
+        path: [],
+      }
+
+      return ExpressionBuilder.from(referenceExpr)
+    }
+
     return IterableBuilder.create(this.reference, iterator)
   }
 
