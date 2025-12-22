@@ -210,7 +210,8 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       for (const formatter of formatters) {
         if (isASTNode(formatter)) {
           // Push current value onto scope as @value
-          context.scope.push({ '@value': resolvedValue })
+          // Tag as 'formatter' so ScopeReferenceHandler skips it when resolving Item() levels
+          context.scope.push({ '@value': resolvedValue, '@type': 'formatter' })
 
           try {
             // eslint-disable-next-line no-await-in-loop
@@ -346,7 +347,8 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       for (const formatter of formatters) {
         if (isASTNode(formatter)) {
           // Push current value onto scope as @value
-          context.scope.push({ '@value': resolvedValue })
+          // Tag as 'formatter' so ScopeReferenceHandler skips it when resolving Item() levels
+          context.scope.push({ '@value': resolvedValue, '@type': 'formatter' })
 
           try {
             const formatterResult = invoker.invokeSync(formatter.id, context)

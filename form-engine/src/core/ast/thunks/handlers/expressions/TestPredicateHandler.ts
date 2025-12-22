@@ -61,7 +61,8 @@ export default class TestPredicateHandler implements HybridThunkHandler {
     }
 
     // Evaluate condition with subject value in scope (sync version)
-    context.scope.push({ '@value': subjectResult.value })
+    // Tag as 'predicate' so ScopeReferenceHandler skips it when resolving Item() levels
+    context.scope.push({ '@value': subjectResult.value, '@type': 'predicate' })
 
     try {
       const conditionResult = invoker.invokeSync(condition.id, context)
@@ -90,8 +91,11 @@ export default class TestPredicateHandler implements HybridThunkHandler {
     }
 
     // Evaluate condition with subject value in scope
-    const conditionResult = await evaluateWithScope({ '@value': subjectResult.value }, context, () =>
-      invoker.invoke(condition.id, context),
+    // Tag as 'predicate' so ScopeReferenceHandler skips it when resolving Item() levels
+    const conditionResult = await evaluateWithScope(
+      { '@value': subjectResult.value, '@type': 'predicate' },
+      context,
+      () => invoker.invoke(condition.id, context),
     )
 
     if (conditionResult.error) {

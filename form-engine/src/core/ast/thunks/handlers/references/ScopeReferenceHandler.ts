@@ -41,16 +41,43 @@ export default class ScopeReferenceHandler implements HybridThunkHandler {
       return { value: undefined }
     }
 
-    // Calculate actual scope stack index (0 = most recent, 1 = parent, etc.)
-    const scopeStackIndex = context.scope.length - 1 - level
+    // Find the scope frame at the requested level, counting only iterator-type frames.
+    // This ensures Item() references work correctly even when predicate scopes
+    // (pushed by TestPredicateHandler for @value) are on the stack.
+    const baseValue = this.findIteratorScopeAtLevel(context.scope, level)
 
-    if (scopeStackIndex < 0 || scopeStackIndex >= context.scope.length) {
+    if (baseValue === undefined) {
       return { value: undefined }
     }
 
-    const baseValue = context.scope[scopeStackIndex]
-
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
+  }
+
+  /**
+   * Find the iterator scope frame at the specified level.
+   * Level 0 = most recent iterator scope, level 1 = parent iterator scope, etc.
+   * Skips non-iterator scope frames (e.g., predicate scopes with @type !== 'iterator').
+   */
+  private findIteratorScopeAtLevel(
+    scope: Record<string, unknown>[],
+    level: number,
+  ): Record<string, unknown> | undefined {
+    let iteratorCount = 0
+
+    for (let i = scope.length - 1; i >= 0; i--) {
+      const frame = scope[i]
+
+      // Only count frames tagged as 'iterator' (or untagged for backwards compatibility)
+      if (frame['@type'] === 'iterator' || frame['@type'] === undefined) {
+        if (iteratorCount === level) {
+          return frame
+        }
+
+        iteratorCount++
+      }
+    }
+
+    return undefined
   }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {

@@ -321,11 +321,16 @@ export default class IterateHandler implements AsyncThunkHandler {
 
   /**
    * Create scope bindings for an item.
-   * Spreads object properties and adds @index.
+   * Spreads object properties, adds @index, and tags as iterator scope.
+   *
+   * The @type: 'iterator' tag allows ScopeReferenceHandler to distinguish
+   * iterator scopes from other scope types (e.g., predicate scopes) when
+   * resolving Item() references.
    */
   private createItemScope(item: unknown, index: number): Record<string, unknown> {
     const scope: Record<string, unknown> = typeof item === 'object' && item !== null ? { ...item } : { '@value': item }
     scope['@index'] = index
+    scope['@type'] = 'iterator'
     return scope
   }
 

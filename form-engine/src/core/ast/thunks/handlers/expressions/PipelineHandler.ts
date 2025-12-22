@@ -105,7 +105,8 @@ export default class PipelineHandler implements HybridThunkHandler {
       const step = steps[i]
 
       // Push current value onto scope
-      context.scope.push({ '@value': currentValue })
+      // Tag as 'pipeline' so ScopeReferenceHandler skips it when resolving Item() levels
+      context.scope.push({ '@value': currentValue, '@type': 'pipeline' })
 
       try {
         if (isASTNode(step)) {
@@ -156,8 +157,9 @@ export default class PipelineHandler implements HybridThunkHandler {
     for (let i = 0; i < steps.length; i += 1) {
       const step = steps[i]
 
+      // Tag as 'pipeline' so ScopeReferenceHandler skips it when resolving Item() levels
       // eslint-disable-next-line no-await-in-loop
-      const stepResult = await evaluateWithScope({ '@value': currentValue }, context, () =>
+      const stepResult = await evaluateWithScope({ '@value': currentValue, '@type': 'pipeline' }, context, () =>
         evaluateOperandWithErrorTracking(step, context, invoker),
       )
 

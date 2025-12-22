@@ -247,5 +247,137 @@ describe('ScopeReferenceHandler', () => {
       // Assert
       expect(result.value).toBeUndefined()
     })
+
+    describe('scope type tagging', () => {
+      it('should skip predicate-type scopes when resolving iterator level 0', async () => {
+        // Arrange - simulates Item().path('slug') inside Condition.Equals() within an iterator
+        // Scope stack: [iterator scope, predicate scope]
+        // Item() at level 0 should find the iterator scope, not the predicate scope
+        const referenceNode = ASTTestFactory.reference(['@scope', '0', 'slug'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { slug: 'accommodation', text: 'Accommodation', '@type': 'iterator', '@index': 0 },
+            { '@value': 'some-value', '@type': 'predicate' },
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert - should get iterator scope, not predicate scope
+        expect(result.value).toBe('accommodation')
+      })
+
+      it('should skip pipeline-type scopes when resolving iterator level 0', async () => {
+        // Arrange - simulates Item().path('value') inside a transformer within an iterator
+        const referenceNode = ASTTestFactory.reference(['@scope', '0', 'value'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { value: 'iterator-value', '@type': 'iterator', '@index': 0 },
+            { '@value': 'pipeline-value', '@type': 'pipeline' },
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value).toBe('iterator-value')
+      })
+
+      it('should correctly resolve nested iterator levels with predicate scope in between', async () => {
+        // Arrange - simulates Item().parent.path('name') inside a nested iterator's predicate
+        // Scope stack: [outer iterator, inner iterator, predicate scope]
+        const referenceNode = ASTTestFactory.reference(['@scope', '1', 'name'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { name: 'Outer Department', '@type': 'iterator', '@index': 0 },
+            { name: 'Inner Employee', '@type': 'iterator', '@index': 0 },
+            { '@value': true, '@type': 'predicate' },
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert - level 1 should be outer iterator, skipping predicate
+        expect(result.value).toBe('Outer Department')
+      })
+
+      it('should handle multiple predicate scopes between iterator scopes', async () => {
+        // Arrange - deeply nested predicates
+        const referenceNode = ASTTestFactory.reference(['@scope', '0', 'id'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { id: 'iterator-item', '@type': 'iterator', '@index': 0 },
+            { '@value': 'predicate-1', '@type': 'predicate' },
+            { '@value': 'predicate-2', '@type': 'predicate' },
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value).toBe('iterator-item')
+      })
+
+      it('should maintain backwards compatibility with untagged scopes', async () => {
+        // Arrange - untagged scopes should be treated as iterator scopes
+        const referenceNode = ASTTestFactory.reference(['@scope', '0', 'name'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { name: 'Untagged Item' }, // No @type - treated as iterator
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value).toBe('Untagged Item')
+      })
+
+      it('should return undefined when all scopes are non-iterator type', async () => {
+        // Arrange
+        const referenceNode = ASTTestFactory.reference(['@scope', '0', 'name'])
+        const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
+
+        const mockContext = createMockContext({
+          mockScope: [
+            { '@value': 'predicate-value', '@type': 'predicate' },
+            { '@value': 'pipeline-value', '@type': 'pipeline' },
+          ],
+        })
+
+        const invoker = createMockInvoker()
+
+        // Act
+        const result = await handler.evaluate(mockContext, invoker)
+
+        // Assert
+        expect(result.value).toBeUndefined()
+      })
+    })
   })
 })
