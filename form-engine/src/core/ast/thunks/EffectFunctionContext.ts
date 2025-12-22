@@ -1,5 +1,6 @@
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { AnswerHistory, TransitionType } from '@form-engine/core/ast/thunks/types'
+import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 
 /**
  * User-friendly context object provided to effect functions.
@@ -31,6 +32,10 @@ export default class EffectFunctionContext {
    *
    * Pushes a mutation to the answer's history with the current transitionType as source.
    * This enables precedence logic and delta tracking via mutation history.
+   *
+   * Also invalidates the cached answer pseudo nodes (ANSWER_LOCAL and ANSWER_REMOTE)
+   * for this field, ensuring subsequent evaluations see the updated value rather than
+   * a stale cached result.
    */
   setAnswer(key: string, value: unknown): void {
     const history = this.context.global.answers[key] ?? { current: undefined, mutations: [] }
@@ -38,6 +43,18 @@ export default class EffectFunctionContext {
     history.mutations.push({ value, source: this.transitionType })
     history.current = value
     this.context.global.answers[key] = history
+
+    // Invalidate cached pseudo nodes so next access re-evaluates
+    const localPseudoNode = this.context.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_LOCAL, key)
+    const remotePseudoNode = this.context.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_REMOTE, key)
+
+    if (localPseudoNode) {
+      this.context.cacheManager.delete(localPseudoNode.id)
+    }
+
+    if (remotePseudoNode) {
+      this.context.cacheManager.delete(remotePseudoNode.id)
+    }
   }
 
   /**

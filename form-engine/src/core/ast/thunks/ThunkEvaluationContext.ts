@@ -1,6 +1,7 @@
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 import { AnswerHistory, EvaluatorRequestData } from '@form-engine/core/ast/thunks/types'
+import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
 
 /**
  * Global mutable state that persists across thunk evaluations
@@ -58,6 +59,7 @@ export default class ThunkEvaluationContext {
   constructor(
     private readonly compilationDependencies: CompilationDependencies,
     private readonly formInstanceDependencies: FormInstanceDependencies,
+    readonly cacheManager: ThunkCacheManager,
     readonly request: EvaluatorRequestData,
     global?: ThunkEvaluationGlobalState,
   ) {
@@ -103,6 +105,7 @@ export default class ThunkEvaluationContext {
     const clone = new ThunkEvaluationContext(
       this.compilationDependencies,
       this.formInstanceDependencies,
+      this.cacheManager,
       this.request,
       this.global,
     )

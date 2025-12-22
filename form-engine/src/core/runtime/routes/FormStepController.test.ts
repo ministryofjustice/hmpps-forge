@@ -91,6 +91,7 @@ describe('FormStepController', () => {
       },
       nodeRegistry: {
         get: jest.fn(),
+        findByType: jest.fn().mockReturnValue([]),
       },
       functionRegistry: {
         get: jest.fn().mockReturnValue({ evaluate: jest.fn() }),

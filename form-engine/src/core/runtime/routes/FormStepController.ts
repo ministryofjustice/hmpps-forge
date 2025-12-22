@@ -18,6 +18,7 @@ import {
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
+import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import { JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
 import { StepController, StepRequest } from './types'
@@ -84,6 +85,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     // TODO: Add 'reachability' check
 
+    await this.evaluateAnswerPseudoNodes(evaluator, context)
+
     const evaluationResult = await evaluator.evaluate(context)
 
     return this.render(res, req, evaluationResult)
@@ -118,6 +121,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     // TODO: Add 'reachability' check
+
+    await this.evaluateAnswerPseudoNodes(evaluator, context)
 
     const currentStep = this.getCurrentStep(context)
 
@@ -263,6 +268,34 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     return { executed: false, validated: false }
+  }
+
+  /**
+   * Evaluate all answer pseudo nodes before action/submit transitions.
+   *
+   * This ensures that effects in onAction and onSubmission can access
+   * resolved answers, not just raw POST data. Each answer pseudo
+   * node is invoked to trigger the full resolution pipeline:
+   * POST → sanitize → format → dependent check.
+   *
+   * Both ANSWER_LOCAL (fields on this step) and ANSWER_REMOTE (fields
+   * from other steps) are evaluated.
+   *
+   * If an action later modifies an answer via setAnswer(), the cache
+   * is automatically invalidated, ensuring subsequent access sees
+   * the action-modified value.
+   */
+  private async evaluateAnswerPseudoNodes(
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): Promise<void> {
+    const localAnswerNodes = context.nodeRegistry.findByType(PseudoNodeType.ANSWER_LOCAL)
+    const remoteAnswerNodes = context.nodeRegistry.findByType(PseudoNodeType.ANSWER_REMOTE)
+
+    for (const node of [...localAnswerNodes, ...remoteAnswerNodes]) {
+      // eslint-disable-next-line no-await-in-loop
+      await invoker.invoke(node.id, context)
+    }
   }
 
   /** Find the ancestor chain from outermost journey to current step. */

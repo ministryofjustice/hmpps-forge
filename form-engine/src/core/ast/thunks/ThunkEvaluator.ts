@@ -441,7 +441,12 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
    * @returns A new ThunkEvaluationContext
    */
   createContext(request: EvaluatorRequestData): ThunkEvaluationContext {
-    return new ThunkEvaluationContext(this.compilationDependencies, this.formInstanceDependencies, request)
+    return new ThunkEvaluationContext(
+      this.compilationDependencies,
+      this.formInstanceDependencies,
+      this.cacheManager,
+      request,
+    )
   }
 
   /**
