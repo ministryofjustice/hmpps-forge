@@ -177,9 +177,19 @@ export default class FormEngine {
    *
    * // Form without dependencies
    * formEngine.registerFormPackage(simpleFormPackage)
+   *
+   * // Conditionally disabled form
+   * formEngine.registerFormPackage(createFormPackage({
+   *   enabled: config.featureFlags.myFormEnabled,
+   *   journey: myJourney,
+   * }))
    * ```
    */
   registerFormPackage<TDeps>(pkg: FormPackage<TDeps>, deps?: TDeps): this {
+    if (pkg.enabled === false) {
+      return this
+    }
+
     if (pkg.components) {
       this.registerComponents(pkg.components)
     }

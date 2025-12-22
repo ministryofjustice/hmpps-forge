@@ -57,4 +57,20 @@ export interface FormPackage<TDeps = void> {
   journey: JourneyDefinition
   createRegistries?: (deps?: TDeps) => FunctionRegistryObject
   components?: ComponentRegistryEntry<any>[]
+
+  /**
+   * Whether this form package should be registered. Default: true
+   *
+   * When set to false, registerFormPackage() will skip registration entirely.
+   * Useful for disabling forms via configuration or feature flags.
+   *
+   * @example
+   * ```typescript
+   * createFormPackage({
+   *   enabled: config.featureFlags.myFormEnabled,
+   *   journey: myJourney,
+   * })
+   * ```
+   */
+  enabled?: boolean
 }

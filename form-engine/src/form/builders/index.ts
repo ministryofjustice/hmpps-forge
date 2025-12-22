@@ -102,6 +102,12 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>
  * export default createFormPackage({
  *   journey: simpleJourney,
  * })
+ *
+ * // Conditionally disabled form (via config/env var)
+ * export default createFormPackage({
+ *   enabled: config.forms.myFormEnabled,
+ *   journey: myJourney,
+ * })
  * ```
  */
 export function createFormPackage<TDeps = void>(pkg: FormPackage<TDeps>): FormPackage<TDeps> {
