@@ -193,4 +193,61 @@ describe('collectionBlock component', () => {
     // Assert
     expect(result).toBe('<li>Nested 1</li><li>Nested 2</li><li>Block item</li>')
   })
+
+  it('should render fallback when collection is empty', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [],
+      fallback: [mockRenderedBlock('<p>No items found</p>')],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<p>No items found</p>')
+  })
+
+  it('should render fallback when collection is undefined', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: undefined,
+      fallback: [mockRenderedBlock('<p>No items available</p>')],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<p>No items available</p>')
+  })
+
+  it('should render collection items instead of fallback when collection has items', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [mockRenderedBlock('<div>Item 1</div>')],
+      fallback: [mockRenderedBlock('<p>No items found</p>')],
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<div>Item 1</div>')
+  })
+
+  it('should render fallback with wrapper div when classes are provided', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [],
+      fallback: [mockRenderedBlock('<p>Empty state</p>')],
+      classes: 'empty-collection',
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<div class="empty-collection"><p>Empty state</p></div>')
+  })
 })

@@ -12,7 +12,6 @@ export const ValueExprSchema: z.ZodType<any> = z.lazy(() =>
     TransformerFunctionExprSchema,
     GeneratorFunctionExprSchema,
     PipelineExprSchema,
-    CollectionExprSchema,
     IterateExprSchema,
     z.array(ValueExprSchema),
     z.string(),
@@ -47,16 +46,6 @@ export const PipelineExprSchema = z.looseObject({
   type: z.literal(ExpressionType.PIPELINE),
   input: ValueExprSchema,
   steps: z.array(TransformerFunctionExprSchema),
-})
-
-/**
- * @see {@link CollectionExpr}
- */
-export const CollectionExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ExpressionType.COLLECTION),
-  collection: z.union([ReferenceExprSchema, PipelineExprSchema, z.array(z.any())]),
-  template: z.array(z.any()),
-  fallback: z.array(z.any()).optional(),
 })
 
 /**

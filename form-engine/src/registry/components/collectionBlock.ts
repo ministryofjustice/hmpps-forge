@@ -1,5 +1,4 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
-import { CollectionExpr } from '@form-engine/form/types/expressions.type'
 import { ChainableExpr } from '@form-engine/form/builders'
 import { StructureType } from '@form-engine/form/types/enums'
 import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
@@ -8,13 +7,20 @@ import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/ty
 /**
  * Collection block component for rendering repeated blocks based on a collection.
  *
- * @template T - Type of blocks in the template array
+ * The `collection` property accepts any chainable expression that evaluates to an array of blocks.
+ * This works with the Iterator pattern (e.g., `Data('items').each(Iterator.Map(...))`)
+ *
+ * @template T - Type of blocks in the collection array
  * @template F - Type of blocks in the fallback array (defaults to T)
  */
 export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition {
   variant: 'collection-block'
 
-  collection: ChainableExpr<CollectionExpr<T, F>>
+  /** Expression that evaluates to an array of blocks to render */
+  collection: ChainableExpr<T[]>
+
+  /** Fallback blocks to render when the collection is empty */
+  fallback?: F[]
 
   /** Additional CSS classes to apply to wrapper div (optional) */
   classes?: ConditionalString
@@ -28,7 +34,7 @@ export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefini
  * The `collection` property contains the rendered blocks from applying the template.
  *
  * Note: This doesn't extend EvaluatedBlock<CollectionBlock> because the
- * `collection` property transforms from CollectionExpr to RenderedBlock[]
+ * `collection` property transforms from an expression to RenderedBlock[]
  * during evaluation - a transformation the generic type can't express.
  */
 export interface EvaluatedCollectionBlock {
@@ -37,6 +43,9 @@ export interface EvaluatedCollectionBlock {
 
   /** The rendered blocks from applying the template to each collection item */
   collection?: RenderedBlock[]
+
+  /** Fallback blocks rendered when the collection is empty */
+  fallback?: RenderedBlock[]
 
   /** Additional CSS classes applied to wrapper div */
   classes?: string
@@ -66,13 +75,17 @@ const extractItemValue = (item: unknown): string => {
 /**
  * Render function for collection-block.
  * Cast to any because the generic EvaluatedBlock<CollectionBlock> type
- * cannot express that `collection` transforms from CollectionExpr to RenderedBlock[].
+ * cannot express that `collection` transforms from an expression to RenderedBlock[].
  */
 const renderCollectionBlock = async (block: EvaluatedCollectionBlock): Promise<string> => {
   let content = ''
 
-  if (block.collection && block.collection.length > 0) {
-    content = block.collection.map(item => extractItemValue(item)).join('')
+  const hasItems = block.collection && block.collection.length > 0
+
+  if (hasItems) {
+    content = block.collection!.map(item => extractItemValue(item)).join('')
+  } else if (block.fallback && block.fallback.length > 0) {
+    content = block.fallback.map(item => extractItemValue(item)).join('')
   }
 
   const hasWrapper = block.classes || block.attributes
@@ -91,4 +104,7 @@ const renderCollectionBlock = async (block: EvaluatedCollectionBlock): Promise<s
   return content
 }
 
-export const collectionBlock = buildComponent<CollectionBlock>('collection-block', renderCollectionBlock as any)
+export const collectionBlock = buildComponent<CollectionBlock<BlockDefinition>>(
+  'collection-block',
+  renderCollectionBlock as any,
+)

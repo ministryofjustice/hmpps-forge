@@ -16,7 +16,7 @@ import {
   isSubmitTransitionNode,
 } from '@form-engine/core/typeguards/transition-nodes'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
-import { isCollectionExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
+import { isIterateExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import { isPseudoNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -121,7 +121,7 @@ export function findRelevantNodes(
     enterProperty: (key: string, value: any, ctx: StructuralContext): VisitorResult => {
       const { parent } = ctx
 
-      // Journey nodes: only traverse specific properties or collections
+      // Journey nodes: only traverse specific properties or iterators
       if (isJourneyStructNode(parent)) {
         const allowedProps = ['children', 'steps', 'view']
 
@@ -129,7 +129,7 @@ export function findRelevantNodes(
           return StructuralVisitResult.CONTINUE
         }
 
-        if (isCollectionExprNode(value)) {
+        if (isIterateExprNode(value)) {
           return StructuralVisitResult.CONTINUE
         }
 
@@ -144,10 +144,6 @@ export function findRelevantNodes(
           return StructuralVisitResult.CONTINUE
         }
 
-        if (isCollectionExprNode(value)) {
-          return StructuralVisitResult.CONTINUE
-        }
-
         return StructuralVisitResult.SKIP
       }
 
@@ -156,10 +152,6 @@ export function findRelevantNodes(
         const allowedProps = ['code', 'validate', 'dependent', 'formatPipeline', 'defaultValue']
 
         if (allowedProps.includes(key)) {
-          return StructuralVisitResult.CONTINUE
-        }
-
-        if (isCollectionExprNode(value)) {
           return StructuralVisitResult.CONTINUE
         }
 

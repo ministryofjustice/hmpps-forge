@@ -1,7 +1,6 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, LogicType } from '@form-engine/form/types/enums'
 import {
-  CollectionExpr,
   ConditionFunctionExpr,
   EffectFunctionExpr,
   FormatExpr,
@@ -11,11 +10,10 @@ import {
   TransformerFunctionExpr,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
-import { BlockDefinition, ValidationExpr } from '@form-engine/form/types/structures.type'
+import { ValidationExpr } from '@form-engine/form/types/structures.type'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import {
-  CollectionASTNode,
   ExpressionASTNode,
   FormatASTNode,
   FunctionASTNode,
@@ -85,21 +83,6 @@ describe('ExpressionNodeFactory', () => {
       expect(result.id).toBeDefined()
     })
 
-    it('should route to createCollection for Collection expressions', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'items'] } satisfies ReferenceExpr,
-        template: [] as BlockDefinition[],
-      } satisfies CollectionExpr<BlockDefinition>
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.COLLECTION)
-      expect(result.raw).toBe(json)
-      expect(result.id).toBeDefined()
-    })
-
     it('should route to createValidation for Validation expressions', () => {
       const json = {
         type: ExpressionType.VALIDATION,
@@ -157,7 +140,6 @@ describe('ExpressionNodeFactory', () => {
           'Reference',
           'Format',
           'Pipeline',
-          'Collection',
           'Iterate',
           'Validation',
           'Function',
@@ -588,123 +570,6 @@ describe('ExpressionNodeFactory', () => {
 
       // Assert - input should be preserved as-is
       expect(result.properties.input).toEqual({ name: 'test', count: 5 })
-    })
-  })
-
-  describe('createCollection', () => {
-    it('should create a Collection expression with collection and template', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-        template: [{ type: 'StructureType.Block', fields: [] as any }],
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.COLLECTION)
-      expect(result.raw).toBe(json)
-
-      expect(result.properties.collection).toBeDefined()
-      expect(result.properties.template).toBeDefined()
-    })
-
-    it('should transform collection data source', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'items'] },
-        template: [] as any,
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-      const collection = result.properties.collection as ExpressionASTNode
-
-      expect(collection.type).toBe(ASTNodeType.EXPRESSION)
-      expect(collection.expressionType).toBe(ExpressionType.REFERENCE)
-    })
-
-    it('should store template as raw JSON (not transformed)', () => {
-      const templateBlock = { type: 'StructureType.Block', fields: [] as any }
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-        template: [templateBlock],
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      const template = result.properties.template
-      expect(Array.isArray(template)).toBe(true)
-      expect(template).toHaveLength(1)
-
-      expect(template[0]).toBe(templateBlock)
-      expect(template[0]).not.toHaveProperty('id')
-    })
-
-    it('should store multiple template blocks as raw JSON', () => {
-      const block1 = { type: 'StructureType.Block', fields: [] as any }
-      const block2 = { type: 'StructureType.Block', fields: [] as any }
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-        template: [block1, block2],
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      const template = result.properties.template
-      expect(template).toHaveLength(2)
-
-      expect(template[0]).toBe(block1)
-      expect(template[1]).toBe(block2)
-      expect(template[0]).not.toHaveProperty('id')
-      expect(template[1]).not.toHaveProperty('id')
-    })
-
-    it('should create a Collection expression with fallback', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-        template: [] as any,
-        fallback: [{ type: 'StructureType.Block', fields: [] as any }],
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-      const fallback = result.properties.fallback
-
-      expect(result.properties.fallback !== undefined).toBe(true)
-      expect(Array.isArray(fallback)).toBe(true)
-      expect(fallback).toHaveLength(1)
-
-      expect(fallback[0].id).toBeDefined()
-      expect(fallback[0].type).toBeDefined()
-    })
-
-    it('should handle collection without template', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      expect(result.properties.collection).toBeDefined()
-      expect(result.properties.template).toBeUndefined()
-      expect(result.properties.fallback).toBeUndefined()
-    })
-
-    it('should handle collection without fallback', () => {
-      const json = {
-        type: ExpressionType.COLLECTION,
-        collection: { type: ExpressionType.REFERENCE, path: ['data', 'users'] },
-        template: [] as any,
-      }
-
-      const result = expressionFactory.create(json) as CollectionASTNode
-
-      expect(result.properties.template).toBeDefined()
-      expect(result.properties.fallback).toBeUndefined()
     })
   })
 

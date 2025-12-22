@@ -2,7 +2,6 @@ import {
   isReferenceExpr,
   isFormatExpr,
   isPipelineExpr,
-  isCollectionExpr,
   isIterateExpr,
   isMapIteratorConfig,
   isFilterIteratorConfig,
@@ -19,7 +18,6 @@ import {
   ReferenceASTNode,
   FormatASTNode,
   PipelineASTNode,
-  CollectionASTNode,
   IterateASTNode,
   ValidationASTNode,
   FunctionASTNode,
@@ -30,7 +28,6 @@ import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/Nod
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import {
-  CollectionExpr,
   FormatExpr,
   FunctionExpr,
   IterateExpr,
@@ -43,7 +40,7 @@ import { NodeFactory } from '../NodeFactory'
 
 /**
  * ExpressionNodeFactory: Creates expression nodes
- * Handles references, pipelines, collections, validations, and functions
+ * Handles references, pipelines, iterate, validations, and functions
  */
 export class ExpressionNodeFactory {
   constructor(
@@ -68,10 +65,6 @@ export class ExpressionNodeFactory {
       return this.createPipeline(json)
     }
 
-    if (isCollectionExpr(json)) {
-      return this.createCollection(json)
-    }
-
     if (isIterateExpr(json)) {
       return this.createIterate(json)
     }
@@ -91,7 +84,7 @@ export class ExpressionNodeFactory {
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['Reference', 'Format', 'Pipeline', 'Collection', 'Iterate', 'Validation', 'Function', 'Next'],
+      validTypes: ['Reference', 'Format', 'Pipeline', 'Iterate', 'Validation', 'Function', 'Next'],
     })
   }
 
@@ -167,41 +160,6 @@ export class ExpressionNodeFactory {
         input,
         steps,
       },
-      raw: json,
-    }
-  }
-
-  /**
-   * Transform Collection expression: Iterate over data to produce repeated templates
-   *
-   * IMPORTANT: The template is stored as raw JSON, NOT pre-compiled AST nodes.
-   * At runtime, the template is instantiated once per collection item, creating fresh
-   * AST nodes with unique runtime IDs. This allows Item() references to be substituted
-   * with actual item data before node creation.
-   *
-   */
-  private createCollection(json: CollectionExpr): CollectionASTNode {
-    const properties: {
-      collection: ASTNode | any
-      template: any
-      fallback?: ASTNode[]
-    } = {
-      // Transform the collection data source (this IS an expression that needs evaluation)
-      collection: this.nodeFactory.transformValue(json.collection),
-      // Store template as raw JSON - will be instantiated at runtime per collection item
-      template: json.template,
-    }
-
-    // Transform fallback blocks normally - they're shown when collection is empty
-    if (json.fallback) {
-      properties.fallback = json.fallback.map((item: any) => this.nodeFactory.createNode(item))
-    }
-
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: ASTNodeType.EXPRESSION,
-      expressionType: ExpressionType.COLLECTION,
-      properties,
       raw: json,
     }
   }

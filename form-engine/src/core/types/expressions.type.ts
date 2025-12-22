@@ -54,19 +54,6 @@ export interface FormatASTNode extends ExpressionASTNode {
 }
 
 /**
- * Collection Expression AST node
- */
-export interface CollectionASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.COLLECTION
-  properties: {
-    collection: ASTNode
-    filter?: any
-    template: any
-    fallback?: ASTNode[]
-  }
-}
-
-/**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
  * Similar to Collection, the yield/predicate templates are stored as raw JSON

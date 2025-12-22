@@ -80,13 +80,11 @@ export default class AnswerPseudoNodeWiring {
       })
 
     // Handle new Answer() references (PUSH: existing pseudo node → new reference)
-    const answerRefs = nodes
-      .filter(isReferenceExprNode)
-      .filter(ref => {
-        const path = ref.properties.path
+    const answerRefs = nodes.filter(isReferenceExprNode).filter(ref => {
+      const path = ref.properties.path
 
-        return Array.isArray(path) && path.length >= 2 && path[0] === 'answers'
-      })
+      return Array.isArray(path) && path.length >= 2 && path[0] === 'answers'
+    })
 
     answerRefs.forEach(refNode => {
       const baseFieldCode = refNode.properties.path[1] as string

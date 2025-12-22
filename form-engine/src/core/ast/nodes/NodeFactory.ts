@@ -18,7 +18,7 @@ import { StructureNodeFactory } from './factories/StructureNodeFactory'
  * factories based on node type:
  *
  * - StructureNodeFactory: Journey, Step, Block
- * - ExpressionNodeFactory: Reference, Pipeline, Collection, Validation, Function
+ * - ExpressionNodeFactory: Reference, Pipeline, Iterate, Validation, Function
  * - LogicNodeFactory: Conditional, Predicates (Test, And, Or, Xor, Not)
  * - TransitionNodeFactory: Load, Access, Submit
  *
@@ -68,7 +68,7 @@ export class NodeFactory {
       return this.logicNodeFactory.create(json)
     }
 
-    // Expression nodes: References, Pipelines, Collections, Validations, Functions
+    // Expression nodes: References, Pipelines, Iterate, Validations, Functions
     if (isExpression(json)) {
       return this.expressionNodeFactory.create(json)
     }

@@ -1,8 +1,8 @@
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { TransitionType, ExpressionType, StructureType } from '@form-engine/form/types/enums'
-import { CollectionASTNode } from '@form-engine/core/types/expressions.type'
+import { TransitionType, ExpressionType, IteratorType, StructureType } from '@form-engine/form/types/enums'
+import { IterateASTNode } from '@form-engine/core/types/expressions.type'
 import { findRelevantPseudoNodes, findRelevantNodes } from './findRelevantNodes'
 
 describe('findRelevantNodes', () => {
@@ -116,19 +116,22 @@ describe('findRelevantNodes', () => {
     expect(result).not.toContainEqual(onActionNode)
   })
 
-  it('should traverse Collection expressions in non-standard block properties', () => {
+  it('should traverse Iterate expressions in non-standard block properties', () => {
     // Arrange
-    const collectionSourceRef = ASTTestFactory.reference(['data', 'items'])
+    const iterateSourceRef = ASTTestFactory.reference(['data', 'items'])
 
-    const collectionExpr = ASTTestFactory.expression<CollectionASTNode>(ExpressionType.COLLECTION)
-      .withProperty('collection', collectionSourceRef)
-      .withProperty('template', [{ type: StructureType.BLOCK, variant: 'TextInput', code: 'nestedField' }])
+    const iterateExpr = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+      .withProperty('input', iterateSourceRef)
+      .withProperty('iterator', {
+        type: IteratorType.MAP,
+        yield: [{ type: StructureType.BLOCK, variant: 'TextInput', code: 'nestedField' }],
+      })
       .build()
 
     const journeyNode = ASTTestFactory.journey()
       .withStep(step =>
         step.withBlock('WrapperBlock', 'basic', block =>
-          block.withCode('wrapperField').withProperty('leftSideFields', collectionExpr),
+          block.withCode('wrapperField').withProperty('leftSideFields', iterateExpr),
         ),
       )
       .build()
@@ -140,8 +143,8 @@ describe('findRelevantNodes', () => {
     const result = findRelevantNodes(journeyNode, nodeRegistry, metadataRegistry)
 
     // Assert
-    expect(result).toContainEqual(collectionExpr)
-    expect(result).toContainEqual(collectionSourceRef)
+    expect(result).toContainEqual(iterateExpr)
+    expect(result).toContainEqual(iterateSourceRef)
   })
 
   it('should include structural nodes for non-current steps but filter properties', () => {

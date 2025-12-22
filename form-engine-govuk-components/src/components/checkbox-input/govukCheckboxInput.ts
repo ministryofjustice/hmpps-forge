@@ -5,7 +5,7 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
 } from '@form-engine/form/types/structures.type'
-import { CollectionExpr, FunctionExpr } from '@form-engine/form/types/expressions.type'
+import { FunctionExpr } from '@form-engine/form/types/expressions.type'
 import { ChainableExpr } from '@form-engine/form/builders'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 
@@ -157,7 +157,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
   /**
    * The checkbox items within the checkboxes component.
    * Can include both checkbox options and dividers for visual separation.
-   * Can also be a Collection expression for dynamic items.
+   * Can also be an expression for dynamic items using the Iterator pattern.
    *
    * @example [
    *   { value: 'email', text: 'Email' },
@@ -167,16 +167,12 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * ]
    *
    * @example
-   * // Dynamic items using Collection
-   * Collection({
-   *   collection: Data('areas'),
-   *   filter: Item().path('slug').not.match(Condition.Equals(Params('currentArea'))),
-   *   template: [{ value: Item().path('value'), text: Item().path('text') }]
-   * })
+   * // Dynamic items using Iterator
+   * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
   items:
     | (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
-    | ChainableExpr<CollectionExpr<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>>
+    | ChainableExpr<(GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]>
 }
 
 /**

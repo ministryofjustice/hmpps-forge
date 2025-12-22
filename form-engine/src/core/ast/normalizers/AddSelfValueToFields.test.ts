@@ -1,8 +1,7 @@
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { ExpressionType, IteratorType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
 import { ASTNode } from '@form-engine/core/types/engine.type'
-import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { AddSelfValueToFieldsNormalizer } from './AddSelfValueToFields'
 
 describe('AddSelfValueToFields', () => {
@@ -89,33 +88,38 @@ describe('AddSelfValueToFields', () => {
       expect(field.properties.value).toBe(mockSelfReferenceNode)
     })
 
-    it('adds Self() to fields inside collection expression templates', () => {
+    it('adds Self() to fields inside iterate expression yield templates', () => {
+      // Arrange
       const templateField = ASTTestFactory.block('textInput', 'field')
         .withId('compile_ast:5')
         .withCode('street')
         .withLabel('Street')
         .build()
 
-      const collectionExpr = ASTTestFactory.expression(ExpressionType.COLLECTION)
+      const iterateExpr = ASTTestFactory.expression(ExpressionType.ITERATE)
         .withId('compile_ast:6')
-        .withCollection({ type: ExpressionType.REFERENCE, path: ['answers', 'addresses'] })
-        .withTemplate([templateField])
+        .withProperty('input', { type: ExpressionType.REFERENCE, path: ['answers', 'addresses'] })
+        .withProperty('iterator', {
+          type: IteratorType.MAP,
+          yield: [templateField],
+        })
         .build()
 
       const step = ASTTestFactory.step()
         .withId('compile_ast:7')
-        .withBlock('container', 'basic', block => block.withId('compile_ast:8').withProperty('content', collectionExpr))
+        .withBlock('container', 'basic', block => block.withId('compile_ast:8').withProperty('content', iterateExpr))
         .build()
 
       const journey = ASTTestFactory.journey().withId('compile_ast:9').withProperty('steps', [step]).build()
 
+      // Act
       normalizer.normalize(journey)
 
-      const steps = journey.properties.steps as StepASTNode[]
-      const containerBlock = steps[0].properties.blocks[0]
-      const transformedCollection = containerBlock.properties.content
-      const template = transformedCollection.properties.template as any[]
-      const transformedField = template[0]
+      // Assert
+      const containerBlock = journey.properties.steps[0].properties.blocks[0]
+      const transformedIterate = containerBlock.properties.content
+      const yieldTemplate = transformedIterate.properties.iterator.yield as any[]
+      const transformedField = yieldTemplate[0]
 
       expect(mockNodeFactory.createNode).toHaveBeenCalledWith({
         type: ExpressionType.REFERENCE,

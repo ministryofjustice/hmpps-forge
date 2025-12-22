@@ -15,12 +15,9 @@ import {
 import {
   AccessTransition,
   ActionTransition,
-  CollectionExpr,
   FormatExpr,
   LoadTransition,
   NextExpr,
-  PipelineExpr,
-  ReferenceExpr,
   SubmitTransition,
   ValueExpr,
 } from '../types/expressions.type'
@@ -273,39 +270,6 @@ export function Format(template: string, ...args: ConditionalString[]): FormatEx
 }
 
 /**
- * Creates a collection expression that iterates over data to produce repeated templates.
- * Collections allow dynamic generation of form elements based on arrays of data.
- *
- * @param collection - The data source to iterate over (array or expression)
- * @param template - Template blocks to render for each item
- * @param fallback - Optional fallback blocks when collection is empty
- * @returns Collection expression
- *
- * @example
- * Collection({
- *   collection: Data('items'),
- *   template: [field({ code: 'item_name', variant: 'text' })],
- *   fallback: [block({ variant: 'html', content: 'No items found' })]
- * })
- */
-export function Collection<T = any, F = T>({
-  collection,
-  template,
-  fallback,
-}: {
-  collection: ReferenceExpr | PipelineExpr | ChainableRef | ChainableExpr<any> | any[]
-  template: T[]
-  fallback?: F[]
-}): CollectionExpr<T, F> {
-  return {
-    type: ExpressionType.COLLECTION,
-    collection,
-    template,
-    fallback: fallback ?? [],
-  }
-}
-
-/**
  * Wraps a static/literal value to make it chainable with .pipe() and .match().
  *
  * Use this when you have static data that you want to transform or test
@@ -321,11 +285,8 @@ export function Collection<T = any, F = T>({
  * // Static value with condition
  * Literal(42).match(Condition.Number.GreaterThan(0))
  *
- * // Use in Collection to generate checkbox items
- * items: Collection({
- *   collection: Literal(areasOfNeed),
- *   template: [{ value: Item().path('value'), text: Item().path('text') }],
- * })
+ * // Use with .each() for iteration
+ * Literal([1, 2, 3]).each(Iterator.Map(Item().value()))
  */
 export function Literal<T extends ValueExpr>(value: T): ChainableExpr<T> {
   return ExpressionBuilder.from(value)

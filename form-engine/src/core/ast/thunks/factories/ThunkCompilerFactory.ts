@@ -8,7 +8,6 @@ import {
   isConditionalExprNode,
   isFunctionExprNode,
   isEffectExprNode,
-  isCollectionExprNode,
   isIterateExprNode,
   isNextExprNode,
   isValidationExprNode,
@@ -29,7 +28,6 @@ import DataReferenceHandler from '@form-engine/core/ast/thunks/handlers/referenc
 import PostReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/PostReferenceHandler'
 import QueryReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/QueryReferenceHandler'
 import ParamsReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/ParamsReferenceHandler'
-import CollectionHandler from '@form-engine/core/ast/thunks/handlers/expressions/CollectionHandler'
 import IterateHandler from '@form-engine/core/ast/thunks/handlers/expressions/IterateHandler'
 import ConditionalHandler from '@form-engine/core/ast/thunks/handlers/expressions/ConditionalHandler'
 import AndPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/AndPredicateHandler'
@@ -71,7 +69,7 @@ import NextHandler from '@form-engine/core/ast/thunks/handlers/expressions/NextH
  *
  * Handlers are created using specialized factories based on node type:
  * - Pseudo nodes: PseudoNodeHandlerFactory
- * - Expression nodes: ReferenceHandler, CollectionHandler, ConditionalHandler, TestPredicateHandler, AndPredicateHandler, OrPredicateHandler, XorPredicateHandler, NotPredicateHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
+ * - Expression nodes: ReferenceHandler, IterateHandler, ConditionalHandler, TestPredicateHandler, AndPredicateHandler, OrPredicateHandler, XorPredicateHandler, NotPredicateHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
  * - Transition nodes: LoadTransitionHandler, AccessTransitionHandler, SubmitTransitionHandler
  * - Structural nodes: JourneyHandler, StepHandler, BlockHandler
  * - Unknown nodes: FallbackHandler
@@ -124,7 +122,7 @@ export default class ThunkCompilerFactory {
    * Creates appropriate handler based on node type using typeguards.
    * Handler selection order:
    * 1. Pseudo nodes (AnswerLocal, AnswerRemote, Post, Query, Params, Data)
-   * 2. Expression nodes (Reference, Collection, Conditional, TestPredicate, AndPredicate, OrPredicate, XorPredicate, NotPredicate, Format, Pipeline, Function)
+   * 2. Expression nodes (Reference, Iterate, Conditional, TestPredicate, AndPredicate, OrPredicate, XorPredicate, NotPredicate, Format, Pipeline, Function)
    * 3. Transition nodes (Load, Access, Submit)
    * 4. Structural nodes (Journey, Step, Block)
    * 5. Fallback for unknown types
@@ -212,11 +210,6 @@ export default class ThunkCompilerFactory {
     // Pipeline expressions
     if (isPipelineExprNode(node)) {
       return new PipelineHandler(nodeId, node)
-    }
-
-    // Collection expressions
-    if (isCollectionExprNode(node)) {
-      return new CollectionHandler(nodeId, node)
     }
 
     // Iterate expressions
@@ -307,7 +300,6 @@ export default class ThunkCompilerFactory {
       'REFERENCE',
       'FORMAT',
       'PIPELINE',
-      'COLLECTION',
       'ITERATE',
       'CONDITIONAL',
       'TEST',

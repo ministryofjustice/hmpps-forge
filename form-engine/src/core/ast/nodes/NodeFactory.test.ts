@@ -2,7 +2,6 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, LogicType, StructureType, TransitionType } from '@form-engine/form/types/enums'
 import {
   AccessTransition,
-  CollectionExpr,
   ConditionalExpr,
   ConditionFunctionExpr,
   EffectFunctionExpr,
@@ -281,18 +280,6 @@ describe('NodeFactory', () => {
         const result = nodeFactory.createNode(json) as PredicateASTNode
 
         expect(result.expressionType).toBe(ExpressionType.PIPELINE)
-      })
-
-      it('should route Collection expressions to ExpressionNodeFactory', () => {
-        const json = {
-          type: ExpressionType.COLLECTION,
-          collection: { type: ExpressionType.REFERENCE, path: ['data', 'items'] } satisfies ReferenceExpr,
-          template: [] as BlockDefinition[],
-        } satisfies CollectionExpr<BlockDefinition>
-
-        const result = nodeFactory.createNode(json) as PredicateASTNode
-
-        expect(result.expressionType).toBe(ExpressionType.COLLECTION)
       })
 
       it('should route Validation expressions to ExpressionNodeFactory', () => {

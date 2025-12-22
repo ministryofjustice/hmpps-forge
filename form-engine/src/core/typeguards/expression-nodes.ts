@@ -10,7 +10,6 @@ import {
   ValidationASTNode,
   PredicateASTNode,
   FunctionASTNode,
-  CollectionASTNode,
   IterateASTNode,
 } from '@form-engine/core/types/expressions.type'
 
@@ -61,13 +60,6 @@ export function isNextExprNode(obj: any): obj is NextASTNode {
  */
 export function isValidationExprNode(obj: any): obj is ValidationASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.VALIDATION
-}
-
-/**
- * Check if an AST node is a Collection Expression node
- */
-export function isCollectionExprNode(obj: any): obj is CollectionASTNode {
-  return isExpressionNode(obj) && obj.expressionType === ExpressionType.COLLECTION
 }
 
 /**
