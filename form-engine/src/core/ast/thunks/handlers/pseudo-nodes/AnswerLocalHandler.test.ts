@@ -1,9 +1,8 @@
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import AnswerLocalHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/AnswerLocalHandler'
 import {
   createMockInvoker,
   createMockInvokerWithError,
-  createSequentialMockInvoker,
   createMockContext,
 } from '@form-engine/test-utils/thunkTestHelpers'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
@@ -16,55 +15,67 @@ describe('AnswerLocalHandler', () => {
   })
 
   describe('evaluate()', () => {
-    it('should use formatPipeline result when formatPipeline exists', async () => {
+    it('should use formatter result when formatters exist', async () => {
       // Arrange
-      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
       const fieldNode = ASTTestFactory.block('TextInput', 'field')
         .withCode('email')
-        .withProperty('formatPipeline', formatPipelineNode)
+        .withProperty('formatters', [formatterNode])
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('email')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('email', fieldNode.id)
-      const mockInvoker = createSequentialMockInvoker(['raw-value', 'user@example.com'])
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: '  raw-value  ' }) // POST pseudo node
+        .mockResolvedValueOnce({ value: 'raw-value' }) // formatter (trim)
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
         ]),
-        mockRequest: { method: 'POST', post: { email: 'raw-value' } },
+        mockRequest: { method: 'POST', post: { email: '  raw-value  ' } },
       })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toBe('user@example.com')
+      expect(result.value).toBe('raw-value')
       expect(result.error).toBeUndefined()
       expect(mockContext.global.answers.email).toEqual({
-        current: 'user@example.com',
+        current: 'raw-value',
         mutations: [
-          { value: 'raw-value', source: 'post' },
-          { value: 'user@example.com', source: 'processed' },
+          { value: '  raw-value  ', source: 'post' },
+          { value: 'raw-value', source: 'processed' },
         ],
       })
     })
 
-    it('should use raw POST value when formatPipeline returns undefined', async () => {
+    it('should use raw POST value when formatters return undefined', async () => {
       // Arrange
-      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'transform')
       const fieldNode = ASTTestFactory.block('TextInput', 'field')
         .withCode('email')
-        .withProperty('formatPipeline', formatPipelineNode)
+        .withProperty('formatters', [formatterNode])
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('email')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('email', fieldNode.id)
-      const mockInvoker = createSequentialMockInvoker(['raw@example.com', undefined])
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: 'raw@example.com' }) // POST pseudo node
+        .mockResolvedValueOnce({ value: undefined }) // formatter returns undefined
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
         ]),
         mockRequest: { method: 'POST', post: { email: 'raw@example.com' } },
       })
@@ -80,13 +91,16 @@ describe('AnswerLocalHandler', () => {
       })
     })
 
-    it('should use raw POST value when no formatPipeline exists', async () => {
+    it('should use raw POST value when no formatters exist', async () => {
       // Arrange
       const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('name').build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('name')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('name', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: 'John Doe' })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: 'John Doe' }) // POST pseudo node
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
@@ -236,12 +250,12 @@ describe('AnswerLocalHandler', () => {
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
     })
 
-    it('should use raw POST value when formatPipeline returns error', async () => {
+    it('should use raw POST value when formatter returns error', async () => {
       // Arrange
-      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'transform')
       const fieldNode = ASTTestFactory.block('TextInput', 'field')
         .withCode('email')
-        .withProperty('formatPipeline', formatPipelineNode)
+        .withProperty('formatters', [formatterNode])
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('email')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('email', fieldNode.id)
@@ -249,23 +263,20 @@ describe('AnswerLocalHandler', () => {
 
       const mockInvoker = createMockInvoker()
       mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: 'raw@example.com',
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
+        .mockResolvedValueOnce({ value: 'raw@example.com' }) // POST pseudo node
         .mockResolvedValueOnce({
           error: {
             type: 'EVALUATION_FAILED',
-            nodeId: formatPipelineNode.id,
-            message: 'Pipeline evaluation failed',
+            nodeId: formatterNode.id,
+            message: 'Formatter evaluation failed',
           },
-          metadata: { source: 'formatPipeline', timestamp: Date.now() },
         })
 
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
         ]),
         mockRequest: { method: 'POST', post: { email: 'raw@example.com' } },
       })
@@ -300,7 +311,6 @@ describe('AnswerLocalHandler', () => {
           nodeId: postPseudoNode.id,
           message: 'POST access failed',
         },
-        metadata: { source: 'POST', timestamp: Date.now() },
       })
 
       const mockContext = createMockContext({
@@ -318,58 +328,6 @@ describe('AnswerLocalHandler', () => {
       expect(result.value).toBeUndefined()
       expect(result.error).toBeUndefined()
       expect(mockContext.global.answers.country).toEqual({
-        current: undefined,
-        mutations: [{ value: undefined, source: 'post' }],
-      })
-    })
-
-    it('should return undefined on POST when both POST and formatPipeline return errors', async () => {
-      // Arrange
-      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
-      const defaultValueNode = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
-      const fieldNode = ASTTestFactory.block('TextInput', 'field')
-        .withCode('status')
-        .withProperty('formatPipeline', formatPipelineNode)
-        .withProperty('defaultValue', defaultValueNode)
-        .build()
-      const postPseudoNode = ASTTestFactory.postPseudoNode('status')
-      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('status', fieldNode.id)
-      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
-
-      const mockInvoker = createMockInvoker()
-      mockInvoker.invoke
-        .mockResolvedValueOnce({
-          error: {
-            type: 'EVALUATION_FAILED',
-            nodeId: postPseudoNode.id,
-            message: 'POST failed',
-          },
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          error: {
-            type: 'EVALUATION_FAILED',
-            nodeId: formatPipelineNode.id,
-            message: 'Pipeline failed',
-          },
-          metadata: { source: 'formatPipeline', timestamp: Date.now() },
-        })
-
-      const mockContext = createMockContext({
-        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
-          [fieldNode.id, fieldNode],
-          [postPseudoNode.id, postPseudoNode],
-        ]),
-        mockRequest: { method: 'POST', post: { status: 'any' } },
-      })
-
-      // Act
-      const result = await handler.evaluate(mockContext, mockInvoker)
-
-      // Assert
-      expect(result.value).toBeUndefined()
-      expect(result.error).toBeUndefined()
-      expect(mockContext.global.answers.status).toEqual({
         current: undefined,
         mutations: [{ value: undefined, source: 'post' }],
       })
@@ -466,7 +424,9 @@ describe('AnswerLocalHandler', () => {
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
 
       // POST returns new value from user
-      const mockInvoker = createMockInvoker({ defaultValue: 'Manchester' })
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: 'Manchester' }) // POST pseudo node
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
@@ -504,14 +464,8 @@ describe('AnswerLocalHandler', () => {
 
       const mockInvoker = createMockInvoker()
       mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: 'user-input',
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          value: false,
-          metadata: { source: 'dependent', timestamp: Date.now() },
-        })
+        .mockResolvedValueOnce({ value: 'user-input' }) // POST pseudo node
+        .mockResolvedValueOnce({ value: false }) // dependent condition
 
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
@@ -548,14 +502,8 @@ describe('AnswerLocalHandler', () => {
 
       const mockInvoker = createMockInvoker()
       mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: 'user-input',
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          value: true,
-          metadata: { source: 'dependent', timestamp: Date.now() },
-        })
+        .mockResolvedValueOnce({ value: 'user-input' }) // POST pseudo node
+        .mockResolvedValueOnce({ value: true }) // dependent condition
 
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
@@ -589,17 +537,13 @@ describe('AnswerLocalHandler', () => {
 
       const mockInvoker = createMockInvoker()
       mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: 'user-input',
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
+        .mockResolvedValueOnce({ value: 'user-input' }) // POST pseudo node
         .mockResolvedValueOnce({
           error: {
             type: 'EVALUATION_FAILED',
             nodeId: dependentNode.id,
             message: 'Dependent evaluation failed',
           },
-          metadata: { source: 'dependent', timestamp: Date.now() },
         })
 
       const mockContext = createMockContext({
@@ -650,29 +594,35 @@ describe('AnswerLocalHandler', () => {
   describe('sanitization', () => {
     it('should sanitize string values with HTML characters by default', async () => {
       // Arrange
+      const rawValue = '<script>alert("xss")</script>'
+      const sanitizedValue = '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
       const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('comment').build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('comment')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('comment', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: '<script>alert("xss")</script>' })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      // PostHandler returns raw value, AnswerLocalHandler sanitizes
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: rawValue })
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
         ]),
-        mockRequest: { method: 'POST', post: { comment: '<script>alert("xss")</script>' } },
+        mockRequest: { method: 'POST', post: { comment: rawValue } },
       })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;')
+      expect(result.value).toBe(sanitizedValue)
       expect(mockContext.global.answers.comment).toEqual({
-        current: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+        current: sanitizedValue,
         mutations: [
-          { value: '<script>alert("xss")</script>', source: 'post' },
-          { value: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;', source: 'sanitized' },
+          { value: rawValue, source: 'post' },
+          { value: sanitizedValue, source: 'sanitized' },
         ],
       })
     })
@@ -682,8 +632,11 @@ describe('AnswerLocalHandler', () => {
       const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('name').build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('name')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('name', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: 'John Doe' })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: 'John Doe' })
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
@@ -711,8 +664,11 @@ describe('AnswerLocalHandler', () => {
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('htmlContent')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('htmlContent', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: '<b>Bold</b>' })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: '<b>Bold</b>' })
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
@@ -740,8 +696,11 @@ describe('AnswerLocalHandler', () => {
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('options')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('options', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: ['<a>', '<b>'] })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: ['<a>', '<b>'] })
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
@@ -761,72 +720,150 @@ describe('AnswerLocalHandler', () => {
       })
     })
 
-    it('should sanitize before formatPipeline runs', async () => {
+    it('should sanitize before formatters run', async () => {
       // Arrange
-      const formatPipelineNode = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'toUpperCase')
       const fieldNode = ASTTestFactory.block('TextInput', 'field')
         .withCode('email')
-        .withProperty('formatPipeline', formatPipelineNode)
+        .withProperty('formatters', [formatterNode])
         .build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('email')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('email', fieldNode.id)
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
 
-      // Pipeline receives sanitized value and transforms it further (e.g., uppercase)
+      const rawValue = '<script>test</script>'
+      const sanitizedValue = '&lt;script&gt;test&lt;/script&gt;'
+      const processedValue = '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;'
+
+      // PostHandler returns raw value, then AnswerLocalHandler sanitizes, then runs formatter
       const mockInvoker = createMockInvoker()
       mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: '<script>test</script>',
-          metadata: { source: 'POST', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          value: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;', // Pipeline uppercased sanitized value
-          metadata: { source: 'formatPipeline', timestamp: Date.now() },
-        })
+        .mockResolvedValueOnce({ value: rawValue }) // POST returns raw
+        .mockResolvedValueOnce({ value: processedValue }) // Formatter uppercases sanitized value
 
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
         ]),
-        mockRequest: { method: 'POST', post: { email: '<script>test</script>' } },
+        mockRequest: { method: 'POST', post: { email: rawValue } },
       })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert - mutations show full pipeline: post -> sanitized -> processed
-      expect(result.value).toBe('&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;')
+      expect(result.value).toBe(processedValue)
       expect(mockContext.global.answers.email).toEqual({
-        current: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;',
+        current: processedValue,
         mutations: [
-          { value: '<script>test</script>', source: 'post' },
-          { value: '&lt;script&gt;test&lt;/script&gt;', source: 'sanitized' },
-          { value: '&LT;SCRIPT&GT;TEST&LT;/SCRIPT&GT;', source: 'processed' },
+          { value: rawValue, source: 'post' },
+          { value: sanitizedValue, source: 'sanitized' },
+          { value: processedValue, source: 'processed' },
         ],
       })
+
+      // Verify formatter was invoked with sanitized value in scope
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
     })
 
     it('should sanitize common XSS payloads', async () => {
       // Arrange
+      const xssPayload = '<img src=x onerror="alert(\'XSS\')">'
+      const sanitizedPayload = '&lt;img src=x onerror=&quot;alert(&#39;XSS&#39;)&quot;&gt;'
       const fieldNode = ASTTestFactory.block('TextInput', 'field').withCode('input').build()
       const postPseudoNode = ASTTestFactory.postPseudoNode('input')
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('input', fieldNode.id)
-      const mockInvoker = createMockInvoker({ defaultValue: '<img src=x onerror="alert(\'XSS\')">' })
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: xssPayload })
+
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
         ]),
-        mockRequest: { method: 'POST', post: { input: '<img src=x onerror="alert(\'XSS\')">' } },
+        mockRequest: { method: 'POST', post: { input: xssPayload } },
       })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value).toBe('&lt;img src=x onerror=&quot;alert(&#39;XSS&#39;)&quot;&gt;')
+      expect(result.value).toBe(sanitizedPayload)
+    })
+  })
+
+  describe('formatter execution', () => {
+    it('should execute multiple formatters in sequence', async () => {
+      // Arrange
+      const trimFormatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
+      const upperFormatter = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'toUpperCase')
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('name')
+        .withProperty('formatters', [trimFormatter, upperFormatter])
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('name')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('name', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: '  hello  ' }) // POST
+        .mockResolvedValueOnce({ value: 'hello' }) // trim formatter
+        .mockResolvedValueOnce({ value: 'HELLO' }) // toUpperCase formatter
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+          [trimFormatter.id, trimFormatter],
+          [upperFormatter.id, upperFormatter],
+        ]),
+        mockRequest: { method: 'POST', post: { name: '  hello  ' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('HELLO')
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(3)
+    })
+
+    it('should push value onto scope as @value for each formatter', async () => {
+      // Arrange
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'double')
+      const fieldNode = ASTTestFactory.block('TextInput', 'field')
+        .withCode('number')
+        .withProperty('formatters', [formatterNode])
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('number')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('number', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: '5' }) // POST
+        .mockResolvedValueOnce({ value: '10' }) // formatter
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
+        ]),
+        mockRequest: { method: 'POST', post: { number: '5' } },
+      })
+
+      // Act
+      await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert - scope should have been pushed with @value
+      // After evaluation, scope should be empty (popped)
+      expect(mockContext.scope.length).toBe(0)
     })
   })
 })

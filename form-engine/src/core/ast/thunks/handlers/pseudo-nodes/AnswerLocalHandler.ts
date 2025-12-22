@@ -23,10 +23,13 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  *
  * POST request (form submission)
  * 1. Check action-protected answers → return existing (protected from override)
- * 2. Record raw POST data → source: 'post'
- * 3. If sanitize !== false, sanitize string values → source: 'sanitized' (if changed)
- * 4. If formatPipeline exists, layer on processed value → source: 'processed'
- * 5. If dependent condition exists and is false → clear value, source: 'dependent'
+ * 2. Invoke POST pseudo node → get raw value
+ * 3. Record raw POST data → source: 'post'
+ * 4. Sanitize value (if sanitize !== false) → source: 'sanitized' (if changed)
+ * 5. Execute formatters inline on sanitized value → source: 'processed'
+ * 6. If dependent condition exists and is false → clear value, source: 'dependent'
+ *
+ * Note: Sanitization happens BEFORE formatters, ensuring formatters receive safe input.
  *
  * GET request (page load)
  * 1. Try existing answer (from previous submissions or onLoad effects)
@@ -44,7 +47,7 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * Sanitization: By default, string values are HTML entity encoded to prevent XSS.
  * Set `sanitize: false` on a field to allow raw HTML (e.g., for rich text editors).
  *
- * Synchronous when formatPipeline, dependent, and defaultValue are all sync (or absent).
+ * Synchronous when formatters, dependent, and defaultValue are all sync (or absent).
  * Asynchronous when any of these expressions is async.
  */
 export default class AnswerLocalHandler implements HybridThunkHandler {
@@ -67,8 +70,8 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       return
     }
 
-    // Check if formatPipeline, dependent, or defaultValue are async
-    const formatPipeline = fieldNode.properties.formatPipeline
+    // Check if formatters, dependent, or defaultValue are async
+    const formatters = fieldNode.properties.formatters
     const dependent = fieldNode.properties.dependent
     const defaultValue = fieldNode.properties.defaultValue
 
@@ -82,8 +85,11 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       return handler?.isAsync ?? true // Conservative: assume async if not found
     }
 
+    // Check if any formatter is async
+    const anyFormatterAsync = Array.isArray(formatters) && formatters.some(isNodeAsync)
+
     // AnswerLocalHandler is sync ONLY if all dependencies are sync
-    this.isAsync = isNodeAsync(formatPipeline) || isNodeAsync(dependent) || isNodeAsync(defaultValue)
+    this.isAsync = anyFormatterAsync || isNodeAsync(dependent) || isNodeAsync(defaultValue)
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<unknown> {
@@ -154,7 +160,13 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
 
   /**
    * Resolve answer from POST data (form submission).
-   * On POST, we use submitted data and fall back to default - never existing answers.
+   * On POST, we use submitted data - never existing answers or defaults.
+   *
+   * Flow:
+   * 1. Get raw value from POST pseudo node
+   * 2. Sanitize (if enabled) - prevents XSS
+   * 3. Execute formatters inline on sanitized value
+   * 4. Check dependent condition
    */
   private async resolveFromPost(
     context: ThunkEvaluationContext,
@@ -162,7 +174,7 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
     fieldNode: FieldBlockASTNode,
     baseFieldCode: string,
   ): Promise<HandlerResult<unknown>> {
-    // First, get the raw POST value
+    // 1. Get raw POST value
     const postPseudoNode = this.findPostPseudoNode(context, baseFieldCode)
     let rawValue: unknown
 
@@ -174,11 +186,10 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       }
     }
 
-    // Always record the raw POST mutation (preserves original for audit)
+    // Record raw POST mutation (preserves original for audit)
     this.pushMutation(context, baseFieldCode, rawValue, 'post')
 
-    // Apply sanitization if enabled (defaults to true)
-    // Sanitization happens BEFORE formatPipeline so formatters receive safe input
+    // 2. Sanitize (if enabled)
     const shouldSanitize = fieldNode.properties.sanitize !== false
     let sanitizedValue = rawValue
 
@@ -186,27 +197,41 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       sanitizedValue = sanitizeValue(rawValue)
 
       // Only record sanitized mutation if value actually changed
-      // This could be used to audit users being meanies and trying to run hax.
       if (sanitizedValue !== rawValue) {
         this.pushMutation(context, baseFieldCode, sanitizedValue, 'sanitized')
       }
     }
 
-    // If there's a format pipeline, run it and layer on processed value
-    const formatPipeline = fieldNode.properties.formatPipeline
+    // 3. Execute formatters inline on sanitized value
     let resolvedValue = sanitizedValue
+    const formatters = fieldNode.properties.formatters
 
-    if (formatPipeline && isASTNode(formatPipeline)) {
-      const pipelineResult = await invoker.invoke(formatPipeline.id, context)
+    if (Array.isArray(formatters) && formatters.length > 0) {
+      for (const formatter of formatters) {
+        if (isASTNode(formatter)) {
+          // Push current value onto scope as @value
+          context.scope.push({ '@value': resolvedValue })
 
-      if (!pipelineResult.error && pipelineResult.value !== undefined) {
-        this.pushMutation(context, baseFieldCode, pipelineResult.value, 'processed')
-        resolvedValue = pipelineResult.value
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            const formatterResult = await invoker.invoke(formatter.id, context)
+
+            if (!formatterResult.error && formatterResult.value !== undefined) {
+              resolvedValue = formatterResult.value
+            }
+          } finally {
+            context.scope.pop()
+          }
+        }
+      }
+
+      // Record processed mutation if formatters changed the value
+      if (resolvedValue !== sanitizedValue) {
+        this.pushMutation(context, baseFieldCode, resolvedValue, 'processed')
       }
     }
 
-    // After POST resolution, check if this field has a dependent condition
-    // If dependent evaluates to false, clear the answer
+    // 4. Check dependent condition - if false, clear the answer
     const dependent = fieldNode.properties.dependent
 
     if (dependent && isASTNode(dependent)) {
@@ -272,6 +297,12 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
 
   /**
    * Sync version: Resolve answer from POST data (form submission)
+   *
+   * Flow:
+   * 1. Get raw value from POST pseudo node
+   * 2. Sanitize (if enabled) - prevents XSS
+   * 3. Execute formatters inline on sanitized value
+   * 4. Check dependent condition
    */
   private resolveFromPostSync(
     context: ThunkEvaluationContext,
@@ -279,7 +310,7 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
     fieldNode: FieldBlockASTNode,
     baseFieldCode: string,
   ): HandlerResult<unknown> {
-    // First, get the raw POST value
+    // 1. Get raw POST value
     const postPseudoNode = this.findPostPseudoNode(context, baseFieldCode)
     let rawValue: unknown
 
@@ -291,35 +322,51 @@ export default class AnswerLocalHandler implements HybridThunkHandler {
       }
     }
 
-    // Always record the raw POST mutation
+    // Record raw POST mutation (preserves original for audit)
     this.pushMutation(context, baseFieldCode, rawValue, 'post')
 
-    // Apply sanitization
+    // 2. Sanitize (if enabled)
     const shouldSanitize = fieldNode.properties.sanitize !== false
     let sanitizedValue = rawValue
 
     if (shouldSanitize) {
       sanitizedValue = sanitizeValue(rawValue)
 
+      // Only record sanitized mutation if value actually changed
       if (sanitizedValue !== rawValue) {
         this.pushMutation(context, baseFieldCode, sanitizedValue, 'sanitized')
       }
     }
 
-    // If there's a format pipeline, run it
-    const formatPipeline = fieldNode.properties.formatPipeline
+    // 3. Execute formatters inline on sanitized value
     let resolvedValue = sanitizedValue
+    const formatters = fieldNode.properties.formatters
 
-    if (formatPipeline && isASTNode(formatPipeline)) {
-      const pipelineResult = invoker.invokeSync(formatPipeline.id, context)
+    if (Array.isArray(formatters) && formatters.length > 0) {
+      for (const formatter of formatters) {
+        if (isASTNode(formatter)) {
+          // Push current value onto scope as @value
+          context.scope.push({ '@value': resolvedValue })
 
-      if (!pipelineResult.error && pipelineResult.value !== undefined) {
-        this.pushMutation(context, baseFieldCode, pipelineResult.value, 'processed')
-        resolvedValue = pipelineResult.value
+          try {
+            const formatterResult = invoker.invokeSync(formatter.id, context)
+
+            if (!formatterResult.error && formatterResult.value !== undefined) {
+              resolvedValue = formatterResult.value
+            }
+          } finally {
+            context.scope.pop()
+          }
+        }
+      }
+
+      // Record processed mutation if formatters changed the value
+      if (resolvedValue !== sanitizedValue) {
+        this.pushMutation(context, baseFieldCode, resolvedValue, 'processed')
       }
     }
 
-    // Check dependent condition
+    // 4. Check dependent condition - if false, clear the answer
     const dependent = fieldNode.properties.dependent
 
     if (dependent && isASTNode(dependent)) {

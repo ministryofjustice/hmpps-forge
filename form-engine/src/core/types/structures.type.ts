@@ -77,7 +77,7 @@ export interface FieldBlockASTNode extends ASTNode {
     // Known field properties
     code?: string | ASTNode // Optional because it might not be set initially
     defaultValue?: ASTNode | any
-    formatters?: ASTNode // Pipeline node after normalization
+    formatters?: ASTNode[] // Array of transformer function AST nodes
     hidden?: ASTNode
     validate?: ValidationASTNode[]
     dependent?: ASTNode

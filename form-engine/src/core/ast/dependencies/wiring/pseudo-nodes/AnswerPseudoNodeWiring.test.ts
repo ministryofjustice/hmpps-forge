@@ -1,6 +1,6 @@
 import { when } from 'jest-when'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { TransitionType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
+import { TransitionType, FunctionType } from '@form-engine/form/types/enums'
 import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
@@ -79,17 +79,18 @@ describe('AnswerPseudoNodeWiring', () => {
         })
       })
 
-      it('should wire formatPipeline to answer local when formatPipeline exists', () => {
+      it('should wire formatters to answer local when formatters exist', () => {
         // Arrange
-        const pipelineExpr = ASTTestFactory.expression(ExpressionType.PIPELINE)
-          .build()
+        const formatter1 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'trim')
+        const formatter2 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'toUpperCase')
 
         const fieldBlock = ASTTestFactory.block('TextInput', 'field')
           .withCode('firstName')
-          .withProperty('formatPipeline', pipelineExpr)
+          .withProperty('formatters', [formatter1, formatter2])
           .build()
 
         const answerLocal = ASTTestFactory.answerLocalPseudoNode('firstName', fieldBlock.id)
+        const postNode = ASTTestFactory.postPseudoNode('firstName')
 
         when(mockWiringContext.findPseudoNodesByType)
           .calledWith(PseudoNodeType.ANSWER_LOCAL)
@@ -103,6 +104,10 @@ describe('AnswerPseudoNodeWiring', () => {
           .calledWith(fieldBlock.id)
           .mockReturnValue(fieldBlock)
 
+        when(mockWiringContext.findPseudoNode)
+          .calledWith(PseudoNodeType.POST, 'firstName')
+          .mockReturnValue(postNode)
+
         when(mockWiringContext.findReferenceNodes)
           .calledWith('answers')
           .mockReturnValue([])
@@ -110,9 +115,16 @@ describe('AnswerPseudoNodeWiring', () => {
         // Act
         wiring.wire()
 
-        // Assert
-        expect(mockGraph.addEdge).toHaveBeenCalledWith(pipelineExpr.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
-          propertyName: 'formatPipeline',
+        // Assert - should wire POST and both formatters
+        expect(mockGraph.addEdge).toHaveBeenCalledWith(postNode.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
+          fieldCode: 'firstName',
+        })
+        expect(mockGraph.addEdge).toHaveBeenCalledWith(formatter1.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
+          propertyName: 'formatters[0]',
+          fieldCode: 'firstName',
+        })
+        expect(mockGraph.addEdge).toHaveBeenCalledWith(formatter2.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
+          propertyName: 'formatters[1]',
           fieldCode: 'firstName',
         })
       })

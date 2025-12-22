@@ -4,7 +4,6 @@ import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import { MetadataTraverser } from '@form-engine/core/ast/registration/MetadataTraverser'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { AddSelfValueToFieldsNormalizer } from '@form-engine/core/ast/normalizers/AddSelfValueToFields'
-import { ConvertFormattersToPipelineNormalizer } from '@form-engine/core/ast/normalizers/ConvertFormattersToPipeline'
 import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
 import StructuralWiring from '@form-engine/core/ast/dependencies/wiring/structural/StructuralWiring'
@@ -54,9 +53,7 @@ export class NodeCompilationPipeline {
    *
    * Normalizers applied:
    * 1. AddSelfValueToFieldsNormalizer - Adds Self() references to field blocks
-   * 2. AttachValidationBlockCodeNormalizer - Attaches field codes to validation expressions
-   * 3. ConvertFormattersToPipelineNormalizer - Converts formatters arrays to Pipeline expressions
-   * 4. ResolveSelfReferencesNormalizer - Resolves Self() references to actual field codes
+   * 2. ResolveSelfReferencesNormalizer - Resolves Self() references to actual field codes
    *
    * @param nodes - Root node(s) to normalize. Can be single node or array.
    * @param compilationDependencies
@@ -72,7 +69,6 @@ export class NodeCompilationPipeline {
     // Create normalizers
     const normalizers = [
       new AddSelfValueToFieldsNormalizer(compilationDependencies.nodeFactory),
-      new ConvertFormattersToPipelineNormalizer(compilationDependencies.nodeIdGenerator, idCategory),
       new ResolveSelfReferencesNormalizer(compilationDependencies.nodeIdGenerator, idCategory),
     ]
 

@@ -5,11 +5,11 @@ import {
   PostPseudoNode,
   PseudoNodeType,
 } from '@form-engine/core/types/pseudoNodes.type'
-import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode, isPseudoNode } from '@form-engine/core/typeguards/nodes'
-import { isPipelineExprNode, isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
+import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 
 /**
  * AnswerPseudoNodeWiring: Wires Answer pseudo nodes to their data sources and consumers
@@ -19,8 +19,8 @@ import { isPipelineExprNode, isReferenceExprNode } from '@form-engine/core/typeg
  * - Remote answers: Field values from other steps (Answer.Remote pseudo nodes)
  *
  * Wiring pattern for ANSWER_LOCAL:
- * - POST → ANSWER_LOCAL (raw form data, if no formatPipeline)
- * - FORMAT_PIPELINE → ANSWER_LOCAL (transformed data, if formatPipeline exists)
+ * - POST → ANSWER_LOCAL (raw form data)
+ * - FORMATTERS[] → ANSWER_LOCAL (transformer functions, executed inline)
  * - DEFAULT_VALUE → ANSWER_LOCAL (default value expression)
  * - ONLOAD_TRANSITION → ANSWER_LOCAL (pre-population from onLoad effects)
  * - ANSWER_LOCAL → Answer() references (consumers)
@@ -109,37 +109,36 @@ export default class AnswerPseudoNodeWiring {
    * Wire data sources (producers) to a local answer pseudo node
    *
    * Local answers can be produced by:
-   * - formatPipeline (if exists) - transforms POST data before storage
-   * - POST pseudo node (if no formatPipeline) - raw form submission data
+   * - POST pseudo node - raw form submission data
+   * - formatters (if exist) - transformer functions executed inline after sanitization
    * - defaultValue expression (if exists) - default when no POST data exists
    * - onLoad transition (if exists) - pre-populated value from effects
-   *
-   * Note: formatPipeline contains its own POST reference, creating the chain:
-   * POST → FORMAT_PIPELINE → ANSWER_LOCAL
    */
   private wireLocalProducers(answerPseudoNode: AnswerLocalPseudoNode) {
     const { baseFieldCode, fieldNodeId: baseFieldNodeId } = answerPseudoNode.properties
-    const fieldNode = this.wiringContext.nodeRegistry.get(baseFieldNodeId) as BlockASTNode
+    const fieldNode = this.wiringContext.nodeRegistry.get(baseFieldNodeId) as FieldBlockASTNode
 
-    // Wire formatter pipeline, this itself has a Post('field_code') reference,
-    // so it the graph still works out correctly. If no formatter pipeline, just wire to Post('field_name')
-    const formatPipelineNode = fieldNode.properties.formatPipeline
+    // Always wire POST pseudo node - AnswerLocalHandler reads from it directly
+    const postNode = this.wiringContext.findPseudoNode<PostPseudoNode>(PseudoNodeType.POST, baseFieldCode)
 
-    if (isPipelineExprNode(formatPipelineNode)) {
-      // Wire formatter Pipeline
-      this.wiringContext.graph.addEdge(formatPipelineNode.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
-        propertyName: 'formatPipeline',
+    if (postNode) {
+      this.wiringContext.graph.addEdge(postNode.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
         fieldCode: baseFieldCode,
       })
-    } else {
-      // Wire the POST pseudo node
-      const postNode = this.wiringContext.findPseudoNode<PostPseudoNode>(PseudoNodeType.POST, baseFieldCode)
+    }
 
-      if (postNode) {
-        this.wiringContext.graph.addEdge(postNode.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
-          fieldCode: baseFieldCode,
-        })
-      }
+    // Wire each formatter as a dependency (for async metadata computation)
+    const formatters = fieldNode.properties.formatters
+
+    if (Array.isArray(formatters)) {
+      formatters.forEach((formatter, index) => {
+        if (isASTNode(formatter)) {
+          this.wiringContext.graph.addEdge(formatter.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
+            propertyName: `formatters[${index}]`,
+            fieldCode: baseFieldCode,
+          })
+        }
+      })
     }
 
     const defaultValue = fieldNode.properties.defaultValue
