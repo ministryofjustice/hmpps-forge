@@ -12,6 +12,7 @@ This enables:
 - Validation rules that depend on other fields
 - Pre-populating fields from external data
 - Building complex expressions from multiple values
+- Iterating over arrays with `.each()` and `Item()`
 
 ## Reference Types
 
@@ -22,7 +23,7 @@ The form-engine provides seven reference types, each pointing to a different dat
 | `Answer('code')` | Field responses | Referencing user input from any field |
 | `Data('key')` | External data | API responses, database lookups, configuration |
 | `Self()` | Current field | Validation rules, field-scoped logic |
-| `Item()` | Collection item | Iterating over arrays, dynamic fields |
+| `Item()` | Iterator item | Accessing current item in `.each()` iterations |
 | `Params('key')` | URL path params | Route parameters like `/users/:id` |
 | `Query('key')` | URL query string | Query params like `?search=term` |
 | `Post('key')` | Raw POST body | Accessing raw submission data |
@@ -31,7 +32,7 @@ The form-engine provides seven reference types, each pointing to a different dat
 
 ```typescript
 import {
-  Answer, Data, Self, Item, Post, Params, Query,
+  Answer, Data, Self, Item, Post, Params, Query, Iterator,
 } from '@form-engine/form/builders'
 ```
 
@@ -349,9 +350,9 @@ field<GovUKTextInput>({
 
 ---
 
-## `Item()` - Collection Items
+## `Item()` - Iterator Items
 
-Accesses values from the current collection item during iteration. Use it to build dynamic field codes and display item-specific content.
+Accesses values from the current item during `.each()` iteration. Use it with `Iterator.Map`, `Iterator.Filter`, and `Iterator.Find` to transform, filter, and search arrays.
 
 ### Signature
 
@@ -363,7 +364,8 @@ Returns a scoped reference with methods to access the current item's data:
 - `Item().path('key')` - Access a property of the current item
 - `Item().value()` - Get the entire item value
 - `Item().index()` - Get the current iteration index (0-based)
-- `Item().parent` - Navigate to the parent scope (for nested collections)
+- `Item().key()` - Get the property name when iterating over objects
+- `Item().parent` - Navigate to the parent scope (for nested iterations)
 
 ### Basic Usage
 
@@ -378,76 +380,91 @@ Item().value()
 
 // Get the current index
 Item().index()  // 0, 1, 2, ...
+
+// Get the key (when iterating objects)
+Item().key()  // property name
 ```
 
-### Displaying a List
+### Transforming Arrays with Iterator.Map
 
 ```typescript
-block<CollectionBlock>({
-  variant: 'collection-block',
-  collection: Collection({
-    collection: Data('items'),
-    template: [
-      block<HtmlBlock>({
-        variant: 'html',
-        content: Format(
-          '<p><strong>%1</strong>: %2</p>',
-          Item().path('name'),
-          Item().path('status')
-        ),
-      }),
-    ],
-  }),
+// Transform data for radio/checkbox items
+field<GovUKRadioInput>({
+  code: 'country',
+  items: Data('countries').each(
+    Iterator.Map({
+      value: Item().path('code'),
+      text: Item().path('name'),
+    })
+  ),
 })
+
+// Transform with computed values
+items: Data('users').each(
+  Iterator.Map({
+    value: Item().path('id'),
+    text: Format('%1 (%2)', Item().path('name'), Item().path('email')),
+  })
+)
 ```
 
-### Dynamic Field Codes
-
-Generate unique field codes for each item:
+### Filtering Arrays
 
 ```typescript
-block<CollectionBlock>({
-  variant: 'collection-block',
-  collection: Collection({
-    collection: Data('people'),
-    template: [
-      field<GovUKTextInput>({
-        variant: 'govukTextInput',
-        code: Format('person_%1_name', Item().index()),
-        label: Format('Name for person %1',
-          Item().index().pipe(Transformer.Number.Add(1))
-        ),
-        defaultValue: Item().path('name'),
-      }),
-    ],
-  }),
-})
+// Filter out the current selection
+items: Data('areas')
+  .each(Iterator.Filter(
+    Item().path('slug').not.match(Condition.Equals(Params('currentArea')))
+  ))
+  .each(Iterator.Map({
+    value: Item().path('value'),
+    text: Item().path('text'),
+  }))
 ```
 
-### Nested Collections
-
-When collections are nested, `Item()` refers to the innermost collection. Use `.parent` to access outer scopes:
+### Finding Items
 
 ```typescript
-// Nested collection structure:
-// categories: [
-//   { name: 'Electronics', products: [{ name: 'Phone' }, { name: 'Laptop' }] },
-//   { name: 'Books', products: [{ name: 'Novel' }] },
+// Find a specific item by ID
+label: Data('categories')
+  .each(Iterator.Find(
+    Item().path('id').match(Condition.Equals(Answer('selectedCategory')))
+  ))
+  .path('name')
+```
+
+### Nested Iterations
+
+When iterations are nested, `Item()` refers to the innermost iteration. Use `.parent` to access outer scopes:
+
+```typescript
+// Data structure:
+// departments: [
+//   { name: 'Engineering', employees: [{ name: 'Alice' }, { name: 'Bob' }] },
+//   { name: 'Sales', employees: [{ name: 'Carol' }] }
 // ]
 
-// Inside the inner collection (products):
-Item().path('name')          // Product name: 'Phone', 'Laptop', etc.
-Item().parent.path('name')   // Category name: 'Electronics', 'Books'
+// Flatten employees with their department names
+Data('departments')
+  .each(Iterator.Map(
+    Item().path('employees').each(Iterator.Map({
+      employeeName: Item().path('name'),
+      departmentName: Item().parent.path('name'),
+    }))
+  ))
+  .pipe(Transformer.Array.Flatten())
 
 // Scope levels:
-Item()                // Current (innermost) collection item
-Item().parent         // Parent collection item
-Item().parent.parent  // Grandparent collection item
+Item()                // Current (innermost) iteration item
+Item().parent         // Parent iteration item
+Item().parent.parent  // Grandparent iteration item
 ```
 
 ### Restrictions
 
-`Item()` can only be used inside a collection block. Using it outside will throw a runtime error because there is no active scope.
+`Item()` can only be used inside an `.each()` iterator. Using it outside will throw a runtime error because there is no active iteration scope.
+
+See [Using Iterators](./using-iterators.md) for comprehensive iterator documentation.
 
 ---
 
@@ -725,7 +742,8 @@ References are often combined with expression builders like `Format()`, `Conditi
 - **Value expressions:** `Format()` for string interpolation
 - **Conditional expressions:** `when()` and `Conditional()` for if/then/else logic
 - **Predicate combinators:** `and()`, `or()`, `xor()`, `not()` for complex conditions
-- **Collection expressions:** `Collection()` for iterating over arrays
+
+For iterating over arrays, see [Using Iterators](./using-iterators.md).
 
 ---
 

@@ -11,31 +11,33 @@ This enables:
 - Conditional field visibility and validation
 - String interpolation with multiple data sources
 - Complex boolean logic for business rules
-- Iterating over collections to generate repeated content
+- Iterating over arrays to transform, filter, and generate content
 
 ## Expression Types
 
 | Expression | Purpose | Example |
 |------------|---------|---------|
 | `Format()` | String interpolation | `Format('Hello, %1!', Answer('name'))` |
-| `Collection()` | Iterate arrays | `Collection({ collection, template })` |
 | `Conditional()` | Conditional (object) | `Conditional({ when, then, else })` |
 | `when()` | Conditional (fluent) | `when(predicate).then('A').else('B')` |
 | `.pipe()` | Transform values | `Answer('email').pipe(Transformer.String.Trim())` |
 | `.match()` | Test a condition | `Answer('age').match(Condition.Number.GreaterThan(18))` |
 | `.not.match()` | Test negated condition | `Self().not.match(Condition.IsRequired())` |
 | `and()`, `or()`, `xor()`, `not()` | Combine predicates | `and(isAdmin, isVerified)` |
+| `.each()` | Iterate over arrays | `Data('items').each(Iterator.Map({ ... }))` |
 
 ### Import
 
 ```typescript
 import {
   // Value expressions
-  Format, Collection,
+  Format,
   // Conditional expressions
   Conditional, when,
   // Predicate combinators
-  and, or, xor, not
+  and, or, xor, not,
+  // Iterators (used with .each())
+  Iterator, Item,
 } from '@form-engine/form/builders'
 ```
 
@@ -353,118 +355,45 @@ Conditional({
 
 ---
 
-## `Collection()` - Iterating Arrays
+## `.each()` - Iterating Arrays
 
-Iterate over arrays to generate repeated blocks:
-
-```typescript
-import { Collection, Data, Item, block, field, Format } from '@form-engine/form/builders'
-
-block<CollectionBlock>({
-  variant: 'collection-block',
-  collection: Collection({
-    collection: Data('items'),           // Data source (array)
-    template: [/* blocks per item */],   // Rendered for each item
-    fallback: [/* empty state */],       // Optional: shown when empty
-  }),
-})
-```
-
-### `Item()` - Accessing Collection Items
-
-Inside a collection template, `Item()` accesses the current item:
+The `.each()` method iterates over arrays, applying an iterator to transform, filter, or find items:
 
 ```typescript
-// Access item properties
-Item().path('name')
-Item().path('address.postcode')
+import { Data, Item, Iterator } from '@form-engine/form/builders'
 
-// Get the full item object
-Item().value()
+// Transform items for radio/checkbox options
+items: Data('countries').each(
+  Iterator.Map({
+    value: Item().path('code'),
+    text: Item().path('name'),
+  })
+)
 
-// Get the current index (0-based)
-Item().index()
+// Filter then transform
+items: Data('areas')
+  .each(Iterator.Filter(
+    Item().path('active').match(Condition.IsTrue())
+  ))
+  .each(Iterator.Map({
+    value: Item().path('id'),
+    text: Item().path('name'),
+  }))
 
-// Access parent scope (nested collections)
-Item().parent.path('categoryName')
+// Find a specific item
+label: Data('categories')
+  .each(Iterator.Find(
+    Item().path('id').match(Condition.Equals(Answer('selectedCategory')))
+  ))
+  .pipe(Transformer.Object.Get('name'))
 ```
 
-### Basic Usage
+**Available Iterators:**
+- `Iterator.Map` - Transform each item to a new shape
+- `Iterator.Filter` - Keep items matching a predicate
+- `Iterator.Find` - Return first item matching a predicate
 
-```typescript
-block<CollectionBlock>({
-  variant: 'collection-block',
-  collection: Collection({
-    collection: Data('people'),
-    template: [
-      block<HtmlBlock>({
-        variant: 'html',
-        content: Format(
-          '<p><strong>%1</strong>: %2</p>',
-          Item().path('name'),
-          Item().path('email')
-        ),
-      }),
-    ],
-    fallback: [
-      block<HtmlBlock>({
-        variant: 'html',
-        content: '<p>No people found.</p>',
-      }),
-    ],
-  }),
-})
-```
-
-### Dynamic Field Codes
-
-```typescript
-Collection({
-  collection: Data('items'),
-  template: [
-    field<GovUKTextInput>({
-      variant: 'govukTextInput',
-      code: Format('item_%1_name', Item().index()),
-      label: Format('Name for item %1',
-        Item().index().pipe(Transformer.Number.Add(1))
-      ),
-      defaultValue: Item().path('name'),
-    }),
-  ],
-})
-// Generates: item_0_name, item_1_name, item_2_name, ...
-```
-
-### Nested Collections
-
-```typescript
-// Structure: categories[].items[]
-Collection({
-  collection: Data('categories'),
-  template: [
-    block<HtmlBlock>({
-      variant: 'html',
-      content: Format('<h2>%1</h2>', Item().path('name')),
-    }),
-    block<CollectionBlock>({
-      variant: 'collection-block',
-      collection: Collection({
-        collection: Item().path('items'),
-        template: [
-          block<HtmlBlock>({
-            variant: 'html',
-            content: Format(
-              '<p>%1 (Category: %2)</p>',
-              Item().path('name'),         // Inner item
-              Item().parent.path('name')   // Outer item
-            ),
-          }),
-        ],
-      }),
-    }),
-  ],
-})
-```
+See [Using Iterators](./using-iterators.md) for comprehensive documentation.
 
 ---
 
@@ -480,7 +409,7 @@ Different expression types are valid in different contexts:
 | `dependent` | Predicates | `Answer('type').match(Condition.Equals('other'))` |
 | `validate.when` | Predicates | `Self().not.match(Condition.IsRequired())` |
 | `defaultValue` | Conditional, references, Format | `Data('user.name')` |
-| `collection` | Data, Item paths, Answer | `Data('items')` or `Item().path('children')` |
+| `items` | Iterator expressions | `Data('options').each(Iterator.Map({ value: Item().path('id'), text: Item().path('name') }))` |
 
 ---
 
