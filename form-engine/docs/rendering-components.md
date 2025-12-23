@@ -284,27 +284,40 @@ block<CodeBlock>({
 
 ### CollectionBlock
 
-Renders repeated blocks from a collection.
+Renders repeated blocks from a collection. Use with Iterator to filter and transform data.
 
 ```typescript
 import { CollectionBlock } from '@form-engine/registry/components/collectionBlock'
 
 block<CollectionBlock>({
   variant: 'collection-block',
-  collection: Collection({
-    collection: Data('items'),
-    template: [ /* blocks using Item() */ ],
-    fallback: [ /* blocks when empty */ ],
-  }),
-  classes?: 'wrapper-class',
-  attributes?: { 'data-list': 'items' },
+  classes: 'govuk-!-margin-bottom-4',
+  collection: Data('tasks')
+    .each(
+      Iterator.Filter(
+        and(
+          Item().path('priority').match(Condition.Equals('high')),
+          Item().path('status').not.match(Condition.Equals('completed')),
+        ),
+      ),
+    )
+    .each(
+      Iterator.Map({
+        title: Item().path('name'),
+        description: Item().path('details'),
+      }),
+    ),
+  template: [ /* blocks using Item() */ ],
+  fallback: [ /* blocks when empty */ ],
 })
 ```
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `collection` | `CollectionExpr` | Yes | Collection expression with template and fallback |
+| `collection` | `IteratorExpr` | Yes | Data source with optional Iterator filtering/mapping |
+| `template` | `BlockDefinition[]` | Yes | Blocks to render for each item (use `Item()` to access data) |
+| `fallback` | `BlockDefinition[]` | No | Blocks to render when collection is empty |
 | `classes` | `ConditionalString` | No | CSS classes for wrapper div |
 | `attributes` | `Record<string, any>` | No | HTML attributes for wrapper div |
 
-See [Logic and Expressions](./logic-and-expressions.md) for details on `Collection()` and `Item()`.
+See [Using Iterators](./using-iterators.md) for details on `Iterator.Map`, `Iterator.Filter`, and `Item()`.
