@@ -64,6 +64,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
+      this.mergeStaticData(ancestor, context)
+
       // eslint-disable-next-line no-await-in-loop
       await this.runLoadTransitions(evaluator, ancestor, context)
 
@@ -101,6 +103,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
+      this.mergeStaticData(ancestor, context)
+
       // eslint-disable-next-line no-await-in-loop
       await this.runLoadTransitions(evaluator, ancestor, context)
 
@@ -170,6 +174,22 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     })
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
+  }
+
+  /**
+   * Merge static data from an ancestor into context.global.data
+   *
+   * Called before runLoadTransitions() so that:
+   * 1. Static data is available to effects via context.getData()
+   * 2. Effects can override static data if needed
+   * 3. Later ancestors (steps) override earlier ones (journeys) with shallow merge
+   */
+  private mergeStaticData(ancestor: JourneyASTNode | StepASTNode, context: ThunkEvaluationContext): void {
+    const staticData = ancestor.properties.data
+
+    if (staticData !== undefined) {
+      Object.assign(context.global.data, staticData)
+    }
   }
 
   /**

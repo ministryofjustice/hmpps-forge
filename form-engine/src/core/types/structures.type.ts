@@ -27,6 +27,7 @@ export interface JourneyASTNode extends ASTNode {
     view?: ViewConfig
     entryPath?: string
     metadata?: Record<string, any>
+    data?: Record<string, unknown>
   }
 }
 
@@ -48,6 +49,7 @@ export interface StepASTNode extends ASTNode {
     isEntryPoint?: boolean
     backlink?: string
     metadata?: Record<string, any>
+    data?: Record<string, unknown>
   }
 }
 

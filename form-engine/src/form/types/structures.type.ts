@@ -187,6 +187,9 @@ export interface JourneyDefinition {
   metadata?: {
     [key: string]: any
   }
+
+  /** Static data available to this journey and all children via Data() references */
+  data?: Record<string, unknown>
 }
 
 /**
@@ -230,6 +233,9 @@ export interface StepDefinition {
   metadata?: {
     [key: string]: any
   }
+
+  /** Static data available to this step, merged with inherited journey data */
+  data?: Record<string, unknown>
 }
 
 export type ConditionalString =

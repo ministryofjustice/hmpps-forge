@@ -153,6 +153,35 @@ metadata: {
 }
 ```
 
+### `data` (Optional)
+
+Static data available to this journey and all its steps via `Data()` references. This data is merged into the evaluation context before any lifecycle transitions run:
+
+```typescript
+data: {
+  serviceName: 'Food Business Registration',
+  supportEmail: 'support@example.com',
+  maxFileSize: 10485760,
+}
+```
+
+Accessing in expressions using `Data()`:
+
+```typescript
+Format('Contact us at {0}', Data('supportEmail'))
+```
+
+Accessing in effects using `context.getData()`:
+
+```typescript
+Effect(: async (context) => {
+  const email = context.getData('supportEmail')
+  // ...
+}),
+```
+
+**Inheritance:** Step `data` is shallow-merged with journey `data`, with step values taking precedence.
+
 ### `onLoad`, `onAccess` (Optional)
 
 Journeys can define `onLoad` and `onAccess` transitions that run for every step. See [Transitions](./transitions.md).
@@ -240,6 +269,19 @@ metadata: {
   analyticsPageName: 'Personal Details Entry',
 }
 ```
+
+### `data` (Optional)
+
+Static data available to this step via `Data()` references. Merged with inherited journey data (step values take precedence):
+
+```typescript
+data: {
+  pageHeading: 'Enter your personal details',
+  maxItems: 5,
+}
+```
+
+See the journey `data` property for usage examples.
 
 ### `onLoad`, `onAccess`, `onAction`, `onSubmission` (Optional)
 

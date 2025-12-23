@@ -169,6 +169,7 @@ export const StepSchema = z.looseObject({
   isEntryPoint: z.boolean().optional(),
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 })
 
 /**
@@ -188,5 +189,6 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     view: ViewConfigSchema.optional(),
     entryPath: z.string().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
   }),
 )

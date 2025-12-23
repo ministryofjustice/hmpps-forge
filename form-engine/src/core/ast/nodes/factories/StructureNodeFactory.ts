@@ -133,6 +133,10 @@ export class StructureNodeFactory {
       properties.metadata = dataProperties.metadata
     }
 
+    if (dataProperties.data !== undefined) {
+      properties.data = dataProperties.data
+    }
+
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.JOURNEY,
@@ -205,6 +209,10 @@ export class StructureNodeFactory {
 
     if (dataProperties.metadata !== undefined) {
       properties.metadata = dataProperties.metadata
+    }
+
+    if (dataProperties.data !== undefined) {
+      properties.data = dataProperties.data
     }
 
     return {
