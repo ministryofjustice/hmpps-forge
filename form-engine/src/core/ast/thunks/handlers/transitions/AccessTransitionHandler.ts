@@ -4,8 +4,8 @@ import {
   HybridThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
-  CapturedEffect,
   MetadataComputationDependencies,
+  ThunkError,
 } from '@form-engine/core/ast/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
@@ -39,22 +39,16 @@ export interface AccessTransitionResult {
    * Only present if access transition uses error response instead of redirect
    */
   message?: string
-
-  /**
-   * Captured effects to be committed after access lifecycle completes
-   * Effects are captured with their evaluated arguments, deferred for later execution
-   */
-  pendingEffects?: CapturedEffect[]
 }
 
 /**
  * Handler for Access Transition nodes
  *
  * Evaluates onAccess transitions by:
- * 1. Capturing effects (analytics, logging, etc.)
- * 2. Evaluating guards predicate
- * 3. If guards match → evaluating redirect expressions for navigation target
- * 4. Returning result with captured effects for LifecycleCoordinator to commit
+ * 1. Pushing @transitionType: 'access' onto scope for effect execution
+ * 2. Executing effects immediately (analytics, logging, etc.)
+ * 3. Evaluating guards predicate
+ * 4. If guards match → evaluating redirect expressions for navigation target
  *
  * ## Lifecycle Position
  * Access transitions run after onLoad at each hierarchy level:
@@ -69,8 +63,9 @@ export interface AccessTransitionResult {
  * When itemNotFound is true, the guard matches and access is denied.
  *
  * ## Effects
- * Effects are captured and returned for LifecycleCoordinator to commit immediately.
- * They are captured BEFORE guards are evaluated.
+ * Effects are executed immediately BEFORE guards are evaluated.
+ * The @transitionType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class AccessTransitionHandler implements HybridThunkHandler {
   isAsync = true
@@ -132,8 +127,18 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
   ): HandlerResult<AccessTransitionResult> {
-    // Capture effects first (logging, analytics, etc.)
-    const capturedEffects = this.captureEffectsSync(context, invoker)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'access' })
+
+    // Execute effects first (logging, analytics, etc.)
+    const effectError = this.executeEffectsSync(context, invoker)
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    if (effectError) {
+      return { error: effectError }
+    }
 
     // Evaluate guards predicate (true = denial condition matched, like validation)
     const guardsMatched = this.evaluateGuardsPredicateSync(context, invoker)
@@ -142,7 +147,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
       return {
         value: {
           passed: true,
-          pendingEffects: capturedEffects,
         },
       }
     }
@@ -159,7 +163,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
           passed: false,
           status,
           message: messageResult,
-          pendingEffects: capturedEffects,
         },
       }
     }
@@ -171,7 +174,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
       value: {
         passed: false,
         redirect: redirectResult,
-        pendingEffects: capturedEffects,
       },
     }
   }
@@ -180,8 +182,18 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
   ): Promise<HandlerResult<AccessTransitionResult>> {
-    // Capture effects first (logging, analytics, etc.)
-    const capturedEffects = await this.captureEffects(context, invoker)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'access' })
+
+    // Execute effects first (logging, analytics, etc.)
+    const effectError = await this.executeEffects(context, invoker)
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    if (effectError) {
+      return { error: effectError }
+    }
 
     // Evaluate guards predicate (true = denial condition matched, like validation)
     const guardsMatched = await this.evaluateGuardsPredicate(context, invoker)
@@ -190,7 +202,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
       return {
         value: {
           passed: true,
-          pendingEffects: capturedEffects,
         },
       }
     }
@@ -207,7 +218,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
           passed: false,
           status,
           message,
-          pendingEffects: capturedEffects,
         },
       }
     }
@@ -219,7 +229,6 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
       value: {
         passed: false,
         redirect,
-        pendingEffects: capturedEffects,
       },
     }
   }
@@ -248,25 +257,30 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
   }
 
   /**
-   * Capture effects by invoking their handlers
-   *
-   * Invokes EffectHandler for each effect to get CapturedEffect.
-   * Returns captured effects for LifecycleCoordinator to commit.
+   * Execute effects immediately (analytics, logging, etc.)
+   * Returns error if any effect fails
    */
-  private async captureEffects(
+  private async executeEffects(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<CapturedEffect[]> {
+  ): Promise<ThunkError | undefined> {
     const effects = this.node.properties.effects as FunctionASTNode[] | undefined
 
     if (!effects || !Array.isArray(effects) || effects.length === 0) {
-      return []
+      return undefined
     }
 
-    const effectNodes = effects.filter(isASTNode)
-    const results = await Promise.all(effectNodes.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
+    // Execute effects sequentially (order matters)
+    for (const effect of effects.filter(isASTNode)) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await invoker.invoke(effect.id, context)
 
-    return results.filter(result => !result.error && result.value).map(result => result.value!)
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 
   /**
@@ -336,18 +350,23 @@ export default class AccessTransitionHandler implements HybridThunkHandler {
     return Boolean(result.value)
   }
 
-  private captureEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): CapturedEffect[] {
+  private executeEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): ThunkError | undefined {
     const effects = this.node.properties.effects as FunctionASTNode[] | undefined
 
     if (!effects || !Array.isArray(effects) || effects.length === 0) {
-      return []
+      return undefined
     }
 
-    return effects
-      .filter(isASTNode)
-      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
-      .filter(result => !result.error && result.value)
-      .map(result => result.value!)
+    // Execute effects sequentially (order matters)
+    for (const effect of effects.filter(isASTNode)) {
+      const result = invoker.invokeSync(effect.id, context)
+
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 
   private evaluateRedirectSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): string | undefined {

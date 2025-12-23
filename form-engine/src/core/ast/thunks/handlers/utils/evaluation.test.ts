@@ -3,16 +3,14 @@ import {
   createMockInvoker,
   createMockInvokerWithError,
 } from '@form-engine/test-utils/thunkTestHelpers'
-import { ThunkResult, CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/ast/thunks/types'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
 import {
   evaluateOperand,
   evaluateOperandWithErrorTracking,
   evaluateWithScope,
   evaluatePropertyValue,
   evaluateUntilFirstMatch,
-  commitPendingEffects,
 } from './evaluation'
 
 describe('evaluation utilities', () => {
@@ -470,101 +468,4 @@ describe('evaluation utilities', () => {
     })
   })
 
-  describe('commitPendingEffects()', () => {
-    it('should return empty array when no effects provided', async () => {
-      // Arrange
-      const mockContext = createMockContext()
-
-      // Act
-      const result = await commitPendingEffects([], mockContext, 'load')
-
-      // Assert
-      expect(result).toEqual([])
-    })
-
-    it('should execute effects sequentially and return committed effects', async () => {
-      // Arrange
-      const mockEffectFn1 = { name: 'effect1', evaluate: jest.fn() }
-      const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([
-          ['effect1', mockEffectFn1],
-          ['effect2', mockEffectFn2],
-        ]),
-      })
-
-      const capturedEffects: CapturedEffect[] = [
-        { effectName: 'effect1', args: ['arg1'], nodeId: 'compile_ast:1' },
-        { effectName: 'effect2', args: ['arg2', 'arg3'], nodeId: 'compile_ast:2' },
-      ]
-
-      // Act
-      const result = await commitPendingEffects(capturedEffects, mockContext, 'load')
-
-      // Assert
-      expect(result).toEqual(capturedEffects)
-      expect(mockEffectFn1.evaluate).toHaveBeenCalledWith(expect.any(EffectFunctionContext), 'arg1')
-      expect(mockEffectFn2.evaluate).toHaveBeenCalledWith(expect.any(EffectFunctionContext), 'arg2', 'arg3')
-    })
-
-    it('should call effect function with EffectFunctionContext as first argument', async () => {
-      // Arrange
-      const mockEffectFn = { name: 'testEffect', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([['testEffect', mockEffectFn]]),
-        mockAnswers: { name: 'John' },
-      })
-
-      const capturedEffects: CapturedEffect[] = [{ effectName: 'testEffect', args: [], nodeId: 'compile_ast:1' }]
-
-      // Act
-      await commitPendingEffects(capturedEffects, mockContext, 'load')
-
-      // Assert
-      expect(mockEffectFn.evaluate).toHaveBeenCalledTimes(1)
-      const firstArg = mockEffectFn.evaluate.mock.calls[0][0]
-      expect(firstArg).toBeInstanceOf(EffectFunctionContext)
-    })
-
-    it('should throw error when effect function is not found in registry', async () => {
-      // Arrange
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map(),
-      })
-
-      const capturedEffects: CapturedEffect[] = [{ effectName: 'unknownEffect', args: [], nodeId: 'compile_ast:1' }]
-
-      // Act & Assert
-      await expect(commitPendingEffects(capturedEffects, mockContext, 'load')).rejects.toThrow(
-        'Function "unknownEffect" not found in registry',
-      )
-    })
-
-    it('should fail fast when effect execution throws', async () => {
-      // Arrange
-      const mockEffectFn1 = {
-        name: 'failingEffect',
-        evaluate: jest.fn().mockImplementation(() => {
-          throw new Error('Effect failed')
-        }),
-      }
-      const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([
-          ['failingEffect', mockEffectFn1],
-          ['effect2', mockEffectFn2],
-        ]),
-      })
-
-      const capturedEffects: CapturedEffect[] = [
-        { effectName: 'failingEffect', args: [], nodeId: 'compile_ast:1' },
-        { effectName: 'effect2', args: [], nodeId: 'compile_ast:2' },
-      ]
-
-      // Act & Assert
-      await expect(commitPendingEffects(capturedEffects, mockContext, 'load')).rejects.toThrow('Effect failed')
-      // Second effect should NOT have been called due to fail-fast behavior
-      expect(mockEffectFn2.evaluate).not.toHaveBeenCalled()
-    })
-  })
 })

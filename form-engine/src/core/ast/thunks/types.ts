@@ -550,28 +550,3 @@ export interface RuntimeOverlayHooks {
 export type ThunkRuntimeHooks = RuntimeOverlayHooks
 
 export type RuntimeOverlayConfigurator = (builder: RuntimeOverlayBuilder) => void
-
-/**
- * Contains all information needed to execute the effect:
- * - effectName: Key in FunctionRegistry (e.g., 'saveAnswer', 'setData')
- * - args: Already evaluated argument values (resolved at capture time)
- * - nodeId: Original AST node for debugging/tracing
- */
-export interface CapturedEffect {
-  /**
-   * Name of the effect function in FunctionRegistry
-   * Examples: 'saveAnswer', 'setData', 'addToCollection'
-   */
-  effectName: string
-
-  /**
-   * Already evaluated argument values
-   * These were resolved at capture time to preserve the state at that moment
-   */
-  args: unknown[]
-
-  /**
-   * Original AST node ID for debugging/tracing
-   */
-  nodeId: NodeId
-}

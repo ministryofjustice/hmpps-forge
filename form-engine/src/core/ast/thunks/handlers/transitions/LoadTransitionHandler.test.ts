@@ -10,7 +10,7 @@ describe('LoadTransitionHandler', () => {
   })
 
   describe('evaluate()', () => {
-    it('should return empty effects when transition has no effects', async () => {
+    it('should return executed: true when transition has no effects', async () => {
       // Arrange
       const transition = ASTTestFactory.transition(TransitionType.LOAD)
         .withProperty('effects', [])
@@ -25,10 +25,10 @@ describe('LoadTransitionHandler', () => {
       const result = await handler.evaluate(mockContext, invoker)
 
       // Assert
-      expect(result.value).toEqual({ effects: [] })
+      expect(result.value).toEqual({ executed: true })
     })
 
-    it('should capture single effect and return it', async () => {
+    it('should execute single effect and return executed: true', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadUserData')
 
@@ -39,10 +39,9 @@ describe('LoadTransitionHandler', () => {
       const handler = new LoadTransitionHandler(transition.id, transition)
 
       const mockContext = createMockContext()
-      const capturedEffect = { effectName: 'loadUserData', args: [] as any, nodeId: effect.id }
       const mockInvoker = createMockInvoker({
         invokeImpl: async () => ({
-          value: capturedEffect,
+          value: undefined,
           metadata: { source: 'EffectHandler', timestamp: Date.now() },
         }),
       })
@@ -53,11 +52,10 @@ describe('LoadTransitionHandler', () => {
       // Assert
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(1)
       expect(mockInvoker.invoke).toHaveBeenCalledWith(effect.id, mockContext)
-      expect(result.value?.effects).toHaveLength(1)
-      expect(result.value?.effects[0]).toEqual(capturedEffect)
+      expect(result.value?.executed).toBe(true)
     })
 
-    it('should capture all effects and return them when transition has multiple effects', async () => {
+    it('should execute all effects sequentially when transition has multiple effects', async () => {
       // Arrange
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadUserData')
       const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadConfiguration')
@@ -76,7 +74,7 @@ describe('LoadTransitionHandler', () => {
           invocationOrder.push(nodeId)
 
           return {
-            value: { effectName: 'effect', args: [], nodeId },
+            value: undefined,
             metadata: { source: 'EffectHandler', timestamp: Date.now() },
           }
         },
@@ -88,72 +86,40 @@ describe('LoadTransitionHandler', () => {
       // Assert
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(3)
       expect(invocationOrder).toEqual([effect1.id, effect2.id, effect3.id])
-      expect(result.value?.effects).toHaveLength(3)
+      expect(result.value?.executed).toBe(true)
     })
 
-    it('should return captured effects without committing them', async () => {
+    it('should push @transitionType to scope before executing effects', async () => {
       // Arrange
-      const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
-      const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2')
+      const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
 
       const transition = ASTTestFactory.transition(TransitionType.LOAD)
-        .withProperty('effects', [effect1, effect2])
+        .withProperty('effects', [effect])
         .build() as LoadTransitionASTNode
 
       const handler = new LoadTransitionHandler(transition.id, transition)
 
-      // Mock functions should NOT be called - effects are returned, not committed
-      const mockEffectFn1 = { name: 'effect1', evaluate: jest.fn() }
-      const mockEffectFn2 = { name: 'effect2', evaluate: jest.fn() }
-      const mockContext = createMockContext({
-        mockRegisteredFunctions: new Map([
-          ['effect1', mockEffectFn1],
-          ['effect2', mockEffectFn2],
-        ]),
-      })
+      const mockContext = createMockContext()
+      let capturedTransitionType: string | undefined
 
-      const invokedIds: string[] = []
       const mockInvoker = createMockInvoker({
-        invokeImpl: async (nodeId: string) => {
-          invokedIds.push(nodeId)
-
-          if (nodeId === effect1.id) {
-            return {
-              value: { effectName: 'effect1', args: [], nodeId: effect1.id },
-              metadata: { source: 'EffectHandler', timestamp: Date.now() },
-            }
-          }
-
-          if (nodeId === effect2.id) {
-            return {
-              value: { effectName: 'effect2', args: [], nodeId: effect2.id },
-              metadata: { source: 'EffectHandler', timestamp: Date.now() },
-            }
-          }
+        invokeImpl: async () => {
+          // Capture transition type from scope (as EffectHandler would read it)
+          const currentScope = mockContext.scope[mockContext.scope.length - 1] ?? {}
+          capturedTransitionType = currentScope['@transitionType'] as string
 
           return { value: undefined, metadata: { source: 'test', timestamp: Date.now() } }
         },
       })
 
       // Act
-      const result = await handler.evaluate(mockContext, mockInvoker)
+      await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      // Both effects should be captured
-      expect(invokedIds).toContain(effect1.id)
-      expect(invokedIds).toContain(effect2.id)
-
-      // Effects should be returned, NOT committed
-      expect(result.value?.effects).toHaveLength(2)
-      expect(result.value?.effects).toContainEqual({ effectName: 'effect1', args: [], nodeId: effect1.id })
-      expect(result.value?.effects).toContainEqual({ effectName: 'effect2', args: [], nodeId: effect2.id })
-
-      // Effect functions should NOT have been called (LifecycleCoordinator commits them)
-      expect(mockEffectFn1.evaluate).not.toHaveBeenCalled()
-      expect(mockEffectFn2.evaluate).not.toHaveBeenCalled()
+      expect(capturedTransitionType).toBe('load')
     })
 
-    it('should filter out failed effects and return only successful ones', async () => {
+    it('should fail fast and return error when first effect fails', async () => {
       // Arrange
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'failingEffect')
       const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'successEffect')
@@ -166,30 +132,25 @@ describe('LoadTransitionHandler', () => {
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker()
-      mockInvoker.invoke
-        .mockResolvedValueOnce({
-          error: {
-            type: 'EVALUATION_FAILED',
-            nodeId: effect1.id,
-            message: 'Effect failed',
-          },
-          metadata: { source: 'EffectHandler', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          value: { effectName: 'successEffect', args: [], nodeId: effect2.id },
-          metadata: { source: 'EffectHandler', timestamp: Date.now() },
-        })
+      mockInvoker.invoke.mockResolvedValueOnce({
+        error: {
+          type: 'EVALUATION_FAILED',
+          nodeId: effect1.id,
+          message: 'Effect failed',
+        },
+        metadata: { source: 'EffectHandler', timestamp: Date.now() },
+      })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
-      // Assert
-      expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
-      expect(result.value?.effects).toHaveLength(1)
-      expect(result.value?.effects[0]).toEqual({ effectName: 'successEffect', args: [], nodeId: effect2.id })
+      // Assert - Should fail fast, second effect never invoked
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(1)
+      expect(result.error).toBeDefined()
+      expect(result.error?.nodeId).toBe(effect1.id)
     })
 
-    it('should return empty effects without invoking any when effects property is undefined', async () => {
+    it('should return executed: true without invoking any when effects property is undefined', async () => {
       // Arrange
       const transition = ASTTestFactory.transition(TransitionType.LOAD)
         .withProperty('effects', undefined)
@@ -205,7 +166,7 @@ describe('LoadTransitionHandler', () => {
 
       // Assert
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
-      expect(result.value).toEqual({ effects: [] })
+      expect(result.value).toEqual({ executed: true })
     })
   })
 })

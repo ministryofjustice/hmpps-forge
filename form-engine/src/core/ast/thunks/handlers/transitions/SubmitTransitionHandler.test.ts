@@ -146,7 +146,7 @@ describe('SubmitTransitionHandler', () => {
       expect(result.value?.executed).toBe(true)
     })
 
-    it('should capture onAlways effects for skip-validation transition', async () => {
+    it('should execute onAlways effects for skip-validation transition', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logSubmission')
 
@@ -161,12 +161,15 @@ describe('SubmitTransitionHandler', () => {
 
       const mockContext = createMockContext()
 
-      // Mock invoker returns CapturedEffect when invoked for effect nodes
+      // Mock invoker - effects now execute immediately and return undefined
+      const effectInvoked: string[] = []
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
           if (nodeId === effect.id) {
+            effectInvoked.push(nodeId)
+
             return {
-              value: { effectName: 'logSubmission', args: [], nodeId: effect.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
@@ -178,12 +181,8 @@ describe('SubmitTransitionHandler', () => {
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
-      // Assert
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'logSubmission',
-        args: [],
-        nodeId: effect.id,
-      })
+      // Assert - effect was executed
+      expect(effectInvoked).toContain(effect.id)
       expect(result.value?.executed).toBe(true)
       expect(result.value?.validated).toBe(false)
     })
@@ -213,7 +212,7 @@ describe('SubmitTransitionHandler', () => {
       expect(result.value?.next).toBe('/success')
     })
 
-    it('should capture effects and evaluate next expressions for skip-validation transition', async () => {
+    it('should execute effects and evaluate next expressions for skip-validation transition', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'saveData')
       const nextExpr = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
@@ -231,11 +230,14 @@ describe('SubmitTransitionHandler', () => {
       const handler = new SubmitTransitionHandler(transition.id, transition)
 
       const mockContext = createMockContext()
+      const effectsExecuted: string[] = []
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
           if (nodeId === effect.id) {
+            effectsExecuted.push(nodeId)
+
             return {
-              value: { effectName: 'saveData', args: [], nodeId: effect.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
@@ -254,16 +256,12 @@ describe('SubmitTransitionHandler', () => {
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
-      // Assert
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'saveData',
-        args: [],
-        nodeId: effect.id,
-      })
+      // Assert - effect was executed and next was evaluated
+      expect(effectsExecuted).toContain(effect.id)
       expect(result.value?.next).toBe('/next')
     })
 
-    it('should capture onAlways and onValid effects for valid submission with validation enabled', async () => {
+    it('should execute onAlways and onValid effects for valid submission with validation enabled', async () => {
       // Arrange
       const alwaysEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAttempt')
       const validEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'saveData')
@@ -286,6 +284,7 @@ describe('SubmitTransitionHandler', () => {
       // Mock a block node with a passing validation
       const blockNode = ASTTestFactory.block('text-input', 'field').build()
 
+      const effectsExecuted: string[] = []
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
           // Mock block evaluation returning a passing validation
@@ -300,17 +299,21 @@ describe('SubmitTransitionHandler', () => {
             }
           }
 
-          // Mock effect node invocations returning CapturedEffect
+          // Mock effect node invocations - effects execute immediately now
           if (nodeId === alwaysEffect.id) {
+            effectsExecuted.push('logAttempt')
+
             return {
-              value: { effectName: 'logAttempt', args: [], nodeId: alwaysEffect.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
 
           if (nodeId === validEffect.id) {
+            effectsExecuted.push('saveData')
+
             return {
-              value: { effectName: 'saveData', args: [], nodeId: validEffect.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
@@ -367,17 +370,9 @@ describe('SubmitTransitionHandler', () => {
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
-      // Assert
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'logAttempt',
-        args: [],
-        nodeId: alwaysEffect.id,
-      })
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'saveData',
-        args: [],
-        nodeId: validEffect.id,
-      })
+      // Assert - effects were executed
+      expect(effectsExecuted).toContain('logAttempt')
+      expect(effectsExecuted).toContain('saveData')
       expect(result.value?.validated).toBe(true)
       expect(result.value?.isValid).toBe(true)
     })
@@ -585,7 +580,7 @@ describe('SubmitTransitionHandler', () => {
       expect(mockInvoker.invoke).toHaveBeenCalledWith(invalidNext.id, mockContext)
     })
 
-    it('should capture multiple effects', async () => {
+    it('should execute multiple effects sequentially', async () => {
       // Arrange
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
       const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2')
@@ -600,18 +595,23 @@ describe('SubmitTransitionHandler', () => {
       const handler = new SubmitTransitionHandler(transition.id, transition)
 
       const mockContext = createMockContext()
+      const effectsExecuted: string[] = []
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
           if (nodeId === effect1.id) {
+            effectsExecuted.push('effect1')
+
             return {
-              value: { effectName: 'effect1', args: [], nodeId: effect1.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
 
           if (nodeId === effect2.id) {
+            effectsExecuted.push('effect2')
+
             return {
-              value: { effectName: 'effect2', args: [], nodeId: effect2.id },
+              value: undefined,
               metadata: { source: 'EffectHandler', timestamp: Date.now() },
             }
           }
@@ -623,18 +623,11 @@ describe('SubmitTransitionHandler', () => {
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
-      // Assert
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'effect1',
-        args: [],
-        nodeId: effect1.id,
-      })
-      expect(result.value?.pendingEffects).toContainEqual({
-        effectName: 'effect2',
-        args: [],
-        nodeId: effect2.id,
-      })
-      expect(result.value?.pendingEffects).toHaveLength(2)
+      // Assert - both effects were executed
+      expect(effectsExecuted).toContain('effect1')
+      expect(effectsExecuted).toContain('effect2')
+      expect(effectsExecuted).toHaveLength(2)
+      expect(result.value?.executed).toBe(true)
     })
 
     it('should return first non-undefined next value from next expressions', async () => {

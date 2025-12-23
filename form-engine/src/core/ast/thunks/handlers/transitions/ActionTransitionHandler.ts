@@ -4,8 +4,8 @@ import {
   HybridThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
-  CapturedEffect,
   MetadataComputationDependencies,
+  ThunkError,
 } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
@@ -18,12 +18,6 @@ export interface ActionTransitionResult {
    * Whether the action was executed (when predicate passed)
    */
   executed: boolean
-
-  /**
-   * Captured effects to be committed by controller
-   * Effects are captured with their evaluated arguments, deferred for commit
-   */
-  pendingEffects?: CapturedEffect[]
 }
 
 /**
@@ -31,7 +25,8 @@ export interface ActionTransitionResult {
  *
  * Evaluates onAction transitions by:
  * 1. Checking the when predicate (required - must match to execute)
- * 2. Capturing effects and returning them for LifecycleCoordinator to commit
+ * 2. Pushing @transitionType: 'action' onto scope for effect execution
+ * 3. Executing effects immediately
  *
  * ## Purpose
  * onAction transitions handle "in-page actions" like postcode lookups.
@@ -40,19 +35,19 @@ export interface ActionTransitionResult {
  *
  * ## Execution Pattern
  * 1. Evaluate when predicate
- * 2. If when fails -> return { executed: false, effects: [] }
- * 3. If when passes -> capture effects -> return { executed: true, effects }
- *
- * LifecycleCoordinator commits ACTION effects immediately after evaluation
- * to ensure answers are set before blocks evaluate.
+ * 2. If when fails -> return { executed: false }
+ * 3. If when passes -> push transition type to scope -> execute effects -> return { executed: true }
  *
  * ## Wiring Pattern
  * - when -> transition (must evaluate before transition)
  * - effects are chained: effect[0] -> effect[1] -> transition
  *
  * ## First-Match Semantics
- * Only the first matching onAction executes (controlled by LifecycleCoordinator).
- * This handler just evaluates a single transition; the coordinator handles iteration.
+ * Only the first matching onAction executes (controlled by FormStepController).
+ * This handler just evaluates a single transition; the controller handles iteration.
+ *
+ * The @transitionType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class ActionTransitionHandler implements HybridThunkHandler {
   isAsync = true
@@ -99,17 +94,26 @@ export default class ActionTransitionHandler implements HybridThunkHandler {
       return {
         value: {
           executed: false,
-          pendingEffects: [],
         },
       }
     }
 
-    const capturedEffects = this.captureEffectsSync(context, invoker)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'action' })
+
+    // Execute effects
+    const effectError = this.executeEffectsSync(context, invoker)
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    if (effectError) {
+      return { error: effectError }
+    }
 
     return {
       value: {
         executed: true,
-        pendingEffects: capturedEffects,
       },
     }
   }
@@ -124,17 +128,26 @@ export default class ActionTransitionHandler implements HybridThunkHandler {
       return {
         value: {
           executed: false,
-          pendingEffects: [],
         },
       }
     }
 
-    const capturedEffects = await this.captureEffects(context, invoker)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'action' })
+
+    // Execute effects
+    const effectError = await this.executeEffects(context, invoker)
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    if (effectError) {
+      return { error: effectError }
+    }
 
     return {
       value: {
         executed: true,
-        pendingEffects: capturedEffects,
       },
     }
   }
@@ -165,25 +178,30 @@ export default class ActionTransitionHandler implements HybridThunkHandler {
   }
 
   /**
-   * Capture effects by invoking their handlers
-   *
-   * Invokes EffectHandler for each effect to get CapturedEffect.
-   * Returns captured effects for LifecycleCoordinator to commit.
+   * Execute effects immediately
+   * Returns error if any effect fails
    */
-  private async captureEffects(
+  private async executeEffects(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<CapturedEffect[]> {
+  ): Promise<ThunkError | undefined> {
     const effects = this.node.properties.effects as FunctionASTNode[]
 
     if (!Array.isArray(effects) || effects.length === 0) {
-      return []
+      return undefined
     }
 
-    const effectNodes = effects.filter(isASTNode)
-    const results = await Promise.all(effectNodes.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
+    // Execute effects sequentially (order matters)
+    for (const effect of effects.filter(isASTNode)) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await invoker.invoke(effect.id, context)
 
-    return results.filter(result => !result.error && result.value).map(result => result.value!)
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 
   // Sync versions of private methods
@@ -204,17 +222,22 @@ export default class ActionTransitionHandler implements HybridThunkHandler {
     return Boolean(result.value)
   }
 
-  private captureEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): CapturedEffect[] {
+  private executeEffectsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): ThunkError | undefined {
     const effects = this.node.properties.effects as FunctionASTNode[]
 
     if (!Array.isArray(effects) || effects.length === 0) {
-      return []
+      return undefined
     }
 
-    return effects
-      .filter(isASTNode)
-      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
-      .filter(result => !result.error && result.value)
-      .map(result => result.value!)
+    // Execute effects sequentially (order matters)
+    for (const effect of effects.filter(isASTNode)) {
+      const result = invoker.invokeSync(effect.id, context)
+
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 }
