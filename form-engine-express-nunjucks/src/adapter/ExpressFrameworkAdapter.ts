@@ -108,8 +108,21 @@ export default class ExpressFrameworkAdapter
     }
   }
 
-  /** Get the base URL path from the request (e.g., '/forms/my-journey') */
+  /**
+   * Get the base URL path from the request with resolved parameter values.
+   *
+   * Express's req.baseUrl returns route patterns with unresolved placeholders (e.g., '/goal/:uuid').
+   * We need the actual URL with substituted values (e.g., '/goal/89e9a810-...').
+   * Calculate this by stripping req.path from req.originalUrl.
+   */
   getBaseUrl(req: express.Request): string {
+    const originalUrl = req.originalUrl
+    const path = req.path
+
+    if (path && originalUrl.endsWith(path)) {
+      return originalUrl.slice(0, -path.length)
+    }
+
     return req.baseUrl
   }
 

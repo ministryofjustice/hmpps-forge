@@ -260,9 +260,26 @@ describe('ExpressFrameworkAdapter', () => {
   })
 
   describe('getBaseUrl()', () => {
-    it('should return baseUrl from Express request', () => {
+    it('should strip path from originalUrl to get resolved base URL', () => {
       // Arrange
       const mockReq = {
+        originalUrl: '/forms/sentence-plan/v1.0/oasys/goal/89e9a810-8bc6-4e42-831f-f0d3be29cac2/create-goal',
+        path: '/create-goal',
+        baseUrl: '/forms/sentence-plan/v1.0/oasys/goal/:uuid',
+      } as express.Request
+
+      // Act
+      const result = adapter.getBaseUrl(mockReq)
+
+      // Assert
+      expect(result).toBe('/forms/sentence-plan/v1.0/oasys/goal/89e9a810-8bc6-4e42-831f-f0d3be29cac2')
+    })
+
+    it('should handle simple paths without route params', () => {
+      // Arrange
+      const mockReq = {
+        originalUrl: '/forms/my-journey/step-one',
+        path: '/step-one',
         baseUrl: '/forms/my-journey',
       } as express.Request
 
@@ -273,17 +290,34 @@ describe('ExpressFrameworkAdapter', () => {
       expect(result).toBe('/forms/my-journey')
     })
 
-    it('should return empty string when baseUrl is empty', () => {
+    it('should fall back to baseUrl when path does not match originalUrl suffix', () => {
       // Arrange
       const mockReq = {
-        baseUrl: '',
+        originalUrl: '/forms/my-journey',
+        path: '/different-path',
+        baseUrl: '/forms/my-journey',
       } as express.Request
 
       // Act
       const result = adapter.getBaseUrl(mockReq)
 
       // Assert
-      expect(result).toBe('')
+      expect(result).toBe('/forms/my-journey')
+    })
+
+    it('should fall back to baseUrl when path is empty', () => {
+      // Arrange
+      const mockReq = {
+        originalUrl: '/forms/my-journey',
+        path: '',
+        baseUrl: '/forms/my-journey',
+      } as express.Request
+
+      // Act
+      const result = adapter.getBaseUrl(mockReq)
+
+      // Assert
+      expect(result).toBe('/forms/my-journey')
     })
   })
 
