@@ -4,7 +4,6 @@ import {
   HybridThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
-  CapturedEffect,
   MetadataComputationDependencies,
 } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
@@ -14,25 +13,21 @@ import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluation
  */
 export interface LoadTransitionResult {
   /**
-   * Captured effects to be committed by LifecycleCoordinator
-   * Effects are captured with their evaluated arguments, deferred for commit
+   * Whether the transition executed successfully
    */
-  effects: CapturedEffect[]
+  executed: boolean
 }
 
 /**
  * Handler for Load Transition nodes
  *
- * Evaluates onLoad transitions by capturing effects and returning them
- * for LifecycleCoordinator to commit. Effects are functions that typically
- * load external data into context.data.
+ * Evaluates onLoad transitions by executing effects immediately.
+ * Effects are functions that typically load external data into context.data.
  *
  * ## Execution Pattern
- * 1. Capture all effects (invoke EffectHandler to get CapturedEffect[])
- * 2. Return captured effects for LifecycleCoordinator to commit
- *
- * LifecycleCoordinator commits LOAD effects immediately after evaluation
- * to ensure data is available for downstream nodes.
+ * 1. Push @transitionType: 'load' onto scope for effect execution
+ * 2. Invoke each effect sequentially (effects execute immediately)
+ * 3. Pop scope and return success indicator
  *
  * ## Wiring Pattern
  * Effects are wired sequentially in the dependency graph:
@@ -40,8 +35,8 @@ export interface LoadTransitionResult {
  * - Each effect must complete before the next begins
  * - Last effect wires to transition with DATA_FLOW edge
  *
- * ## Return Value
- * Returns LoadTransitionResult containing captured effects.
+ * The @transitionType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class LoadTransitionHandler implements HybridThunkHandler {
   isAsync = true
@@ -70,16 +65,28 @@ export default class LoadTransitionHandler implements HybridThunkHandler {
     const effects = this.node.properties.effects as FunctionASTNode[]
 
     if (!Array.isArray(effects) || effects.length === 0) {
-      return { value: { effects: [] } }
+      return { value: { executed: true } }
     }
 
-    // Capture effects synchronously
-    const capturedEffects = effects
-      .map(effect => invoker.invokeSync<CapturedEffect>(effect.id, context))
-      .filter(result => !result.error && result.value)
-      .map(result => result.value!)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'load' })
 
-    return { value: { effects: capturedEffects } }
+    // Execute effects sequentially (order matters)
+    for (const effect of effects) {
+      const result = invoker.invokeSync(effect.id, context)
+
+      if (result.error) {
+        // Fail-fast: stop on first error, but still pop scope
+        context.scope.pop()
+
+        return { error: result.error }
+      }
+    }
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    return { value: { executed: true } }
   }
 
   async evaluate(
@@ -89,14 +96,28 @@ export default class LoadTransitionHandler implements HybridThunkHandler {
     const effects = this.node.properties.effects as FunctionASTNode[]
 
     if (!Array.isArray(effects) || effects.length === 0) {
-      return { value: { effects: [] } }
+      return { value: { executed: true } }
     }
 
-    // Capture effects (invoke EffectHandler for each)
-    const results = await Promise.all(effects.map(effect => invoker.invoke<CapturedEffect>(effect.id, context)))
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'load' })
 
-    const capturedEffects = results.filter(result => !result.error && result.value).map(result => result.value!)
+    // Execute effects sequentially (order matters)
+    for (const effect of effects) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await invoker.invoke(effect.id, context)
 
-    return { value: { effects: capturedEffects } }
+      if (result.error) {
+        // Fail-fast: stop on first error, but still pop scope
+        context.scope.pop()
+
+        return { error: result.error }
+      }
+    }
+
+    // Pop scope after effects are done
+    context.scope.pop()
+
+    return { value: { executed: true } }
   }
 }

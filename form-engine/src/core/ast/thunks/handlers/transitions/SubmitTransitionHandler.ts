@@ -4,8 +4,8 @@ import {
   HybridThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
-  CapturedEffect,
   MetadataComputationDependencies,
+  ThunkError,
 } from '@form-engine/core/ast/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
@@ -39,12 +39,6 @@ export interface SubmitTransitionResult {
    * Navigation target (from next expressions)
    */
   next?: string
-
-  /**
-   * Captured effects to be committed after interpretation validates the request
-   * Effects are captured with their evaluated arguments, deferred for later execution
-   */
-  pendingEffects?: CapturedEffect[]
 }
 
 /**
@@ -53,26 +47,35 @@ export interface SubmitTransitionResult {
  * Evaluates onSubmission transitions by:
  * 1. Checking when/guards predicates
  * 2. Running validation if validate=true
- * 3. Executing appropriate branch (onAlways, onValid, or onInvalid)
- * 4. Evaluating next expressions for navigation
+ * 3. Pushing @transitionType: 'submit' onto scope for effect execution
+ * 4. Executing effects from appropriate branch (effects run immediately)
+ * 5. Evaluating next expressions for navigation (AFTER effects have run)
+ *
+ * ## Key Design: Effects Execute Before Next
+ * Effects are executed BEFORE next expressions are evaluated. This ensures
+ * that data set by effects (e.g., goalUuid) is available when evaluating
+ * next expressions that reference that data (e.g., Format('goal/%1', Data('goalUuid'))).
  *
  * ## Wiring Pattern
  * - when → transition (must evaluate before transition)
  * - guards → transition (must evaluate before transition)
  * - validations → transition (if validate=true)
- * - effects are chained sequentially within each branch
- * - next expressions are chained sequentially within each branch
+ * - effects are executed sequentially within each branch
+ * - next expressions are evaluated after effects complete
  *
  * ## Validation Logic
  * If validate=true:
  * - Evaluates all validation nodes attached to parent step
  * - If all validations pass: executes onValid branch
  * - If any validation fails: executes onInvalid branch
- * - Always executes onAlways branch
+ * - Always executes onAlways branch effects first
  *
  * If validate=false:
  * - Skips validation
  * - Executes onAlways branch
+ *
+ * The @transitionType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class SubmitTransitionHandler implements HybridThunkHandler {
   isAsync = true
@@ -184,33 +187,58 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
       isValid = this.evaluateValidationsSync(context, invoker)
     }
 
-    // Collect effects and next from appropriate branch (capture effects without executing)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'submit' })
+
+    // Execute effects and evaluate next from appropriate branch
     let next: string | undefined
-    const pendingEffects: CapturedEffect[] = []
 
     if (validate === true) {
-      // Validating transition
-      const onAlwaysEffects = this.captureEffectsSync(this.node.properties.onAlways?.effects, context, invoker)
-      pendingEffects.push(...onAlwaysEffects)
+      // Execute onAlways effects first
+      const alwaysError = this.executeEffectsSync(this.node.properties.onAlways?.effects, context, invoker)
+
+      if (alwaysError) {
+        context.scope.pop()
+
+        return { error: alwaysError }
+      }
 
       if (isValid) {
-        const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onValid, context, invoker)
+        const result = this.executeBranchSync(this.node.properties.onValid, context, invoker)
 
-        pendingEffects.push(...effects)
-        next = branchNext
+        if (result.error) {
+          context.scope.pop()
+
+          return { error: result.error }
+        }
+
+        next = result.next
       } else {
-        const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onInvalid, context, invoker)
+        const result = this.executeBranchSync(this.node.properties.onInvalid, context, invoker)
 
-        pendingEffects.push(...effects)
-        next = branchNext
+        if (result.error) {
+          context.scope.pop()
+
+          return { error: result.error }
+        }
+
+        next = result.next
       }
     } else {
       // Skip validation transition
-      const { effects, next: branchNext } = this.collectBranchSync(this.node.properties.onAlways, context, invoker)
+      const result = this.executeBranchSync(this.node.properties.onAlways, context, invoker)
 
-      pendingEffects.push(...effects)
-      next = branchNext
+      if (result.error) {
+        context.scope.pop()
+
+        return { error: result.error }
+      }
+
+      next = result.next
     }
+
+    // Pop scope after effects are done
+    context.scope.pop()
 
     return {
       value: {
@@ -218,7 +246,6 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
         validated: validate === true,
         isValid,
         next,
-        pendingEffects: pendingEffects.length > 0 ? pendingEffects : undefined,
       },
     }
   }
@@ -259,33 +286,58 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
       isValid = await this.evaluateValidations(context, invoker)
     }
 
-    // Collect effects and next from appropriate branch (capture effects without executing)
+    // Push transition type onto scope for effect execution
+    context.scope.push({ '@transitionType': 'submit' })
+
+    // Execute effects and evaluate next from appropriate branch
     let next: string | undefined
-    const pendingEffects: CapturedEffect[] = []
 
     if (validate === true) {
-      // Validating transition
-      const onAlwaysEffects = await this.captureEffects(this.node.properties.onAlways?.effects, context, invoker)
-      pendingEffects.push(...onAlwaysEffects)
+      // Execute onAlways effects first
+      const alwaysError = await this.executeEffects(this.node.properties.onAlways?.effects, context, invoker)
+
+      if (alwaysError) {
+        context.scope.pop()
+
+        return { error: alwaysError }
+      }
 
       if (isValid) {
-        const { effects, next: branchNext } = await this.collectBranch(this.node.properties.onValid, context, invoker)
+        const result = await this.executeBranch(this.node.properties.onValid, context, invoker)
 
-        pendingEffects.push(...effects)
-        next = branchNext
+        if (result.error) {
+          context.scope.pop()
+
+          return { error: result.error }
+        }
+
+        next = result.next
       } else {
-        const { effects, next: branchNext } = await this.collectBranch(this.node.properties.onInvalid, context, invoker)
+        const result = await this.executeBranch(this.node.properties.onInvalid, context, invoker)
 
-        pendingEffects.push(...effects)
-        next = branchNext
+        if (result.error) {
+          context.scope.pop()
+
+          return { error: result.error }
+        }
+
+        next = result.next
       }
     } else {
       // Skip validation transition
-      const { effects, next: branchNext } = await this.collectBranch(this.node.properties.onAlways, context, invoker)
+      const result = await this.executeBranch(this.node.properties.onAlways, context, invoker)
 
-      pendingEffects.push(...effects)
-      next = branchNext
+      if (result.error) {
+        context.scope.pop()
+
+        return { error: result.error }
+      }
+
+      next = result.next
     }
+
+    // Pop scope after effects are done
+    context.scope.pop()
 
     return {
       value: {
@@ -293,7 +345,6 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
         validated: validate === true,
         isValid,
         next,
-        pendingEffects: pendingEffects.length > 0 ? pendingEffects : undefined,
       },
     }
   }
@@ -451,47 +502,59 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
   }
 
   /**
-   * Capture effects by invoking their handlers (returns CapturedEffect, not executed)
-   *
-   * Invokes each effect node's EffectHandler which returns a CapturedEffect
-   * containing the effect name and already-evaluated arguments. The effect
-   * function itself is NOT executed - only captured for later commit.
+   * Execute effects immediately
+   * Returns error if any effect fails
    */
-  private async captureEffects(
+  private async executeEffects(
     effects: unknown[] | undefined,
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<CapturedEffect[]> {
+  ): Promise<ThunkError | undefined> {
     if (!effects) {
-      return []
+      return undefined
     }
 
     const effectNodes = effects.filter(isASTNode)
 
-    const results = await Promise.all(
-      effectNodes.map(effectNode => invoker.invoke<CapturedEffect>(effectNode.id, context)),
-    )
+    // Execute effects sequentially (order matters)
+    for (const effectNode of effectNodes) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await invoker.invoke(effectNode.id, context)
 
-    return results.filter(result => !result.error && result.value).map(result => result.value!)
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 
   /**
-   * Collect effects and evaluate next from a branch
-   * Returns captured effects (deferred) and the navigation target
+   * Execute effects and evaluate next from a branch
+   *
+   * IMPORTANT: Effects are executed FIRST, then next is evaluated.
+   * This ensures data set by effects is available when evaluating next expressions.
    */
-  private async collectBranch(
+  private async executeBranch(
     branch: { effects?: unknown[]; next?: unknown[] } | undefined,
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<{ effects: CapturedEffect[]; next: string | undefined }> {
+  ): Promise<{ error?: ThunkError; next: string | undefined }> {
     if (!branch) {
-      return { effects: [], next: undefined }
+      return { next: undefined }
     }
 
-    const effects = await this.captureEffects(branch.effects, context, invoker)
+    // Execute effects FIRST
+    const error = await this.executeEffects(branch.effects, context, invoker)
+
+    if (error) {
+      return { error, next: undefined }
+    }
+
+    // THEN evaluate next (effects have already run, so Data('goalUuid') works)
     const next = branch.next ? await this.evaluateNext(branch.next, context, invoker) : undefined
 
-    return { effects, next }
+    return { next }
   }
 
   /**
@@ -585,35 +648,49 @@ export default class SubmitTransitionHandler implements HybridThunkHandler {
     }
   }
 
-  private captureEffectsSync(
+  private executeEffectsSync(
     effects: unknown[] | undefined,
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): CapturedEffect[] {
+  ): ThunkError | undefined {
     if (!effects) {
-      return []
+      return undefined
     }
 
-    return effects
-      .filter(isASTNode)
-      .map(effectNode => invoker.invokeSync<CapturedEffect>(effectNode.id, context))
-      .filter(result => !result.error && result.value)
-      .map(result => result.value!)
+    const effectNodes = effects.filter(isASTNode)
+
+    // Execute effects sequentially (order matters)
+    for (const effectNode of effectNodes) {
+      const result = invoker.invokeSync(effectNode.id, context)
+
+      if (result.error) {
+        return result.error
+      }
+    }
+
+    return undefined
   }
 
-  private collectBranchSync(
+  private executeBranchSync(
     branch: { effects?: unknown[]; next?: unknown[] } | undefined,
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): { effects: CapturedEffect[]; next: string | undefined } {
+  ): { error?: ThunkError; next: string | undefined } {
     if (!branch) {
-      return { effects: [], next: undefined }
+      return { next: undefined }
     }
 
-    const effects = this.captureEffectsSync(branch.effects, context, invoker)
+    // Execute effects FIRST
+    const error = this.executeEffectsSync(branch.effects, context, invoker)
+
+    if (error) {
+      return { error, next: undefined }
+    }
+
+    // THEN evaluate next
     const next = branch.next ? this.evaluateNextSync(branch.next, context, invoker) : undefined
 
-    return { effects, next }
+    return { next }
   }
 
   private evaluateNextSync(

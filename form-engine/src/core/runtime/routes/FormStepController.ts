@@ -4,7 +4,6 @@ import { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationF
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
 import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { commitPendingEffects } from '@form-engine/core/ast/thunks/handlers/utils/evaluation'
 import { LoadTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/LoadTransitionHandler'
 import { AccessTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/AccessTransitionHandler'
 import { SubmitTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/SubmitTransitionHandler'
@@ -193,7 +192,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /**
-   * Run onLoad transitions for an ancestor, committing effects after each
+   * Run onLoad transitions for an ancestor
+   * Effects are executed immediately during transition evaluation
    */
   private async runLoadTransitions(
     invoker: ThunkInvocationAdapter,
@@ -204,17 +204,13 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     for (const transition of transitions) {
       // eslint-disable-next-line no-await-in-loop
-      const result = await invoker.invoke<LoadTransitionResult>(transition.id, context)
-
-      if (!result.error && result.value) {
-        // eslint-disable-next-line no-await-in-loop
-        await commitPendingEffects(result.value.effects, context, 'load')
-      }
+      await invoker.invoke<LoadTransitionResult>(transition.id, context)
     }
   }
 
   /**
    * Run onAccess transitions with first-match semantics (first failure)
+   * Effects are executed immediately during transition evaluation
    */
   private async runAccessTransitions(
     invoker: ThunkInvocationAdapter,
@@ -229,9 +225,6 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
       // AccessTransitionResult.passed: false if when predicate matched (first-match semantics)
       if (!result.error && result.value?.passed === false) {
-        // eslint-disable-next-line no-await-in-loop
-        await commitPendingEffects(result.value.pendingEffects ?? [], context, 'access')
-
         return result.value
       }
     }
@@ -241,6 +234,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
   /**
    * Run onAction transitions with first-match semantics
+   * Effects are executed immediately during transition evaluation
    */
   private async runActionTransitions(
     invoker: ThunkInvocationAdapter,
@@ -255,9 +249,6 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
       // ActionTransitionResult.executed: true if when predicate matched (first-match semantics)
       if (!result.error && result.value?.executed) {
-        // eslint-disable-next-line no-await-in-loop
-        await commitPendingEffects(result.value.pendingEffects ?? [], context, 'action')
-
         return result.value
       }
     }
@@ -267,6 +258,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
   /**
    * Run onSubmission transitions with first-match semantics
+   * Effects are executed immediately during transition evaluation
    */
   private async runSubmitTransitions(
     invoker: ThunkInvocationAdapter,
@@ -280,9 +272,6 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       const result = await invoker.invoke<SubmitTransitionResult>(transition.id, context)
 
       if (!result.error && result.value?.executed) {
-        // eslint-disable-next-line no-await-in-loop
-        await commitPendingEffects(result.value.pendingEffects ?? [], context, 'submit')
-
         return result.value
       }
     }

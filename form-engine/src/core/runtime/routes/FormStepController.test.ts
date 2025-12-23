@@ -9,8 +9,7 @@ import {
   LoadTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
-import { CompileAstNodeId, FormInstanceDependencies, NodeId, AstNodeId } from '@form-engine/core/types/engine.type'
-import { CapturedEffect } from '@form-engine/core/ast/thunks/types'
+import { FormInstanceDependencies, NodeId, AstNodeId } from '@form-engine/core/types/engine.type'
 import { LoadTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/LoadTransitionHandler'
 import { AccessTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/AccessTransitionHandler'
 import { SubmitTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/SubmitTransitionHandler'
@@ -34,11 +33,6 @@ jest.mock('@form-engine/core/runtime/rendering/RenderContextFactory', () => {
   }
 })
 
-const mockCommitPendingEffects = jest.fn().mockResolvedValue([])
-jest.mock('@form-engine/core/ast/thunks/handlers/utils/evaluation', () => ({
-  commitPendingEffects: (...args: unknown[]) => mockCommitPendingEffects(...args),
-}))
-
 describe('FormStepController', () => {
   let mockCompiledForm: CompiledForm[number]
   let mockDependencies: jest.Mocked<FormInstanceDependencies>
@@ -52,7 +46,6 @@ describe('FormStepController', () => {
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    mockCommitPendingEffects.mockClear()
     mockRenderContextFactoryBuild.mockClear()
 
     mockCurrentStepPath = '/journey/step-1'
@@ -188,7 +181,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const loadResult: LoadTransitionResult = { effects: [] }
+        const loadResult: LoadTransitionResult = { executed: true }
         mockEvaluator.invoke.mockResolvedValue({
           value: loadResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -326,7 +319,7 @@ describe('FormStepController', () => {
           invocationOrder.push(nodeId)
 
           if (nodeId === journeyLoadTransition.id || nodeId === stepLoadTransition.id) {
-            return { value: { effects: [] }, metadata: { source: 'test', timestamp: Date.now() } }
+            return { value: { executed: true }, metadata: { source: 'test', timestamp: Date.now() } }
           }
 
           return { value: { passed: true }, metadata: { source: 'test', timestamp: Date.now() } }
@@ -502,7 +495,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const actionResult: ActionTransitionResult = { executed: true, pendingEffects: [] }
+        const actionResult: ActionTransitionResult = { executed: true }
         mockEvaluator.invoke.mockResolvedValue({
           value: actionResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -539,7 +532,7 @@ describe('FormStepController', () => {
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
           if (nodeId === action1.id) {
             return {
-              value: { executed: true, pendingEffects: [] },
+              value: { executed: true },
               metadata: { source: 'test', timestamp: Date.now() },
             }
           }
@@ -945,7 +938,7 @@ describe('FormStepController', () => {
   })
 
   describe('effect handling', () => {
-    it('should commit load transition effects', async () => {
+    it('should invoke load transitions which execute effects internally', async () => {
       // Arrange
       const loadTransition = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
       const step = createStepWithTransitions({ onLoad: [loadTransition] })
@@ -953,12 +946,7 @@ describe('FormStepController', () => {
 
       setupAncestorChain([step])
 
-      const capturedEffect = {
-        effectName: 'loadData',
-        args: ['arg1'],
-        nodeId: 'compile_ast:100' as CompileAstNodeId,
-      }
-      const loadResult: LoadTransitionResult = { effects: [capturedEffect] }
+      const loadResult: LoadTransitionResult = { executed: true }
 
       mockEvaluator.invoke.mockResolvedValue({
         value: loadResult,
@@ -980,12 +968,11 @@ describe('FormStepController', () => {
       // Act
       await controller.get(mockRequest, mockReq, mockRes)
 
-      // Assert - Load transition was invoked and effects committed
+      // Assert - Load transition was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(loadTransition.id, mockContext)
-      expect(mockCommitPendingEffects).toHaveBeenCalledWith([capturedEffect], mockContext, 'load')
     })
 
-    it('should commit access transition effects when guards pass', async () => {
+    it('should invoke access transitions which execute effects internally', async () => {
       // Arrange
       const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
       const step = createStepWithTransitions({ onAccess: [accessTransition] })
@@ -993,12 +980,7 @@ describe('FormStepController', () => {
 
       setupAncestorChain([step])
 
-      const capturedEffect: CapturedEffect = {
-        effectName: 'logAccess',
-        args: [],
-        nodeId: 'compile_ast:100' as CompileAstNodeId,
-      }
-      const accessResult: AccessTransitionResult = { passed: true, pendingEffects: [capturedEffect] }
+      const accessResult: AccessTransitionResult = { passed: true }
 
       mockEvaluator.invoke.mockResolvedValue({
         value: accessResult,
@@ -1020,51 +1002,11 @@ describe('FormStepController', () => {
       // Act
       await controller.get(mockRequest, mockReq, mockRes)
 
-      // Assert - Access transition was invoked and effects committed
+      // Assert - Access transition was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessTransition.id, mockContext)
     })
 
-    it('should commit access transition effects when guards fail with redirect', async () => {
-      // Arrange
-      const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const step = createStepWithTransitions({ onAccess: [accessTransition] })
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      const capturedEffect: CapturedEffect = {
-        effectName: 'logDenied',
-        args: [],
-        nodeId: 'compile_ast:100' as CompileAstNodeId,
-      }
-      const accessResult: AccessTransitionResult = {
-        passed: false,
-        redirect: 'login',
-        pendingEffects: [capturedEffect],
-      }
-
-      mockEvaluator.invoke.mockResolvedValue({
-        value: accessResult,
-        metadata: { source: 'test', timestamp: Date.now() },
-      })
-
-      const controller = new FormStepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-      )
-
-      // Act
-      await controller.get(mockRequest, mockReq, mockRes)
-
-      // Assert - Effects committed before redirect
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessTransition.id, mockContext)
-      expect(mockCommitPendingEffects).toHaveBeenCalledWith([capturedEffect], mockContext, 'access')
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
-    })
-
-    it('should commit action transition effects', async () => {
+    it('should invoke action transitions which execute effects internally', async () => {
       // Arrange
       const actionTransition = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
       const step = createStepWithTransitions({ onAction: [actionTransition] })
@@ -1072,12 +1014,7 @@ describe('FormStepController', () => {
 
       setupAncestorChain([step])
 
-      const capturedEffect = {
-        effectName: 'setAnswer',
-        args: ['fieldCode', 'value'],
-        nodeId: 'compile_ast:100' as CompileAstNodeId,
-      }
-      const actionResult: ActionTransitionResult = { executed: true, pendingEffects: [capturedEffect] }
+      const actionResult: ActionTransitionResult = { executed: true }
 
       mockEvaluator.invoke.mockResolvedValue({
         value: actionResult,
@@ -1100,12 +1037,11 @@ describe('FormStepController', () => {
       // Act
       await controller.post(mockRequest, mockReq, mockRes)
 
-      // Assert - Action effects committed
+      // Assert - Action transition was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(actionTransition.id, mockContext)
-      expect(mockCommitPendingEffects).toHaveBeenCalledWith([capturedEffect], mockContext, 'action')
     })
 
-    it('should commit submit transition effects', async () => {
+    it('should invoke submit transitions which execute effects internally', async () => {
       // Arrange
       const submitTransition = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
       const step = createStepWithTransitions({ onSubmission: [submitTransition] })
@@ -1113,16 +1049,10 @@ describe('FormStepController', () => {
 
       setupAncestorChain([step])
 
-      const capturedEffect: CapturedEffect = {
-        effectName: 'saveData',
-        args: [],
-        nodeId: 'compile_ast:100' as CompileAstNodeId,
-      }
       const submitResult: SubmitTransitionResult = {
         executed: true,
         validated: false,
         next: 'next',
-        pendingEffects: [capturedEffect],
       }
 
       mockEvaluator.invoke.mockResolvedValue({
@@ -1141,9 +1071,8 @@ describe('FormStepController', () => {
       // Act
       await controller.post(mockRequest, mockReq, mockRes)
 
-      // Assert - Submit effects committed
+      // Assert - Submit transition was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(submitTransition.id, mockContext)
-      expect(mockCommitPendingEffects).toHaveBeenCalledWith([capturedEffect], mockContext, 'submit')
     })
   })
 
@@ -1184,7 +1113,7 @@ describe('FormStepController', () => {
       setupAncestorChain([step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { effects: [] },
+        value: { executed: true },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -1224,7 +1153,7 @@ describe('FormStepController', () => {
       setupAncestorChain([outerJourney, innerJourney, step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { effects: [], passed: true },
+        value: { executed: true, passed: true },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
