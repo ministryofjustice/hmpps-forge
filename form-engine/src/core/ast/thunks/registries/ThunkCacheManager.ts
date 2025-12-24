@@ -14,8 +14,8 @@ import DependencyGraph from '@form-engine/core/ast/dependencies/DependencyGraph'
  * When a node is invalidated during evaluation, its version increments,
  * signaling to the evaluator that a retry is needed.
  *
- * Note: Only pseudo nodes are cached. AST nodes have <1% cache hit rate
- * and the overhead isn't worth it. I regret spending time building cache logic.
+ * All nodes are cached. Early evaluation phases (answer pseudo nodes, iterator
+ * expansion) benefit from cache hits during the full evaluation pass.
  */
 export default class ThunkCacheManager {
   /**
@@ -52,24 +52,12 @@ export default class ThunkCacheManager {
   }
 
   /**
-   * Check if a node ID is for a pseudo node (worth caching)
-   */
-  private isPseudoNode(nodeId: NodeId): boolean {
-    return nodeId.startsWith('compile_pseudo:') || nodeId.startsWith('runtime_pseudo:')
-  }
-
-  /**
    * Get cached result with cached flag added to metadata
    *
    * Returns undefined if not in cache, otherwise returns the result
    * with metadata.cached set to true.
    */
   getWithCachedFlag<T>(nodeId: NodeId): ThunkResult<T> | undefined {
-    // Skip cache for non-pseudo nodes
-    if (!this.isPseudoNode(nodeId)) {
-      return undefined
-    }
-
     if (!this.cache.has(nodeId)) {
       return undefined
     }
@@ -102,11 +90,6 @@ export default class ThunkCacheManager {
    * Store result in cache
    */
   set<T>(nodeId: NodeId, result: ThunkResult<T>): void {
-    // Skip cache for non-pseudo nodes
-    if (!this.isPseudoNode(nodeId)) {
-      return
-    }
-
     this.cache.set(nodeId, result)
   }
 

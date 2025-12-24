@@ -37,11 +37,11 @@ export default class BlockHandler implements HybridThunkHandler {
     // Check if this block is on the current step
     const isOnCurrentStep = deps.metadataRegistry.get(this.nodeId, 'isDescendantOfStep', false)
 
-    // For blocks on current step: check ALL properties
+    // For blocks on current step: check ALL properties except formatters (which aren't evaluated during rendering)
     // For blocks on other steps: only check validation properties (code, validate, dependent)
     const validationProps = ['code', 'validate', 'dependent']
     const propertiesToCheck = isOnCurrentStep
-      ? Object.entries(this.node.properties)
+      ? Object.entries(this.node.properties).filter(([key]) => key !== 'formatters')
       : Object.entries(this.node.properties).filter(([key]) => validationProps.includes(key))
 
     const asyncProperties: string[] = []
@@ -139,6 +139,12 @@ export default class BlockHandler implements HybridThunkHandler {
         return
       }
 
+      // Skip formatters - they are applied during submission, not rendering
+      if (key === 'formatters') {
+        result[key] = value
+        return
+      }
+
       result[key] = this.evaluatePropertyValueSync(value, context, invoker)
     })
 
@@ -212,6 +218,12 @@ export default class BlockHandler implements HybridThunkHandler {
         // Skip validation evaluation if dependent is false
         if (key === 'validate' && !isDependentActive) {
           result[key] = []
+          return
+        }
+
+        // Skip formatters - they are applied during submission, not rendering
+        if (key === 'formatters') {
+          result[key] = value
           return
         }
 
