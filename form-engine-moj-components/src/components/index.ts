@@ -1,5 +1,6 @@
 import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
 
+import { mojAlert } from './alert/mojAlert'
 import { mojCard } from './card/mojCard'
 import { mojCardGroup } from './card-group/mojCardGroup'
 import { mojDatePicker } from './date-picker/mojDatePicker'
@@ -7,6 +8,7 @@ import { mojSideNavigation } from './side-navigation/mojSideNavigation'
 import { mojSubNavigation } from './sub-navigation/mojSubNavigation'
 
 // Re-export types for consumers
+export type { MOJAlert, MOJAlertVariant, MOJAlertHeadingTag } from './alert/mojAlert'
 export type { MOJCard, MOJCardHeading, MOJCardDescription } from './card/mojCard'
 export type {
   MOJCardGroup,
@@ -30,6 +32,7 @@ export type { MOJSubNavigation, MOJSubNavigationItem } from './sub-navigation/mo
 
 /** All MOJ component definitions */
 export const mojComponents: ComponentRegistryEntry<any>[] = [
+  mojAlert,
   mojCard,
   mojCardGroup,
   mojDatePicker,

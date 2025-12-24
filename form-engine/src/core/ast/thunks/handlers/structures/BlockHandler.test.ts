@@ -1,5 +1,5 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType, LogicType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, LogicType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import {
   createMockContext,
@@ -381,6 +381,30 @@ describe('BlockHandler', () => {
       expect((result.value as FieldBlockASTNode).properties.validate).toEqual([
         { passed: false, message: 'Select the type of food business' },
       ])
+    })
+
+    it('should pass formatters through without evaluating AST nodes', async () => {
+      // Arrange
+      const formatterNode = ASTTestFactory.expression(FunctionType.TRANSFORMER).build()
+      const block = ASTTestFactory.block('text-input', 'field')
+        .withCode('email')
+        .withLabel('Email address')
+        .withProperty('formatters', [formatterNode])
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockNodes: new Map([[formatterNode.id, formatterNode]]),
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      // Formatters should be passed through as-is, not evaluated
+      expect((result.value as FieldBlockASTNode).properties.formatters).toEqual([formatterNode])
+      // The formatter node should NOT have been invoked
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(formatterNode.id, expect.anything(), expect.anything())
     })
   })
 })
