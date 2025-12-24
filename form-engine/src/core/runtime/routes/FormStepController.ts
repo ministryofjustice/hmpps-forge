@@ -1,5 +1,5 @@
 import createHttpError, { Forbidden } from 'http-errors'
-import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
+import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationFactory'
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
 import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/ast/thunks/types'
@@ -11,6 +11,7 @@ import { ActionTransitionResult } from '@form-engine/core/ast/thunks/handlers/tr
 import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,
+  ExpressionASTNode,
   LoadTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
@@ -20,6 +21,7 @@ import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import { JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
+import { ExpressionType } from '@form-engine/form/types/enums'
 import { StepController, StepRequest } from './types'
 
 /**
@@ -124,6 +126,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     // TODO: Add 'reachability' check
+
+    await this.expandIteratorsForStep(evaluator, context)
 
     await this.evaluateAnswerPseudoNodes(evaluator, context)
 
@@ -277,6 +281,85 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     return { executed: false, validated: false }
+  }
+
+  /**
+   * Expand iterators on the current step to create runtime field nodes.
+   *
+   * This must run before evaluateAnswerPseudoNodes so that dynamic fields
+   * (created by Iterator.Map) have their ANSWER_LOCAL pseudo
+   * nodes registered before answer processing.
+   *
+   * Algorithm:
+   * 1. Find all ITERATE nodes marked isDescendantOfStep
+   * 2. For each, walk up to find the topmost ancestor under the step
+   * 3. Evaluate that ancestor (cascades down with proper scope)
+   * 4. Deduplicate to avoid evaluating shared ancestors twice
+   */
+  private async expandIteratorsForStep(
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): Promise<void> {
+    // Find all ITERATE nodes on the current step
+    const iterateNodes = context.metadataRegistry
+      .findNodesWhere('isDescendantOfStep', true)
+      .map(nodeId => context.nodeRegistry.get(nodeId))
+      .filter((node: ExpressionASTNode) => node.expressionType === ExpressionType.ITERATE)
+
+    if (iterateNodes.length === 0) {
+      return
+    }
+
+    // Find topmost ancestors under the step for each iterator
+    const topmostAncestorIds = new Set<NodeId>()
+
+    iterateNodes.forEach(iterateNodeId => {
+      const topmostId = this.findTopmostAncestorUnderStep(iterateNodeId.id, context)
+
+      if (topmostId) {
+        topmostAncestorIds.add(topmostId)
+      }
+    })
+
+    // Evaluate each unique topmost ancestor (cascades down to iterators)
+    for (const ancestorId of topmostAncestorIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await invoker.invoke(ancestorId, context)
+    }
+  }
+
+  /**
+   * Find the topmost ancestor of a node that is still under the current step.
+   *
+   * Walks up the parent chain via attachedToParentNode metadata until finding
+   * a node whose parent is the step itself (marked isCurrentStep).
+   */
+  private findTopmostAncestorUnderStep(nodeId: NodeId, context: ThunkEvaluationContext): NodeId | undefined {
+    let currentId: NodeId | undefined = nodeId
+    let topmostId: NodeId | undefined
+
+    while (currentId) {
+      const parentId = context.metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
+
+      if (!parentId) {
+        break
+      }
+
+      // Check if parent is the step itself
+      const parentIsStep = context.metadataRegistry.get(parentId, 'isCurrentStep', false)
+
+      if (parentIsStep) {
+        // Current node is directly under the step - this is the topmost
+        topmostId = currentId
+        break
+      }
+
+      // Keep walking up
+      topmostId = currentId
+      currentId = parentId
+    }
+
+    return topmostId
   }
 
   /**

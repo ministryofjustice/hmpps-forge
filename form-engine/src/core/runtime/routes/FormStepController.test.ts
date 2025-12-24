@@ -81,6 +81,7 @@ describe('FormStepController', () => {
     mockContext = {
       metadataRegistry: {
         get: jest.fn(),
+        findNodesWhere: jest.fn().mockReturnValue([]),
       },
       nodeRegistry: {
         get: jest.fn(),
