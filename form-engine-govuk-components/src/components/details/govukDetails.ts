@@ -1,58 +1,28 @@
 import type nunjucks from 'nunjucks'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
+  BasicBlockProps,
   BlockDefinition,
   ConditionalBoolean,
   ConditionalString,
-  RenderedBlock,
+  EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
-import { StructureType } from '@form-engine/form/types/enums'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Details component for expandable/collapsible content.
- * Renders as a `<details>` element with summary and content sections.
+ * Props for the GovUKDetails component.
+ * An expandable/collapsible section following the GOV.UK Design System patterns.
  *
- * Supports three ways to provide content:
- * 1. `text` - Plain text content
- * 2. `html` - HTML string content
- * 3. `content` - Array of child blocks (rendered automatically)
- *
- * @example Simple text content
+ * @see https://design-system.service.gov.uk/components/details/
+ * @example
  * ```typescript
- * block<GovUKDetails>({
- *   variant: 'govukDetails',
+ * GovUKDetails({
  *   summaryText: 'Help with nationality',
- *   text: 'We need to know your nationality...',
- * })
- * ```
- *
- * @example HTML content
- * ```typescript
- * block<GovUKDetails>({
- *   variant: 'govukDetails',
- *   summaryText: 'View example code',
- *   html: '<pre><code>const x = 1;</code></pre>',
- * })
- * ```
- *
- * @example Child blocks content
- * ```typescript
- * block<GovUKDetails>({
- *   variant: 'govukDetails',
- *   summaryText: 'View complete example',
- *   content: [
- *     block<GovUKCodeBlock>({
- *       variant: 'govukCodeBlock',
- *       language: 'typescript',
- *       code: 'const x = 1;',
- *     }),
- *   ],
+ *   text: 'We need to know your nationality so we can work out which elections you can vote in.',
  * })
  * ```
  */
-export interface GovUKDetails extends BlockDefinition {
-  variant: 'govukDetails'
-
+export interface GovUKDetailsProps extends BasicBlockProps {
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
   summaryText?: ConditionalString
 
@@ -82,27 +52,23 @@ export interface GovUKDetails extends BlockDefinition {
 }
 
 /**
- * Runtime representation of the details component after evaluation.
- * Child blocks become RenderedBlock[] with pre-rendered HTML.
+ * GOV.UK Details Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKDetailsProps` type or the `GovUKDetails()` wrapper function instead.
  */
-export interface EvaluatedGovUKDetails {
-  type: typeof StructureType.BLOCK
+export interface GovUKDetails extends BlockDefinition, GovUKDetailsProps {
+  /** Component variant identifier */
   variant: 'govukDetails'
-  summaryText?: string
-  summaryHtml?: string
-  text?: string
-  html?: string
-  content?: RenderedBlock[]
-  open?: boolean
-  id?: string
-  classes?: string
-  attributes?: Record<string, string>
 }
 
 /**
  * Renders the GOV.UK Details component using the official Nunjucks template.
  */
-async function detailsRenderer(block: EvaluatedGovUKDetails, nunjucksEnv: nunjucks.Environment): Promise<string> {
+async function detailsRenderer(
+  block: EvaluatedBlock<GovUKDetails>,
+  nunjucksEnv: nunjucks.Environment,
+): Promise<string> {
   // If content blocks are provided, render them and use as HTML
   let contentHtml: string | undefined
 
@@ -125,3 +91,20 @@ async function detailsRenderer(block: EvaluatedGovUKDetails, nunjucksEnv: nunjuc
 }
 
 export const govukDetails = buildNunjucksComponent<GovUKDetails>('govukDetails', detailsRenderer as any)
+
+/**
+ * Creates a GOV.UK Details expandable/collapsible section.
+ * Renders as a `<details>` element with summary and content sections.
+ *
+ * @see https://design-system.service.gov.uk/components/details/
+ * @example
+ * ```typescript
+ * GovUKDetails({
+ *   summaryText: 'Help with nationality',
+ *   text: 'We need to know your nationality so we can work out which elections you can vote in.',
+ * })
+ * ```
+ */
+export function GovUKDetails(props: GovUKDetailsProps): GovUKDetails {
+  return blockBuilder<GovUKDetails>({ ...props, variant: 'govukDetails' })
+}

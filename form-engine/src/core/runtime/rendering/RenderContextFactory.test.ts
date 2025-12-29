@@ -2,6 +2,9 @@ import { AstNodeId, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
+import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
+import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import RenderContextFactory, { RenderContextOptions } from './RenderContextFactory'
 import { Evaluated, JourneyMetadata, StepMetadata } from './types'
 
@@ -44,18 +47,105 @@ describe('RenderContextFactory', () => {
       } as any,
     }) as any
 
-  const createMockEvaluationResult = (journeyValue: unknown): EvaluationResult => ({
-    context: {
-      global: {
-        answers: { existingAnswer: { current: 'answer-value', mutations: [] } },
-        data: { existingData: 'data-value' },
+  /**
+   * Build parent map from journey structure for metadata registry
+   */
+  const buildParentMapFromJourney = (journey: JourneyASTNode): Record<NodeId, NodeId> => {
+    const parentMap: Record<NodeId, NodeId> = {}
+
+    const traverse = (node: JourneyASTNode, parentId?: NodeId) => {
+      if (parentId) {
+        parentMap[node.id] = parentId
+      }
+
+      node.properties.steps?.forEach(step => {
+        parentMap[step.id] = node.id
+      })
+
+      node.properties.children?.forEach(child => {
+        traverse(child as JourneyASTNode, node.id)
+      })
+    }
+
+    traverse(journey)
+
+    return parentMap
+  }
+
+  /**
+   * Collect all nodes from journey tree to populate cache
+   */
+  const collectNodesFromJourney = (
+    journey: JourneyASTNode,
+  ): Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>> => {
+    const nodes = new Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>>()
+
+    const traverse = (node: JourneyASTNode) => {
+      nodes.set(node.id, node as Evaluated<JourneyASTNode>)
+
+      node.properties.steps?.forEach(step => {
+        nodes.set(step.id, step as Evaluated<StepASTNode>)
+      })
+
+      node.properties.children?.forEach(child => {
+        traverse(child as JourneyASTNode)
+      })
+    }
+
+    traverse(journey)
+
+    return nodes
+  }
+
+  const createMockMetadataRegistry = (parentMap: Record<NodeId, NodeId>): MetadataRegistry => {
+    const registry = new MetadataRegistry()
+
+    Object.entries(parentMap).forEach(([childId, parentId]) => {
+      registry.set(childId as NodeId, 'attachedToParentNode', parentId)
+    })
+
+    return registry
+  }
+
+  const createMockCacheManager = (
+    nodes: Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>>,
+  ): ThunkCacheManager => {
+    const cacheManager = new ThunkCacheManager()
+
+    nodes.forEach((value, nodeId) => {
+      cacheManager.set(nodeId, { value, metadata: {} })
+    })
+
+    return cacheManager
+  }
+
+  const createMockNodeRegistry = (): NodeRegistry => {
+    // Create a mock registry that returns empty arrays for pseudo node lookups
+    return {
+      findByPseudoType: jest.fn().mockReturnValue([]),
+    } as unknown as NodeRegistry
+  }
+
+  const createMockEvaluationResult = (journeyValue: JourneyASTNode): EvaluationResult => {
+    const parentMap = buildParentMapFromJourney(journeyValue)
+    const nodes = collectNodesFromJourney(journeyValue)
+
+    return {
+      context: {
+        global: {
+          answers: { existingAnswer: { current: 'answer-value', mutations: [] } },
+          data: { existingData: 'data-value' },
+        },
+        metadataRegistry: createMockMetadataRegistry(parentMap),
+        cacheManager: createMockCacheManager(nodes),
+        nodeRegistry: createMockNodeRegistry(),
+      } as any,
+      journey: {
+        value: journeyValue,
+        metadata: { source: 'test', timestamp: Date.now() },
       },
-    } as any,
-    journey: {
-      value: journeyValue,
-      metadata: { source: 'test', timestamp: Date.now() },
-    },
-  })
+    }
+  }
 
   const createStoredStep = (path: string, title?: string): StepMetadata => ({
     path,

@@ -2,11 +2,13 @@ import type nunjucks from 'nunjucks'
 
 import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
+  BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
  * Heading configuration for the MOJ Card component.
@@ -40,37 +42,19 @@ export interface MOJCardDescription {
 }
 
 /**
- * MOJ Card component for displaying links on dashboards or home pages.
- *
- * Based on the MOJ Design Patterns card component:
- * https://design-patterns.service.justice.gov.uk/components/card/
- *
- * Cards display a heading with a link and optional description text.
- * The clickable variant makes the entire card a click target using CSS.
+ * Props for the MOJCard component.
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
  *
  * @example
  * ```typescript
- * // Simple form - just strings
- * block<MOJCard>({
- *   variant: 'mojCard',
+ * MOJCard({
  *   heading: 'Search cases',
  *   href: '/cases/search',
  *   description: 'Find and manage case records',
  * })
- *
- * // Full form - with additional options
- * block<MOJCard>({
- *   variant: 'mojCard',
- *   heading: { text: 'Search cases', level: 3, classes: 'custom-heading' },
- *   href: '/cases/search',
- *   description: { html: '<strong>Find</strong> and manage case records' },
- *   clickable: false,
- * })
  * ```
  */
-export interface MOJCard extends BlockDefinition {
-  variant: 'mojCard'
-
+export interface MOJCardProps extends BasicBlockProps {
   /**
    * Card heading - can be a simple string or object with additional options.
    * @example 'Search cases'
@@ -99,6 +83,17 @@ export interface MOJCard extends BlockDefinition {
 }
 
 /**
+ * MOJ Card Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `MOJCardProps` type or the `MOJCard()` wrapper function instead.
+ */
+export interface MOJCard extends BlockDefinition, MOJCardProps {
+  /** Component variant identifier */
+  variant: 'mojCard'
+}
+
+/**
  * Renders an MOJ Card component using Nunjucks template
  */
 async function cardRenderer(block: EvaluatedBlock<MOJCard>, nunjucksEnv: nunjucks.Environment): Promise<string> {
@@ -119,3 +114,21 @@ async function cardRenderer(block: EvaluatedBlock<MOJCard>, nunjucksEnv: nunjuck
 }
 
 export const mojCard = buildNunjucksComponent<MOJCard>('mojCard', cardRenderer)
+
+/**
+ * Creates an MOJ Card block.
+ * A card component for displaying links on dashboards or home pages.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
+ * @example
+ * ```typescript
+ * MOJCard({
+ *   heading: 'Search cases',
+ *   href: '/cases/search',
+ *   description: 'Find and manage case records',
+ * })
+ * ```
+ */
+export function MOJCard(props: MOJCardProps): MOJCard {
+  return blockBuilder<MOJCard>({ ...props, variant: 'mojCard' })
+}

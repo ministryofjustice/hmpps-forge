@@ -55,4 +55,15 @@ export default class ThunkEvaluationError extends ThunkBaseError {
       },
     )
   }
+
+  static incorrectHandler(nodeId: NodeId, handlerName: string): ThunkEvaluationError {
+    return new ThunkEvaluationError(
+      'INCORRECT_HANDLER',
+      nodeId,
+      `invokeSync() called on async handler: ${nodeId} (${handlerName}). Use invoke() instead or convert handler to SyncThunkHandler.`,
+      {
+        Handler: handlerName,
+      },
+    )
+  }
 }

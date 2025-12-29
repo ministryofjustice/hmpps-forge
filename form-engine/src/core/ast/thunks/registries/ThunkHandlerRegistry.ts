@@ -75,6 +75,13 @@ export default class ThunkHandlerRegistry {
   }
 
   /**
+   * Clear all registered handlers
+   */
+  clear(): void {
+    this.handlers.clear()
+  }
+
+  /**
    * Create a shallow copy of this registry
    *
    * Handler references are shared (safe since handlers are immutable),

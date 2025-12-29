@@ -32,7 +32,7 @@ export type {
   GovUKTextInput,
   GovUKRadioInput,
   GovUKCheckboxInput,
-  GovukTextareaInput,
+  GovUKTextareaInput,
   GovUKCharacterCount,
   GovUKDateInputFull,
   GovUKDateInputYearMonth,

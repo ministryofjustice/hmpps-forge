@@ -4,23 +4,28 @@ import {
   ConditionalString,
   EvaluatedBlock,
   FieldBlockDefinition,
+  FieldBlockProps,
 } from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Radio Input Component
- *
- * A radio button group component following the GOV.UK Design System patterns.
- * Allows users to select a single option from a list of mutually exclusive choices.
- * Provides comprehensive form validation integration, accessibility support, and
- * advanced features like conditional reveals and dividers.
- *
+ * Props for the GovUKRadioInput component.
  * @see https://design-system.service.gov.uk/components/radios/
+ *
+ * @example
+ * ```typescript
+ * GovUKRadioInput({
+ *   code: 'contact_method',
+ *   label: 'How would you like to be contacted?',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *   ],
+ * })
+ * ```
  */
-export interface GovUKRadioInput extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukRadioInput'
-
+export interface GovUKRadioInputProps extends FieldBlockProps {
   /**
    * The label for the radio group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -121,13 +126,6 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
    * @example 'contact-method' // Creates IDs like 'contact-method-email', 'contact-method-phone'
    */
   idPrefix?: ConditionalString
-
-  /**
-   * The value for the radio which should be checked when the page loads.
-   * Use this as an alternative to setting the `checked` option on each individual item.
-   * @example 'email' // Pre-selects the radio option with value 'email'
-   */
-  value?: ConditionalString
 
   /**
    * Additional CSS classes to add to the radio container.
@@ -251,7 +249,7 @@ interface GovUKRadioInputDivider {
 export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>(
   'govukRadioInput',
   async (block, nunjucksEnv) => {
-    const items = block.items.map(option => makeOption(option, block.value))
+    const items = block.items.map(option => makeOption(option, block.value as string))
 
     const params = {
       fieldset: block.fieldset || {
@@ -304,4 +302,37 @@ function isRadioDivider(
 ): option is EvaluatedBlock<GovUKRadioInputDivider>
 function isRadioDivider(option: any): option is GovUKRadioInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
+}
+
+/**
+ * GOV.UK Radio Input Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKRadioInputProps` type or the `GovUKRadioInput()` wrapper function instead.
+ */
+export interface GovUKRadioInput extends FieldBlockDefinition, GovUKRadioInputProps {
+  /** Component variant identifier */
+  variant: 'govukRadioInput'
+}
+
+/**
+ * Creates a GOV.UK Radio Input field.
+ * Allows users to select a single option from a list of mutually exclusive choices.
+ *
+ * @see https://design-system.service.gov.uk/components/radios/
+ * @example
+ * ```typescript
+ * GovUKRadioInput({
+ *   code: 'contact_method',
+ *   label: 'How would you like to be contacted?',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
+ *   ],
+ * })
+ * ```
+ */
+export function GovUKRadioInput(props: GovUKRadioInputProps): GovUKRadioInput {
+  return field<GovUKRadioInput>({ ...props, variant: 'govukRadioInput' })
 }

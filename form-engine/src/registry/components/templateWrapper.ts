@@ -1,11 +1,12 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
+import { block as blockBuilder } from '@form-engine/form/builders'
 import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
-import { BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/types/structures.type'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/types/structures.type'
 
 /**
- * Template wrapper component for wrapping child blocks in an HTML template.
- * Allows defining an HTML template with slots where child blocks will be injected.
+ * Props for the TemplateWrapper component.
  *
+ * Template wrapper allows wrapping child blocks in an HTML template.
  * Slots in the template use the syntax `{{slot:slotName}}` and will be replaced
  * with the rendered HTML of the corresponding blocks in the `slots` property.
  *
@@ -14,8 +15,7 @@ import { BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/t
  *
  * @example
  * ```typescript
- * block<TemplateWrapper>({
- *   variant: 'templateWrapper',
+ * TemplateWrapper({
  *   template: `
  *     <section class="govuk-section">
  *       <h2 class="govuk-heading-m">{{title}}</h2>
@@ -29,30 +29,62 @@ import { BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/t
  *   },
  *   slots: {
  *     content: [
- *       block<HtmlBlock>({ variant: 'html', content: '<p>Explanation...</p>' }),
- *       block<GovUKCodeBlock>({ variant: 'govukCodeBlock', code: '...' }),
+ *       HtmlBlock({ content: '<p>Explanation...</p>' }),
+ *       GovUKCodeBlock({ code: '...' }),
  *     ]
  *   }
  * })
  * ```
  */
-export interface TemplateWrapper extends BlockDefinition {
-  variant: 'templateWrapper'
-
-  /** HTML template with slot markers ({{slot:name}}) and value markers ({{name}}) */
+export interface TemplateWrapperProps extends BasicBlockProps {
+  /**
+   * HTML template with slot markers ({{slot:name}}) and value markers ({{name}}).
+   *
+   * @example '<div class="wrapper">{{slot:content}}</div>'
+   * @example '<h2>{{title}}</h2>{{slot:body}}'
+   */
   template: ConditionalString
 
-  /** String values to inject into the template at {{name}} markers */
+  /**
+   * String values to inject into the template at {{name}} markers.
+   *
+   * @example { title: 'Section Title', footer: 'Footer text' }
+   */
   values?: Record<string, ConditionalString>
 
-  /** Named slots containing blocks to render at {{slot:name}} markers */
+  /**
+   * Named slots containing blocks to render at {{slot:name}} markers.
+   *
+   * @example { content: [HtmlBlock({ content: '<p>Hello</p>' })] }
+   */
   slots?: Record<string, BlockDefinition[]>
 
-  /** Additional CSS classes to apply to wrapper div (optional) */
+  /**
+   * Additional CSS classes to apply to wrapper div (optional).
+   * Only applies when a wrapper div is rendered.
+   *
+   * @example 'govuk-!-margin-bottom-6'
+   */
   classes?: ConditionalString
 
-  /** Custom HTML attributes for wrapper div (optional) */
+  /**
+   * Custom HTML attributes for wrapper div (optional).
+   * Only applies when a wrapper div is rendered.
+   *
+   * @example { 'data-module': 'template-section' }
+   */
   attributes?: Record<string, any>
+}
+
+/**
+ * TemplateWrapper Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `TemplateWrapperProps` type or the `TemplateWrapper()` wrapper function instead.
+ */
+export interface TemplateWrapper extends BlockDefinition, TemplateWrapperProps {
+  /** Component variant identifier */
+  variant: 'templateWrapper'
 }
 
 /**
@@ -119,3 +151,21 @@ const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Pr
 }
 
 export const templateWrapper = buildComponent<TemplateWrapper>('templateWrapper', renderTemplateWrapper as any)
+
+/**
+ * Creates a TemplateWrapper block.
+ * Wraps child blocks in an HTML template with slot and value substitution.
+ *
+ * @example
+ * ```typescript
+ * TemplateWrapper({
+ *   template: '<div class="card">{{slot:content}}</div>',
+ *   slots: {
+ *     content: [HtmlBlock({ content: '<p>Card content</p>' })]
+ *   }
+ * })
+ * ```
+ */
+export function TemplateWrapper(props: TemplateWrapperProps): TemplateWrapper {
+  return blockBuilder<TemplateWrapper>({ ...props, variant: 'templateWrapper' })
+}

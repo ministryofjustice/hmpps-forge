@@ -1,8 +1,9 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
-import { isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
-import { structuralTraverse, StructuralVisitResult } from '@form-engine/core/ast/traverser/StructuralTraverser'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
+import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
+import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
 import {
   JourneyAncestor,
   RenderContext,
@@ -39,14 +40,6 @@ export interface RenderContextOptions {
 }
 
 /**
- * Result of finding a step with its context
- */
-interface StepSearchResult {
-  step: Evaluated<StepASTNode>
-  ancestors: JourneyASTNode[]
-}
-
-/**
  * Builds RenderContext from evaluated AST.
  *
  * RenderContextFactory is responsible for:
@@ -72,9 +65,10 @@ export default class RenderContextFactory {
     currentStepId: NodeId,
     options: RenderContextOptions = {},
   ): RenderContext {
-    const journeyValue = evaluationResult.journey.value
+    const { cacheManager, metadataRegistry } = evaluationResult.context
 
-    const { step, ancestors } = RenderContextFactory.findStepWithContext(journeyValue, currentStepId)
+    const step = RenderContextFactory.getStep(cacheManager, currentStepId)
+    const ancestors = RenderContextFactory.getAncestors(cacheManager, metadataRegistry, currentStepId)
 
     const navigation = RenderContextFactory.buildNavigationTree(
       options.navigationMetadata ?? [],
@@ -103,30 +97,43 @@ export default class RenderContextFactory {
   }
 
   /**
-   * Find a step by NodeId and collect journey ancestors.
-   * Uses structuralTraverse which tracks ancestors automatically.
+   * Get evaluated step from cache by NodeId.
    */
-  private static findStepWithContext(value: unknown, stepId: NodeId): StepSearchResult {
-    let step: StepASTNode
-    let ancestors: JourneyASTNode[] = []
+  private static getStep(cacheManager: ThunkCacheManager, stepId: NodeId): Evaluated<StepASTNode> {
+    const result = cacheManager.get<Evaluated<StepASTNode>>(stepId)
 
-    structuralTraverse(value, {
-      enterNode(node, ctx) {
-        if (isStepStructNode(node) && node.id === stepId) {
-          step = node
-          ancestors = ctx.ancestors.filter(isJourneyStructNode)
-
-          return StructuralVisitResult.STOP
-        }
-
-        return StructuralVisitResult.CONTINUE
-      },
-    })
-
-    return {
-      step,
-      ancestors,
+    if (!result?.value) {
+      throw new Error(`Step not found in cache: ${stepId}`)
     }
+
+    return result.value
+  }
+
+  /**
+   * Get journey ancestors from cache using metadata chain.
+   * Returns ancestors in order from root to immediate parent.
+   */
+  private static getAncestors(
+    cacheManager: ThunkCacheManager,
+    metadataRegistry: MetadataRegistry,
+    stepId: NodeId,
+  ): JourneyASTNode[] {
+    // Get ancestor chain: [rootId, ..., parentJourneyId, stepId]
+    const chain = getAncestorChain(stepId, metadataRegistry)
+
+    // Remove the step itself (last item)
+    const ancestorIds = chain.slice(0, -1)
+
+    // Get each ancestor from cache
+    return ancestorIds.map(id => {
+      const result = cacheManager.get<JourneyASTNode>(id)
+
+      if (!result?.value) {
+        throw new Error(`Ancestor not found in cache: ${id}`)
+      }
+
+      return result.value
+    })
   }
 
   /**

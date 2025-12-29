@@ -26,14 +26,17 @@ describe('createRegisterableFunction', () => {
       expect(registry.IsPositive).toEqual({
         name: 'IsPositive',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
       expect(registry.IsEven).toEqual({
         name: 'IsEven',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
       expect(registry.HasMinLength).toEqual({
         name: 'HasMinLength',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
     })
 
@@ -169,6 +172,7 @@ describe('createRegisterableFunction', () => {
       expect(registry.ToUpperCase).toEqual({
         name: 'ToUpperCase',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
     })
 
@@ -279,10 +283,12 @@ describe('createRegisterableFunction', () => {
       expect(registry.LogSubmission).toEqual({
         name: 'LogSubmission',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
       expect(registry.SendEmail).toEqual({
         name: 'SendEmail',
         evaluate: expect.any(Function),
+        isAsync: false,
       })
     })
 

@@ -4,28 +4,29 @@ import {
   ConditionalString,
   EvaluatedBlock,
   FieldBlockDefinition,
+  FieldBlockProps,
 } from '@form-engine/form/types/structures.type'
-import { FunctionExpr } from '@form-engine/form/types/expressions.type'
-import { ChainableExpr } from '@form-engine/form/builders'
+import { ChainableExpr, field } from '@form-engine/form/builders'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 
 /**
- * GOV.UK Checkbox Input Component
- *
- * A checkbox group component following the GOV.UK Design System patterns.
- * Allows users to select multiple options from a list of choices.
- * Provides comprehensive form validation integration, accessibility support, and
- * advanced features like conditional reveals, dividers, and exclusive behaviors.
- *
+ * Props for the GovUKCheckboxInput component.
  * @see https://design-system.service.gov.uk/components/checkboxes/
+ *
+ * @example
+ * ```typescript
+ * GovUKCheckboxInput({
+ *   code: 'contact_methods',
+ *   label: 'How would you like to be contacted?',
+ *   hint: 'Select all that apply',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *   ],
+ * })
+ * ```
  */
-export interface GovUKCheckboxInput extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukCheckboxInput'
-
-  /** Required to be set to `true` to make sure array of answers is retrieved from POST */
-  multiple: true
-
+export interface GovUKCheckboxInputProps extends FieldBlockProps {
   /**
    * The label for the checkbox group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -33,14 +34,6 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * @example 'Which countries have you visited?'
    */
   label?: ConditionalString
-
-  /**
-   * Array of values for checkboxes which should be checked when the page loads.
-   * Use this as an alternative to setting the `checked` option on each individual item.
-   *
-   * @example ['email', 'phone'] // Pre-selects checkboxes with these values
-   */
-  value?: ConditionalString[] | FunctionExpr<any>
 
   /** Can be used to add a fieldset to the checkboxes component. */
   fieldset?: {
@@ -362,4 +355,41 @@ function isCheckboxDivider(
 ): option is EvaluatedBlock<GovUKCheckboxInputDivider>
 function isCheckboxDivider(option: any): option is GovUKCheckboxInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
+}
+
+/**
+ * GOV.UK Checkbox Input Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKCheckboxInputProps` type or the `GovUKCheckboxInput()` wrapper function instead.
+ */
+export interface GovUKCheckboxInput extends FieldBlockDefinition, GovUKCheckboxInputProps {
+  /** Component variant identifier */
+  variant: 'govukCheckboxInput'
+
+  /** Required to be set to `true` to make sure array of answers is retrieved from POST */
+  multiple: true
+}
+
+/**
+ * Creates a GOV.UK Checkbox Input field.
+ * Allows users to select multiple options from a list of choices.
+ *
+ * @see https://design-system.service.gov.uk/components/checkboxes/
+ * @example
+ * ```typescript
+ * GovUKCheckboxInput({
+ *   code: 'contact_methods',
+ *   label: 'How would you like to be contacted?',
+ *   hint: 'Select all that apply',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
+ *   ],
+ * })
+ * ```
+ */
+export function GovUKCheckboxInput(props: GovUKCheckboxInputProps): GovUKCheckboxInput {
+  return field<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput', multiple: true })
 }

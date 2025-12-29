@@ -105,8 +105,11 @@ function defineFunctionSet<
       arguments: args,
     })
 
+    // Detect if function is async
+    const isAsync = isAsyncFunction(evaluate)
+
     // Create registry entry for runtime evaluation
-    ;(registry as any)[name] = { name, evaluate }
+    ;(registry as any)[name] = { name, evaluate, isAsync }
   })
 
   return { functions, registry }
@@ -208,7 +211,8 @@ function defineFunctionsWithDeps<D, FT extends FunctionType>(functionType: FT) {
 
       Object.entries(factories).forEach(([name, factory]) => {
         const evaluate = factory(deps)
-        ;(registry as any)[name] = { name, evaluate }
+        const isAsync = isAsyncFunction(evaluate)
+        ;(registry as any)[name] = { name, evaluate, isAsync }
       })
 
       return registry

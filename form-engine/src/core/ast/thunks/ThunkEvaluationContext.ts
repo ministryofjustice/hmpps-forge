@@ -87,6 +87,10 @@ export default class ThunkEvaluationContext {
     return this.compilationDependencies.metadataRegistry
   }
 
+  get dependencyGraph() {
+    return this.compilationDependencies.dependencyGraph
+  }
+
   /**
    * Create a clone of this context with an isolated scope snapshot
    *

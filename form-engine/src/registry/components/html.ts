@@ -1,30 +1,28 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
-import { ConditionalString, BlockDefinition } from '../../form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString } from '../../form/types/structures.type'
 
 /**
- * HTML component for rendering raw HTML content.
- * Allows embedding arbitrary HTML markup within forms.
+ * Props for the HtmlBlock component.
  *
- * WARNING: Use with caution - content is not sanitized.
- * Ensure HTML content comes from trusted sources only.
+ * Use this to render raw HTML content within forms.
+ * Content is embedded directly without sanitization, so ensure HTML
+ * comes from trusted sources only.
  *
  * @example
  * ```typescript
- * {
- *   variant: 'html',
+ * HtmlBlock({
  *   content: `
  *     <div>
  *       <p class='govuk-body'>By proceeding, you agree to our
  *          <a href="/terms">Terms of Service</a>
  *       </p>
  *     </div>
- *   `
- * }
+ *   `,
+ * })
  * ```
  */
-export interface HtmlBlock extends BlockDefinition {
-  variant: 'html'
-
+export interface HtmlBlockProps extends BasicBlockProps {
   /** Raw HTML content to render */
   content: ConditionalString
 
@@ -33,6 +31,17 @@ export interface HtmlBlock extends BlockDefinition {
 
   /** Custom HTML attributes for wrapper div (optional) */
   attributes?: Record<string, any>
+}
+
+/**
+ * HTML Block component interface.
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `HtmlBlockProps` type or the `HtmlBlock()` wrapper function instead.
+ */
+export interface HtmlBlock extends BlockDefinition, HtmlBlockProps {
+  /** Component variant identifier */
+  variant: 'html'
 }
 
 /**
@@ -55,3 +64,22 @@ export const html = buildComponent<HtmlBlock>('html', async block => {
 
   return block.content
 })
+
+/**
+ * Creates an HTML block for rendering raw HTML content.
+ * Content is embedded directly without sanitization.
+ *
+ * @example
+ * ```typescript
+ * HtmlBlock({
+ *   content: `
+ *     <p class='govuk-body'>By proceeding, you agree to our
+ *        <a href="/terms">Terms of Service</a>
+ *     </p>
+ *   `,
+ * })
+ * ```
+ */
+export function HtmlBlock(props: HtmlBlockProps): HtmlBlock {
+  return blockBuilder<HtmlBlock>({ ...props, variant: 'html' })
+}

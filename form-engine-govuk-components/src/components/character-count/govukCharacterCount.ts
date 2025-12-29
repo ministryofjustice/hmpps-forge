@@ -3,26 +3,25 @@ import {
   ConditionalNumber,
   ConditionalString,
   FieldBlockDefinition,
+  FieldBlockProps,
 } from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Character Count Component
- *
- * A character or word counting component that extends the textarea with live feedback
- * about remaining characters or words. Follows the GOV.UK Design System patterns and
- * provides comprehensive accessibility support with live announcements of count changes.
- *
- * The component can count either characters or words (but not both simultaneously).
- * It provides visual and screen reader feedback about the current count, approaching
- * limits, and when limits are exceeded.
- *
+ * Props for the GovUKCharacterCount component.
  * @see https://design-system.service.gov.uk/components/character-count/
+ * @example
+ * ```typescript
+ * GovUKCharacterCount({
+ *   code: 'feedback',
+ *   label: 'Provide your feedback',
+ *   hint: 'Include as much detail as possible',
+ *   maxLength: 500,
+ * })
+ * ```
  */
-export interface GovUKCharacterCount extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukCharacterCount'
-
+export interface GovUKCharacterCountProps extends FieldBlockProps {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    * @example 'feedback-textarea'
@@ -36,13 +35,6 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example '3' // Shorter textarea
    */
   rows?: ConditionalString
-
-  /**
-   * Optional initial value of the textarea.
-   * Sets the default content that appears when the textarea is first rendered.
-   * @example 'Please provide your feedback here...'
-   */
-  value?: ConditionalString
 
   /**
    * The maximum number of characters allowed.
@@ -265,3 +257,33 @@ export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
     })
   },
 )
+
+/**
+ * GOV.UK Character Count Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKCharacterCountProps` type or the `GovUKCharacterCount()` wrapper function instead.
+ */
+export interface GovUKCharacterCount extends FieldBlockDefinition, GovUKCharacterCountProps {
+  /** Component variant identifier */
+  variant: 'govukCharacterCount'
+}
+
+/**
+ * Creates a GOV.UK Character Count textarea field.
+ * Extends textarea with live feedback about remaining characters or words.
+ *
+ * @see https://design-system.service.gov.uk/components/character-count/
+ * @example
+ * ```typescript
+ * GovUKCharacterCount({
+ *   code: 'feedback',
+ *   label: 'Provide your feedback',
+ *   hint: 'Include as much detail as possible',
+ *   maxLength: 500,
+ * })
+ * ```
+ */
+export function GovUKCharacterCount(props: GovUKCharacterCountProps): GovUKCharacterCount {
+  return field<GovUKCharacterCount>({ ...props, variant: 'govukCharacterCount' })
+}

@@ -1,18 +1,26 @@
-import { ConditionalBoolean, ConditionalString, FieldBlockDefinition } from '@form-engine/form/types/structures.type'
+import {
+  ConditionalBoolean,
+  ConditionalString,
+  FieldBlockDefinition,
+  FieldBlockProps,
+} from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Textarea Component
- *
- * A multi-line text input component following the GOV.UK Design System patterns.
- * Provides comprehensive form validation integration and accessibility support.
- *
+ * Props for the GovUKTextareaInput component.
  * @see https://design-system.service.gov.uk/components/textarea/
+ * @example
+ * ```typescript
+ * GovUKTextareaInput({
+ *   code: 'comments',
+ *   label: 'Please provide any additional comments',
+ *   hint: 'Include as much detail as possible',
+ *   rows: '8',
+ * })
+ * ```
  */
-export interface GovukTextareaInput extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukTextarea'
-
+export interface GovUKTextareaInputProps extends FieldBlockProps {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    *
@@ -36,15 +44,6 @@ export interface GovukTextareaInput extends FieldBlockDefinition {
    * @example '3' // Shorter textarea
    */
   rows?: ConditionalString
-
-  /**
-   * Optional initial value of the textarea.
-   * Sets the default content that appears when the textarea is first rendered.
-   * //TODO: Might need to come back to this and clarify better
-   *
-   * @example 'Please provide your feedback here...'
-   */
-  value?: ConditionalString
 
   /**
    * The label used by the textarea component.
@@ -150,7 +149,7 @@ export interface GovukTextareaInput extends FieldBlockDefinition {
   attributes?: Record<string, any>
 }
 
-export const govukTextareaInput = buildNunjucksComponent<GovukTextareaInput>(
+export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>(
   'govukTextarea',
   async (block, nunjucksEnv) => {
     const params = {
@@ -174,3 +173,32 @@ export const govukTextareaInput = buildNunjucksComponent<GovukTextareaInput>(
     })
   },
 )
+
+/**
+ * GOV.UK Textarea Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKTextareaInputProps` type or the `GovUKTextareaInput()` wrapper function instead.
+ */
+export interface GovUKTextareaInput extends FieldBlockDefinition, GovUKTextareaInputProps {
+  /** Component variant identifier */
+  variant: 'govukTextarea'
+}
+
+/**
+ * Creates a GOV.UK Textarea field for multi-line text input.
+ *
+ * @see https://design-system.service.gov.uk/components/textarea/
+ * @example
+ * ```typescript
+ * GovUKTextareaInput({
+ *   code: 'comments',
+ *   label: 'Please provide any additional comments',
+ *   hint: 'Include as much detail as possible',
+ *   rows: '8',
+ * })
+ * ```
+ */
+export function GovUKTextareaInput(props: GovUKTextareaInputProps): GovUKTextareaInput {
+  return field<GovUKTextareaInput>({ ...props, variant: 'govukTextarea' })
+}

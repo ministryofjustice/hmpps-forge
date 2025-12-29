@@ -3,24 +3,34 @@ import {
   ConditionalString,
   EvaluatedBlock,
   FieldBlockDefinition,
+  FieldBlockProps,
 } from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field as fieldBuilder } from '@form-engine/form/builders'
 
 /**
- * Base interface for GOV.UK Date Input Components
+ * Props for GOV.UK Date Input Components.
  *
  * These components provide specialized date input patterns following the GOV.UK Design System.
  * Unlike the standard GOV.UK date input, these variants support specific date formats:
- * - Full dates (YYYY-MM-DD)
- * - Year-Month combinations (YYYY-MM)
- * - Month-Day combinations (MM-DD) for recurring dates
+ * - Full dates (YYYY-MM-DD) - use `GovUKDateInputFullProps`
+ * - Year-Month combinations (YYYY-MM) - use `GovUKDateInputYearMonthProps`
+ * - Month-Day combinations (MM-DD) for recurring dates - use `GovUKDateInputMonthDayProps`
  *
  * All variants automatically parse ISO date strings and provide enhanced error handling
  * with field-specific error targeting via the `details.field` property.
  *
  * @see https://design-system.service.gov.uk/components/date-input/
+ * @example
+ * ```typescript
+ * GovUKDateInputFull({
+ *   code: 'date_of_birth',
+ *   label: 'Date of birth',
+ *   hint: 'For example, 31 3 1980',
+ * })
+ * ```
  */
-interface GovUKDateInputBase extends FieldBlockDefinition {
+export interface GovUKDateInputProps extends FieldBlockProps {
   /**
    * The label for the date input component.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -135,75 +145,34 @@ interface GovUKDateInputBase extends FieldBlockDefinition {
 }
 
 /**
- * GOV.UK Date Input Component (Day, Month, Year)
+ * GOV.UK Date Input (Day, Month, Year) component interface.
  *
- * Renders a complete date input with day, month, and year fields.
- * Expects and outputs ISO date strings in YYYY-MM-DD format.
- *
- * @example
- * ```typescript
- * field<GovUKDateInputFull>({
- *   variant: 'govukDateInputFull',
- *   code: 'date_of_birth',
- *   label: 'Date of birth',
- *   hint: 'For example, 31 3 1980',
- *   value: '1980-03-31' // ISO format: YYYY-MM-DD
- * })
- * ```
- *
- * @see https://design-system.service.gov.uk/components/date-input/
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputFull()` wrapper function instead.
  */
-export interface GovUKDateInputFull extends GovUKDateInputBase {
+export interface GovUKDateInputFull extends FieldBlockDefinition, GovUKDateInputProps {
   /** Component variant identifier for full date input */
   variant: 'govukDateInputFull'
 }
 
 /**
- * GOV.UK Date Input Component (Month, Year)
+ * GOV.UK Date Input (Month, Year) component interface.
  *
- * Renders a date input with only month and year fields.
- * Expects and outputs ISO date strings in YYYY-MM format.
- * Useful for credit card expiry dates, employment periods, etc.
- *
- * @example
- * ```typescript
- * field<GovUKDateInputYearMonth>({
- *   variant: 'govukDateInputYearMonth',
- *   code: 'card_expiry',
- *   label: 'Expiry date',
- *   hint: 'For example, 03 2025',
- *   value: '2025-03' // ISO format: YYYY-MM
- * })
- * ```
- *
- * @see https://design-system.service.gov.uk/components/date-input/
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputYearMonth()` wrapper function instead.
  */
-export interface GovUKDateInputYearMonth extends GovUKDateInputBase {
+export interface GovUKDateInputYearMonth extends FieldBlockDefinition, GovUKDateInputProps {
   /** Component variant identifier for year-month input */
   variant: 'govukDateInputYearMonth'
 }
 
 /**
- * GOV.UK Date Input Component (Day, Month)
+ * GOV.UK Date Input (Day, Month) component interface.
  *
- * Renders a date input with only day and month fields.
- * Expects and outputs ISO date strings in MM-DD format (or --MM-DD for ISO 8601 recurring dates).
- * Useful for recurring dates like birthdays, anniversaries, or seasonal events.
- *
- * @example
- * ```typescript
- * field<GovUKDateInputMonthDay>({
- *   variant: 'govukDateInputMonthDay',
- *   code: 'anniversary_date',
- *   label: 'Anniversary date',
- *   hint: 'For example, 25 12 (25th December)',
- *   value: '12-25' // ISO format: MM-DD
- * })
- * ```
- *
- * @see https://design-system.service.gov.uk/components/date-input/
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputMonthDay()` wrapper function instead.
  */
-export interface GovUKDateInputMonthDay extends GovUKDateInputBase {
+export interface GovUKDateInputMonthDay extends FieldBlockDefinition, GovUKDateInputProps {
   /** Component variant identifier for month-day input */
   variant: 'govukDateInputMonthDay'
 }
@@ -310,7 +279,7 @@ function combineClasses(...classes: (string | undefined)[]): string | undefined 
  */
 function buildItems(
   fields: Array<{ name: 'day' | 'month' | 'year'; label: string; classes: string }>,
-  block: EvaluatedBlock<GovUKDateInputBase>,
+  block: EvaluatedBlock<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
   dateParts: ReturnType<typeof parseISOToDateParts>,
   errorDetails?: Record<string, any>,
 ) {
@@ -337,7 +306,10 @@ function buildItems(
 /**
  * Creates the parameter object required by the GOV.UK date input template
  */
-function buildParams(block: EvaluatedBlock<GovUKDateInputBase>, items: ReturnType<typeof buildItems>) {
+function buildParams(
+  block: EvaluatedBlock<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
+  items: ReturnType<typeof buildItems>,
+) {
   return {
     id: block.id || block.code,
     fieldset: block.fieldset || {
@@ -432,3 +404,59 @@ export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonth
     return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
   },
 )
+
+/**
+ * Creates a GOV.UK Date Input field with day, month, and year.
+ * Expects and outputs ISO date strings in YYYY-MM-DD format.
+ *
+ * @see https://design-system.service.gov.uk/components/date-input/
+ * @example
+ * ```typescript
+ * GovUKDateInputFull({
+ *   code: 'date_of_birth',
+ *   label: 'Date of birth',
+ *   hint: 'For example, 31 3 1980',
+ * })
+ * ```
+ */
+export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFull {
+  return fieldBuilder<GovUKDateInputFull>({ ...props, variant: 'govukDateInputFull' })
+}
+
+/**
+ * Creates a GOV.UK Date Input field with month and year only.
+ * Expects and outputs ISO date strings in YYYY-MM format.
+ * Useful for credit card expiry dates, employment periods, etc.
+ *
+ * @see https://design-system.service.gov.uk/components/date-input/
+ * @example
+ * ```typescript
+ * GovUKDateInputYearMonth({
+ *   code: 'card_expiry',
+ *   label: 'Expiry date',
+ *   hint: 'For example, 03 2025',
+ * })
+ * ```
+ */
+export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateInputYearMonth {
+  return fieldBuilder<GovUKDateInputYearMonth>({ ...props, variant: 'govukDateInputYearMonth' })
+}
+
+/**
+ * Creates a GOV.UK Date Input field with day and month only.
+ * Expects and outputs ISO date strings in MM-DD format.
+ * Useful for recurring dates like birthdays or anniversaries.
+ *
+ * @see https://design-system.service.gov.uk/components/date-input/
+ * @example
+ * ```typescript
+ * GovUKDateInputMonthDay({
+ *   code: 'anniversary',
+ *   label: 'Anniversary date',
+ *   hint: 'For example, 25 12',
+ * })
+ * ```
+ */
+export function GovUKDateInputMonthDay(props: GovUKDateInputProps): GovUKDateInputMonthDay {
+  return fieldBuilder<GovUKDateInputMonthDay>({ ...props, variant: 'govukDateInputMonthDay' })
+}
