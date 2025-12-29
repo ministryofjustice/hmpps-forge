@@ -147,7 +147,6 @@ export type HandlerResult<T = unknown> =
 export type ThunkErrorType =
   | 'HANDLER_REGISTRY'
   | 'LOOKUP_FAILED'
-  | 'INCORRECT_HANDLER'
   | 'TYPE_MISMATCH'
   | 'EVALUATION_FAILED'
   | 'SECURITY'
