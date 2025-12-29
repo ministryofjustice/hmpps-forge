@@ -174,10 +174,9 @@ describe('ThunkEvaluator', () => {
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
     })
 
-    it('should throw cached error when error result is cached', async () => {
+    it('should return cached error result with cached flag when error result is cached', async () => {
       // Arrange - use pseudo node ID since only pseudo nodes are cached
       const pseudoNodeId: NodeId = 'compile_pseudo:2'
-      const testError = new Error('Test error')
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId: pseudoNodeId,
         isAsync: true as const,
@@ -186,7 +185,6 @@ describe('ThunkEvaluator', () => {
             type: 'EVALUATION_FAILED',
             nodeId: pseudoNodeId,
             message: 'Test error',
-            cause: testError,
           },
           metadata: { source: 'test', timestamp: 123456 },
         }),
@@ -194,22 +192,38 @@ describe('ThunkEvaluator', () => {
 
       when(mockHandlerRegistry.get).calledWith(pseudoNodeId).mockReturnValue(mockHandler)
 
-      // Act & Assert - First call throws
-      await expect(evaluator.invoke(pseudoNodeId, mockContext)).rejects.toThrow('Test error')
+      // Act
+      const firstResult = await evaluator.invoke(pseudoNodeId, mockContext)
 
-      // Act & Assert - Second call also throws (from cache)
-      await expect(evaluator.invoke(pseudoNodeId, mockContext)).rejects.toThrow('Test error')
+      // Assert
+      expect(firstResult.error).toBeDefined()
+      expect(firstResult.error?.message).toBe('Test error')
+      expect(firstResult.metadata?.cached).toBeUndefined()
 
-      // Handler should only be called once (second throw comes from cache)
+      // Act - Second call should use cached error
+      const secondResult = await evaluator.invoke(pseudoNodeId, mockContext)
+
+      // Assert
+      expect(secondResult.error).toBeDefined()
+      expect(secondResult.error?.message).toBe('Test error')
+      expect(secondResult.metadata?.cached).toBe(true)
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
     })
 
-    it('should throw HANDLER_NOT_FOUND error when handler not found', async () => {
+    it('should return HANDLER_NOT_FOUND error when handler not found', async () => {
       // Arrange
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(undefined)
 
-      // Act & Assert
-      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('No handler registered')
+      // Act
+      const result = await evaluator.invoke(nodeId, mockContext)
+
+      // Assert
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('HANDLER_REGISTRY')
+      expect(result.error?.nodeId).toBe(nodeId)
+      expect(result.error?.message).toContain('No handler registered')
+      expect(result.metadata.source).toBe('ThunkEvaluator.invoke')
+      expect(result.metadata.timestamp).toBeDefined()
     })
 
     it('should execute handler and cache result when handler evaluates successfully', async () => {
@@ -242,7 +256,7 @@ describe('ThunkEvaluator', () => {
       )
     })
 
-    it('should throw EVALUATION_FAILED error when handler throws exception', async () => {
+    it('should wrap error in EVALUATION_FAILED result when handler throws exception', async () => {
       // Arrange
       const thrownError = new Error('Handler crashed')
       const mockHandler: jest.Mocked<ThunkHandler> = {
@@ -253,11 +267,19 @@ describe('ThunkEvaluator', () => {
 
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
 
-      // Act & Assert
-      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('Handler crashed')
+      // Act
+      const result = await evaluator.invoke(nodeId, mockContext)
+
+      // Assert
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('EVALUATION_FAILED')
+      expect(result.error?.nodeId).toBe(nodeId)
+      expect(result.error?.message).toContain('evaluation failed')
+      expect(result.error?.message).toContain('Handler crashed')
+      expect(result.error?.cause).toBeInstanceOf(Error)
     })
 
-    it('should throw error when handler throws non-Error exception', async () => {
+    it('should handle non-Error exceptions when handler throws', async () => {
       // Arrange
       const mockHandler: jest.Mocked<ThunkHandler> = {
         nodeId,
@@ -267,8 +289,14 @@ describe('ThunkEvaluator', () => {
 
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
 
-      // Act & Assert
-      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('String error')
+      // Act
+      const result = await evaluator.invoke(nodeId, mockContext)
+
+      // Assert
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('EVALUATION_FAILED')
+      expect(result.error?.message).toContain('String error')
+      expect(result.error?.cause).toBeInstanceOf(Error)
     })
 
     it('should dedupe concurrent invocations of the same node', async () => {
