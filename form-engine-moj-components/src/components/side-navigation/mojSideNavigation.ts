@@ -2,12 +2,14 @@ import type nunjucks from 'nunjucks'
 
 import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
+  BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
   ConditionalArray,
   EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
  * Heading configuration for a side navigation section.
@@ -61,20 +63,17 @@ export interface MOJSideNavigationSection {
 }
 
 /**
- * MOJ Side Navigation component for navigation menus.
- *
- * Based on the MOJ Design Patterns side navigation component:
- * https://design-patterns.service.justice.gov.uk/components/side-navigation
+ * Props for the MOJSideNavigation component.
  *
  * The side navigation component provides a vertical navigation menu.
  * It can be used in simple mode with just items, or in sectioned mode
  * with grouped items under headings.
  *
+ * @see https://design-patterns.service.justice.gov.uk/components/side-navigation
  * @example
  * ```typescript
  * // Simple form - flat list of items
- * block<MOJSideNavigation>({
- *   variant: 'mojSideNavigation',
+ * MOJSideNavigation({
  *   label: 'Side navigation',
  *   items: [
  *     { text: 'Nav item 1', href: '#1', active: true },
@@ -84,8 +83,7 @@ export interface MOJSideNavigationSection {
  * })
  *
  * // Sectioned form - items grouped under headings
- * block<MOJSideNavigation>({
- *   variant: 'mojSideNavigation',
+ * MOJSideNavigation({
  *   label: 'Side navigation',
  *   sections: [
  *     {
@@ -105,23 +103,47 @@ export interface MOJSideNavigationSection {
  * })
  * ```
  */
-export interface MOJSideNavigation extends BlockDefinition {
-  variant: 'mojSideNavigation'
-
-  /** The aria-label to add to the navigation container */
+export interface MOJSideNavigationProps extends BasicBlockProps {
+  /**
+   * The aria-label to add to the navigation container.
+   * @example 'Side navigation'
+   */
   label?: ConditionalString
 
-  /** Array of navigation items (simple mode - use instead of sections) */
+  /**
+   * Array of navigation items (simple mode - use instead of sections).
+   * @example [{ text: 'Nav item 1', href: '#1', active: true }]
+   */
   items?: ConditionalArray<MOJSideNavigationItem>
 
-  /** Array of navigation sections (sectioned mode - use instead of items) */
+  /**
+   * Array of navigation sections (sectioned mode - use instead of items).
+   * @example [{ heading: { text: 'Section 1' }, items: [...] }]
+   */
   sections?: ConditionalArray<MOJSideNavigationSection>
 
-  /** Additional CSS classes for the nav container */
+  /**
+   * Additional CSS classes for the nav container.
+   * @example 'app-side-navigation--custom'
+   */
   classes?: ConditionalString
 
-  /** Additional HTML attributes */
+  /**
+   * Additional HTML attributes for the navigation container.
+   * @example { 'data-module': 'app-navigation' }
+   */
   attributes?: Record<string, string>
+}
+
+/**
+ * MOJ Side Navigation Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `MOJSideNavigationProps` type or the `MOJSideNavigation()` wrapper function instead.
+ */
+export interface MOJSideNavigation extends BlockDefinition, MOJSideNavigationProps {
+  /** Component variant identifier */
+  variant: 'mojSideNavigation'
 }
 
 /**
@@ -143,3 +165,23 @@ async function sideNavigationRenderer(
 }
 
 export const mojSideNavigation = buildNunjucksComponent<MOJSideNavigation>('mojSideNavigation', sideNavigationRenderer)
+
+/**
+ * Creates an MOJ Side Navigation block.
+ * A vertical navigation menu component following the MOJ Design Patterns.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/side-navigation
+ * @example
+ * ```typescript
+ * MOJSideNavigation({
+ *   label: 'Side navigation',
+ *   items: [
+ *     { text: 'Nav item 1', href: '#1', active: true },
+ *     { text: 'Nav item 2', href: '#2' },
+ *   ],
+ * })
+ * ```
+ */
+export function MOJSideNavigation(props: MOJSideNavigationProps): MOJSideNavigation {
+  return blockBuilder<MOJSideNavigation>({ ...props, variant: 'mojSideNavigation' })
+}

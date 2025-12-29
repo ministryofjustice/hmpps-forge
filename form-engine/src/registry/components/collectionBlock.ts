@@ -1,32 +1,67 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
-import { ChainableExpr } from '@form-engine/form/builders'
+import { ChainableExpr, block as blockBuilder } from '@form-engine/form/builders'
 import { StructureType } from '@form-engine/form/types/enums'
 import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
-import { BlockDefinition, ConditionalString, RenderedBlock } from '../../form/types/structures.type'
+import { BasicBlockProps, BlockDefinition, ConditionalString, RenderedBlock } from '../../form/types/structures.type'
 
 /**
- * Collection block component for rendering repeated blocks based on a collection.
+ * Props for the CollectionBlock component.
+ * Renders repeated blocks based on a collection expression.
  *
  * The `collection` property accepts any chainable expression that evaluates to an array of blocks.
  * This works with the Iterator pattern (e.g., `Data('items').each(Iterator.Map(...))`)
  *
  * @template T - Type of blocks in the collection array
  * @template F - Type of blocks in the fallback array (defaults to T)
+ *
+ * @example
+ * ```typescript
+ * CollectionBlock({
+ *   collection: Data('tasks').each(Iterator.Map({
+ *     template: MojCard({ ... }),
+ *   })),
+ *   fallback: [GovUKInsetText({ html: 'No tasks available' })],
+ * })
+ * ```
  */
-export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition {
-  variant: 'collection-block'
-
-  /** Expression that evaluates to an array of blocks to render */
+export interface CollectionBlockProps<T = BlockDefinition, F = T> extends BasicBlockProps {
+  /**
+   * Expression that evaluates to an array of blocks to render.
+   * @example Data('items').each(Iterator.Map({ template: GovUKInsetText({ ... }) }))
+   */
   collection: ChainableExpr<T[]>
 
-  /** Fallback blocks to render when the collection is empty */
+  /**
+   * Fallback blocks to render when the collection is empty.
+   * @example [GovUKInsetText({ html: 'No items found' })]
+   */
   fallback?: F[]
 
-  /** Additional CSS classes to apply to wrapper div (optional) */
+  /**
+   * Additional CSS classes to apply to wrapper div.
+   * @example 'govuk-!-margin-bottom-6'
+   */
   classes?: ConditionalString
 
-  /** Custom HTML attributes for wrapper div (optional) */
+  /**
+   * Custom HTML attributes for wrapper div.
+   * @example { 'data-module': 'collection-list' }
+   */
   attributes?: Record<string, any>
+}
+
+/**
+ * Collection Block Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `CollectionBlockProps` type or the `CollectionBlock()` wrapper function instead.
+ *
+ * @template T - Type of blocks in the collection array
+ * @template F - Type of blocks in the fallback array (defaults to T)
+ */
+export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition, CollectionBlockProps<T, F> {
+  /** Component variant identifier */
+  variant: 'collection-block'
 }
 
 /**
@@ -108,3 +143,27 @@ export const collectionBlock = buildComponent<CollectionBlock<BlockDefinition>>(
   'collection-block',
   renderCollectionBlock as any,
 )
+
+/**
+ * Creates a Collection Block for rendering repeated blocks based on a collection.
+ *
+ * @template T - Type of blocks in the collection array
+ * @template F - Type of blocks in the fallback array (defaults to T)
+ *
+ * @example
+ * ```typescript
+ * CollectionBlock({
+ *   collection: Data('tasks').each(Iterator.Map({
+ *     template: MojCard({
+ *       heading: Item().path('title'),
+ *       content: Item().path('description'),
+ *     }),
+ *   })),
+ *   fallback: [GovUKInsetText({ html: 'No tasks available' })],
+ *   classes: 'govuk-!-margin-bottom-6',
+ * })
+ * ```
+ */
+export function CollectionBlock<T = BlockDefinition, F = T>(props: CollectionBlockProps<T, F>): CollectionBlock<T, F> {
+  return blockBuilder<CollectionBlock<T, F>>({ ...props, variant: 'collection-block' })
+}

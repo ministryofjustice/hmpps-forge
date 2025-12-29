@@ -6,27 +6,23 @@ import { mojCardGroup } from './card-group/mojCardGroup'
 import { mojDatePicker } from './date-picker/mojDatePicker'
 import { mojSideNavigation } from './side-navigation/mojSideNavigation'
 
-// Re-export types for consumers
-export type { MOJAlert, MOJAlertVariant, MOJAlertHeadingTag } from './alert/mojAlert'
-export type { MOJCard, MOJCardHeading, MOJCardDescription } from './card/mojCard'
+// Re-export types only (for types that don't have wrapper functions)
+export type { MOJAlertVariant, MOJAlertHeadingTag } from './alert/mojAlert'
+export type { MOJCardHeading, MOJCardDescription } from './card/mojCard'
+export type { MOJCardGroupItem, MOJCardGroupItemHeading, MOJCardGroupItemDescription } from './card-group/mojCardGroup'
+export type { MOJDatePickerLabel, MOJDatePickerHint, MOJDatePickerFormGroup } from './date-picker/mojDatePicker'
 export type {
-  MOJCardGroup,
-  MOJCardGroupItem,
-  MOJCardGroupItemHeading,
-  MOJCardGroupItemDescription,
-} from './card-group/mojCardGroup'
-export type {
-  MOJDatePicker,
-  MOJDatePickerLabel,
-  MOJDatePickerHint,
-  MOJDatePickerFormGroup,
-} from './date-picker/mojDatePicker'
-export type {
-  MOJSideNavigation,
   MOJSideNavigationItem,
   MOJSideNavigationSection,
   MOJSideNavigationHeading,
 } from './side-navigation/mojSideNavigation'
+
+// Re-export wrapper functions (types are exported implicitly with the functions)
+export { MOJAlert } from './alert/mojAlert'
+export { MOJCard } from './card/mojCard'
+export { MOJCardGroup } from './card-group/mojCardGroup'
+export { MOJDatePicker } from './date-picker/mojDatePicker'
+export { MOJSideNavigation } from './side-navigation/mojSideNavigation'
 
 /** All MOJ component definitions */
 export const mojComponents: ComponentRegistryEntry<any>[] = [

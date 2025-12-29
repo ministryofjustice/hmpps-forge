@@ -3,10 +3,12 @@ import type nunjucks from 'nunjucks'
 import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   FieldBlockDefinition,
+  FieldBlockProps,
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
+import { field } from '@form-engine/form/builders'
 
 /**
  * Label configuration for the MOJ Date Picker component.
@@ -57,41 +59,23 @@ export interface MOJDatePickerFormGroup {
 }
 
 /**
- * MOJ Date Picker component for selecting dates using a calendar widget.
- *
- * Based on the MOJ Design Patterns date picker component:
- * https://design-patterns.service.justice.gov.uk/components/date-picker/
+ * Props for the MOJ Date Picker component.
  *
  * The date picker allows users to select a date via calendar or direct text entry.
  * It enhances a standard text input with a calendar button that opens a date picker.
- *
  * Date format is dd/mm/yyyy.
  *
+ * @see https://design-patterns.service.justice.gov.uk/components/date-picker/
  * @example
  * ```typescript
- * // Simple form - minimal configuration
- * field<MOJDatePicker>({
- *   variant: 'mojDatePicker',
+ * MOJDatePicker({
  *   code: 'appointment_date',
  *   label: 'Appointment date',
  *   hint: 'For example, 17/5/2024',
  * })
- *
- * // Full form - with date restrictions
- * field<MOJDatePicker>({
- *   variant: 'mojDatePicker',
- *   code: 'booking_date',
- *   label: { text: 'Select a booking date', classes: 'govuk-label--l' },
- *   hint: { text: 'Only weekdays in April 2025 are available' },
- *   minDate: '01/04/2025',
- *   maxDate: '30/04/2025',
- *   excludedDays: ['saturday', 'sunday'],
- * })
  * ```
  */
-export interface MOJDatePicker extends FieldBlockDefinition {
-  variant: 'mojDatePicker'
-
+export interface MOJDatePickerProps extends FieldBlockProps {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'appointment-date'
@@ -157,6 +141,17 @@ export interface MOJDatePicker extends FieldBlockDefinition {
 }
 
 /**
+ * MOJ Date Picker Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `MOJDatePickerProps` type or the `MOJDatePicker()` wrapper function instead.
+ */
+export interface MOJDatePicker extends FieldBlockDefinition, MOJDatePickerProps {
+  /** Component variant identifier */
+  variant: 'mojDatePicker'
+}
+
+/**
  * Converts an ISO date string (YYYY-MM-DD) to UK format (DD/MM/YYYY).
  * If the value is already in UK format or not a valid date string, returns as-is.
  */
@@ -205,3 +200,23 @@ async function datePickerRenderer(
 }
 
 export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicker', datePickerRenderer)
+
+/**
+ * Creates an MOJ Date Picker field.
+ * A date input component with calendar widget following the MOJ Design Patterns.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/date-picker/
+ * @example
+ * ```typescript
+ * MOJDatePicker({
+ *   code: 'appointment_date',
+ *   label: 'Appointment date',
+ *   hint: 'For example, 17/5/2024',
+ *   minDate: '01/04/2025',
+ *   maxDate: '30/04/2025',
+ * })
+ * ```
+ */
+export function MOJDatePicker(props: MOJDatePickerProps): MOJDatePicker {
+  return field<MOJDatePicker>({ ...props, variant: 'mojDatePicker' })
+}

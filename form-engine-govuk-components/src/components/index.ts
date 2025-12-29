@@ -17,21 +17,25 @@ import { govukPagination } from './pagination/govukPagination'
 import { govukWarningText } from './warning-text/govukWarningText'
 
 // Re-export types for consumers
-export type { GovUKButton, GovUKLinkButton } from './button/govukButton'
-export type { GovUKTextInput } from './text-input/govukTextInput'
-export type { GovUKSelectInput, SelectItem } from './select-input/govukSelectInput'
-export type { GovUKRadioInput } from './radio-input/govukRadioInput'
-export type { GovUKCheckboxInput } from './checkbox-input/govukCheckboxInput'
-export type { GovukTextareaInput } from './textarea-input/govukTextareaInput'
-export type { GovUKCharacterCount } from './character-count/govukCharacterCount'
-export type {
+export type { SelectItem } from './select-input/govukSelectInput'
+export type { PaginationLink, PaginationItem } from './pagination/govukPagination'
+
+// Re-export wrapper functions (types are exported implicitly with the functions)
+export { GovUKButton, GovUKLinkButton } from './button/govukButton'
+export { GovUKTextInput } from './text-input/govukTextInput'
+export { GovUKSelectInput } from './select-input/govukSelectInput'
+export { GovUKRadioInput } from './radio-input/govukRadioInput'
+export { GovUKCheckboxInput } from './checkbox-input/govukCheckboxInput'
+export { GovUKTextareaInput } from './textarea-input/govukTextareaInput'
+export { GovUKCharacterCount } from './character-count/govukCharacterCount'
+export {
   GovUKDateInputFull,
   GovUKDateInputYearMonth,
   GovUKDateInputMonthDay,
 } from './date-input/govukDateInputVariants'
-export type { GovUKDetails } from './details/govukDetails'
-export type { GovUKPagination, PaginationLink, PaginationItem } from './pagination/govukPagination'
-export type { GovUKWarningText } from './warning-text/govukWarningText'
+export { GovUKDetails } from './details/govukDetails'
+export { GovUKPagination } from './pagination/govukPagination'
+export { GovUKWarningText } from './warning-text/govukWarningText'
 
 /** All GOV.UK component definitions */
 export const govukComponents: ComponentRegistryEntry<any>[] = [

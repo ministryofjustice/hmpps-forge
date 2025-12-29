@@ -1,19 +1,17 @@
-import { ConditionalBoolean, ConditionalString, FieldBlockDefinition } from '@form-engine/form/types/structures.type'
+import {
+  ConditionalBoolean,
+  ConditionalString,
+  FieldBlockDefinition,
+  FieldBlockProps,
+} from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Text Input Component
- *
- * A single-line text input component following the GOV.UK Design System patterns.
- * Provides comprehensive form validation integration, accessibility support, and
- * advanced features like prefixes, suffixes, and custom input types.
- *
+ * Props for the GovUKTextInput component.
  * @see https://design-system.service.gov.uk/components/text-input/
  */
-export interface GovUKTextInput extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukTextInput'
-
+export interface GovUKTextInputProps extends FieldBlockProps {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-email'
@@ -65,13 +63,6 @@ export interface GovUKTextInput extends FieldBlockDefinition {
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
-
-  /**
-   * Optional initial value of the input.
-   * Sets the default content that appears when the input is first rendered.
-   * @example 'user@example.com'
-   */
-  value?: ConditionalString
 
   /**
    * Type of input control to render. Defaults to "text".
@@ -264,3 +255,33 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextI
     params,
   })
 })
+
+/**
+ * GOV.UK Text Input Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKTextInputProps` type or the `GovUKTextInput()` wrapper function instead.
+ */
+export interface GovUKTextInput extends FieldBlockDefinition, GovUKTextInputProps {
+  /** Component variant identifier */
+  variant: 'govukTextInput'
+}
+
+/**
+ * Creates a GOV.UK Text Input field.
+ * A single-line text input component following the GOV.UK Design System patterns.
+ *
+ * @see https://design-system.service.gov.uk/components/text-input/
+ * @example
+ * ```typescript
+ * GovUKTextInput({
+ *   code: 'email',
+ *   label: 'Email address',
+ *   hint: 'We will only use this to contact you about your application',
+ *   autocomplete: 'email',
+ * })
+ * ```
+ */
+export function GovUKTextInput(props: GovUKTextInputProps): GovUKTextInput {
+  return field<GovUKTextInput>({ ...props, variant: 'govukTextInput' })
+}

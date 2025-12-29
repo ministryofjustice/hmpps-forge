@@ -1,7 +1,13 @@
 import type nunjucks from 'nunjucks'
 
 import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import { BlockDefinition, ConditionalString, EvaluatedBlock } from '@form-engine/form/types/structures.type'
+import {
+  BasicBlockProps,
+  BlockDefinition,
+  ConditionalString,
+  EvaluatedBlock,
+} from '@form-engine/form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
  * Heading configuration object for card items.
@@ -67,38 +73,20 @@ export interface MOJCardGroupItem {
 }
 
 /**
- * MOJ Card Group component for displaying multiple cards in a grid layout.
- *
- * Based on the MOJ Design Patterns card component:
- * https://design-patterns.service.justice.gov.uk/components/card/
- *
- * Wraps cards in a responsive grid using GOV.UK grid classes.
- * Cards are displayed in a semantic list structure.
+ * Props for the MOJCardGroup component.
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
  *
  * @example
  * ```typescript
- * // Simple form - just strings
- * block<MOJCardGroup>({
- *   variant: 'mojCardGroup',
+ * MOJCardGroup({
  *   items: [
  *     { heading: 'Search', href: '/search', description: 'Find records' },
  *     { heading: 'Reports', href: '/reports', description: 'View reports' },
  *   ],
  * })
- *
- * // Full form - with additional options
- * block<MOJCardGroup>({
- *   variant: 'mojCardGroup',
- *   items: [
- *     { heading: { text: 'Search', level: 3 }, href: '/search', description: { html: '<strong>Find</strong> records' } },
- *   ],
- *   columns: 2,
- * })
  * ```
  */
-export interface MOJCardGroup extends BlockDefinition {
-  variant: 'mojCardGroup'
-
+export interface MOJCardGroupProps extends BasicBlockProps {
   /** Array of cards to display */
   items: MOJCardGroupItem[]
 
@@ -110,6 +98,17 @@ export interface MOJCardGroup extends BlockDefinition {
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
+}
+
+/**
+ * MOJ Card Group Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `MOJCardGroupProps` type or the `MOJCardGroup()` wrapper function instead.
+ */
+export interface MOJCardGroup extends BlockDefinition, MOJCardGroupProps {
+  /** Component variant identifier */
+  variant: 'mojCardGroup'
 }
 
 /**
@@ -148,3 +147,23 @@ async function cardGroupRenderer(
 }
 
 export const mojCardGroup = buildNunjucksComponent<MOJCardGroup>('mojCardGroup', cardGroupRenderer)
+
+/**
+ * Creates an MOJ Card Group block.
+ * A component for displaying multiple cards in a responsive grid layout.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
+ * @example
+ * ```typescript
+ * MOJCardGroup({
+ *   items: [
+ *     { heading: 'Search', href: '/search', description: 'Find records' },
+ *     { heading: 'Reports', href: '/reports', description: 'View reports' },
+ *   ],
+ *   columns: 2,
+ * })
+ * ```
+ */
+export function MOJCardGroup(props: MOJCardGroupProps): MOJCardGroup {
+  return blockBuilder<MOJCardGroup>({ ...props, variant: 'mojCardGroup' })
+}

@@ -1,39 +1,28 @@
 import type nunjucks from 'nunjucks'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { BlockDefinition, ConditionalString, EvaluatedBlock } from '@form-engine/form/types/structures.type'
+import {
+  BasicBlockProps,
+  BlockDefinition,
+  ConditionalString,
+  EvaluatedBlock,
+} from '@form-engine/form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
- * GOV.UK Warning Text component for displaying important warnings.
- * Renders with an exclamation mark icon and bold text styling.
+ * Props for the GovUKWarningText component.
  *
- * @example Plain text
+ * Use this to display important warnings to users with an exclamation mark icon
+ * and bold text styling following the GOV.UK Design System.
+ *
+ * @see https://design-system.service.gov.uk/components/warning-text/
+ * @example
  * ```typescript
- * block<GovUKWarningText>({
- *   variant: 'govukWarningText',
+ * GovUKWarningText({
  *   text: 'You can be fined up to £5,000 if you do not register.',
  * })
  * ```
- *
- * @example HTML content
- * ```typescript
- * block<GovUKWarningText>({
- *   variant: 'govukWarningText',
- *   html: 'You <strong>must</strong> complete this section.',
- * })
- * ```
- *
- * @example Custom icon text
- * ```typescript
- * block<GovUKWarningText>({
- *   variant: 'govukWarningText',
- *   text: 'This action cannot be undone.',
- *   iconFallbackText: 'Important',
- * })
- * ```
  */
-export interface GovUKWarningText extends BlockDefinition {
-  variant: 'govukWarningText'
-
+export interface GovUKWarningTextProps extends BasicBlockProps {
   /** Plain text content for the warning. Required unless html is provided. */
   text?: ConditionalString
 
@@ -48,6 +37,17 @@ export interface GovUKWarningText extends BlockDefinition {
 
   /** Custom HTML attributes for the warning text container */
   attributes?: Record<string, any>
+}
+
+/**
+ * GOV.UK Warning Text component interface.
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKWarningTextProps` type or the `GovUKWarningText()` wrapper function instead.
+ */
+export interface GovUKWarningText extends BlockDefinition, GovUKWarningTextProps {
+  /** Component variant identifier */
+  variant: 'govukWarningText'
 }
 
 /**
@@ -69,3 +69,19 @@ async function warningTextRenderer(
 }
 
 export const govukWarningText = buildNunjucksComponent<GovUKWarningText>('govukWarningText', warningTextRenderer)
+
+/**
+ * Creates a GOV.UK Warning Text block for displaying important warnings.
+ * Renders with an exclamation mark icon and bold text styling.
+ *
+ * @see https://design-system.service.gov.uk/components/warning-text/
+ * @example
+ * ```typescript
+ * GovUKWarningText({
+ *   text: 'You can be fined up to £5,000 if you do not register.',
+ * })
+ * ```
+ */
+export function GovUKWarningText(props: GovUKWarningTextProps): GovUKWarningText {
+  return blockBuilder<GovUKWarningText>({ ...props, variant: 'govukWarningText' })
+}

@@ -1,5 +1,11 @@
-import { ConditionalBoolean, ConditionalString, FieldBlockDefinition } from '@form-engine/form/types/structures.type'
+import {
+  ConditionalBoolean,
+  ConditionalString,
+  FieldBlockDefinition,
+  FieldBlockProps,
+} from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+import { field } from '@form-engine/form/builders'
 
 /**
  * Select item configuration
@@ -18,17 +24,22 @@ export interface SelectItem {
 }
 
 /**
- * GOV.UK Select Input Component
- *
- * A dropdown select component following the GOV.UK Design System patterns.
- * Use sparingly - radios or checkboxes are often better alternatives.
- *
+ * Props for the GovUKSelectInput component.
  * @see https://design-system.service.gov.uk/components/select/
+ *
+ * @example
+ * ```typescript
+ * GovUKSelectInput({
+ *   code: 'country',
+ *   label: 'Select your country',
+ *   items: [
+ *     { value: '', text: 'Choose an option' },
+ *     { value: 'gb', text: 'United Kingdom' },
+ *   ],
+ * })
+ * ```
  */
-export interface GovUKSelectInput extends FieldBlockDefinition {
-  /** Component variant identifier */
-  variant: 'govukSelectInput'
-
+export interface GovUKSelectInputProps extends FieldBlockProps {
   /**
    * The ID of the select. Defaults to the value of `code` if not provided.
    * @example 'country-select'
@@ -87,13 +98,6 @@ export interface GovUKSelectInput extends FieldBlockDefinition {
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
-
-  /**
-   * Value for the option which should be selected.
-   * Use this as an alternative to setting the `selected` option on each individual item.
-   * @example 'uk'
-   */
-  value?: ConditionalString
 
   /**
    * If `true`, select box will be disabled.
@@ -161,3 +165,35 @@ export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>(
     })
   },
 )
+
+/**
+ * GOV.UK Select Input Component
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use `GovUKSelectInputProps` type or the `GovUKSelectInput()` wrapper function instead.
+ */
+export interface GovUKSelectInput extends FieldBlockDefinition, GovUKSelectInputProps {
+  /** Component variant identifier */
+  variant: 'govukSelectInput'
+}
+
+/**
+ * Creates a GOV.UK Select Input (dropdown) field.
+ *
+ * @see https://design-system.service.gov.uk/components/select/
+ * @example
+ * ```typescript
+ * GovUKSelectInput({
+ *   code: 'country',
+ *   label: 'Select your country',
+ *   items: [
+ *     { value: '', text: 'Choose an option' },
+ *     { value: 'gb', text: 'United Kingdom' },
+ *     { value: 'fr', text: 'France' },
+ *   ],
+ * })
+ * ```
+ */
+export function GovUKSelectInput(props: GovUKSelectInputProps): GovUKSelectInput {
+  return field<GovUKSelectInput>({ ...props, variant: 'govukSelectInput' })
+}
