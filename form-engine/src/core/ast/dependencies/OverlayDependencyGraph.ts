@@ -89,4 +89,14 @@ export default class OverlayDependencyGraph extends DependencyGraph {
 
     return merged.topologicalSort()
   }
+
+  /**
+   * Topological sort of pending nodes only.
+   *
+   * Use this when you only need the relative order of newly added nodes,
+   * not the full graph. O(p + e_p) where p = pending nodes, e_p = pending edges.
+   */
+  topologicalSortPending(): { sort: NodeId[]; cycles: NodeId[][]; hasCycles: boolean } {
+    return this.pending.topologicalSort()
+  }
 }

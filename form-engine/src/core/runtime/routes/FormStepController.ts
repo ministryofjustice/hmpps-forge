@@ -88,6 +88,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     // TODO: Add 'reachability' check
 
+    await this.expandIteratorsForStep(evaluator, context)
+
     await this.evaluateAnswerPseudoNodes(evaluator, context)
 
     const evaluationResult = await evaluator.evaluate(context)

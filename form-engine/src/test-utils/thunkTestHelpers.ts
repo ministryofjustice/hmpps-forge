@@ -379,25 +379,11 @@ export function createMockInvokerWithError(
  * @example
  * const hooks = createMockHooks()
  * await handler.evaluate(context, invoker, hooks)
- * expect(hooks.registerRuntimeNode).toHaveBeenCalledWith(node, 'template')
+ * expect(hooks.registerRuntimeNodesBatch).toHaveBeenCalledWith([node], 'template')
  */
 export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
-  let pseudoNodeCounter = 0
-
   return {
-    createNode: jest.fn(),
     transformValue: jest.fn(),
-    registerRuntimeNode: jest.fn(),
     registerRuntimeNodesBatch: jest.fn(),
-    createPseudoNode: jest.fn().mockImplementation((type: PseudoNodeType, properties: Record<string, unknown>) => {
-      pseudoNodeCounter += 1
-
-      return {
-        id: `runtime_pseudo:${pseudoNodeCounter}` as NodeId,
-        type,
-        properties,
-      } as PseudoNode
-    }),
-    registerPseudoNode: jest.fn(),
   }
 }

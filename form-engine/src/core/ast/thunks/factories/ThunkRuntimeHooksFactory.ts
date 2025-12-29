@@ -1,14 +1,13 @@
 import { NodeId, ASTNode } from '@form-engine/core/types/engine.type'
-import { RuntimeOverlayHooks, RuntimeOverlayBuilder } from '@form-engine/core/ast/thunks/types'
+import { RuntimeOverlayBuilder, MetadataComputationDependencies } from '@form-engine/core/ast/thunks/types'
 import ThunkCompilerFactory from '@form-engine/core/ast/thunks/factories/ThunkCompilerFactory'
 import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
 import { NodeCompilationPipeline } from '@form-engine/core/ast/compilation/NodeCompilationPipeline'
 import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
 import { NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
-import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
-import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import ThunkTypeMismatchError from '@form-engine/errors/ThunkTypeMismatchError'
+import { isHybridHandler } from '@form-engine/core/ast/thunks/typeguards'
+import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 
 /**
  * Factory for creating runtime hooks used during thunk evaluation.
@@ -29,6 +28,7 @@ export default class ThunkRuntimeHooksFactory {
     private readonly compiler: ThunkCompilerFactory,
     private readonly cacheManager: ThunkCacheManager,
     private readonly runtimeOverlayBuilder: RuntimeOverlayBuilder,
+    private readonly functionRegistry: FunctionRegistry,
   ) {}
 
   /**
@@ -37,39 +37,11 @@ export default class ThunkRuntimeHooksFactory {
    * @param currentNodeId - The node currently being evaluated
    * @returns Runtime hooks object
    */
-  create(currentNodeId: NodeId): RuntimeOverlayHooks {
-    const builder = this.runtimeOverlayBuilder
-
-    const createNode = (json: any): ASTNode => {
-      return builder.nodeFactory.createNode(json)
-    }
+  create(currentNodeId: NodeId) {
+    const runtimeOverlay = this.runtimeOverlayBuilder
 
     const transformValue = (value: any): any => {
-      return builder.nodeFactory.transformValue(value)
-    }
-
-    const registerRuntimeNode = (node: ASTNode, property: string): void => {
-      // Simple single-node registration without dynamic code resolution
-      // Use registerRuntimeNodesBatch for fields with dynamic codes
-      NodeCompilationPipeline.normalize(node, this.compilationDependencies, NodeIDCategory.RUNTIME_AST)
-      new RegistrationTraverser(this.compilationDependencies.nodeRegistry).register(node)
-
-      this.compilationDependencies.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
-      this.compilationDependencies.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
-      NodeCompilationPipeline.setRuntimeMetadata(node, this.compilationDependencies)
-
-      builder.runtimeNodes.set(node.id, node)
-
-      // Create pseudo nodes and wire dependencies
-      NodeCompilationPipeline.createPseudoNodes(this.compilationDependencies)
-      NodeCompilationPipeline.wireDependencies(this.compilationDependencies)
-
-      // Compile handler
-      const compiledHandler = this.compiler.compileASTNode(node.id, node as any)
-      builder.handlerRegistry.register(node.id, compiledHandler)
-
-      // Invalidate caches
-      this.cacheManager.invalidateCascading(node.id, builder.dependencyGraph)
+      return runtimeOverlay.nodeFactory.transformValue(value)
     }
 
     const registerRuntimeNodesBatch = async (nodes: ASTNode[], property: string): Promise<void> => {
@@ -77,108 +49,88 @@ export default class ThunkRuntimeHooksFactory {
         return
       }
 
-      const {
-        deps: pendingCompilationDependencies,
-        flush,
-        getPendingNodeIds,
-      } = this.compilationDependencies.createPendingView()
+      const { deps: pendingOverlay, flush, getPendingNodeIds } = this.compilationDependencies.createOverlay()
 
       // Phase 1: Normalize and register all nodes
       nodes.forEach(node => {
-        NodeCompilationPipeline.normalize(node, pendingCompilationDependencies, NodeIDCategory.RUNTIME_AST)
-        new RegistrationTraverser(pendingCompilationDependencies.nodeRegistry).register(node)
+        NodeCompilationPipeline.normalize(node, pendingOverlay, NodeIDCategory.RUNTIME_AST)
+        new RegistrationTraverser(pendingOverlay.nodeRegistry).register(node)
 
-        pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
-        pendingCompilationDependencies.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
-        NodeCompilationPipeline.setRuntimeMetadata(node, pendingCompilationDependencies)
+        pendingOverlay.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
+        pendingOverlay.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
+        NodeCompilationPipeline.setRuntimeMetadata(node, pendingOverlay)
       })
 
-      // Add all registered nodes to the runtime nodes map
-      const pendingIds = getPendingNodeIds()
+      // Add registered AST nodes to the runtime nodes map
+      const astNodeIds = getPendingNodeIds()
 
-      pendingIds
-        .map(id => pendingCompilationDependencies.nodeRegistry.get(id))
+      astNodeIds
+        .map(id => pendingOverlay.nodeRegistry.get(id))
         .forEach((runtimeNode: ASTNode) => {
-          builder.runtimeNodes.set(runtimeNode.id, runtimeNode)
+          runtimeOverlay.runtimeNodes.set(runtimeNode.id, runtimeNode)
         })
 
-      // Phase 2: Create pseudo nodes and wire dependencies ONCE for all nodes
-      NodeCompilationPipeline.createPseudoNodes(pendingCompilationDependencies)
-      NodeCompilationPipeline.wireDependencies(pendingCompilationDependencies)
+      // Phase 2: Create pseudo nodes
+      NodeCompilationPipeline.createPseudoNodes(pendingOverlay)
 
-      // Phase 3: Compile handlers for all newly registered nodes
-      getPendingNodeIds().forEach(nodeId => {
-        const registeredNode = pendingCompilationDependencies.nodeRegistry.get(nodeId)
+      // Phase 3: Wire dependencies for ALL nodes (AST + pseudo)
+      const allPendingIds = getPendingNodeIds()
+      NodeCompilationPipeline.wireDependencies(pendingOverlay, allPendingIds)
+
+      // Phase 4: Compile handlers for all newly registered nodes
+      allPendingIds.forEach(nodeId => {
+        const registeredNode = pendingOverlay.nodeRegistry.get(nodeId)
 
         if (!registeredNode) {
           return
         }
 
         const compiledHandler = this.compiler.compileASTNode(nodeId, registeredNode as any)
-        builder.handlerRegistry.register(nodeId, compiledHandler)
+        pendingOverlay.thunkHandlerRegistry.register(nodeId, compiledHandler)
       })
 
-      // Phase 4: Merge pending → main
+      // Phase 4B: Compute isAsync metadata for hybrid handlers
+      const metadataDeps: MetadataComputationDependencies = {
+        thunkHandlerRegistry: pendingOverlay.thunkHandlerRegistry,
+        functionRegistry: this.functionRegistry,
+        nodeRegistry: pendingOverlay.nodeRegistry,
+        metadataRegistry: pendingOverlay.metadataRegistry,
+      }
+
+      // Use topological sort to compute in dependency order (leaves → roots)
+      // This ensures children compute before parents, so parents see accurate isAsync values
+      const overlayGraph = pendingOverlay.dependencyGraph
+      const sortResult = overlayGraph.topologicalSortPending()
+
+      sortResult.sort
+        .forEach(nodeId => {
+          const handler = pendingOverlay.thunkHandlerRegistry.get(nodeId)
+
+          if (handler && isHybridHandler(handler)) {
+            handler.computeIsAsync(metadataDeps)
+          }
+        })
+
+      // Phase 5: Merge pending → main
       flush()
 
-      // Phase 5: Invalidate caches
-      nodes.forEach(node => {
-        this.cacheManager.invalidateCascading(node.id, builder.dependencyGraph)
+      // Phase 6: Invalidate caches for ALL pending nodes (AST + pseudo)
+      allPendingIds.forEach(nodeId => {
+        this.cacheManager.invalidateCascading(nodeId, runtimeOverlay.dependencyGraph)
       })
-    }
-
-    const createPseudoNode = (type: PseudoNodeType, properties: Record<string, unknown>): PseudoNode => {
-      // Create runtime pseudo node factory
-      const runtimePseudoNodeFactory = new PseudoNodeFactory(
-        this.compilationDependencies.nodeIdGenerator,
-        NodeIDCategory.RUNTIME_PSEUDO,
-      )
-
-      // Create the pseudo node based on type
-      switch (type) {
-        case PseudoNodeType.ANSWER_REMOTE:
-          return runtimePseudoNodeFactory.createAnswerRemotePseudoNode(properties.baseFieldCode as string)
-
-        case PseudoNodeType.DATA:
-          return runtimePseudoNodeFactory.createDataPseudoNode(properties.baseProperty as string)
-
-        case PseudoNodeType.POST:
-          return runtimePseudoNodeFactory.createPostPseudoNode(properties.baseFieldCode as string)
-
-        case PseudoNodeType.QUERY:
-          return runtimePseudoNodeFactory.createQueryPseudoNode(properties.paramName as string)
-
-        case PseudoNodeType.PARAMS:
-          return runtimePseudoNodeFactory.createParamsPseudoNode(properties.paramName as string)
-
-        default:
-          throw ThunkTypeMismatchError.invalidNodeType(currentNodeId, type, [
-            PseudoNodeType.ANSWER_REMOTE,
-            PseudoNodeType.DATA,
-            PseudoNodeType.POST,
-            PseudoNodeType.QUERY,
-            PseudoNodeType.PARAMS,
-          ])
-      }
-    }
-
-    const registerPseudoNode = (pseudoNode: PseudoNode): void => {
-      // Register pseudo node in the overlay registry
-      builder.nodeRegistry.register(pseudoNode.id, pseudoNode)
-      builder.runtimeNodes.set(pseudoNode.id, pseudoNode as any)
-
-      // Compile and register handler for the pseudo node
-      const handler = this.compiler.compileASTNode(pseudoNode.id, pseudoNode as any)
-      builder.handlerRegistry.register(pseudoNode.id, handler)
     }
 
     return {
-      createNode,
       transformValue,
-      registerRuntimeNode,
       registerRuntimeNodesBatch,
-      createPseudoNode,
-      registerPseudoNode,
     }
   }
 }
+
+/**
+ * Runtime overlay hooks type - derived from ThunkRuntimeHooksFactory.create()
+ *
+ * This type is automatically derived from the implementation to ensure
+ * the type and implementation stay in sync.
+ */
+export type RuntimeOverlayHooks = ReturnType<ThunkRuntimeHooksFactory['create']>

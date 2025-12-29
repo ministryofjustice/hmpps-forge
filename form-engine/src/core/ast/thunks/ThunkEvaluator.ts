@@ -1,14 +1,14 @@
-import { NodeId, FormInstanceDependencies, ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import {
-  ThunkHandler,
-  SyncThunkHandler,
+  EvaluatorRequestData,
   HybridThunkHandler,
+  RuntimeOverlayBuilder,
+  RuntimeOverlayConfigurator,
+  SyncThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   ThunkResult,
   ThunkRuntimeHooks,
-  RuntimeOverlayBuilder,
-  RuntimeOverlayConfigurator,
-  EvaluatorRequestData,
 } from '@form-engine/core/ast/thunks/types'
 import { isSyncHandler } from '@form-engine/core/ast/thunks/typeguards'
 import ThunkHandlerRegistryError from '@form-engine/errors/ThunkHandlerRegistryError'
@@ -19,9 +19,6 @@ import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCach
 import ThunkRuntimeHooksFactory from '@form-engine/core/ast/thunks/factories/ThunkRuntimeHooksFactory'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
-import { NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
 
 /**
  * Result of evaluating a form
@@ -89,17 +86,18 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
       new ThunkCompilerFactory(),
       this.cacheManager,
       runtimeOverlayBuilder,
+      formInstanceDependencies.functionRegistry,
     )
   }
 
   /**
    * Create an evaluator with a runtime overlay.
    *
-   * This factory clones the compilation dependencies and creates a runtime overlay
-   * so callers can register runtime-expanded nodes/edges/handlers without mutating
-   * the original compiled program.
+   * This factory creates O(1) overlay wrappers around the compilation dependencies,
+   * allowing callers to register runtime-expanded nodes/edges/handlers without
+   * mutating the original compiled program or copying data.
    *
-   * The provided configurator receives the cloned registries and graph so it
+   * The provided configurator receives the overlay registries and graph so it
    * can append additional runtime nodes and wiring before evaluation.
    *
    * @param compilationDependencies - The compiled form dependencies
@@ -112,24 +110,14 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     formInstanceDependencies: FormInstanceDependencies,
     configurator?: RuntimeOverlayConfigurator,
   ): ThunkEvaluator {
-    const clonedCompilationDependencies = compilationDependencies.clone()
-
-    const runtimeCompilationDependencies = new CompilationDependencies(
-      clonedCompilationDependencies.nodeIdGenerator,
-      new NodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_AST),
-      new PseudoNodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_PSEUDO),
-      clonedCompilationDependencies.nodeRegistry,
-      clonedCompilationDependencies.metadataRegistry,
-      clonedCompilationDependencies.thunkHandlerRegistry,
-      clonedCompilationDependencies.dependencyGraph,
-    )
+    const { deps: runtimeDeps } = compilationDependencies.createOverlay()
 
     const overlay: RuntimeOverlayBuilder = {
-      handlerRegistry: clonedCompilationDependencies.thunkHandlerRegistry,
-      metadataRegistry: clonedCompilationDependencies.metadataRegistry,
-      dependencyGraph: clonedCompilationDependencies.dependencyGraph,
-      nodeRegistry: clonedCompilationDependencies.nodeRegistry,
-      nodeFactory: new NodeFactory(clonedCompilationDependencies.nodeIdGenerator, NodeIDCategory.RUNTIME_AST),
+      handlerRegistry: runtimeDeps.thunkHandlerRegistry,
+      metadataRegistry: runtimeDeps.metadataRegistry,
+      dependencyGraph: runtimeDeps.dependencyGraph,
+      nodeRegistry: runtimeDeps.nodeRegistry,
+      nodeFactory: runtimeDeps.nodeFactory,
       runtimeNodes: new Map<NodeId, ASTNode>(),
     }
 
@@ -137,7 +125,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
       configurator(overlay)
     }
 
-    return new ThunkEvaluator(runtimeCompilationDependencies, formInstanceDependencies, overlay)
+    return new ThunkEvaluator(runtimeDeps, formInstanceDependencies, overlay)
   }
 
   /**
@@ -161,6 +149,10 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
 
     if (cachedResult) {
+      if (cachedResult.error) {
+        throw cachedResult.error.cause
+      }
+
       return cachedResult
     }
 
@@ -168,7 +160,13 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     // when multiple evaluations run in parallel (e.g., Promise.all in BlockHandler)
     const isolatedContext = context.withIsolatedScope()
 
-    return this.invokeWithRetry(nodeId, isolatedContext, 10)
+    const result = await this.invokeWithRetry<T>(nodeId, isolatedContext, 10)
+
+    if (result.error) {
+      throw result.error.cause
+    }
+
+    return result
   }
 
   /**
@@ -194,6 +192,10 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     const cachedResult = this.cacheManager.getWithCachedFlag<T>(nodeId)
 
     if (cachedResult) {
+      if (cachedResult.error) {
+        throw cachedResult.error.cause
+      }
+
       return cachedResult
     }
 
@@ -202,29 +204,21 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
 
     if (!handler) {
       const registry = this.compilationDependencies.thunkHandlerRegistry
-      const error = ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
-
-      const errorResult: ThunkResult<T> = {
-        error: error.toThunkError(),
-        metadata: { source: 'ThunkEvaluator.invokeSync', timestamp: Date.now() },
-      }
-
-      this.cacheManager.set(nodeId, errorResult)
-
-      return errorResult
+      throw ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
     }
 
     // Verify handler is actually sync
     if (!isSyncHandler(handler)) {
-      throw new Error(
-        `invokeSync() called on async handler: ${nodeId} (${handler.constructor.name}). ` +
-          `Use invoke() instead or convert handler to SyncThunkHandler.`,
-      )
+      throw ThunkEvaluationError.incorrectHandler(nodeId, handler.constructor.name)
     }
 
     // Execute synchronously - NO Promise overhead!
     const result = this.executeSyncHandler<T>(nodeId, handler, context)
     this.cacheManager.set(nodeId, result)
+
+    if (result.error) {
+      throw result.error.cause
+    }
 
     return result
   }

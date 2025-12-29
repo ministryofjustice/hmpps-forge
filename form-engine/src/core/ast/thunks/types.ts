@@ -5,8 +5,8 @@ import ThunkHandlerRegistry from '@form-engine/core/ast/thunks/registries/ThunkH
 import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
+import type { RuntimeOverlayHooks } from '@form-engine/core/ast/thunks/factories/ThunkRuntimeHooksFactory'
 
 /**
  * Transition types that can set answers
@@ -147,6 +147,7 @@ export type HandlerResult<T = unknown> =
 export type ThunkErrorType =
   | 'HANDLER_REGISTRY'
   | 'LOOKUP_FAILED'
+  | 'INCORRECT_HANDLER'
   | 'TYPE_MISMATCH'
   | 'EVALUATION_FAILED'
   | 'SECURITY'
@@ -458,94 +459,8 @@ export interface RuntimeOverlayBuilder {
 }
 
 /**
- * Runtime overlay hooks - API provided to handlers for registering runtime nodes
- *
- * These hooks are passed to handler.evaluate() and allow handlers to:
- * 1. Create new AST nodes from JSON templates (with runtime IDs)
- * 2. Register newly created AST nodes (e.g., collection template instances)
- * 3. Create and register pseudo nodes for dynamic references
- *
- * The hooks automatically track metadata (which node created each runtime node)
- * to enable proper compilation pipeline processing between evaluation iterations.
- */
-export interface RuntimeOverlayHooks {
-  /**
-   * Create a runtime AST node from JSON
-   *
-   * Uses NodeFactory configured with NodeIDCategory.RUNTIME_AST to automatically
-   * generate runtime_ast:* IDs for the created nodes.
-   *
-   * @param json - The JSON definition to parse into an AST node
-   * @returns The created AST node with runtime ID
-   */
-  createNode: (json: any) => ASTNode
-
-  /**
-   * Transform a value, recursively processing nested AST nodes
-   *
-   * Unlike createNode which requires a known node type, transformValue handles:
-   * - AST nodes (blocks, expressions, etc.) → creates proper AST nodes via createNode
-   * - Plain objects → recursively processes properties, transforming nested nodes
-   * - Arrays → recursively processes each element
-   * - Primitives → passed through as-is
-   *
-   * This enables Collection templates to contain plain objects with nested expressions,
-   * e.g., { value: Item().path('value'), text: Item().path('text') }
-   *
-   * @param value - The value to transform (can be any JSON value)
-   * @returns The transformed value with nested AST nodes created
-   */
-  transformValue: (value: any) => any
-
-  /**
-   * Register a runtime node in the overlay
-   *
-   * Automatically tracks which node is currently being evaluated as the creator,
-   * enabling metadata inheritance (isDescendantOfStep, isAncestorOfStep, attachedToParentNode, attachedToParentProperty).
-   *
-   * Also compiles and registers handlers for the node and its children.
-   *
-   * @param node - The runtime AST node to register (must have runtime_ast:* or runtime_pseudo:* ID)
-   * @param property - The property name on the parent where this node is attached (e.g., 'template', 'fallback')
-   */
-  registerRuntimeNode: (node: ASTNode, property: string) => void
-
-  /**
-   * Register multiple runtime nodes in a single batch
-   *
-   * More efficient than calling registerRuntimeNode multiple times because
-   * dependency wiring only runs once at the end instead of after each node.
-   *
-   * @param nodes - Array of runtime AST nodes to register
-   * @param property - The property name on the parent where these nodes are attached
-   */
-  registerRuntimeNodesBatch: (nodes: ASTNode[], property: string) => Promise<void>
-
-  /**
-   * Create a runtime pseudo node for dynamic references
-   *
-   * Creates a pseudo node when one doesn't exist at compile time (e.g., dynamic references).
-   * Does not register the node - use registerPseudoNode for that.
-   *
-   * @param type - The pseudo node type to create
-   * @param properties - Properties for the pseudo node (e.g., baseFieldCode, paramName)
-   * @returns The created pseudo node
-   */
-  createPseudoNode: (type: PseudoNodeType, properties: Record<string, unknown>) => PseudoNode
-
-  /**
-   * Register a runtime pseudo node
-   *
-   * Registers the pseudo node in the overlay registry, compiles its handler,
-   * and registers the handler.
-   *
-   * @param pseudoNode - The pseudo node to register
-   */
-  registerPseudoNode: (pseudoNode: PseudoNode) => void
-}
-
-/**
  * Runtime hooks for extending evaluation (overlay builder, instrumentation, etc.)
+ * Derived from ThunkRuntimeHooksFactory.create()
  */
 export type ThunkRuntimeHooks = RuntimeOverlayHooks
 
