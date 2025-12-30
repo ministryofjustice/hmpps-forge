@@ -1,6 +1,6 @@
 import { GovukComponentTestHelper } from '@form-engine-govuk-components/test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '@form-engine-govuk-components/test-utils/setupComponentTest'
-import { govukSelectInput, SelectItem } from './govukSelectInput'
+import { govukSelectInput } from './govukSelectInput'
 
 jest.mock('nunjucks')
 
@@ -32,7 +32,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         id: 'custom-id',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -48,7 +48,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         value: 'selected-value',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -84,7 +84,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         label: 'Select your country',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -106,7 +106,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         label: labelObj,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -124,7 +124,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         label: labelObj,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -141,7 +141,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         hint: 'Select the country where you currently live',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -163,7 +163,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         hint: hintObj,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -178,7 +178,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         hint: undefined as undefined,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -195,7 +195,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         disabled: true,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -210,7 +210,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         classes: 'govuk-!-width-one-half',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -228,7 +228,7 @@ describe('govukSelectInput', () => {
           'data-module': 'accessible-autocomplete',
           'aria-describedby': 'help-text',
         },
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -252,7 +252,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         formGroup,
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -269,7 +269,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         errors: [{ message: 'Select an option' }],
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -286,7 +286,7 @@ describe('govukSelectInput', () => {
       const block = {
         code: 'test-select',
         errors: [{ message: 'First error' }, { message: 'Second error' }],
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -302,7 +302,7 @@ describe('govukSelectInput', () => {
       // Arrange
       const block = {
         code: 'test-select',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -318,7 +318,7 @@ describe('govukSelectInput', () => {
       // Arrange
       const block = {
         code: 'test-select',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
@@ -332,7 +332,7 @@ describe('govukSelectInput', () => {
       // Arrange
       const block = {
         code: 'test-select',
-        items: [] as SelectItem[],
+        items: [] as { value: string; text: string }[],
       }
 
       // Act
