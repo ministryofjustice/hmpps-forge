@@ -8,6 +8,7 @@ import {
   ConditionalArray,
   EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
+import { block as blockBuilder } from '@form-engine/form/builders'
 
 /**
  * Navigation item configuration.
@@ -30,7 +31,7 @@ export interface MOJSubNavigationItem {
 }
 
 /**
- * MOJ Sub-Navigation component for secondary-level navigation.
+ * Props for MOJ Sub-Navigation component.
  *
  * Based on the MOJ Design Patterns sub-navigation component:
  * https://design-patterns.service.justice.gov.uk/components/sub-navigation/
@@ -41,8 +42,7 @@ export interface MOJSubNavigationItem {
  *
  * @example
  * ```typescript
- * block<MOJSubNavigation>({
- *   variant: 'mojSubNavigation',
+ * MOJSubNavigation({
  *   label: 'Case sections',
  *   items: [
  *     { text: 'Overview', href: '/case/123/overview', active: true },
@@ -52,9 +52,7 @@ export interface MOJSubNavigationItem {
  * })
  * ```
  */
-export interface MOJSubNavigation extends BlockDefinition {
-  variant: 'mojSubNavigation'
-
+export interface MOJSubNavigationProps {
   /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
   label?: ConditionalString
 
@@ -66,6 +64,16 @@ export interface MOJSubNavigation extends BlockDefinition {
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
+}
+
+/**
+ * MOJ Sub-Navigation component interface.
+ *
+ * Full interface including form-engine discriminator properties.
+ * For most use cases, use the `MOJSubNavigation()` wrapper function instead.
+ */
+export interface MOJSubNavigation extends BlockDefinition, MOJSubNavigationProps {
+  variant: 'mojSubNavigation'
 }
 
 /**
@@ -86,3 +94,23 @@ async function subNavigationRenderer(
 }
 
 export const mojSubNavigation = buildNunjucksComponent<MOJSubNavigation>('mojSubNavigation', subNavigationRenderer)
+
+/**
+ * Creates an MOJ Sub-Navigation component for secondary-level navigation.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/sub-navigation/
+ * @example
+ * ```typescript
+ * MOJSubNavigation({
+ *   label: 'Case sections',
+ *   items: [
+ *     { text: 'Overview', href: '/case/123/overview', active: true },
+ *     { text: 'Documents', href: '/case/123/documents' },
+ *     { text: 'Timeline', href: '/case/123/timeline' },
+ *   ],
+ * })
+ * ```
+ */
+export function MOJSubNavigation(props: MOJSubNavigationProps): MOJSubNavigation {
+  return blockBuilder<MOJSubNavigation>({ ...props, variant: 'mojSubNavigation' })
+}

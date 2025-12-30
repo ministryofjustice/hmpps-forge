@@ -17,7 +17,7 @@ export type {
   MOJSideNavigationSection,
   MOJSideNavigationHeading,
 } from './side-navigation/mojSideNavigation'
-export type { MOJSubNavigation, MOJSubNavigationItem } from './sub-navigation/mojSubNavigation'
+export type { MOJSubNavigationItem } from './sub-navigation/mojSubNavigation'
 
 // Re-export wrapper functions (types are exported implicitly with the functions)
 export { MOJAlert } from './alert/mojAlert'
@@ -25,6 +25,7 @@ export { MOJCard } from './card/mojCard'
 export { MOJCardGroup } from './card-group/mojCardGroup'
 export { MOJDatePicker } from './date-picker/mojDatePicker'
 export { MOJSideNavigation } from './side-navigation/mojSideNavigation'
+export { MOJSubNavigation } from './sub-navigation/mojSubNavigation'
 
 /** All MOJ component definitions */
 export const mojComponents: ComponentRegistryEntry<any>[] = [
