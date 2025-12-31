@@ -13,14 +13,17 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 /**
  * Handler for Block structure nodes (both field and basic blocks)
  *
- * Evaluates all properties in the block's properties object by:
- * 1. Recursively diving into nested structures (arrays, objects)
- * 2. Evaluating any AST nodes found within the properties
- * 3. Preserving primitives as-is
+ * Evaluates properties in the block based on whether it's on the current step:
  *
- * This enables blocks to contain dynamic expressions in any property,
- * including nested within arrays or objects (e.g., validation rules,
- * conditional visibility, default values).
+ * For blocks on CURRENT STEP (isDescendantOfStep = true):
+ * - All properties are evaluated (rendering, validation, etc.)
+ *
+ * For blocks on OTHER STEPS:
+ * - Only validation/data properties: code, validate, dependent
+ * - Rendering properties (label, hint, items, etc.) are skipped
+ *
+ * This runtime filtering replaces compile-time filtering in findRelevantNodes,
+ * allowing thunks to be compiled once and shared across all step artefacts.
  *
  * Synchronous when all nested AST nodes in properties are sync.
  * Asynchronous when any nested AST node is async.
@@ -28,21 +31,22 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 export default class BlockHandler implements HybridThunkHandler {
   isAsync = true
 
+  // Properties needed for validation/data on non-current steps
+  private static readonly VALIDATION_PROPS = ['code', 'validate', 'dependent']
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: BlockASTNode,
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
-    // Check if this block is on the current step
     const isOnCurrentStep = deps.metadataRegistry.get(this.nodeId, 'isDescendantOfStep', false)
 
     // For blocks on current step: check ALL properties except formatters (which aren't evaluated during rendering)
-    // For blocks on other steps: only check validation properties (code, validate, dependent)
-    const validationProps = ['code', 'validate', 'dependent']
+    // For blocks on other steps: only check validation properties
     const propertiesToCheck = isOnCurrentStep
       ? Object.entries(this.node.properties).filter(([key]) => key !== 'formatters')
-      : Object.entries(this.node.properties).filter(([key]) => validationProps.includes(key))
+      : Object.entries(this.node.properties).filter(([key]) => BlockHandler.VALIDATION_PROPS.includes(key))
 
     const asyncProperties: string[] = []
 
@@ -81,10 +85,9 @@ export default class BlockHandler implements HybridThunkHandler {
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
-    // Evaluate all properties in the block with special handling for dependent/validate
-    const evaluatedProperties = this.evaluateBlockPropertiesSync(this.node.properties, context, invoker)
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
+    const evaluatedProperties = this.evaluateBlockPropertiesSync(propertiesToEvaluate, context, invoker)
 
-    // Return block representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -97,10 +100,9 @@ export default class BlockHandler implements HybridThunkHandler {
   }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
-    // Evaluate all properties in the block with special handling for dependent/validate
-    const evaluatedProperties = await this.evaluateBlockProperties(this.node.properties, context, invoker)
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
+    const evaluatedProperties = await this.evaluateBlockProperties(propertiesToEvaluate, context, invoker)
 
-    // Return block representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -110,6 +112,25 @@ export default class BlockHandler implements HybridThunkHandler {
         properties: evaluatedProperties,
       },
     }
+  }
+
+  /**
+   * Determine which properties to evaluate based on step context
+   *
+   * Current step blocks: all properties (for full rendering)
+   * Other step blocks: only validation properties (for cross-step validation)
+   */
+  private getPropertiesToEvaluate(context: ThunkEvaluationContext): Record<string, unknown> {
+    const isOnCurrentStep = context.metadataRegistry.get(this.nodeId, 'isDescendantOfStep', false)
+
+    if (isOnCurrentStep) {
+      return this.node.properties
+    }
+
+    // For blocks on other steps, only include validation/data properties
+    return Object.fromEntries(
+      Object.entries(this.node.properties).filter(([key]) => BlockHandler.VALIDATION_PROPS.includes(key)),
+    )
   }
 
   /**

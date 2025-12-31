@@ -51,17 +51,20 @@ export default class ThunkRuntimeHooksFactory {
 
       const { deps: pendingOverlay, flush, getPendingNodeIds } = this.compilationDependencies.createOverlay()
 
-      // Phase 1: Normalize and register all nodes
       nodes.forEach(node => {
+        // Phase 1: Normalize nodes
         NodeCompilationPipeline.normalize(node, pendingOverlay, NodeIDCategory.RUNTIME_AST)
+
+        // Phase 2: Register nodes
         new RegistrationTraverser(pendingOverlay.nodeRegistry).register(node)
 
+        // Phase 3: Set node metadata
         pendingOverlay.metadataRegistry.set(node.id, 'attachedToParentNode', currentNodeId)
         pendingOverlay.metadataRegistry.set(node.id, 'attachedToParentProperty', property)
         NodeCompilationPipeline.setRuntimeMetadata(node, pendingOverlay)
       })
 
-      // Add registered AST nodes to the runtime nodes map
+      // Phase 4: Add registered AST nodes to the runtime nodes map
       const astNodeIds = getPendingNodeIds()
 
       astNodeIds
@@ -70,14 +73,14 @@ export default class ThunkRuntimeHooksFactory {
           runtimeOverlay.runtimeNodes.set(runtimeNode.id, runtimeNode)
         })
 
-      // Phase 2: Create pseudo nodes
+      // Phase 5: Create pseudo nodes
       NodeCompilationPipeline.createPseudoNodes(pendingOverlay)
 
-      // Phase 3: Wire dependencies for ALL nodes (AST + pseudo)
+      // Phase 6: Wire dependencies for ALL nodes (AST + pseudo)
       const allPendingIds = getPendingNodeIds()
-      NodeCompilationPipeline.wireDependencies(pendingOverlay, allPendingIds)
+      NodeCompilationPipeline.wireRuntimeDependencies(pendingOverlay, allPendingIds)
 
-      // Phase 4: Compile handlers for all newly registered nodes
+      // Phase 7: Compile handlers for all newly registered nodes
       allPendingIds.forEach(nodeId => {
         const registeredNode = pendingOverlay.nodeRegistry.get(nodeId)
 
@@ -85,11 +88,11 @@ export default class ThunkRuntimeHooksFactory {
           return
         }
 
-        const compiledHandler = this.compiler.compileASTNode(nodeId, registeredNode as any)
+        const compiledHandler = this.compiler.compileASTNode(nodeId, registeredNode)
         pendingOverlay.thunkHandlerRegistry.register(nodeId, compiledHandler)
       })
 
-      // Phase 4B: Compute isAsync metadata for hybrid handlers
+      // Phase 8: Compute isAsync metadata for hybrid handlers
       const metadataDeps: MetadataComputationDependencies = {
         thunkHandlerRegistry: pendingOverlay.thunkHandlerRegistry,
         functionRegistry: this.functionRegistry,
@@ -99,8 +102,7 @@ export default class ThunkRuntimeHooksFactory {
 
       // Use topological sort to compute in dependency order (leaves → roots)
       // This ensures children compute before parents, so parents see accurate isAsync values
-      const overlayGraph = pendingOverlay.dependencyGraph
-      const sortResult = overlayGraph.topologicalSortPending()
+      const sortResult = pendingOverlay.dependencyGraph.topologicalSortPending()
 
       sortResult.sort
         .forEach(nodeId => {
@@ -111,10 +113,10 @@ export default class ThunkRuntimeHooksFactory {
           }
         })
 
-      // Phase 5: Merge pending → main
+      // Phase 9: Merge pending → main
       flush()
 
-      // Phase 6: Invalidate caches for ALL pending nodes (AST + pseudo)
+      // Phase 10: Invalidate caches for ALL pending nodes (AST + pseudo)
       allPendingIds.forEach(nodeId => {
         this.cacheManager.invalidateCascading(nodeId, runtimeOverlay.dependencyGraph)
       })

@@ -138,15 +138,15 @@ describe('ScopeReferenceHandler', () => {
       expect(result.value).toBe('dark')
     })
 
-    it('should return entire scope object when no nested path provided', async () => {
+    it('should return @item when no nested path provided', async () => {
       // Arrange
       const referenceNode = ASTTestFactory.reference(['@scope', '0'])
       const handler = new ScopeReferenceHandler(referenceNode.id, referenceNode)
 
-      const scopeItem = { id: 'item-1', name: 'Test Item' }
+      const originalItem = { id: 'item-1', name: 'Test Item' }
 
       const mockContext = createMockContext({
-        mockScope: [scopeItem],
+        mockScope: [{ ...originalItem, '@index': 0, '@item': originalItem }],
       })
 
       const invoker = createMockInvoker()
@@ -155,7 +155,7 @@ describe('ScopeReferenceHandler', () => {
       const result = await handler.evaluate(mockContext, invoker)
 
       // Assert
-      expect(result.value).toEqual(scopeItem)
+      expect(result.value).toEqual(originalItem)
     })
 
     it('should return undefined for non-existent nested path', async () => {

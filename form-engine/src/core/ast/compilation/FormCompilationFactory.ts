@@ -1,18 +1,16 @@
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
-import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import RegistrationTraverser from '@form-engine/core/ast/registration/RegistrationTraverser'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { NodeCompilationPipeline } from '@form-engine/core/ast/compilation/NodeCompilationPipeline'
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
-import { findRelevantNodes } from '@form-engine/core/ast/utils/findRelevantNodes'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 
 /**
  * FormCompilationFactory - Compiles journey definitions into per-step artefacts
  *
  * Each artefact contains:
- * - Unified AST with smart filtering (full rendering for current step, metadata for others)
+ * - Full AST with all nodes
  * - Dependency graph for evaluation ordering
  * - Compiled thunk handlers
  *
@@ -22,9 +20,8 @@ import { CompilationDependencies } from '@form-engine/core/ast/compilation/Compi
  * 3. Register - Register all nodes in the registry
  * 4. Metadata - Set compile-time metadata for current step scope
  * 5. Pseudo-nodes - Create answer/data pseudo-nodes
- * 6. Filter - Select relevant nodes for this step's artefact
- * 7. Wire - Build dependency graph
- * 8. Compile - Generate thunk handlers
+ * 6. Wire - Build dependency graph
+ * 7. Compile - Generate thunk handlers
  */
 export default class FormCompilationFactory {
   constructor(private readonly formInstanceDependencies: FormInstanceDependencies) {}
@@ -44,9 +41,18 @@ export default class FormCompilationFactory {
     // Phase 3 - Register nodes
     new RegistrationTraverser(compilationDependencies.nodeRegistry).register(rootNode)
 
-    // Compile artefact for each step
-    return compilationDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
-      .map(stepNode => this.compileForStep(rootNode, stepNode, compilationDependencies.clone()))
+    // Phase 4 - Set parent metadata
+    NodeCompilationPipeline.setParentMetadata(rootNode, compilationDependencies)
+
+    // Phase 5 - Wire static dependencies
+    NodeCompilationPipeline.wireStaticDependencies(compilationDependencies)
+
+    // Compile artefact for each step using overlays
+    return compilationDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP).map(stepNode => {
+      const { deps: overlayDeps } = compilationDependencies.createOverlay()
+
+      return this.compileForStep(rootNode, stepNode, overlayDeps)
+    })
   }
 
   /**
@@ -57,35 +63,20 @@ export default class FormCompilationFactory {
     stepNode: StepASTNode,
     compilationDependencies: CompilationDependencies,
   ) {
-    // Phase 4 - Setup step scope metadata
-    NodeCompilationPipeline.setCompileTimeMetadata(rootNode, stepNode, compilationDependencies)
+    // Phase 6 - Set step-scope metadata (isCurrentStep, isDescendantOfStep, isAncestorOfStep)
+    NodeCompilationPipeline.setStepScopeMetadata(rootNode, stepNode, compilationDependencies)
 
-    // Phase 5 - Add pseudo-nodes
+    // Phase 7 - Add pseudo-nodes
     NodeCompilationPipeline.createPseudoNodes(compilationDependencies)
 
-    // Phase 6 - Filter to relevant nodes for this step
-    const specialisedNodeRegistry = new NodeRegistry()
+    // Phase 8 - Wire step-scope dependencies (pseudo nodes and onLoad transitions)
+    NodeCompilationPipeline.wireStepScopeDependencies(compilationDependencies)
 
-    findRelevantNodes(rootNode, compilationDependencies.nodeRegistry, compilationDependencies.metadataRegistry).forEach(
-      node => specialisedNodeRegistry.register(node.id, node),
-    )
-
-    const artefact = new CompilationDependencies(
-      compilationDependencies.nodeIdGenerator,
-      compilationDependencies.nodeFactory,
-      compilationDependencies.pseudoNodeFactory,
-      specialisedNodeRegistry,
-      compilationDependencies.metadataRegistry,
-    )
-
-    // Phase 7 - Wire dependency graph
-    NodeCompilationPipeline.wireDependencies(artefact)
-
-    // Phase 8 - Compile thunk handlers
-    NodeCompilationPipeline.compileThunks(artefact, this.formInstanceDependencies.functionRegistry)
+    // Phase 9 - Compile thunk handlers
+    NodeCompilationPipeline.compileThunks(compilationDependencies, this.formInstanceDependencies.functionRegistry)
 
     return {
-      artefact,
+      artefact: compilationDependencies,
       currentStepId: stepNode.id,
     }
   }

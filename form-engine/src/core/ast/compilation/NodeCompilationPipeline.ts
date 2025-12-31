@@ -40,12 +40,15 @@ import ThunkCompilerFactory from '@form-engine/core/ast/thunks/factories/ThunkCo
  * compile-time nodes, maintaining consistency.
  */
 export class NodeCompilationPipeline {
+  /**
+   * Compile Phase 1: Transform JSON into AST nodes
+   */
   static transform(json: any, compilationDependencies: CompilationDependencies) {
     return compilationDependencies.nodeFactory.createNode(json)
   }
 
   /**
-   * Phase 2: Normalize nodes
+   * Compile Phase 2 / Runtime Phase 1: Normalize nodes
    *
    * Runs all normalizers on the provided nodes. Normalizers modify nodes in-place.
    * Can operate on full tree (compile-time) or subset of nodes (runtime).
@@ -81,28 +84,32 @@ export class NodeCompilationPipeline {
   }
 
   /**
-   * Phase 4A: Set compile-time metadata via MetadataTraverser
+   * Compile Phase 4: Set parent metadata via MetadataTraverser
    *
-   * Marks nodes with step-relevant metadata:
-   * - isDescendantOfStep: true for step node and all its descendants
-   * - isAncestorOfStep: true for parent journeys
+   * Marks nodes with parent attachment metadata:
    * - attachedToParentNode: NodeId of parent
    * - attachedToParentProperty: Property key on parent
    *
    * @param rootNode - Root journey node to traverse from
-   * @param stepNode - Target step node to mark
    * @param compilationDependencies
    */
-  static setCompileTimeMetadata(
+  static setParentMetadata(rootNode: JourneyASTNode, compilationDependencies: CompilationDependencies): void {
+    new MetadataTraverser(compilationDependencies.metadataRegistry).setParentMetadata(rootNode)
+  }
+
+  /**
+   * Compile Phase 6: Set step-scope metadata (isCurrentStep, isDescendantOfStep, isAncestorOfStep)
+   */
+  static setStepScopeMetadata(
     rootNode: JourneyASTNode,
     stepNode: StepASTNode,
     compilationDependencies: CompilationDependencies,
   ): void {
-    new MetadataTraverser(compilationDependencies.metadataRegistry).traverse(rootNode, stepNode)
+    new MetadataTraverser(compilationDependencies.metadataRegistry).setStepScopeMetadata(rootNode, stepNode)
   }
 
   /**
-   * Phase 4B: Set metadata for runtime node
+   * Runtime Phase 3: Set metadata for runtime node
    *
    * @param node - Root node to traverse
    * @param compilationDependencies
@@ -112,7 +119,7 @@ export class NodeCompilationPipeline {
   }
 
   /**
-   * Phase 5: Create pseudo nodes for fields
+   * Compile Phase 7 / Runtime Phase 5: Create pseudo nodes for fields
    *
    * Scans the provided nodes and creates pseudo nodes for data sources:
    * - ANSWER_LOCAL: Field answers on current step
@@ -136,84 +143,122 @@ export class NodeCompilationPipeline {
   }
 
   /**
-   * Phase 6: Wire dependency graph
+   * Compile Phase 5: Wire static dependencies (call ONCE before per-step compilation)
    *
-   * Creates dependency edges between nodes based on their relationships.
-   * Wirers scan the node registry and add edges to the graph.
+   * Wires AST node relationships that don't depend on step-scope metadata.
+   * These edges are invariant across all steps and can be done once then cloned.
    *
-   * Edge types created:
-   * - STRUCTURAL: Parent-child hierarchy
-   * - DATA_FLOW: Data dependencies (expressions, fields)
-   * - CONTROL_FLOW: Conditional logic
-   * - EFFECT_FLOW: Effect/transition sequencing
+   * Includes:
+   * - Structural parent-child hierarchy
+   * - Expression node dependencies (conditional, logic, reference, pipeline, function, etc.)
+   * - Transition wiring that doesn't use step-scope (onAction, onSubmit)
+   * - Validation dependencies
    *
    * @param compilationDependencies
-   * @param nodeIds - Optional: If provided, only wire the specified nodes (scoped wiring for runtime nodes)
    */
-  static wireDependencies(compilationDependencies: CompilationDependencies, nodeIds?: NodeId[]): void {
+  static wireStaticDependencies(compilationDependencies: CompilationDependencies): void {
     const wiringContext = new WiringContext(
       compilationDependencies.nodeRegistry,
       compilationDependencies.metadataRegistry,
       compilationDependencies.dependencyGraph,
     )
 
-    if (nodeIds) {
-      // Scoped wiring - only process specified nodes with bidirectional wiring
-      new StructuralWiring(wiringContext).wireNodes(nodeIds)
+    // Structural hierarchy
+    new StructuralWiring(wiringContext).wire()
 
-      // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
-      new OnLoadTransitionWiring(wiringContext).wireNodes(nodeIds)
-      new OnActionTransitionWiring(wiringContext).wireNodes(nodeIds)
-      new OnSubmitTransitionWiring(wiringContext).wireNodes(nodeIds)
+    // Transitions that don't use step-scope metadata
+    new OnActionTransitionWiring(wiringContext).wire()
+    new OnSubmitTransitionWiring(wiringContext).wire()
 
-      // Wire pseudo nodes
-      new AnswerPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-      new DataPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-      new QueryPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-      new ParamsPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-      new PostPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-
-      // Wire expression nodes
-      new ConditionalExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new LogicExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new ReferenceExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new PipelineExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new FunctionExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new ValidationExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new NextExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new FormatExpressionWiring(wiringContext).wireNodes(nodeIds)
-      new IterateExpressionWiring(wiringContext).wireNodes(nodeIds)
-    } else {
-      // Full wiring - existing behavior for compile-time
-      new StructuralWiring(wiringContext).wire()
-
-      // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
-      new OnLoadTransitionWiring(wiringContext).wire()
-      new OnActionTransitionWiring(wiringContext).wire()
-      new OnSubmitTransitionWiring(wiringContext).wire()
-
-      // Wire pseudo nodes
-      new AnswerPseudoNodeWiring(wiringContext).wire()
-      new DataPseudoNodeWiring(wiringContext).wire()
-      new QueryPseudoNodeWiring(wiringContext).wire()
-      new ParamsPseudoNodeWiring(wiringContext).wire()
-      new PostPseudoNodeWiring(wiringContext).wire()
-
-      // Wire expression nodes
-      new ConditionalExpressionWiring(wiringContext).wire()
-      new LogicExpressionWiring(wiringContext).wire()
-      new ReferenceExpressionWiring(wiringContext).wire()
-      new PipelineExpressionWiring(wiringContext).wire()
-      new FunctionExpressionWiring(wiringContext).wire()
-      new ValidationExpressionWiring(wiringContext).wire()
-      new NextExpressionWiring(wiringContext).wire()
-      new FormatExpressionWiring(wiringContext).wire()
-      new IterateExpressionWiring(wiringContext).wire()
-    }
+    // All expression wiring (no step-scope dependencies)
+    new ConditionalExpressionWiring(wiringContext).wire()
+    new LogicExpressionWiring(wiringContext).wire()
+    new ReferenceExpressionWiring(wiringContext).wire()
+    new PipelineExpressionWiring(wiringContext).wire()
+    new FunctionExpressionWiring(wiringContext).wire()
+    new ValidationExpressionWiring(wiringContext).wire()
+    new NextExpressionWiring(wiringContext).wire()
+    new FormatExpressionWiring(wiringContext).wire()
+    new IterateExpressionWiring(wiringContext).wire()
   }
 
   /**
-   * Phase 7: Compile thunk handlers
+   * Compile Phase 8: Wire step-scope dependencies (call PER-STEP after pseudo node creation)
+   *
+   * Wires relationships that depend on step-scope metadata or pseudo nodes.
+   * Must be called after:
+   * 1. setStepScopeMetadata() - sets isCurrentStep, isDescendantOfStep, isAncestorOfStep
+   * 2. createPseudoNodes() - creates Answer, Data, Query, Params, Post pseudo nodes
+   *
+   * Includes:
+   * - onLoad transition wiring (uses isAncestorOfStep, getCurrentStepNode)
+   * - All pseudo node wiring (pseudo nodes are step-specific)
+   *
+   * @param compilationDependencies
+   */
+  static wireStepScopeDependencies(compilationDependencies: CompilationDependencies): void {
+    const wiringContext = new WiringContext(
+      compilationDependencies.nodeRegistry,
+      compilationDependencies.metadataRegistry,
+      compilationDependencies.dependencyGraph,
+    )
+
+    // onLoad uses step-scope metadata (isAncestorOfStep, getCurrentStepNode)
+    new OnLoadTransitionWiring(wiringContext).wire()
+
+    // Pseudo node wiring (pseudo nodes are created per-step)
+    new AnswerPseudoNodeWiring(wiringContext).wire()
+    new DataPseudoNodeWiring(wiringContext).wire()
+    new QueryPseudoNodeWiring(wiringContext).wire()
+    new ParamsPseudoNodeWiring(wiringContext).wire()
+    new PostPseudoNodeWiring(wiringContext).wire()
+  }
+
+  /**
+   * Runtime Phase 6: Wire dependency graph for runtime nodes (scoped wiring)
+   *
+   * Creates dependency edges for dynamically created nodes at runtime.
+   * Wires both directions - new nodes to existing graph and existing nodes to new nodes.
+   *
+   * @param compilationDependencies
+   * @param nodeIds - The specific nodes to wire
+   */
+  static wireRuntimeDependencies(compilationDependencies: CompilationDependencies, nodeIds: NodeId[]): void {
+    const wiringContext = new WiringContext(
+      compilationDependencies.nodeRegistry,
+      compilationDependencies.metadataRegistry,
+      compilationDependencies.dependencyGraph,
+    )
+
+    // Scoped wiring - only process specified nodes with bidirectional wiring
+    new StructuralWiring(wiringContext).wireNodes(nodeIds)
+
+    // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
+    new OnLoadTransitionWiring(wiringContext).wireNodes(nodeIds)
+    new OnActionTransitionWiring(wiringContext).wireNodes(nodeIds)
+    new OnSubmitTransitionWiring(wiringContext).wireNodes(nodeIds)
+
+    // Wire pseudo nodes
+    new AnswerPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+    new DataPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+    new QueryPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+    new ParamsPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+    new PostPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+
+    // Wire expression nodes
+    new ConditionalExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new LogicExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new ReferenceExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new PipelineExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new FunctionExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new ValidationExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new NextExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new FormatExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new IterateExpressionWiring(wiringContext).wireNodes(nodeIds)
+  }
+
+  /**
+   * Compile Phase 9 / Runtime Phase 7: Compile thunk handlers
    *
    * Creates thunk handlers for all nodes in the registry.
    * Handlers are registered in the thunkHandlerRegistry for runtime evaluation.
