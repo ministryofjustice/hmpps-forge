@@ -50,7 +50,14 @@ export default class ScopeReferenceHandler implements HybridThunkHandler {
       return { value: undefined }
     }
 
-    return { value: getByPath(baseValue, path.slice(2).join('.')) }
+    const remainingPath = path.slice(2).join('.')
+
+    // When no further path (Item() or Item().value()), return the original item
+    if (remainingPath === '') {
+      return { value: baseValue['@item'] }
+    }
+
+    return { value: getByPath(baseValue, remainingPath) }
   }
 
   /**
