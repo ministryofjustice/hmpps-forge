@@ -61,6 +61,15 @@ export interface MockContextOptions {
   mockScope?: Record<string, unknown>[]
   mockNodes?: Map<NodeId, ASTNode | PseudoNode>
   mockRegisteredFunctions?: Map<string, any>
+  /**
+   * Mock metadata - key is nodeId, value is a record of metadata key-values
+   *
+   * @example
+   * mockMetadata: new Map([
+   *   ['compile_ast:1', { isDescendantOfStep: true, isCurrentStep: false }],
+   * ])
+   */
+  mockMetadata?: Map<NodeId, Record<string, unknown>>
 }
 
 /**
@@ -171,12 +180,38 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     }),
   }
 
+  // Mock metadataRegistry - by default, treat all nodes as on the current step
+  const mockMetadataRegistry = {
+    get: jest.fn((nodeId: NodeId, key: string, defaultValue?: unknown) => {
+      const nodeMetadata = options.mockMetadata?.get(nodeId)
+
+      if (nodeMetadata && key in nodeMetadata) {
+        return nodeMetadata[key]
+      }
+
+      // Default behavior: treat all nodes as on current step (for backwards compatibility)
+      // This ensures existing tests continue to work without needing to specify metadata
+      if (key === 'isDescendantOfStep' || key === 'isCurrentStep' || key === 'isAncestorOfStep') {
+        return true
+      }
+
+      return defaultValue
+    }),
+    set: jest.fn(),
+    has: jest.fn((nodeId: NodeId, key: string) => {
+      const nodeMetadata = options.mockMetadata?.get(nodeId)
+      return nodeMetadata ? key in nodeMetadata : false
+    }),
+    findNodesWhere: jest.fn((): NodeId[] => []),
+  }
+
   return {
     request,
     global,
     scope,
     findFieldByCode,
     nodeRegistry: mockNodeRegistry,
+    metadataRegistry: mockMetadataRegistry,
     functionRegistry: mockFunctionRegistry,
     logger: console,
     withIsolatedScope: jest.fn().mockImplementation(function withIsolatedScopeMock(this: any) {

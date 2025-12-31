@@ -10,6 +10,7 @@ import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/Dependenc
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode, isPseudoNode } from '@form-engine/core/typeguards/nodes'
 import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
+import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 
 /**
  * AnswerPseudoNodeWiring: Wires Answer pseudo nodes to their data sources and consumers
@@ -37,17 +38,61 @@ export default class AnswerPseudoNodeWiring {
    * Handles both local and remote answer nodes
    */
   wire() {
+    const answerRefsByFieldCode = this.buildAnswerRefsIndex()
+
     this.wiringContext.findPseudoNodesByType<AnswerLocalPseudoNode>(PseudoNodeType.ANSWER_LOCAL)
       .forEach(answerPseudoNode => {
         this.wireLocalProducers(answerPseudoNode)
-        this.wireConsumers(answerPseudoNode)
+        this.wireConsumersFromIndex(answerPseudoNode, answerRefsByFieldCode)
       })
 
     this.wiringContext.findPseudoNodesByType<AnswerRemotePseudoNode>(PseudoNodeType.ANSWER_REMOTE)
       .forEach(answerPseudoNode => {
         this.wireRemoteProducers(answerPseudoNode)
-        this.wireConsumers(answerPseudoNode)
+        this.wireConsumersFromIndex(answerPseudoNode, answerRefsByFieldCode)
       })
+  }
+
+  /**
+   * Build an index of Answer references by field code
+   * Scans all expression nodes ONCE and groups by the referenced field code
+   */
+  private buildAnswerRefsIndex(): Map<string, import('@form-engine/core/types/expressions.type').ReferenceASTNode[]> {
+    const index = new Map<string, ReferenceASTNode[]>()
+
+    this.wiringContext.findReferenceNodes('answers').forEach(refNode => {
+      const path = refNode.properties.path
+
+      if (path.length >= 2) {
+        const fieldCode = path[1] as string
+
+        if (!index.has(fieldCode)) {
+          index.set(fieldCode, [])
+        }
+
+        index.get(fieldCode)!.push(refNode)
+      }
+    })
+
+    return index
+  }
+
+  /**
+   * Wire consumers using pre-built index (O(1) lookup per pseudo node)
+   */
+  private wireConsumersFromIndex(
+    answerPseudoNode: AnswerLocalPseudoNode | AnswerRemotePseudoNode,
+    answerRefsByFieldCode: Map<string, import('@form-engine/core/types/expressions.type').ReferenceASTNode[]>,
+  ) {
+    const { baseFieldCode } = answerPseudoNode.properties
+    const refs = answerRefsByFieldCode.get(baseFieldCode) ?? []
+
+    refs.forEach(refNode => {
+      this.wiringContext.graph.addEdge(answerPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
+        referenceType: 'answer',
+        fieldCode: baseFieldCode,
+      })
+    })
   }
 
   /**
@@ -181,29 +226,4 @@ export default class AnswerPseudoNodeWiring {
     }
   }
 
-  /**
-   * Wire an answer pseudo node to its consumers (Answer reference nodes)
-   *
-   * Finds all Answer() reference nodes that reference this field and creates
-   * edges: ANSWER_PSEUDO_NODE → Answer() reference
-   */
-  private wireConsumers(answerPseudoNode: AnswerLocalPseudoNode | AnswerRemotePseudoNode) {
-    const { baseFieldCode } = answerPseudoNode.properties
-    const answerRefs = this.wiringContext.findReferenceNodes('answers')
-
-    answerRefs.forEach(refNode => {
-      const path = refNode.properties.path
-
-      if (path.length >= 2) {
-        const referencedBaseCode = path[1] as string
-
-        if (referencedBaseCode === baseFieldCode) {
-          this.wiringContext.graph.addEdge(answerPseudoNode.id, refNode.id, DependencyEdgeType.DATA_FLOW, {
-            referenceType: 'answer',
-            fieldCode: baseFieldCode,
-          })
-        }
-      }
-    })
-  }
 }

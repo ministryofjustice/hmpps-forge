@@ -13,14 +13,17 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 /**
  * Handler for Journey structure nodes
  *
- * Evaluates all properties in the journey's properties object by:
- * 1. Recursively diving into nested structures (arrays, objects)
- * 2. Evaluating any AST nodes found within the properties
- * 3. Preserving primitives as-is
+ * Evaluates properties in the journey based on whether it's an ancestor:
  *
- * This enables journeys to contain dynamic expressions in any property,
- * including nested within arrays or objects (e.g., onLoad transitions,
- * onAccess transitions, steps, child journeys).
+ * For ANCESTOR journeys (isAncestorOfStep = true):
+ * - All properties except transitions (handled by FormStepController)
+ *
+ * For OTHER journeys:
+ * - Only structural properties: code, path, children, steps, metadata etc.
+ * - Rendering properties are skipped
+ *
+ * This runtime filtering replaces compile-time filtering in findRelevantNodes,
+ * allowing thunks to be compiled once and shared across all step artefacts.
  *
  * Synchronous when all nested AST nodes in properties are sync.
  * Asynchronous when any nested AST node is async.
@@ -28,9 +31,20 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 export default class JourneyHandler implements HybridThunkHandler {
   isAsync = true
 
-  // Transition properties are handled separately by FormStepController,
-  // not during the main AST evaluation
+  // Transition properties are handled separately by FormStepController
   private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess']
+
+  // Properties needed for structural navigation on non-ancestor journeys
+  private static readonly STRUCTURAL_PROPS = [
+    'code',
+    'version',
+    'path',
+    'title',
+    'description',
+    'children',
+    'steps',
+    'metadata',
+  ]
 
   constructor(
     public readonly nodeId: NodeId,
@@ -38,9 +52,16 @@ export default class JourneyHandler implements HybridThunkHandler {
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
-    const propertiesToCheck = Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
-    )
+    const isAncestorOfStep = deps.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
+
+    // Determine which properties to check based on journey context
+    const propertiesToCheck = isAncestorOfStep
+      ? Object.fromEntries(
+          Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
+        )
+      : Object.fromEntries(
+          Object.entries(this.node.properties).filter(([key]) => JourneyHandler.STRUCTURAL_PROPS.includes(key)),
+        )
 
     this.isAsync = this.containsAsyncNodes(propertiesToCheck, deps)
   }
@@ -68,15 +89,9 @@ export default class JourneyHandler implements HybridThunkHandler {
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
-    // Filter out transition properties - they're handled separately by FormStepController
-    const propertiesToEvaluate = Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
-    )
-
-    // Evaluate non-transition properties
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
     const evaluatedProperties = this.evaluatePropertyValueSync(propertiesToEvaluate, context, invoker)
 
-    // Return journey representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -87,15 +102,9 @@ export default class JourneyHandler implements HybridThunkHandler {
   }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
-    // Filter out transition properties - they're handled separately by FormStepController
-    const propertiesToEvaluate = Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
-    )
-
-    // Evaluate non-transition properties
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
     const evaluatedProperties = await evaluatePropertyValue(propertiesToEvaluate, context, invoker)
 
-    // Return journey representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -103,6 +112,28 @@ export default class JourneyHandler implements HybridThunkHandler {
         properties: evaluatedProperties,
       },
     }
+  }
+
+  /**
+   * Determine which properties to evaluate based on journey context
+   *
+   * Ancestor journeys: all properties except transitions
+   * Other journeys: only structural properties
+   */
+  private getPropertiesToEvaluate(context: ThunkEvaluationContext): Record<string, unknown> {
+    const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
+
+    if (isAncestorOfStep) {
+      // Ancestor journey: all non-transition properties
+      return Object.fromEntries(
+        Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
+      )
+    }
+
+    // Other journeys: only structural properties
+    return Object.fromEntries(
+      Object.entries(this.node.properties).filter(([key]) => JourneyHandler.STRUCTURAL_PROPS.includes(key)),
+    )
   }
 
   private evaluatePropertyValueSync(

@@ -5,17 +5,37 @@ import { MetadataTraverser } from './MetadataTraverser'
 describe('MetadataTraverser', () => {
   let mockMetadataRegistry: jest.Mocked<MetadataRegistry>
   let traverser: MetadataTraverser
+  let parentMap: Map<string, string>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    parentMap = new Map()
 
     mockMetadataRegistry = {
-      set: jest.fn(),
-      get: jest.fn(),
+      set: jest.fn().mockImplementation((nodeId: string, key: string, value: unknown) => {
+        if (key === 'attachedToParentNode') {
+          parentMap.set(nodeId, value as string)
+        }
+      }),
+      get: jest.fn().mockImplementation((nodeId: string, key: string) => {
+        if (key === 'attachedToParentNode') {
+          return parentMap.get(nodeId)
+        }
+
+        return undefined
+      }),
     } as unknown as jest.Mocked<MetadataRegistry>
 
     traverser = new MetadataTraverser(mockMetadataRegistry)
   })
+
+  /**
+   * Helper to set up parent metadata before calling setStepScopeMetadata
+   * This simulates the real usage where setParentMetadata is called first
+   */
+  function setupParentMetadata(rootNode: import('@form-engine/core/types/engine.type').ASTNode): void {
+    traverser.setParentMetadata(rootNode)
+  }
 
   describe('traverse', () => {
     it('should mark journey as ancestor and step as descendant', () => {
@@ -27,7 +47,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(journeyNode.id, 'isAncestorOfStep', true)
@@ -57,7 +78,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(stepNode.id, 'isDescendantOfStep', true)
@@ -81,7 +103,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(journeyNode.id, 'isAncestorOfStep', true)
@@ -117,7 +140,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, targetStep)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, targetStep)
 
       // Assert - target step and its blocks should be marked as descendants
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(targetStep.id, 'isDescendantOfStep', true)
@@ -149,7 +173,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(stepNode.id, 'isDescendantOfStep', true)
@@ -172,7 +197,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(outerJourney, stepNode)
+      setupParentMetadata(outerJourney)
+      traverser.setStepScopeMetadata(outerJourney, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(outerJourney.id, 'isAncestorOfStep', true)
@@ -203,7 +229,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(greatGrandparentJourney, stepNode)
+      setupParentMetadata(greatGrandparentJourney)
+      traverser.setStepScopeMetadata(greatGrandparentJourney, stepNode)
 
       // Assert - all ancestor journeys should be marked
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(greatGrandparentJourney.id, 'isAncestorOfStep', true)
@@ -241,7 +268,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(parentJourney, targetStepNode)
+      setupParentMetadata(parentJourney)
+      traverser.setStepScopeMetadata(parentJourney, targetStepNode)
 
       // Assert - only parent and target journey should be marked as ancestors
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(parentJourney.id, 'isAncestorOfStep', true)
@@ -276,7 +304,8 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      setupParentMetadata(journeyNode)
+      traverser.setStepScopeMetadata(journeyNode, stepNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(stepNode.id, 'isDescendantOfStep', true)
@@ -295,7 +324,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(stepNode.id, 'attachedToParentNode', journeyNode.id)
@@ -322,7 +351,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(block1.id, 'attachedToParentNode', stepNode.id)
@@ -351,7 +380,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(parentBlock.id, 'attachedToParentNode', stepNode.id)
@@ -378,7 +407,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(expression.id, 'attachedToParentNode', block.id)
@@ -394,7 +423,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert - journey is root, so should not have parent metadata
       expect(mockMetadataRegistry.set).not.toHaveBeenCalledWith(
@@ -422,7 +451,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(outerJourney, stepNode)
+      traverser.setParentMetadata(outerJourney)
 
       // Assert
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(innerJourney.id, 'attachedToParentNode', outerJourney.id)
@@ -451,7 +480,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, stepNode)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert - verify parent chain
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(stepNode.id, 'attachedToParentNode', journeyNode.id)
@@ -492,7 +521,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       // Act
-      traverser.traverse(journeyNode, targetStep)
+      traverser.setParentMetadata(journeyNode)
 
       // Assert - ALL steps should have parent metadata (not just target step)
       expect(mockMetadataRegistry.set).toHaveBeenCalledWith(siblingStep.id, 'attachedToParentNode', journeyNode.id)

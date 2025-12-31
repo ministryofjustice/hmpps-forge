@@ -13,14 +13,17 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 /**
  * Handler for Step structure nodes
  *
- * Evaluates all properties in the step's properties object by:
- * 1. Recursively diving into nested structures (arrays, objects)
- * 2. Evaluating any AST nodes found within the properties
- * 3. Preserving primitives as-is
+ * Evaluates properties in the step based on whether it's the current step:
  *
- * This enables steps to contain dynamic expressions in any property,
- * including nested within arrays or objects (e.g., onLoad transitions,
- * blocks, conditional titles).
+ * For CURRENT STEP (isCurrentStep = true) or ANCESTOR steps (isAncestorOfStep = true):
+ * - All properties except transitions (handled by FormStepController)
+ *
+ * For OTHER STEPS:
+ * - Only navigation/validation properties: path, title, description, isEntryPoint, blocks, metadata
+ * - Rendering properties are skipped
+ *
+ * This runtime filtering replaces compile-time filtering in findRelevantNodes,
+ * allowing thunks to be compiled once and shared across all step artefacts.
  *
  * Synchronous when all nested AST nodes in properties are sync.
  * Asynchronous when any nested AST node is async.
@@ -28,9 +31,11 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
 export default class StepHandler implements HybridThunkHandler {
   isAsync = true
 
-  // Transition properties are handled separately by FormStepController,
-  // not during the main AST evaluation
+  // Transition properties are handled separately by FormStepController
   private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess', 'onAction', 'onSubmission']
+
+  // Properties needed for navigation/validation on non-current steps
+  private static readonly NAVIGATION_PROPS = ['path', 'title', 'isEntryPoint', 'description', 'blocks', 'metadata']
 
   constructor(
     public readonly nodeId: NodeId,
@@ -38,9 +43,14 @@ export default class StepHandler implements HybridThunkHandler {
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
-    const propertiesToCheck = Object.entries(this.node.properties).filter(
-      ([key]) => !StepHandler.TRANSITION_PROPS.includes(key),
-    )
+    const isCurrentStep = deps.metadataRegistry.get(this.nodeId, 'isCurrentStep', false)
+    const isAncestorOfStep = deps.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
+
+    // Determine which properties to check based on step context
+    const propertiesToCheck =
+      isCurrentStep || isAncestorOfStep
+        ? Object.entries(this.node.properties).filter(([key]) => !StepHandler.TRANSITION_PROPS.includes(key))
+        : Object.entries(this.node.properties).filter(([key]) => StepHandler.NAVIGATION_PROPS.includes(key))
 
     const asyncProperties: string[] = []
 
@@ -76,15 +86,9 @@ export default class StepHandler implements HybridThunkHandler {
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
-    // Filter out transition properties - they're handled separately by FormStepController
-    const propertiesToEvaluate = Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => !StepHandler.TRANSITION_PROPS.includes(key)),
-    )
-
-    // Evaluate non-transition properties
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
     const evaluatedProperties = this.evaluatePropertyValueSync(propertiesToEvaluate, context, invoker)
 
-    // Return step representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -95,15 +99,9 @@ export default class StepHandler implements HybridThunkHandler {
   }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
-    // Filter out transition properties - they're handled separately by FormStepController
-    const propertiesToEvaluate = Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => !StepHandler.TRANSITION_PROPS.includes(key)),
-    )
-
-    // Evaluate non-transition properties
+    const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
     const evaluatedProperties = await evaluatePropertyValue(propertiesToEvaluate, context, invoker)
 
-    // Return step representation with evaluated properties
     return {
       value: {
         id: this.nodeId,
@@ -111,6 +109,32 @@ export default class StepHandler implements HybridThunkHandler {
         properties: evaluatedProperties,
       },
     }
+  }
+
+  /**
+   * Determine which properties to evaluate based on step context
+   *
+   * Current/ancestor steps: all properties except transitions
+   * Other steps: only navigation/validation properties
+   */
+  private getPropertiesToEvaluate(context: ThunkEvaluationContext): Record<string, unknown> {
+    const isCurrentStep = context.metadataRegistry.get(this.nodeId, 'isCurrentStep', false)
+    const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
+
+    // Always exclude transition properties - they're handled by FormStepController
+    const excludeTransitions = ([key]: [string, unknown]) => !StepHandler.TRANSITION_PROPS.includes(key)
+
+    if (isCurrentStep || isAncestorOfStep) {
+      // Current or ancestor step: all non-transition properties
+      return Object.fromEntries(Object.entries(this.node.properties).filter(excludeTransitions))
+    }
+
+    // Other steps: only navigation/validation properties
+    return Object.fromEntries(
+      Object.entries(this.node.properties).filter(
+        ([key]) => StepHandler.NAVIGATION_PROPS.includes(key) && !StepHandler.TRANSITION_PROPS.includes(key),
+      ),
+    )
   }
 
   private evaluatePropertyValueSync(
