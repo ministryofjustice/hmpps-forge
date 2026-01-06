@@ -1,4 +1,4 @@
-import { FunctionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import { FunctionRegistryEntry } from '@form-engine/registry/types/functions.type'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import {
@@ -89,6 +89,7 @@ describe('EffectHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['logValue', mockEffectFn]]),
+        mockNodes: new Map([[refNode.id, refNode]]),
       })
 
       mockContext.scope.push({ '@transitionType': 'submit' })
@@ -121,6 +122,7 @@ describe('EffectHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['setData', mockEffectFn]]),
+        mockNodes: new Map([[refNode.id, refNode]]),
       })
 
       mockContext.scope.push({ '@transitionType': 'load' })
@@ -208,6 +210,10 @@ describe('EffectHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['multiArg', mockEffectFn]]),
+        mockNodes: new Map([
+          [ref1.id, ref1],
+          [ref2.id, ref2],
+        ]),
       })
 
       mockContext.scope.push({ '@transitionType': 'action' })
@@ -261,6 +267,54 @@ describe('EffectHandler', () => {
         street: '',
         city: '',
         postcode: '',
+      })
+    })
+
+    it('should evaluate nested AST nodes within object arguments', async () => {
+      // Arrange
+      const formatNode = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'You added a goal to %1 plan')
+        .withProperty('arguments', [])
+        .build()
+      const effectNode = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'addNotification', [
+        {
+          type: 'success',
+          title: 'Success',
+          message: formatNode,
+          target: 'plan-overview',
+        },
+      ])
+
+      const mockEffectFn: FunctionRegistryEntry = {
+        name: 'addNotification',
+        evaluate: jest.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockRegisteredFunctions: new Map([['addNotification', mockEffectFn]]),
+        mockNodes: new Map([[formatNode.id, formatNode]]),
+      })
+
+      mockContext.scope.push({ '@transitionType': 'submit' })
+
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[formatNode.id, 'You added a goal to John plan']]),
+      })
+
+      const handler = new EffectHandler(effectNode.id, effectNode)
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBeUndefined()
+      expect(mockInvoker.invoke).toHaveBeenCalledWith(formatNode.id, mockContext)
+      expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.anything(), {
+        type: 'success',
+        title: 'Success',
+        message: 'You added a goal to John plan',
+        target: 'plan-overview',
       })
     })
 
