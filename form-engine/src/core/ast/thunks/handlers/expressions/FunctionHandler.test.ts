@@ -78,6 +78,7 @@ describe('FunctionHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['uppercase', mockFunction]]),
+        mockNodes: new Map([[refNode.id, refNode]]),
       })
 
       const mockInvoker = createMockInvoker({ defaultValue: 'test@example.com' })
@@ -107,6 +108,7 @@ describe('FunctionHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['greaterThan', mockFunction]]),
+        mockNodes: new Map([[refNode.id, refNode]]),
       })
 
       const mockInvoker = createMockInvoker({ defaultValue: 15 })
@@ -221,6 +223,10 @@ describe('FunctionHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([['concat', mockFunction]]),
+        mockNodes: new Map([
+          [ref1.id, ref1],
+          [ref2.id, ref2],
+        ]),
       })
 
       const mockInvoker = createMockInvoker({
