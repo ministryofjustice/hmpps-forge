@@ -44,7 +44,9 @@ describe('ConditionalHandler', () => {
         .withElseValue('User Panel')
         .build()
       const handler = new ConditionalHandler(conditional.id, conditional as any)
-      const mockContext = createMockContext()
+      const mockContext = createMockContext({
+        mockNodes: new Map([[thenValueNode.id, thenValueNode]]),
+      })
       const mockInvoker = createSequentialMockInvoker([true, 'Super Admin Panel'])
 
       // Act
@@ -121,7 +123,9 @@ describe('ConditionalHandler', () => {
         .withElseValue(elseValueNode)
         .build()
       const handler = new ConditionalHandler(conditional.id, conditional as any)
-      const mockContext = createMockContext()
+      const mockContext = createMockContext({
+        mockNodes: new Map([[elseValueNode.id, elseValueNode]]),
+      })
       const mockInvoker = createSequentialMockInvoker([false, 'Standard User Panel'])
 
       // Act
@@ -413,7 +417,12 @@ describe('ConditionalHandler', () => {
         .withElseValue(elseValueNode)
         .build()
       const handler = new ConditionalHandler(conditional.id, conditional as any)
-      const mockContext = createMockContext()
+      const mockContext = createMockContext({
+        mockNodes: new Map([
+          [thenValueNode.id, thenValueNode],
+          [elseValueNode.id, elseValueNode],
+        ]),
+      })
       const mockInvoker = createSequentialMockInvoker([true, 'Admin Dashboard'])
 
       // Act
