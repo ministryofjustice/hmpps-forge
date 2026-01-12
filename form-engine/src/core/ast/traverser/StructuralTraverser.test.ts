@@ -8,7 +8,7 @@ import {
   StructuralVisitResult,
 } from '@form-engine/core/ast/traverser/StructuralTraverser'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
 
 describe('StructuralTraverser', () => {
   const createVisitorMocks = () => ({
@@ -28,8 +28,8 @@ describe('StructuralTraverser', () => {
     const journey = ASTTestFactory.journey().withId('compile_ast:1').build()
     const step1 = ASTTestFactory.step().withId('compile_ast:2').build()
     const step2 = ASTTestFactory.step().withId('compile_ast:3').build()
-    const block1 = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:4').build()
-    const block2 = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:5').build()
+    const block1 = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:4').build()
+    const block2 = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:5').build()
     const expr1 = ASTTestFactory.expression(ExpressionType.REFERENCE).withId('compile_ast:6').build()
 
     block1.properties.expression = expr1
@@ -58,8 +58,8 @@ describe('StructuralTraverser', () => {
 
     it('should traverse arrays in node properties', () => {
       const node = ASTTestFactory.step().withId('compile_ast:8').build()
-      const block1 = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:9').build()
-      const block2 = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:10').build()
+      const block1 = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:9').build()
+      const block2 = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:10').build()
       const blocks = [block1, block2]
 
       node.properties.blocks = blocks
@@ -73,7 +73,7 @@ describe('StructuralTraverser', () => {
     })
 
     it('should traverse object properties', () => {
-      const node = ASTTestFactory.block('TextInput', 'basic').withId('compile_ast:11').build()
+      const node = ASTTestFactory.block('TextInput', BlockType.BASIC).withId('compile_ast:11').build()
 
       node.properties.key1 = 'value1'
       node.properties.key2 = 'value2'
@@ -121,7 +121,7 @@ describe('StructuralTraverser', () => {
 
     it('should call hooks in correct order', () => {
       const node = ASTTestFactory.step().withId('compile_ast:13').build()
-      const child = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:14').build()
+      const child = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:14').build()
 
       node.properties.blocks = [child]
 
@@ -303,7 +303,7 @@ describe('StructuralTraverser', () => {
 
     it('should provide parent references', () => {
       const parent = ASTTestFactory.step().withId('compile_ast:16').build()
-      const child = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:17').build()
+      const child = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:17').build()
       const childArray = [child]
 
       parent.properties.blocks = childArray
@@ -417,7 +417,7 @@ describe('StructuralTraverser', () => {
   describe('control flow', () => {
     it('should skip node children when enterNode returns skip', () => {
       const parent = ASTTestFactory.step().withId('compile_ast:21').build()
-      const child = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:22').build()
+      const child = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:22').build()
 
       parent.properties.blocks = [child]
 
@@ -464,7 +464,7 @@ describe('StructuralTraverser', () => {
     })
 
     it('should skip property value when enterProperty returns skip', () => {
-      const block = ASTTestFactory.block('testVariant', 'basic').withId('compile_ast:23').build()
+      const block = ASTTestFactory.block('testVariant', BlockType.BASIC).withId('compile_ast:23').build()
       const obj = { foo: block }
       const visitor = createVisitorMocks()
 

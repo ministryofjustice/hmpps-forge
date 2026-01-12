@@ -14,7 +14,7 @@ import {
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
 import { ChainableExpr, ChainableRef } from '../builders/types'
-import { StructureType, ExpressionType } from './enums'
+import { BlockType, StructureType, ExpressionType } from './enums'
 
 /**
  * View configuration for journeys and steps.
@@ -67,7 +67,7 @@ export interface BlockDefinition extends BasicBlockProps {
   variant: string
 
   /** Discriminator to distinguish field blocks from regular blocks */
-  blockType: 'basic' | 'field'
+  blockType: BlockType
 }
 
 /**

@@ -5,12 +5,12 @@ import {
   isReferenceExprNode,
   isFormatExprNode,
   isPipelineExprNode,
-  isConditionalExprNode,
   isFunctionExprNode,
   isEffectExprNode,
   isIterateExprNode,
   isNextExprNode,
   isValidationExprNode,
+  isConditionalExprNode,
 } from '@form-engine/core/typeguards/expression-nodes'
 import {
   isLoadTransitionNode,
@@ -22,56 +22,56 @@ import { ThunkHandler, MetadataComputationDependencies } from '@form-engine/core
 import { isHybridHandler } from '@form-engine/core/ast/thunks/typeguards'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
-import ScopeReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/ScopeReferenceHandler'
-import AnswersReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/AnswersReferenceHandler'
-import DataReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/DataReferenceHandler'
-import PostReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/PostReferenceHandler'
-import QueryReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/QueryReferenceHandler'
-import ParamsReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/ParamsReferenceHandler'
-import BaseReferenceHandler from '@form-engine/core/ast/thunks/handlers/references/BaseReferenceHandler'
-import IterateHandler from '@form-engine/core/ast/thunks/handlers/expressions/IterateHandler'
-import ConditionalHandler from '@form-engine/core/ast/thunks/handlers/expressions/ConditionalHandler'
-import AndPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/AndPredicateHandler'
-import OrPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/OrPredicateHandler'
-import XorPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/XorPredicateHandler'
-import NotPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/NotPredicateHandler'
-import TestPredicateHandler from '@form-engine/core/ast/thunks/handlers/expressions/TestPredicateHandler'
-import FunctionHandler from '@form-engine/core/ast/thunks/handlers/expressions/FunctionHandler'
-import EffectHandler from '@form-engine/core/ast/thunks/handlers/expressions/EffectHandler'
-import BlockHandler from '@form-engine/core/ast/thunks/handlers/structures/BlockHandler'
-import StepHandler from '@form-engine/core/ast/thunks/handlers/structures/StepHandler'
-import LoadTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/LoadTransitionHandler'
-import AccessTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/AccessTransitionHandler'
-import ActionTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/ActionTransitionHandler'
-import SubmitTransitionHandler from '@form-engine/core/ast/thunks/handlers/transitions/SubmitTransitionHandler'
+import ScopeReferenceHandler from '@form-engine/core/nodes/expressions/reference/scope/ScopeReferenceHandler'
+import AnswersReferenceHandler from '@form-engine/core/nodes/expressions/reference/answers/AnswersReferenceHandler'
+import DataReferenceHandler from '@form-engine/core/nodes/expressions/reference/data/DataReferenceHandler'
+import PostReferenceHandler from '@form-engine/core/nodes/expressions/reference/post/PostReferenceHandler'
+import QueryReferenceHandler from '@form-engine/core/nodes/expressions/reference/query/QueryReferenceHandler'
+import ParamsReferenceHandler from '@form-engine/core/nodes/expressions/reference/params/ParamsReferenceHandler'
+import BaseReferenceHandler from '@form-engine/core/nodes/expressions/reference/base/BaseReferenceHandler'
+import IterateHandler from '@form-engine/core/nodes/expressions/iterate/IterateHandler'
+import ConditionalHandler from '@form-engine/core/nodes/expressions/conditional/ConditionalHandler'
+import AndHandler from '@form-engine/core/nodes/predicates/and/AndHandler'
+import OrHandler from '@form-engine/core/nodes/predicates/or/OrHandler'
+import XorHandler from '@form-engine/core/nodes/predicates/xor/XorHandler'
+import NotHandler from '@form-engine/core/nodes/predicates/not/NotHandler'
+import TestHandler from '@form-engine/core/nodes/predicates/test/TestHandler'
+import FunctionHandler from '@form-engine/core/nodes/expressions/function/FunctionHandler'
+import EffectHandler from '@form-engine/core/nodes/expressions/effect/EffectHandler'
+import BlockHandler from '@form-engine/core/nodes/structures/block/BlockHandler'
+import StepHandler from '@form-engine/core/nodes/structures/step/StepHandler'
+import LoadHandler from '@form-engine/core/nodes/transitions/load/LoadHandler'
+import AccessHandler from '@form-engine/core/nodes/transitions/access/AccessHandler'
+import ActionHandler from '@form-engine/core/nodes/transitions/action/ActionHandler'
+import SubmitHandler from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
-import JourneyHandler from '@form-engine/core/ast/thunks/handlers/structures/JourneyHandler'
+import JourneyHandler from '@form-engine/core/nodes/structures/journey/JourneyHandler'
 import {
-  isPredicateAndNode,
-  isPredicateOrNode,
-  isPredicateXorNode,
-  isPredicateNotNode,
-  isPredicateTestNode,
+  isAndPredicateNode,
+  isOrPredicateNode,
+  isXorPredicateNode,
+  isNotPredicateNode,
+  isTestPredicateNode,
 } from '@form-engine/core/typeguards/predicate-nodes'
 import ThunkTypeMismatchError from '@form-engine/errors/ThunkTypeMismatchError'
-import PostHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/PostHandler'
-import QueryHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/QueryHandler'
-import ParamsHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/ParamsHandler'
-import DataHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/DataHandler'
-import AnswerLocalHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/AnswerLocalHandler'
-import AnswerRemoteHandler from '@form-engine/core/ast/thunks/handlers/pseudo-nodes/AnswerRemoteHandler'
-import PipelineHandler from '@form-engine/core/ast/thunks/handlers/expressions/PipelineHandler'
-import FormatHandler from '@form-engine/core/ast/thunks/handlers/expressions/FormatHandler'
-import ValidationHandler from '@form-engine/core/ast/thunks/handlers/expressions/ValidationHandler'
-import NextHandler from '@form-engine/core/ast/thunks/handlers/expressions/NextHandler'
+import PostHandler from '@form-engine/core/nodes/pseudo-nodes/post/PostHandler'
+import QueryHandler from '@form-engine/core/nodes/pseudo-nodes/query/QueryHandler'
+import ParamsHandler from '@form-engine/core/nodes/pseudo-nodes/params/ParamsHandler'
+import DataHandler from '@form-engine/core/nodes/pseudo-nodes/data/DataHandler'
+import AnswerLocalHandler from '@form-engine/core/nodes/pseudo-nodes/answer-local/AnswerLocalHandler'
+import AnswerRemoteHandler from '@form-engine/core/nodes/pseudo-nodes/answer-remote/AnswerRemoteHandler'
+import PipelineHandler from '@form-engine/core/nodes/expressions/pipeline/PipelineHandler'
+import FormatHandler from '@form-engine/core/nodes/expressions/format/FormatHandler'
+import ValidationHandler from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
+import NextHandler from '@form-engine/core/nodes/expressions/next/NextHandler'
 
 /**
  * Compiler that orchestrates the creation of thunk handlers for all nodes.
  *
  * Handlers are created using specialized factories based on node type:
  * - Pseudo nodes: PseudoNodeHandlerFactory
- * - Expression nodes: ReferenceHandler, IterateHandler, ConditionalHandler, TestPredicateHandler, AndPredicateHandler, OrPredicateHandler, XorPredicateHandler, NotPredicateHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
- * - Transition nodes: LoadTransitionHandler, AccessTransitionHandler, SubmitTransitionHandler
+ * - Expression nodes: ReferenceHandler, IterateHandler, ConditionalHandler, TestHandler, AndHandler, OrHandler, XorHandler, NotHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
+ * - Transition nodes: LoadTransitionHandler, AccessHandler, SubmitHandler
  * - Structural nodes: JourneyHandler, StepHandler, BlockHandler
  * - Unknown nodes: FallbackHandler
  */
@@ -230,28 +230,28 @@ export default class ThunkCompilerFactory {
     }
 
     // TEST Predicate expressions
-    if (isPredicateTestNode(node)) {
-      return new TestPredicateHandler(nodeId, node)
+    if (isTestPredicateNode(node)) {
+      return new TestHandler(nodeId, node)
     }
 
     // AND Predicate expressions
-    if (isPredicateAndNode(node)) {
-      return new AndPredicateHandler(nodeId, node)
+    if (isAndPredicateNode(node)) {
+      return new AndHandler(nodeId, node)
     }
 
     // OR Predicate expressions
-    if (isPredicateOrNode(node)) {
-      return new OrPredicateHandler(nodeId, node)
+    if (isOrPredicateNode(node)) {
+      return new OrHandler(nodeId, node)
     }
 
     // XOR Predicate expressions
-    if (isPredicateXorNode(node)) {
-      return new XorPredicateHandler(nodeId, node)
+    if (isXorPredicateNode(node)) {
+      return new XorHandler(nodeId, node)
     }
 
     // NOT Predicate expressions
-    if (isPredicateNotNode(node)) {
-      return new NotPredicateHandler(nodeId, node)
+    if (isNotPredicateNode(node)) {
+      return new NotHandler(nodeId, node)
     }
 
     // Effect function expressions (EFFECT)
@@ -274,19 +274,19 @@ export default class ThunkCompilerFactory {
 
     // Transition nodes (LOAD, ACCESS, ACTION, SUBMIT)
     if (isLoadTransitionNode(node)) {
-      return new LoadTransitionHandler(nodeId, node)
+      return new LoadHandler(nodeId, node)
     }
 
     if (isAccessTransitionNode(node)) {
-      return new AccessTransitionHandler(nodeId, node)
+      return new AccessHandler(nodeId, node)
     }
 
     if (isActionTransitionNode(node)) {
-      return new ActionTransitionHandler(nodeId, node)
+      return new ActionHandler(nodeId, node)
     }
 
     if (isSubmitTransitionNode(node)) {
-      return new SubmitTransitionHandler(nodeId, node)
+      return new SubmitHandler(nodeId, node)
     }
 
     // Structural nodes (JOURNEY, STEP, BLOCK)

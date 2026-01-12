@@ -1,6 +1,6 @@
 import { PredicateTestExprBuilder, and, or, xor, not } from './PredicateTestExprBuilder'
 import { ValueExpr, ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
-import { FunctionType, LogicType } from '../types/enums'
+import { FunctionType, PredicateType } from '../types/enums'
 
 describe('PredicateTestExprBuilder', () => {
   // Helper function to create a mock condition
@@ -32,7 +32,7 @@ describe('PredicateTestExprBuilder', () => {
       const result = builder.match(condition)
 
       expect(result).toEqual({
-        type: LogicType.TEST,
+        type: PredicateType.TEST,
         subject,
         negate: false,
         condition,
@@ -55,7 +55,7 @@ describe('PredicateTestExprBuilder', () => {
         const result = builder.match(mockCondition('test'))
 
         expect(result.subject).toBe(subject)
-        expect(result.type).toBe(LogicType.TEST)
+        expect(result.type).toBe(PredicateType.TEST)
       })
     })
 
@@ -73,7 +73,7 @@ describe('PredicateTestExprBuilder', () => {
         const result = builder.match(condition)
 
         expect(result.condition).toBe(condition)
-        expect(result.type).toBe(LogicType.TEST)
+        expect(result.type).toBe(PredicateType.TEST)
       })
     })
   })
@@ -87,7 +87,7 @@ describe('PredicateTestExprBuilder', () => {
       const result = builder.not.match(condition)
 
       expect(result).toEqual({
-        type: LogicType.TEST,
+        type: PredicateType.TEST,
         subject,
         negate: true,
         condition,
@@ -103,7 +103,7 @@ describe('PredicateTestExprBuilder', () => {
       const result = builder.not.not.match(condition)
 
       expect(result).toEqual({
-        type: LogicType.TEST,
+        type: PredicateType.TEST,
         subject,
         negate: false,
         condition,
@@ -154,7 +154,7 @@ describe('PredicateTestExprBuilder', () => {
 describe('Logic predicates', () => {
   // Helper to create a test predicate
   const testPredicate = (name: string, negate = false): PredicateTestExpr => ({
-    type: LogicType.TEST,
+    type: PredicateType.TEST,
     subject: 'value',
     negate,
     condition: { type: FunctionType.CONDITION, name, arguments: [] as any },
@@ -168,7 +168,7 @@ describe('Logic predicates', () => {
       const result = and(p1, p2)
 
       expect(result).toEqual({
-        type: LogicType.AND,
+        type: PredicateType.AND,
         operands: [p1, p2],
       })
     })
@@ -182,7 +182,7 @@ describe('Logic predicates', () => {
       const result = and(p1, p2, p3, p4)
 
       expect(result).toEqual({
-        type: LogicType.AND,
+        type: PredicateType.AND,
         operands: [p1, p2, p3, p4],
       })
     })
@@ -196,7 +196,7 @@ describe('Logic predicates', () => {
       const result = and(p1, nested)
 
       expect(result).toEqual({
-        type: LogicType.AND,
+        type: PredicateType.AND,
         operands: [p1, nested],
       })
     })
@@ -217,7 +217,7 @@ describe('Logic predicates', () => {
       const result = or(p1, p2)
 
       expect(result).toEqual({
-        type: LogicType.OR,
+        type: PredicateType.OR,
         operands: [p1, p2],
       })
     })
@@ -230,7 +230,7 @@ describe('Logic predicates', () => {
       const result = or(p1, p2, p3)
 
       expect(result).toEqual({
-        type: LogicType.OR,
+        type: PredicateType.OR,
         operands: [p1, p2, p3],
       })
     })
@@ -244,7 +244,7 @@ describe('Logic predicates', () => {
       const result = or(nested, p3)
 
       expect(result).toEqual({
-        type: LogicType.OR,
+        type: PredicateType.OR,
         operands: [nested, p3],
       })
     })
@@ -265,7 +265,7 @@ describe('Logic predicates', () => {
       const result = xor(p1, p2)
 
       expect(result).toEqual({
-        type: LogicType.XOR,
+        type: PredicateType.XOR,
         operands: [p1, p2],
       })
     })
@@ -279,7 +279,7 @@ describe('Logic predicates', () => {
       const result = xor(p1, p2, p3, p4)
 
       expect(result).toEqual({
-        type: LogicType.XOR,
+        type: PredicateType.XOR,
         operands: [p1, p2, p3, p4],
       })
     })
@@ -293,7 +293,7 @@ describe('Logic predicates', () => {
       const result = xor(p1, nested)
 
       expect(result).toEqual({
-        type: LogicType.XOR,
+        type: PredicateType.XOR,
         operands: [p1, nested],
       })
     })
@@ -313,7 +313,7 @@ describe('Logic predicates', () => {
       const result = not(p1)
 
       expect(result).toEqual({
-        type: LogicType.NOT,
+        type: PredicateType.NOT,
         operand: p1,
       })
     })
@@ -326,7 +326,7 @@ describe('Logic predicates', () => {
       const result = not(nested)
 
       expect(result).toEqual({
-        type: LogicType.NOT,
+        type: PredicateType.NOT,
         operand: nested,
       })
     })
@@ -338,7 +338,7 @@ describe('Logic predicates', () => {
       const doubleNot = not(firstNot)
 
       expect(doubleNot).toEqual({
-        type: LogicType.NOT,
+        type: PredicateType.NOT,
         operand: firstNot,
       })
     })
@@ -360,16 +360,16 @@ describe('Logic predicates', () => {
       const result = and(or(p1, p2), not(xor(p3, p4)))
 
       expect(result).toEqual({
-        type: LogicType.AND,
+        type: PredicateType.AND,
         operands: [
           {
-            type: LogicType.OR,
+            type: PredicateType.OR,
             operands: [p1, p2],
           },
           {
-            type: LogicType.NOT,
+            type: PredicateType.NOT,
             operand: {
-              type: LogicType.XOR,
+              type: PredicateType.XOR,
               operands: [p3, p4],
             },
           },
@@ -386,14 +386,14 @@ describe('Logic predicates', () => {
       const complex = or(and(t1, t2), and(t3, t4))
 
       expect(complex).toEqual({
-        type: LogicType.OR,
+        type: PredicateType.OR,
         operands: [
           {
-            type: LogicType.AND,
+            type: PredicateType.AND,
             operands: [t1, t2],
           },
           {
-            type: LogicType.AND,
+            type: PredicateType.AND,
             operands: [t3, t4],
           },
         ],
@@ -409,11 +409,11 @@ describe('Logic predicates', () => {
 
       const complex = and(or(p1, p2), xor(p3, not(p4)), p5)
 
-      expect(complex.type).toBe(LogicType.AND)
+      expect(complex.type).toBe(PredicateType.AND)
       expect(complex.operands).toHaveLength(3)
-      expect((complex.operands[0] as any).type).toBe(LogicType.OR)
-      expect((complex.operands[1] as any).type).toBe(LogicType.XOR)
-      expect((complex.operands[2] as any).type).toBe(LogicType.TEST)
+      expect((complex.operands[0] as any).type).toBe(PredicateType.OR)
+      expect((complex.operands[1] as any).type).toBe(PredicateType.XOR)
+      expect((complex.operands[2] as any).type).toBe(PredicateType.TEST)
     })
   })
 })

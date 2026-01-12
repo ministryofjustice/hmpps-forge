@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, LogicType, TransitionType, IteratorType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, IteratorType, TransitionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 
@@ -7,7 +7,7 @@ import { ASTNode } from '@form-engine/core/types/engine.type'
  */
 export interface ExpressionASTNode extends ASTNode {
   type: ASTNodeType.EXPRESSION
-  expressionType: ExpressionType | FunctionType | LogicType
+  expressionType: ExpressionType | FunctionType
 }
 
 /**
@@ -84,75 +84,13 @@ export interface IterateASTNode extends ExpressionASTNode {
  * Conditional Expression AST node
  */
 export interface ConditionalASTNode extends ExpressionASTNode {
-  expressionType: LogicType.CONDITIONAL
+  expressionType: ExpressionType.CONDITIONAL
   properties: {
     predicate: ASTNode
     thenValue?: ASTNode | any
     elseValue?: ASTNode | any
   }
 }
-
-/**
- * Test Predicate Expression AST node
- */
-export interface TestPredicateASTNode extends ExpressionASTNode {
-  expressionType: LogicType.TEST
-  properties: {
-    subject: ASTNode
-    condition: ASTNode
-    negate: boolean
-  }
-}
-
-/**
- * Not Predicate Expression AST node
- */
-export interface NotPredicateASTNode extends ExpressionASTNode {
-  expressionType: LogicType.NOT
-  properties: {
-    operand: ASTNode
-  }
-}
-
-/**
- * And Predicate Expression AST node
- */
-export interface AndPredicateASTNode extends ExpressionASTNode {
-  expressionType: LogicType.AND
-  properties: {
-    operands: ASTNode[]
-  }
-}
-
-/**
- * Or Predicate Expression AST node
- */
-export interface OrPredicateASTNode extends ExpressionASTNode {
-  expressionType: LogicType.OR
-  properties: {
-    operands: ASTNode[]
-  }
-}
-
-/**
- * Xor Predicate Expression AST node
- */
-export interface XorPredicateASTNode extends ExpressionASTNode {
-  expressionType: LogicType.XOR
-  properties: {
-    operands: ASTNode[]
-  }
-}
-
-/**
- * Union type for all Predicate Expression AST nodes
- */
-export type PredicateASTNode =
-  | TestPredicateASTNode
-  | NotPredicateASTNode
-  | AndPredicateASTNode
-  | OrPredicateASTNode
-  | XorPredicateASTNode
 
 /**
  * Function Expression AST node

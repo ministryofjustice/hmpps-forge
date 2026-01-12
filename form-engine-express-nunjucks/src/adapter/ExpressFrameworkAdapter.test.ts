@@ -4,6 +4,7 @@ import nunjucks from 'nunjucks'
 import { FrameworkAdapter, StepHandler } from '@form-engine/core/runtime/routes/types'
 import { Evaluated, RenderContext } from '@form-engine/core/runtime/rendering/types'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { BlockType } from '@form-engine/form/types/enums'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
@@ -370,7 +371,7 @@ describe('ExpressFrameworkAdapter', () => {
             id: 'compile_ast:1',
             type: ASTNodeType.BLOCK,
             variant: 'html',
-            blockType: 'basic',
+            blockType: BlockType.BASIC,
             properties: { content: 'Hello' },
           },
         ],

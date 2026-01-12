@@ -1,5 +1,5 @@
 import { FunctionRegistryObject } from '@form-engine/registry/types/functions.type'
-import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
+import EffectFunctionContext from '@form-engine/core/nodes/expressions/effect/EffectFunctionContext'
 import {
   ConditionFunctionExpr,
   EffectFunctionExpr,

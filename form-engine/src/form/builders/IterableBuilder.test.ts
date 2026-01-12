@@ -7,7 +7,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { ExpressionType, FunctionType, IteratorType, LogicType } from '../types/enums'
+import { ExpressionType, FunctionType, IteratorType, PredicateType } from '../types/enums'
 
 describe('IterableBuilder', () => {
   // Helper to create a mock reference (data source)
@@ -32,7 +32,7 @@ describe('IterableBuilder', () => {
 
   // Helper to create a mock predicate for filter
   const mockPredicate = () => ({
-    type: LogicType.TEST as const,
+    type: PredicateType.TEST as const,
     subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'active'] },
     negate: false,
     condition: mockCondition('isTrue'),
@@ -193,7 +193,7 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).pipe(transformer).match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect(result.condition).toEqual(condition)
     })
   })
@@ -209,7 +209,7 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect(result.negate).toBe(false)
       expect(result.condition).toEqual(condition)
       expect((result.subject as IterateExpr).type).toBe(ExpressionType.ITERATE)
@@ -380,7 +380,7 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).path('goals').match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect(result.negate).toBe(false)
       expect(result.condition).toEqual(condition)
       // Subject should be the reference with base

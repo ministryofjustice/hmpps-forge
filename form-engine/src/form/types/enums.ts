@@ -11,6 +11,11 @@ export enum StructureType {
   STEP = 'StructureType.Step',
 }
 
+export enum BlockType {
+  FIELD = 'BlockType.field',
+  BASIC = 'BlockType.basic',
+}
+
 export enum ExpressionType {
   REFERENCE = 'ExpressionType.Reference',
   FORMAT = 'ExpressionType.Format',
@@ -18,6 +23,7 @@ export enum ExpressionType {
   NEXT = 'ExpressionType.Next',
   VALIDATION = 'ExpressionType.Validation',
   ITERATE = 'ExpressionType.Iterate',
+  CONDITIONAL = 'ExpressionType.Conditional',
 }
 
 export enum IteratorType {
@@ -26,13 +32,12 @@ export enum IteratorType {
   FIND = 'IteratorType.Find',
 }
 
-export enum LogicType {
-  TEST = 'LogicType.Test',
-  AND = 'LogicType.And',
-  OR = 'LogicType.Or',
-  XOR = 'LogicType.Xor',
-  NOT = 'LogicType.Not',
-  CONDITIONAL = 'LogicType.Conditional',
+export enum PredicateType {
+  TEST = 'PredicateType.Test',
+  AND = 'PredicateType.And',
+  OR = 'PredicateType.Or',
+  XOR = 'PredicateType.Xor',
+  NOT = 'PredicateType.Not',
 }
 
 export enum TransitionType {

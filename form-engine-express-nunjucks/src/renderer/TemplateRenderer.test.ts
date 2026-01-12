@@ -4,7 +4,7 @@ import { RenderContext, Evaluated } from '@form-engine/core/runtime/rendering/ty
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { StructureType } from '@form-engine/form/types/enums'
+import { BlockType, StructureType } from '@form-engine/form/types/enums'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
 
@@ -49,7 +49,7 @@ describe('TemplateRenderer', () => {
       id: 'compile_ast:1',
       type: ASTNodeType.BLOCK,
       variant: 'text-input',
-      blockType: 'field',
+      blockType: BlockType.FIELD,
       properties: {},
       ...overrides,
     }
@@ -505,7 +505,7 @@ describe('TemplateRenderer', () => {
         id: 'compile_ast:10',
         type: ASTNodeType.BLOCK,
         variant: 'fieldset',
-        blockType: 'basic',
+        blockType: BlockType.BASIC,
         properties: { content: 'Nested' },
       }
 
@@ -528,7 +528,7 @@ describe('TemplateRenderer', () => {
       expect(mockRender).toHaveBeenCalledTimes(2)
       const parentCallArgs = mockRender.mock.calls[1][0]
       expect(parentCallArgs.children).toEqual({
-        block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'fieldset', content: 'Nested' },
+        block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'fieldset', content: 'Nested' },
         html: '<div>Nested content</div>',
       })
     })
@@ -546,14 +546,14 @@ describe('TemplateRenderer', () => {
           id: 'compile_ast:20',
           type: ASTNodeType.BLOCK,
           variant: 'html',
-          blockType: 'basic',
+          blockType: BlockType.BASIC,
           properties: {},
         },
         {
           id: 'compile_ast:21',
           type: ASTNodeType.BLOCK,
           variant: 'html',
-          blockType: 'basic',
+          blockType: BlockType.BASIC,
           properties: {},
         },
       ]
@@ -588,7 +588,7 @@ describe('TemplateRenderer', () => {
         id: 'compile_ast:20',
         type: ASTNodeType.BLOCK,
         variant: 'html',
-        blockType: 'basic',
+        blockType: BlockType.BASIC,
         properties: {},
       }
 
@@ -596,7 +596,7 @@ describe('TemplateRenderer', () => {
         id: 'compile_ast:21',
         type: ASTNodeType.BLOCK,
         variant: 'html',
-        blockType: 'basic',
+        blockType: BlockType.BASIC,
         properties: { hidden: true },
       }
 
@@ -630,7 +630,7 @@ describe('TemplateRenderer', () => {
         id: 'compile_ast:30',
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        blockType: 'basic',
+        blockType: BlockType.BASIC,
         properties: {},
       }
 

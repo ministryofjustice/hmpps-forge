@@ -1,11 +1,11 @@
 import { Iterator } from './IteratorBuilder'
-import { IteratorType, LogicType } from '../types/enums'
+import { IteratorType, PredicateType } from '../types/enums'
 import { PredicateTestExpr } from '../types/expressions.type'
 
 describe('Iterator', () => {
   // Helper to create a mock predicate
   const mockPredicate = (): PredicateTestExpr => ({
-    type: LogicType.TEST,
+    type: PredicateType.TEST,
     subject: { type: 'ExpressionType.Reference' as any, path: ['@scope', '0', 'active'] },
     negate: false,
     condition: { type: 'FunctionType.Condition' as any, name: 'isTrue', arguments: [] },

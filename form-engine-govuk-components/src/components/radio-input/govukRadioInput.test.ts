@@ -1,5 +1,5 @@
 import { GovukComponentTestHelper } from '@form-engine-govuk-components/test-utils/GovukComponentTestHelper'
-import { StructureType } from '@form-engine/form/types/enums'
+import { BlockType, StructureType } from '@form-engine/form/types/enums'
 import { BlockDefinition } from '@form-engine/form/types/structures.type'
 import { setupComponentTest } from '@form-engine-govuk-components/test-utils/setupComponentTest'
 import { govukRadioInput } from './govukRadioInput'
@@ -211,7 +211,7 @@ describe('govukRadioInput', () => {
     it('passes through conditional blocks', async () => {
       const conditionalBlock: BlockDefinition = {
         type: StructureType.BLOCK,
-        blockType: 'basic',
+        blockType: BlockType.BASIC,
         variant: 'text',
       }
       const conditionalHtml = `<p>Some conditional HTML</p>`

@@ -12,7 +12,7 @@ import {
   ValueExpr,
   NextExpr,
 } from '../types/expressions.type'
-import { ExpressionType, LogicType, IteratorType } from '../types/enums'
+import { ExpressionType, IteratorType } from '../types/enums'
 import { isFunctionExpr, isTransformerFunctionExpr } from './functions'
 
 export function isReferenceExpr(obj: any): obj is ReferenceExpr {
@@ -28,7 +28,7 @@ export function isPipelineExpr(obj: any): obj is PipelineExpr {
 }
 
 export function isConditionalExpr(obj: any): obj is ConditionalExpr {
-  return obj != null && obj.type === LogicType.CONDITIONAL
+  return obj != null && obj.type === ExpressionType.CONDITIONAL
 }
 
 export function isIterateExpr(obj: any): obj is IterateExpr {

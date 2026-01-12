@@ -4,10 +4,10 @@ import { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationF
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
 import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/ast/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { LoadTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/LoadTransitionHandler'
-import { AccessTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/AccessTransitionHandler'
-import { SubmitTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/SubmitTransitionHandler'
-import { ActionTransitionResult } from '@form-engine/core/ast/thunks/handlers/transitions/ActionTransitionHandler'
+import { LoadTransitionResult } from '@form-engine/core/nodes/transitions/load/LoadHandler'
+import { AccessTransitionResult } from '@form-engine/core/nodes/transitions/access/AccessHandler'
+import { SubmitTransitionResult } from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
+import { ActionTransitionResult } from '@form-engine/core/nodes/transitions/action/ActionHandler'
 import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,

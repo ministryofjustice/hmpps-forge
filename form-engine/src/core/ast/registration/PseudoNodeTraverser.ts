@@ -1,13 +1,12 @@
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
-import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
-import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
-import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import PseudoNodeFactory from '@form-engine/core/ast/nodes/PseudoNodeFactory'
+import { getPseudoNodeKey } from '@form-engine/core/ast/registration/pseudoNodeKeyExtractor'
+import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { BlockASTNode } from '@form-engine/core/types/structures.type'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
-import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
+import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
+import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
 
 /**
  * Traverses the AST to discover and create pseudo nodes at compile-time.
@@ -43,8 +42,7 @@ export default class PseudoNodeTraverser {
 
   createPseudoNodes() {
     // Setup AnswerLocalPseudoNodes first
-    this.nodeRegistry.findByType<BlockASTNode>(ASTNodeType.BLOCK)
-      .filter(isFieldBlockStructNode)
+    this.nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
       .forEach(blockNode => {
         const fieldCode = blockNode.properties.code
 
@@ -58,8 +56,7 @@ export default class PseudoNodeTraverser {
       })
 
     // Setup all other reference nodes
-    this.nodeRegistry.findByType<ExpressionASTNode>(ASTNodeType.EXPRESSION)
-      .filter(isReferenceExprNode)
+    this.nodeRegistry.findByType<ReferenceASTNode>(ExpressionType.REFERENCE)
       .forEach(referenceExpressionNode => {
         const path = referenceExpressionNode.properties.path
 
@@ -118,13 +115,20 @@ export default class PseudoNodeTraverser {
   }
 
   /**
+   * Check if a pseudo node with the given type and key already exists in the registry
+   */
+  private pseudoNodeExists(type: PseudoNodeType, key: string): boolean {
+    return this.nodeRegistry.findByType<PseudoNode>(type).some(node => getPseudoNodeKey(node) === key)
+  }
+
+  /**
    * Create a POST pseudo node with deduplication
    */
   private createPostPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): void {
     // Check if already created in this traversal OR already exists in registry
     if (
       this.created.get(PseudoNodeType.POST)!.has(baseFieldCode) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.POST, baseFieldCode)
+      this.pseudoNodeExists(PseudoNodeType.POST, baseFieldCode)
     ) {
       return
     }
@@ -145,8 +149,8 @@ export default class PseudoNodeTraverser {
     if (
       this.created.get(PseudoNodeType.ANSWER_REMOTE)!.has(baseFieldCode) ||
       this.created.get(PseudoNodeType.ANSWER_LOCAL)!.has(baseFieldCode) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_REMOTE, baseFieldCode) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_LOCAL, baseFieldCode)
+      this.pseudoNodeExists(PseudoNodeType.ANSWER_REMOTE, baseFieldCode) ||
+      this.pseudoNodeExists(PseudoNodeType.ANSWER_LOCAL, baseFieldCode)
     ) {
       return
     }
@@ -161,12 +165,12 @@ export default class PseudoNodeTraverser {
    * Create an ANSWER pseudo node with deduplication
    * Creates ANSWER_LOCAL for representing Answers that are fields on the current Step.
    */
-  private createAnswerLocalPseudoNode(fieldNode: BlockASTNode, fieldCode: string): void {
+  private createAnswerLocalPseudoNode(fieldNode: FieldBlockASTNode, fieldCode: string): void {
     // Check if already created in this traversal OR already exists in registry
     // Note: this shouldn't ever occur, unless someone fudged up and made 2 fields with the same code on a single step
     if (
       this.created.get(PseudoNodeType.ANSWER_LOCAL)!.has(fieldCode) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.ANSWER_LOCAL, fieldCode)
+      this.pseudoNodeExists(PseudoNodeType.ANSWER_LOCAL, fieldCode)
     ) {
       return
     }
@@ -184,7 +188,7 @@ export default class PseudoNodeTraverser {
     // Check if already created in this traversal OR already exists in registry
     if (
       this.created.get(PseudoNodeType.QUERY)!.has(paramName) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.QUERY, paramName)
+      this.pseudoNodeExists(PseudoNodeType.QUERY, paramName)
     ) {
       return
     }
@@ -202,7 +206,7 @@ export default class PseudoNodeTraverser {
     // Check if already created in this traversal OR already exists in registry
     if (
       this.created.get(PseudoNodeType.PARAMS)!.has(paramName) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.PARAMS, paramName)
+      this.pseudoNodeExists(PseudoNodeType.PARAMS, paramName)
     ) {
       return
     }
@@ -220,7 +224,7 @@ export default class PseudoNodeTraverser {
     // Check if already created in this traversal OR already exists in registry
     if (
       this.created.get(PseudoNodeType.DATA)!.has(baseProperty) ||
-      this.nodeRegistry.findPseudoNode(PseudoNodeType.DATA, baseProperty)
+      this.pseudoNodeExists(PseudoNodeType.DATA, baseProperty)
     ) {
       return
     }

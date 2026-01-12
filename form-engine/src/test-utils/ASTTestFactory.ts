@@ -1,11 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
-import { ExpressionType, FunctionType, LogicType, TransitionType } from '@form-engine/form/types/enums'
+import { BlockType, ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
 import { AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
   PipelineASTNode,
-  PredicateASTNode,
   ReferenceASTNode,
   LoadTransitionASTNode,
   AccessTransitionASTNode,
@@ -23,16 +22,15 @@ import {
   AnswerLocalPseudoNode,
   AnswerRemotePseudoNode,
 } from '@form-engine/core/types/pseudoNodes.type'
+import { PredicateASTNode } from '@form-engine/core/types/predicates.type'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode
   condition?: ExpressionASTNode
   negate?: boolean
-  operands?: ExpressionASTNode[]
-  operand?: ExpressionASTNode
+  operands?: (ExpressionASTNode | PredicateASTNode)[]
+  operand?: ExpressionASTNode | PredicateASTNode
 }
-
-type BlockType = 'basic' | 'field'
 
 /**
  * Test data factory for creating AST nodes with fluent builders and automatic ID generation.
@@ -112,7 +110,7 @@ export class ASTTestFactory {
   /**
    * Create a new ExpressionBuilder for fluent expression construction
    */
-  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionType | LogicType): ExpressionBuilder<T> {
+  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionType | PredicateType): ExpressionBuilder<T> {
     return new ExpressionBuilder<T>(type)
   }
 
@@ -141,8 +139,8 @@ export class ASTTestFactory {
       .build()
   }
 
-  static predicate(type: LogicType, config: PredicateBuilderConfig = {}): PredicateASTNode {
-    const builder = ASTTestFactory.expression(type)
+  static predicate(type: PredicateType, config: PredicateBuilderConfig = {}): PredicateASTNode {
+    const builder = ASTTestFactory.expression<PredicateASTNode>(type)
 
     if (config.subject) {
       builder.withSubject(config.subject)
@@ -164,7 +162,7 @@ export class ASTTestFactory {
       builder.withProperty('operand', config.operand)
     }
 
-    return builder.build() as PredicateASTNode
+    return builder.build()
   }
 
   /**
@@ -426,7 +424,7 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   private properties: any = {}
 
-  constructor(private expressionType: ExpressionType | FunctionType | LogicType) {}
+  constructor(private expressionType: ExpressionType | FunctionType | PredicateType) {}
 
   withId(id: string): this {
     this.id = id
@@ -453,7 +451,7 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
     return this
   }
 
-  withPredicate(predicate: ExpressionASTNode): this {
+  withPredicate(predicate: ExpressionASTNode | PredicateASTNode): this {
     this.properties.predicate = predicate
     return this
   }
@@ -475,6 +473,16 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   build(): T {
     const nodeId = this.id ?? ASTTestFactory.getId()
+    const isPredicate = Object.values(PredicateType).includes(this.expressionType as PredicateType)
+
+    if (isPredicate) {
+      return {
+        type: ASTNodeType.PREDICATE,
+        id: nodeId,
+        predicateType: this.expressionType,
+        properties: this.properties,
+      } as T
+    }
 
     return {
       type: ASTNodeType.EXPRESSION,

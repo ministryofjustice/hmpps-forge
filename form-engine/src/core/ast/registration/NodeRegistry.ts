@@ -1,8 +1,23 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { BlockType, ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
 import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { isPseudoNode } from '@form-engine/core/typeguards/nodes'
-import { getPseudoNodeKey } from './pseudoNodeKeyExtractor'
+import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
+import { PredicateASTNode } from '@form-engine/core/types/predicates.type'
+import { BlockASTNode } from '@form-engine/core/types/structures.type'
+
+/**
+ * Union type of all indexable node types
+ * Includes top-level types (ASTNodeType, PseudoNodeType) and sub-types
+ */
+export type IndexableNodeType =
+  | ASTNodeType
+  | PseudoNodeType
+  | ExpressionType
+  | FunctionType
+  | PredicateType
+  | TransitionType
+  | BlockType
 
 /**
  * Metadata stored for each registered node
@@ -14,15 +29,16 @@ export interface NodeRegistryEntry {
 
 /**
  * Registry for storing and retrieving AST nodes by their unique IDs.
+ * Maintains a type index for O(1) lookups by type or sub-type.
  */
 export default class NodeRegistry {
   private readonly nodes: Map<NodeId, NodeRegistryEntry> = new Map()
 
   /**
-   * Secondary index for O(1) pseudo node lookups
-   * Map<PseudoNodeType, Map<key, NodeId>>
+   * Type index for O(1) lookups by type or sub-type
+   * Keys are type enum values (e.g., 'AstNode.Expression', 'ExpressionType.Reference')
    */
-  private readonly pseudoNodeIndex: Map<PseudoNodeType, Map<string, NodeId>> = new Map()
+  private readonly typeIndex: Map<string, Set<NodeId>> = new Map()
 
   /**
    * Register a node with its ID and path
@@ -38,30 +54,52 @@ export default class NodeRegistry {
 
     this.nodes.set(id, { node: Object.freeze(node), path })
 
-    // Update pseudo node index for O(1) lookups
-    if (isPseudoNode(node)) {
-      this.indexPseudoNode(id, node)
+    // Index by primary type
+    this.addToTypeIndex(node.type, id)
+
+    // Index by sub-type if present
+    const subType = this.getNodeSubType(node)
+
+    if (subType) {
+      this.addToTypeIndex(subType, id)
     }
   }
 
   /**
-   * Index a pseudo node for O(1) lookup by type and key
+   * Add a node ID to the type index
    */
-  private indexPseudoNode(id: NodeId, node: PseudoNode): void {
-    const key = getPseudoNodeKey(node)
+  private addToTypeIndex(type: string, id: NodeId): void {
+    let typeSet = this.typeIndex.get(type)
 
-    if (key === undefined) {
-      return
+    if (!typeSet) {
+      typeSet = new Set()
+      this.typeIndex.set(type, typeSet)
     }
 
-    let typeIndex = this.pseudoNodeIndex.get(node.type)
+    typeSet.add(id)
+  }
 
-    if (!typeIndex) {
-      typeIndex = new Map()
-      this.pseudoNodeIndex.set(node.type, typeIndex)
+  /**
+   * Extract the sub-type from a node if it has one
+   */
+  private getNodeSubType(node: ASTNode | PseudoNode): string | undefined {
+    if ('expressionType' in node) {
+      return (node as ExpressionASTNode).expressionType
     }
 
-    typeIndex.set(key, id)
+    if ('predicateType' in node) {
+      return (node as PredicateASTNode).predicateType
+    }
+
+    if ('transitionType' in node) {
+      return (node as { transitionType: TransitionType }).transitionType
+    }
+
+    if ('blockType' in node) {
+      return (node as BlockASTNode).blockType
+    }
+
+    return undefined
   }
 
   /**
@@ -130,15 +168,23 @@ export default class NodeRegistry {
   }
 
   /**
-   * Find nodes by type
-   * @param type The node type symbol to search for
+   * Find nodes by type or sub-type using O(1) index lookup
+   * @param type The node type to search for (top-level or sub-type)
    * @returns Array of nodes matching the type
    */
-  findByType<T = ASTNode | PseudoNode>(type: ASTNodeType | PseudoNodeType): T[] {
+  findByType<T = ASTNode | PseudoNode>(type: IndexableNodeType): T[] {
+    const nodeIds = this.typeIndex.get(type)
+
+    if (!nodeIds) {
+      return []
+    }
+
     const results: T[] = []
 
-    this.nodes.forEach(entry => {
-      if (entry.node.type === type) {
+    nodeIds.forEach(id => {
+      const entry = this.nodes.get(id)
+
+      if (entry) {
         results.push(entry.node as T)
       }
     })
@@ -164,54 +210,11 @@ export default class NodeRegistry {
   }
 
   /**
-   * Find a pseudo node by type and key in O(1) time
-   *
-   * @param type The pseudo node type
-   * @param key The lookup key (baseProperty, baseFieldCode, or paramName depending on type)
-   * @returns The pseudo node, or undefined if not found
-   */
-  findPseudoNode<T extends PseudoNode = PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
-    const typeIndex = this.pseudoNodeIndex.get(type)
-
-    if (!typeIndex) {
-      return undefined
-    }
-
-    const nodeId = typeIndex.get(key)
-
-    if (!nodeId) {
-      return undefined
-    }
-
-    return this.get(nodeId) as T | undefined
-  }
-
-  /**
-   * Find a pseudo node by key, checking multiple types in order
-   * Used when a lookup could match different pseudo node types (e.g., ANSWER_LOCAL or ANSWER_REMOTE)
-   *
-   * @param types Array of pseudo node types to check (in order)
-   * @param key The lookup key
-   * @returns The first matching pseudo node, or undefined if none found
-   */
-  findPseudoNodeByTypes<T extends PseudoNode = PseudoNode>(types: PseudoNodeType[], key: string): T | undefined {
-    for (const type of types) {
-      const node = this.findPseudoNode<T>(type, key)
-
-      if (node) {
-        return node
-      }
-    }
-
-    return undefined
-  }
-
-  /**
    * Clear all registered nodes
    */
   clear(): void {
     this.nodes.clear()
-    this.pseudoNodeIndex.clear()
+    this.typeIndex.clear()
   }
 
   /**
@@ -223,16 +226,16 @@ export default class NodeRegistry {
   clone(): NodeRegistry {
     const cloned = Object.create(Object.getPrototypeOf(this)) as NodeRegistry
 
-    // Clone the pseudo node index (deep copy of nested maps)
-    const clonedIndex = new Map<PseudoNodeType, Map<string, NodeId>>()
+    // Clone the type index (deep copy of nested sets)
+    const clonedIndex = new Map<string, Set<NodeId>>()
 
-    this.pseudoNodeIndex.forEach((typeIndex, type) => {
-      clonedIndex.set(type, new Map(typeIndex))
+    this.typeIndex.forEach((nodeSet, type) => {
+      clonedIndex.set(type, new Set(nodeSet))
     })
 
     return Object.assign(cloned, {
       nodes: new Map(this.nodes),
-      pseudoNodeIndex: clonedIndex,
+      typeIndex: clonedIndex,
     })
   }
 }

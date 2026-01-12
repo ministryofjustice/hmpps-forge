@@ -3,7 +3,7 @@ import OverlayNodeIDGenerator from '@form-engine/core/ast/nodes/OverlayNodeIDGen
 import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
-import { PseudoNodeFactory } from '@form-engine/core/ast/nodes/PseudoNodeFactory'
+import PseudoNodeFactory from '@form-engine/core/ast/nodes/PseudoNodeFactory'
 import DependencyGraph from '@form-engine/core/ast/dependencies/DependencyGraph'
 import OverlayNodeRegistry from '@form-engine/core/ast/registration/OverlayNodeRegistry'
 import OverlayMetadataRegistry from '@form-engine/core/ast/registration/OverlayMetadataRegistry'

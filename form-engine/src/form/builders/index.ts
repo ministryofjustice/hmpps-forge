@@ -22,7 +22,7 @@ import {
   ValueExpr,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { ExpressionType, StructureType, TransitionType } from '../types/enums'
+import { BlockType, ExpressionType, StructureType, TransitionType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -46,7 +46,7 @@ export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'b
   return finaliseBuilders({
     ...definition,
     type: StructureType.BLOCK,
-    blockType: 'basic',
+    blockType: BlockType.BASIC,
   }) as D
 }
 
@@ -54,7 +54,7 @@ export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type'
   return finaliseBuilders({
     ...definition,
     type: StructureType.BLOCK,
-    blockType: 'field',
+    blockType: BlockType.FIELD,
   }) as D
 }
 

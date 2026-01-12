@@ -1,7 +1,6 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import NodeRegistry, { NodeRegistryEntry } from './NodeRegistry'
+import { PseudoNode } from '@form-engine/core/types/pseudoNodes.type'
+import NodeRegistry, { IndexableNodeType, NodeRegistryEntry } from './NodeRegistry'
 
 /**
  * Overlay node registry that delegates to main and pending registries.
@@ -64,16 +63,8 @@ export default class OverlayNodeRegistry extends NodeRegistry {
     return this.getIds().length
   }
 
-  findByType<T = ASTNode | PseudoNode>(type: ASTNodeType | PseudoNodeType): T[] {
+  findByType<T = ASTNode | PseudoNode>(type: IndexableNodeType): T[] {
     return [...this.main.findByType<T>(type), ...this.pending.findByType<T>(type)]
-  }
-
-  /**
-   * Find nodes by type in pending registry only.
-   * Use this when processing newly added nodes to avoid reprocessing main registry nodes.
-   */
-  findByTypeInPending<T = ASTNode | PseudoNode>(type: ASTNodeType | PseudoNodeType): T[] {
-    return this.pending.findByType<T>(type)
   }
 
   findBy(predicate: (node: ASTNode | PseudoNode) => boolean): (ASTNode | PseudoNode)[] {
@@ -83,48 +74,6 @@ export default class OverlayNodeRegistry extends NodeRegistry {
     this.main.findBy(predicate).forEach(node => results.push(node))
 
     return results
-  }
-
-  /**
-   * Find a pseudo node by type and key
-   * Checks pending registry first, then main registry
-   */
-  findPseudoNode<T extends PseudoNode = PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
-    // Check pending first
-    const pendingResult = this.pending.findPseudoNode<T>(type, key)
-
-    if (pendingResult) {
-      return pendingResult
-    }
-
-    // Fall back to main
-    return this.main.findPseudoNode<T>(type, key)
-  }
-
-  /**
-   * Find a pseudo node by key, checking multiple types
-   * Checks pending registry first for each type, then main registry
-   */
-  findPseudoNodeByTypes<T extends PseudoNode = PseudoNode>(types: PseudoNodeType[], key: string): T | undefined {
-    // Check pending first for all types
-    for (const type of types) {
-      const pendingResult = this.pending.findPseudoNode<T>(type, key)
-
-      if (pendingResult) {
-        return pendingResult
-      }
-    }
-
-    // Fall back to main for all types
-    for (const type of types) {
-      const mainResult = this.main.findPseudoNode<T>(type, key)
-
-      if (mainResult) {
-        return mainResult
-      }
-    }
-
-    return undefined
   }
 
   clear(): void {

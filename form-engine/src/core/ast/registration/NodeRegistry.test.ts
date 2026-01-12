@@ -1,6 +1,6 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { BlockType, ExpressionType, PredicateType } from '@form-engine/form/types/enums'
 import NodeRegistry from './NodeRegistry'
 
 describe('NodeRegistry', () => {
@@ -12,7 +12,7 @@ describe('NodeRegistry', () => {
 
   describe('register', () => {
     it('should register a node with ID and path', () => {
-      const node = ASTTestFactory.block('TextField', 'field').withId('compile_ast:1').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).withId('compile_ast:1').build()
 
       registry.register('compile_ast:1', node, ['steps', 0, 'blocks', 0])
 
@@ -21,7 +21,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should register a node with empty path when path not provided', () => {
-      const node = ASTTestFactory.block('TextField', 'field').withId('compile_ast:1').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).withId('compile_ast:1').build()
 
       registry.register('compile_ast:1', node)
 
@@ -30,8 +30,8 @@ describe('NodeRegistry', () => {
     })
 
     it('should throw error when registering duplicate ID', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
-      const node2 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+      const node2 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
 
       registry.register('compile_ast:1', node1)
 
@@ -43,7 +43,7 @@ describe('NodeRegistry', () => {
 
   describe('get', () => {
     it('should retrieve a registered node by ID', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', node)
 
       const retrieved = registry.get('compile_ast:1')
@@ -58,7 +58,7 @@ describe('NodeRegistry', () => {
 
   describe('getEntry', () => {
     it('should retrieve node entry with path', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const path = ['steps', 0, 'blocks', 1]
       registry.register('compile_ast:1', node, path)
 
@@ -77,7 +77,7 @@ describe('NodeRegistry', () => {
 
   describe('has', () => {
     it('should return true for registered ID', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', node)
 
       expect(registry.has('compile_ast:1')).toBe(true)
@@ -90,8 +90,8 @@ describe('NodeRegistry', () => {
 
   describe('getAll', () => {
     it('should return all registered nodes as a Map', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').withCode('field1').build()
-      const node2 = ASTTestFactory.block('TextField', 'field').withCode('field2').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).withCode('field1').build()
+      const node2 = ASTTestFactory.block('TextField', BlockType.FIELD).withCode('field2').build()
       const node3 = ASTTestFactory.step().build()
 
       registry.register('compile_ast:1', node1)
@@ -112,7 +112,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should return a new Map instance', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', node)
 
       const map1 = registry.getAll()
@@ -125,7 +125,7 @@ describe('NodeRegistry', () => {
 
   describe('getAllEntries', () => {
     it('should return all entries with paths', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const node2 = ASTTestFactory.step().build()
 
       registry.register('compile_ast:1', node1, ['blocks', 0])
@@ -139,7 +139,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should return a new Map instance', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', node, ['test'])
 
       const map1 = registry.getAllEntries()
@@ -152,7 +152,7 @@ describe('NodeRegistry', () => {
 
   describe('getIds', () => {
     it('should return array of all registered IDs', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const node2 = ASTTestFactory.step().build()
       const node3 = ASTTestFactory.journey().build()
 
@@ -175,7 +175,7 @@ describe('NodeRegistry', () => {
     it('should return count of registered nodes', () => {
       expect(registry.size()).toBe(0)
 
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', node1)
       expect(registry.size()).toBe(1)
 
@@ -187,8 +187,8 @@ describe('NodeRegistry', () => {
 
   describe('findByType', () => {
     it('should find all nodes of specified type', () => {
-      const block1 = ASTTestFactory.block('TextField', 'field').build()
-      const block2 = ASTTestFactory.block('RadioInput', 'field').build()
+      const block1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+      const block2 = ASTTestFactory.block('RadioInput', BlockType.FIELD).build()
       const step = ASTTestFactory.step().build()
       const journey = ASTTestFactory.journey().build()
       const expr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
@@ -214,7 +214,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should return empty array when no nodes of type exist', () => {
-      const block = ASTTestFactory.block('TextField', 'field').build()
+      const block = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', block)
 
       const journeys = registry.findByType(ASTNodeType.JOURNEY)
@@ -225,13 +225,99 @@ describe('NodeRegistry', () => {
       const results = registry.findByType(ASTNodeType.BLOCK)
       expect(results).toEqual([])
     })
+
+    it('should find expression nodes by sub-type', () => {
+      // Arrange
+      const refExpr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const condExpr = ASTTestFactory.expression(ExpressionType.CONDITIONAL).build()
+      const pipeExpr = ASTTestFactory.expression(ExpressionType.PIPELINE).build()
+
+      registry.register('compile_ast:1', refExpr)
+      registry.register('compile_ast:2', condExpr)
+      registry.register('compile_ast:3', pipeExpr)
+
+      // Act
+      const refNodes = registry.findByType(ExpressionType.REFERENCE)
+      const condNodes = registry.findByType(ExpressionType.CONDITIONAL)
+
+      // Assert
+      expect(refNodes).toHaveLength(1)
+      expect(refNodes).toContain(refExpr)
+      expect(condNodes).toHaveLength(1)
+      expect(condNodes).toContain(condExpr)
+    })
+
+    it('should find predicate nodes by sub-type', () => {
+      // Arrange
+      const andPredicate = ASTTestFactory.predicate(PredicateType.AND)
+      const orPredicate = ASTTestFactory.predicate(PredicateType.OR)
+
+      registry.register(andPredicate.id, andPredicate)
+      registry.register(orPredicate.id, orPredicate)
+
+      // Act
+      const andNodes = registry.findByType(PredicateType.AND)
+      const orNodes = registry.findByType(PredicateType.OR)
+
+      // Assert
+      expect(andNodes).toHaveLength(1)
+      expect(andNodes).toContain(andPredicate)
+      expect(orNodes).toHaveLength(1)
+      expect(orNodes).toContain(orPredicate)
+    })
+
+    it('should find field blocks by BlockType.field', () => {
+      // Arrange
+      const fieldBlock = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+      const basicBlock = ASTTestFactory.block('Html', BlockType.BASIC).build()
+
+      registry.register('compile_ast:1', fieldBlock)
+      registry.register('compile_ast:2', basicBlock)
+
+      // Act
+      const fieldBlocks = registry.findByType(BlockType.FIELD)
+      const basicBlocks = registry.findByType(BlockType.BASIC)
+
+      // Assert
+      expect(fieldBlocks).toHaveLength(1)
+      expect(fieldBlocks).toContain(fieldBlock)
+      expect(basicBlocks).toHaveLength(1)
+      expect(basicBlocks).toContain(basicBlock)
+    })
+
+    it('should find nodes by both top-level type and sub-type', () => {
+      // Arrange
+      const refExpr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const condExpr = ASTTestFactory.expression(ExpressionType.CONDITIONAL).build()
+
+      registry.register('compile_ast:1', refExpr)
+      registry.register('compile_ast:2', condExpr)
+
+      // Act
+      const allExpressions = registry.findByType(ASTNodeType.EXPRESSION)
+      const refExpressions = registry.findByType(ExpressionType.REFERENCE)
+
+      // Assert
+      expect(allExpressions).toHaveLength(2)
+      expect(refExpressions).toHaveLength(1)
+      expect(refExpressions).toContain(refExpr)
+    })
   })
 
   describe('findBy', () => {
     it('should find nodes matching predicate', () => {
-      const block1 = ASTTestFactory.block('TextField', 'field').withCode('firstName').withId('compile_ast:1').build()
-      const block2 = ASTTestFactory.block('TextField', 'field').withCode('lastName').withId('compile_ast:2').build()
-      const block3 = ASTTestFactory.block('RadioInput', 'field').withCode('choice').withId('compile_ast:3').build()
+      const block1 = ASTTestFactory.block('TextField', BlockType.FIELD)
+        .withCode('firstName')
+        .withId('compile_ast:1')
+        .build()
+      const block2 = ASTTestFactory.block('TextField', BlockType.FIELD)
+        .withCode('lastName')
+        .withId('compile_ast:2')
+        .build()
+      const block3 = ASTTestFactory.block('RadioInput', BlockType.FIELD)
+        .withCode('choice')
+        .withId('compile_ast:3')
+        .build()
 
       registry.register('compile_ast:1', block1)
       registry.register('compile_ast:2', block2)
@@ -247,7 +333,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should return empty array when no nodes match', () => {
-      const block = ASTTestFactory.block('TextField', 'field').build()
+      const block = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       registry.register('compile_ast:1', block)
 
       const results = registry.findBy(node => node.type === ASTNodeType.JOURNEY)
@@ -260,8 +346,14 @@ describe('NodeRegistry', () => {
     })
 
     it('should work with complex predicates', () => {
-      const block1 = ASTTestFactory.block('TextField', 'field').withCode('email').withLabel('Email Address').build()
-      const block2 = ASTTestFactory.block('TextField', 'field').withCode('phone').withLabel('Phone Number').build()
+      const block1 = ASTTestFactory.block('TextField', BlockType.FIELD)
+        .withCode('email')
+        .withLabel('Email Address')
+        .build()
+      const block2 = ASTTestFactory.block('TextField', BlockType.FIELD)
+        .withCode('phone')
+        .withLabel('Phone Number')
+        .build()
 
       registry.register('compile_ast:1', block1)
       registry.register('compile_ast:2', block2)
@@ -280,7 +372,7 @@ describe('NodeRegistry', () => {
 
   describe('clone', () => {
     it('should create a new registry with the same entries', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const node2 = ASTTestFactory.step().build()
 
       registry.register('compile_ast:1', node1, ['blocks', 0])
@@ -295,7 +387,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should share node references between original and clone', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
 
       registry.register('compile_ast:1', node, ['blocks', 0])
 
@@ -306,7 +398,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should allow independent modifications to cloned registry', () => {
-      const node1 = ASTTestFactory.block('TextField', 'field').build()
+      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const node2 = ASTTestFactory.step().build()
 
       registry.register('compile_ast:1', node1)
@@ -329,7 +421,7 @@ describe('NodeRegistry', () => {
     })
 
     it('should preserve entry paths in cloned registry', () => {
-      const node = ASTTestFactory.block('TextField', 'field').build()
+      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
       const path = ['steps', 0, 'blocks', 2]
 
       registry.register('compile_ast:1', node, path)
@@ -338,6 +430,40 @@ describe('NodeRegistry', () => {
       const entry = cloned.getEntry('compile_ast:1')
 
       expect(entry?.path).toEqual(path)
+    })
+
+    it('should preserve type index in cloned registry', () => {
+      // Arrange
+      const refExpr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      const fieldBlock = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+
+      registry.register('compile_ast:1', refExpr)
+      registry.register('compile_ast:2', fieldBlock)
+
+      // Act
+      const cloned = registry.clone()
+
+      // Assert - cloned registry should have same type index lookups
+      expect(cloned.findByType(ExpressionType.REFERENCE)).toHaveLength(1)
+      expect(cloned.findByType(BlockType.FIELD)).toHaveLength(1)
+      expect(cloned.findByType(ASTNodeType.EXPRESSION)).toHaveLength(1)
+      expect(cloned.findByType(ASTNodeType.BLOCK)).toHaveLength(1)
+    })
+
+    it('should allow independent type index modifications in cloned registry', () => {
+      // Arrange
+      const refExpr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+
+      registry.register('compile_ast:1', refExpr)
+
+      // Act
+      const cloned = registry.clone()
+      const newExpr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
+      cloned.register('compile_ast:2', newExpr)
+
+      // Assert - original should have 1, clone should have 2
+      expect(registry.findByType(ExpressionType.REFERENCE)).toHaveLength(1)
+      expect(cloned.findByType(ExpressionType.REFERENCE)).toHaveLength(2)
     })
   })
 })

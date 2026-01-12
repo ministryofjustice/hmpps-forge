@@ -6,26 +6,32 @@ import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.
 import { AddSelfValueToFieldsNormalizer } from '@form-engine/core/ast/normalizers/AddSelfValueToFields'
 import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import StructuralWiring from '@form-engine/core/ast/dependencies/wiring/structural/StructuralWiring'
-import OnSubmitTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnSubmitTransitionWiring'
-import OnActionTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnActionTransitionWiring'
-import AnswerPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/AnswerPseudoNodeWiring'
-import DataPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/DataPseudoNodeWiring'
-import QueryPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/QueryPseudoNodeWiring'
-import ParamsPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/ParamsPseudoNodeWiring'
-import PostPseudoNodeWiring from '@form-engine/core/ast/dependencies/wiring/pseudo-nodes/PostPseudoNodeWiring'
-import ConditionalExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/ConditionalExpressionWiring'
-import ReferenceExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/ReferenceExpressionWiring'
-import LogicExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/LogicExpressionWiring'
-import PipelineExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/PipelineExpressionWiring'
-import FunctionExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/FunctionExpressionWiring'
-import ValidationExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/ValidationExpressionWiring'
-import NextExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/NextExpressionWiring'
-import FormatExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/FormatExpressionWiring'
-import IterateExpressionWiring from '@form-engine/core/ast/dependencies/wiring/expressions/IterateExpressionWiring'
+import StructuralWiring from '@form-engine/core/nodes/structures/StructuralWiring'
+import SubmitWiring from '@form-engine/core/nodes/transitions/submit/SubmitWiring'
+import ActionWiring from '@form-engine/core/nodes/transitions/action/ActionWiring'
+import AccessWiring from '@form-engine/core/nodes/transitions/access/AccessWiring'
+import AnswerLocalWiring from '@form-engine/core/nodes/pseudo-nodes/answer-local/AnswerLocalWiring'
+import AnswerRemoteWiring from '@form-engine/core/nodes/pseudo-nodes/answer-remote/AnswerRemoteWiring'
+import DataWiring from '@form-engine/core/nodes/pseudo-nodes/data/DataWiring'
+import QueryWiring from '@form-engine/core/nodes/pseudo-nodes/query/QueryWiring'
+import ParamsWiring from '@form-engine/core/nodes/pseudo-nodes/params/ParamsWiring'
+import PostWiring from '@form-engine/core/nodes/pseudo-nodes/post/PostWiring'
+import ConditionalWiring from '@form-engine/core/nodes/expressions/conditional/ConditionalWiring'
+import ReferenceWiring from '@form-engine/core/nodes/expressions/reference/ReferenceWiring'
+import AndWiring from '@form-engine/core/nodes/predicates/and/AndWiring'
+import OrWiring from '@form-engine/core/nodes/predicates/or/OrWiring'
+import XorWiring from '@form-engine/core/nodes/predicates/xor/XorWiring'
+import NotWiring from '@form-engine/core/nodes/predicates/not/NotWiring'
+import PipelineWiring from '@form-engine/core/nodes/expressions/pipeline/PipelineWiring'
+import FunctionWiring from '@form-engine/core/nodes/expressions/function/FunctionWiring'
+import ValidationWiring from '@form-engine/core/nodes/expressions/validation/ValidationWiring'
+import NextWiring from '@form-engine/core/nodes/expressions/next/NextWiring'
+import FormatWiring from '@form-engine/core/nodes/expressions/format/FormatWiring'
+import IterateWiring from '@form-engine/core/nodes/expressions/iterate/IterateWiring'
+import TestWiring from '@form-engine/core/nodes/predicates/test/TestWiring'
 import { CompilationDependencies } from '@form-engine/core/ast/compilation/CompilationDependencies'
 import { NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import OnLoadTransitionWiring from '@form-engine/core/ast/dependencies/wiring/transitions/OnLoadTransitionWiring'
+import LoadWiring from '@form-engine/core/nodes/transitions/load/LoadWiring'
 import ThunkCompilerFactory from '@form-engine/core/ast/thunks/factories/ThunkCompilerFactory'
 
 /**
@@ -167,19 +173,26 @@ export class NodeCompilationPipeline {
     new StructuralWiring(wiringContext).wire()
 
     // Transitions that don't use step-scope metadata
-    new OnActionTransitionWiring(wiringContext).wire()
-    new OnSubmitTransitionWiring(wiringContext).wire()
+    new AccessWiring(wiringContext).wire()
+    new ActionWiring(wiringContext).wire()
+    new SubmitWiring(wiringContext).wire()
 
-    // All expression wiring (no step-scope dependencies)
-    new ConditionalExpressionWiring(wiringContext).wire()
-    new LogicExpressionWiring(wiringContext).wire()
-    new ReferenceExpressionWiring(wiringContext).wire()
-    new PipelineExpressionWiring(wiringContext).wire()
-    new FunctionExpressionWiring(wiringContext).wire()
-    new ValidationExpressionWiring(wiringContext).wire()
-    new NextExpressionWiring(wiringContext).wire()
-    new FormatExpressionWiring(wiringContext).wire()
-    new IterateExpressionWiring(wiringContext).wire()
+    // All predicate wiring
+    new TestWiring(wiringContext).wire()
+    new AndWiring(wiringContext).wire()
+    new OrWiring(wiringContext).wire()
+    new XorWiring(wiringContext).wire()
+    new NotWiring(wiringContext).wire()
+
+    // All expression wiring
+    new ConditionalWiring(wiringContext).wire()
+    new ReferenceWiring(wiringContext).wire()
+    new PipelineWiring(wiringContext).wire()
+    new FunctionWiring(wiringContext).wire()
+    new ValidationWiring(wiringContext).wire()
+    new NextWiring(wiringContext).wire()
+    new FormatWiring(wiringContext).wire()
+    new IterateWiring(wiringContext).wire()
   }
 
   /**
@@ -204,14 +217,15 @@ export class NodeCompilationPipeline {
     )
 
     // onLoad uses step-scope metadata (isAncestorOfStep, getCurrentStepNode)
-    new OnLoadTransitionWiring(wiringContext).wire()
+    new LoadWiring(wiringContext).wire()
 
     // Pseudo node wiring (pseudo nodes are created per-step)
-    new AnswerPseudoNodeWiring(wiringContext).wire()
-    new DataPseudoNodeWiring(wiringContext).wire()
-    new QueryPseudoNodeWiring(wiringContext).wire()
-    new ParamsPseudoNodeWiring(wiringContext).wire()
-    new PostPseudoNodeWiring(wiringContext).wire()
+    new AnswerLocalWiring(wiringContext).wire()
+    new AnswerRemoteWiring(wiringContext).wire()
+    new DataWiring(wiringContext).wire()
+    new QueryWiring(wiringContext).wire()
+    new ParamsWiring(wiringContext).wire()
+    new PostWiring(wiringContext).wire()
   }
 
   /**
@@ -234,27 +248,35 @@ export class NodeCompilationPipeline {
     new StructuralWiring(wiringContext).wireNodes(nodeIds)
 
     // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
-    new OnLoadTransitionWiring(wiringContext).wireNodes(nodeIds)
-    new OnActionTransitionWiring(wiringContext).wireNodes(nodeIds)
-    new OnSubmitTransitionWiring(wiringContext).wireNodes(nodeIds)
+    new LoadWiring(wiringContext).wireNodes(nodeIds)
+    new AccessWiring(wiringContext).wireNodes(nodeIds)
+    new ActionWiring(wiringContext).wireNodes(nodeIds)
+    new SubmitWiring(wiringContext).wireNodes(nodeIds)
 
     // Wire pseudo nodes
-    new AnswerPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-    new DataPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-    new QueryPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-    new ParamsPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
-    new PostPseudoNodeWiring(wiringContext).wireNodes(nodeIds)
+    new AnswerLocalWiring(wiringContext).wireNodes(nodeIds)
+    new AnswerRemoteWiring(wiringContext).wireNodes(nodeIds)
+    new DataWiring(wiringContext).wireNodes(nodeIds)
+    new QueryWiring(wiringContext).wireNodes(nodeIds)
+    new ParamsWiring(wiringContext).wireNodes(nodeIds)
+    new PostWiring(wiringContext).wireNodes(nodeIds)
+
+    // Wire predicate nodes
+    new TestWiring(wiringContext).wireNodes(nodeIds)
+    new AndWiring(wiringContext).wireNodes(nodeIds)
+    new OrWiring(wiringContext).wireNodes(nodeIds)
+    new XorWiring(wiringContext).wireNodes(nodeIds)
+    new NotWiring(wiringContext).wireNodes(nodeIds)
 
     // Wire expression nodes
-    new ConditionalExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new LogicExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new ReferenceExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new PipelineExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new FunctionExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new ValidationExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new NextExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new FormatExpressionWiring(wiringContext).wireNodes(nodeIds)
-    new IterateExpressionWiring(wiringContext).wireNodes(nodeIds)
+    new ConditionalWiring(wiringContext).wireNodes(nodeIds)
+    new ReferenceWiring(wiringContext).wireNodes(nodeIds)
+    new PipelineWiring(wiringContext).wireNodes(nodeIds)
+    new FunctionWiring(wiringContext).wireNodes(nodeIds)
+    new ValidationWiring(wiringContext).wireNodes(nodeIds)
+    new NextWiring(wiringContext).wireNodes(nodeIds)
+    new FormatWiring(wiringContext).wireNodes(nodeIds)
+    new IterateWiring(wiringContext).wireNodes(nodeIds)
   }
 
   /**
