@@ -1,4 +1,4 @@
-import { FunctionType, LogicType } from '../types/enums'
+import { FunctionType, PredicateType } from '../types/enums'
 import {
   ConditionFunctionExpr,
   GeneratorFunctionExpr,
@@ -97,7 +97,7 @@ export class GeneratorBuilder<A extends ValueExpr[]> {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     return {
-      type: LogicType.TEST,
+      type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,

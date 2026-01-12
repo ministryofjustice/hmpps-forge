@@ -5,7 +5,7 @@ import {
   RenderedBlock,
   StepDefinition,
 } from '@form-engine/form/types/structures.type'
-import { StructureType } from '@form-engine/form/types/enums'
+import { BlockType, StructureType } from '@form-engine/form/types/enums'
 
 export function isJourneyDefinition(obj: any): obj is JourneyDefinition {
   return obj != null && obj.type === StructureType.JOURNEY
@@ -20,7 +20,7 @@ export function isBlockDefinition(obj: any): obj is BlockDefinition {
 }
 
 export function isFieldBlockDefinition(obj: any): obj is FieldBlockDefinition {
-  return isBlockDefinition(obj) && obj.blockType === 'field'
+  return isBlockDefinition(obj) && obj.blockType === BlockType.FIELD
 }
 
 export function isRenderedBlock(obj: unknown): obj is RenderedBlock {

@@ -1,6 +1,6 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { ExpressionType } from '@form-engine/form/types/enums'
+import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import RegistrationTraverser from './RegistrationTraverser'
@@ -45,13 +45,13 @@ describe('RegistrationTraverser', () => {
         .withStep(step =>
           step
             .withId('compile_ast:2')
-            .withBlock('TextInput', 'field', block =>
+            .withBlock('TextInput', BlockType.FIELD, block =>
               block
                 .withId('compile_ast:3')
                 .withCode('firstName')
                 .withLabel('First Name'),
             )
-            .withBlock('TextInput', 'field', block =>
+            .withBlock('TextInput', BlockType.FIELD, block =>
               block
                 .withId('compile_ast:4')
                 .withCode('testField')
@@ -124,7 +124,7 @@ describe('RegistrationTraverser', () => {
       } as ASTNode
 
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withId('compile_ast:2')
         .withProperty('defaultValue', exprWithoutId)
         .build()

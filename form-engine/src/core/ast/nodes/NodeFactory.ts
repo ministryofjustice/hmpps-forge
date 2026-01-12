@@ -1,47 +1,124 @@
 import { isJourneyDefinition, isStepDefinition, isBlockDefinition } from '@form-engine/form/typeguards/structures'
-import { isExpression, isConditionalExpr } from '@form-engine/form/typeguards/expressions'
-import { isPredicateExpr } from '@form-engine/form/typeguards/predicates'
-import { isTransition } from '@form-engine/form/typeguards/transitions'
+import {
+  isExpression,
+  isConditionalExpr,
+  isReferenceExpr,
+  isFormatExpr,
+  isPipelineExpr,
+  isIterateExpr,
+  isValidationExpr,
+  isNextExpr,
+} from '@form-engine/form/typeguards/expressions'
+import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
+import {
+  isPredicateTestExpr,
+  isPredicateNotExpr,
+  isPredicateAndExpr,
+  isPredicateOrExpr,
+  isPredicateXorExpr,
+} from '@form-engine/form/typeguards/predicates'
+import {
+  isLoadTransition,
+  isAccessTransition,
+  isActionTransition,
+  isSubmitTransition,
+} from '@form-engine/form/typeguards/transitions'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { TransitionNodeFactory } from './factories/TransitionNodeFactory'
-import { LogicNodeFactory } from './factories/LogicNodeFactory'
-import { ExpressionNodeFactory } from './factories/ExpressionNodeFactory'
-import { StructureNodeFactory } from './factories/StructureNodeFactory'
+import JourneyFactory from '@form-engine/core/nodes/structures/journey/JourneyFactory'
+import StepFactory from '@form-engine/core/nodes/structures/step/StepFactory'
+import BlockFactory from '@form-engine/core/nodes/structures/block/BlockFactory'
+import LoadFactory from '@form-engine/core/nodes/transitions/load/LoadFactory'
+import AccessFactory from '@form-engine/core/nodes/transitions/access/AccessFactory'
+import ActionFactory from '@form-engine/core/nodes/transitions/action/ActionFactory'
+import SubmitFactory from '@form-engine/core/nodes/transitions/submit/SubmitFactory'
+import ConditionalFactory from '@form-engine/core/nodes/expressions/conditional/ConditionalFactory'
+import TestFactory from '@form-engine/core/nodes/predicates/test/TestFactory'
+import NotFactory from '@form-engine/core/nodes/predicates/not/NotFactory'
+import AndFactory from '@form-engine/core/nodes/predicates/and/AndFactory'
+import OrFactory from '@form-engine/core/nodes/predicates/or/OrFactory'
+import XorFactory from '@form-engine/core/nodes/predicates/xor/XorFactory'
+import ReferenceFactory from '@form-engine/core/nodes/expressions/reference/ReferenceFactory'
+import FormatFactory from '@form-engine/core/nodes/expressions/format/FormatFactory'
+import PipelineFactory from '@form-engine/core/nodes/expressions/pipeline/PipelineFactory'
+import IterateFactory from '@form-engine/core/nodes/expressions/iterate/IterateFactory'
+import ValidationFactory from '@form-engine/core/nodes/expressions/validation/ValidationFactory'
+import FunctionFactory from '@form-engine/core/nodes/expressions/function/FunctionFactory'
+import NextFactory from '@form-engine/core/nodes/expressions/next/NextFactory'
 
 /**
  * NodeFactory: Main entry point for creating AST nodes
  *
  * This factory acts as a dispatcher, routing JSON definitions to specialized
- * factories based on node type:
- *
- * - StructureNodeFactory: Journey, Step, Block
- * - ExpressionNodeFactory: Reference, Pipeline, Iterate, Validation, Function
- * - LogicNodeFactory: Conditional, Predicates (Test, And, Or, Xor, Not)
- * - TransitionNodeFactory: Load, Access, Submit
- *
- * This replaces the function-based transformer pattern with a class-based
- * factory pattern for better organization and maintainability.
+ * per-node factories based on node type.
  */
 export class NodeFactory {
-  private structureNodeFactory: StructureNodeFactory
+  private readonly journeyFactory: JourneyFactory
 
-  private logicNodeFactory: LogicNodeFactory
+  private readonly stepFactory: StepFactory
 
-  private expressionNodeFactory: ExpressionNodeFactory
+  private readonly blockFactory: BlockFactory
 
-  private transitionNodeFactory: TransitionNodeFactory
+  private readonly loadFactory: LoadFactory
+
+  private readonly accessFactory: AccessFactory
+
+  private readonly actionFactory: ActionFactory
+
+  private readonly submitFactory: SubmitFactory
+
+  private readonly conditionalFactory: ConditionalFactory
+
+  private readonly testFactory: TestFactory
+
+  private readonly notFactory: NotFactory
+
+  private readonly andFactory: AndFactory
+
+  private readonly orFactory: OrFactory
+
+  private readonly xorFactory: XorFactory
+
+  private readonly referenceFactory: ReferenceFactory
+
+  private readonly formatFactory: FormatFactory
+
+  private readonly pipelineFactory: PipelineFactory
+
+  private readonly iterateFactory: IterateFactory
+
+  private readonly validationFactory: ValidationFactory
+
+  private readonly functionFactory: FunctionFactory
+
+  private readonly nextFactory: NextFactory
 
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
   ) {
-    this.structureNodeFactory = new StructureNodeFactory(this.nodeIDGenerator, this, this.category)
-    this.logicNodeFactory = new LogicNodeFactory(this.nodeIDGenerator, this, this.category)
-    this.expressionNodeFactory = new ExpressionNodeFactory(this.nodeIDGenerator, this, this.category)
-    this.transitionNodeFactory = new TransitionNodeFactory(this.nodeIDGenerator, this, this.category)
+    this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this, this.category)
+    this.stepFactory = new StepFactory(this.nodeIDGenerator, this, this.category)
+    this.blockFactory = new BlockFactory(this.nodeIDGenerator, this, this.category)
+    this.loadFactory = new LoadFactory(this.nodeIDGenerator, this, this.category)
+    this.accessFactory = new AccessFactory(this.nodeIDGenerator, this, this.category)
+    this.actionFactory = new ActionFactory(this.nodeIDGenerator, this, this.category)
+    this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this, this.category)
+    this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this, this.category)
+    this.testFactory = new TestFactory(this.nodeIDGenerator, this, this.category)
+    this.notFactory = new NotFactory(this.nodeIDGenerator, this, this.category)
+    this.andFactory = new AndFactory(this.nodeIDGenerator, this, this.category)
+    this.orFactory = new OrFactory(this.nodeIDGenerator, this, this.category)
+    this.xorFactory = new XorFactory(this.nodeIDGenerator, this, this.category)
+    this.referenceFactory = new ReferenceFactory(this.nodeIDGenerator, this, this.category)
+    this.formatFactory = new FormatFactory(this.nodeIDGenerator, this, this.category)
+    this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this, this.category)
+    this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this, this.category)
+    this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
+    this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this, this.category)
+    this.nextFactory = new NextFactory(this.nodeIDGenerator, this, this.category)
   }
 
   /**
@@ -59,29 +136,93 @@ export class NodeFactory {
     }
 
     // Structure nodes: Journey, Step, Block
-    if (isJourneyDefinition(json) || isStepDefinition(json) || isBlockDefinition(json)) {
-      return this.structureNodeFactory.create(json)
+    if (isJourneyDefinition(json)) {
+      return this.journeyFactory.create(json)
     }
 
-    // Logic nodes: Predicates and Conditionals
-    if (isPredicateExpr(json) || isConditionalExpr(json)) {
-      return this.logicNodeFactory.create(json)
+    if (isStepDefinition(json)) {
+      return this.stepFactory.create(json)
     }
 
-    // Expression nodes: References, Pipelines, Iterate, Validations, Functions
-    if (isExpression(json)) {
-      return this.expressionNodeFactory.create(json)
+    if (isBlockDefinition(json)) {
+      return this.blockFactory.create(json)
     }
 
-    // Transition nodes: Load, Access, Submit
-    if (isTransition(json)) {
-      return this.transitionNodeFactory.create(json)
+    // Logic nodes: Conditionals and Predicates
+    if (isConditionalExpr(json)) {
+      return this.conditionalFactory.create(json)
+    }
+
+    if (isPredicateTestExpr(json)) {
+      return this.testFactory.create(json)
+    }
+
+    if (isPredicateNotExpr(json)) {
+      return this.notFactory.create(json)
+    }
+
+    if (isPredicateAndExpr(json)) {
+      return this.andFactory.create(json)
+    }
+
+    if (isPredicateOrExpr(json)) {
+      return this.orFactory.create(json)
+    }
+
+    if (isPredicateXorExpr(json)) {
+      return this.xorFactory.create(json)
+    }
+
+    // Expression nodes: References, Format, Pipelines, Iterate, Validations, Functions, Next
+    if (isReferenceExpr(json)) {
+      return this.referenceFactory.create(json)
+    }
+
+    if (isFormatExpr(json)) {
+      return this.formatFactory.create(json)
+    }
+
+    if (isPipelineExpr(json)) {
+      return this.pipelineFactory.create(json)
+    }
+
+    if (isIterateExpr(json)) {
+      return this.iterateFactory.create(json)
+    }
+
+    if (isValidationExpr(json)) {
+      return this.validationFactory.create(json)
+    }
+
+    if (isFunctionExpr(json)) {
+      return this.functionFactory.create(json)
+    }
+
+    if (isNextExpr(json)) {
+      return this.nextFactory.create(json)
+    }
+
+    // Transition nodes: Load, Access, Action, Submit
+    if (isLoadTransition(json)) {
+      return this.loadFactory.create(json)
+    }
+
+    if (isAccessTransition(json)) {
+      return this.accessFactory.create(json)
+    }
+
+    if (isActionTransition(json)) {
+      return this.actionFactory.create(json)
+    }
+
+    if (isSubmitTransition(json)) {
+      return this.submitFactory.create(json)
     }
 
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Transition'],
+      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Load', 'Access', 'Action', 'Submit'],
     })
   }
 
@@ -149,6 +290,9 @@ export class NodeFactory {
       isStepDefinition(value) ||
       isBlockDefinition(value) ||
       isExpression(value) ||
-      isTransition(value)
+      isLoadTransition(value) ||
+      isAccessTransition(value) ||
+      isActionTransition(value) ||
+      isSubmitTransition(value)
   }
 }

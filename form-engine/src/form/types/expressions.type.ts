@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, LogicType, TransitionType, IteratorType } from './enums'
+import { FunctionType, ExpressionType, PredicateType, TransitionType, IteratorType } from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -370,7 +370,7 @@ export type ValueExpr =
  * @example
  * // Test if field is required (not empty)
  * {
- *   type: 'LogicType.Test',
+ *   type: 'PredicateType.Test',
  *   subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *   negate: false,
  *   condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
@@ -379,14 +379,14 @@ export type ValueExpr =
  * @example
  * // Test if email is NOT valid (negated)
  * {
- *   type: 'LogicType.Test',
+ *   type: 'PredicateType.Test',
  *   subject: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
  *   negate: true,
  *   condition: { type: 'FunctionType.Condition', name: 'isEmail', arguments: [] }
  * }
  */
 export interface PredicateTestExpr {
-  type: LogicType.TEST
+  type: PredicateType.TEST
   /** The value expression to test. */
   subject: ValueExpr
 
@@ -406,15 +406,15 @@ export interface PredicateTestExpr {
  * @example
  * // AND logic - all must be true
  * {
- *   type: 'LogicType.And',
+ *   type: 'PredicateType.And',
  *   operands: [
- *     { type: 'LogicType.Test', subject: {...}, negate: false, condition: {...} },
- *     { type: 'LogicType.Test', subject: {...}, negate: false, condition: {...} }
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateAndExpr {
-  type: LogicType.AND
+  type: PredicateType.AND
 
   /**
    * Array of predicates that must all be true.
@@ -429,15 +429,15 @@ export interface PredicateAndExpr {
  * @example
  * // OR logic - at least one must be true
  * {
- *   type: 'LogicType.Or',
+ *   type: 'PredicateType.Or',
  *   operands: [
- *     { type: 'LogicType.Test', subject: {...}, condition: {...} },
- *     { type: 'LogicType.Test', subject: {...}, condition: {...} }
+ *     { type: 'PredicateType.Test', subject: {...}, condition: {...} },
+ *     { type: 'PredicateType.Test', subject: {...}, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateOrExpr {
-  type: LogicType.OR
+  type: PredicateType.OR
 
   /**
    * Array of predicates where at least one must be true.
@@ -452,15 +452,15 @@ export interface PredicateOrExpr {
  * @example
  * // XOR logic - exactly one must be true
  * {
- *   type: 'LogicType.Xor',
+ *   type: 'PredicateType.Xor',
  *   operands: [
- *     { type: 'LogicType.Test', subject: {...}, condition: {...} },
- *     { type: 'LogicType.Test', subject: {...}, condition: {...} }
+ *     { type: 'PredicateType.Test', subject: {...}, condition: {...} },
+ *     { type: 'PredicateType.Test', subject: {...}, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateXorExpr {
-  type: LogicType.XOR
+  type: PredicateType.XOR
 
   /**
    * Array of predicates where exactly one must be true.
@@ -475,12 +475,12 @@ export interface PredicateXorExpr {
  * @example
  * // NOT logic - invert the result
  * {
- *   type: 'LogicType.Not',
- *   operand: { type: 'LogicType.Test', subject: {...}, condition: {...} }
+ *   type: 'PredicateType.Not',
+ *   operand: { type: 'PredicateType.Test', subject: {...}, condition: {...} }
  * }
  */
 export interface PredicateNotExpr {
-  type: LogicType.NOT
+  type: PredicateType.NOT
 
   /**
    * Single predicate to negate.
@@ -504,7 +504,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * {
  *   type: 'LogicType.Conditional',
  *   predicate: {
- *     type: 'LogicType.Test',
+ *     type: 'PredicateType.Test',
  *     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *     negate: true,
  *     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
@@ -518,7 +518,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * {
  *   type: 'LogicType.Conditional',
  *   predicate: {
- *     type: 'LogicType.Test',
+ *     type: 'PredicateType.Test',
  *     subject: { type: 'ExpressionType.Reference', path: ['answers', 'hasChildren'] },
  *     negate: false,
  *     condition: { type: 'FunctionType.Condition', name: 'matchesValue', arguments: [true] }
@@ -531,10 +531,10 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * // Nested conditionals for complex logic
  * {
  *   type: 'LogicType.Conditional',
- *   predicate: { type: 'LogicType.Test', subject: {...}, condition: {...} },
+ *   predicate: { type: 'PredicateType.Test', subject: {...}, condition: {...} },
  *   thenValue: {
  *     type: 'LogicType.Conditional',
- *     predicate: { type: 'LogicType.Test', subject: {...}, condition: {...} ,
+ *     predicate: { type: 'PredicateType.Test', subject: {...}, condition: {...} ,
  *     thenValue: 'Option A',
  *     elseValue: 'Option B'
  *   },
@@ -542,7 +542,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * }
  */
 export interface ConditionalExpr {
-  type: LogicType.CONDITIONAL
+  type: ExpressionType.CONDITIONAL
 
   /** The condition to evaluate. */
   predicate: PredicateExpr
@@ -587,7 +587,7 @@ export interface NextExpr {
   when?: PredicateExpr
 
   /** The path to navigate to. */
-  goto: string | FormatExpr
+  goto: string | ValueExpr
 }
 
 /**

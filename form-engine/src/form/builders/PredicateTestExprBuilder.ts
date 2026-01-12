@@ -8,7 +8,7 @@ import {
   PredicateTestExpr,
   ValueExpr,
 } from '../types/expressions.type'
-import { LogicType } from '../types/enums'
+import { PredicateType } from '../types/enums'
 
 /**
  * Fluent builder for creating predicate test expressions.
@@ -34,7 +34,7 @@ export class PredicateTestExprBuilder {
 
   private buildTest(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const test: PredicateTestExpr = {
-      type: LogicType.TEST,
+      type: PredicateType.TEST,
       subject: this.subject,
       negate: this.negateNext,
       condition,
@@ -72,7 +72,7 @@ function resolvePredicate(p: PredicateExpr | PredicateTestExprBuilder | Predicat
 export const and = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr => {
   const resolved = p.map(resolvePredicate)
   return {
-    type: LogicType.AND,
+    type: PredicateType.AND,
     operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
@@ -85,7 +85,7 @@ export const and = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): P
 export const or = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr => {
   const resolved = p.map(resolvePredicate)
   return {
-    type: LogicType.OR,
+    type: PredicateType.OR,
     operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
@@ -98,7 +98,7 @@ export const or = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): Pr
 export const xor = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr => {
   const resolved = p.map(resolvePredicate)
   return {
-    type: LogicType.XOR,
+    type: PredicateType.XOR,
     operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
   }
 }
@@ -110,7 +110,7 @@ export const xor = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): P
  */
 export const not = (p: PredicateExpr): PredicateNotExpr => {
   return {
-    type: LogicType.NOT,
+    type: PredicateType.NOT,
     operand: resolvePredicate(p),
   }
 }

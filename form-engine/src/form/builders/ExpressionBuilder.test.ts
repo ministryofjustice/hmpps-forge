@@ -1,6 +1,6 @@
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { ConditionFunctionExpr, PipelineExpr, ReferenceExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionType, LogicType } from '../types/enums'
+import { ExpressionType, FunctionType, PredicateType } from '../types/enums'
 
 describe('ExpressionBuilder', () => {
   // Helper to create a mock condition
@@ -164,7 +164,7 @@ describe('ExpressionBuilder', () => {
       const result = builder.pipe(transformer).match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect(result.negate).toBe(false)
       expect((result.subject as PipelineExpr).type).toBe(ExpressionType.PIPELINE)
       expect(result.condition).toEqual(condition)
@@ -181,7 +181,7 @@ describe('ExpressionBuilder', () => {
       const result = builder.pipe(transformer).not.match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect(result.negate).toBe(true)
       expect((result.subject as PipelineExpr).type).toBe(ExpressionType.PIPELINE)
     })
@@ -199,7 +199,7 @@ describe('ExpressionBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: LogicType.TEST,
+        type: PredicateType.TEST,
         subject: ref,
         negate: false,
         condition,

@@ -1,9 +1,7 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { ExpressionASTNode, LoadTransitionASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { ExpressionType } from '@form-engine/form/types/enums'
+import { LoadTransitionASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
-import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
 import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
 import DependencyGraph from '@form-engine/core/ast/dependencies/DependencyGraph'
@@ -34,24 +32,9 @@ export class WiringContext {
     return this.nodeRegistry.get(stepId) as StepASTNode
   }
 
-  findNodesByType<T extends ASTNode>(type: ASTNodeType): T[] {
-    return this.nodeRegistry.findByType<T>(type)
-  }
-
-  findPseudoNodesByType<T extends PseudoNode>(type: PseudoNodeType): T[] {
-    return this.nodeRegistry.findByType<T>(type)
-  }
-
-  findPseudoNode<T extends PseudoNode>(type: PseudoNodeType, key: string): T | undefined {
-    return this.nodeRegistry.findPseudoNode<T>(type, key)
-  }
-
   findReferenceNodes(referenceSource: 'post' | 'query' | 'params' | 'data' | 'answers'): ReferenceASTNode[] {
-    const allExprNodes = this.findNodesByType<ExpressionASTNode>(ASTNodeType.EXPRESSION)
-
     return (
-      allExprNodes
-        .filter(isReferenceExprNode)
+      this.nodeRegistry.findByType<ReferenceASTNode>(ExpressionType.REFERENCE)
         .filter(node => {
           const path = node.properties.path
 

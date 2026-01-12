@@ -1,12 +1,12 @@
 import { EvaluatedBlock } from '@form-engine/form/types/structures.type'
 import { templateWrapper, TemplateWrapper } from './templateWrapper'
-import { StructureType } from '../../form/types/enums'
+import { BlockType, StructureType } from '../../form/types/enums'
 
 describe('templateWrapper component', () => {
   const mockBlock = (overrides?: Partial<EvaluatedBlock<TemplateWrapper>>): EvaluatedBlock<TemplateWrapper> =>
     ({
       type: StructureType.BLOCK,
-      blockType: 'basic',
+      blockType: BlockType.BASIC,
       variant: 'templateWrapper',
       template: '<div>{{slot:content}}</div>',
       ...overrides,
@@ -19,8 +19,8 @@ describe('templateWrapper component', () => {
         template: '<section>{{slot:content}}</section>',
         slots: {
           content: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Hello</p>' },
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>World</p>' },
+            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>Hello</p>' },
+            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>World</p>' },
           ],
         },
       })
@@ -38,11 +38,19 @@ describe('templateWrapper component', () => {
         template: '<div>{{slot:header}}<main>{{slot:content}}</main>{{slot:footer}}</div>',
         slots: {
           header: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<h1>Title</h1>' },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<h1>Title</h1>',
+            },
           ],
-          content: [{ block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Body</p>' }],
+          content: [
+            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>Body</p>' },
+          ],
           footer: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<footer>End</footer>' },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<footer>End</footer>',
+            },
           ],
         },
       })
@@ -81,7 +89,10 @@ describe('templateWrapper component', () => {
         },
         slots: {
           content: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Content here</p>' },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<p>Content here</p>',
+            },
           ],
         },
       })
@@ -99,7 +110,10 @@ describe('templateWrapper component', () => {
         template: '<div>{{slot:content}}{{slot:missing}}</div>',
         slots: {
           content: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<p>Present</p>' },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<p>Present</p>',
+            },
           ],
         },
       })
@@ -211,7 +225,7 @@ describe('templateWrapper component', () => {
         slots: {
           content: [
             {
-              block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' },
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
               html: '<span>Repeated</span>',
             },
           ],
@@ -263,7 +277,7 @@ describe('templateWrapper component', () => {
         template: '<div>{{content}}</div>',
         values: {
           content: {
-            block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' },
+            block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
             html: '<p>Rendered block content</p>',
           } as unknown as string,
         },
@@ -282,8 +296,14 @@ describe('templateWrapper component', () => {
         template: '<ul>{{items}}</ul>',
         values: {
           items: [
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<li>First</li>' },
-            { block: { type: StructureType.BLOCK, blockType: 'basic', variant: 'html' }, html: '<li>Second</li>' },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<li>First</li>',
+            },
+            {
+              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              html: '<li>Second</li>',
+            },
           ] as unknown as string,
         },
       })

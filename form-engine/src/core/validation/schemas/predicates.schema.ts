@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LogicType, ExpressionType } from '@form-engine/form/types/enums'
+import { PredicateType, ExpressionType } from '@form-engine/form/types/enums'
 import { ValueExprSchema, FormatExprSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
@@ -20,7 +20,7 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
  * @see {@link PredicateTestExpr}
  */
 export const PredicateTestExprSchema = z.object({
-  type: z.literal(LogicType.TEST),
+  type: z.literal(PredicateType.TEST),
   subject: ValueExprSchema,
   negate: z.boolean(),
   condition: ConditionFunctionExprSchema,
@@ -30,7 +30,7 @@ export const PredicateTestExprSchema = z.object({
  * @see {@link PredicateAndExpr}
  */
 export const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(LogicType.AND),
+  type: z.literal(PredicateType.AND),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
@@ -38,7 +38,7 @@ export const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
  * @see {@link PredicateOrExpr}
  */
 export const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(LogicType.OR),
+  type: z.literal(PredicateType.OR),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
@@ -46,7 +46,7 @@ export const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
  * @see {@link PredicateXorExpr}
  */
 export const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(LogicType.XOR),
+  type: z.literal(PredicateType.XOR),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
@@ -54,7 +54,7 @@ export const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
  * @see {@link PredicateNotExpr}
  */
 export const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(LogicType.NOT),
+  type: z.literal(PredicateType.NOT),
   operand: PredicateExprSchema,
 })
 
@@ -63,7 +63,7 @@ export const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
  */
 export const ConditionalExprSchema = z.lazy(() =>
   z.object({
-    type: z.literal(LogicType.CONDITIONAL),
+    type: z.literal(ExpressionType.CONDITIONAL),
     predicate: PredicateExprSchema,
     thenValue: ValueExprSchema.optional(),
     elseValue: ValueExprSchema.optional(),

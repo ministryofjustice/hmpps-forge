@@ -5,10 +5,15 @@ import {
   DataPseudoNode,
   ParamsPseudoNode,
   PostPseudoNode,
-  PseudoNodeType,
   QueryPseudoNode,
 } from '@form-engine/core/types/pseudoNodes.type'
 import { NodeId } from '@form-engine/core/types/engine.type'
+import PostFactory from '@form-engine/core/nodes/pseudo-nodes/post/PostFactory'
+import AnswerLocalFactory from '@form-engine/core/nodes/pseudo-nodes/answer-local/AnswerLocalFactory'
+import AnswerRemoteFactory from '@form-engine/core/nodes/pseudo-nodes/answer-remote/AnswerRemoteFactory'
+import DataFactory from '@form-engine/core/nodes/pseudo-nodes/data/DataFactory'
+import QueryFactory from '@form-engine/core/nodes/pseudo-nodes/query/QueryFactory'
+import ParamsFactory from '@form-engine/core/nodes/pseudo-nodes/params/ParamsFactory'
 
 /**
  * PseudoNodeFactory: Creates pseudo nodes with dependency-injected ID generation
@@ -17,111 +22,52 @@ import { NodeId } from '@form-engine/core/types/engine.type'
  * graph building and used during evaluation. Unlike AST nodes which are created
  * at compile time, pseudo nodes are created as needed during graph construction.
  */
-export class PseudoNodeFactory {
+export default class PseudoNodeFactory {
+  private readonly postFactory: PostFactory
+
+  private readonly answerLocalFactory: AnswerLocalFactory
+
+  private readonly answerRemoteFactory: AnswerRemoteFactory
+
+  private readonly dataFactory: DataFactory
+
+  private readonly queryFactory: QueryFactory
+
+  private readonly paramsFactory: ParamsFactory
+
   constructor(
-    private readonly nodeIDGenerator: NodeIDGenerator,
-    private readonly category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO,
-  ) {}
+    nodeIDGenerator: NodeIDGenerator,
+    category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO,
+  ) {
+    this.postFactory = new PostFactory(nodeIDGenerator, category)
+    this.answerLocalFactory = new AnswerLocalFactory(nodeIDGenerator, category)
+    this.answerRemoteFactory = new AnswerRemoteFactory(nodeIDGenerator, category)
+    this.dataFactory = new DataFactory(nodeIDGenerator, category)
+    this.queryFactory = new QueryFactory(nodeIDGenerator, category)
+    this.paramsFactory = new ParamsFactory(nodeIDGenerator, category)
+  }
 
-  /**
-   * Create a POST pseudo node - represents form submission data for a field
-   *
-   * @param baseFieldCode - The base field code (e.g., 'fieldName')
-   * @param fieldNodeId - Optional reference to the field node for accessing field properties
-   * @returns PostPseudoNode with auto-generated ID
-   */
   createPostPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): PostPseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.POST,
-      properties: {
-        baseFieldCode,
-        fieldNodeId,
-      },
-    }
+    return this.postFactory.create(baseFieldCode, fieldNodeId)
   }
 
-  /**
-   * Create an ANSWER_LOCAL pseudo node - represents field answer for a field on the current step
-   * Has dependencies on POST, formatters, defaultValue, and onLoad transitions
-   *
-   * @param baseFieldCode - The base field code (e.g., 'fieldName')
-   * @param fieldNodeId - Reference to the field node for dependency tracking
-   * @returns AnswerLocalPseudoNode with auto-generated ID
-   */
   createAnswerLocalPseudoNode(baseFieldCode: string, fieldNodeId: NodeId): AnswerLocalPseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.ANSWER_LOCAL,
-      properties: {
-        baseFieldCode,
-        fieldNodeId,
-      },
-    }
+    return this.answerLocalFactory.create(baseFieldCode, fieldNodeId)
   }
 
-  /**
-   * Create an ANSWER_REMOTE pseudo node - represents field answer for a field on a different step
-   * Only has dependencies on onLoad transitions (value is read from context.answers)
-   *
-   * @param baseFieldCode - The base field code (e.g., 'fieldName')
-   * @returns AnswerRemotePseudoNode with auto-generated ID
-   */
   createAnswerRemotePseudoNode(baseFieldCode: string): AnswerRemotePseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.ANSWER_REMOTE,
-      properties: {
-        baseFieldCode,
-      },
-    }
+    return this.answerRemoteFactory.create(baseFieldCode)
   }
 
-  /**
-   * Create a DATA pseudo node - represents external data reference
-   *
-   * @param baseProperty - The base property name (e.g., 'userData')
-   * @returns DataPseudoNode with auto-generated ID
-   */
   createDataPseudoNode(baseProperty: string): DataPseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.DATA,
-      properties: {
-        baseProperty,
-      },
-    }
+    return this.dataFactory.create(baseProperty)
   }
 
-  /**
-   * Create a QUERY pseudo node - represents URL query parameter
-   *
-   * @param paramName - The query parameter name
-   * @returns QueryPseudoNode with auto-generated ID
-   */
   createQueryPseudoNode(paramName: string): QueryPseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.QUERY,
-      properties: {
-        paramName,
-      },
-    }
+    return this.queryFactory.create(paramName)
   }
 
-  /**
-   * Create a PARAMS pseudo node - represents URL path parameter
-   *
-   * @param paramName - The path parameter name
-   * @returns ParamsPseudoNode with auto-generated ID
-   */
   createParamsPseudoNode(paramName: string): ParamsPseudoNode {
-    return {
-      id: this.nodeIDGenerator.next(this.category),
-      type: PseudoNodeType.PARAMS,
-      properties: {
-        paramName,
-      },
-    }
+    return this.paramsFactory.create(paramName)
   }
 }

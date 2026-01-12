@@ -10,7 +10,7 @@ import {
   TransformerFunctionExpr,
   ValueExpr,
 } from '../types/expressions.type'
-import { ExpressionType, IteratorType, LogicType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
 
 /**
@@ -167,7 +167,7 @@ export class ExpressionBuilder<T extends ValueExpr> {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     return {
-      type: LogicType.TEST,
+      type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negate,
       condition,

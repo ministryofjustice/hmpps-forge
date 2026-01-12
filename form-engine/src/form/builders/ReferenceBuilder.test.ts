@@ -1,6 +1,6 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { ConditionFunctionExpr, PipelineExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionType, LogicType } from '../types/enums'
+import { ExpressionType, FunctionType, PredicateType } from '../types/enums'
 
 describe('ReferenceBuilder', () => {
   // Helper to create a mock condition
@@ -148,7 +148,7 @@ describe('ReferenceBuilder', () => {
       const result = builder.pipe(transformer).match(condition)
 
       // Assert
-      expect(result.type).toBe(LogicType.TEST)
+      expect(result.type).toBe(PredicateType.TEST)
       expect((result.subject as PipelineExpr).type).toBe(ExpressionType.PIPELINE)
       expect(result.condition).toEqual(condition)
     })
@@ -198,7 +198,7 @@ describe('ReferenceBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: LogicType.TEST,
+        type: PredicateType.TEST,
         subject: {
           type: ExpressionType.REFERENCE,
           path: ['answers', 'email'],

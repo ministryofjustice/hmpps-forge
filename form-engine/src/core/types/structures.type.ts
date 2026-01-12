@@ -1,4 +1,5 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { BlockType } from '@form-engine/form/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   AccessTransitionASTNode,
@@ -59,7 +60,7 @@ export interface StepASTNode extends ASTNode {
 export interface BasicBlockASTNode extends ASTNode {
   type: ASTNodeType.BLOCK
   variant: string
-  blockType: 'basic'
+  blockType: BlockType.BASIC
   properties: {
     hidden?: ASTNode // Conditional visibility
     metadata?: Record<string, any>
@@ -74,7 +75,7 @@ export interface BasicBlockASTNode extends ASTNode {
 export interface FieldBlockASTNode extends ASTNode {
   type: ASTNodeType.BLOCK
   variant: string
-  blockType: 'field'
+  blockType: BlockType.FIELD
   properties: {
     // Known field properties
     code?: string | ASTNode // Optional because it might not be set initially

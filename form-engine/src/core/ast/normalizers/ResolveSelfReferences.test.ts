@@ -1,6 +1,6 @@
 import { ResolveSelfReferencesNormalizer } from '@form-engine/core/ast/normalizers/ResolveSelfReferences'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
+import { BlockType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { FunctionASTNode, PipelineASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
@@ -22,7 +22,7 @@ describe('ResolveSelfReferencesNormalizer', () => {
         .withPath(['answers', '@self'])
         .build()
 
-      const field = ASTTestFactory.block('TextInput', 'field')
+      const field = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withId('compile_ast:2')
         .withCode('myField')
         .withProperty('value', ref)
@@ -51,7 +51,7 @@ describe('ResolveSelfReferencesNormalizer', () => {
         .withPath(['answers', '@self'])
         .build()
 
-      const field = ASTTestFactory.block('TextInput', 'field')
+      const field = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withId('compile_ast:5')
         .withCode(codeExpr)
         .withProperty('value', ref)
@@ -105,7 +105,7 @@ describe('ResolveSelfReferencesNormalizer', () => {
         .withPath(['answers', '@self'])
         .build()
 
-      const field = ASTTestFactory.block('TextInput', 'field')
+      const field = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withId('compile_ast:9')
         .withProperty('value', ref)
         .build()
@@ -126,7 +126,7 @@ describe('ResolveSelfReferencesNormalizer', () => {
         .withPath(['answers', '@self'])
         .build()
 
-      const field = ASTTestFactory.block('TextInput', 'field')
+      const field = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withId('compile_ast:11')
         .withCode(selfInCode)
         // Value can be anything; the error is triggered by the Self() in code

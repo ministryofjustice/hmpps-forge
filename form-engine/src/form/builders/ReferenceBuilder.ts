@@ -9,7 +9,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { ExpressionType, IteratorType, LogicType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
 
@@ -150,7 +150,7 @@ export class ReferenceBuilder {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     return {
-      type: LogicType.TEST,
+      type: PredicateType.TEST,
       subject: this.reference,
       negate: this.negated,
       condition,

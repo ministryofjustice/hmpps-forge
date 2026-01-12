@@ -1,4 +1,5 @@
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
+import { BlockType } from '@form-engine/form/types/enums'
 import MetadataRegistry from './MetadataRegistry'
 import { MetadataTraverser } from './MetadataTraverser'
 
@@ -58,15 +59,15 @@ describe('MetadataTraverser', () => {
     it('should mark all blocks as descendants', () => {
       // Arrange
       const block1 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('firstName')
         .build()
       const block2 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('lastName')
         .build()
       const block3 = ASTTestFactory
-        .block('Heading', 'basic')
+        .block('Heading', BlockType.BASIC)
         .build()
       const stepNode = ASTTestFactory
         .step()
@@ -91,7 +92,7 @@ describe('MetadataTraverser', () => {
     it('should mark journey as ancestor', () => {
       // Arrange
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .build()
       const stepNode = ASTTestFactory
         .step()
@@ -113,11 +114,11 @@ describe('MetadataTraverser', () => {
     it('should only mark target step and its descendants', () => {
       // Arrange
       const targetStepBlock1 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('targetField1')
         .build()
       const targetStepBlock2 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('targetField2')
         .build()
       const targetStep = ASTTestFactory
@@ -126,7 +127,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       const otherStepBlock = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('otherField')
         .build()
       const otherStep = ASTTestFactory
@@ -156,11 +157,11 @@ describe('MetadataTraverser', () => {
     it('should mark deeply nested blocks as descendants', () => {
       // Arrange
       const nestedBlock = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('nestedField')
         .build()
       const parentBlock = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .withProperty('blocks', [nestedBlock])
         .build()
       const stepNode = ASTTestFactory
@@ -291,7 +292,7 @@ describe('MetadataTraverser', () => {
       const expression = ASTTestFactory
         .reference(['answers', 'firstName'])
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withProperty('value', expression)
         .build()
       const stepNode = ASTTestFactory
@@ -334,11 +335,11 @@ describe('MetadataTraverser', () => {
     it('should set parent node and property for blocks in step', () => {
       // Arrange
       const block1 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('firstName')
         .build()
       const block2 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('lastName')
         .build()
       const stepNode = ASTTestFactory
@@ -363,11 +364,11 @@ describe('MetadataTraverser', () => {
     it('should set parent node and property for nested blocks', () => {
       // Arrange
       const nestedBlock = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('nestedField')
         .build()
       const parentBlock = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .withProperty('blocks', [nestedBlock])
         .build()
       const stepNode = ASTTestFactory
@@ -394,7 +395,7 @@ describe('MetadataTraverser', () => {
       const expression = ASTTestFactory
         .reference(['answers', 'firstName'])
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withProperty('value', expression)
         .build()
       const stepNode = ASTTestFactory
@@ -464,11 +465,11 @@ describe('MetadataTraverser', () => {
       // Arrange
       const expression = ASTTestFactory.reference(['answers', 'test'])
       const block1 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withProperty('value', expression)
         .build()
       const block2 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .build()
       const stepNode = ASTTestFactory
         .step()
@@ -498,7 +499,7 @@ describe('MetadataTraverser', () => {
     it('should set parent metadata for ALL nodes including sibling steps', () => {
       // Arrange
       const targetStepBlock = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('targetField')
         .build()
       const targetStep = ASTTestFactory
@@ -507,7 +508,7 @@ describe('MetadataTraverser', () => {
         .build()
 
       const siblingStepBlock = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('siblingField')
         .build()
       const siblingStep = ASTTestFactory
@@ -541,7 +542,7 @@ describe('MetadataTraverser', () => {
     it('should reconstruct ancestorPath from metadata and set parent metadata for runtime node', () => {
       // Arrange
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('name')
         .build()
       const step = ASTTestFactory
@@ -561,11 +562,11 @@ describe('MetadataTraverser', () => {
       const realTraverser = new MetadataTraverser(realMetadataRegistry)
 
       const runtimeChild = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('dynamicField')
         .build()
       const runtimeNode = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .withProperty('blocks', [runtimeChild])
         .build()
 
@@ -586,7 +587,7 @@ describe('MetadataTraverser', () => {
       // Arrange
       const step = ASTTestFactory.step().build()
       const block = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('name')
         .build()
 
@@ -598,7 +599,7 @@ describe('MetadataTraverser', () => {
       const realTraverser = new MetadataTraverser(realMetadataRegistry)
 
       const runtimeNode = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .build()
 
       realMetadataRegistry.set(runtimeNode.id, 'attachedToParentNode', block.id)
@@ -614,15 +615,15 @@ describe('MetadataTraverser', () => {
     it('should handle deep ancestry chain by reconstructing from metadata', () => {
       // Arrange
       const block3 = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('field3')
         .build()
       const block2 = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .withProperty('blocks', [block3])
         .build()
       const block1 = ASTTestFactory
-        .block('Container', 'basic')
+        .block('Container', BlockType.BASIC)
         .withProperty('blocks', [block2])
         .build()
       const step = ASTTestFactory
@@ -643,7 +644,7 @@ describe('MetadataTraverser', () => {
       const realTraverser = new MetadataTraverser(realMetadataRegistry)
 
       const runtimeNode = ASTTestFactory
-        .block('TextInput', 'field')
+        .block('TextInput', BlockType.FIELD)
         .withCode('dynamicField')
         .build()
 

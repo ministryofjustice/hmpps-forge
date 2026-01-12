@@ -1,5 +1,6 @@
 import { AstNodeId, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { BlockType } from '@form-engine/form/types/enums'
 import { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
@@ -13,7 +14,7 @@ describe('RenderContextFactory', () => {
     id,
     type: ASTNodeType.BLOCK,
     variant,
-    blockType: 'field',
+    blockType: BlockType.FIELD,
     properties: { label: 'Test Label' },
   })
 

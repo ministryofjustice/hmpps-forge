@@ -6,7 +6,7 @@ import { StructureType } from '@form-engine/form/types/enums'
 import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@form-engine/form/types/structures.type'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
-import { ValidationResult } from '@form-engine/core/ast/thunks/handlers/expressions/ValidationHandler'
+import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import { FieldError, TemplateContext } from './types'
 
 export interface TemplateRendererOptions {

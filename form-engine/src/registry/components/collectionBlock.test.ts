@@ -1,12 +1,12 @@
 import { collectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
-import { StructureType } from '../../form/types/enums'
+import { BlockType, StructureType } from '../../form/types/enums'
 import { RenderedBlock } from '../../form/types/structures.type'
 
 describe('collectionBlock component', () => {
   const mockEvaluatedBlock = (overrides?: Partial<EvaluatedCollectionBlock>): EvaluatedCollectionBlock =>
     ({
       type: StructureType.BLOCK,
-      blockType: 'basic',
+      blockType: BlockType.BASIC,
       variant: 'collection-block',
       ...overrides,
     }) as EvaluatedCollectionBlock
@@ -14,7 +14,7 @@ describe('collectionBlock component', () => {
   const mockRenderedBlock = (html: string): RenderedBlock => ({
     block: {
       type: StructureType.BLOCK,
-      blockType: 'basic',
+      blockType: BlockType.BASIC,
       variant: 'test',
     },
     html,

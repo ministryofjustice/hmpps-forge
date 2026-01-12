@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
+import { BlockType, StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, NextExprSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
@@ -66,12 +66,12 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   })
 
   const fieldBlock = baseBlock.extend({
-    blockType: z.literal('field'),
+    blockType: z.literal(BlockType.FIELD),
     ...fieldBlockProps.shape,
   })
 
   const basicBlock = baseBlock.extend({
-    blockType: z.literal('basic'),
+    blockType: z.literal(BlockType.BASIC),
   })
 
   return z.discriminatedUnion('blockType', [fieldBlock, basicBlock])
