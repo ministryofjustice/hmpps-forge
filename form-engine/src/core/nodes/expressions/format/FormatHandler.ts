@@ -1,14 +1,15 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { FormatASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
-import { evaluateOperand } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -35,7 +36,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Synchronous when all arguments are primitives or sync nodes.
  * Asynchronous when any argument is an async node.
  */
-export default class FormatHandler implements HybridThunkHandler {
+export default class FormatHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -63,15 +64,7 @@ export default class FormatHandler implements HybridThunkHandler {
     const rawArguments = this.node.properties.arguments
 
     // Evaluate all arguments (AST nodes invoked, primitives passed through)
-    const evaluatedArguments = rawArguments.map(arg => {
-      if (isASTNode(arg)) {
-        const result = invoker.invokeSync(arg.id, context)
-
-        return result.error ? undefined : result.value
-      }
-
-      return arg
-    })
+    const evaluatedArguments = rawArguments.map(arg => evaluateOperandSync(arg, context, invoker))
 
     // Substitute arguments into template
     try {

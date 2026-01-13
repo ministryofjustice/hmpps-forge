@@ -1,17 +1,17 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { ParamsPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { getByPath } from '@form-engine/utils/utils'
-import { getPseudoNodeKey } from '@form-engine/core/ast/registration/pseudoNodeKeyExtractor'
-import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
+import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor'
+import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 
 /**
  * Handler for params namespace references
@@ -22,7 +22,7 @@ import NodeRegistry from '@form-engine/core/ast/registration/NodeRegistry'
  * Synchronous when path is static (string literal).
  * Asynchronous when path contains dynamic expressions.
  */
-export default class ParamsReferenceHandler implements HybridThunkHandler {
+export default class ParamsReferenceHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

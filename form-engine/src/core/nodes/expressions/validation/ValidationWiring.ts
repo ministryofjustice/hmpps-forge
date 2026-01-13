@@ -1,5 +1,5 @@
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionASTNode, SubmitTransitionASTNode, ValidationASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'

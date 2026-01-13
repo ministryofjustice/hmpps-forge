@@ -1,12 +1,12 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { getByPath } from '@form-engine/utils/utils'
 
 /**
@@ -19,7 +19,7 @@ import { getByPath } from '@form-engine/utils/utils'
  *
  * Always synchronous - scope access is a pure property lookup.
  */
-export default class ScopeReferenceHandler implements HybridThunkHandler {
+export default class ScopeReferenceHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

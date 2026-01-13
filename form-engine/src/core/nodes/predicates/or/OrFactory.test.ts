@@ -1,9 +1,9 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '@form-engine/form/types/enums'
 import type { PredicateOrExpr, PredicateTestExpr, ValueExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { PredicateASTNode } from '@form-engine/core/types/predicates.type'
 import OrFactory from './OrFactory'
 

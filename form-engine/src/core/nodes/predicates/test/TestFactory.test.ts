@@ -1,10 +1,10 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '@form-engine/form/types/enums'
 import type { PredicateTestExpr, ValueExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import TestFactory from './TestFactory'
 
 describe('TestFactory', () => {

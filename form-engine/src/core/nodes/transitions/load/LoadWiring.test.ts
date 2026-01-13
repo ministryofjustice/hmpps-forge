@@ -4,8 +4,8 @@ import { TransitionType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import LoadWiring from './LoadWiring'
 
 describe('LoadWiring', () => {

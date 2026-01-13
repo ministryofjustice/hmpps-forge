@@ -1,8 +1,8 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { QueryPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
+import { ThunkHandler, HandlerResult } from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { isSafePropertyKey } from '@form-engine/core/utils/propertyAccess'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 
 /**
@@ -14,13 +14,21 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  * Returns the complete value (string | string[] | undefined) for the parameter.
  * Nested property access is handled by Reference expression handlers.
  */
-export default class QueryHandler implements SyncThunkHandler {
-  readonly isAsync = false as const
+export default class QueryHandler implements ThunkHandler {
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: QueryPseudoNode,
   ) {}
+
+  computeIsAsync(): void {
+    this.isAsync = false
+  }
+
+  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+    return this.evaluateSync(context)
+  }
 
   evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { paramName } = this.pseudoNode.properties

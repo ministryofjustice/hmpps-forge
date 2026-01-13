@@ -1,17 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { FunctionType } from '@form-engine/form/types/enums'
-import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Handler for Function expression nodes
@@ -44,7 +45,7 @@ import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/c
  * Synchronous when function and all arguments are sync.
  * Asynchronous when function or any argument is async.
  */
-export default class FunctionHandler implements HybridThunkHandler {
+export default class FunctionHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

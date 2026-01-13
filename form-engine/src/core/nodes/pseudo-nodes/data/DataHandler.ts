@@ -1,8 +1,8 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { DataPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { SyncThunkHandler, HandlerResult } from '@form-engine/core/ast/thunks/types'
-import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import { ThunkHandler, HandlerResult } from '@form-engine/core/compilation/thunks/types'
+import { isSafePropertyKey } from '@form-engine/core/utils/propertyAccess'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 
 /**
@@ -17,13 +17,21 @@ import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
  * Example: If context.data = { user: { profile: { name: 'John' } } }
  * and baseProperty = 'user', this returns the entire user object.
  */
-export default class DataHandler implements SyncThunkHandler {
-  readonly isAsync = false as const
+export default class DataHandler implements ThunkHandler {
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
     private readonly pseudoNode: DataPseudoNode,
   ) {}
+
+  computeIsAsync(): void {
+    this.isAsync = false
+  }
+
+  async evaluate(context: ThunkEvaluationContext): Promise<HandlerResult> {
+    return this.evaluateSync(context)
+  }
 
   evaluateSync(context: ThunkEvaluationContext): HandlerResult {
     const { baseProperty } = this.pseudoNode.properties

@@ -7,8 +7,8 @@ import type {
   ReferenceExpr,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
 import { PredicateASTNode } from '@form-engine/core/types/predicates.type'

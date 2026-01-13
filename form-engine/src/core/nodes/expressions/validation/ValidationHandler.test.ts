@@ -5,7 +5,7 @@ import {
   createMockInvoker,
   createMockInvokerWithError,
 } from '@form-engine/test-utils/thunkTestHelpers'
-import { ThunkResult } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
 import { ValidationASTNode } from '@form-engine/core/types/expressions.type'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import ValidationHandler from './ValidationHandler'

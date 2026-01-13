@@ -2,7 +2,7 @@ import { ActionTransitionASTNode } from '@form-engine/core/types/expressions.typ
 import { TransitionType, FunctionType, PredicateType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { createMockContext, createMockInvoker } from '@form-engine/test-utils/thunkTestHelpers'
-import { ThunkResult } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
 import ActionHandler from './ActionHandler'
 
 const mockMetadata = () => ({ source: 'test', timestamp: Date.now() })

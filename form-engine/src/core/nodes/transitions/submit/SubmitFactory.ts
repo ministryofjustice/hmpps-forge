@@ -1,9 +1,9 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { SubmitTransition } from '@form-engine/form/types/expressions.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 
 /**
  * SubmitFactory: Creates Submit transition nodes

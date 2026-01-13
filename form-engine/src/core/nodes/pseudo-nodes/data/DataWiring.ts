@@ -1,10 +1,10 @@
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
 import { DataPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
-import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { isPseudoNode } from '@form-engine/core/typeguards/nodes'
 import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
-import { getPseudoNodeKey } from '@form-engine/core/ast/registration/pseudoNodeKeyExtractor'
+import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor'
 
 /**
  * DataWiring: Wires Data pseudo nodes to their data sources and consumers

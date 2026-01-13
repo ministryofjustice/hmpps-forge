@@ -1,12 +1,13 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateOperand } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { XorPredicateASTNode } from '@form-engine/core/types/predicates.type'
 
@@ -28,7 +29,7 @@ import { XorPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Synchronous when all operands are primitives or sync nodes.
  * Asynchronous when any operand is an async node.
  */
-export default class XorHandler implements HybridThunkHandler {
+export default class XorHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -60,15 +61,7 @@ export default class XorHandler implements HybridThunkHandler {
     }
 
     // Evaluate all operands - cannot short-circuit for XOR
-    const evaluatedOperands = operands.map(operand => {
-      if (isASTNode(operand)) {
-        const result = invoker.invokeSync(operand.id, context)
-
-        return result.error ? undefined : result.value
-      }
-
-      return operand
-    })
+    const evaluatedOperands = operands.map(operand => evaluateOperandSync(operand, context, invoker))
 
     // Count truthy operands (failed evaluations are undefined, treated as falsy)
     const truthyCount = evaluatedOperands.filter(

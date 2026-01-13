@@ -1,17 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
   TransitionType,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import EffectFunctionContext from '@form-engine/core/nodes/expressions/effect/EffectFunctionContext'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
-import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Handler for Effect expression nodes (FunctionType.EFFECT)
@@ -30,7 +31,7 @@ import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/c
  * Synchronous when all arguments are primitives or sync nodes AND the effect is sync.
  * Asynchronous when any argument is an async node OR the effect is async.
  */
-export default class EffectHandler implements HybridThunkHandler {
+export default class EffectHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

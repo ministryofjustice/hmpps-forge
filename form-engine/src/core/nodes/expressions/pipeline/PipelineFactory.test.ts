@@ -1,9 +1,9 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import type { PipelineExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import PipelineFactory from './PipelineFactory'
 
 describe('PipelineFactory', () => {

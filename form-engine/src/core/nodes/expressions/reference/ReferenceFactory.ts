@@ -4,8 +4,8 @@ import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { ReferenceExpr } from '@form-engine/form/types/expressions.type'
 import { isExpression } from '@form-engine/form/typeguards/expressions'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 
 /**
  * ReferenceFactory: Creates Reference expression AST nodes

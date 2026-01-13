@@ -1,6 +1,6 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { ActionTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import {
   ActionTransition,
@@ -9,7 +9,7 @@ import {
   ReferenceExpr,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import ActionFactory from './ActionFactory'
 
 describe('ActionFactory', () => {

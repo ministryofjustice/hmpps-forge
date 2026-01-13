@@ -1,5 +1,5 @@
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { NodeId } from '@form-engine/core/types/engine.type'
 

@@ -1,15 +1,16 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { AccessTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
   ThunkError,
-} from '@form-engine/core/ast/thunks/types'
+} from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateUntilFirstMatch, evaluateUntilFirstMatchSync } from '@form-engine/core/ast/thunks/evaluation'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateUntilFirstMatch } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateUntilFirstMatchSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Result of an access transition evaluation
@@ -64,7 +65,7 @@ export interface AccessTransitionResult {
  * The @transitionType scope variable enables EffectHandler to create
  * EffectFunctionContext with the correct transition type for answer source tracking.
  */
-export default class AccessHandler implements HybridThunkHandler {
+export default class AccessHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

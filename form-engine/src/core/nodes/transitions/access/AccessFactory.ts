@@ -2,8 +2,8 @@ import { isAccessTransitionRedirect, isAccessTransitionError } from '@form-engin
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { AccessTransition } from '@form-engine/form/types/expressions.type'
 
 /**

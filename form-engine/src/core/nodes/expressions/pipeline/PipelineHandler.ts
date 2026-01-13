@@ -1,14 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { PipelineASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
-import { evaluateOperandWithErrorTracking, evaluateWithScope } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluateOperandWithErrorTracking, evaluateWithScope } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import {
+  evaluateOperandWithErrorTrackingSync,
+  evaluateWithScopeSync,
+} from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -37,7 +41,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Synchronous when input and all steps are sync.
  * Asynchronous when input or any step is async.
  */
-export default class PipelineHandler implements HybridThunkHandler {
+export default class PipelineHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -77,55 +81,40 @@ export default class PipelineHandler implements HybridThunkHandler {
     const steps = this.node.properties.steps
 
     // Evaluate the input expression
-    let currentValue: unknown
+    const inputResult = evaluateOperandWithErrorTrackingSync(input, context, invoker)
 
-    if (isASTNode(input)) {
-      const result = invoker.invokeSync(input.id, context)
+    if (inputResult.failed) {
+      const error = ThunkEvaluationError.failed(
+        this.nodeId,
+        new Error('Pipeline input evaluation failed'),
+        'PipelineHandler',
+      )
 
-      if (result.error) {
+      return { error: error.toThunkError() }
+    }
+
+    // Apply each transformation step sequentially
+    let currentValue = inputResult.value
+
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = steps[i]
+
+      // Tag as 'pipeline' so ScopeReferenceHandler skips it when resolving Item() levels
+      const stepResult = evaluateWithScopeSync({ '@value': currentValue, '@type': 'pipeline' }, context, () =>
+        evaluateOperandWithErrorTrackingSync(step, context, invoker),
+      )
+
+      if (stepResult.failed) {
         const error = ThunkEvaluationError.failed(
           this.nodeId,
-          new Error('Pipeline input evaluation failed'),
+          new Error(`Pipeline step ${i} evaluation failed`),
           'PipelineHandler',
         )
 
         return { error: error.toThunkError() }
       }
 
-      currentValue = result.value
-    } else {
-      currentValue = input
-    }
-
-    // Apply each transformation step sequentially
-    for (let i = 0; i < steps.length; i += 1) {
-      const step = steps[i]
-
-      // Push current value onto scope
-      // Tag as 'pipeline' so ScopeReferenceHandler skips it when resolving Item() levels
-      context.scope.push({ '@value': currentValue, '@type': 'pipeline' })
-
-      try {
-        if (isASTNode(step)) {
-          const result = invoker.invokeSync(step.id, context)
-
-          if (result.error) {
-            const error = ThunkEvaluationError.failed(
-              this.nodeId,
-              new Error(`Pipeline step ${i} evaluation failed`),
-              'PipelineHandler',
-            )
-
-            return { error: error.toThunkError() }
-          }
-
-          currentValue = result.value
-        } else {
-          currentValue = step
-        }
-      } finally {
-        context.scope.pop()
-      }
+      currentValue = stepResult.value
     }
 
     return { value: currentValue }

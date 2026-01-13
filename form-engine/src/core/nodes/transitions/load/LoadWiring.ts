@@ -1,8 +1,8 @@
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { LoadTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
-import { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { isLoadTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
 
