@@ -7,7 +7,7 @@ import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@form-engine/for
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
-import { FieldError, TemplateContext } from './types'
+import { FieldError, TemplateContext, ValidationError } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
@@ -49,6 +49,7 @@ export default class TemplateRenderer {
   async render(context: RenderContext, locals: Record<string, unknown> = {}): Promise<string> {
     const renderedBlocks = await this.renderBlocks(context.blocks, context.showValidationFailures)
     const mergedViewLocals = this.mergeViewLocals(context)
+    const validationErrors = context.showValidationFailures ? this.collectValidationErrors(context.blocks) : []
 
     const templateContext: TemplateContext = {
       ...locals,
@@ -59,6 +60,7 @@ export default class TemplateRenderer {
       navigation: context.navigation,
       answers: context.answers,
       data: context.data,
+      validationErrors,
     }
 
     const template = this.resolveTemplate(context)
@@ -183,6 +185,62 @@ export default class TemplateRenderer {
         message: result.message,
         details: result.details,
       }))
+  }
+
+  // Collect all validation errors from blocks for error summary
+  private collectValidationErrors(blocks: Evaluated<BlockASTNode>[]): ValidationError[] {
+    const errors: ValidationError[] = []
+    this.collectValidationErrorsRecursive(blocks, errors)
+    return errors
+  }
+
+  // Recursively collect validation errors from blocks and nested structures
+  private collectValidationErrorsRecursive(blocks: Evaluated<BlockASTNode>[], errors: ValidationError[]): void {
+    for (const block of blocks) {
+      if (block.properties.hidden !== true) {
+        const code = block.properties.code as string | undefined
+        const validate = block.properties.validate
+
+        if (code && Array.isArray(validate)) {
+          const failedValidations = (validate as ValidationResult[]).filter(result => result.passed === false)
+
+          for (const validation of failedValidations) {
+            errors.push({
+              text: validation.message,
+              href: `#${code}`,
+            })
+          }
+        }
+        // Recursively check nested blocks in properties
+        this.collectNestedValidationErrors(block.properties, errors)
+      }
+    }
+  }
+
+  // Recursively search for validation errors in nested properties
+  private collectNestedValidationErrors(properties: Record<string, unknown>, errors: ValidationError[]): void {
+    for (const value of Object.values(properties)) {
+      if (value !== null && value !== undefined) {
+        // Check if this is a nested block
+        if (isBlockStructNode(value)) {
+          this.collectValidationErrorsRecursive([value as Evaluated<BlockASTNode>], errors)
+        }
+        // Check arrays for nested blocks
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (isBlockStructNode(item)) {
+              this.collectValidationErrorsRecursive([item as Evaluated<BlockASTNode>], errors)
+            } else if (typeof item === 'object' && item !== null) {
+              this.collectNestedValidationErrors(item as Record<string, unknown>, errors)
+            }
+          }
+        }
+        // Check nested objects
+        if (typeof value === 'object' && !Array.isArray(value) && !isBlockStructNode(value)) {
+          this.collectNestedValidationErrors(value as Record<string, unknown>, errors)
+        }
+      }
+    }
   }
 
   /** Recursively transform properties, rendering nested blocks to HTML */
