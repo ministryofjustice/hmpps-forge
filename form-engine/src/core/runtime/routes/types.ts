@@ -1,4 +1,4 @@
-import { HttpMethod } from '@form-engine/core/ast/thunks/types'
+import { HttpMethod } from '@form-engine/core/compilation/thunks/types'
 import { RenderContext } from '@form-engine/core/runtime/rendering/types'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 

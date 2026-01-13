@@ -2,9 +2,9 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { BlockType, ExpressionType, FunctionType, PredicateType, StructureType } from '@form-engine/form/types/enums'
 import type { BlockDefinition, FieldBlockDefinition, ValidationExpr } from '@form-engine/form/types/structures.type'
 import type { PredicateTestExpr, ValueExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import BlockFactory from './BlockFactory'
 
 describe('BlockFactory', () => {

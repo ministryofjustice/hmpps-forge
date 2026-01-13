@@ -1,19 +1,19 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { getPseudoNodeKey } from '@form-engine/core/ast/registration/pseudoNodeKeyExtractor'
+import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor'
 import { AnswerLocalPseudoNode, PostPseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import {
   AnswerHistory,
   AnswerSource,
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { isSafePropertyKey } from '@form-engine/core/ast/utils/propertyAccess'
-import { sanitizeValue } from '@form-engine/core/ast/utils/sanitize'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { isSafePropertyKey } from '@form-engine/core/utils/propertyAccess'
+import { sanitizeValue } from '@form-engine/core/utils/sanitize'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
 
@@ -51,7 +51,7 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * Synchronous when formatters, dependent, and defaultValue are all sync (or absent).
  * Asynchronous when any of these expressions is async.
  */
-export default class AnswerLocalHandler implements HybridThunkHandler {
+export default class AnswerLocalHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

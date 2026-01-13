@@ -1,17 +1,18 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
   ThunkError,
-} from '@form-engine/core/ast/thunks/types'
+} from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { evaluateUntilFirstMatch, evaluateUntilFirstMatchSync } from '@form-engine/core/ast/thunks/evaluation'
-import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
+import { evaluateUntilFirstMatch } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
+import { evaluateUntilFirstMatchSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Result of a submit transition evaluation
@@ -74,7 +75,7 @@ export interface SubmitTransitionResult {
  * The @transitionType scope variable enables EffectHandler to create
  * EffectFunctionContext with the correct transition type for answer source tracking.
  */
-export default class SubmitHandler implements HybridThunkHandler {
+export default class SubmitHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

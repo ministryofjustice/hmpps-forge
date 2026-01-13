@@ -1,12 +1,13 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateOperand } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { NotPredicateASTNode } from '@form-engine/core/types/predicates.type'
 
@@ -27,7 +28,7 @@ import { NotPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Synchronous when operand is a primitive or sync node.
  * Asynchronous when operand is an async node.
  */
-export default class NotHandler implements HybridThunkHandler {
+export default class NotHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -51,16 +52,7 @@ export default class NotHandler implements HybridThunkHandler {
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
     const operand = this.node.properties.operand
-
-    let operandValue: unknown
-
-    if (isASTNode(operand)) {
-      const result = invoker.invokeSync(operand.id, context)
-
-      operandValue = result.error ? undefined : result.value
-    } else {
-      operandValue = operand
-    }
+    const operandValue = evaluateOperandSync(operand, context, invoker)
 
     // Return negation of operand's truthiness
     // Failed evaluations (undefined) are treated as falsy, so NOT returns true

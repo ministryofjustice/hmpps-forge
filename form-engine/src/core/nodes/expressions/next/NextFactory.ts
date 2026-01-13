@@ -3,8 +3,8 @@ import { ExpressionType } from '@form-engine/form/types/enums'
 import { NextASTNode } from '@form-engine/core/types/expressions.type'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { NextExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 
 /**
  * NextFactory: Creates Next expression AST nodes

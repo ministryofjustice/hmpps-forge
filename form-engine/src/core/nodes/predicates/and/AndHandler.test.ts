@@ -5,7 +5,7 @@ import {
   createMockInvoker,
   createSequentialMockInvoker,
 } from '@form-engine/test-utils/thunkTestHelpers'
-import { ThunkResult } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
 import AndHandler from './AndHandler'
 
 describe('AndHandler', () => {

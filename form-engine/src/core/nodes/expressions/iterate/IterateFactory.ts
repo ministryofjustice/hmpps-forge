@@ -8,8 +8,8 @@ import {
   isFilterIteratorConfig,
   isFindIteratorConfig,
 } from '@form-engine/form/typeguards/expressions'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 
 /**
  * IterateFactory: Creates Iterate expression AST nodes

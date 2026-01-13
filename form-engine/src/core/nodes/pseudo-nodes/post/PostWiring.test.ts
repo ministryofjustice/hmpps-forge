@@ -1,7 +1,7 @@
 import { when } from 'jest-when'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import PostWiring from './PostWiring'
 

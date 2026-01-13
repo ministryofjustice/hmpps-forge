@@ -1,6 +1,6 @@
 import { formatBox } from '@form-engine/logging/formatBox'
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { ThunkError, ThunkErrorType } from '@form-engine/core/ast/thunks/types'
+import { ThunkError, ThunkErrorType } from '@form-engine/core/compilation/thunks/types'
 
 export default class ThunkBaseError extends Error {
   readonly type: ThunkErrorType

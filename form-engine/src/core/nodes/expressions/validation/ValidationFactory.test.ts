@@ -7,8 +7,8 @@ import type {
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
 import type { ValidationExpr } from '@form-engine/form/types/structures.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import ValidationFactory from './ValidationFactory'
 
 describe('ValidationFactory', () => {

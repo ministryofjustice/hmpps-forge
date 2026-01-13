@@ -2,8 +2,8 @@ import { when } from 'jest-when'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { PredicateType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import OrWiring from './OrWiring'
 
 describe('OrWiring', () => {

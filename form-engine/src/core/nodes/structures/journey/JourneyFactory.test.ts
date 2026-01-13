@@ -1,9 +1,9 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { StructureType } from '@form-engine/form/types/enums'
 import type { BlockDefinition, JourneyDefinition, StepDefinition } from '@form-engine/form/types/structures.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import JourneyFactory from './JourneyFactory'
 
 describe('JourneyFactory', () => {

@@ -1,12 +1,13 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateWithScope } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateWithScope } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateWithScopeSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { TestPredicateASTNode } from '@form-engine/core/types/predicates.type'
 
 /**
@@ -32,7 +33,7 @@ import { TestPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Synchronous when both subject and condition are sync nodes.
  * Asynchronous when either subject or condition is an async node.
  */
-export default class TestHandler implements HybridThunkHandler {
+export default class TestHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -60,24 +61,22 @@ export default class TestHandler implements HybridThunkHandler {
       return subjectResult
     }
 
-    // Evaluate condition with subject value in scope (sync version)
+    // Evaluate condition with subject value in scope
     // Tag as 'predicate' so ScopeReferenceHandler skips it when resolving Item() levels
-    context.scope.push({ '@value': subjectResult.value, '@type': 'predicate' })
+    const conditionResult = evaluateWithScopeSync(
+      { '@value': subjectResult.value, '@type': 'predicate' },
+      context,
+      () => invoker.invokeSync(condition.id, context),
+    )
 
-    try {
-      const conditionResult = invoker.invokeSync(condition.id, context)
-
-      if (conditionResult.error) {
-        return conditionResult
-      }
-
-      // Get the boolean result from condition and apply negation if requested
-      const testResult = Boolean(conditionResult.value)
-
-      return { value: negate ? !testResult : testResult }
-    } finally {
-      context.scope.pop()
+    if (conditionResult.error) {
+      return conditionResult
     }
+
+    // Get the boolean result from condition and apply negation if requested
+    const testResult = Boolean(conditionResult.value)
+
+    return { value: negate ? !testResult : testResult }
   }
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {

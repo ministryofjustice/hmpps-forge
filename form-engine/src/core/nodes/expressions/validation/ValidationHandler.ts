@@ -1,13 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ValidationASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateOperand } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -53,7 +54,7 @@ export interface ValidationResult {
  * Synchronous when when predicate and message are sync.
  * Asynchronous when when predicate or message is async.
  */
-export default class ValidationHandler implements HybridThunkHandler {
+export default class ValidationHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -84,15 +85,7 @@ export default class ValidationHandler implements HybridThunkHandler {
     const predicateResult = invoker.invokeSync(this.node.properties.when.id, context)
 
     // Evaluate the message (needed for both success and error cases)
-    let message: unknown
-
-    if (isASTNode(this.node.properties.message)) {
-      const result = invoker.invokeSync(this.node.properties.message.id, context)
-
-      message = result.error ? undefined : result.value
-    } else {
-      message = this.node.properties.message
-    }
+    const message = evaluateOperandSync(this.node.properties.message, context, invoker)
 
     // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {

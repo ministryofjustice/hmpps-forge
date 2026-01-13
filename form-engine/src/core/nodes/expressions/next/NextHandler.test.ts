@@ -6,7 +6,7 @@ import {
   createMockInvokerWithError,
   createSequentialMockInvoker,
 } from '@form-engine/test-utils/thunkTestHelpers'
-import { ThunkResult } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
 import { NextASTNode } from '@form-engine/core/types/expressions.type'
 import NextHandler from './NextHandler'
 

@@ -3,8 +3,8 @@ import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { TransitionType, FunctionType, PredicateType, ExpressionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { WiringContext } from '@form-engine/core/ast/dependencies/WiringContext'
-import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/ast/dependencies/DependencyGraph'
+import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
+import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import AccessWiring from './AccessWiring'
 
 describe('AccessWiring', () => {

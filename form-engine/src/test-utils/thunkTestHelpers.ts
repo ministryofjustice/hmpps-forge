@@ -1,7 +1,9 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { PseudoNode } from '@form-engine/core/types/pseudoNodes.type'
-import { IndexableNodeType } from '@form-engine/core/ast/registration/NodeRegistry'
-import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+import { IndexableNodeType } from '@form-engine/core/compilation/registries/NodeRegistry'
+import ThunkEvaluationContext, {
+  ThunkEvaluationGlobalState,
+} from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import {
   AnswerHistory,
   AnswerSource,
@@ -10,7 +12,7 @@ import {
   ThunkInvocationAdapter,
   ThunkResult,
   ThunkRuntimeHooks,
-} from '@form-engine/core/ast/thunks/types'
+} from '@form-engine/core/compilation/thunks/types'
 
 /**
  * Mock answer input - can be a simple value or a full AnswerHistory
@@ -361,15 +363,18 @@ export function createMockInvokerWithError(
     message?: string
   } = {},
 ): jest.Mocked<ThunkInvocationAdapter> {
+  const errorResult: ThunkResult = {
+    error: {
+      type: options.type ?? 'EVALUATION_FAILED',
+      nodeId: options.nodeId ?? 'compile_ast:100',
+      message: options.message ?? 'Evaluation failed',
+    },
+    metadata: { source: 'test', timestamp: Date.now() },
+  }
+
   return createMockInvoker({
-    invokeImpl: async (): Promise<ThunkResult> => ({
-      error: {
-        type: options.type ?? 'EVALUATION_FAILED',
-        nodeId: options.nodeId ?? 'compile_ast:100',
-        message: options.message ?? 'Evaluation failed',
-      },
-      metadata: { source: 'test', timestamp: Date.now() },
-    }),
+    invokeImpl: async (): Promise<ThunkResult> => errorResult,
+    invokeSyncImpl: (): ThunkResult => errorResult,
   })
 }
 

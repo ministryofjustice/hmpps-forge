@@ -4,7 +4,7 @@ import { isJourneyDefinition } from '@form-engine/form/typeguards/structures'
 import { FormValidator } from '@form-engine/core/validation/FormValidator'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
-import FormCompilationFactory, { CompiledForm } from '@form-engine/core/ast/compilation/FormCompilationFactory'
+import FormCompilationFactory, { CompiledForm } from '@form-engine/core/compilation/FormCompilationFactory'
 
 /**
  * Contains the compiled form and original configuration.

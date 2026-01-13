@@ -1,4 +1,4 @@
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import QueryFactory from './QueryFactory'
 

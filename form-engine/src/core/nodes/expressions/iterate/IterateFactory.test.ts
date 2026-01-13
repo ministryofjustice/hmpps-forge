@@ -1,8 +1,8 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, FunctionType, IteratorType, PredicateType } from '@form-engine/form/types/enums'
 import type { IterateExpr, PredicateTestExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import IterateFactory from './IterateFactory'
 
 describe('IterateFactory', () => {

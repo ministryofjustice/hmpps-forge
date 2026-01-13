@@ -2,7 +2,7 @@ import { AstNodeId, NodeId } from '@form-engine/core/types/engine.type'
 import { IterateASTNode } from '@form-engine/core/types/expressions.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ExpressionType, IteratorType } from '@form-engine/form/types/enums'
-import { ThunkResult } from '@form-engine/core/ast/thunks/types'
+import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import {
   createMockContext,

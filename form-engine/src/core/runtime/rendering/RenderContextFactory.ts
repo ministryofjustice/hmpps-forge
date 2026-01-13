@@ -1,9 +1,9 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { EvaluationResult } from '@form-engine/core/ast/thunks/ThunkEvaluator'
+import { EvaluationResult } from '@form-engine/core/compilation/thunks/ThunkEvaluator'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
-import getAncestorChain from '@form-engine/core/ast/utils/getAncestorChain'
-import MetadataRegistry from '@form-engine/core/ast/registration/MetadataRegistry'
-import ThunkCacheManager from '@form-engine/core/ast/thunks/registries/ThunkCacheManager'
+import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
+import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
+import ThunkCacheManager from '@form-engine/core/compilation/thunks/ThunkCacheManager'
 import {
   JourneyAncestor,
   RenderContext,

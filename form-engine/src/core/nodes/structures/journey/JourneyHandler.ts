@@ -1,13 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluatePropertyValue } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -28,7 +29,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Synchronous when all nested AST nodes in properties are sync.
  * Asynchronous when any nested AST node is async.
  */
-export default class JourneyHandler implements HybridThunkHandler {
+export default class JourneyHandler implements ThunkHandler {
   isAsync = true
 
   // Transition properties are handled separately by FormStepController
@@ -90,7 +91,7 @@ export default class JourneyHandler implements HybridThunkHandler {
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
     const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
-    const evaluatedProperties = this.evaluatePropertyValueSync(propertiesToEvaluate, context, invoker)
+    const evaluatedProperties = evaluatePropertyValueSync(propertiesToEvaluate, context, invoker)
 
     return {
       value: {
@@ -134,41 +135,5 @@ export default class JourneyHandler implements HybridThunkHandler {
     return Object.fromEntries(
       Object.entries(this.node.properties).filter(([key]) => JourneyHandler.STRUCTURAL_PROPS.includes(key)),
     )
-  }
-
-  private evaluatePropertyValueSync(
-    value: unknown,
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): unknown {
-    if (value === null || value === undefined) {
-      return value
-    }
-
-    if (isASTNode(value)) {
-      if (!context.nodeRegistry.has(value.id)) {
-        return undefined
-      }
-
-      const result = invoker.invokeSync(value.id, context)
-
-      return result.error ? undefined : result.value
-    }
-
-    if (Array.isArray(value)) {
-      return value.map(item => this.evaluatePropertyValueSync(item, context, invoker)).filter(v => v !== undefined)
-    }
-
-    if (typeof value === 'object') {
-      const result: Record<string, unknown> = {}
-
-      Object.entries(value).forEach(([key, val]) => {
-        result[key] = this.evaluatePropertyValueSync(val, context, invoker)
-      })
-
-      return result
-    }
-
-    return value
   }
 }

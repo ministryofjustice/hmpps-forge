@@ -1,14 +1,15 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { ConditionalASTNode } from '@form-engine/core/types/expressions.type'
-import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Handler for Conditional expression nodes (if-then-else logic)
@@ -26,7 +27,7 @@ import { evaluatePropertyValue, evaluatePropertyValueSync } from '@form-engine/c
  * Synchronous when predicate, thenValue, and elseValue are all sync.
  * Asynchronous when any of them is async.
  */
-export default class ConditionalHandler implements HybridThunkHandler {
+export default class ConditionalHandler implements ThunkHandler {
   isAsync = true
 
   constructor(

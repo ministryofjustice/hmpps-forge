@@ -1,13 +1,14 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { NextASTNode } from '@form-engine/core/types/expressions.type'
 import {
-  HybridThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { evaluateOperand } from '@form-engine/core/ast/thunks/evaluation'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -25,7 +26,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Synchronous when when and goto are primitives or sync nodes.
  * Asynchronous when when or goto is an async node.
  */
-export default class NextHandler implements HybridThunkHandler {
+export default class NextHandler implements ThunkHandler {
   isAsync = true
 
   constructor(
@@ -63,15 +64,7 @@ export default class NextHandler implements HybridThunkHandler {
 
     // If there's a 'when' condition, evaluate it first
     if (when) {
-      let whenValue: unknown
-
-      if (isASTNode(when)) {
-        const result = invoker.invokeSync(when.id, context)
-
-        whenValue = result.error ? undefined : result.value
-      } else {
-        whenValue = when
-      }
+      const whenValue = evaluateOperandSync(when, context, invoker)
 
       // If condition is falsy or failed, this next expression doesn't apply
       if (!whenValue) {
@@ -80,15 +73,7 @@ export default class NextHandler implements HybridThunkHandler {
     }
 
     // Evaluate the goto destination (may be AST node or string)
-    let gotoValue: unknown
-
-    if (isASTNode(goto)) {
-      const result = invoker.invokeSync(goto.id, context)
-
-      gotoValue = result.error ? undefined : result.value
-    } else {
-      gotoValue = goto
-    }
+    const gotoValue = evaluateOperandSync(goto, context, invoker)
 
     return { value: gotoValue }
   }

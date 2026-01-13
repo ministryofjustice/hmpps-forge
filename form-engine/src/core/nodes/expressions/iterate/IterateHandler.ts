@@ -2,16 +2,16 @@ import { NodeId, ASTNode } from '@form-engine/core/types/engine.type'
 import { IterateASTNode } from '@form-engine/core/types/expressions.type'
 import { IteratorType } from '@form-engine/form/types/enums'
 import {
-  AsyncThunkHandler,
+  ThunkHandler,
   ThunkInvocationAdapter,
   HandlerResult,
   ThunkRuntimeHooks,
-} from '@form-engine/core/ast/thunks/types'
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
+} from '@form-engine/core/compilation/thunks/types'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import ThunkTypeMismatchError from '@form-engine/errors/ThunkTypeMismatchError'
-import { evaluateWithScope } from '@form-engine/core/ast/thunks/evaluation'
+import { evaluateWithScope } from '@form-engine/core/utils/thunkEvaluatorsAsync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
-import { structuralTraverse, StructuralVisitResult } from '@form-engine/core/ast/traverser/StructuralTraverser'
+import { structuralTraverse, StructuralVisitResult } from '@form-engine/core/compilation/traversers/StructuralTraverser'
 import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 
 /**
@@ -20,18 +20,28 @@ import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-n
  * Evaluates input array and applies iterator operation per item:
  * - MAP: Transform each item using yield template
  * - FILTER: Keep items where predicate is true
+ * - FIND: Return first item where predicate is true
  *
- * Uses the same scope management as CollectionHandler for Item() references.
+ * Uses scope management to enable Item() references within predicates and yields.
  *
  * Always asynchronous due to runtime node creation and hooks usage.
  */
-export default class IterateHandler implements AsyncThunkHandler {
-  readonly isAsync = true as const
+export default class IterateHandler implements ThunkHandler {
+  isAsync = true
 
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: IterateASTNode,
   ) {}
+
+  computeIsAsync(): void {
+    // Always async - uses hooks.registerRuntimeNodesBatch() which is async
+    this.isAsync = true
+  }
+
+  evaluateSync(): HandlerResult {
+    throw new Error(`IterateHandler.evaluateSync() called but Iterate is always async (nodeId: ${this.nodeId})`)
+  }
 
   async evaluate(
     context: ThunkEvaluationContext,

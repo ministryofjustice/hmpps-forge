@@ -1,6 +1,6 @@
-import ThunkEvaluationContext from '@form-engine/core/ast/thunks/ThunkEvaluationContext'
-import { AnswerHistory, TransitionType } from '@form-engine/core/ast/thunks/types'
-import { getPseudoNodeKey } from '@form-engine/core/ast/registration/pseudoNodeKeyExtractor'
+import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { AnswerHistory, TransitionType } from '@form-engine/core/compilation/thunks/types'
+import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor'
 import {
   AnswerLocalPseudoNode,
   AnswerRemotePseudoNode,

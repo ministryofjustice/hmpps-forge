@@ -3,8 +3,8 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { BlockType } from '@form-engine/form/types/enums'
 import { BasicBlockASTNode, BlockASTNode, FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/ast/nodes/NodeIDGenerator'
-import { NodeFactory } from '@form-engine/core/ast/nodes/NodeFactory'
+import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { BlockDefinition, FieldBlockDefinition } from '@form-engine/form/types/structures.type'
 
 /**
