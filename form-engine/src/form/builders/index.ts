@@ -16,7 +16,6 @@ import {
   AccessTransition,
   ActionTransition,
   FormatExpr,
-  LoadTransition,
   NextExpr,
   SubmitTransition,
   ValueExpr,
@@ -120,15 +119,7 @@ export function submitTransition(definition: Omit<SubmitTransition, 'type'>): Su
 }
 
 /**
- * Creates a load transition for data loading effects.
- * Use this in the onLoad lifecycle hook.
- */
-export function loadTransition(definition: Omit<LoadTransition, 'type'>): LoadTransition {
-  return finaliseBuilders({ ...definition, type: TransitionType.LOAD }) as LoadTransition
-}
-
-/**
- * Creates an access transition for access control and analytics.
+ * Creates an access transition for access control, data loading, and analytics.
  * Use this in the onAccess lifecycle hook.
  */
 export function accessTransition(definition: Omit<AccessTransition, 'type'>): AccessTransition {

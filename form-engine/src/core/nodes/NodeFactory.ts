@@ -17,11 +17,7 @@ import {
   isPredicateOrExpr,
   isPredicateXorExpr,
 } from '@form-engine/form/typeguards/predicates'
-import {
-  isAccessTransition,
-  isActionTransition,
-  isSubmitTransition,
-} from '@form-engine/form/typeguards/transitions'
+import { isAccessTransition, isActionTransition, isSubmitTransition } from '@form-engine/form/typeguards/transitions'
 import UnknownNodeTypeError from '@form-engine/errors/UnknownNodeTypeError'
 import InvalidNodeError from '@form-engine/errors/InvalidNodeError'
 import { ASTNode } from '@form-engine/core/types/engine.type'

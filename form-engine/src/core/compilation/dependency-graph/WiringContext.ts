@@ -1,6 +1,6 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { LoadTransitionASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { AccessTransitionASTNode, ReferenceASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
 import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
@@ -86,25 +86,26 @@ export class WiringContext {
   }
 
   /**
-   * Walk up the tree from a node to find the last onLoad transition
+   * Walk up the tree from a node to find the last onAccess transition
    * Searches from the node up through parent journeys, returning the last transition
-   * from the first node (deepest-first) that has onLoad transitions
+   * from the first node (deepest-first) that has onAccess transitions
    */
-  findLastOnLoadTransitionFrom(nodeId: NodeId): LoadTransitionASTNode | undefined {
-    // Reverse to search deepest-first, find first ancestor with onLoad transitions
-    const ancestorWithOnLoad = getAncestorChain(nodeId, this.metadataRegistry)
+  findLastOnAccessTransitionFrom(nodeId: NodeId): AccessTransitionASTNode | undefined {
+    // Reverse to search deepest-first, find first ancestor with onAccess transitions
+    const ancestorWithOnAccess = getAncestorChain(nodeId, this.metadataRegistry)
       .reverse()
       .map(ancestorId => this.nodeRegistry.get(ancestorId))
       .filter(node => isStepStructNode(node) || isJourneyStructNode(node))
       .find(node => {
-        const onLoad = node.properties.onLoad
-        return Array.isArray(onLoad) && onLoad.length > 0
+        const onAccess = node.properties.onAccess
+
+        return Array.isArray(onAccess) && onAccess.length > 0
       })
 
-    if (!ancestorWithOnLoad) {
+    if (!ancestorWithOnAccess) {
       return undefined
     }
 
-    return ancestorWithOnLoad.properties.onLoad.at(-1)
+    return ancestorWithOnAccess.properties.onAccess.at(-1)
   }
 }

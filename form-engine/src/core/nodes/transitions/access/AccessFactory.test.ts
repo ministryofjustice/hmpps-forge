@@ -25,11 +25,11 @@ describe('AccessFactory', () => {
   })
 
   describe('create()', () => {
-    it('should create an Access transition with guards', () => {
+    it('should create an Access transition with when', () => {
       // Arrange
       const json = {
         type: TransitionType.ACCESS,
-        guards: {
+        when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
@@ -45,8 +45,8 @@ describe('AccessFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.TRANSITION)
       expect(result.transitionType).toBe(TransitionType.ACCESS)
-      expect(result.properties.guards).toBeDefined()
-      expect(result.properties.guards.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when).toBeDefined()
+      expect(result.properties.when.type).toBe(ASTNodeType.PREDICATE)
       expect(result.raw).toBe(json)
     })
 
@@ -144,7 +144,7 @@ describe('AccessFactory', () => {
       // Arrange
       const json = {
         type: TransitionType.ACCESS,
-        guards: {
+        when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -169,11 +169,11 @@ describe('AccessFactory', () => {
       const result = accessFactory.create(json) as AccessTransitionASTNode
 
       // Assert
-      expect(result.properties.guards).toBeDefined()
+      expect(result.properties.when).toBeDefined()
       expect(result.properties.effects).toBeDefined()
       expect(result.properties.redirect).toBeDefined()
 
-      expect(result.properties.guards.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when.type).toBe(ASTNodeType.PREDICATE)
       expect(result.properties.effects[0].type).toBe(ASTNodeType.EXPRESSION)
       expect(result.properties.redirect[0].type).toBe(ASTNodeType.EXPRESSION)
     })

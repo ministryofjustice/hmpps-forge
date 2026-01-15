@@ -1,4 +1,3 @@
-import { Forbidden } from 'http-errors'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
@@ -6,11 +5,9 @@ import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.
 import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,
-  LoadTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { FormInstanceDependencies, NodeId, AstNodeId } from '@form-engine/core/types/engine.type'
-import { LoadTransitionResult } from '@form-engine/core/nodes/transitions/load/LoadHandler'
 import { AccessTransitionResult } from '@form-engine/core/nodes/transitions/access/AccessHandler'
 import { SubmitTransitionResult } from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
 import { ActionTransitionResult } from '@form-engine/core/nodes/transitions/action/ActionHandler'
@@ -120,7 +117,6 @@ describe('FormStepController', () => {
   }
 
   function createStepWithTransitions(options: {
-    onLoad?: LoadTransitionASTNode[]
     onAccess?: AccessTransitionASTNode[]
     onAction?: ActionTransitionASTNode[]
     onSubmission?: SubmitTransitionASTNode[]
@@ -136,10 +132,7 @@ describe('FormStepController', () => {
     } as StepASTNode
   }
 
-  function createJourneyWithTransitions(options: {
-    onLoad?: LoadTransitionASTNode[]
-    onAccess?: AccessTransitionASTNode[]
-  }): JourneyASTNode {
+  function createJourneyWithTransitions(options: { onAccess?: AccessTransitionASTNode[] }): JourneyASTNode {
     return {
       type: ASTNodeType.JOURNEY,
       id: ASTTestFactory.getId(),
@@ -174,40 +167,7 @@ describe('FormStepController', () => {
 
   describe('get()', () => {
     describe('lifecycle transitions', () => {
-      it('should run load transitions for step', async () => {
-        // Arrange
-        const loadTransition = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-        const step = createStepWithTransitions({ onLoad: [loadTransition] })
-        mockCompiledForm = createCompiledForm(step)
-
-        setupAncestorChain([step])
-
-        const loadResult: LoadTransitionResult = { executed: true }
-        mockEvaluator.invoke.mockResolvedValue({
-          value: loadResult,
-          metadata: { source: 'test', timestamp: Date.now() },
-        })
-
-        mockEvaluator.evaluate.mockResolvedValue({
-          context: mockContext,
-          journey: { value: {}, metadata: { source: 'test', timestamp: Date.now() } },
-        })
-
-        const controller = new FormStepController(
-          mockCompiledForm,
-          mockDependencies,
-          mockNavigationMetadata,
-          mockCurrentStepPath,
-        )
-
-        // Act
-        await controller.get(mockRequest, mockReq, mockRes)
-
-        // Assert
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(loadTransition.id, mockContext)
-      })
-
-      it('should run access transitions for step and pass when guards pass', async () => {
+      it('should run access transitions for step and continue when guards pass', async () => {
         // Arrange
         const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
         const step = createStepWithTransitions({ onAccess: [accessTransition] })
@@ -215,7 +175,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const accessResult: AccessTransitionResult = { passed: true }
+        const accessResult: AccessTransitionResult = { executed: true, outcome: 'continue' }
         mockEvaluator.invoke.mockResolvedValue({
           value: accessResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -241,7 +201,7 @@ describe('FormStepController', () => {
         expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
 
-      it('should throw Forbidden when access fails without redirect', async () => {
+      it('should throw error when access fails with error outcome', async () => {
         // Arrange
         const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
         const step = createStepWithTransitions({ onAccess: [accessTransition] })
@@ -249,7 +209,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const accessResult: AccessTransitionResult = { passed: false }
+        const accessResult: AccessTransitionResult = { executed: true, outcome: 'error', status: 403 }
         mockEvaluator.invoke.mockResolvedValue({
           value: accessResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -263,10 +223,10 @@ describe('FormStepController', () => {
         )
 
         // Act & Assert
-        await expect(controller.get(mockRequest, mockReq, mockRes)).rejects.toThrow(Forbidden)
+        await expect(controller.get(mockRequest, mockReq, mockRes)).rejects.toThrow('Access denied')
       })
 
-      it('should redirect when access fails with redirect URL', async () => {
+      it('should redirect when access returns redirect outcome', async () => {
         // Arrange
         const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
         const step = createStepWithTransitions({ onAccess: [accessTransition] })
@@ -274,7 +234,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const accessResult: AccessTransitionResult = { passed: false, redirect: 'login' }
+        const accessResult: AccessTransitionResult = { executed: true, outcome: 'redirect', redirect: 'login' }
         mockEvaluator.invoke.mockResolvedValue({
           value: accessResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -294,21 +254,17 @@ describe('FormStepController', () => {
         expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/login')
       })
 
-      it('should run lifecycle for all ancestors in order', async () => {
+      it('should run access lifecycle for all ancestors in order', async () => {
         // Arrange
-        const journeyLoadTransition = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
         const journeyAccessTransition = ASTTestFactory.transition(
           TransitionType.ACCESS,
         ).build() as AccessTransitionASTNode
-        const stepLoadTransition = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
         const stepAccessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
         const journey = createJourneyWithTransitions({
-          onLoad: [journeyLoadTransition],
           onAccess: [journeyAccessTransition],
         })
         const step = createStepWithTransitions({
-          onLoad: [stepLoadTransition],
           onAccess: [stepAccessTransition],
         })
         mockCompiledForm = createCompiledForm(step)
@@ -319,11 +275,7 @@ describe('FormStepController', () => {
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
           invocationOrder.push(nodeId)
 
-          if (nodeId === journeyLoadTransition.id || nodeId === stepLoadTransition.id) {
-            return { value: { executed: true }, metadata: { source: 'test', timestamp: Date.now() } }
-          }
-
-          return { value: { passed: true }, metadata: { source: 'test', timestamp: Date.now() } }
+          return { value: { executed: true, outcome: 'continue' }, metadata: { source: 'test', timestamp: Date.now() } }
         })
 
         mockEvaluator.evaluate.mockResolvedValue({
@@ -341,18 +293,14 @@ describe('FormStepController', () => {
         // Act
         await controller.get(mockRequest, mockReq, mockRes)
 
-        // Assert - Journey transitions should run before step transitions
-        const journeyLoadIndex = invocationOrder.indexOf(journeyLoadTransition.id)
+        // Assert - Journey access transitions should run before step access transitions
         const journeyAccessIndex = invocationOrder.indexOf(journeyAccessTransition.id)
-        const stepLoadIndex = invocationOrder.indexOf(stepLoadTransition.id)
         const stepAccessIndex = invocationOrder.indexOf(stepAccessTransition.id)
 
-        expect(journeyLoadIndex).toBeLessThan(journeyAccessIndex)
-        expect(journeyAccessIndex).toBeLessThan(stepLoadIndex)
-        expect(stepLoadIndex).toBeLessThan(stepAccessIndex)
+        expect(journeyAccessIndex).toBeLessThan(stepAccessIndex)
       })
 
-      it('should stop at first failing access transition', async () => {
+      it('should stop at first access transition that halts with redirect', async () => {
         // Arrange
         const journeyAccessTransition = ASTTestFactory.transition(
           TransitionType.ACCESS,
@@ -368,12 +316,12 @@ describe('FormStepController', () => {
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
           if (nodeId === journeyAccessTransition.id) {
             return {
-              value: { passed: false, redirect: 'unauthorized' },
+              value: { executed: true, outcome: 'redirect', redirect: 'unauthorized' },
               metadata: { source: 'test', timestamp: Date.now() },
             }
           }
 
-          return { value: { passed: true }, metadata: { source: 'test', timestamp: Date.now() } }
+          return { value: { executed: true, outcome: 'continue' }, metadata: { source: 'test', timestamp: Date.now() } }
         })
 
         const controller = new FormStepController(
@@ -439,7 +387,7 @@ describe('FormStepController', () => {
         setupAncestorChain([step])
 
         mockEvaluator.invoke.mockResolvedValue({
-          value: { passed: true },
+          value: { executed: true, outcome: 'continue' },
           metadata: { source: 'test', timestamp: Date.now() },
         })
 
@@ -462,7 +410,7 @@ describe('FormStepController', () => {
         expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessTransition.id, mockContext)
       })
 
-      it('should throw Forbidden when access fails on POST', async () => {
+      it('should throw error when access fails on POST', async () => {
         // Arrange
         const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
         const step = createStepWithTransitions({ onAccess: [accessTransition] })
@@ -471,7 +419,7 @@ describe('FormStepController', () => {
         setupAncestorChain([step])
 
         mockEvaluator.invoke.mockResolvedValue({
-          value: { passed: false },
+          value: { executed: true, outcome: 'error', status: 403 },
           metadata: { source: 'test', timestamp: Date.now() },
         })
 
@@ -483,7 +431,7 @@ describe('FormStepController', () => {
         )
 
         // Act & Assert
-        await expect(controller.post(mockRequest, mockReq, mockRes)).rejects.toThrow(Forbidden)
+        await expect(controller.post(mockRequest, mockReq, mockRes)).rejects.toThrow('Access denied')
       })
     })
 
@@ -764,7 +712,7 @@ describe('FormStepController', () => {
       setupAncestorChain([step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { passed: false, redirect: 'relative-path' },
+        value: { executed: true, outcome: 'redirect', redirect: 'relative-path' },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -792,7 +740,7 @@ describe('FormStepController', () => {
       setupAncestorChain([step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { passed: false, redirect: '/absolute-path' },
+        value: { executed: true, outcome: 'redirect', redirect: '/absolute-path' },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -819,7 +767,7 @@ describe('FormStepController', () => {
       setupAncestorChain([step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { passed: false, redirect: 'http://example.com/path' },
+        value: { executed: true, outcome: 'redirect', redirect: 'http://example.com/path' },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -939,40 +887,6 @@ describe('FormStepController', () => {
   })
 
   describe('effect handling', () => {
-    it('should invoke load transitions which execute effects internally', async () => {
-      // Arrange
-      const loadTransition = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const step = createStepWithTransitions({ onLoad: [loadTransition] })
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      const loadResult: LoadTransitionResult = { executed: true }
-
-      mockEvaluator.invoke.mockResolvedValue({
-        value: loadResult,
-        metadata: { source: 'test', timestamp: Date.now() },
-      })
-
-      mockEvaluator.evaluate.mockResolvedValue({
-        context: mockContext,
-        journey: { value: {}, metadata: { source: 'test', timestamp: Date.now() } },
-      })
-
-      const controller = new FormStepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-      )
-
-      // Act
-      await controller.get(mockRequest, mockReq, mockRes)
-
-      // Assert - Load transition was invoked (effects execute internally)
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(loadTransition.id, mockContext)
-    })
-
     it('should invoke access transitions which execute effects internally', async () => {
       // Arrange
       const accessTransition = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
@@ -981,7 +895,7 @@ describe('FormStepController', () => {
 
       setupAncestorChain([step])
 
-      const accessResult: AccessTransitionResult = { passed: true }
+      const accessResult: AccessTransitionResult = { executed: true, outcome: 'continue' }
 
       mockEvaluator.invoke.mockResolvedValue({
         value: accessResult,
@@ -1104,17 +1018,17 @@ describe('FormStepController', () => {
       expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
     })
 
-    it('should handle multiple load transitions', async () => {
+    it('should handle multiple access transitions', async () => {
       // Arrange
-      const load1 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const load2 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const step = createStepWithTransitions({ onLoad: [load1, load2] })
+      const access1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const step = createStepWithTransitions({ onAccess: [access1, access2] })
       mockCompiledForm = createCompiledForm(step)
 
       setupAncestorChain([step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { executed: true },
+        value: { executed: true, outcome: 'continue' },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -1133,28 +1047,28 @@ describe('FormStepController', () => {
       // Act
       await controller.get(mockRequest, mockReq, mockRes)
 
-      // Assert - Both load transitions should be invoked
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(load1.id, mockContext)
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(load2.id, mockContext)
+      // Assert - Both access transitions should be invoked
+      expect(mockEvaluator.invoke).toHaveBeenCalledWith(access1.id, mockContext)
+      expect(mockEvaluator.invoke).toHaveBeenCalledWith(access2.id, mockContext)
     })
 
     it('should handle deeply nested journey hierarchy', async () => {
       // Arrange
       const outerJourney = createJourneyWithTransitions({
-        onLoad: [ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode],
+        onAccess: [ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode],
       })
       const innerJourney = createJourneyWithTransitions({
-        onLoad: [ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode],
+        onAccess: [ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode],
       })
       const step = createStepWithTransitions({
-        onLoad: [ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode],
+        onAccess: [ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode],
       })
       mockCompiledForm = createCompiledForm(step)
 
       setupAncestorChain([outerJourney, innerJourney, step])
 
       mockEvaluator.invoke.mockResolvedValue({
-        value: { executed: true, passed: true },
+        value: { executed: true, outcome: 'continue' },
         metadata: { source: 'test', timestamp: Date.now() },
       })
 
@@ -1173,7 +1087,7 @@ describe('FormStepController', () => {
       // Act
       await controller.get(mockRequest, mockReq, mockRes)
 
-      // Assert - All three load transitions should be invoked
+      // Assert - All three access transitions should be invoked
       expect(mockEvaluator.invoke).toHaveBeenCalledTimes(3)
     })
   })

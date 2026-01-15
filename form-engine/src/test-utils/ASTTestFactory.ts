@@ -6,7 +6,6 @@ import {
   FunctionASTNode,
   PipelineASTNode,
   ReferenceASTNode,
-  LoadTransitionASTNode,
   AccessTransitionASTNode,
   ActionTransitionASTNode,
   SubmitTransitionASTNode,
@@ -513,7 +512,7 @@ export class TransitionBuilder {
     return this
   }
 
-  build(): LoadTransitionASTNode | AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode {
+  build(): AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
@@ -521,6 +520,6 @@ export class TransitionBuilder {
       id: nodeId,
       transitionType: this.transitionType,
       properties: this.properties,
-    } as LoadTransitionASTNode | AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode
+    } as AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode
   }
 }

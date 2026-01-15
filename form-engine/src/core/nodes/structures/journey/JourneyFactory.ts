@@ -61,10 +61,6 @@ export default class JourneyFactory {
       properties.description = dataProperties.description
     }
 
-    if (dataProperties.onLoad !== undefined) {
-      properties.onLoad = this.nodeFactory.transformValue(dataProperties.onLoad)
-    }
-
     if (dataProperties.onAccess !== undefined) {
       properties.onAccess = this.nodeFactory.transformValue(dataProperties.onAccess)
     }

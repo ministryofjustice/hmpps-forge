@@ -91,7 +91,7 @@ export default class RenderContextFactory {
    * Excludes transitions (onLoad, onAction, onSubmission) and blocks.
    */
   private static toStepForRendering(step: Evaluated<StepASTNode>): RenderContext['step'] {
-    const { onLoad, onAction, onSubmission, blocks, ...stepProperties } = step.properties
+    const { onAction, onSubmission, blocks, ...stepProperties } = step.properties
 
     return stepProperties
   }
@@ -141,7 +141,7 @@ export default class RenderContextFactory {
    * Excludes transitions (onLoad, onAccess), children, and steps.
    */
   private static toJourneyAncestor(journey: JourneyASTNode): JourneyAncestor {
-    const { onLoad, onAccess, children, steps, ...journeyProperties } = journey.properties
+    const { onAccess, children, steps, ...journeyProperties } = journey.properties
 
     return journeyProperties
   }
