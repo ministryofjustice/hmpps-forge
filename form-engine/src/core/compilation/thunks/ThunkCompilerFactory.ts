@@ -13,7 +13,6 @@ import {
   isConditionalExprNode,
 } from '@form-engine/core/typeguards/expression-nodes'
 import {
-  isLoadTransitionNode,
   isAccessTransitionNode,
   isActionTransitionNode,
   isSubmitTransitionNode,
@@ -39,7 +38,6 @@ import FunctionHandler from '@form-engine/core/nodes/expressions/function/Functi
 import EffectHandler from '@form-engine/core/nodes/expressions/effect/EffectHandler'
 import BlockHandler from '@form-engine/core/nodes/structures/block/BlockHandler'
 import StepHandler from '@form-engine/core/nodes/structures/step/StepHandler'
-import LoadHandler from '@form-engine/core/nodes/transitions/load/LoadHandler'
 import AccessHandler from '@form-engine/core/nodes/transitions/access/AccessHandler'
 import ActionHandler from '@form-engine/core/nodes/transitions/action/ActionHandler'
 import SubmitHandler from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
@@ -70,7 +68,7 @@ import NextHandler from '@form-engine/core/nodes/expressions/next/NextHandler'
  * Handlers are created using specialized factories based on node type:
  * - Pseudo nodes: PseudoNodeHandlerFactory
  * - Expression nodes: ReferenceHandler, IterateHandler, ConditionalHandler, TestHandler, AndHandler, OrHandler, XorHandler, NotHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
- * - Transition nodes: LoadTransitionHandler, AccessHandler, SubmitHandler
+ * - Transition nodes: AccessHandler, ActionHandler, SubmitHandler
  * - Structural nodes: JourneyHandler, StepHandler, BlockHandler
  * - Unknown nodes: FallbackHandler
  */
@@ -123,7 +121,7 @@ export default class ThunkCompilerFactory {
    * Handler selection order:
    * 1. Pseudo nodes (AnswerLocal, AnswerRemote, Post, Query, Params, Data)
    * 2. Expression nodes (Reference, Iterate, Conditional, TestPredicate, AndPredicate, OrPredicate, XorPredicate, NotPredicate, Format, Pipeline, Function)
-   * 3. Transition nodes (Load, Access, Submit)
+   * 3. Transition nodes (Access, Action, Submit)
    * 4. Structural nodes (Journey, Step, Block)
    * 5. Fallback for unknown types
    *
@@ -271,11 +269,7 @@ export default class ThunkCompilerFactory {
       return new ValidationHandler(nodeId, node)
     }
 
-    // Transition nodes (LOAD, ACCESS, ACTION, SUBMIT)
-    if (isLoadTransitionNode(node)) {
-      return new LoadHandler(nodeId, node)
-    }
-
+    // Transition nodes (ACCESS, ACTION, SUBMIT)
     if (isAccessTransitionNode(node)) {
       return new AccessHandler(nodeId, node)
     }
@@ -316,8 +310,8 @@ export default class ThunkCompilerFactory {
       'FUNCTION',
       'NEXT',
       'VALIDATION',
-      'LOAD',
       'ACCESS',
+      'ACTION',
       'SUBMIT',
       'JOURNEY',
       'STEP',

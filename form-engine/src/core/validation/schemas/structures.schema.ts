@@ -78,43 +78,24 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
 })
 
 /**
- * @see {@link LoadTransition}
- */
-export const LoadTransitionSchema = z.object({
-  type: z.literal(TransitionType.LOAD),
-  effects: z.array(EffectFunctionExprSchema),
-})
-
-/**
- * Base properties shared by all access transitions
- */
-const AccessTransitionBaseSchema = z.object({
-  type: z.literal(TransitionType.ACCESS),
-  guards: PredicateExprSchema.optional(),
-  effects: z.array(EffectFunctionExprSchema).optional(),
-})
-
-/**
- * Access transition with redirect (navigates to another page)
- */
-const AccessTransitionRedirectSchema = AccessTransitionBaseSchema.extend({
-  redirect: z.array(NextExprSchema),
-})
-
-/**
- * Access transition with error response (returns HTTP status code)
- */
-const AccessTransitionErrorSchema = AccessTransitionBaseSchema.extend({
-  status: z.number().int().min(100).max(599),
-  message: z.union([z.string(), FormatExprSchema, ConditionalExprSchema]),
-})
-
-/**
  * @see {@link AccessTransition}
  *
- * Discriminated union: either redirect-based or error-based
+ * Access transitions handle both access control and data loading.
+ * All properties except `type` are optional. If `status` is provided, `message` is required.
  */
-export const AccessTransitionSchema = z.union([AccessTransitionRedirectSchema, AccessTransitionErrorSchema])
+export const AccessTransitionSchema = z
+  .object({
+    type: z.literal(TransitionType.ACCESS),
+    when: PredicateExprSchema.optional(),
+    effects: z.array(EffectFunctionExprSchema).optional(),
+    redirect: z.array(NextExprSchema).optional(),
+    status: z.number().int().min(100).max(599).optional(),
+    message: z.union([z.string(), FormatExprSchema, ConditionalExprSchema]).optional(),
+  })
+  .refine(data => !(data.status !== undefined && data.message === undefined), {
+    message: 'message is required when status is provided',
+    path: ['message'],
+  })
 
 /**
  * @see {@link ActionTransition}
@@ -160,7 +141,6 @@ export const StepSchema = z.looseObject({
   type: z.literal(StructureType.STEP),
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
-  onLoad: z.array(LoadTransitionSchema).optional(),
   onAccess: z.array(AccessTransitionSchema).optional(),
   onAction: z.array(ActionTransitionSchema).optional(),
   onSubmission: z.array(SubmitTransitionSchema).optional(),
@@ -180,7 +160,6 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     type: z.literal(StructureType.JOURNEY),
     path: z.string(),
     code: z.string(),
-    onLoad: z.array(LoadTransitionSchema).optional(),
     onAccess: z.array(AccessTransitionSchema).optional(),
     steps: z.array(StepSchema).optional(),
     children: z.array(JourneySchema).optional(),

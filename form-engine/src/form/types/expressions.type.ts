@@ -591,58 +591,48 @@ export interface NextExpr {
 }
 
 /**
- * Lifecycle transition for pure data loading.
- * Runs before access control checks.
- */
-export interface LoadTransition {
-  type: TransitionType.LOAD
-  /** Effects to execute for loading data */
-  effects: EffectFunctionExpr<any>[]
-}
-
-/**
- * Base interface for access transitions.
- * Guards define denial conditions - when TRUE, access is DENIED.
- */
-interface AccessTransitionBase {
-  type: TransitionType.ACCESS
-  /** Guard conditions - when TRUE, access is DENIED and redirect/error triggers */
-  guards?: PredicateExpr
-  /** Optional effects to execute before redirect/error (analytics, logging, etc.) */
-  effects?: EffectFunctionExpr<any>[]
-}
-
-/**
- * Access transition that redirects to another page when guards match.
- * Use for cases like redirecting to login or a prerequisite step.
- */
-interface AccessTransitionRedirect extends AccessTransitionBase {
-  /** Navigation rules when guards match (access denied) */
-  redirect: NextExpr[]
-  status?: never
-  message?: never
-}
-
-/**
- * Access transition that returns an HTTP error response when guards match.
- * Use for cases like 404 Not Found or 403 Forbidden.
- */
-interface AccessTransitionError extends AccessTransitionBase {
-  redirect?: never
-  /** HTTP status code to return (e.g., 401, 403, 404) */
-  status: number
-  /** Error message to display - can be static string or dynamic expression like Format() */
-  message: string | ValueExpr
-}
-
-/**
- * Lifecycle transition for access control.
- * Runs after data loading, before rendering.
+ * Lifecycle transition for access control and data loading.
  *
- * Either redirects to another page OR returns an HTTP error response.
- * TypeScript enforces that redirect and status/message are mutually exclusive.
+ * Access transitions are evaluated in sequence. Each transition:
+ * 1. Evaluates `when` condition (if present)
+ * 2. If `when` is false → skip to next transition
+ * 3. If `when` is true (or absent) → execute effects
+ * 4. If `redirect` matches → HALT and redirect
+ * 5. If `status` is set → HALT and return error
+ * 6. Otherwise → CONTINUE to next transition
+ *
+ * @example
+ * // Effects-only transition (always executes, continues)
+ * accessTransition({ effects: [loadUserData()] })
+ *
+ * @example
+ * // Conditional redirect
+ * accessTransition({
+ *   when: Data('user').not.match(Condition.IsRequired()),
+ *   redirect: [next({ goto: '/login' })],
+ * })
+ *
+ * @example
+ * // Error response
+ * accessTransition({
+ *   when: Data('itemNotFound').match(Condition.Equals(true)),
+ *   status: 404,
+ *   message: 'Item not found',
+ * })
  */
-export type AccessTransition = AccessTransitionRedirect | AccessTransitionError
+export interface AccessTransition {
+  type: TransitionType.ACCESS
+  /** Condition for this transition to execute. If omitted, always executes. */
+  when?: PredicateExpr
+  /** Effects to execute when transition runs (data loading, analytics, etc.) */
+  effects?: EffectFunctionExpr<any>[]
+  /** Navigation rules - first match causes redirect and halts */
+  redirect?: NextExpr[]
+  /** HTTP status code for error response (halts if set) */
+  status?: number
+  /** Error message (required if status is set) */
+  message?: string | ValueExpr
+}
 
 /**
  * Base interface for submission transition types.

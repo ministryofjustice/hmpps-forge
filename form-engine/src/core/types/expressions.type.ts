@@ -126,22 +126,12 @@ export interface TransitionASTNode extends ASTNode {
 }
 
 /**
- * Load Transition AST node
- */
-export interface LoadTransitionASTNode extends TransitionASTNode {
-  transitionType: TransitionType.LOAD
-  properties: {
-    effects: ASTNode[]
-  }
-}
-
-/**
  * Access Transition AST node
  */
 export interface AccessTransitionASTNode extends TransitionASTNode {
   transitionType: TransitionType.ACCESS
   properties: {
-    guards?: ASTNode
+    when?: ASTNode
     effects?: ASTNode[]
     redirect?: ASTNode[]
     status?: number

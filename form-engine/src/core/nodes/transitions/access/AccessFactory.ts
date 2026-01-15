@@ -8,8 +8,12 @@ import { AccessTransition } from '@form-engine/form/types/expressions.type'
 
 /**
  * AccessFactory: Creates Access transition nodes
- * Handles guards, analytics, redirects, and error responses
- * Controls access and tracks user navigation
+ *
+ * Handles access control, data loading, and analytics through:
+ * - `when` conditions for conditional execution
+ * - `effects` for data loading and side effects
+ * - `redirect` for navigation on certain conditions
+ * - `status`/`message` for error responses
  */
 export default class AccessFactory {
   constructor(
@@ -19,15 +23,13 @@ export default class AccessFactory {
   ) {}
 
   /**
-   * Transform Access transition: Guards and analytics
-   * Controls access and tracks user navigation
-   * Handles both redirect-based and error response-based access transitions.
+   * Transform Access transition definition into AST node
    */
   create(json: AccessTransition): AccessTransitionASTNode {
     const properties: AccessTransitionASTNode['properties'] = {}
 
-    if (json.guards) {
-      properties.guards = this.nodeFactory.createNode(json.guards)
+    if (json.when) {
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     if (Array.isArray(json.effects)) {

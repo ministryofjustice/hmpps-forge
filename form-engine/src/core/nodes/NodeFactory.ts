@@ -18,7 +18,6 @@ import {
   isPredicateXorExpr,
 } from '@form-engine/form/typeguards/predicates'
 import {
-  isLoadTransition,
   isAccessTransition,
   isActionTransition,
   isSubmitTransition,
@@ -30,7 +29,6 @@ import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/i
 import JourneyFactory from '@form-engine/core/nodes/structures/journey/JourneyFactory'
 import StepFactory from '@form-engine/core/nodes/structures/step/StepFactory'
 import BlockFactory from '@form-engine/core/nodes/structures/block/BlockFactory'
-import LoadFactory from '@form-engine/core/nodes/transitions/load/LoadFactory'
 import AccessFactory from '@form-engine/core/nodes/transitions/access/AccessFactory'
 import ActionFactory from '@form-engine/core/nodes/transitions/action/ActionFactory'
 import SubmitFactory from '@form-engine/core/nodes/transitions/submit/SubmitFactory'
@@ -60,8 +58,6 @@ export class NodeFactory {
   private readonly stepFactory: StepFactory
 
   private readonly blockFactory: BlockFactory
-
-  private readonly loadFactory: LoadFactory
 
   private readonly accessFactory: AccessFactory
 
@@ -102,7 +98,6 @@ export class NodeFactory {
     this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this, this.category)
     this.stepFactory = new StepFactory(this.nodeIDGenerator, this, this.category)
     this.blockFactory = new BlockFactory(this.nodeIDGenerator, this, this.category)
-    this.loadFactory = new LoadFactory(this.nodeIDGenerator, this, this.category)
     this.accessFactory = new AccessFactory(this.nodeIDGenerator, this, this.category)
     this.actionFactory = new ActionFactory(this.nodeIDGenerator, this, this.category)
     this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this, this.category)
@@ -202,11 +197,7 @@ export class NodeFactory {
       return this.nextFactory.create(json)
     }
 
-    // Transition nodes: Load, Access, Action, Submit
-    if (isLoadTransition(json)) {
-      return this.loadFactory.create(json)
-    }
-
+    // Transition nodes: Access, Action, Submit
     if (isAccessTransition(json)) {
       return this.accessFactory.create(json)
     }
@@ -290,7 +281,6 @@ export class NodeFactory {
       isStepDefinition(value) ||
       isBlockDefinition(value) ||
       isExpression(value) ||
-      isLoadTransition(value) ||
       isAccessTransition(value) ||
       isActionTransition(value) ||
       isSubmitTransition(value)

@@ -31,7 +31,6 @@ import IterateWiring from '@form-engine/core/nodes/expressions/iterate/IterateWi
 import TestWiring from '@form-engine/core/nodes/predicates/test/TestWiring'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
 import { NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
-import LoadWiring from '@form-engine/core/nodes/transitions/load/LoadWiring'
 import ThunkCompilerFactory from '@form-engine/core/compilation/thunks/ThunkCompilerFactory'
 
 /**
@@ -173,7 +172,6 @@ export class NodeCompilationPipeline {
     new StructuralWiring(wiringContext).wire()
 
     // Transitions that don't use step-scope metadata
-    new AccessWiring(wiringContext).wire()
     new ActionWiring(wiringContext).wire()
     new SubmitWiring(wiringContext).wire()
 
@@ -204,7 +202,7 @@ export class NodeCompilationPipeline {
    * 2. createPseudoNodes() - creates Answer, Data, Query, Params, Post pseudo nodes
    *
    * Includes:
-   * - onLoad transition wiring (uses isAncestorOfStep, getCurrentStepNode)
+   * - onAccess transition wiring (uses isAncestorOfStep, getCurrentStepNode for cross-depth chaining)
    * - All pseudo node wiring (pseudo nodes are step-specific)
    *
    * @param compilationDependencies
@@ -216,8 +214,8 @@ export class NodeCompilationPipeline {
       compilationDependencies.dependencyGraph,
     )
 
-    // onLoad uses step-scope metadata (isAncestorOfStep, getCurrentStepNode)
-    new LoadWiring(wiringContext).wire()
+    // onAccess uses step-scope metadata (isAncestorOfStep, getCurrentStepNode) for cross-depth chaining
+    new AccessWiring(wiringContext).wire()
 
     // Pseudo node wiring (pseudo nodes are created per-step)
     new AnswerLocalWiring(wiringContext).wire()
@@ -247,8 +245,7 @@ export class NodeCompilationPipeline {
     // Scoped wiring - only process specified nodes with bidirectional wiring
     new StructuralWiring(wiringContext).wireNodes(nodeIds)
 
-    // Wire lifecycle transitions (entry = onLoad + onAccess, action = onAction, exit = onSubmit)
-    new LoadWiring(wiringContext).wireNodes(nodeIds)
+    // Wire lifecycle transitions (entry = onAccess, action = onAction, exit = onSubmit)
     new AccessWiring(wiringContext).wireNodes(nodeIds)
     new ActionWiring(wiringContext).wireNodes(nodeIds)
     new SubmitWiring(wiringContext).wireNodes(nodeIds)
