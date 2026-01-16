@@ -10,7 +10,6 @@ import {
   FilterIteratorConfig,
   FindIteratorConfig,
   ValueExpr,
-  NextExpr,
   RedirectOutcome,
   ThrowErrorOutcome,
   TransitionOutcome,
@@ -48,10 +47,6 @@ export function isFilterIteratorConfig(obj: any): obj is FilterIteratorConfig {
 
 export function isFindIteratorConfig(obj: any): obj is FindIteratorConfig {
   return obj != null && obj.type === IteratorType.FIND
-}
-
-export function isNextExpr(obj: any): obj is NextExpr {
-  return obj != null && obj.type === ExpressionType.NEXT
 }
 
 export function isRedirectOutcome(obj: any): obj is RedirectOutcome {
@@ -105,5 +100,5 @@ export function isExpression(node: any): boolean {
     isPredicateExpr(node) ||
     isFunctionExpr(node) ||
     isValidationExpr(node) ||
-    isNextExpr(node)
+    isTransitionOutcome(node)
 }

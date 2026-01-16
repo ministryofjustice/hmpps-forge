@@ -16,7 +16,6 @@ import {
   AccessTransition,
   ActionTransition,
   FormatExpr,
-  NextExpr,
   RedirectOutcome,
   SubmitTransition,
   ThrowErrorOutcome,
@@ -142,18 +141,6 @@ export function validation(definition: Omit<ValidationExpr, 'type'>): Validation
     ...definition,
     type: ExpressionType.VALIDATION,
   }) as ValidationExpr
-}
-
-/**
- * Creates a next navigation expression for transitions.
- * Use this in the next/redirect arrays of transitions.
- * @deprecated Use redirect() instead
- */
-export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
-  return finaliseBuilders({
-    ...definition,
-    type: ExpressionType.NEXT,
-  }) as NextExpr
 }
 
 /**

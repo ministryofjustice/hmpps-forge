@@ -71,16 +71,6 @@ export const ConditionalExprSchema = z.lazy(() =>
 )
 
 /**
- * @see {@link NextExpr}
- * @deprecated Use RedirectOutcomeSchema instead
- */
-export const NextExprSchema = z.object({
-  type: z.literal(ExpressionType.NEXT),
-  when: PredicateExprSchema.optional(),
-  goto: z.union([z.string(), FormatExprSchema]),
-})
-
-/**
  * @see {@link RedirectOutcome}
  */
 export const RedirectOutcomeSchema = z.object({

@@ -25,7 +25,6 @@ import NotWiring from '@form-engine/core/nodes/predicates/not/NotWiring'
 import PipelineWiring from '@form-engine/core/nodes/expressions/pipeline/PipelineWiring'
 import FunctionWiring from '@form-engine/core/nodes/expressions/function/FunctionWiring'
 import ValidationWiring from '@form-engine/core/nodes/expressions/validation/ValidationWiring'
-import NextWiring from '@form-engine/core/nodes/expressions/next/NextWiring'
 import FormatWiring from '@form-engine/core/nodes/expressions/format/FormatWiring'
 import IterateWiring from '@form-engine/core/nodes/expressions/iterate/IterateWiring'
 import TestWiring from '@form-engine/core/nodes/predicates/test/TestWiring'
@@ -188,7 +187,6 @@ export class NodeCompilationPipeline {
     new PipelineWiring(wiringContext).wire()
     new FunctionWiring(wiringContext).wire()
     new ValidationWiring(wiringContext).wire()
-    new NextWiring(wiringContext).wire()
     new FormatWiring(wiringContext).wire()
     new IterateWiring(wiringContext).wire()
   }
@@ -271,7 +269,6 @@ export class NodeCompilationPipeline {
     new PipelineWiring(wiringContext).wireNodes(nodeIds)
     new FunctionWiring(wiringContext).wireNodes(nodeIds)
     new ValidationWiring(wiringContext).wireNodes(nodeIds)
-    new NextWiring(wiringContext).wireNodes(nodeIds)
     new FormatWiring(wiringContext).wireNodes(nodeIds)
     new IterateWiring(wiringContext).wireNodes(nodeIds)
   }

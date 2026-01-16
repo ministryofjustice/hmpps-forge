@@ -560,36 +560,6 @@ export interface ConditionalExpr {
   elseValue?: ValueExpr
 }
 
-/* ===== Transitions ===== */
-
-/**
- * Represents a navigation destination with optional conditional logic.
- * Defines where to navigate after a transition completes.
- *
- * @example
- * // Simple navigation
- * { type: 'ExpressionType.Next', goto: '/next-step' }
- *
- * @example
- * // Conditional navigation
- * {
- *   type: 'ExpressionType.Next',
- *   when: { type: 'test', subject: {...}, negate: false, condition: {...} },
- *   goto: '/business-flow'
- * }
- */
-export interface NextExpr {
-  type: ExpressionType.NEXT
-  /**
-   * Optional condition that must be true for this navigation to occur.
-   * If omitted, this navigation always applies (useful as a fallback).
-   */
-  when?: PredicateExpr
-
-  /** The path to navigate to. */
-  goto: string | ValueExpr
-}
-
 /* ===== Transition Outcomes ===== */
 
 /**

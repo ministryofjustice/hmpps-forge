@@ -8,7 +8,6 @@ import {
   isFunctionExprNode,
   isEffectExprNode,
   isIterateExprNode,
-  isNextExprNode,
   isValidationExprNode,
   isConditionalExprNode,
 } from '@form-engine/core/typeguards/expression-nodes'
@@ -61,7 +60,6 @@ import AnswerRemoteHandler from '@form-engine/core/nodes/pseudo-nodes/answer-rem
 import PipelineHandler from '@form-engine/core/nodes/expressions/pipeline/PipelineHandler'
 import FormatHandler from '@form-engine/core/nodes/expressions/format/FormatHandler'
 import ValidationHandler from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
-import NextHandler from '@form-engine/core/nodes/expressions/next/NextHandler'
 import RedirectOutcomeHandler from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeHandler'
 import ThrowErrorOutcomeHandler from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
 
@@ -262,10 +260,6 @@ export default class ThunkCompilerFactory {
     // Function expressions (CONDITION, TRANSFORMER, GENERATOR)
     if (isFunctionExprNode(node)) {
       return new FunctionHandler(nodeId, node)
-    }
-
-    if (isNextExprNode(node)) {
-      return new NextHandler(nodeId, node)
     }
 
     if (isValidationExprNode(node)) {

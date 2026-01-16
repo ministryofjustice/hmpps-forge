@@ -42,9 +42,10 @@ import { StepController, StepRequest } from './types'
  * ## POST Request Flow
  * 1. Run full access lifecycle (same as GET)
  * 2. Run step's onAction transitions (in-page actions like postcode lookup)
- * 3. Run step's onSubmission transitions (validation, navigation)
- * 4. If submission has redirect → redirect
- * 5. Otherwise → evaluate AST and render (with validation errors if applicable)
+ * 3. Run step's onSubmission transitions (validation, navigation, error handling)
+ * 4. If submission has error → return HTTP error
+ * 5. If submission has redirect → redirect
+ * 6. Otherwise → evaluate AST and render (with validation errors if applicable)
  */
 export default class FormStepController<TRequest, TResponse> implements StepController<TRequest, TResponse> {
   constructor(
@@ -123,8 +124,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     const submitResult = await this.runSubmitTransitions(evaluator, currentStep, context)
 
-    if (submitResult.next) {
-      return this.redirect(res, req, submitResult.next)
+    if (submitResult.outcome === 'error') {
+      throw createHttpError(submitResult.status!, submitResult.message || 'Submission error')
+    }
+
+    if (submitResult.outcome === 'redirect') {
+      return this.redirect(res, req, submitResult.redirect!)
     }
 
     if (submitResult.validated) {
@@ -270,7 +275,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       }
     }
 
-    return { executed: false, validated: false }
+    return { executed: false, validated: false, outcome: 'continue' }
   }
 
   /**

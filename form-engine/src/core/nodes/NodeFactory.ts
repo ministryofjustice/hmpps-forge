@@ -7,7 +7,6 @@ import {
   isPipelineExpr,
   isIterateExpr,
   isValidationExpr,
-  isNextExpr,
   isRedirectOutcome,
   isThrowErrorOutcome,
   isTransitionOutcome,
@@ -43,7 +42,6 @@ import PipelineFactory from '@form-engine/core/nodes/expressions/pipeline/Pipeli
 import IterateFactory from '@form-engine/core/nodes/expressions/iterate/IterateFactory'
 import ValidationFactory from '@form-engine/core/nodes/expressions/validation/ValidationFactory'
 import FunctionFactory from '@form-engine/core/nodes/expressions/function/FunctionFactory'
-import NextFactory from '@form-engine/core/nodes/expressions/next/NextFactory'
 import RedirectOutcomeFactory from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeFactory'
 import ThrowErrorOutcomeFactory from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeFactory'
 
@@ -90,8 +88,6 @@ export class NodeFactory {
 
   private readonly functionFactory: FunctionFactory
 
-  private readonly nextFactory: NextFactory
-
   private readonly redirectOutcomeFactory: RedirectOutcomeFactory
 
   private readonly throwErrorOutcomeFactory: ThrowErrorOutcomeFactory
@@ -118,7 +114,6 @@ export class NodeFactory {
     this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this, this.category)
     this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
     this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this, this.category)
-    this.nextFactory = new NextFactory(this.nodeIDGenerator, this, this.category)
     this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this, this.category)
     this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this, this.category)
   }
@@ -198,10 +193,6 @@ export class NodeFactory {
 
     if (isFunctionExpr(json)) {
       return this.functionFactory.create(json)
-    }
-
-    if (isNextExpr(json)) {
-      return this.nextFactory.create(json)
     }
 
     // Outcome nodes: Redirect, ThrowError

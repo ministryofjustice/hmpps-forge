@@ -519,7 +519,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitTransitionResult = { executed: true, validated: false }
+        const submitResult: SubmitTransitionResult = { executed: true, validated: false, outcome: 'continue' }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -552,7 +552,12 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitTransitionResult = { executed: true, validated: false, next: 'next-step' }
+        const submitResult: SubmitTransitionResult = {
+          executed: true,
+          validated: false,
+          outcome: 'redirect',
+          redirect: 'next-step',
+        }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -581,7 +586,12 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitTransitionResult = { executed: true, validated: false, next: '/absolute/path' }
+        const submitResult: SubmitTransitionResult = {
+          executed: true,
+          validated: false,
+          outcome: 'redirect',
+          redirect: '/absolute/path',
+        }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -612,7 +622,8 @@ describe('FormStepController', () => {
         const submitResult: SubmitTransitionResult = {
           executed: true,
           validated: false,
-          next: 'https://external.com/path',
+          outcome: 'redirect',
+          redirect: 'https://external.com/path',
         }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
@@ -641,7 +652,12 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitTransitionResult = { executed: true, validated: true, isValid: false }
+        const submitResult: SubmitTransitionResult = {
+          executed: true,
+          validated: true,
+          isValid: false,
+          outcome: 'continue',
+        }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -675,7 +691,7 @@ describe('FormStepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitTransitionResult = { executed: false, validated: false }
+        const submitResult: SubmitTransitionResult = { executed: false, validated: false, outcome: 'continue' }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -967,7 +983,8 @@ describe('FormStepController', () => {
       const submitResult: SubmitTransitionResult = {
         executed: true,
         validated: false,
-        next: 'next',
+        outcome: 'redirect',
+        redirect: 'next',
       }
 
       mockEvaluator.invoke.mockResolvedValue({
