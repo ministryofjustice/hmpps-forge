@@ -166,6 +166,49 @@ describe('String Transformers', () => {
     })
   })
 
+  describe('Possessive', () => {
+    const { evaluate } = StringTransformersRegistry.Possessive
+
+    it('should add apostrophe-s for names not ending in s', () => {
+      expect(evaluate('John')).toBe("John's")
+    })
+
+    it('should add only apostrophe for names ending in s', () => {
+      expect(evaluate('James')).toBe("James'")
+    })
+
+    it('should handle names ending in uppercase S', () => {
+      expect(evaluate('JAMES')).toBe("JAMES'")
+    })
+
+    it('should handle single character names', () => {
+      expect(evaluate('J')).toBe("J's")
+      expect(evaluate('S')).toBe("S'")
+    })
+
+    it('should handle empty strings', () => {
+      expect(evaluate('')).toBe('')
+    })
+
+    it('should handle names with mixed case', () => {
+      expect(evaluate('Chris')).toBe("Chris'")
+      expect(evaluate('Tom')).toBe("Tom's")
+    })
+
+    it('should throw error for non-string values', () => {
+      expect(() => evaluate(123)).toThrow('Transformer.String.Possessive expects a string but received number.')
+    })
+
+    it('should return a function expression when called', () => {
+      const expr = StringTransformers.Possessive()
+      expect(expr).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'Possessive',
+        arguments: [],
+      })
+    })
+  })
+
   describe('Substring', () => {
     const { evaluate } = StringTransformersRegistry.Substring
 

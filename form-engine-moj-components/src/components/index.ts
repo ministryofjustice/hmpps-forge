@@ -10,6 +10,7 @@ import { mojDatePicker } from './date-picker/mojDatePicker'
 import { mojFilter } from './filter/mojFilter'
 import { mojProgressBar } from './progress-bar/mojProgressBar'
 import { mojSideNavigation } from './side-navigation/mojSideNavigation'
+import { mojSubNavigation } from './sub-navigation/mojSubNavigation'
 import { mojTicketPanel } from './ticket-panel/mojTicketPanel'
 import { mojTimeline } from './timeline/mojTimeline'
 import { mojMessages } from './messages/mojMessages'
@@ -38,6 +39,7 @@ export type {
   MOJSideNavigationSection,
   MOJSideNavigationHeading,
 } from './side-navigation/mojSideNavigation'
+export type { MOJSubNavigationItem } from './sub-navigation/mojSubNavigation'
 export type { MOJTicketPanelItem, MOJTicketPanelColor } from './ticket-panel/mojTicketPanel'
 export type {
   MOJTimelineItem,
@@ -60,6 +62,7 @@ export { MOJDatePicker } from './date-picker/mojDatePicker'
 export { MOJFilter } from './filter/mojFilter'
 export { MOJProgressBar } from './progress-bar/mojProgressBar'
 export { MOJSideNavigation } from './side-navigation/mojSideNavigation'
+export { MOJSubNavigation } from './sub-navigation/mojSubNavigation'
 export { MOJTicketPanel } from './ticket-panel/mojTicketPanel'
 export { MOJTimeline } from './timeline/mojTimeline'
 export { MOJMessages } from './messages/mojMessages'
@@ -78,6 +81,7 @@ export const mojComponents: ComponentRegistryEntry<any>[] = [
   mojFilter,
   mojProgressBar,
   mojSideNavigation,
+  mojSubNavigation,
   mojTicketPanel,
   mojTimeline,
   mojMessages,

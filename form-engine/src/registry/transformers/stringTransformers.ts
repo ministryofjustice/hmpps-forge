@@ -62,6 +62,23 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
   },
 
   /**
+   * Converts a name to its possessive form
+   * Names ending in 's' get just an apostrophe, others get 's
+   * @example
+   * // Possessive("John") returns "John's"
+   * // Possessive("James") returns "James'"
+   * // Possessive("Chris") returns "Chris'"
+   */
+  Possessive: (value: any) => {
+    assertString(value, 'Transformer.String.Possessive')
+    if (value.length === 0) return value
+    if (value.toLowerCase().endsWith('s')) {
+      return `${value}'`
+    }
+    return `${value}'s`
+  },
+
+  /**
    * Extracts a substring from start to end position
    * @example
    * // Substring("hello", 1, 4) returns "ell"

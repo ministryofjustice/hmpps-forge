@@ -314,4 +314,55 @@ describe('DateConditions', () => {
       })
     })
   })
+
+  describe('IsToday', () => {
+    const { evaluate } = DateConditionsRegistry.IsToday
+
+    test('should return true for today', () => {
+      const today = new Date().toISOString().split('T')[0]
+      expect(evaluate(today)).toBe(true)
+    })
+
+    test('should return false for past dates', () => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayISO = yesterday.toISOString().split('T')[0]
+
+      expect(evaluate(yesterdayISO)).toBe(false)
+      expect(evaluate('2020-01-01')).toBe(false)
+      expect(evaluate('1999-12-31')).toBe(false)
+    })
+
+    test('should return false for future dates', () => {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const tomorrowISO = tomorrow.toISOString().split('T')[0]
+
+      const nextWeek = new Date()
+      nextWeek.setDate(nextWeek.getDate() + 7)
+      const nextWeekISO = nextWeek.toISOString().split('T')[0]
+
+      expect(evaluate(tomorrowISO)).toBe(false)
+      expect(evaluate(nextWeekISO)).toBe(false)
+      expect(evaluate('2999-12-31')).toBe(false)
+    })
+
+    test('should validate input type', () => {
+      expect(() => evaluate(123)).toThrow('Condition.Date.IsToday expects a string but received number')
+    })
+
+    test('should throw error when value is invalid date string', () => {
+      expect(() => evaluate('invalid-date')).toThrow('Condition.Date.IsToday: Invalid date string "invalid-date"')
+      expect(() => evaluate('2024-13-01')).toThrow('Condition.Date.IsToday: Invalid date string "2024-13-01"')
+    })
+
+    test('should build correct expression object', () => {
+      const expr = DateConditions.IsToday()
+      expect(expr).toEqual({
+        type: FunctionType.CONDITION,
+        name: 'IsToday',
+        arguments: [],
+      })
+    })
+  })
 })

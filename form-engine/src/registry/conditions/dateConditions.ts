@@ -186,4 +186,24 @@ export const { conditions: DateConditions, registry: DateConditionsRegistry } = 
 
     return valueDate > todayUTC
   },
+
+  /**
+   * Checks if an ISO date string is today
+   * @param value - The ISO date string to test
+   * @returns true if value is today's date
+   */
+  IsToday: value => {
+    assertString(value, 'Condition.Date.IsToday')
+
+    const parsed = parseISODate(value)
+    if (!parsed) {
+      throw new Error(`Condition.Date.IsToday: Invalid date string "${value}"`)
+    }
+
+    const valueDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day))
+    const today = new Date()
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+
+    return valueDate.getTime() === todayUTC.getTime()
+  },
 })
