@@ -11,6 +11,7 @@ import {
   evaluateWithScopeSync,
   evaluatePropertyValueSync,
   evaluateUntilFirstMatchSync,
+  evaluateNextOutcomesSync,
 } from './thunkEvaluatorsSync'
 
 describe('thunkEvaluatorsSync', () => {
@@ -465,6 +466,154 @@ describe('thunkEvaluatorsSync', () => {
 
       // Assert
       expect(result).toBe('match-me')
+    })
+  })
+
+  describe('evaluateNextOutcomesSync()', () => {
+    it('should return none when no outcomes provided', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = evaluateNextOutcomesSync([], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'none' })
+      expect(mockInvoker.invokeSync).not.toHaveBeenCalled()
+    })
+
+    it('should return redirect outcome when redirect matches', () => {
+      // Arrange
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/next-page' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[redirectOutcome.id, '/next-page']]),
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([redirectOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/next-page' })
+    })
+
+    it('should return error outcome when throwError matches', () => {
+      // Arrange
+      const errorOutcome = ASTTestFactory.throwErrorOutcome({ status: 404, message: 'Not found' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[errorOutcome.id, { status: 404, message: 'Not found' }]]),
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([errorOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'error', value: { status: 404, message: 'Not found' } })
+    })
+
+    it('should use first-match semantics - return first matching outcome', () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([
+          [redirect1.id, '/first'],
+          [redirect2.id, '/second'],
+        ]),
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/first' })
+      expect(mockInvoker.invokeSync).toHaveBeenCalledTimes(1)
+    })
+
+    it('should skip outcomes that return undefined (when condition not met)', () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeSyncImpl: (nodeId: string): ThunkResult => {
+          if (nodeId === redirect1.id) {
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          }
+
+          return { value: '/second', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/second' })
+    })
+
+    it('should skip outcomes that return errors', () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeSyncImpl: (nodeId: string): ThunkResult => {
+          if (nodeId === redirect1.id) {
+            return {
+              error: { type: 'EVALUATION_FAILED', nodeId: redirect1.id, message: 'Error' },
+              metadata: { source: 'Test', timestamp: Date.now() },
+            }
+          }
+
+          return { value: '/second', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/second' })
+    })
+
+    it('should return none when all outcomes return undefined', () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({ defaultValue: undefined })
+
+      // Act
+      const result = evaluateNextOutcomesSync([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'none' })
+    })
+
+    it('should handle mixed redirect and error outcomes', () => {
+      // Arrange
+      const errorOutcome = ASTTestFactory.throwErrorOutcome({ status: 404, message: 'Not found' })
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/fallback' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeSyncImpl: (nodeId: string): ThunkResult => {
+          if (nodeId === errorOutcome.id) {
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          }
+
+          return { value: '/fallback', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = evaluateNextOutcomesSync([errorOutcome, redirectOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/fallback' })
     })
   })
 })

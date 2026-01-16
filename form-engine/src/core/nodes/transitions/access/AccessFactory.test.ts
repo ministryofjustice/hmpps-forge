@@ -1,13 +1,19 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
-import { AccessTransitionASTNode, FunctionASTNode, NextASTNode } from '@form-engine/core/types/expressions.type'
+import {
+  AccessTransitionASTNode,
+  FunctionASTNode,
+  RedirectOutcomeASTNode,
+  ThrowErrorOutcomeASTNode,
+} from '@form-engine/core/types/expressions.type'
 import {
   AccessTransition,
   EffectFunctionExpr,
-  NextExpr,
   PredicateTestExpr,
+  RedirectOutcome,
   ReferenceExpr,
+  ThrowErrorOutcome,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
@@ -35,7 +41,6 @@ describe('AccessFactory', () => {
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         },
-        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       // Act
@@ -46,7 +51,7 @@ describe('AccessFactory', () => {
       expect(result.type).toBe(ASTNodeType.TRANSITION)
       expect(result.transitionType).toBe(TransitionType.ACCESS)
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
       expect(result.raw).toBe(json)
     })
 
@@ -58,7 +63,6 @@ describe('AccessFactory', () => {
           { type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] },
           { type: FunctionType.EFFECT, name: 'logAccess', arguments: [] as ValueExpr[] },
         ],
-        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       // Act
@@ -93,7 +97,6 @@ describe('AccessFactory', () => {
       const json = {
         type: TransitionType.ACCESS,
         effects: [effect1, effect2],
-        redirect: [] as NextExpr[],
       } satisfies AccessTransition
 
       // Act
@@ -112,21 +115,21 @@ describe('AccessFactory', () => {
       expect(effects[1].properties.name).toBe('effect2')
     })
 
-    it('should create an Access transition with redirect', () => {
+    it('should create an Access transition with redirect outcome', () => {
       // Arrange
       const json = {
         type: TransitionType.ACCESS,
-        redirect: [
+        next: [
           {
-            type: ExpressionType.NEXT,
+            type: OutcomeType.REDIRECT,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
               condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
             },
-            goto: 'step1',
-          } satisfies NextExpr,
+            goto: '/step1',
+          } satisfies RedirectOutcome,
         ],
       } satisfies AccessTransition
 
@@ -134,10 +137,72 @@ describe('AccessFactory', () => {
       const result = accessFactory.create(json) as AccessTransitionASTNode
 
       // Assert
-      expect(result.properties.redirect).toBeDefined()
-      expect(result.properties.redirect).toHaveLength(1)
-      expect(result.properties.redirect[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect((result.properties.redirect[0] as NextASTNode).expressionType).toBe(ExpressionType.NEXT)
+      expect(result.properties.next).toBeDefined()
+      expect(result.properties.next).toHaveLength(1)
+      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect((result.properties.next![0] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
+    })
+
+    it('should create an Access transition with throwError outcome', () => {
+      // Arrange
+      const json = {
+        type: TransitionType.ACCESS,
+        next: [
+          {
+            type: OutcomeType.THROW_ERROR,
+            when: {
+              type: PredicateType.TEST,
+              subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
+              negate: false,
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            },
+            status: 404,
+            message: 'Item not found',
+          } satisfies ThrowErrorOutcome,
+        ],
+      } satisfies AccessTransition
+
+      // Act
+      const result = accessFactory.create(json) as AccessTransitionASTNode
+
+      // Assert
+      expect(result.properties.next).toBeDefined()
+      expect(result.properties.next).toHaveLength(1)
+      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(OutcomeType.THROW_ERROR)
+    })
+
+    it('should create an Access transition with multiple outcomes', () => {
+      // Arrange
+      const json = {
+        type: TransitionType.ACCESS,
+        next: [
+          {
+            type: OutcomeType.THROW_ERROR,
+            when: {
+              type: PredicateType.TEST,
+              subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
+              negate: false,
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            },
+            status: 404,
+            message: 'Not found',
+          } satisfies ThrowErrorOutcome,
+          {
+            type: OutcomeType.REDIRECT,
+            goto: '/overview',
+          } satisfies RedirectOutcome,
+        ],
+      } satisfies AccessTransition
+
+      // Act
+      const result = accessFactory.create(json) as AccessTransitionASTNode
+
+      // Assert
+      expect(result.properties.next).toBeDefined()
+      expect(result.properties.next).toHaveLength(2)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(OutcomeType.THROW_ERROR)
+      expect((result.properties.next![1] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
     })
 
     it('should create an Access transition with all properties', () => {
@@ -151,17 +216,17 @@ describe('AccessFactory', () => {
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
         effects: [{ type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] }],
-        redirect: [
+        next: [
           {
-            type: ExpressionType.NEXT,
+            type: OutcomeType.REDIRECT,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
               condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
             } satisfies PredicateTestExpr,
-            goto: 'step1',
-          } satisfies NextExpr,
+            goto: '/step1',
+          } satisfies RedirectOutcome,
         ],
       } satisfies AccessTransition
 
@@ -171,11 +236,11 @@ describe('AccessFactory', () => {
       // Assert
       expect(result.properties.when).toBeDefined()
       expect(result.properties.effects).toBeDefined()
-      expect(result.properties.redirect).toBeDefined()
+      expect(result.properties.next).toBeDefined()
 
-      expect(result.properties.when.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.properties.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.redirect[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
     it('should not set effects if not an array', () => {
@@ -192,18 +257,18 @@ describe('AccessFactory', () => {
       expect(result.properties.effects).toBeUndefined()
     })
 
-    it('should not set redirect if not an array', () => {
+    it('should not set next if not an array', () => {
       // Arrange
       const json = {
         type: TransitionType.ACCESS,
-        redirect: 'not-an-array',
+        next: 'not-an-array',
       } as any
 
       // Act
       const result = accessFactory.create(json) as AccessTransitionASTNode
 
       // Assert
-      expect(result.properties.redirect).toBeUndefined()
+      expect(result.properties.next).toBeUndefined()
     })
 
     it('should generate unique node IDs from the ID generator', () => {

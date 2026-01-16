@@ -125,13 +125,11 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const redirectExpr = ASTTestFactory.expression(ExpressionType.NEXT)
-          .withProperty('goto', '/login')
-          .build()
+        const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/login' })
 
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('redirect', [redirectExpr])
+          .withProperty('next', [redirectOutcome])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
@@ -143,7 +141,7 @@ describe('AccessHandler', () => {
               return { value: true, metadata: { source: 'Test', timestamp: Date.now() } }
             }
 
-            if (nodeId === redirectExpr.id) {
+            if (nodeId === redirectOutcome.id) {
               return { value: '/login', metadata: { source: 'Test', timestamp: Date.now() } }
             }
 
@@ -169,18 +167,16 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const redirect1 = ASTTestFactory.expression(ExpressionType.NEXT)
-          .withProperty('when', ASTTestFactory.predicate(PredicateType.TEST, {}))
-          .withProperty('goto', '/conditional-redirect')
-          .build()
+        const redirect1 = ASTTestFactory.redirectOutcome({
+          when: ASTTestFactory.predicate(PredicateType.TEST, {}),
+          goto: '/conditional-redirect',
+        })
 
-        const redirect2 = ASTTestFactory.expression(ExpressionType.NEXT)
-          .withProperty('goto', '/fallback')
-          .build()
+        const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/fallback' })
 
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('redirect', [redirect1, redirect2])
+          .withProperty('next', [redirect1, redirect2])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
@@ -250,16 +246,35 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
+        const errorOutcome = ASTTestFactory.throwErrorOutcome({
+          status: 404,
+          message: 'Item not found',
+        })
+
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('status', 404)
-          .withProperty('message', 'Item not found')
+          .withProperty('next', [errorOutcome])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
 
         const mockContext = createMockContext()
-        const invoker = createMockInvoker({ defaultValue: true })
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            if (nodeId === whenPredicate.id) {
+              return { value: true, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
+
+            if (nodeId === errorOutcome.id) {
+              return {
+                value: { status: 404, message: 'Item not found' },
+                metadata: { source: 'Test', timestamp: Date.now() },
+              }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
 
         // Act
         const result = await handler.evaluate(mockContext, invoker)
@@ -286,10 +301,14 @@ describe('AccessHandler', () => {
           .withProperty('arguments', ['123'])
           .build()
 
+        const errorOutcome = ASTTestFactory.throwErrorOutcome({
+          status: 403,
+          message: messageExpr,
+        })
+
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('status', 403)
-          .withProperty('message', messageExpr)
+          .withProperty('next', [errorOutcome])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
@@ -301,8 +320,11 @@ describe('AccessHandler', () => {
               return { value: true, metadata: { source: 'Test', timestamp: Date.now() } }
             }
 
-            if (nodeId === messageExpr.id) {
-              return { value: 'Item 123 not found', metadata: { source: 'Test', timestamp: Date.now() } }
+            if (nodeId === errorOutcome.id) {
+              return {
+                value: { status: 403, message: 'Item 123 not found' },
+                metadata: { source: 'Test', timestamp: Date.now() },
+              }
             }
 
             return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
@@ -329,10 +351,14 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
+        const errorOutcome = ASTTestFactory.throwErrorOutcome({
+          status: 404,
+          message: 'Item not found',
+        })
+
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('status', 404)
-          .withProperty('message', 'Item not found')
+          .withProperty('next', [errorOutcome])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
@@ -364,24 +390,35 @@ describe('AccessHandler', () => {
           .withProperty('arguments', [])
           .build()
 
+        const errorOutcome = ASTTestFactory.throwErrorOutcome({
+          status: 500,
+          message: messageExpr,
+        })
+
         const transition = ASTTestFactory.transition(TransitionType.ACCESS)
           .withProperty('when', whenPredicate)
-          .withProperty('status', 500)
-          .withProperty('message', messageExpr)
+          .withProperty('next', [errorOutcome])
           .build() as AccessTransitionASTNode
 
         const handler = new AccessHandler(transition.id, transition)
 
         const mockContext = createMockContext()
-        const invoker = createMockInvoker({ defaultValue: true })
+        const invoker = createMockInvoker({
+          invokeImpl: async (nodeId: string) => {
+            if (nodeId === whenPredicate.id) {
+              return { value: true, metadata: { source: 'Test', timestamp: Date.now() } }
+            }
 
-        // Mock when condition to return true, then message expression to return an error
-        invoker.invoke
-          .mockResolvedValueOnce({ value: true, metadata: { source: 'Test', timestamp: Date.now() } }) // when condition
-          .mockResolvedValueOnce({
-            error: { type: 'EVALUATION_FAILED', nodeId: messageExpr.id, message: 'Missing argument' },
-            metadata: { source: 'Test', timestamp: Date.now() },
-          }) // message expression
+            if (nodeId === errorOutcome.id) {
+              return {
+                value: { status: 500, message: undefined },
+                metadata: { source: 'Test', timestamp: Date.now() },
+              }
+            }
+
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          },
+        })
 
         // Act
         const result = await handler.evaluate(mockContext, invoker)

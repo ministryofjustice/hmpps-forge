@@ -46,3 +46,8 @@ export enum TransitionType {
   ACTION = 'TransitionType.Action',
   SUBMIT = 'TransitionType.Submit',
 }
+
+export enum OutcomeType {
+  REDIRECT = 'Outcome.Redirect',
+  THROW_ERROR = 'Outcome.ThrowError',
+}

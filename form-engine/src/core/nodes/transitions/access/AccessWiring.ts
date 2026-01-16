@@ -4,7 +4,7 @@ import { ASTNodeType } from '@form-engine/core/types/enums'
 import { AccessTransitionASTNode, FunctionASTNode } from '@form-engine/core/types/expressions.type'
 import { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { isAccessTransitionNode } from '@form-engine/core/typeguards/transition-nodes'
-import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
+import { NodeId } from '@form-engine/core/types/engine.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -17,8 +17,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Also wires internal transition dependencies:
  * - `when` predicate → transition (must evaluate before transition)
  * - effects → transition (executed sequentially when transition runs)
- * - redirect expressions → transition (evaluated to determine navigation)
- * - message expression → transition (evaluated for error responses)
+ * - next outcomes → transition (evaluated to determine navigation/errors)
  */
 export default class AccessWiring {
   constructor(private readonly wiringContext: WiringContext) {}
@@ -172,8 +171,7 @@ export default class AccessWiring {
   private wireTransitionInternalDependencies(transition: AccessTransitionASTNode) {
     this.wireWhenCondition(transition)
     this.wireEffects(transition)
-    this.wireRedirect(transition)
-    this.wireMessage(transition)
+    this.wireNextOutcomes(transition)
   }
 
   /**
@@ -217,35 +215,22 @@ export default class AccessWiring {
   }
 
   /**
-   * Wire redirect expressions to the transition
-   * Creates edges: redirect → transition
+   * Wire next outcomes to the transition
+   * Creates edges: outcome → transition
+   * Note: Outcome internal dependencies are wired by RedirectOutcomeWiring/ThrowErrorOutcomeWiring
    */
-  private wireRedirect(transition: AccessTransitionASTNode) {
-    const redirect = transition.properties.redirect as ASTNode[] | undefined
+  private wireNextOutcomes(transition: AccessTransitionASTNode) {
+    const next = transition.properties.next
 
-    if (!redirect || !Array.isArray(redirect)) {
+    if (!next || !Array.isArray(next)) {
       return
     }
 
-    redirect.filter(isASTNode).forEach((redirectExpr, index) => {
-      this.wiringContext.graph.addEdge(redirectExpr.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'redirect',
+    next.filter(isASTNode).forEach((outcome, index) => {
+      this.wiringContext.graph.addEdge(outcome.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+        property: 'next',
         index,
       })
     })
-  }
-
-  /**
-   * Wire message expression to the transition (for error responses)
-   * Creates edge: message → transition
-   */
-  private wireMessage(transition: AccessTransitionASTNode) {
-    const message = transition.properties.message
-
-    if (isASTNode(message)) {
-      this.wiringContext.graph.addEdge(message.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'message',
-      })
-    }
   }
 }

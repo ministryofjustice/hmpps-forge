@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
-import { PredicateExprSchema, ConditionalExprSchema, NextExprSchema } from './predicates.schema'
+import { PredicateExprSchema, ConditionalExprSchema, TransitionOutcomeSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
 /**
@@ -80,22 +80,15 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
 /**
  * @see {@link AccessTransition}
  *
- * Access transitions handle both access control and data loading.
- * All properties except `type` are optional. If `status` is provided, `message` is required.
+ * Access transitions handle access control, data loading, and outcomes.
+ * All properties except `type` are optional.
  */
-export const AccessTransitionSchema = z
-  .object({
-    type: z.literal(TransitionType.ACCESS),
-    when: PredicateExprSchema.optional(),
-    effects: z.array(EffectFunctionExprSchema).optional(),
-    redirect: z.array(NextExprSchema).optional(),
-    status: z.number().int().min(100).max(599).optional(),
-    message: z.union([z.string(), FormatExprSchema, ConditionalExprSchema]).optional(),
-  })
-  .refine(data => !(data.status !== undefined && data.message === undefined), {
-    message: 'message is required when status is provided',
-    path: ['message'],
-  })
+export const AccessTransitionSchema = z.object({
+  type: z.literal(TransitionType.ACCESS),
+  when: PredicateExprSchema.optional(),
+  effects: z.array(EffectFunctionExprSchema).optional(),
+  next: z.array(TransitionOutcomeSchema).optional(),
+})
 
 /**
  * @see {@link ActionTransition}
@@ -117,19 +110,19 @@ export const SubmitTransitionSchema = z.object({
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
   onValid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
   onInvalid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
 })

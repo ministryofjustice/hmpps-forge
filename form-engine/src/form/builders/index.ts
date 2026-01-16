@@ -17,11 +17,13 @@ import {
   ActionTransition,
   FormatExpr,
   NextExpr,
+  RedirectOutcome,
   SubmitTransition,
+  ThrowErrorOutcome,
   ValueExpr,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { BlockType, ExpressionType, StructureType, TransitionType } from '../types/enums'
+import { BlockType, ExpressionType, OutcomeType, StructureType, TransitionType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -145,12 +147,62 @@ export function validation(definition: Omit<ValidationExpr, 'type'>): Validation
 /**
  * Creates a next navigation expression for transitions.
  * Use this in the next/redirect arrays of transitions.
+ * @deprecated Use redirect() instead
  */
 export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
   return finaliseBuilders({
     ...definition,
     type: ExpressionType.NEXT,
   }) as NextExpr
+}
+
+/**
+ * Creates a redirect outcome for transitions.
+ * When matched, halts transition processing and redirects to the specified path.
+ *
+ * @example
+ * // Unconditional redirect
+ * redirect({ goto: '/overview' })
+ *
+ * @example
+ * // Conditional redirect
+ * redirect({
+ *   when: Data('needsSetup').match(Condition.Equals(true)),
+ *   goto: '/setup',
+ * })
+ */
+export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOutcome {
+  return finaliseBuilders({
+    ...definition,
+    type: OutcomeType.REDIRECT,
+  }) as RedirectOutcome
+}
+
+/**
+ * Creates an error outcome for transitions.
+ * When matched, halts transition processing and throws an HTTP error.
+ *
+ * @example
+ * // Not found error
+ * throwError({
+ *   when: Data('notFound').match(Condition.Equals(true)),
+ *   status: 404,
+ *   message: 'Item not found',
+ * })
+ *
+ * @example
+ * // Dynamic error message
+ * throwError({
+ *   when: Data('saveError').match(Condition.IsRequired()),
+ *   status: 500,
+ *   message: Format('Failed to save: %1', Data('saveError')),
+ * })
+ */
+export function throwError(definition: Omit<ThrowErrorOutcome, 'type'>): ThrowErrorOutcome {
+  return finaliseBuilders({
+    ...definition,
+    type: OutcomeType.THROW_ERROR,
+  }) as ThrowErrorOutcome
 }
 
 /**

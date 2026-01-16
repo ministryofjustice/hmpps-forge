@@ -1,4 +1,3 @@
-import { isAccessTransitionRedirect, isAccessTransitionError } from '@form-engine/form/typeguards/transitions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
@@ -9,11 +8,10 @@ import { AccessTransition } from '@form-engine/form/types/expressions.type'
 /**
  * AccessFactory: Creates Access transition nodes
  *
- * Handles access control, data loading, and analytics through:
+ * Handles access control, data loading, and outcomes through:
  * - `when` conditions for conditional execution
  * - `effects` for data loading and side effects
- * - `redirect` for navigation on certain conditions
- * - `status`/`message` for error responses
+ * - `next` outcomes for redirects and errors (first-match semantics)
  */
 export default class AccessFactory {
   constructor(
@@ -36,13 +34,8 @@ export default class AccessFactory {
       properties.effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
     }
 
-    if (isAccessTransitionRedirect(json)) {
-      properties.redirect = json.redirect.map((r: any) => this.nodeFactory.createNode(r))
-    }
-
-    if (isAccessTransitionError(json)) {
-      properties.status = json.status
-      properties.message = typeof json.message === 'string' ? json.message : this.nodeFactory.createNode(json.message)
+    if (Array.isArray(json.next)) {
+      properties.next = json.next.map((outcome: any) => this.nodeFactory.createNode(outcome))
     }
 
     return {

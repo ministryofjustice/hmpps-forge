@@ -8,6 +8,9 @@ import {
   isIterateExpr,
   isValidationExpr,
   isNextExpr,
+  isRedirectOutcome,
+  isThrowErrorOutcome,
+  isTransitionOutcome,
 } from '@form-engine/form/typeguards/expressions'
 import { isFunctionExpr } from '@form-engine/form/typeguards/functions'
 import {
@@ -41,6 +44,8 @@ import IterateFactory from '@form-engine/core/nodes/expressions/iterate/IterateF
 import ValidationFactory from '@form-engine/core/nodes/expressions/validation/ValidationFactory'
 import FunctionFactory from '@form-engine/core/nodes/expressions/function/FunctionFactory'
 import NextFactory from '@form-engine/core/nodes/expressions/next/NextFactory'
+import RedirectOutcomeFactory from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeFactory'
+import ThrowErrorOutcomeFactory from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeFactory'
 
 /**
  * NodeFactory: Main entry point for creating AST nodes
@@ -87,6 +92,10 @@ export class NodeFactory {
 
   private readonly nextFactory: NextFactory
 
+  private readonly redirectOutcomeFactory: RedirectOutcomeFactory
+
+  private readonly throwErrorOutcomeFactory: ThrowErrorOutcomeFactory
+
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
@@ -110,6 +119,8 @@ export class NodeFactory {
     this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
     this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this, this.category)
     this.nextFactory = new NextFactory(this.nodeIDGenerator, this, this.category)
+    this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this, this.category)
+    this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this, this.category)
   }
 
   /**
@@ -193,6 +204,15 @@ export class NodeFactory {
       return this.nextFactory.create(json)
     }
 
+    // Outcome nodes: Redirect, ThrowError
+    if (isRedirectOutcome(json)) {
+      return this.redirectOutcomeFactory.create(json)
+    }
+
+    if (isThrowErrorOutcome(json)) {
+      return this.throwErrorOutcomeFactory.create(json)
+    }
+
     // Transition nodes: Access, Action, Submit
     if (isAccessTransition(json)) {
       return this.accessFactory.create(json)
@@ -209,7 +229,7 @@ export class NodeFactory {
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Load', 'Access', 'Action', 'Submit'],
+      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Action', 'Submit'],
     })
   }
 
@@ -277,6 +297,7 @@ export class NodeFactory {
       isStepDefinition(value) ||
       isBlockDefinition(value) ||
       isExpression(value) ||
+      isTransitionOutcome(value) ||
       isAccessTransition(value) ||
       isActionTransition(value) ||
       isSubmitTransition(value)

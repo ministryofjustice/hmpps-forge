@@ -9,8 +9,8 @@ import {
 } from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
-import { evaluateUntilFirstMatch } from '@form-engine/core/utils/thunkEvaluatorsAsync'
-import { evaluateUntilFirstMatchSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
+import { evaluateNextOutcomes, OutcomeEvaluationResult } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateNextOutcomesSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
 /**
  * Result of an access transition evaluation
@@ -52,14 +52,13 @@ export interface AccessTransitionResult {
  * 1. Evaluating `when` condition (if present)
  * 2. If `when` is false → skip transition (continue to next)
  * 3. If `when` is true (or absent) → execute effects
- * 4. Evaluate redirect expressions (if any match → halt and redirect)
- * 5. Check status (if set → halt and return error)
- * 6. Otherwise → continue to next transition
+ * 4. Evaluate next outcomes (redirect/throwError) with first-match semantics
+ * 5. Return appropriate result based on first matching outcome
  *
- * ## New Semantics
- * - `when: true` means "execute this transition" (not "deny")
- * - Transitions without redirect/status/message just run effects and continue
- * - First redirect match or status causes halt
+ * ## Outcome Evaluation
+ * The `next` array contains redirect and throwError outcomes.
+ * Outcomes are evaluated in order until one matches (when condition is true or absent).
+ * First match wins and determines the transition result.
  *
  * ## Lifecycle Position
  * Access transitions run at each hierarchy level:
@@ -79,7 +78,7 @@ export default class AccessHandler implements ThunkHandler {
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
-    const { effects, when, redirect, message } = this.node.properties
+    const { effects, when, next } = this.node.properties
 
     // Check when condition
     if (isASTNode(when)) {
@@ -102,22 +101,13 @@ export default class AccessHandler implements ThunkHandler {
       }
     }
 
-    // Check redirect expressions
-    if (redirect && Array.isArray(redirect)) {
-      const hasAsyncRedirect = redirect.filter(isASTNode).some(node => {
+    // Check next outcomes
+    if (next && Array.isArray(next)) {
+      const hasAsyncOutcome = next.filter(isASTNode).some(node => {
         const handler = deps.thunkHandlerRegistry.get(node.id)
         return handler?.isAsync ?? true
       })
-      if (hasAsyncRedirect) {
-        this.isAsync = true
-        return
-      }
-    }
-
-    // Check message expression
-    if (isASTNode(message)) {
-      const handler = deps.thunkHandlerRegistry.get(message.id)
-      if (handler?.isAsync ?? true) {
+      if (hasAsyncOutcome) {
         this.isAsync = true
         return
       }
@@ -152,36 +142,31 @@ export default class AccessHandler implements ThunkHandler {
       return { error: effectError }
     }
 
-    // Step 3: Evaluate redirect (if configured and matches)
-    const redirectResult = this.evaluateRedirectSync(context, invoker)
+    // Step 3: Evaluate next outcomes (first-match semantics)
+    const outcomeResult = this.evaluateOutcomesSync(context, invoker)
 
-    if (redirectResult !== undefined) {
+    if (outcomeResult.type === 'redirect') {
       return {
         value: {
           executed: true,
           outcome: 'redirect',
-          redirect: redirectResult,
+          redirect: outcomeResult.value,
         },
       }
     }
 
-    // Step 4: Check status (if configured)
-    const { status } = this.node.properties
-
-    if (status !== undefined) {
-      const messageResult = this.evaluateMessageSync(context, invoker)
-
+    if (outcomeResult.type === 'error') {
       return {
         value: {
           executed: true,
           outcome: 'error',
-          status,
-          message: messageResult,
+          status: outcomeResult.value.status,
+          message: outcomeResult.value.message,
         },
       }
     }
 
-    // Step 5: No redirect or error - continue to next transition
+    // Step 4: No outcome matched - continue to next transition
     return {
       value: {
         executed: true,
@@ -216,36 +201,31 @@ export default class AccessHandler implements ThunkHandler {
       return { error: effectError }
     }
 
-    // Step 3: Evaluate redirect (if configured and matches)
-    const redirectResult = await this.evaluateRedirect(context, invoker)
+    // Step 3: Evaluate next outcomes (first-match semantics)
+    const outcomeResult = await this.evaluateOutcomes(context, invoker)
 
-    if (redirectResult !== undefined) {
+    if (outcomeResult.type === 'redirect') {
       return {
         value: {
           executed: true,
           outcome: 'redirect',
-          redirect: redirectResult,
+          redirect: outcomeResult.value,
         },
       }
     }
 
-    // Step 4: Check status (if configured)
-    const { status } = this.node.properties
-
-    if (status !== undefined) {
-      const messageResult = await this.evaluateMessage(context, invoker)
-
+    if (outcomeResult.type === 'error') {
       return {
         value: {
           executed: true,
           outcome: 'error',
-          status,
-          message: messageResult,
+          status: outcomeResult.value.status,
+          message: outcomeResult.value.message,
         },
       }
     }
 
-    // Step 5: No redirect or error - continue to next transition
+    // Step 4: No outcome matched - continue to next transition
     return {
       value: {
         executed: true,
@@ -307,52 +287,20 @@ export default class AccessHandler implements ThunkHandler {
   }
 
   /**
-   * Evaluate redirect expressions to determine navigation target
-   * Returns the first matching redirect path, or undefined if none match
+   * Evaluate next outcomes to determine transition result
+   * Returns the first matching outcome (redirect or error), or 'none' if no match
    */
-  private async evaluateRedirect(
+  private async evaluateOutcomes(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<string | undefined> {
-    const redirect = this.node.properties.redirect
+  ): Promise<OutcomeEvaluationResult> {
+    const next = this.node.properties.next
 
-    if (!redirect || !Array.isArray(redirect)) {
-      return undefined
+    if (!next || !Array.isArray(next)) {
+      return { type: 'none' }
     }
 
-    const redirectIds = redirect.filter(isASTNode).map(node => node.id)
-    const result = await evaluateUntilFirstMatch(redirectIds, context, invoker)
-
-    return result !== undefined ? String(result) : undefined
-  }
-
-  /**
-   * Evaluate the message expression for error responses
-   * Message can be a static string or a dynamic expression (e.g., Format)
-   */
-  private async evaluateMessage(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): Promise<string | undefined> {
-    const { message } = this.node.properties
-
-    if (message === undefined) {
-      return undefined
-    }
-
-    // Static string - return directly
-    if (typeof message === 'string') {
-      return message
-    }
-
-    // Expression node (e.g., Format) - evaluate and return result
-    if (isASTNode(message)) {
-      const result = await invoker.invoke<string>(message.id, context)
-
-      return result.error ? undefined : String(result.value)
-    }
-
-    return undefined
+    return evaluateNextOutcomes(next, context, invoker)
   }
 
   // Sync versions of private methods
@@ -394,38 +342,16 @@ export default class AccessHandler implements ThunkHandler {
     return undefined
   }
 
-  private evaluateRedirectSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): string | undefined {
-    const redirect = this.node.properties.redirect
+  private evaluateOutcomesSync(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): OutcomeEvaluationResult {
+    const next = this.node.properties.next
 
-    if (!redirect || !Array.isArray(redirect)) {
-      return undefined
+    if (!next || !Array.isArray(next)) {
+      return { type: 'none' }
     }
 
-    const redirectIds = redirect.filter(isASTNode).map(node => node.id)
-    const result = evaluateUntilFirstMatchSync(redirectIds, context, invoker)
-
-    return result !== undefined ? String(result) : undefined
-  }
-
-  private evaluateMessageSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): string | undefined {
-    const { message } = this.node.properties
-
-    if (message === undefined) {
-      return undefined
-    }
-
-    // Static string - return directly
-    if (typeof message === 'string') {
-      return message
-    }
-
-    // Expression node (e.g., Format) - evaluate and return result
-    if (isASTNode(message)) {
-      const result = invoker.invokeSync<string>(message.id, context)
-
-      return result.error ? undefined : String(result.value)
-    }
-
-    return undefined
+    return evaluateNextOutcomesSync(next, context, invoker)
   }
 }

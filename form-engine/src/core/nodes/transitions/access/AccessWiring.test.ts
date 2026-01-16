@@ -1,5 +1,5 @@
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
-import { TransitionType, FunctionType, PredicateType, ExpressionType } from '@form-engine/form/types/enums'
+import { TransitionType, FunctionType, PredicateType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
@@ -124,7 +124,7 @@ describe('AccessWiring', () => {
       })
     })
 
-    it('should wire redirect expressions to transition', () => {
+    it('should wire next outcomes to transition', () => {
       // Arrange
       const whenPredicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: ASTTestFactory.reference(['data', 'isBlocked']),
@@ -132,16 +132,12 @@ describe('AccessWiring', () => {
         negate: false,
       })
 
-      const redirect1 = ASTTestFactory.expression(ExpressionType.NEXT)
-        .withProperty('path', '/unauthorized')
-        .build()
-      const redirect2 = ASTTestFactory.expression(ExpressionType.NEXT)
-        .withProperty('path', '/login')
-        .build()
+      const outcome1 = ASTTestFactory.redirectOutcome({ goto: '/unauthorized' })
+      const outcome2 = ASTTestFactory.redirectOutcome({ goto: '/login' })
 
       const transition = ASTTestFactory.transition(TransitionType.ACCESS)
         .withProperty('when', whenPredicate)
-        .withProperty('redirect', [redirect1, redirect2])
+        .withProperty('next', [outcome1, outcome2])
         .build() as AccessTransitionASTNode
 
       ;(mockWiringContext.getCurrentStepNode as jest.Mock).mockReturnValue({
@@ -154,75 +150,14 @@ describe('AccessWiring', () => {
       wiring.wire()
 
       // Assert
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(redirect1.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'redirect',
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(outcome1.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+        property: 'next',
         index: 0,
       })
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(redirect2.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'redirect',
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(outcome2.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+        property: 'next',
         index: 1,
       })
-    })
-
-    it('should wire message expression to transition for error responses', () => {
-      // Arrange
-      const whenPredicate = ASTTestFactory.predicate(PredicateType.TEST, {
-        subject: ASTTestFactory.reference(['data', 'notFound']),
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [true]),
-        negate: false,
-      })
-
-      const messageExpr = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Resource not found: {id}')
-        .build()
-
-      const transition = ASTTestFactory.transition(TransitionType.ACCESS)
-        .withProperty('when', whenPredicate)
-        .withProperty('status', 404)
-        .withProperty('message', messageExpr)
-        .build() as AccessTransitionASTNode
-
-      ;(mockWiringContext.getCurrentStepNode as jest.Mock).mockReturnValue({
-        id: 'compile_ast:1',
-        type: ASTNodeType.STEP,
-        properties: { onAccess: [transition] },
-      })
-
-      // Act
-      wiring.wire()
-
-      // Assert
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(messageExpr.id, transition.id, DependencyEdgeType.DATA_FLOW, {
-        property: 'message',
-      })
-    })
-
-    it('should not wire message when it is a static string', () => {
-      // Arrange
-      const whenPredicate = ASTTestFactory.predicate(PredicateType.TEST, {
-        subject: ASTTestFactory.reference(['data', 'forbidden']),
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [true]),
-        negate: false,
-      })
-
-      const transition = ASTTestFactory.transition(TransitionType.ACCESS)
-        .withProperty('when', whenPredicate)
-        .withProperty('status', 403)
-        .withProperty('message', 'Access denied')
-        .build() as AccessTransitionASTNode
-
-      ;(mockWiringContext.getCurrentStepNode as jest.Mock).mockReturnValue({
-        id: 'compile_ast:1',
-        type: ASTNodeType.STEP,
-        properties: { onAccess: [transition] },
-      })
-
-      // Act
-      wiring.wire()
-
-      // Assert - no message edge should be created for static string
-      const messageEdges = (mockGraph.addEdge as jest.Mock).mock.calls.filter(call => call[3]?.property === 'message')
-      expect(messageEdges).toHaveLength(0)
     })
 
     it('should wire multiple access transitions independently', () => {

@@ -1,5 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
-import { BlockType, ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
+import {
+  BlockType,
+  ExpressionType,
+  FunctionType,
+  OutcomeType,
+  PredicateType,
+  TransitionType,
+} from '@form-engine/form/types/enums'
 import { AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
 import {
   ExpressionASTNode,
@@ -9,6 +16,8 @@ import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,
   SubmitTransitionASTNode,
+  RedirectOutcomeASTNode,
+  ThrowErrorOutcomeASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
@@ -240,6 +249,44 @@ export class ASTTestFactory {
       type: PseudoNodeType.ANSWER_REMOTE,
       properties: {
         baseFieldCode,
+      },
+    }
+  }
+
+  /**
+   * Create a redirect outcome AST node
+   */
+  static redirectOutcome(config: {
+    when?: ExpressionASTNode | PredicateASTNode
+    goto: string | ExpressionASTNode
+  }): RedirectOutcomeASTNode {
+    return {
+      id: ASTTestFactory.getId(),
+      type: ASTNodeType.OUTCOME,
+      outcomeType: OutcomeType.REDIRECT,
+      properties: {
+        when: config.when,
+        goto: config.goto,
+      },
+    }
+  }
+
+  /**
+   * Create a throw error outcome AST node
+   */
+  static throwErrorOutcome(config: {
+    when?: ExpressionASTNode | PredicateASTNode
+    status: number
+    message: string | ExpressionASTNode
+  }): ThrowErrorOutcomeASTNode {
+    return {
+      id: ASTTestFactory.getId(),
+      type: ASTNodeType.OUTCOME,
+      outcomeType: OutcomeType.THROW_ERROR,
+      properties: {
+        when: config.when,
+        status: config.status,
+        message: config.message,
       },
     }
   }

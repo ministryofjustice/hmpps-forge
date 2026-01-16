@@ -2,6 +2,12 @@ import { NodeId } from '@form-engine/core/types/engine.type'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
+import { RedirectOutcomeResult } from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeHandler'
+import {
+  ThrowErrorOutcomeData,
+  ThrowErrorOutcomeResult,
+} from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
+import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '@form-engine/core/typeguards/outcome-nodes'
 
 /**
  * Result type for operand evaluation with explicit error tracking
@@ -193,4 +199,64 @@ export function evaluateUntilFirstMatchSync(
   }
 
   return undefined
+}
+
+/**
+ * Result type for outcome evaluation in transitions (sync version)
+ *
+ * Used by AccessHandler and SubmitHandler to represent the result
+ * of evaluating a `next` array of redirect/throwError outcomes.
+ */
+export type OutcomeEvaluationResultSync =
+  | { type: 'redirect'; value: string }
+  | { type: 'error'; value: ThrowErrorOutcomeData }
+  | { type: 'none' }
+
+/**
+ * Evaluate next outcomes to determine transition result (sync version)
+ *
+ * Evaluates outcomes in order with first-match semantics:
+ * - RedirectOutcome: Returns redirect path when `when` matches
+ * - ThrowErrorOutcome: Returns error data when `when` matches
+ *
+ * Returns the first matching outcome (redirect or error), or 'none' if no match.
+ *
+ * @param nextExpressions - Array of outcome nodes to evaluate
+ * @param context - The evaluation context
+ * @param invoker - The thunk invocation adapter
+ * @returns The first matching outcome result
+ */
+export function evaluateNextOutcomesSync(
+  nextExpressions: unknown[],
+  context: ThunkEvaluationContext,
+  invoker: ThunkInvocationAdapter,
+): OutcomeEvaluationResultSync {
+  for (const outcome of nextExpressions.filter(isASTNode)) {
+    const result = invoker.invokeSync(outcome.id, context)
+
+    if (result.error) {
+      // eslint-disable-next-line no-continue
+      continue
+    }
+
+    // Check for redirect outcome
+    if (isRedirectOutcomeNode(outcome)) {
+      const redirectValue = result.value as RedirectOutcomeResult
+
+      if (redirectValue !== undefined) {
+        return { type: 'redirect', value: redirectValue }
+      }
+    }
+
+    // Check for throw error outcome
+    if (isThrowErrorOutcomeNode(outcome)) {
+      const errorValue = result.value as ThrowErrorOutcomeResult
+
+      if (errorValue !== undefined) {
+        return { type: 'error', value: errorValue }
+      }
+    }
+  }
+
+  return { type: 'none' }
 }

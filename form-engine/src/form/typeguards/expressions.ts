@@ -11,8 +11,11 @@ import {
   FindIteratorConfig,
   ValueExpr,
   NextExpr,
+  RedirectOutcome,
+  ThrowErrorOutcome,
+  TransitionOutcome,
 } from '../types/expressions.type'
-import { ExpressionType, IteratorType } from '../types/enums'
+import { ExpressionType, IteratorType, OutcomeType } from '../types/enums'
 import { isFunctionExpr, isTransformerFunctionExpr } from './functions'
 
 export function isReferenceExpr(obj: any): obj is ReferenceExpr {
@@ -49,6 +52,18 @@ export function isFindIteratorConfig(obj: any): obj is FindIteratorConfig {
 
 export function isNextExpr(obj: any): obj is NextExpr {
   return obj != null && obj.type === ExpressionType.NEXT
+}
+
+export function isRedirectOutcome(obj: any): obj is RedirectOutcome {
+  return obj != null && obj.type === OutcomeType.REDIRECT
+}
+
+export function isThrowErrorOutcome(obj: any): obj is ThrowErrorOutcome {
+  return obj != null && obj.type === OutcomeType.THROW_ERROR
+}
+
+export function isTransitionOutcome(obj: any): obj is TransitionOutcome {
+  return isRedirectOutcome(obj) || isThrowErrorOutcome(obj)
 }
 
 export function isValueExpr(obj: any): obj is ValueExpr {

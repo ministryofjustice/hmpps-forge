@@ -11,6 +11,7 @@ import {
   evaluateWithScope,
   evaluatePropertyValue,
   evaluateUntilFirstMatch,
+  evaluateNextOutcomes,
 } from './thunkEvaluatorsAsync'
 
 describe('thunkEvaluatorsAsync', () => {
@@ -465,6 +466,154 @@ describe('thunkEvaluatorsAsync', () => {
 
       // Assert
       expect(result).toBe('match-me')
+    })
+  })
+
+  describe('evaluateNextOutcomes()', () => {
+    it('should return none when no outcomes provided', async () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await evaluateNextOutcomes([], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'none' })
+      expect(mockInvoker.invoke).not.toHaveBeenCalled()
+    })
+
+    it('should return redirect outcome when redirect matches', async () => {
+      // Arrange
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/next-page' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[redirectOutcome.id, '/next-page']]),
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([redirectOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/next-page' })
+    })
+
+    it('should return error outcome when throwError matches', async () => {
+      // Arrange
+      const errorOutcome = ASTTestFactory.throwErrorOutcome({ status: 404, message: 'Not found' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([[errorOutcome.id, { status: 404, message: 'Not found' }]]),
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([errorOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'error', value: { status: 404, message: 'Not found' } })
+    })
+
+    it('should use first-match semantics - return first matching outcome', async () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        returnValueMap: new Map([
+          [redirect1.id, '/first'],
+          [redirect2.id, '/second'],
+        ]),
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/first' })
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(1)
+    })
+
+    it('should skip outcomes that return undefined (when condition not met)', async () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async (nodeId: string): Promise<ThunkResult> => {
+          if (nodeId === redirect1.id) {
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          }
+
+          return { value: '/second', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/second' })
+    })
+
+    it('should skip outcomes that return errors', async () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async (nodeId: string): Promise<ThunkResult> => {
+          if (nodeId === redirect1.id) {
+            return {
+              error: { type: 'EVALUATION_FAILED', nodeId: redirect1.id, message: 'Error' },
+              metadata: { source: 'Test', timestamp: Date.now() },
+            }
+          }
+
+          return { value: '/second', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/second' })
+    })
+
+    it('should return none when all outcomes return undefined', async () => {
+      // Arrange
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({ defaultValue: undefined })
+
+      // Act
+      const result = await evaluateNextOutcomes([redirect1, redirect2], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'none' })
+    })
+
+    it('should handle mixed redirect and error outcomes', async () => {
+      // Arrange
+      const errorOutcome = ASTTestFactory.throwErrorOutcome({ status: 404, message: 'Not found' })
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/fallback' })
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async (nodeId: string): Promise<ThunkResult> => {
+          if (nodeId === errorOutcome.id) {
+            return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+          }
+
+          return { value: '/fallback', metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
+
+      // Act
+      const result = await evaluateNextOutcomes([errorOutcome, redirectOutcome], mockContext, mockInvoker)
+
+      // Assert
+      expect(result).toEqual({ type: 'redirect', value: '/fallback' })
     })
   })
 })

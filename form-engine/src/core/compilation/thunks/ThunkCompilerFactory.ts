@@ -50,6 +50,7 @@ import {
   isNotPredicateNode,
   isTestPredicateNode,
 } from '@form-engine/core/typeguards/predicate-nodes'
+import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '@form-engine/core/typeguards/outcome-nodes'
 import ThunkTypeMismatchError from '@form-engine/errors/ThunkTypeMismatchError'
 import PostHandler from '@form-engine/core/nodes/pseudo-nodes/post/PostHandler'
 import QueryHandler from '@form-engine/core/nodes/pseudo-nodes/query/QueryHandler'
@@ -61,6 +62,8 @@ import PipelineHandler from '@form-engine/core/nodes/expressions/pipeline/Pipeli
 import FormatHandler from '@form-engine/core/nodes/expressions/format/FormatHandler'
 import ValidationHandler from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import NextHandler from '@form-engine/core/nodes/expressions/next/NextHandler'
+import RedirectOutcomeHandler from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeHandler'
+import ThrowErrorOutcomeHandler from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
 
 /**
  * Compiler that orchestrates the creation of thunk handlers for all nodes.
@@ -269,6 +272,15 @@ export default class ThunkCompilerFactory {
       return new ValidationHandler(nodeId, node)
     }
 
+    // Outcome nodes (REDIRECT, THROW_ERROR)
+    if (isRedirectOutcomeNode(node)) {
+      return new RedirectOutcomeHandler(nodeId, node)
+    }
+
+    if (isThrowErrorOutcomeNode(node)) {
+      return new ThrowErrorOutcomeHandler(nodeId, node)
+    }
+
     // Transition nodes (ACCESS, ACTION, SUBMIT)
     if (isAccessTransitionNode(node)) {
       return new AccessHandler(nodeId, node)
@@ -310,6 +322,7 @@ export default class ThunkCompilerFactory {
       'FUNCTION',
       'NEXT',
       'VALIDATION',
+      'OUTCOME',
       'ACCESS',
       'ACTION',
       'SUBMIT',
