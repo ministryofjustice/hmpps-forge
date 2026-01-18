@@ -376,6 +376,7 @@ describe('ExpressFrameworkAdapter', () => {
           },
         ],
         showValidationFailures: false,
+        validationErrors: [],
         answers: {},
         data: {},
       }
@@ -406,6 +407,7 @@ describe('ExpressFrameworkAdapter', () => {
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [] as Evaluated<BlockASTNode>[],
         showValidationFailures: false,
+        validationErrors: [],
         answers: {},
         data: {},
       }

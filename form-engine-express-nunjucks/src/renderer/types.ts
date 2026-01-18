@@ -6,15 +6,8 @@ export interface FieldError {
   details?: Record<string, unknown>
 }
 
-/** Validation error with field information for error summary (matches govukErrorSummary format) */
-export interface ValidationError {
-  text: string
-  href: string
-}
-
 /** Template context passed to Nunjucks page templates (RenderContext with blocks rendered to HTML) */
 export type TemplateContext = Omit<RenderContext, 'blocks' | 'showValidationFailures'> & {
   blocks: string[]
-  validationErrors: ValidationError[]
   [key: string]: unknown
 }

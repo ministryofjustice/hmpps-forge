@@ -1,5 +1,6 @@
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
+import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { ViewConfig } from '@form-engine/form/types/structures.type'
 
@@ -102,6 +103,9 @@ export interface RenderContext {
 
   /** Whether to show validation failures on blocks */
   showValidationFailures: boolean
+
+  /** Failed validation results from field blocks (only populated when showValidationFailures is true) */
+  validationErrors: ValidationResult[]
 
   /** Current answers state */
   answers: Record<string, unknown>
