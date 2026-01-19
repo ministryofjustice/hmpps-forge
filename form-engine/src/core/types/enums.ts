@@ -5,4 +5,5 @@ export enum ASTNodeType {
   EXPRESSION = 'AstNode.Expression',
   PREDICATE = 'AstNode.Predicate',
   TRANSITION = 'AstNode.Transition',
+  OUTCOME = 'AstNode.Outcome',
 }

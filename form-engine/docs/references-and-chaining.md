@@ -168,7 +168,7 @@ This ensures that when a field is hidden, its validation is skipped.
 
 ## `Data()` - External Data
 
-Retrieves values from external data sources loaded via `onLoad` transitions. Use it for API responses, database lookups, and pre-fetched configuration.
+Retrieves values from external data sources loaded via `onAccess` transitions. Use it for API responses, database lookups, and pre-fetched configuration.
 
 ### Signature
 
@@ -178,7 +178,7 @@ Data(key: string): ReferenceExpr
 
 ### How Data Gets Loaded
 
-Data must be loaded before you can reference it. This happens in `onLoad` transitions using effects that call `context.setData()`:
+Data must be loaded before you can reference it. This happens in `onAccess` transitions using effects that call `context.setData()`:
 
 ```typescript
 // In your effects file
@@ -194,8 +194,8 @@ export const { effects: MyEffects, createRegistry } =
 // In your step definition
 step({
   path: '/profile',
-  onLoad: [
-    loadTransition({
+  onAccess: [
+    accessTransition({
       effects: [MyEffects.loadUserProfile()],
     }),
   ],
@@ -203,7 +203,7 @@ step({
 })
 ```
 
-> **Warning:** If you reference `Data('user')` without loading it in `onLoad`, the value will be `undefined`.
+> **Warning:** If you reference `Data('user')` without loading it in `onAccess`, the value will be `undefined`.
 
 ### Basic Usage
 
@@ -235,7 +235,7 @@ field<GovUKTextInput>({
 field<GovUKRadioInput>({
   code: 'country',
   fieldset: { legend: { text: 'Country' } },
-  items: Data('countries'),  // Loaded in onLoad
+  items: Data('countries'),  // Loaded in onAccess
 })
 ```
 
@@ -253,7 +253,7 @@ block<HtmlBlock>({
 | Aspect | Data() | Answer() |
 |--------|--------|----------|
 | Source | External (APIs, databases) | User input (form fields) |
-| When loaded | `onLoad` transitions | Form submission / defaults |
+| When loaded | `onAccess` transitions | Form submission / defaults |
 | Typical use | Lookup data, configuration | Validation, dynamic display |
 | Mutability | Set once at load time | Changes with user interaction |
 
@@ -513,7 +513,7 @@ block<HtmlBlock>({
 })
 
 // Include in redirect URL
-next({ goto: Format('/applications/%1/submitted', Params('applicationId')) })
+redirect({ goto: Format('/applications/%1/submitted', Params('applicationId')) })
 ```
 
 ### `Query()` - Query String Parameters
@@ -593,7 +593,7 @@ actionTransition({
 submitTransition({
   when: Post('action').match(Condition.Equals('save')),
   validate: true,
-  onValid: { next: [next({ goto: 'next-step' })] },
+  onValid: { next: [redirect({ goto: 'next-step' })] },
 })
 ```
 

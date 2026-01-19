@@ -9,12 +9,12 @@ import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor
 /**
  * DataWiring: Wires Data pseudo nodes to their data sources and consumers
  *
- * Creates dependency edges for data values loaded via onLoad transitions:
+ * Creates dependency edges for data values loaded via onAccess transitions:
  * - Data values come from external sources (APIs, databases, etc.)
  * - Must be loaded before the step can be evaluated
  *
  * Wiring pattern for DATA:
- * - ONLOAD_TRANSITION → DATA (data loaded from external source)
+ * - ONACCESS_TRANSITION → DATA (data loaded from external source)
  * - DATA → Data() references (consumers)
  */
 export default class DataWiring {
@@ -80,18 +80,18 @@ export default class DataWiring {
   /**
    * Wire data sources (producers) to a data pseudo node
    *
-   * Data values are loaded via onLoad transitions from external sources.
-   * They only have one producer: the nearest onLoad transition that loads data.
+   * Data values are loaded via onAccess transitions from external sources.
+   * They only have one producer: the nearest onAccess transition that loads data.
    */
   private wireProducers(dataPseudoNode: DataPseudoNode) {
     const { baseProperty } = dataPseudoNode.properties
 
-    const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(
+    const nearestOnAccessTransition = this.wiringContext.findLastOnAccessTransitionFrom(
       this.wiringContext.getCurrentStepNode().id,
     )
 
-    if (nearestOnLoadTransition) {
-      this.wiringContext.graph.addEdge(nearestOnLoadTransition.id, dataPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
+    if (nearestOnAccessTransition) {
+      this.wiringContext.graph.addEdge(nearestOnAccessTransition.id, dataPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
         baseProperty,
       })
     }

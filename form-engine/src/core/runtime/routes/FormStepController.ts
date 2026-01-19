@@ -1,10 +1,9 @@
-import createHttpError, { Forbidden } from 'http-errors'
+import createHttpError from 'http-errors'
 import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompiledForm } from '@form-engine/core/compilation/FormCompilationFactory'
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/compilation/thunks/ThunkEvaluator'
 import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
-import { LoadTransitionResult } from '@form-engine/core/nodes/transitions/load/LoadHandler'
 import { AccessTransitionResult } from '@form-engine/core/nodes/transitions/access/AccessHandler'
 import { SubmitTransitionResult } from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
 import { ActionTransitionResult } from '@form-engine/core/nodes/transitions/action/ActionHandler'
@@ -12,7 +11,6 @@ import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,
   ExpressionASTNode,
-  LoadTransitionASTNode,
   SubmitTransitionASTNode,
 } from '@form-engine/core/types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
@@ -28,15 +26,15 @@ import { StepController, StepRequest } from './types'
  * FormStepController - Handles the full request lifecycle for form steps
  *
  * Manages GET (access) and POST (submission) requests, including:
- * - Lifecycle transitions (onLoad, onAccess, onAction, onSubmission)
+ * - Lifecycle transitions (onAccess, onAction, onSubmission)
  * - AST evaluation
  * - Response rendering or redirecting
  *
  * ## GET Request Flow
  * For each ancestor (outer journey → inner journey → step):
- * 1. Run onLoad transitions
- * 2. Run onAccess transitions (guard checks)
- * 3. If guard fails → redirect or 403
+ * 1. Run onAccess transitions (data loading, access control, analytics)
+ * 2. If any transition halts with redirect → redirect
+ * 3. If any transition halts with error → return HTTP error
  * After all ancestors pass:
  * 4. Evaluate AST
  * 5. Render response
@@ -44,9 +42,10 @@ import { StepController, StepRequest } from './types'
  * ## POST Request Flow
  * 1. Run full access lifecycle (same as GET)
  * 2. Run step's onAction transitions (in-page actions like postcode lookup)
- * 3. Run step's onSubmission transitions (validation, navigation)
- * 4. If submission has redirect → redirect
- * 5. Otherwise → evaluate AST and render (with validation errors if applicable)
+ * 3. Run step's onSubmission transitions (validation, navigation, error handling)
+ * 4. If submission has error → return HTTP error
+ * 5. If submission has redirect → redirect
+ * 6. Otherwise → evaluate AST and render (with validation errors if applicable)
  */
 export default class FormStepController<TRequest, TResponse> implements StepController<TRequest, TResponse> {
   constructor(
@@ -68,21 +67,14 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       this.mergeStaticData(ancestor, context)
 
       // eslint-disable-next-line no-await-in-loop
-      await this.runLoadTransitions(evaluator, ancestor, context)
-
-      // eslint-disable-next-line no-await-in-loop
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
-      if (!accessResult.passed) {
-        if (accessResult.redirect) {
-          return this.redirect(res, req, accessResult.redirect)
-        }
+      if (accessResult.outcome === 'redirect') {
+        return this.redirect(res, req, accessResult.redirect!)
+      }
 
-        if (accessResult.status !== undefined) {
-          throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
-        }
-
-        throw new Forbidden(`Access denied to step`)
+      if (accessResult.outcome === 'error') {
+        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
       }
     }
 
@@ -109,21 +101,14 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       this.mergeStaticData(ancestor, context)
 
       // eslint-disable-next-line no-await-in-loop
-      await this.runLoadTransitions(evaluator, ancestor, context)
-
-      // eslint-disable-next-line no-await-in-loop
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
-      if (!accessResult.passed) {
-        if (accessResult.redirect) {
-          return this.redirect(res, req, accessResult.redirect)
-        }
+      if (accessResult.outcome === 'redirect') {
+        return this.redirect(res, req, accessResult.redirect!)
+      }
 
-        if (accessResult.status !== undefined) {
-          throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
-        }
-
-        throw new Forbidden(`Access denied to step`)
+      if (accessResult.outcome === 'error') {
+        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
       }
     }
 
@@ -139,8 +124,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     const submitResult = await this.runSubmitTransitions(evaluator, currentStep, context)
 
-    if (submitResult.next) {
-      return this.redirect(res, req, submitResult.next)
+    if (submitResult.outcome === 'error') {
+      throw createHttpError(submitResult.status!, submitResult.message || 'Submission error')
+    }
+
+    if (submitResult.outcome === 'redirect') {
+      return this.redirect(res, req, submitResult.redirect!)
     }
 
     if (submitResult.validated) {
@@ -184,7 +173,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   /**
    * Merge static data from an ancestor into context.global.data
    *
-   * Called before runLoadTransitions() so that:
+   * Called before runAccessTransitions() so that:
    * 1. Static data is available to effects via context.getData()
    * 2. Effects can override static data if needed
    * 3. Later ancestors (steps) override earlier ones (journeys) with shallow merge
@@ -198,25 +187,15 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /**
-   * Run onLoad transitions for an ancestor
-   * Effects are executed immediately during transition evaluation
-   */
-  private async runLoadTransitions(
-    invoker: ThunkInvocationAdapter,
-    ancestor: JourneyASTNode | StepASTNode,
-    context: ThunkEvaluationContext,
-  ): Promise<void> {
-    const transitions: LoadTransitionASTNode[] = ancestor.properties.onLoad ?? []
-
-    for (const transition of transitions) {
-      // eslint-disable-next-line no-await-in-loop
-      await invoker.invoke<LoadTransitionResult>(transition.id, context)
-    }
-  }
-
-  /**
-   * Run onAccess transitions with first-match semantics (first failure)
-   * Effects are executed immediately during transition evaluation
+   * Run onAccess transitions for an ancestor
+   *
+   * Transitions are evaluated in sequence. Each transition can:
+   * - Execute effects (data loading, analytics)
+   * - Continue to next transition (outcome: 'continue')
+   * - Halt with redirect (outcome: 'redirect')
+   * - Halt with error (outcome: 'error')
+   *
+   * @returns The final outcome - 'continue' if all transitions passed, or the halting outcome
    */
   private async runAccessTransitions(
     invoker: ThunkInvocationAdapter,
@@ -229,13 +208,27 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       // eslint-disable-next-line no-await-in-loop
       const result = await invoker.invoke<AccessTransitionResult>(transition.id, context)
 
-      // AccessTransitionResult.passed: false if when predicate matched (first-match semantics)
-      if (!result.error && result.value?.passed === false) {
+      if (result.error) {
+        this.dependencies.logger.warn(`Access transition error: ${result.error.message}`)
+        // I can't come up with a way to do a promise in a loop, without using continue, and still have it be neat.
+        // eslint-disable-next-line no-continue
+        continue
+      }
+
+      // Skip if transition didn't execute (when condition was false)
+      if (!result.value?.executed) {
+        // eslint-disable-next-line no-continue
+        continue
+      }
+
+      // Halt on redirect or error
+      if (result.value.outcome === 'redirect' || result.value.outcome === 'error') {
         return result.value
       }
     }
 
-    return { passed: true }
+    // All transitions completed - access granted
+    return { executed: true, outcome: 'continue' }
   }
 
   /**
@@ -282,7 +275,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       }
     }
 
-    return { executed: false, validated: false }
+    return { executed: false, validated: false, outcome: 'continue' }
   }
 
   /**

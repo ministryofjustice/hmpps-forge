@@ -1,10 +1,10 @@
 # Transitions and Lifecycle
 
-The form-engine uses a lifecycle system to control data loading, access control, in-page actions, and form submission. Transitions define what happens at each stage of the request lifecycle.
+The form-engine uses a lifecycle system to control access control, data loading, in-page actions, and form submission. Transitions define what happens at each stage of the request lifecycle.
 
 This enables:
-- Loading data from APIs before rendering
 - Controlling access to steps based on conditions
+- Loading data from APIs before rendering
 - Handling in-page actions like address lookups
 - Validating, saving, and navigating on form submission
 - Conditional navigation based on user answers
@@ -13,8 +13,7 @@ This enables:
 
 | Transition | Builder | Where Used | Purpose |
 |------------|---------|------------|---------|
-| **Load** | `loadTransition()` | journey, step | Load data before access checks |
-| **Access** | `accessTransition()` | journey, step | Check permissions, redirect or error if denied |
+| **Access** | `accessTransition()` | journey, step | Load data, check permissions, redirect or error |
 | **Action** | `actionTransition()` | step only | Handle in-page actions (lookups, fetches) |
 | **Submit** | `submitTransition()` | step only | Validate, save, and navigate |
 
@@ -23,12 +22,12 @@ This enables:
 ```typescript
 import {
   // Transition builders
-  loadTransition,
   accessTransition,
   actionTransition,
   submitTransition,
-  // Navigation builder
-  next,
+  // Outcome builders
+  redirect,
+  throwError,
   // HTTP references (for conditions)
   Post, Params, Query,
 } from '@form-engine/form/builders'
@@ -41,18 +40,15 @@ import {
 ### GET Request (Viewing a Page)
 
 ```
-Journey.onLoad     → Load shared data
-Journey.onAccess   → Check journey-level permissions
-Step.onLoad        → Load step-specific data
-Step.onAccess      → Check step-level permissions
+Journey.onAccess   → Load shared data, check journey-level permissions
+Step.onAccess      → Load step-specific data, check step-level permissions
 Blocks render      → Display the page
 ```
 
 ### POST Request (Submitting a Form)
 
 ```
-Step.onLoad        → Load step data
-Step.onAccess      → Check permissions
+Step.onAccess      → Load data, check permissions
 Step.onAction      → Handle in-page actions (runs BEFORE render)
 Blocks render      → Display with action results
 Step.onSubmission  → Validate and navigate
@@ -64,138 +60,110 @@ Different lifecycle hooks execute differently:
 
 | Hook | Execution | Reason |
 |------|-----------|--------|
-| `onLoad[]` | **ALL** execute | Load multiple data sources |
-| `onAccess[]` | **First match** | First denial triggers redirect |
+| `onAccess[]` | **Sequential** | Execute effects, first redirect/status stops |
 | `onAction[]` | **First match** | One action handles each button |
 | `onSubmission[]` | **First match** | One handler per submission |
 
 ---
 
-## `loadTransition()` - Data Loading
+## `accessTransition()` - Access Control and Data Loading
 
-Loads data before access checks run. Use for API calls, database lookups, and configuration loading.
+Controls access to journeys and steps, and loads data needed for rendering. The `when` condition determines whether this transition executes.
 
 ### Signature
 
 ```typescript
-loadTransition({
-  effects: EffectFunctionExpr[],  // Required: effects to execute
+accessTransition({
+  when?: PredicateExpr,           // Execution condition
+  effects?: EffectFunctionExpr[], // Effects to run
+  next?: [                        // Outcomes (first match wins)
+    redirect({ when?, goto }),
+    throwError({ when?, status, message }),
+  ],
 })
 ```
 
 ### Properties
 
-- `effects` (Required): Array of effect functions. All effects execute sequentially in order.
+- `when` (Optional): Execution condition. When **true**, this transition **executes**. When omitted, always executes.
+- `effects` (Optional): Effects to run when this transition executes
+- `next` (Optional): Array of outcomes. First matching outcome wins. Can contain:
+  - `redirect({ when?, goto })` - Navigate to a path
+  - `throwError({ when?, status, message })` - Return an HTTP error
 
-### Usage
+### Execution Semantics
+
+Access transitions execute sequentially in order:
+
+1. If `when` is present and evaluates to **false**, skip to next transition
+2. If `when` is absent or evaluates to **true**, execute this transition:
+   - Run all `effects`
+   - Evaluate `next` outcomes in order (first match wins)
+   - If a redirect or error outcome matches, stop processing
+   - Otherwise, continue to next transition
+3. After all transitions, render the page
 
 ```typescript
-// Journey-level: load data needed across all steps
-journey({
-  onLoad: [
-    loadTransition({
-      effects: [MyEffects.loadUserProfile()],
-    }),
-    loadTransition({
-      effects: [MyEffects.loadAssessmentData()],
+// Effects-only: always runs, then continues
+accessTransition({
+  effects: [MyEffects.loadUserProfile()],
+})
+
+// Conditional redirect: when true, redirect
+accessTransition({
+  when: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
+  next: [redirect({ goto: '/login' })],
+})
+
+// Error response: when true, return error
+accessTransition({
+  when: Data('itemNotFound').match(Condition.Equals(true)),
+  next: [
+    throwError({
+      status: 404,
+      message: Format('Item %1 was not found', Params('itemId')),
     }),
   ],
-  steps: [/* ... */],
 })
 
-// Step-level: load data specific to this step
-step({
-  onLoad: [
-    loadTransition({
-      effects: [MyEffects.loadItem(Params('itemId'))],
+// Permission denied
+accessTransition({
+  when: Data('item.canEdit').not.match(Condition.Equals(true)),
+  next: [
+    throwError({
+      status: 403,
+      message: 'You do not have permission to edit this item',
     }),
   ],
-  blocks: [/* ... */],
 })
 ```
 
-### Key Characteristics
+### Data Loading Pattern
 
-- **All execute**: Every `loadTransition` in the array runs
-- **No conditions**: Load transitions don't have `when` or `guards`
-- **Order matters**: Effects execute in array order, sequentially
-- **Set data and answers**: Effects use `context.setData()` for supplementary data and `context.setAnswer()` to pre-populate fields
-
----
-
-## `accessTransition()` - Access Control
-
-Controls access to journeys and steps. Guards define **denial conditions** - when the guard is true, access is denied.
-
-### Signature
+Use effects-only transitions (no `next`) to load data:
 
 ```typescript
-// Redirect variant
-accessTransition({
-  guards?: PredicateExpr,         // Denial condition
-  effects?: EffectFunctionExpr[], // Run before redirect
-  redirect: NextExpr[],           // Where to go when denied
-})
+onAccess: [
+  // Load data first - always executes
+  accessTransition({
+    effects: [MyEffects.loadItem(Params('itemId'))],
+  }),
 
-// Error variant
-accessTransition({
-  guards?: PredicateExpr,         // Denial condition
-  effects?: EffectFunctionExpr[], // Run before error
-  status: number,                 // HTTP status code
-  message: string | ValueExpr,    // Error message
-})
+  // Then check access based on loaded data
+  accessTransition({
+    when: Data('itemNotFound').match(Condition.Equals(true)),
+    next: [throwError({ status: 404, message: 'Item not found' })],
+  }),
+]
 ```
 
-### Properties
+### When to Use Each Outcome
 
-**Shared (both variants):**
-- `guards` (Optional): Denial condition. When **true**, access is **denied**
-- `effects` (Optional): Effects to run when access is denied (before redirect/error)
-
-**Redirect variant:**
-- `redirect` (Required): Array of `next()` destinations
-
-**Error variant:**
-- `status` (Required): HTTP status code (401, 403, 404, etc.)
-- `message` (Required): Error message to display
-
-### Guard Semantics
-
-Guards define **denial conditions**:
-
-- `guards` evaluates to **true** → access **denied** → redirect or error
-- `guards` evaluates to **false** → continue (check next transition or grant access)
-- No matching guards → access granted
-
-```typescript
-// Redirect unauthenticated users
-accessTransition({
-  guards: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
-  redirect: [next({ goto: '/login' })],
-})
-
-// Return 404 for missing items
-accessTransition({
-  guards: Data('itemNotFound').match(Condition.Equals(true)),
-  status: 404,
-  message: Format('Item %1 was not found', Params('itemId')),
-})
-
-// Return 403 for permission denied
-accessTransition({
-  guards: Data('item.canEdit').not.match(Condition.Equals(true)),
-  status: 403,
-  message: 'You do not have permission to edit this item',
-})
-```
-
-### When to Use Each Variant
-
-| Use Redirect When | Use Error When |
-|-------------------|----------------|
-| User needs to complete a prerequisite | Resource doesn't exist (404) |
-| User needs to log in | User lacks permission (403) |
-| Workflow requires a different path | Server-side error (500) |
+| Use Effects-Only When | Use `redirect()` When | Use `throwError()` When |
+|-----------------------|-----------------------|-------------------------|
+| Loading data for rendering | User needs to complete a prerequisite | Resource doesn't exist (404) |
+| Pre-populating form fields | User needs to log in | User lacks permission (403) |
+| Initializing shared state | Workflow requires a different path | Server-side error (500) |
 
 ---
 
@@ -277,7 +245,7 @@ step({
       validate: true,
       onValid: {
         effects: [MyEffects.saveAddress()],
-        next: [next({ goto: '/next-step' })],
+        next: [redirect({ goto: '/next-step' })],
       },
     }),
   ],
@@ -306,15 +274,15 @@ submitTransition({
   validate?: boolean,       // Show validation errors?
   onAlways?: {              // Always runs
     effects?: EffectFunctionExpr[],
-    next?: NextExpr[],
+    next?: [redirect(), throwError()],  // Outcomes (first match wins)
   },
   onValid?: {               // Only if validation passes
     effects?: EffectFunctionExpr[],
-    next?: NextExpr[],
+    next?: [redirect(), throwError()],  // Outcomes (first match wins)
   },
   onInvalid?: {             // Only if validation fails
     effects?: EffectFunctionExpr[],
-    next?: NextExpr[],
+    next?: [redirect(), throwError()],  // Outcomes (first match wins)
   },
 })
 ```
@@ -345,7 +313,7 @@ submitTransition({
   validate: true,
   onValid: {
     effects: [MyEffects.saveAnswers()],
-    next: [next({ goto: '/next-step' })],
+    next: [redirect({ goto: '/next-step' })],
   },
 })
 ```
@@ -357,7 +325,7 @@ submitTransition({
   validate: false,
   onAlways: {
     effects: [MyEffects.saveDraft()],
-    next: [next({ goto: '/dashboard' })],
+    next: [redirect({ goto: '/dashboard' })],
   },
 })
 ```
@@ -368,7 +336,7 @@ submitTransition({
   validate: true,
   onValid: {
     effects: [MyEffects.saveAnswers()],
-    next: [next({ goto: '/next-step' })],
+    next: [redirect({ goto: '/next-step' })],
   },
   onInvalid: {
     effects: [MyEffects.logValidationFailure()],
@@ -387,7 +355,7 @@ onSubmission: [
     validate: true,
     onValid: {
       effects: [MyEffects.saveItem()],
-      next: [next({ goto: '/items/new' })],
+      next: [redirect({ goto: '/items/new' })],
     },
   }),
 
@@ -397,7 +365,7 @@ onSubmission: [
     validate: true,
     onValid: {
       effects: [MyEffects.saveItem()],
-      next: [next({ goto: '/items' })],
+      next: [redirect({ goto: '/items' })],
     },
   }),
 
@@ -405,7 +373,7 @@ onSubmission: [
   submitTransition({
     validate: true,
     onValid: {
-      next: [next({ goto: '/items' })],
+      next: [redirect({ goto: '/items' })],
     },
   }),
 ]
@@ -413,14 +381,14 @@ onSubmission: [
 
 ---
 
-## `next()` - Navigation
+## `redirect()` - Navigation Outcome
 
-Defines navigation destinations. Used in `redirect` arrays and `onValid`/`onInvalid`/`onAlways` next arrays.
+Defines navigation destinations. Used in `next` arrays within access transitions and submit transitions (`onValid`/`onInvalid`/`onAlways`).
 
 ### Signature
 
 ```typescript
-next({
+redirect({
   when?: PredicateExpr,        // Condition for this destination
   goto: string | FormatExpr,   // Destination path
 })
@@ -434,37 +402,37 @@ next({
 ### Static Navigation
 
 ```typescript
-next({ goto: 'next-step' })           // Relative path
-next({ goto: '/absolute/path' })      // Absolute path
+redirect({ goto: 'next-step' })           // Relative path
+redirect({ goto: '/absolute/path' })      // Absolute path
 ```
 
 ### Dynamic Navigation
 
 ```typescript
 // Using Format() for dynamic paths
-next({ goto: Format('/items/%1/edit', Answer('itemId')) })
-next({ goto: Format('/users/%1/profile', Params('userId')) })
+redirect({ goto: Format('/items/%1/edit', Answer('itemId')) })
+redirect({ goto: Format('/users/%1/profile', Params('userId')) })
 ```
 
 ### Conditional Navigation
 
-Multiple `next()` entries are evaluated in order. The first match wins:
+Multiple `redirect()` entries are evaluated in order. The first match wins:
 
 ```typescript
 onValid: {
   effects: [MyEffects.saveAnswers()],
   next: [
     // Specific conditions first
-    next({
+    redirect({
       when: Answer('userType').match(Condition.Equals('business')),
       goto: '/business-details',
     }),
-    next({
+    redirect({
       when: Answer('userType').match(Condition.Equals('individual')),
       goto: '/individual-details',
     }),
     // Fallback last (no 'when')
-    next({ goto: '/generic-details' }),
+    redirect({ goto: '/generic-details' }),
   ],
 }
 ```
@@ -480,7 +448,88 @@ onInvalid: {
 }
 ```
 
-> **Important:** `goto` does NOT accept `Conditional()` or `when().then().else()`. Use multiple `next()` entries with `when` conditions instead.
+> **Important:** `goto` does NOT accept `Conditional()` or `when().then().else()`. Use multiple `redirect()` entries with `when` conditions instead.
+
+---
+
+## `throwError()` - Error Outcome
+
+Returns an HTTP error response. Used in `next` arrays to handle error conditions like missing resources or permission denied.
+
+### Signature
+
+```typescript
+throwError({
+  when?: PredicateExpr,        // Condition for this error
+  status: number,              // HTTP status code (400, 403, 404, 500, etc.)
+  message: string | FormatExpr, // Error message
+})
+```
+
+### Properties
+
+- `when` (Optional): Condition that must be true for this error to trigger. If omitted, always triggers (use as fallback)
+- `status` (Required): HTTP status code
+- `message` (Required): Error message. Accepts **strings** or **Format()** expressions
+
+### Common Status Codes
+
+| Code | Meaning | Use When |
+|------|---------|----------|
+| 400 | Bad Request | Invalid input that can't be processed |
+| 403 | Forbidden | User lacks permission |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Business rule violation (e.g., duplicate) |
+| 500 | Server Error | Unexpected server-side failure |
+
+### Examples
+
+```typescript
+// Simple error
+throwError({ status: 404, message: 'Item not found' })
+
+// Dynamic error message
+throwError({
+  status: 404,
+  message: Format('Item %1 was not found', Params('itemId')),
+})
+
+// Conditional error
+throwError({
+  when: Data('saveError').match(Condition.IsRequired()),
+  status: 500,
+  message: Format('Failed to save: %1', Data('saveError')),
+})
+```
+
+### Error Handling in Submit Transitions
+
+Submit transitions can return errors for save failures or business rule violations:
+
+```typescript
+submitTransition({
+  validate: true,
+  onValid: {
+    effects: [MyEffects.saveGoal()],
+    next: [
+      // Handle save failure
+      throwError({
+        when: Data('saveError').match(Condition.IsRequired()),
+        status: 500,
+        message: Format('Failed to save goal: %1', Data('saveError')),
+      }),
+      // Handle business rule violation
+      throwError({
+        when: Data('duplicateGoal').match(Condition.Equals(true)),
+        status: 409,
+        message: 'This goal already exists',
+      }),
+      // Success - redirect
+      redirect({ goto: '/goals/overview' }),
+    ],
+  },
+})
+```
 
 ---
 
@@ -492,18 +541,17 @@ Journey-level transitions run for **every step** in the journey.
 journey({
   path: '/my-journey',
 
-  // Runs before every step
-  onLoad: [
-    loadTransition({
+  // Runs before every step: load data, then check access
+  onAccess: [
+    // Load shared data first
+    accessTransition({
       effects: [MyEffects.loadSharedData()],
     }),
-  ],
 
-  // Checked before every step
-  onAccess: [
+    // Then check authentication
     accessTransition({
-      guards: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
-      redirect: [next({ goto: '/login' })],
+      when: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
+      next: [redirect({ goto: '/login' })],
     }),
   ],
 
@@ -555,22 +603,21 @@ export const businessDetailsStep = step({
     }),
   ],
 
-  // 1. Load step-specific data
-  onLoad: [
-    loadTransition({
+  // 1. Load data and check access
+  onAccess: [
+    // Load step-specific data
+    accessTransition({
       effects: [MyEffects.loadSavedAddress()],
     }),
-  ],
 
-  // 2. Check step access
-  onAccess: [
+    // Ensure prerequisite is complete
     accessTransition({
-      guards: Data('businessType').not.match(Condition.IsRequired()),
-      redirect: [next({ goto: '/business-type' })],
+      when: Data('businessType').not.match(Condition.IsRequired()),
+      next: [redirect({ goto: '/business-type' })],
     }),
   ],
 
-  // 3. Handle lookup button
+  // 2. Handle lookup button
   onAction: [
     actionTransition({
       when: Post('action').match(Condition.Equals('lookup')),
@@ -578,13 +625,13 @@ export const businessDetailsStep = step({
     }),
   ],
 
-  // 4. Handle form submission
+  // 3. Handle form submission
   onSubmission: [
     submitTransition({
       validate: true,
       onValid: {
         effects: [MyEffects.saveStepAnswers()],
-        next: [next({ goto: '/operator-details' })],
+        next: [redirect({ goto: '/operator-details' })],
       },
     }),
   ],
@@ -598,25 +645,32 @@ step({
   path: '/edit/:itemId',
   title: 'Edit Item',
 
-  onLoad: [
-    loadTransition({
+  onAccess: [
+    // Load item data first
+    accessTransition({
       effects: [MyEffects.loadItem(Params('itemId'))],
     }),
-  ],
 
-  onAccess: [
     // 404: Item not found
     accessTransition({
-      guards: Data('itemNotFound').match(Condition.Equals(true)),
-      status: 404,
-      message: Format('Item %1 was not found', Params('itemId')),
+      when: Data('itemNotFound').match(Condition.Equals(true)),
+      next: [
+        throwError({
+          status: 404,
+          message: Format('Item %1 was not found', Params('itemId')),
+        }),
+      ],
     }),
 
     // 403: No edit permission
     accessTransition({
-      guards: Data('item.canEdit').not.match(Condition.Equals(true)),
-      status: 403,
-      message: 'You do not have permission to edit this item',
+      when: Data('item.canEdit').not.match(Condition.Equals(true)),
+      next: [
+        throwError({
+          status: 403,
+          message: 'You do not have permission to edit this item',
+        }),
+      ],
     }),
   ],
 
@@ -627,7 +681,7 @@ step({
       validate: true,
       onValid: {
         effects: [MyEffects.updateItem(Params('itemId'))],
-        next: [next({ goto: Format('/items/%1', Params('itemId')) })],
+        next: [redirect({ goto: Format('/items/%1', Params('itemId')) })],
       },
     }),
   ],
@@ -643,15 +697,15 @@ onSubmission: [
     onValid: {
       effects: [MyEffects.saveAnswers()],
       next: [
-        next({
+        redirect({
           when: Answer('hasChildren').match(Condition.Equals('yes')),
           goto: '/children-details',
         }),
-        next({
+        redirect({
           when: Answer('hasPartner').match(Condition.Equals('yes')),
           goto: '/partner-details',
         }),
-        next({ goto: '/summary' }),
+        redirect({ goto: '/summary' }),
       ],
     },
   }),
@@ -670,12 +724,12 @@ onSubmission: [
   submitTransition({
     when: Post('action').match(Condition.Equals('save')),
     validate: true,
-    onValid: { next: [next({ goto: '/saved' })] },
+    onValid: { next: [redirect({ goto: '/saved' })] },
   }),
   submitTransition({
     // No 'when' - catches everything else
     validate: true,
-    onValid: { next: [next({ goto: '/default' })] },
+    onValid: { next: [redirect({ goto: '/default' })] },
   }),
 ]
 
@@ -684,7 +738,7 @@ onSubmission: [
   submitTransition({
     when: Post('action').match(Condition.Equals('save')),
     validate: true,
-    onValid: { next: [next({ goto: '/saved' })] },
+    onValid: { next: [redirect({ goto: '/saved' })] },
   }),
   // Missing fallback!
 ]
@@ -708,7 +762,7 @@ onSubmission: [
   submitTransition({
     // Fallback last
     validate: true,
-    onValid: { next: [next({ goto: '/default' })] },
+    onValid: { next: [redirect({ goto: '/default' })] },
   }),
 ]
 
@@ -717,7 +771,7 @@ onSubmission: [
   submitTransition({
     // No 'when' - matches immediately!
     validate: true,
-    onValid: { next: [next({ goto: '/default' })] },
+    onValid: { next: [redirect({ goto: '/default' })] },
   }),
   submitTransition({
     when: Post('action').match(Condition.Equals('save')),
@@ -745,23 +799,27 @@ block<GovUKButton>({
 }),
 ```
 
-### Understand Guard Semantics
+### Load Data Before Access Checks
 
 ```typescript
-// accessTransition: guards = true means DENY
-accessTransition({
-  guards: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
-  // When NOT authenticated (true) → deny → redirect
-  redirect: [next({ goto: '/login' })],
-})
+// DO: Load data, then check conditions based on loaded data
+onAccess: [
+  accessTransition({
+    effects: [MyEffects.loadItem(Params('itemId'))],
+  }),
+  accessTransition({
+    when: Data('itemNotFound').match(Condition.Equals(true)),
+    next: [throwError({ status: 404, message: 'Item not found' })],
+  }),
+]
 
-// submitTransition: guards = true means PROCEED
-submitTransition({
-  guards: Data('user.canSubmit').match(Condition.Equals(true)),
-  // When CAN submit (true) → proceed with submission
-  validate: true,
-  onValid: { /* ... */ },
-})
+// DON'T: Try to check data that hasn't been loaded yet
+onAccess: [
+  accessTransition({
+    when: Data('itemNotFound').match(Condition.Equals(true)),  // Data doesn't exist yet!
+    next: [throwError({ status: 404, message: 'Item not found' })],
+  }),
+]
 ```
 
 ---
@@ -769,5 +827,5 @@ submitTransition({
 ## Related Topics
 
 - [References and Chaining](references-and-chaining.md) - `Post()`, `Params()`, `Query()` references
-- [Logic and Expressions](logic-and-expressions.md) - Predicate expressions for `when` and `guards`
+- [Logic and Expressions](logic-and-expressions.md) - Predicate expressions for `when` conditions
 - [Validation System](validation-system.md) - Field validation rules

@@ -70,7 +70,7 @@ hidden: Answer('country').not.match(Condition.Equals('UK'))
 dependent: Answer('country').match(Condition.Equals('UK'))
 
 // Conditional navigation
-next({
+redirect({
   when: Answer('hasDisability').match(Condition.Equals('yes')),
   goto: 'disability-details',
 })

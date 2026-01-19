@@ -215,7 +215,6 @@ describe('RenderContextFactory', () => {
     it('should exclude transitions from step properties', () => {
       // Arrange
       const step = createMockStep('compile_ast:2', {
-        onLoad: [{ type: 'load-transition' }],
         onAction: [{ type: 'action-transition' }],
         onSubmission: [{ type: 'submit-transition' }],
         backlink: '/previous',
@@ -321,7 +320,6 @@ describe('RenderContextFactory', () => {
       // Arrange
       const step = createMockStep('compile_ast:2')
       const journey = createMockJourney('compile_ast:1', [step], {
-        onLoad: [{ type: ASTNodeType.TRANSITION }] as any,
         onAccess: [{ type: ASTNodeType.TRANSITION }] as any,
         title: 'Journey Title',
         metadata: { version: '1.0' },

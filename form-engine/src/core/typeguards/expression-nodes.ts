@@ -6,7 +6,6 @@ import {
   FormatASTNode,
   FunctionASTNode,
   IterateASTNode,
-  NextASTNode,
   PipelineASTNode,
   ReferenceASTNode,
   ValidationASTNode,
@@ -38,13 +37,6 @@ export function isFormatExprNode(obj: any): obj is FormatASTNode {
  */
 export function isPipelineExprNode(obj: any): obj is PipelineASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.PIPELINE
-}
-
-/**
- * Check if an AST node is a Next Expression node
- */
-export function isNextExprNode(obj: any): obj is NextASTNode {
-  return isExpressionNode(obj) && obj.expressionType === ExpressionType.NEXT
 }
 
 /**

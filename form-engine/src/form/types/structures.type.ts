@@ -9,7 +9,6 @@ import {
   ConditionalExpr,
   AccessTransition,
   ActionTransition,
-  LoadTransition,
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
@@ -219,10 +218,7 @@ export interface JourneyDefinition {
   /** Unique identifier for the journey */
   code: string
 
-  /** Load foundational data when journey is accessed */
-  onLoad?: LoadTransition[]
-
-  /** Check access and run analytics when journey is accessed */
+  /** Access control, data loading, and analytics when journey is accessed */
   onAccess?: AccessTransition[]
 
   /** Array of steps that make up the journey flow */
@@ -268,10 +264,7 @@ export interface StepDefinition {
   /** Array of blocks to render in this step */
   blocks?: BlockDefinition[]
 
-  /** Load step-specific data when step is accessed */
-  onLoad?: LoadTransition[]
-
-  /** Check access and run analytics when step is accessed */
+  /** Access control, data loading, and analytics when step is accessed */
   onAccess?: AccessTransition[]
 
   /** Handle in-step actions (e.g., "Find address" button) */

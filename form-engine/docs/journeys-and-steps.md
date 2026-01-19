@@ -182,9 +182,9 @@ Effect(: async (context) => {
 
 **Inheritance:** Step `data` is shallow-merged with journey `data`, with step values taking precedence.
 
-### `onLoad`, `onAccess` (Optional)
+### `onAccess` (Optional)
 
-Journeys can define `onLoad` and `onAccess` transitions that run for every step. See [Transitions](./transitions.md).
+Journeys can define `onAccess` transitions that run for every step. See [Transitions](./transitions.md).
 
 ---
 
@@ -283,7 +283,7 @@ data: {
 
 See the journey `data` property for usage examples.
 
-### `onLoad`, `onAccess`, `onAction`, `onSubmission` (Optional)
+### `onAccess`, `onAction`, `onSubmission` (Optional)
 
 Steps can define these lifecycle transitions. See [Transitions](./transitions.md).
 

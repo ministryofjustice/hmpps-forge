@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, PredicateType, TransitionType, IteratorType } from './enums'
+import { FunctionType, ExpressionType, PredicateType, TransitionType, IteratorType, OutcomeType } from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -560,93 +560,142 @@ export interface ConditionalExpr {
   elseValue?: ValueExpr
 }
 
-/* ===== Transitions ===== */
+/* ===== Transition Outcomes ===== */
 
 /**
- * Represents a navigation destination with optional conditional logic.
- * Defines where to navigate after a transition completes.
+ * Represents a redirect outcome in a transition.
+ * When matched, halts transition processing and redirects to the specified path.
  *
  * @example
- * // Simple navigation
- * { type: 'ExpressionType.Next', goto: '/next-step' }
+ * // Unconditional redirect
+ * redirect({ goto: '/overview' })
  *
  * @example
- * // Conditional navigation
- * {
- *   type: 'ExpressionType.Next',
- *   when: { type: 'test', subject: {...}, negate: false, condition: {...} },
- *   goto: '/business-flow'
- * }
+ * // Conditional redirect
+ * redirect({
+ *   when: Data('needsSetup').match(Condition.Equals(true)),
+ *   goto: '/setup',
+ * })
  */
-export interface NextExpr {
-  type: ExpressionType.NEXT
-  /**
-   * Optional condition that must be true for this navigation to occur.
-   * If omitted, this navigation always applies (useful as a fallback).
-   */
+export interface RedirectOutcome {
+  type: OutcomeType.REDIRECT
+  /** Optional condition that must be true for this redirect to occur. */
   when?: PredicateExpr
-
-  /** The path to navigate to. */
+  /** The path to redirect to. */
   goto: string | ValueExpr
 }
 
 /**
- * Lifecycle transition for pure data loading.
- * Runs before access control checks.
+ * Represents an error outcome in a transition.
+ * When matched, halts transition processing and throws an HTTP error.
+ *
+ * @example
+ * // Not found error
+ * throwError({
+ *   when: Data('notFound').match(Condition.Equals(true)),
+ *   status: 404,
+ *   message: 'Item not found',
+ * })
+ *
+ * @example
+ * // Dynamic error message
+ * throwError({
+ *   when: Data('saveError').match(Condition.IsRequired()),
+ *   status: 500,
+ *   message: Format('Failed to save: %1', Data('saveError')),
+ * })
  */
-export interface LoadTransition {
-  type: TransitionType.LOAD
-  /** Effects to execute for loading data */
-  effects: EffectFunctionExpr<any>[]
-}
-
-/**
- * Base interface for access transitions.
- * Guards define denial conditions - when TRUE, access is DENIED.
- */
-interface AccessTransitionBase {
-  type: TransitionType.ACCESS
-  /** Guard conditions - when TRUE, access is DENIED and redirect/error triggers */
-  guards?: PredicateExpr
-  /** Optional effects to execute before redirect/error (analytics, logging, etc.) */
-  effects?: EffectFunctionExpr<any>[]
-}
-
-/**
- * Access transition that redirects to another page when guards match.
- * Use for cases like redirecting to login or a prerequisite step.
- */
-interface AccessTransitionRedirect extends AccessTransitionBase {
-  /** Navigation rules when guards match (access denied) */
-  redirect: NextExpr[]
-  status?: never
-  message?: never
-}
-
-/**
- * Access transition that returns an HTTP error response when guards match.
- * Use for cases like 404 Not Found or 403 Forbidden.
- */
-interface AccessTransitionError extends AccessTransitionBase {
-  redirect?: never
-  /** HTTP status code to return (e.g., 401, 403, 404) */
+export interface ThrowErrorOutcome {
+  type: OutcomeType.THROW_ERROR
+  /** Optional condition that must be true for this error to be thrown. */
+  when?: PredicateExpr
+  /** HTTP status code to return. */
   status: number
-  /** Error message to display - can be static string or dynamic expression like Format() */
+  /** Error message to return. */
   message: string | ValueExpr
 }
 
 /**
- * Lifecycle transition for access control.
- * Runs after data loading, before rendering.
- *
- * Either redirects to another page OR returns an HTTP error response.
- * TypeScript enforces that redirect and status/message are mutually exclusive.
+ * Union type for all transition outcomes.
+ * Used in the `next` array of access and submit transitions.
  */
-export type AccessTransition = AccessTransitionRedirect | AccessTransitionError
+export type TransitionOutcome = RedirectOutcome | ThrowErrorOutcome
 
 /**
- * Base interface for submission transition types.
- * Submission transitions control how users move between steps when submitting forms.
+ * Lifecycle transition for access control and data loading.
+ *
+ * Access transitions are evaluated in sequence. Each transition:
+ * 1. Evaluates `when` condition (if present)
+ * 2. If `when` is false → skip to next transition
+ * 3. If `when` is true (or absent) → execute effects
+ * 4. Evaluate `next` outcomes - first match halts (redirect or error)
+ * 5. If no outcome matches → CONTINUE to next transition
+ *
+ * @example
+ * // Effects-only transition (always executes, continues)
+ * accessTransition({ effects: [loadUserData()] })
+ *
+ * @example
+ * // Conditional redirect
+ * accessTransition({
+ *   when: Data('user').not.match(Condition.IsRequired()),
+ *   next: [redirect({ goto: '/login' })],
+ * })
+ *
+ * @example
+ * // Error response
+ * accessTransition({
+ *   effects: [checkPermissions()],
+ *   next: [
+ *     throwError({
+ *       when: Data('notFound').match(Condition.Equals(true)),
+ *       status: 404,
+ *       message: 'Item not found',
+ *     }),
+ *     redirect({ goto: '/overview' }),
+ *   ],
+ * })
+ */
+export interface AccessTransition {
+  type: TransitionType.ACCESS
+  /** Condition for this transition to execute. If omitted, always executes. */
+  when?: PredicateExpr
+  /** Effects to execute when transition runs (data loading, analytics, etc.) */
+  effects?: EffectFunctionExpr<any>[]
+  /** Outcomes to evaluate - first match halts (redirect or throws error) */
+  next?: TransitionOutcome[]
+}
+
+/**
+ * Submission transition for handling form submissions.
+ * Controls validation, effects, and navigation when users submit forms.
+ *
+ * @example
+ * // Simple save and redirect
+ * submitTransition({
+ *   validate: true,
+ *   onValid: {
+ *     effects: [saveData()],
+ *     next: [redirect({ goto: '/confirmation' })],
+ *   },
+ * })
+ *
+ * @example
+ * // Error handling on save failure
+ * submitTransition({
+ *   validate: true,
+ *   onValid: {
+ *     effects: [saveGoal()],
+ *     next: [
+ *       throwError({
+ *         when: Data('saveError').match(Condition.IsRequired()),
+ *         status: 500,
+ *         message: Format('Failed to save: %1', Data('saveError')),
+ *       }),
+ *       redirect({ goto: '/goals/overview' }),
+ *     ],
+ *   },
+ * })
  */
 export interface SubmitTransition {
   type: TransitionType.SUBMIT
@@ -678,8 +727,8 @@ export interface SubmitTransition {
   onAlways?: {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
-    /** Navigation rules */
-    next?: NextExpr[]
+    /** Outcomes to evaluate - first match halts (redirect or throws error) */
+    next?: TransitionOutcome[]
   }
 
   /**
@@ -689,8 +738,8 @@ export interface SubmitTransition {
   onValid?: {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
-    /** Navigation rules on successful validation */
-    next?: NextExpr[]
+    /** Outcomes to evaluate - first match halts (redirect or throws error) */
+    next?: TransitionOutcome[]
   }
 
   /**
@@ -700,8 +749,8 @@ export interface SubmitTransition {
   onInvalid?: {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
-    /** Navigation rules on failed validation */
-    next?: NextExpr[]
+    /** Outcomes to evaluate - first match halts (redirect or throws error) */
+    next?: TransitionOutcome[]
   }
 }
 

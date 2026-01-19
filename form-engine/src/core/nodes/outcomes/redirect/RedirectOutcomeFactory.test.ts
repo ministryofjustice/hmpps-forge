@@ -1,9 +1,9 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType, FunctionType, PredicateType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '@form-engine/form/types/enums'
 import type {
   ConditionFunctionExpr,
-  NextExpr,
   PredicateTestExpr,
+  RedirectOutcome,
   ReferenceExpr,
   ValueExpr,
 } from '@form-engine/form/types/expressions.type'
@@ -12,68 +12,68 @@ import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 import { ExpressionASTNode } from '@form-engine/core/types/expressions.type'
 import { PredicateASTNode } from '@form-engine/core/types/predicates.type'
-import NextFactory from './NextFactory'
+import RedirectOutcomeFactory from './RedirectOutcomeFactory'
 
-describe('NextFactory', () => {
+describe('RedirectOutcomeFactory', () => {
   let nodeIDGenerator: NodeIDGenerator
   let nodeFactory: NodeFactory
-  let nextFactory: NextFactory
+  let redirectOutcomeFactory: RedirectOutcomeFactory
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
     nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    nextFactory = new NextFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    redirectOutcomeFactory = new RedirectOutcomeFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
   })
 
   describe('create()', () => {
-    it('should create a Next expression with goto as string', () => {
+    it('should create a Redirect outcome with goto as string', () => {
       // Arrange
       const json = {
-        type: ExpressionType.NEXT,
-        goto: 'step-2',
-      } satisfies NextExpr
+        type: OutcomeType.REDIRECT,
+        goto: '/next-step',
+      } satisfies RedirectOutcome
 
       // Act
-      const result = nextFactory.create(json)
+      const result = redirectOutcomeFactory.create(json)
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.NEXT)
+      expect(result.type).toBe(ASTNodeType.OUTCOME)
+      expect(result.outcomeType).toBe(OutcomeType.REDIRECT)
       expect(result.raw).toBe(json)
 
-      expect(result.properties.goto).toBe('step-2')
+      expect(result.properties.goto).toBe('/next-step')
       expect(result.properties.when).toBeUndefined()
     })
 
-    it('should create a Next expression with goto as expression', () => {
+    it('should create a Redirect outcome with goto as expression', () => {
       // Arrange
       const json = {
-        type: ExpressionType.NEXT,
-        goto: { type: ExpressionType.REFERENCE, path: ['answers', 'nextStep'] } satisfies ReferenceExpr,
-      } satisfies NextExpr
+        type: OutcomeType.REDIRECT,
+        goto: { type: ExpressionType.REFERENCE, path: ['data', 'nextStep'] } satisfies ReferenceExpr,
+      } satisfies RedirectOutcome
 
       // Act
-      const result = nextFactory.create(json)
+      const result = redirectOutcomeFactory.create(json)
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.NEXT)
+      expect(result.type).toBe(ASTNodeType.OUTCOME)
+      expect(result.outcomeType).toBe(OutcomeType.REDIRECT)
 
       expect(result.properties.goto).toHaveProperty('id')
       expect((result.properties.goto as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
       expect((result.properties.goto as ExpressionASTNode).expressionType).toBe(ExpressionType.REFERENCE)
     })
 
-    it('should create a Next expression with when condition', () => {
+    it('should create a Redirect outcome with when condition', () => {
       // Arrange
       const json = {
-        type: ExpressionType.NEXT,
-        goto: 'step-3',
+        type: OutcomeType.REDIRECT,
+        goto: '/conditional-step',
         when: {
           type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
+          subject: { type: ExpressionType.REFERENCE, path: ['data', 'shouldRedirect'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
             type: FunctionType.CONDITION,
@@ -81,27 +81,27 @@ describe('NextFactory', () => {
             arguments: [] as ValueExpr[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
-      } satisfies NextExpr
+      } satisfies RedirectOutcome
 
       // Act
-      const result = nextFactory.create(json)
+      const result = redirectOutcomeFactory.create(json)
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.properties.goto).toBe('step-3')
+      expect(result.properties.goto).toBe('/conditional-step')
       expect(result.properties.when).toBeDefined()
       expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
       expect((result.properties.when! as PredicateASTNode).predicateType).toBe(PredicateType.TEST)
     })
 
-    it('should create a Next expression with both dynamic goto and when condition', () => {
+    it('should create a Redirect outcome with both dynamic goto and when condition', () => {
       // Arrange
       const json = {
-        type: ExpressionType.NEXT,
+        type: OutcomeType.REDIRECT,
         goto: { type: ExpressionType.REFERENCE, path: ['data', 'dynamicStep'] } satisfies ReferenceExpr,
         when: {
           type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'condition'] } satisfies ReferenceExpr,
+          subject: { type: ExpressionType.REFERENCE, path: ['data', 'condition'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
             type: FunctionType.CONDITION,
@@ -109,10 +109,10 @@ describe('NextFactory', () => {
             arguments: [] as ValueExpr[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
-      } satisfies NextExpr
+      } satisfies RedirectOutcome
 
       // Act
-      const result = nextFactory.create(json)
+      const result = redirectOutcomeFactory.create(json)
 
       // Assert
       expect(result.properties.goto).toHaveProperty('id')
@@ -124,13 +124,13 @@ describe('NextFactory', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: ExpressionType.NEXT,
-        goto: 'step-1',
-      } satisfies NextExpr
+        type: OutcomeType.REDIRECT,
+        goto: '/step-1',
+      } satisfies RedirectOutcome
 
       // Act
-      const result1 = nextFactory.create(json)
-      const result2 = nextFactory.create(json)
+      const result1 = redirectOutcomeFactory.create(json)
+      const result2 = redirectOutcomeFactory.create(json)
 
       // Assert
       expect(result1.id).toBeDefined()

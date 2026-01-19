@@ -1,18 +1,18 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType } from '@form-engine/form/types/enums'
-import { NextASTNode } from '@form-engine/core/types/expressions.type'
+import { OutcomeType } from '@form-engine/form/types/enums'
+import { RedirectOutcomeASTNode } from '@form-engine/core/types/expressions.type'
 import { ASTNode } from '@form-engine/core/types/engine.type'
-import { NextExpr } from '@form-engine/form/types/expressions.type'
+import { RedirectOutcome } from '@form-engine/form/types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 
 /**
- * NextFactory: Creates Next expression AST nodes
+ * RedirectOutcomeFactory: Creates Redirect outcome AST nodes
  *
- * Next expressions define navigation targets.
+ * Redirect outcomes define navigation targets within transitions.
  * Contains optional condition and destination path.
  */
-export default class NextFactory {
+export default class RedirectOutcomeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
@@ -20,10 +20,10 @@ export default class NextFactory {
   ) {}
 
   /**
-   * Transform Next expression: Navigation target
+   * Transform Redirect outcome: Navigation target
    */
-  create(json: NextExpr): NextASTNode {
-    const properties: { when?: ASTNode; goto: ASTNode | any } = {
+  create(json: RedirectOutcome): RedirectOutcomeASTNode {
+    const properties: { when?: ASTNode; goto: ASTNode | string } = {
       goto: this.nodeFactory.transformValue(json.goto),
     }
 
@@ -33,8 +33,8 @@ export default class NextFactory {
 
     return {
       id: this.nodeIDGenerator.next(this.category),
-      type: ASTNodeType.EXPRESSION,
-      expressionType: ExpressionType.NEXT,
+      type: ASTNodeType.OUTCOME,
+      outcomeType: OutcomeType.REDIRECT,
       properties,
       raw: json,
     }

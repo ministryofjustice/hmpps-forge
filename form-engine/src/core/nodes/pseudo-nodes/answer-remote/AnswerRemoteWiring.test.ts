@@ -1,7 +1,7 @@
 import { when } from 'jest-when'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { TransitionType } from '@form-engine/form/types/enums'
-import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
+import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
 import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
@@ -20,7 +20,7 @@ describe('AnswerRemoteWiring', () => {
         get: jest.fn().mockReturnValue(undefined),
       },
       findReferenceNodes: jest.fn().mockReturnValue([]),
-      findLastOnLoadTransitionFrom: jest.fn().mockReturnValue(undefined),
+      findLastOnAccessTransitionFrom: jest.fn().mockReturnValue(undefined),
       graph: mockGraph,
       getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
@@ -39,11 +39,11 @@ describe('AnswerRemoteWiring', () => {
   })
 
   describe('wire', () => {
-    it('should wire onLoad transition to answer remote', () => {
+    it('should wire onAccess transition to answer remote', () => {
       // Arrange
-      const onLoadTrans = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+      const onAccessTrans = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
-      const step = ASTTestFactory.step().withProperty('onLoad', [onLoadTrans]).build()
+      const step = ASTTestFactory.step().withProperty('onAccess', [onAccessTrans]).build()
 
       const answerRemote = ASTTestFactory.answerRemotePseudoNode('previousField')
 
@@ -56,13 +56,13 @@ describe('AnswerRemoteWiring', () => {
 
       when(mockWiringContext.findReferenceNodes).calledWith('answers').mockReturnValue([])
 
-      when(mockWiringContext.findLastOnLoadTransitionFrom).calledWith(step.id).mockReturnValue(onLoadTrans)
+      when(mockWiringContext.findLastOnAccessTransitionFrom).calledWith(step.id).mockReturnValue(onAccessTrans)
 
       // Act
       wiring.wire()
 
       // Assert
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(onLoadTrans.id, answerRemote.id, DependencyEdgeType.DATA_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(onAccessTrans.id, answerRemote.id, DependencyEdgeType.DATA_FLOW, {
         fieldCode: 'previousField',
       })
     })

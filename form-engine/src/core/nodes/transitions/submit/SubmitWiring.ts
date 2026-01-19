@@ -233,16 +233,17 @@ export default class SubmitWiring {
   }
 
   /**
-   * Wire next expressions array to the transition
-   * Creates edges: next → transition
+   * Wire next outcomes array to the transition
+   * Creates edges: outcome → transition
+   * Note: Outcome internal dependencies are wired by RedirectOutcomeWiring/ThrowErrorOutcomeWiring
    */
   private wireNext(transition: SubmitTransitionASTNode, next: ASTNode[] | undefined, branch: string) {
     if (!next) {
       return
     }
 
-    next.filter(isASTNode).forEach((nextExpr, index) => {
-      this.wiringContext.graph.addEdge(nextExpr.id, transition.id, DependencyEdgeType.DATA_FLOW, {
+    next.filter(isASTNode).forEach((outcome, index) => {
+      this.wiringContext.graph.addEdge(outcome.id, transition.id, DependencyEdgeType.DATA_FLOW, {
         property: `${branch}.next`,
         index,
       })

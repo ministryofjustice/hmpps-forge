@@ -16,13 +16,13 @@ import {
   AccessTransition,
   ActionTransition,
   FormatExpr,
-  LoadTransition,
-  NextExpr,
+  RedirectOutcome,
   SubmitTransition,
+  ThrowErrorOutcome,
   ValueExpr,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { BlockType, ExpressionType, StructureType, TransitionType } from '../types/enums'
+import { BlockType, ExpressionType, OutcomeType, StructureType, TransitionType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -120,15 +120,7 @@ export function submitTransition(definition: Omit<SubmitTransition, 'type'>): Su
 }
 
 /**
- * Creates a load transition for data loading effects.
- * Use this in the onLoad lifecycle hook.
- */
-export function loadTransition(definition: Omit<LoadTransition, 'type'>): LoadTransition {
-  return finaliseBuilders({ ...definition, type: TransitionType.LOAD }) as LoadTransition
-}
-
-/**
- * Creates an access transition for access control and analytics.
+ * Creates an access transition for access control, data loading, and analytics.
  * Use this in the onAccess lifecycle hook.
  */
 export function accessTransition(definition: Omit<AccessTransition, 'type'>): AccessTransition {
@@ -152,14 +144,52 @@ export function validation(definition: Omit<ValidationExpr, 'type'>): Validation
 }
 
 /**
- * Creates a next navigation expression for transitions.
- * Use this in the next/redirect arrays of transitions.
+ * Creates a redirect outcome for transitions.
+ * When matched, halts transition processing and redirects to the specified path.
+ *
+ * @example
+ * // Unconditional redirect
+ * redirect({ goto: '/overview' })
+ *
+ * @example
+ * // Conditional redirect
+ * redirect({
+ *   when: Data('needsSetup').match(Condition.Equals(true)),
+ *   goto: '/setup',
+ * })
  */
-export function next(definition: Omit<NextExpr, 'type'>): NextExpr {
+export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOutcome {
   return finaliseBuilders({
     ...definition,
-    type: ExpressionType.NEXT,
-  }) as NextExpr
+    type: OutcomeType.REDIRECT,
+  }) as RedirectOutcome
+}
+
+/**
+ * Creates an error outcome for transitions.
+ * When matched, halts transition processing and throws an HTTP error.
+ *
+ * @example
+ * // Not found error
+ * throwError({
+ *   when: Data('notFound').match(Condition.Equals(true)),
+ *   status: 404,
+ *   message: 'Item not found',
+ * })
+ *
+ * @example
+ * // Dynamic error message
+ * throwError({
+ *   when: Data('saveError').match(Condition.IsRequired()),
+ *   status: 500,
+ *   message: Format('Failed to save: %1', Data('saveError')),
+ * })
+ */
+export function throwError(definition: Omit<ThrowErrorOutcome, 'type'>): ThrowErrorOutcome {
+  return finaliseBuilders({
+    ...definition,
+    type: OutcomeType.THROW_ERROR,
+  }) as ThrowErrorOutcome
 }
 
 /**

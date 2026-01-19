@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
-import { PredicateExprSchema, ConditionalExprSchema, NextExprSchema } from './predicates.schema'
+import { PredicateExprSchema, ConditionalExprSchema, TransitionOutcomeSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
 /**
@@ -78,43 +78,17 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
 })
 
 /**
- * @see {@link LoadTransition}
- */
-export const LoadTransitionSchema = z.object({
-  type: z.literal(TransitionType.LOAD),
-  effects: z.array(EffectFunctionExprSchema),
-})
-
-/**
- * Base properties shared by all access transitions
- */
-const AccessTransitionBaseSchema = z.object({
-  type: z.literal(TransitionType.ACCESS),
-  guards: PredicateExprSchema.optional(),
-  effects: z.array(EffectFunctionExprSchema).optional(),
-})
-
-/**
- * Access transition with redirect (navigates to another page)
- */
-const AccessTransitionRedirectSchema = AccessTransitionBaseSchema.extend({
-  redirect: z.array(NextExprSchema),
-})
-
-/**
- * Access transition with error response (returns HTTP status code)
- */
-const AccessTransitionErrorSchema = AccessTransitionBaseSchema.extend({
-  status: z.number().int().min(100).max(599),
-  message: z.union([z.string(), FormatExprSchema, ConditionalExprSchema]),
-})
-
-/**
  * @see {@link AccessTransition}
  *
- * Discriminated union: either redirect-based or error-based
+ * Access transitions handle access control, data loading, and outcomes.
+ * All properties except `type` are optional.
  */
-export const AccessTransitionSchema = z.union([AccessTransitionRedirectSchema, AccessTransitionErrorSchema])
+export const AccessTransitionSchema = z.object({
+  type: z.literal(TransitionType.ACCESS),
+  when: PredicateExprSchema.optional(),
+  effects: z.array(EffectFunctionExprSchema).optional(),
+  next: z.array(TransitionOutcomeSchema).optional(),
+})
 
 /**
  * @see {@link ActionTransition}
@@ -136,19 +110,19 @@ export const SubmitTransitionSchema = z.object({
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
   onValid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
   onInvalid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(NextExprSchema).optional(),
+      next: z.array(TransitionOutcomeSchema).optional(),
     })
     .optional(),
 })
@@ -160,7 +134,6 @@ export const StepSchema = z.looseObject({
   type: z.literal(StructureType.STEP),
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
-  onLoad: z.array(LoadTransitionSchema).optional(),
   onAccess: z.array(AccessTransitionSchema).optional(),
   onAction: z.array(ActionTransitionSchema).optional(),
   onSubmission: z.array(SubmitTransitionSchema).optional(),
@@ -180,7 +153,6 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     type: z.literal(StructureType.JOURNEY),
     path: z.string(),
     code: z.string(),
-    onLoad: z.array(LoadTransitionSchema).optional(),
     onAccess: z.array(AccessTransitionSchema).optional(),
     steps: z.array(StepSchema).optional(),
     children: z.array(JourneySchema).optional(),
