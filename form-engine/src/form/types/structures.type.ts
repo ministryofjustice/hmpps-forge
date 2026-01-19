@@ -103,7 +103,7 @@ export interface ValidationExpr {
   when: PredicateExpr | PredicateTestExprBuilder
 
   /** Error message to display when validation fails */
-  message: string
+  message: ConditionalString
 
   /**
    * If true, this validation is only checked at submission time,

@@ -39,7 +39,7 @@ export default class ValidationFactory {
     }
 
     if (json.details) {
-      properties.details = json.details
+      properties.details = this.nodeFactory.transformValue(json.details)
     }
 
     return {
