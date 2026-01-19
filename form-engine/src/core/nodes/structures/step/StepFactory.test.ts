@@ -1,13 +1,7 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { BlockType, StructureType, TransitionType } from '@form-engine/form/types/enums'
 import type { BlockDefinition, StepDefinition } from '@form-engine/form/types/structures.type'
-import type {
-  AccessTransition,
-  EffectFunctionExpr,
-  LoadTransition,
-  NextExpr,
-  SubmitTransition,
-} from '@form-engine/form/types/expressions.type'
+import type { AccessTransition, SubmitTransition, TransitionOutcome } from '@form-engine/form/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
@@ -76,30 +70,6 @@ describe('StepFactory', () => {
       })
     })
 
-    it('should transform onLoad transitions', () => {
-      // Arrange
-      const json = {
-        type: StructureType.STEP,
-        path: 'test-step',
-        title: 'test-step',
-        blocks: [] as BlockDefinition[],
-        onLoad: [
-          {
-            type: TransitionType.LOAD,
-            effects: [] as EffectFunctionExpr[],
-          } satisfies LoadTransition,
-        ],
-      } satisfies StepDefinition
-
-      // Act
-      const result = stepFactory.create(json)
-      const onLoad = result.properties.onLoad
-
-      // Assert
-      expect(Array.isArray(onLoad)).toBe(true)
-      expect(onLoad).toHaveLength(1)
-    })
-
     it('should transform onAccess transitions', () => {
       // Arrange
       const json = {
@@ -110,7 +80,7 @@ describe('StepFactory', () => {
         onAccess: [
           {
             type: TransitionType.ACCESS,
-            redirect: [] as NextExpr[],
+            next: [] as TransitionOutcome[],
           } satisfies AccessTransition,
         ],
       } satisfies StepDefinition
@@ -136,7 +106,7 @@ describe('StepFactory', () => {
             type: TransitionType.SUBMIT,
             validate: false,
             onAlways: {
-              next: [] as NextExpr[],
+              next: [] as TransitionOutcome[],
             },
           } satisfies SubmitTransition,
         ],

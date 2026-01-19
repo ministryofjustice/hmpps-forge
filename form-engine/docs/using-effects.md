@@ -32,16 +32,16 @@ import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionCo
 Effects are used inside transitions. They run at specific lifecycle points:
 
 ```typescript
-import { loadTransition, submitTransition, next } from '@form-engine/form/builders'
+import { accessTransition, submitTransition, next } from '@form-engine/form/builders'
 import { MyEffects } from './effects'
 
 step({
   path: '/my-step',
   title: 'My Step',
 
-  // Load effects run when the step is accessed
-  onLoad: [
-    loadTransition({
+  // Access effects run when the step is accessed
+  onAccess: [
+    accessTransition({
       effects: [
         MyEffects.loadUserProfile(),
         MyEffects.loadReferenceData(),
@@ -55,7 +55,7 @@ step({
       validate: true,
       onValid: {
         effects: [MyEffects.saveAnswers()],
-        next: [next({ goto: 'next-step' })],
+        next: [redirect({ goto: 'next-step' })],
       },
     }),
   ],
@@ -118,7 +118,7 @@ context.setAnswer('firstName', 'John')
 context.setAnswer('email', user.email)
 
 // Note: setAnswer() records a mutation in the answer history, tagged with the
-// current lifecycle phase (e.g., 'load', 'action'). This enables tracking
+// current lifecycle phase (e.g., 'access', 'action'). This enables tracking
 // which phase set each value - useful for delta calculations and debugging.
 
 // Set supplementary data (for use via Data())
@@ -166,8 +166,7 @@ Effects are used in different transition types depending on when you need them t
 
 | Transition | When Effects Run | Common Uses |
 |------------|-----------------|-------------|
-| `loadTransition` | Before access checks, on every request | Load data from APIs, populate dropdowns |
-| `accessTransition` | Before redirect (when access denied) | Log access attempts, analytics |
+| `accessTransition` | Before evaluating conditions and redirects | Load data from APIs, populate dropdowns |
 | `actionTransition` | During POST, before render | Postcode lookup, address fetch |
 | `submitTransition` | After validation (onValid/onInvalid/onAlways) | Save answers, send notifications |
 
@@ -182,8 +181,8 @@ step({
   path: '/personal-details',
   title: 'Personal Details',
 
-  onLoad: [
-    loadTransition({
+  onAccess: [
+    accessTransition({
       effects: [
         MyEffects.loadUserProfile(Params('userId')),
         MyEffects.loadTitleOptions(),
@@ -199,7 +198,7 @@ step({
           MyEffects.savePersonalDetails(),
           MyEffects.trackStepComplete('personal-details'),
         ],
-        next: [next({ goto: 'contact-details' })],
+        next: [redirect({ goto: 'contact-details' })],
       },
       onInvalid: {
         effects: [MyEffects.saveDraft()],
@@ -242,7 +241,7 @@ step({
       validate: true,
       onValid: {
         effects: [MyEffects.saveAnswers()],
-        next: [next({ goto: 'next-step' })],
+        next: [redirect({ goto: 'next-step' })],
       },
     }),
   ],
@@ -251,7 +250,19 @@ step({
 
 ### Pre-populating from API Data
 
+Use `onAccess` to load and pre-populate form fields before the step is rendered:
+
 ```typescript
+// In your step definition
+onAccess: [
+  accessTransition({
+    effects: [MyEffects.loadAssessment(Params('assessmentId'))],
+  }),
+],
+```
+
+```typescript
+// The effect definition
 LoadAssessment: deps => async (context, assessmentId: string) => {
   const assessment = await deps.api.getAssessment(assessmentId)
 

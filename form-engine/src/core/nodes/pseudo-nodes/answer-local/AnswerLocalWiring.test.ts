@@ -1,7 +1,7 @@
 import { when } from 'jest-when'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { BlockType, TransitionType, FunctionType } from '@form-engine/form/types/enums'
-import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
+import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { StepASTNode } from '@form-engine/core/types/structures.type'
 import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
 import DependencyGraph, { DependencyEdgeType } from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
@@ -20,7 +20,7 @@ describe('AnswerLocalWiring', () => {
         get: jest.fn().mockReturnValue(undefined),
       },
       findReferenceNodes: jest.fn().mockReturnValue([]),
-      findLastOnLoadTransitionFrom: jest.fn().mockReturnValue(undefined),
+      findLastOnAccessTransitionFrom: jest.fn().mockReturnValue(undefined),
       graph: mockGraph,
       getCurrentStepNode: jest.fn().mockReturnValue(stepNode),
     } as unknown as jest.Mocked<WiringContext>
@@ -151,11 +151,11 @@ describe('AnswerLocalWiring', () => {
       )
     })
 
-    it('should wire onLoad transition to answer local when onLoad exists in step', () => {
+    it('should wire onAccess transition to answer local when onAccess exists in step', () => {
       // Arrange
-      const onLoadTrans = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+      const onAccessTrans = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
-      const step = ASTTestFactory.step().withProperty('onLoad', [onLoadTrans]).build()
+      const step = ASTTestFactory.step().withProperty('onAccess', [onAccessTrans]).build()
 
       const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('firstName').build()
 
@@ -177,20 +177,20 @@ describe('AnswerLocalWiring', () => {
 
       when(mockWiringContext.findReferenceNodes).calledWith('answers').mockReturnValue([])
 
-      when(mockWiringContext.findLastOnLoadTransitionFrom).calledWith(step.id).mockReturnValue(onLoadTrans)
+      when(mockWiringContext.findLastOnAccessTransitionFrom).calledWith(step.id).mockReturnValue(onAccessTrans)
 
       // Act
       wiring.wire()
 
       // Assert
-      expect(mockGraph.addEdge).toHaveBeenCalledWith(onLoadTrans.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
+      expect(mockGraph.addEdge).toHaveBeenCalledWith(onAccessTrans.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
         fieldCode: 'firstName',
       })
     })
 
-    it('should call findLastOnLoadTransitionFrom with step ID to traverse hierarchy', () => {
+    it('should call findLastOnAccessTransitionFrom with step ID to traverse hierarchy', () => {
       // Arrange
-      const onLoadTrans = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+      const onAccessTrans = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
       const step = ASTTestFactory.step().build()
 
       const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('firstName').build()
@@ -213,16 +213,16 @@ describe('AnswerLocalWiring', () => {
 
       when(mockWiringContext.findReferenceNodes).calledWith('answers').mockReturnValue([])
 
-      when(mockWiringContext.findLastOnLoadTransitionFrom).calledWith(step.id).mockReturnValue(onLoadTrans)
+      when(mockWiringContext.findLastOnAccessTransitionFrom).calledWith(step.id).mockReturnValue(onAccessTrans)
 
       // Act
       wiring.wire()
 
       // Assert - verify hierarchy traversal was initiated from step node
-      expect(mockWiringContext.findLastOnLoadTransitionFrom).toHaveBeenCalledWith(step.id)
+      expect(mockWiringContext.findLastOnAccessTransitionFrom).toHaveBeenCalledWith(step.id)
     })
 
-    it('should not wire onLoad when findLastOnLoadTransitionFrom returns undefined', () => {
+    it('should not wire onAccess when findLastOnAccessTransitionFrom returns undefined', () => {
       // Arrange
       const step = ASTTestFactory.step().build()
 
@@ -246,12 +246,12 @@ describe('AnswerLocalWiring', () => {
 
       when(mockWiringContext.findReferenceNodes).calledWith('answers').mockReturnValue([])
 
-      when(mockWiringContext.findLastOnLoadTransitionFrom).calledWith(step.id).mockReturnValue(undefined)
+      when(mockWiringContext.findLastOnAccessTransitionFrom).calledWith(step.id).mockReturnValue(undefined)
 
       // Act
       wiring.wire()
 
-      // Assert - should only wire POST, not onLoad
+      // Assert - should only wire POST, not onAccess
       expect(mockGraph.addEdge).toHaveBeenCalledTimes(1)
       expect(mockGraph.addEdge).toHaveBeenCalledWith(postNode.id, answerLocal.id, DependencyEdgeType.DATA_FLOW, {
         fieldCode: 'firstName',

@@ -1,4 +1,4 @@
-import { SubmitTransitionASTNode, NextASTNode } from '@form-engine/core/types/expressions.type'
+import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { BlockType, TransitionType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { createMockInvoker } from '@form-engine/test-utils/thunkTestHelpers'
@@ -189,41 +189,45 @@ describe('SubmitHandler', () => {
 
     it('should evaluate next expressions and return navigation target for skip-validation transition', async () => {
       // Arrange
-      const nextExpr = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/success')
-        .build()
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/success' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
-          next: [nextExpr],
+          next: [redirectOutcome],
         })
         .build() as SubmitTransitionASTNode
 
       const handler = new SubmitHandler(transition.id, transition)
 
       const mockContext = createMockContext()
-      const mockInvoker = createMockInvoker({ defaultValue: '/success' })
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async (nodeId: string) => {
+          if (nodeId === redirectOutcome.id) {
+            return { value: '/success', metadata: { source: 'Test', timestamp: Date.now() } }
+          }
+
+          return { value: undefined, metadata: { source: 'Test', timestamp: Date.now() } }
+        },
+      })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.next).toBe('/success')
+      expect(result.value?.redirect).toBe('/success')
     })
 
     it('should execute effects and evaluate next expressions for skip-validation transition', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'saveData')
-      const nextExpr = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/next')
-        .build()
+      const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/next' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           effects: [effect],
-          next: [nextExpr],
+          next: [redirectOutcome],
         })
         .build() as SubmitTransitionASTNode
 
@@ -242,10 +246,10 @@ describe('SubmitHandler', () => {
             }
           }
 
-          if (nodeId === nextExpr.id) {
+          if (nodeId === redirectOutcome.id) {
             return {
               value: '/next',
-              metadata: { source: 'NextHandler', timestamp: Date.now() },
+              metadata: { source: 'RedirectHandler', timestamp: Date.now() },
             }
           }
 
@@ -258,7 +262,7 @@ describe('SubmitHandler', () => {
 
       // Assert - effect was executed and next was evaluated
       expect(effectsExecuted).toContain(effect.id)
-      expect(result.value?.next).toBe('/next')
+      expect(result.value?.redirect).toBe('/next')
     })
 
     it('should execute onAlways and onValid effects for valid submission with validation enabled', async () => {
@@ -379,14 +383,12 @@ describe('SubmitHandler', () => {
 
     it('should execute onValid branch for valid submission with validation enabled', async () => {
       // Arrange
-      const validNext = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/success')
-        .build()
+      const validRedirect = ASTTestFactory.redirectOutcome({ goto: '/success' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', true)
         .withProperty('onValid', {
-          next: [validNext],
+          next: [validRedirect],
         })
         .build() as SubmitTransitionASTNode
 
@@ -412,11 +414,11 @@ describe('SubmitHandler', () => {
             }
           }
 
-          // Mock Next expression evaluation
-          if (nodeId === validNext.id) {
+          // Mock redirect outcome evaluation
+          if (nodeId === validRedirect.id) {
             return {
               value: '/success',
-              metadata: { source: 'NextHandler', timestamp: Date.now() },
+              metadata: { source: 'RedirectHandler', timestamp: Date.now() },
             }
           }
 
@@ -473,21 +475,19 @@ describe('SubmitHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.next).toBe('/success')
+      expect(result.value?.redirect).toBe('/success')
       expect(result.value?.validated).toBe(true)
       expect(result.value?.isValid).toBe(true)
     })
 
     it('should execute onInvalid branch for invalid submission with validation enabled', async () => {
       // Arrange
-      const invalidNext = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/error')
-        .build()
+      const invalidRedirect = ASTTestFactory.redirectOutcome({ goto: '/error' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', true)
         .withProperty('onInvalid', {
-          next: [invalidNext],
+          next: [invalidRedirect],
         })
         .build() as SubmitTransitionASTNode
 
@@ -513,11 +513,11 @@ describe('SubmitHandler', () => {
             }
           }
 
-          // Mock Next expression evaluation
-          if (nodeId === invalidNext.id) {
+          // Mock redirect outcome evaluation
+          if (nodeId === invalidRedirect.id) {
             return {
               value: '/error',
-              metadata: { source: 'NextHandler', timestamp: Date.now() },
+              metadata: { source: 'RedirectHandler', timestamp: Date.now() },
             }
           }
 
@@ -576,8 +576,8 @@ describe('SubmitHandler', () => {
       // Assert
       expect(result.value?.validated).toBe(true)
       expect(result.value?.isValid).toBe(false)
-      expect(result.value?.next).toBe('/error')
-      expect(mockInvoker.invoke).toHaveBeenCalledWith(invalidNext.id, mockContext)
+      expect(result.value?.redirect).toBe('/error')
+      expect(mockInvoker.invoke).toHaveBeenCalledWith(invalidRedirect.id, mockContext)
     })
 
     it('should execute multiple effects sequentially', async () => {
@@ -632,63 +632,65 @@ describe('SubmitHandler', () => {
 
     it('should return first non-undefined next value from next expressions', async () => {
       // Arrange
-      const next1 = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/first')
-        .build()
-
-      const next2 = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT)
-        .withProperty('goto', '/second')
-        .build()
+      const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
+      const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
-          next: [next1, next2],
+          next: [redirect1, redirect2],
         })
         .build() as SubmitTransitionASTNode
 
       const handler = new SubmitHandler(transition.id, transition)
 
       const mockContext = createMockContext()
-      const mockInvoker = createMockInvoker()
-      mockInvoker.invoke
-        .mockResolvedValueOnce({
-          value: undefined,
-          metadata: { source: 'NextHandler', timestamp: Date.now() },
-        })
-        .mockResolvedValueOnce({
-          value: '/second',
-          metadata: { source: 'NextHandler', timestamp: Date.now() },
-        })
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async (nodeId: string) => {
+          if (nodeId === redirect1.id) {
+            return { value: undefined, metadata: { source: 'RedirectHandler', timestamp: Date.now() } }
+          }
+
+          if (nodeId === redirect2.id) {
+            return { value: '/second', metadata: { source: 'RedirectHandler', timestamp: Date.now() } }
+          }
+
+          return { value: undefined, metadata: { source: 'test', timestamp: Date.now() } }
+        },
+      })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.next).toBe('/second')
+      expect(result.value?.redirect).toBe('/second')
     })
 
     it('should return undefined when no next expressions return a value', async () => {
       // Arrange
-      const next = ASTTestFactory.expression<NextASTNode>(ExpressionType.NEXT).withProperty('goto', '/path').build()
+      const redirect = ASTTestFactory.redirectOutcome({ goto: '/path' })
 
       const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
-          next: [next],
+          next: [redirect],
         })
         .build() as SubmitTransitionASTNode
 
       const handler = new SubmitHandler(transition.id, transition)
 
       const mockContext = createMockContext()
-      const mockInvoker = createMockInvoker({ defaultValue: undefined })
+      const mockInvoker = createMockInvoker({
+        invokeImpl: async () => {
+          return { value: undefined, metadata: { source: 'test', timestamp: Date.now() } }
+        },
+      })
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.next).toBeUndefined()
+      expect(result.value?.redirect).toBeUndefined()
     })
   })
 })

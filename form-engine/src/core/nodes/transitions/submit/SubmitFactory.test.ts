@@ -1,7 +1,7 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType, FunctionType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType, TransitionType } from '@form-engine/form/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
-import { SubmitTransition, ValueExpr } from '@form-engine/form/types/expressions.type'
+import { RedirectOutcome, SubmitTransition, ValueExpr } from '@form-engine/form/types/expressions.type'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import SubmitFactory from './SubmitFactory'
 
@@ -40,7 +40,7 @@ describe('SubmitFactory', () => {
       expect(result.properties.when).toBeDefined()
 
       const whenNode = result.properties.when
-      expect(whenNode.type).toBe(ASTNodeType.PREDICATE)
+      expect(whenNode!.type).toBe(ASTNodeType.PREDICATE)
     })
 
     it('should create a Submit transition with guards', () => {
@@ -63,7 +63,7 @@ describe('SubmitFactory', () => {
       expect(result.properties.guards).toBeDefined()
 
       const guardsNode = result.properties.guards
-      expect(guardsNode.type).toBe(ASTNodeType.PREDICATE)
+      expect(guardsNode!.type).toBe(ASTNodeType.PREDICATE)
     })
 
     it('should set validate to true when explicitly true', () => {
@@ -100,12 +100,12 @@ describe('SubmitFactory', () => {
         type: TransitionType.SUBMIT,
         validate: true,
         onValid: {
-          next: [{ type: ExpressionType.NEXT, goto: '/valid' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
         },
         onInvalid: {
-          next: [{ type: ExpressionType.NEXT, goto: '/invalid' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
         },
-      } as SubmitTransition)
+      } satisfies SubmitTransition)
 
       // Assert
       expect(result1.properties.validate).toBe(true)
@@ -115,9 +115,9 @@ describe('SubmitFactory', () => {
         type: TransitionType.SUBMIT,
         validate: false,
         onAlways: {
-          next: [{ type: ExpressionType.NEXT, goto: '/next' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
-      } as SubmitTransition)
+      } satisfies SubmitTransition)
 
       // Assert
       expect(result2.properties.validate).toBe(false)
@@ -130,7 +130,7 @@ describe('SubmitFactory', () => {
         validate: true,
         onAlways: {
           effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.NEXT, goto: '/next-step' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
         },
       } satisfies SubmitTransition
 
@@ -139,14 +139,14 @@ describe('SubmitFactory', () => {
 
       // Assert
       expect(result.properties.onAlways).toBeDefined()
-      const onAlways = result.properties.onAlways
+      const onAlways = result.properties.onAlways!
       expect(onAlways).toHaveProperty('effects')
       expect(onAlways).toHaveProperty('next')
       expect(Array.isArray(onAlways.effects)).toBe(true)
       expect(Array.isArray(onAlways.next)).toBe(true)
 
-      expect(onAlways.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onAlways.next[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onAlways.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onAlways.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
     it('should create a Submit transition with onValid branch', () => {
@@ -156,7 +156,7 @@ describe('SubmitFactory', () => {
         validate: true,
         onValid: {
           effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.NEXT, goto: '/success' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/success' } satisfies RedirectOutcome],
         },
       } satisfies SubmitTransition
 
@@ -165,12 +165,12 @@ describe('SubmitFactory', () => {
 
       // Assert
       expect(result.properties.onValid).toBeDefined()
-      const onValid = result.properties.onValid
+      const onValid = result.properties.onValid!
       expect(onValid).toHaveProperty('effects')
       expect(onValid).toHaveProperty('next')
 
-      expect(onValid.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onValid.next[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onValid.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onValid.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
     it('should create a Submit transition with onInvalid branch', () => {
@@ -180,7 +180,7 @@ describe('SubmitFactory', () => {
         validate: true,
         onInvalid: {
           effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.NEXT, goto: '/error' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitTransition
 
@@ -189,12 +189,12 @@ describe('SubmitFactory', () => {
 
       // Assert
       expect(result.properties.onInvalid).toBeDefined()
-      const onInvalid = result.properties.onInvalid
+      const onInvalid = result.properties.onInvalid!
       expect(onInvalid).toHaveProperty('effects')
       expect(onInvalid).toHaveProperty('next')
 
-      expect(onInvalid.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onInvalid.next[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onInvalid.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(onInvalid.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
     it('should create a Submit transition with all branches', () => {
@@ -206,11 +206,11 @@ describe('SubmitFactory', () => {
           effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ValueExpr[] }],
         },
         onValid: {
-          next: [{ type: ExpressionType.NEXT, goto: '/next' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
         onInvalid: {
           effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ValueExpr[] }],
-          next: [{ type: ExpressionType.NEXT, goto: '/error' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitTransition
 
@@ -222,10 +222,10 @@ describe('SubmitFactory', () => {
       expect(result.properties.onValid).toBeDefined()
       expect(result.properties.onInvalid).toBeDefined()
 
-      expect(result.properties.onAlways.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.onValid.next[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.onInvalid.effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.onInvalid.next[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.onAlways!.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.onValid!.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(result.properties.onInvalid!.effects![0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.onInvalid!.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
     it('should handle branch with only effects', () => {
@@ -242,7 +242,7 @@ describe('SubmitFactory', () => {
       const result = submitFactory.create(json)
 
       // Assert
-      const onAlways = result.properties.onAlways
+      const onAlways = result.properties.onAlways!
       expect(onAlways).toHaveProperty('effects')
       expect(onAlways).not.toHaveProperty('next')
     })
@@ -253,7 +253,7 @@ describe('SubmitFactory', () => {
         type: TransitionType.SUBMIT,
         validate: true,
         onValid: {
-          next: [{ type: ExpressionType.NEXT, goto: '/next' }],
+          next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
       } satisfies SubmitTransition
 
@@ -261,7 +261,7 @@ describe('SubmitFactory', () => {
       const result = submitFactory.create(json)
 
       // Assert
-      const onValid = result.properties.onValid
+      const onValid = result.properties.onValid!
       expect(onValid).toHaveProperty('next')
       expect(onValid).not.toHaveProperty('effects')
     })
@@ -296,7 +296,7 @@ describe('SubmitFactory', () => {
       const result = submitFactory.create(json)
 
       // Assert
-      const onAlways = result.properties.onAlways
+      const onAlways = result.properties.onAlways!
       expect(onAlways).not.toHaveProperty('effects')
     })
 
@@ -314,7 +314,7 @@ describe('SubmitFactory', () => {
       const result = submitFactory.create(json)
 
       // Assert
-      const onValid = result.properties.onValid
+      const onValid = result.properties.onValid!
       expect(onValid).not.toHaveProperty('next')
     })
 

@@ -4,7 +4,6 @@ import { ASTNode } from '@form-engine/core/types/engine.type'
 import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,
-  LoadTransitionASTNode,
   SubmitTransitionASTNode,
   ValidationASTNode,
 } from '@form-engine/core/types/expressions.type'
@@ -18,7 +17,6 @@ export interface JourneyASTNode extends ASTNode {
   properties: {
     path: string
     code: string
-    onLoad?: LoadTransitionASTNode[]
     onAccess?: AccessTransitionASTNode[]
     steps?: StepASTNode[]
     children?: JourneyASTNode[]
@@ -39,7 +37,6 @@ export interface StepASTNode extends ASTNode {
   type: ASTNodeType.STEP
   properties: {
     path: string
-    onLoad?: LoadTransitionASTNode[]
     onAccess?: AccessTransitionASTNode[]
     onAction?: ActionTransitionASTNode[]
     onSubmission?: SubmitTransitionASTNode[]

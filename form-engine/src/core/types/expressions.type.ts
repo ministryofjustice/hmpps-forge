@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, IteratorType, TransitionType } from '@form-engine/form/types/enums'
+import { ExpressionType, FunctionType, IteratorType, TransitionType, OutcomeType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
 
@@ -27,12 +27,44 @@ export interface ReferenceASTNode extends ExpressionASTNode {
 
 /**
  * Next Expression AST node
+ * @deprecated Use RedirectOutcomeASTNode instead
  */
 export interface NextASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.NEXT
   properties: {
     when?: ASTNode
     goto: ASTNode | string
+  }
+}
+
+/**
+ * Outcome AST node - represents transition outcomes (redirects and errors)
+ */
+export interface OutcomeASTNode extends ASTNode {
+  type: ASTNodeType.OUTCOME
+  outcomeType: OutcomeType
+}
+
+/**
+ * Redirect Outcome AST node
+ */
+export interface RedirectOutcomeASTNode extends OutcomeASTNode {
+  outcomeType: OutcomeType.REDIRECT
+  properties: {
+    when?: ASTNode
+    goto: ASTNode | string
+  }
+}
+
+/**
+ * Throw Error Outcome AST node
+ */
+export interface ThrowErrorOutcomeASTNode extends OutcomeASTNode {
+  outcomeType: OutcomeType.THROW_ERROR
+  properties: {
+    when?: ASTNode
+    status: number
+    message: ASTNode | string
   }
 }
 
@@ -126,26 +158,14 @@ export interface TransitionASTNode extends ASTNode {
 }
 
 /**
- * Load Transition AST node
- */
-export interface LoadTransitionASTNode extends TransitionASTNode {
-  transitionType: TransitionType.LOAD
-  properties: {
-    effects: ASTNode[]
-  }
-}
-
-/**
  * Access Transition AST node
  */
 export interface AccessTransitionASTNode extends TransitionASTNode {
   transitionType: TransitionType.ACCESS
   properties: {
-    guards?: ASTNode
+    when?: ASTNode
     effects?: ASTNode[]
-    redirect?: ASTNode[]
-    status?: number
-    message?: ASTNode | string
+    next?: ASTNode[]
   }
 }
 

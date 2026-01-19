@@ -1,4 +1,4 @@
-import { StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
+import { StructureType, TransitionType, OutcomeType } from '@form-engine/form/types/enums'
 import { JourneyDefinition, StepDefinition } from '@form-engine/form/types/structures.type'
 import FormConfigurationSerialisationError from '@form-engine/errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '@form-engine/errors/FormConfigurationSchemaError'
@@ -90,8 +90,9 @@ describe('FormValidator', () => {
             onAccess: [
               {
                 type: TransitionType.ACCESS,
-                redirect: [
+                next: [
                   {
+                    type: OutcomeType.REDIRECT,
                     goto: '/unauthorized',
                   },
                 ],
@@ -110,6 +111,7 @@ describe('FormValidator', () => {
                     onValid: {
                       next: [
                         {
+                          type: OutcomeType.REDIRECT,
                           goto: '/next',
                         },
                       ],
@@ -117,7 +119,7 @@ describe('FormValidator', () => {
                     onInvalid: {
                       next: [
                         {
-                          type: ExpressionType.NEXT,
+                          type: OutcomeType.REDIRECT,
                           goto: '@self',
                         },
                       ],

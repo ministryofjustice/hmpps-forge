@@ -13,7 +13,7 @@ import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor
  * Creates dependency edges for remote field answer values (fields from other steps).
  *
  * Wiring pattern for ANSWER_REMOTE:
- * - ONLOAD_TRANSITION → ANSWER_REMOTE (loaded from remote source)
+ * - ONACCESS_TRANSITION → ANSWER_REMOTE (loaded from remote source)
  * - ANSWER_REMOTE → Answer() references (consumers)
  */
 export default class AnswerRemoteWiring {
@@ -111,21 +111,26 @@ export default class AnswerRemoteWiring {
   /**
    * Wire data sources (producers) to a remote answer pseudo node
    *
-   * Remote answers are from fields in other steps, loaded via onLoad transitions.
-   * They only have one producer: the nearest onLoad transition that loads remote data.
+   * Remote answers are from fields in other steps, loaded via onAccess transitions.
+   * They only have one producer: the nearest onAccess transition that loads remote data.
    */
   private wireProducers(answerPseudoNode: AnswerRemotePseudoNode) {
     const { baseFieldCode } = answerPseudoNode.properties
 
-    // Wire the on load transition
-    const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(
+    // Wire the onAccess transition
+    const nearestOnAccessTransition = this.wiringContext.findLastOnAccessTransitionFrom(
       this.wiringContext.getCurrentStepNode().id,
     )
 
-    if (nearestOnLoadTransition) {
-      this.wiringContext.graph.addEdge(nearestOnLoadTransition.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
-        fieldCode: baseFieldCode,
-      })
+    if (nearestOnAccessTransition) {
+      this.wiringContext.graph.addEdge(
+        nearestOnAccessTransition.id,
+        answerPseudoNode.id,
+        DependencyEdgeType.DATA_FLOW,
+        {
+          fieldCode: baseFieldCode,
+        },
+      )
     }
   }
 }

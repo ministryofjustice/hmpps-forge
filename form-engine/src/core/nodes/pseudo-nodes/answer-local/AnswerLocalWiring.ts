@@ -17,7 +17,7 @@ import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor
  * - POST → ANSWER_LOCAL (raw form data)
  * - FORMATTERS[] → ANSWER_LOCAL (transformer functions, executed inline)
  * - DEFAULT_VALUE → ANSWER_LOCAL (default value expression)
- * - ONLOAD_TRANSITION → ANSWER_LOCAL (pre-population from onLoad effects)
+ * - ONACCESS_TRANSITION → ANSWER_LOCAL (pre-population from onAccess effects)
  * - ANSWER_LOCAL → Answer() references (consumers)
  */
 export default class AnswerLocalWiring {
@@ -119,7 +119,7 @@ export default class AnswerLocalWiring {
    * - POST pseudo node - raw form submission data
    * - formatters (if exist) - transformer functions executed inline after sanitization
    * - defaultValue expression (if exists) - default when no POST data exists
-   * - onLoad transition (if exists) - pre-populated value from effects
+   * - onAccess transition (if exists) - pre-populated value from effects
    */
   private wireProducers(answerPseudoNode: AnswerLocalPseudoNode) {
     const { baseFieldCode, fieldNodeId: baseFieldNodeId } = answerPseudoNode.properties
@@ -158,15 +158,20 @@ export default class AnswerLocalWiring {
       })
     }
 
-    // Wire the on load transition
-    const nearestOnLoadTransition = this.wiringContext.findLastOnLoadTransitionFrom(
+    // Wire the onAccess transition
+    const nearestOnAccessTransition = this.wiringContext.findLastOnAccessTransitionFrom(
       this.wiringContext.getCurrentStepNode().id,
     )
 
-    if (nearestOnLoadTransition) {
-      this.wiringContext.graph.addEdge(nearestOnLoadTransition.id, answerPseudoNode.id, DependencyEdgeType.DATA_FLOW, {
-        fieldCode: baseFieldCode,
-      })
+    if (nearestOnAccessTransition) {
+      this.wiringContext.graph.addEdge(
+        nearestOnAccessTransition.id,
+        answerPseudoNode.id,
+        DependencyEdgeType.DATA_FLOW,
+        {
+          fieldCode: baseFieldCode,
+        },
+      )
     }
   }
 }

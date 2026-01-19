@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PredicateType, ExpressionType } from '@form-engine/form/types/enums'
+import { PredicateType, ExpressionType, OutcomeType } from '@form-engine/form/types/enums'
 import { ValueExprSchema, FormatExprSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
@@ -71,10 +71,25 @@ export const ConditionalExprSchema = z.lazy(() =>
 )
 
 /**
- * @see {@link NextExpr}
+ * @see {@link RedirectOutcome}
  */
-export const NextExprSchema = z.object({
-  type: z.literal(ExpressionType.NEXT),
+export const RedirectOutcomeSchema = z.object({
+  type: z.literal(OutcomeType.REDIRECT),
   when: PredicateExprSchema.optional(),
-  goto: z.union([z.string(), FormatExprSchema]),
+  goto: z.union([z.string(), FormatExprSchema, ValueExprSchema]),
 })
+
+/**
+ * @see {@link ThrowErrorOutcome}
+ */
+export const ThrowErrorOutcomeSchema = z.object({
+  type: z.literal(OutcomeType.THROW_ERROR),
+  when: PredicateExprSchema.optional(),
+  status: z.number().int().min(100).max(599),
+  message: z.union([z.string(), FormatExprSchema, ValueExprSchema]),
+})
+
+/**
+ * @see {@link TransitionOutcome}
+ */
+export const TransitionOutcomeSchema = z.discriminatedUnion('type', [RedirectOutcomeSchema, ThrowErrorOutcomeSchema])

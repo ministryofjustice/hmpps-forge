@@ -47,10 +47,6 @@ export default class StepFactory {
       })
     }
 
-    if (dataProperties.onLoad !== undefined) {
-      properties.onLoad = this.nodeFactory.transformValue(dataProperties.onLoad)
-    }
-
     if (dataProperties.onAccess !== undefined) {
       properties.onAccess = this.nodeFactory.transformValue(dataProperties.onAccess)
     }

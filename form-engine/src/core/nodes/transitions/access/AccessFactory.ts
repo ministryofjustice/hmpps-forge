@@ -1,4 +1,3 @@
-import { isAccessTransitionRedirect, isAccessTransitionError } from '@form-engine/form/typeguards/transitions'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { TransitionType } from '@form-engine/form/types/enums'
 import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
@@ -8,8 +7,11 @@ import { AccessTransition } from '@form-engine/form/types/expressions.type'
 
 /**
  * AccessFactory: Creates Access transition nodes
- * Handles guards, analytics, redirects, and error responses
- * Controls access and tracks user navigation
+ *
+ * Handles access control, data loading, and outcomes through:
+ * - `when` conditions for conditional execution
+ * - `effects` for data loading and side effects
+ * - `next` outcomes for redirects and errors (first-match semantics)
  */
 export default class AccessFactory {
   constructor(
@@ -19,28 +21,21 @@ export default class AccessFactory {
   ) {}
 
   /**
-   * Transform Access transition: Guards and analytics
-   * Controls access and tracks user navigation
-   * Handles both redirect-based and error response-based access transitions.
+   * Transform Access transition definition into AST node
    */
   create(json: AccessTransition): AccessTransitionASTNode {
     const properties: AccessTransitionASTNode['properties'] = {}
 
-    if (json.guards) {
-      properties.guards = this.nodeFactory.createNode(json.guards)
+    if (json.when) {
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     if (Array.isArray(json.effects)) {
       properties.effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
     }
 
-    if (isAccessTransitionRedirect(json)) {
-      properties.redirect = json.redirect.map((r: any) => this.nodeFactory.createNode(r))
-    }
-
-    if (isAccessTransitionError(json)) {
-      properties.status = json.status
-      properties.message = typeof json.message === 'string' ? json.message : this.nodeFactory.createNode(json.message)
+    if (Array.isArray(json.next)) {
+      properties.next = json.next.map((outcome: any) => this.nodeFactory.createNode(outcome))
     }
 
     return {

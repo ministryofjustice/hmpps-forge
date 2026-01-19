@@ -5,7 +5,7 @@ import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataR
 import DependencyGraph from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { BlockType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
-import { LoadTransitionASTNode } from '@form-engine/core/types/expressions.type'
+import { AccessTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 
 function createMockNodeRegistry(): jest.Mocked<NodeRegistry> {
@@ -224,13 +224,13 @@ describe('WiringContext', () => {
     })
   })
 
-  describe('findLastOnLoadTransitionFrom', () => {
-    it('should return last onLoad transition from step', () => {
-      const onLoad1 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const onLoad2 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+  describe('findLastOnAccessTransitionFrom', () => {
+    it('should return last onAccess transition from step', () => {
+      const onAccess1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const onAccess2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const step = ASTTestFactory.step()
-        .withProperty('onLoad', [onLoad1, onLoad2])
+        .withProperty('onAccess', [onAccess1, onAccess2])
         .build()
 
       when(mockNodeRegistry.get)
@@ -241,17 +241,17 @@ describe('WiringContext', () => {
         .calledWith(step.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
-      expect(result).toBe(onLoad2)
+      expect(result).toBe(onAccess2)
     })
 
-    it('should return last onLoad transition from journey', () => {
-      const onLoad1 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const onLoad2 = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+    it('should return last onAccess transition from journey', () => {
+      const onAccess1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const onAccess2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const journey = ASTTestFactory.journey()
-        .withProperty('onLoad', [onLoad1, onLoad2])
+        .withProperty('onAccess', [onAccess1, onAccess2])
         .build()
 
       when(mockNodeRegistry.get)
@@ -262,16 +262,16 @@ describe('WiringContext', () => {
         .calledWith(journey.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(journey.id)
+      const result = context.findLastOnAccessTransitionFrom(journey.id)
 
-      expect(result).toBe(onLoad2)
+      expect(result).toBe(onAccess2)
     })
 
-    it('should traverse to parent when step has no onLoad', () => {
-      const parentOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+    it('should traverse to parent when step has no onAccess', () => {
+      const parentOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const parent = ASTTestFactory.journey()
-        .withProperty('onLoad', [parentOnLoad])
+        .withProperty('onAccess', [parentOnAccess])
         .build()
 
       const step = ASTTestFactory.step().build()
@@ -292,20 +292,20 @@ describe('WiringContext', () => {
         .calledWith(parent.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
-      expect(result).toBe(parentOnLoad)
+      expect(result).toBe(parentOnAccess)
     })
 
-    it('should traverse to parent when step has empty onLoad array', () => {
-      const parentOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+    it('should traverse to parent when step has empty onAccess array', () => {
+      const parentOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const parent = ASTTestFactory.journey()
-        .withProperty('onLoad', [parentOnLoad])
+        .withProperty('onAccess', [parentOnAccess])
         .build()
 
       const step = ASTTestFactory.step()
-        .withProperty('onLoad', [])
+        .withProperty('onAccess', [])
         .build()
 
       when(mockNodeRegistry.get)
@@ -324,16 +324,16 @@ describe('WiringContext', () => {
         .calledWith(parent.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
-      expect(result).toBe(parentOnLoad)
+      expect(result).toBe(parentOnAccess)
     })
 
-    it('should traverse multiple levels to find onLoad', () => {
-      const grandparentOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+    it('should traverse multiple levels to find onAccess', () => {
+      const grandparentOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const grandparent = ASTTestFactory.journey()
-        .withProperty('onLoad', [grandparentOnLoad])
+        .withProperty('onAccess', [grandparentOnAccess])
         .build()
 
       const parent = ASTTestFactory.journey().build()
@@ -363,21 +363,21 @@ describe('WiringContext', () => {
         .calledWith(grandparent.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
-      expect(result).toBe(grandparentOnLoad)
+      expect(result).toBe(grandparentOnAccess)
     })
 
-    it('should prefer step onLoad over parent onLoad', () => {
-      const stepOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
-      const parentOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+    it('should prefer step onAccess over parent onAccess', () => {
+      const stepOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const parentOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const parent = ASTTestFactory.journey()
-        .withProperty('onLoad', [parentOnLoad])
+        .withProperty('onAccess', [parentOnAccess])
         .build()
 
       const step = ASTTestFactory.step()
-        .withProperty('onLoad', [stepOnLoad])
+        .withProperty('onAccess', [stepOnAccess])
         .build()
 
       when(mockNodeRegistry.get)
@@ -388,12 +388,12 @@ describe('WiringContext', () => {
         .calledWith(step.id, 'attachedToParentNode')
         .mockReturnValue(parent.id)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
-      expect(result).toBe(stepOnLoad)
+      expect(result).toBe(stepOnAccess)
     })
 
-    it('should return undefined when no onLoad transitions exist in chain', () => {
+    it('should return undefined when no onAccess transitions exist in chain', () => {
       const parent = ASTTestFactory.journey().build()
       const step = ASTTestFactory.step().build()
 
@@ -413,16 +413,16 @@ describe('WiringContext', () => {
         .calledWith(parent.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(step.id)
+      const result = context.findLastOnAccessTransitionFrom(step.id)
 
       expect(result).toBeUndefined()
     })
 
     it('should skip non-structural nodes during traversal', () => {
-      const parentOnLoad = ASTTestFactory.transition(TransitionType.LOAD).build() as LoadTransitionASTNode
+      const parentOnAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
 
       const parent = ASTTestFactory.journey()
-        .withProperty('onLoad', [parentOnLoad])
+        .withProperty('onAccess', [parentOnAccess])
         .build()
 
       const blockNode = ASTTestFactory.block('TextInput', BlockType.BASIC).build()
@@ -443,9 +443,9 @@ describe('WiringContext', () => {
         .calledWith(parent.id, 'attachedToParentNode')
         .mockReturnValue(undefined)
 
-      const result = context.findLastOnLoadTransitionFrom(blockNode.id)
+      const result = context.findLastOnAccessTransitionFrom(blockNode.id)
 
-      expect(result).toBe(parentOnLoad)
+      expect(result).toBe(parentOnAccess)
     })
   })
 })

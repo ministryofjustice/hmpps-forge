@@ -2,7 +2,6 @@ import { TransitionType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import {
   TransitionASTNode,
-  LoadTransitionASTNode,
   AccessTransitionASTNode,
   ActionTransitionASTNode,
   SubmitTransitionASTNode,
@@ -10,13 +9,6 @@ import {
 
 export function isTransitionNode(obj: any): obj is TransitionASTNode {
   return obj != null && obj.type === ASTNodeType.TRANSITION
-}
-
-/**
- * Check if an AST node is a Load Transition node
- */
-export function isLoadTransitionNode(obj: any): obj is LoadTransitionASTNode {
-  return isTransitionNode(obj) && obj.transitionType === TransitionType.LOAD
 }
 
 /**
