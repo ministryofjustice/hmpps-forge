@@ -177,16 +177,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
 
     if (!handler) {
       const registry = this.compilationDependencies.thunkHandlerRegistry
-      const error = ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
-
-      const errorResult: ThunkResult<T> = {
-        error: error.toThunkError(),
-        metadata: { source: 'ThunkEvaluator.invokeSync', timestamp: Date.now() },
-      }
-
-      this.cacheManager.set(nodeId, errorResult)
-
-      return errorResult
+      throw ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
     }
 
     // Verify handler is actually sync
@@ -198,7 +189,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     }
 
     // Execute synchronously - NO Promise overhead!
-    const result = this.executeSyncHandler<T>(nodeId, handler, context)
+    const result = this.executeSyncHandler<T>(handler, context)
     this.cacheManager.set(nodeId, result)
 
     return result
@@ -224,25 +215,13 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
 
     if (!handler) {
       const registry = this.compilationDependencies.thunkHandlerRegistry
-      const error = ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
-
-      const errorResult: ThunkResult<T> = {
-        error: error.toThunkError(),
-        metadata: {
-          source: 'ThunkEvaluator.invoke',
-          timestamp: Date.now(),
-        },
-      }
-
-      this.cacheManager.set(nodeId, errorResult)
-
-      return errorResult
+      throw ThunkHandlerRegistryError.notFound(nodeId, registry.size(), registry.getIds().slice(0, 10))
     }
 
     // Branch based on handler type
     if (!handler.isAsync) {
       // SYNC PATH: Execute immediately, no async overhead
-      const result = this.executeSyncHandler<T>(nodeId, handler, context)
+      const result = this.executeSyncHandler<T>(handler, context)
 
       // Cache result
       this.cacheManager.set(nodeId, result)
@@ -310,9 +289,8 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
       // Create contextual hooks for this evaluation attempt
       const contextualHooks = this.runtimeHooksFactory.create(nodeId)
 
-      // Execute handler with error handling
       // eslint-disable-next-line no-await-in-loop
-      result = await this.executeHandler<T>(nodeId, handler, context, contextualHooks)
+      result = await this.executeHandler<T>(handler, context, contextualHooks)
 
       // Check version at END of evaluation
       const versionAtEnd = this.cacheManager.getVersion(nodeId)
@@ -331,77 +309,43 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     }
 
     // Exceeded max retries - likely infinite invalidation loop
-    const error = ThunkEvaluationError.maxRetriesExceeded(nodeId, retries, maxRetries)
-
-    const maxRetriesError: ThunkResult<T> = {
-      error: error.toThunkError(),
-      metadata: {
-        source: 'ThunkEvaluator.invoke',
-        timestamp: Date.now(),
-      },
-    }
-
-    this.cacheManager.set(nodeId, maxRetriesError)
-
-    return maxRetriesError
+    throw ThunkEvaluationError.maxRetriesExceeded(nodeId, retries, maxRetries)
   }
 
   /**
-   * Execute handler and wrap any errors in structured ThunkError
+   * Execute handler
    *
-   * @param nodeId - The node being evaluated
    * @param handler - The handler to execute
    * @param context - Runtime evaluation context
    * @param hooks - Runtime hooks
-   * @returns Promise resolving to evaluation result (success or wrapped error)
+   * @returns Promise resolving to evaluation result
    */
   private async executeHandler<T>(
-    nodeId: NodeId,
     handler: ThunkHandler,
     context: ThunkEvaluationContext,
     hooks: ThunkRuntimeHooks,
   ): Promise<ThunkResult<T>> {
-    try {
-      // TypeScript doesn't know that handler must have isAsync=true here
-      // (because sync handlers were already handled in invokeWithRetry)
-      // So we handle the sync case gracefully just in case
-      if (!handler.isAsync) {
-        return handler.evaluateSync(context, this) as ThunkResult<T>
-      }
-
-      return (await handler.evaluate(context, this, hooks)) as ThunkResult<T>
-    } catch (cause) {
-      // Wrap any thrown errors in structured ThunkError
-      const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
-      const error = ThunkEvaluationError.failed(nodeId, wrappedCause, handler.constructor.name)
-
-      return { error: error.toThunkError() }
+    // TypeScript doesn't know that handler must have isAsync=true here
+    // (because sync handlers were already handled in invokeWithRetry)
+    // So we handle the sync case gracefully just in case
+    if (!handler.isAsync) {
+      return handler.evaluateSync(context, this) as ThunkResult<T>
     }
+
+    return (await handler.evaluate(context, this, hooks)) as ThunkResult<T>
   }
 
   /**
-   * Execute sync handler and wrap any errors in structured ThunkError
+   * Execute sync handler - errors bubble up to Express error handler
    *
    * Direct synchronous execution - no Promise overhead, no async machinery.
    *
-   * @param nodeId - The node being evaluated
    * @param handler - The sync handler to execute
    * @param context - Runtime evaluation context
-   * @returns Evaluation result (success or wrapped error)
+   * @returns Evaluation result
    */
-  private executeSyncHandler<T>(
-    nodeId: NodeId,
-    handler: ThunkHandler,
-    context: ThunkEvaluationContext,
-  ): ThunkResult<T> {
-    try {
-      return handler.evaluateSync(context, this) as ThunkResult<T>
-    } catch (cause) {
-      const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
-      const error = ThunkEvaluationError.failed(nodeId, wrappedCause, handler.constructor.name)
-
-      return { error: error.toThunkError() }
-    }
+  private executeSyncHandler<T>(handler: ThunkHandler, context: ThunkEvaluationContext): ThunkResult<T> {
+    return handler.evaluateSync(context, this) as ThunkResult<T>
   }
 
   /**

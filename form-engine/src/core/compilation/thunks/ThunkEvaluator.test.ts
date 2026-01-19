@@ -216,20 +216,12 @@ describe('ThunkEvaluator', () => {
       expect(mockHandler.evaluate).toHaveBeenCalledTimes(1)
     })
 
-    it('should return HANDLER_NOT_FOUND error when handler not found', async () => {
+    it('should throw HANDLER_NOT_FOUND error when handler not found', async () => {
       // Arrange
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(undefined)
 
-      // Act
-      const result = await evaluator.invoke(nodeId, mockContext)
-
-      // Assert
-      expect(result.error).toBeDefined()
-      expect(result.error?.type).toBe('HANDLER_REGISTRY')
-      expect(result.error?.nodeId).toBe(nodeId)
-      expect(result.error?.message).toContain('No handler registered')
-      expect(result.metadata.source).toBe('ThunkEvaluator.invoke')
-      expect(result.metadata.timestamp).toBeDefined()
+      // Act & Assert
+      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('No handler registered')
     })
 
     it('should execute handler and cache result when handler evaluates successfully', async () => {
@@ -261,39 +253,25 @@ describe('ThunkEvaluator', () => {
       )
     })
 
-    it('should wrap error in EVALUATION_FAILED result when handler throws exception', async () => {
+    it('should let handler exceptions bubble up', async () => {
       // Arrange
       const thrownError = new Error('Handler crashed')
       const mockHandler = createMockHybridHandler(nodeId, jest.fn().mockRejectedValue(thrownError))
 
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
 
-      // Act
-      const result = await evaluator.invoke(nodeId, mockContext)
-
-      // Assert
-      expect(result.error).toBeDefined()
-      expect(result.error?.type).toBe('EVALUATION_FAILED')
-      expect(result.error?.nodeId).toBe(nodeId)
-      expect(result.error?.message).toContain('evaluation failed')
-      expect(result.error?.message).toContain('Handler crashed')
-      expect(result.error?.cause).toBeInstanceOf(Error)
+      // Act & Assert
+      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('Handler crashed')
     })
 
-    it('should handle non-Error exceptions when handler throws', async () => {
+    it('should let non-Error exceptions bubble up', async () => {
       // Arrange
       const mockHandler = createMockHybridHandler(nodeId, jest.fn().mockRejectedValue('String error'))
 
       when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
 
-      // Act
-      const result = await evaluator.invoke(nodeId, mockContext)
-
-      // Assert
-      expect(result.error).toBeDefined()
-      expect(result.error?.type).toBe('EVALUATION_FAILED')
-      expect(result.error?.message).toContain('String error')
-      expect(result.error?.cause).toBeInstanceOf(Error)
+      // Act & Assert
+      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toBe('String error')
     })
 
     it('should dedupe concurrent invocations of the same node', async () => {
