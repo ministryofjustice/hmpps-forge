@@ -104,7 +104,7 @@ export default class EffectFunctionContext<
   /**
    * Get all answers (current values only, without history)
    */
-  getAnswers(): TAnswers {
+  getAllAnswers(): TAnswers {
     const result: Record<string, unknown> = {}
 
     Object.entries(this.context.global.answers).forEach(([key, history]) => {
@@ -189,7 +189,7 @@ export default class EffectFunctionContext<
   /**
    * Get all route parameters
    */
-  getRequestParams(): Record<string, string> {
+  getAllRequestParams(): Record<string, string> {
     return this.context.request.params ? { ...this.context.request.params } : {}
   }
 
@@ -203,7 +203,7 @@ export default class EffectFunctionContext<
   /**
    * Get all query parameters
    */
-  getQueryParams(): Record<string, string | string[]> {
+  getAllQueryParams(): Record<string, string | string[]> {
     return this.context.request.query ? { ...this.context.request.query } : {}
   }
 
