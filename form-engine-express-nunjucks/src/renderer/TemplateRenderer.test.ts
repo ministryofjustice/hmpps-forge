@@ -38,6 +38,7 @@ describe('TemplateRenderer', () => {
       ancestors: [{ code: 'test-journey', path: '/journey', title: 'Test Journey' }],
       blocks: [],
       showValidationFailures: false,
+      validationErrors: [],
       answers: {},
       data: {},
       ...overrides,

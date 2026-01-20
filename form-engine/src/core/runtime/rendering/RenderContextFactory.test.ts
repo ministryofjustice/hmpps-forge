@@ -121,9 +121,10 @@ describe('RenderContextFactory', () => {
   }
 
   const createMockNodeRegistry = (): NodeRegistry => {
-    // Create a mock registry that returns empty arrays for pseudo node lookups
+    // Create a mock registry that returns empty arrays for node lookups
     return {
       findByPseudoType: jest.fn().mockReturnValue([]),
+      findByType: jest.fn().mockReturnValue([]),
     } as unknown as NodeRegistry
   }
 

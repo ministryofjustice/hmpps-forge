@@ -59,6 +59,7 @@ export default class TemplateRenderer {
       navigation: context.navigation,
       answers: context.answers,
       data: context.data,
+      validationErrors: context.validationErrors,
     }
 
     const template = this.resolveTemplate(context)

@@ -7,8 +7,8 @@ import {
   MetadataComputationDependencies,
 } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
-import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
-import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
+import { evaluateOperand, evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync, evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
@@ -76,8 +76,33 @@ export default class ValidationHandler implements ThunkHandler {
       messageIsAsync = messageHandler?.isAsync ?? true
     }
 
-    // Async if when or message is async
-    this.isAsync = whenIsAsync || messageIsAsync
+    // Check details for AST nodes
+    let detailsIsAsync = false
+
+    if (this.node.properties.details) {
+      detailsIsAsync = this.checkDetailsIsAsync(this.node.properties.details, deps)
+    }
+
+    // Async if when, message, or details is async
+    this.isAsync = whenIsAsync || messageIsAsync || detailsIsAsync
+  }
+
+  private checkDetailsIsAsync(details: Record<string, any>, deps: MetadataComputationDependencies): boolean {
+    for (const value of Object.values(details)) {
+      if (isASTNode(value)) {
+        const handler = deps.thunkHandlerRegistry.get(value.id)
+
+        if (handler?.isAsync ?? true) {
+          return true
+        }
+      } else if (value && typeof value === 'object') {
+        if (this.checkDetailsIsAsync(value, deps)) {
+          return true
+        }
+      }
+    }
+
+    return false
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ValidationResult> {
@@ -87,6 +112,9 @@ export default class ValidationHandler implements ThunkHandler {
     // Evaluate the message (needed for both success and error cases)
     const message = evaluateOperandSync(this.node.properties.message, context, invoker)
 
+    // Evaluate details (resolve any AST nodes recursively)
+    const evaluatedDetails = evaluatePropertyValueSync(this.node.properties.details, context, invoker)
+
     // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {
       return {
@@ -94,7 +122,7 @@ export default class ValidationHandler implements ThunkHandler {
           passed: false,
           message: String(message ?? 'Validation error'),
           submissionOnly: this.node.properties.submissionOnly ?? false,
-          details: this.node.properties.details,
+          details: evaluatedDetails,
         },
       }
     }
@@ -104,7 +132,7 @@ export default class ValidationHandler implements ThunkHandler {
         passed: !predicateResult.value,
         message: String(message ?? ''),
         submissionOnly: this.node.properties.submissionOnly ?? false,
-        details: this.node.properties.details,
+        details: evaluatedDetails,
       },
     }
   }
@@ -119,6 +147,9 @@ export default class ValidationHandler implements ThunkHandler {
     // Evaluate the message (needed for both success and error cases)
     const message = await evaluateOperand(this.node.properties.message, context, invoker)
 
+    // Evaluate details (resolve any AST nodes recursively)
+    const evaluatedDetails = await evaluatePropertyValue(this.node.properties.details, context, invoker)
+
     // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {
       return {
@@ -126,7 +157,7 @@ export default class ValidationHandler implements ThunkHandler {
           passed: false,
           message: String(message ?? 'Validation error'),
           submissionOnly: this.node.properties.submissionOnly ?? false,
-          details: this.node.properties.details,
+          details: evaluatedDetails,
         },
       }
     }
@@ -136,7 +167,7 @@ export default class ValidationHandler implements ThunkHandler {
         passed: !predicateResult.value,
         message: String(message ?? ''),
         submissionOnly: this.node.properties.submissionOnly ?? false,
-        details: this.node.properties.details,
+        details: evaluatedDetails,
       },
     }
   }
