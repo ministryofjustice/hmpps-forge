@@ -6,7 +6,8 @@ import DependencyGraph from '@form-engine/core/compilation/dependency-graph/Depe
 import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { ThunkHandler, RuntimeOverlayBuilder, EvaluatorRequestData } from '@form-engine/core/compilation/thunks/types'
+import { ThunkHandler, RuntimeOverlayBuilder } from '@form-engine/core/compilation/thunks/types'
+import { StepRequest } from '@form-engine/core/runtime/routes/types'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
 import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
@@ -315,11 +316,12 @@ describe('ThunkEvaluator', () => {
   describe('createContext()', () => {
     it('should build context from request data', () => {
       // Arrange
-      const request: EvaluatorRequestData = {
+      const request: StepRequest = {
         method: 'GET',
         post: { email: 'test@example.com' },
         query: { returnUrl: '/dashboard' },
         params: { id: '123' },
+        url: 'http://localhost/test',
       }
 
       // Act
@@ -344,11 +346,12 @@ describe('ThunkEvaluator', () => {
       const childNode1: NodeId = 'compile_ast:101'
       const childNode2: NodeId = 'compile_ast:102'
 
-      const request: EvaluatorRequestData = {
+      const request: StepRequest = {
         method: 'GET',
         post: {},
         query: {},
         params: {},
+        url: 'http://localhost/test',
       }
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()
@@ -405,11 +408,12 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const journeyNodeId: NodeId = 'compile_ast:200'
       const childNodeId: NodeId = 'compile_ast:201'
-      const request: EvaluatorRequestData = {
+      const request: StepRequest = {
         method: 'GET',
         post: {},
         query: {},
         params: {},
+        url: 'http://localhost/test',
       }
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()
@@ -466,11 +470,12 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const journeyNodeId: NodeId = 'compile_ast:300'
       const answerNodeId: PseudoNodeId = 'compile_pseudo:301'
-      const request: EvaluatorRequestData = {
+      const request: StepRequest = {
         method: 'GET',
         post: {},
         query: {},
         params: {},
+        url: 'http://localhost/test',
       }
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()

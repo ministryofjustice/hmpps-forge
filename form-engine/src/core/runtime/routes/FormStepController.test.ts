@@ -69,7 +69,7 @@ describe('FormStepController', () => {
       post: {},
       query: {},
       params: {},
-      path: '/journey/step-1',
+      url: 'http://localhost/journey/step-1',
     }
 
     mockReq = {}
@@ -815,7 +815,7 @@ describe('FormStepController', () => {
         post: { field1: 'value1' },
         query: { param1: 'value1' },
         params: { id: '123' },
-        path: '/journey/step-1',
+        url: 'http://localhost/journey/step-1',
         session: { userId: 'user-1' },
         state: { key: 'value' },
       }
@@ -841,64 +841,10 @@ describe('FormStepController', () => {
         post: { field1: 'value1' },
         query: { param1: 'value1' },
         params: { id: '123' },
+        url: 'http://localhost/journey/step-1',
         session: { userId: 'user-1' },
         state: { key: 'value' },
       })
-    })
-  })
-
-  describe('logging', () => {
-    it('should log GET request', async () => {
-      // Arrange
-      const step = createStepWithTransitions({})
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      mockEvaluator.evaluate.mockResolvedValue({
-        context: mockContext,
-        journey: { value: {}, metadata: { source: 'test', timestamp: Date.now() } },
-      })
-
-      const controller = new FormStepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-      )
-
-      // Act
-      await controller.get(mockRequest, mockReq, mockRes)
-
-      // Assert
-      expect(mockDependencies.logger.debug).toHaveBeenCalledWith(expect.stringContaining('GET request'))
-    })
-
-    it('should log POST request', async () => {
-      // Arrange
-      const step = createStepWithTransitions({})
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      mockEvaluator.evaluate.mockResolvedValue({
-        context: mockContext,
-        journey: { value: {}, metadata: { source: 'test', timestamp: Date.now() } },
-      })
-
-      const controller = new FormStepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-      )
-      mockRequest.method = 'POST'
-
-      // Act
-      await controller.post(mockRequest, mockReq, mockRes)
-
-      // Assert
-      expect(mockDependencies.logger.debug).toHaveBeenCalledWith(expect.stringContaining('POST request'))
     })
   })
 

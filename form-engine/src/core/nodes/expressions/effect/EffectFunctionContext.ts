@@ -180,6 +180,13 @@ export default class EffectFunctionContext<
   }
 
   /**
+   * Get the full request URL
+   */
+  getRequestUrl(): string {
+    return this.context.request.url
+  }
+
+  /**
    * Get a specific route parameter
    */
   getRequestParam(key: string): string | undefined {

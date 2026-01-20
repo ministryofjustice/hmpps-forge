@@ -1,3 +1,4 @@
+import type Logger from 'bunyan'
 import express from 'express'
 import {
   FrameworkAdapter,
@@ -27,6 +28,7 @@ export interface ExpressFrameworkAdapterUserOptions {
 
 export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdapterUserOptions {
   componentRegistry: ComponentRegistry
+  logger: Logger | Console
 }
 
 /**
@@ -37,6 +39,8 @@ export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdap
 export default class ExpressFrameworkAdapter
   implements FrameworkAdapter<express.Router, express.Request, express.Response>
 {
+  private readonly logger: Logger | Console
+
   private readonly templateRenderer: TemplateRenderer
 
   /**
@@ -60,6 +64,7 @@ export default class ExpressFrameworkAdapter
         new ExpressFrameworkAdapter({
           ...options,
           componentRegistry: deps.componentRegistry,
+          logger: deps.logger,
         }),
     }
   }
@@ -68,6 +73,7 @@ export default class ExpressFrameworkAdapter
    * Create an Express framework adapter with Nunjucks rendering
    */
   private constructor(options: ExpressFrameworkAdapterFullOptions) {
+    this.logger = options.logger
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
       componentRegistry: options.componentRegistry,
@@ -99,10 +105,10 @@ export default class ExpressFrameworkAdapter
   toStepRequest(req: RequestWithState): StepRequest {
     return {
       method: req.method as 'GET' | 'POST',
-      post: (req.body as Record<string, unknown>) ?? {},
-      query: (req.query as Record<string, unknown>) ?? {},
+      post: (req.body as Record<string, string | string[]>) ?? {},
+      query: (req.query as Record<string, string | string[]>) ?? {},
       params: req.params,
-      path: req.path,
+      url: `${req.protocol}://${req.host}${req.originalUrl}`,
       session: req.session,
       state: req.state ?? {},
     }
@@ -153,6 +159,7 @@ export default class ExpressFrameworkAdapter
   /** Wrap a step handler to convert request and catch async errors */
   private wrapHandler(handler: StepHandler<express.Request, express.Response>): express.RequestHandler {
     return (req, res, next) => {
+      this.logger.debug(`${req.method} request to step at path ${req.path}`)
       const stepRequest = this.toStepRequest(req as RequestWithState)
 
       handler(stepRequest, req, res).catch(next)

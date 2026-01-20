@@ -1,3 +1,4 @@
+import type Logger from 'bunyan'
 import { HttpMethod } from '@form-engine/core/compilation/thunks/types'
 import { RenderContext } from '@form-engine/core/runtime/rendering/types'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
@@ -7,6 +8,7 @@ import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
  */
 export interface FrameworkAdapterDependencies {
   componentRegistry: ComponentRegistry
+  logger: Logger | Console
 }
 
 /**
@@ -30,10 +32,10 @@ export interface FrameworkAdapterBuilder<TRouter, TRequest, TResponse> {
 
 export interface StepRequest {
   method: HttpMethod
-  post: Record<string, unknown>
-  query: Record<string, unknown>
+  post: Record<string, string | string[]>
+  query: Record<string, string | string[]>
   params: Record<string, string>
-  path: string
+  url: string
   session?: unknown
   state?: Record<string, unknown>
 }

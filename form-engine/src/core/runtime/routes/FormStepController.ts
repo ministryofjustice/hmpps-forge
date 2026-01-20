@@ -2,7 +2,7 @@ import createHttpError from 'http-errors'
 import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompiledForm } from '@form-engine/core/compilation/FormCompilationFactory'
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/compilation/thunks/ThunkEvaluator'
-import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
+import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { AccessTransitionResult } from '@form-engine/core/nodes/transitions/access/AccessHandler'
 import { SubmitTransitionResult } from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
@@ -57,10 +57,9 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
   /** Handle GET request: run access lifecycle, evaluate AST, render response. */
   async get(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
-    this.dependencies.logger.debug(`GET request to step at path ${request.path}`)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(this.buildRequestData(request))
+    const context = evaluator.createContext(request)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -91,10 +90,9 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
   /** Handle POST request: run access lifecycle, action/submit transitions, render or redirect. */
   async post(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
-    this.dependencies.logger.debug(`POST request to step at path ${request.path}`)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(this.buildRequestData(request))
+    const context = evaluator.createContext(request)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -395,17 +393,5 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   /** Get the current step node from the context. */
   private getCurrentStep(context: ThunkEvaluationContext): StepASTNode {
     return context.nodeRegistry.get(this.compiledForm.currentStepId) as StepASTNode
-  }
-
-  /** Convert framework-agnostic StepRequest to EvaluatorRequestData. */
-  private buildRequestData(request: StepRequest): EvaluatorRequestData {
-    return {
-      method: request.method,
-      post: request.post as Record<string, string | string[]>,
-      query: request.query as Record<string, string | string[]>,
-      params: request.params,
-      session: request.session,
-      state: request.state,
-    }
   }
 }

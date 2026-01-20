@@ -67,18 +67,6 @@ export interface AnswerHistory {
 export type HttpMethod = 'GET' | 'POST'
 
 /**
- * Request data structure for evaluation
- */
-export interface EvaluatorRequestData {
-  method: HttpMethod
-  post: Record<string, string | string[]>
-  query: Record<string, string | string[]>
-  params: Record<string, string>
-  session?: any
-  state?: Record<string, any>
-}
-
-/**
  * Metadata about a thunk evaluation
  */
 export interface ThunkResultMetadata {

@@ -117,6 +117,7 @@ export default class FormEngine {
       logger: this.options.logger,
       frameworkAdapter: this.options.frameworkAdapter.build({
         componentRegistry: this.componentRegistry,
+        logger: this.options.logger!,
       }),
     }
 

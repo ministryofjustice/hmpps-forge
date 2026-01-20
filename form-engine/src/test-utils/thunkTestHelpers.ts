@@ -7,12 +7,12 @@ import ThunkEvaluationContext, {
 import {
   AnswerHistory,
   AnswerSource,
-  EvaluatorRequestData,
   ThunkErrorType,
   ThunkInvocationAdapter,
   ThunkResult,
   ThunkRuntimeHooks,
 } from '@form-engine/core/compilation/thunks/types'
+import { StepRequest } from '@form-engine/core/runtime/routes/types'
 
 /**
  * Mock answer input - can be a simple value or a full AnswerHistory
@@ -47,7 +47,7 @@ function toAnswerHistory(input: MockAnswerInput, defaultSource: AnswerSource = '
  * Options for creating a mock ThunkEvaluationContext
  */
 export interface MockContextOptions {
-  mockRequest?: Partial<EvaluatorRequestData>
+  mockRequest?: Partial<StepRequest>
   mockData?: Record<string, unknown>
   /**
    * Mock answers - can be simple values or full AnswerHistory objects.
@@ -95,11 +95,12 @@ export interface MockContextOptions {
  * @param options
  */
 export function createMockContext(options: MockContextOptions = {}): ThunkEvaluationContext {
-  const request: EvaluatorRequestData = {
+  const request: StepRequest = {
     method: options.mockRequest?.method ?? 'GET',
     post: options.mockRequest?.post ?? {},
     query: options.mockRequest?.query ?? {},
     params: options.mockRequest?.params ?? {},
+    url: options.mockRequest?.url ?? 'http://localhost/mock-path',
     session: options.mockRequest?.session,
     state: options.mockRequest?.state,
   }

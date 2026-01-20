@@ -13,6 +13,7 @@ describe('ExpressFrameworkAdapter', () => {
   let adapter: FrameworkAdapter<express.Router, express.Request, express.Response>
   let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
   let mockComponentRegistry: jest.Mocked<ComponentRegistry>
+  let mockLogger: Console
 
   beforeEach(() => {
     mockNunjucksEnv = {
@@ -28,9 +29,11 @@ describe('ExpressFrameworkAdapter', () => {
       getAll: jest.fn().mockReturnValue(new Map()),
     } as unknown as jest.Mocked<ComponentRegistry>
 
+    mockLogger = { debug: jest.fn() } as unknown as Console
+
     const builder = ExpressFrameworkAdapter.configure({ nunjucksEnv: mockNunjucksEnv })
 
-    adapter = builder.build({ componentRegistry: mockComponentRegistry })
+    adapter = builder.build({ componentRegistry: mockComponentRegistry, logger: mockLogger })
   })
 
   describe('createRouter()', () => {
@@ -116,6 +119,9 @@ describe('ExpressFrameworkAdapter', () => {
         query: { page: '1' },
         params: { id: '123' },
         path: '/step',
+        protocol: 'https',
+        host: 'example.com',
+        originalUrl: '/step?page=1',
         session: { user: 'test' },
       } as unknown as express.Request
       const mockRes = {} as express.Response
@@ -140,7 +146,7 @@ describe('ExpressFrameworkAdapter', () => {
           post: { field: 'value' },
           query: { page: '1' },
           params: { id: '123' },
-          path: '/step',
+          url: 'https://example.com/step?page=1',
         }),
         mockReq,
         mockRes,
@@ -202,7 +208,9 @@ describe('ExpressFrameworkAdapter', () => {
         body: { field1: 'value1' },
         query: { page: '1' },
         params: { id: '123' },
-        path: '/step-one',
+        protocol: 'https',
+        host: 'example.com:3000',
+        originalUrl: '/step-one?page=1',
         session: { userId: 'user1' },
       } as unknown as express.Request
 
@@ -215,7 +223,7 @@ describe('ExpressFrameworkAdapter', () => {
         post: { field1: 'value1' },
         query: { page: '1' },
         params: { id: '123' },
-        path: '/step-one',
+        url: 'https://example.com:3000/step-one?page=1',
         session: { userId: 'user1' },
         state: {},
       })
@@ -228,7 +236,9 @@ describe('ExpressFrameworkAdapter', () => {
         body: undefined,
         query: undefined,
         params: {},
-        path: '/step',
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/step',
         session: undefined,
       } as unknown as express.Request
 
@@ -247,7 +257,9 @@ describe('ExpressFrameworkAdapter', () => {
         body: {},
         query: {},
         params: {},
-        path: '/step',
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/step',
         session: {},
         state: { customData: 'value' },
       } as unknown as express.Request
