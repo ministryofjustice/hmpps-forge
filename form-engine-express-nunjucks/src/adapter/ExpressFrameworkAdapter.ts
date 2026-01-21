@@ -1,11 +1,14 @@
 import type Logger from 'bunyan'
 import express from 'express'
 import {
+  CookieMutation,
+  CookieOptions,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
   StepHandler,
   StepRequest,
+  StepResponse,
 } from '@form-engine/core/runtime/routes/types'
 import { RenderContext } from '@form-engine/core/runtime/rendering/types'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
@@ -103,15 +106,139 @@ export default class ExpressFrameworkAdapter
 
   /** Convert Express request to framework-agnostic StepRequest */
   toStepRequest(req: RequestWithState): StepRequest {
+    const headers = req.headers as Record<string, string | string[] | undefined>
+    const cookies = (req.cookies as Record<string, string | undefined>) ?? {}
+    const params = req.params
+    const query = (req.query as Record<string, string | string[]>) ?? {}
+    const post = (req.body as Record<string, string | string[]>) ?? {}
+    const state = req.state ?? {}
+
     return {
       method: req.method as 'GET' | 'POST',
-      post: (req.body as Record<string, string | string[]>) ?? {},
-      query: (req.query as Record<string, string | string[]>) ?? {},
-      params: req.params,
       url: `${req.protocol}://${req.host}${req.originalUrl}`,
-      session: req.session,
-      state: req.state ?? {},
+
+      getHeader: (name: string) => headers[name.toLowerCase()],
+      getAllHeaders: () => headers,
+      getCookie: (name: string) => cookies[name],
+      getAllCookies: () => cookies,
+      getParam: (name: string) => params[name],
+      getParams: () => params,
+      getQuery: (name: string) => query[name],
+      getAllQuery: () => query,
+      getPost: (name: string) => post[name],
+      getAllPost: () => post,
+      getSession: () => req.session,
+      getState: (key: string) => state[key],
+      getAllState: () => state,
     }
+  }
+
+  /** Create a StepResponse that writes directly to the Express response */
+  toStepResponse(res: express.Response): StepResponse {
+    return {
+      setHeader: (name: string, value: string) => {
+        res.setHeader(name, value)
+      },
+      getHeader: (name: string) => {
+        const header = res.getHeader(name)
+
+        return typeof header === 'string' ? header : undefined
+      },
+      getAllHeaders: () => {
+        const result = new Map<string, string>()
+        const headerNames = res.getHeaderNames()
+
+        for (const name of headerNames) {
+          const value = res.getHeader(name)
+
+          if (typeof value === 'string') {
+            result.set(name, value)
+          }
+        }
+
+        return result
+      },
+      setCookie: (name: string, value: string, options?: CookieOptions) => {
+        res.cookie(name, value, options)
+      },
+      getCookie: (name: string) => this.parseSetCookieHeader(res).get(name),
+      getAllCookies: () => this.parseSetCookieHeader(res),
+    }
+  }
+
+  /**
+   * Parse the Set-Cookie header(s) from the response to get cookies that have been set.
+   * This allows effects to read back cookies they or other effects have set.
+   */
+  private parseSetCookieHeader(res: express.Response): Map<string, CookieMutation> {
+    const cookies = new Map<string, CookieMutation>()
+    const header = res.getHeader('Set-Cookie')
+
+    if (!header) {
+      return cookies
+    }
+
+    const headerStrings = Array.isArray(header) ? header : [String(header)]
+
+    for (const headerString of headerStrings) {
+      const parsed = this.parseSingleSetCookie(headerString)
+
+      if (parsed) {
+        cookies.set(parsed.name, { value: parsed.value, options: parsed.options })
+      }
+    }
+
+    return cookies
+  }
+
+  /**
+   * Parse a single Set-Cookie header string into name, value, and options.
+   */
+  private parseSingleSetCookie(
+    headerString: string,
+  ): { name: string; value: string; options: CookieOptions } | undefined {
+    const parts = headerString.split(';').map(part => part.trim())
+    const [nameValue, ...attributes] = parts
+
+    if (!nameValue) {
+      return undefined
+    }
+
+    const equalsIndex = nameValue.indexOf('=')
+
+    if (equalsIndex === -1) {
+      return undefined
+    }
+
+    const name = nameValue.slice(0, equalsIndex)
+    const value = nameValue.slice(equalsIndex + 1)
+    const options: CookieOptions = {}
+
+    for (const attr of attributes) {
+      const attrLower = attr.toLowerCase()
+
+      if (attrLower === 'httponly') {
+        options.httpOnly = true
+      } else if (attrLower === 'secure') {
+        options.secure = true
+      } else if (attrLower.startsWith('samesite=')) {
+        const sameSiteValue = attr.slice(9).toLowerCase()
+
+        if (sameSiteValue === 'strict' || sameSiteValue === 'lax' || sameSiteValue === 'none') {
+          options.sameSite = sameSiteValue
+        }
+      } else if (attrLower.startsWith('max-age=')) {
+        options.maxAge = parseInt(attr.slice(8), 10)
+      } else if (attrLower.startsWith('path=')) {
+        options.path = attr.slice(5)
+      } else if (attrLower.startsWith('domain=')) {
+        options.domain = attr.slice(7)
+      } else if (attrLower.startsWith('expires=')) {
+        options.expires = new Date(attr.slice(8))
+      }
+    }
+
+    return { name, value, options }
   }
 
   /**
@@ -156,18 +283,16 @@ export default class ExpressFrameworkAdapter
     res.type('html').send(html)
   }
 
-  /** Wrap a step handler to convert request and catch async errors */
+  /** Wrap a step handler to catch async errors */
   private wrapHandler(handler: StepHandler<express.Request, express.Response>): express.RequestHandler {
     return (req, res, next) => {
       this.logger.debug(`${req.method} request to step at path ${req.path}`)
-      const stepRequest = this.toStepRequest(req as RequestWithState)
-
-      handler(stepRequest, req, res).catch(next)
+      handler(req, res).catch(next)
     }
   }
 
   /** Forward an error to Express error handling middleware */
-  forwardError(res: express.Response, error: unknown, next?: express.NextFunction): void {
+  forwardError(_res: express.Response, error: unknown, next?: express.NextFunction): void {
     if (next) {
       next(error)
     } else {

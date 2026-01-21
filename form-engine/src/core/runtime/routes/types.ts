@@ -4,6 +4,44 @@ import { RenderContext } from '@form-engine/core/runtime/rendering/types'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 
 /**
+ * Options for setting a cookie
+ */
+export interface CookieOptions {
+  maxAge?: number
+  expires?: Date
+  httpOnly?: boolean
+  secure?: boolean
+  sameSite?: 'strict' | 'lax' | 'none'
+  path?: string
+  domain?: string
+}
+
+/**
+ * A cookie value with its options
+ */
+export interface CookieMutation {
+  value: string
+  options?: CookieOptions
+}
+
+/**
+ * Framework-agnostic response interface
+ *
+ * Provides methods for setting headers and cookies on the response.
+ * The framework adapter implements these methods to write directly to the native response.
+ *
+ * To clear a cookie, use setCookie with maxAge: 0
+ */
+export interface StepResponse {
+  setHeader(name: string, value: string): void
+  getHeader(name: string): string | undefined
+  getAllHeaders(): Map<string, string>
+  setCookie(name: string, value: string, options?: CookieOptions): void
+  getCookie(name: string): CookieMutation | undefined
+  getAllCookies(): Map<string, CookieMutation>
+}
+
+/**
  * Dependencies provided by FormEngine when building an adapter
  */
 export interface FrameworkAdapterDependencies {
@@ -30,14 +68,29 @@ export interface FrameworkAdapterBuilder<TRouter, TRequest, TResponse> {
   build(deps: FrameworkAdapterDependencies): FrameworkAdapter<TRouter, TRequest, TResponse>
 }
 
+/**
+ * Framework-agnostic request interface
+ *
+ * Provides methods for reading request data. The framework adapter implements
+ * these methods to read from the native request object.
+ */
 export interface StepRequest {
-  method: HttpMethod
-  post: Record<string, string | string[]>
-  query: Record<string, string | string[]>
-  params: Record<string, string>
-  url: string
-  session?: unknown
-  state?: Record<string, unknown>
+  readonly method: HttpMethod
+  readonly url: string
+
+  getHeader(name: string): string | string[] | undefined
+  getAllHeaders(): Record<string, string | string[] | undefined>
+  getCookie(name: string): string | undefined
+  getAllCookies(): Record<string, string | undefined>
+  getParam(name: string): string | undefined
+  getParams(): Record<string, string>
+  getQuery(name: string): string | string[] | undefined
+  getAllQuery(): Record<string, string | string[]>
+  getPost(name: string): string | string[] | undefined
+  getAllPost(): Record<string, string | string[]>
+  getSession(): unknown
+  getState(key: string): unknown
+  getAllState(): Record<string, unknown>
 }
 
 /**
@@ -45,6 +98,7 @@ export interface StepRequest {
  *
  * Controllers are responsible for processing requests and sending responses
  * directly via the framework adapter. They handle:
+ * - Request/response conversion via the framework adapter
  * - Request evaluation and validation
  * - Lifecycle hooks (access, submission)
  * - Response rendering or redirecting
@@ -53,17 +107,17 @@ export interface StepRequest {
  * @typeParam TResponse - Framework-specific response type
  */
 export interface StepController<TRequest, TResponse> {
-  get(request: StepRequest, req: TRequest, res: TResponse): Promise<void>
-  post(request: StepRequest, req: TRequest, res: TResponse): Promise<void>
+  get(req: TRequest, res: TResponse): Promise<void>
+  post(req: TRequest, res: TResponse): Promise<void>
 }
 
 /**
  * Framework-agnostic step handler function
  *
- * Called by the framework adapter after converting the native request.
+ * Called by the framework adapter to handle a route.
  * The adapter handles error wrapping and framework-specific details.
  */
-export type StepHandler<TRequest, TResponse> = (request: StepRequest, req: TRequest, res: TResponse) => Promise<void>
+export type StepHandler<TRequest, TResponse> = (req: TRequest, res: TResponse) => Promise<void>
 
 /**
  * Adapter for web framework integration
@@ -103,10 +157,8 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   /**
    * Register a GET route handler
    *
-   * The adapter is responsible for:
-   * - Converting native request to StepRequest via toStepRequest()
-   * - Wrapping the handler with error handling
-   * - Forwarding errors to the framework's error handler
+   * The adapter wraps the handler with error handling and forwards
+   * errors to the framework's error handler.
    *
    * @param router - Router to register the route on
    * @param path - Route path
@@ -117,10 +169,8 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   /**
    * Register a POST route handler
    *
-   * The adapter is responsible for:
-   * - Converting native request to StepRequest via toStepRequest()
-   * - Wrapping the handler with error handling
-   * - Forwarding errors to the framework's error handler
+   * The adapter wraps the handler with error handling and forwards
+   * errors to the framework's error handler.
    *
    * @param router - Router to register the route on
    * @param path - Route path
@@ -135,6 +185,16 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
    * @returns Framework-agnostic request object
    */
   toStepRequest(req: TRequest): StepRequest
+
+  /**
+   * Create a StepResponse that wraps the native response
+   *
+   * The returned object provides methods that write directly to the native response.
+   *
+   * @param res - Native framework response
+   * @returns StepResponse with methods for setting headers and cookies
+   */
+  toStepResponse(res: TResponse): StepResponse
 
   /**
    * Get the base URL from the request (for relative redirect resolution)

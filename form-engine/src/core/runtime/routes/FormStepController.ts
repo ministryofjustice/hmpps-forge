@@ -20,7 +20,7 @@ import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import { JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { StepController, StepRequest } from './types'
+import { StepController } from './types'
 
 /**
  * FormStepController - Handles the full request lifecycle for form steps
@@ -56,10 +56,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   ) {}
 
   /** Handle GET request: run access lifecycle, evaluate AST, render response. */
-  async get(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
+  async get(req: TRequest, res: TResponse): Promise<void> {
+    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(request)
+    const context = evaluator.createContext(request, response)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -69,11 +71,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
       if (accessResult.outcome === 'redirect') {
-        return this.redirect(res, req, accessResult.redirect!)
+        return this.redirect(res, req, accessResult.redirect, context)
       }
 
       if (accessResult.outcome === 'error') {
-        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
+        throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
       }
     }
 
@@ -89,10 +91,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /** Handle POST request: run access lifecycle, action/submit transitions, render or redirect. */
-  async post(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
+  async post(req: TRequest, res: TResponse): Promise<void> {
+    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(request)
+    const context = evaluator.createContext(request, response)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -102,11 +106,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
       if (accessResult.outcome === 'redirect') {
-        return this.redirect(res, req, accessResult.redirect!)
+        return this.redirect(res, req, accessResult.redirect, context)
       }
 
       if (accessResult.outcome === 'error') {
-        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
+        throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
       }
     }
 
@@ -127,7 +131,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     if (submitResult.outcome === 'redirect') {
-      return this.redirect(res, req, submitResult.redirect!)
+      return this.redirect(res, req, submitResult.redirect, context)
     }
 
     if (submitResult.validated) {
@@ -142,7 +146,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /** Redirect to a URL, resolving relative paths against the current base URL. */
-  private redirect(res: TResponse, req: TRequest, redirect: string): void {
+  private redirect(res: TResponse, req: TRequest, redirect: string, _context: ThunkEvaluationContext): void {
     if (redirect.includes('://') || redirect.startsWith('/')) {
       return this.dependencies.frameworkAdapter.redirect(res, redirect)
     }
