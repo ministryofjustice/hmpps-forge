@@ -6,13 +6,73 @@ import DependencyGraph from '@form-engine/core/compilation/dependency-graph/Depe
 import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { ThunkHandler, RuntimeOverlayBuilder, EvaluatorRequestData } from '@form-engine/core/compilation/thunks/types'
+import { ThunkHandler, RuntimeOverlayBuilder } from '@form-engine/core/compilation/thunks/types'
+import { StepRequest, StepResponse, CookieMutation, CookieOptions } from '@form-engine/core/runtime/routes/types'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
 import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { createMockContext } from '@form-engine/test-utils/thunkTestHelpers'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
+
+const createTestRequest = (
+  overrides: Partial<{
+    method: 'GET' | 'POST'
+    url: string
+    session: unknown
+    state: Record<string, unknown>
+    headers: Record<string, string | string[] | undefined>
+    cookies: Record<string, string | undefined>
+    params: Record<string, string>
+    query: Record<string, string | string[]>
+    post: Record<string, string | string[]>
+  }> = {},
+): StepRequest => {
+  const headers = overrides.headers ?? {}
+  const cookies = overrides.cookies ?? {}
+  const params = overrides.params ?? {}
+  const query = overrides.query ?? {}
+  const post = overrides.post ?? {}
+  const session = overrides.session
+  const state = overrides.state ?? {}
+
+  return {
+    method: overrides.method ?? 'GET',
+    url: overrides.url ?? 'http://localhost/test',
+
+    getHeader: (name: string) => headers[name.toLowerCase()],
+    getAllHeaders: () => headers,
+    getCookie: (name: string) => cookies[name],
+    getAllCookies: () => cookies,
+    getParam: (name: string) => params[name],
+    getParams: () => params,
+    getQuery: (name: string) => query[name],
+    getAllQuery: () => query,
+    getPost: (name: string) => post[name],
+    getAllPost: () => post,
+    getSession: () => session,
+    getState: (key: string) => state[key],
+    getAllState: () => state,
+  }
+}
+
+const createTestResponse = (): StepResponse => {
+  const responseHeaders = new Map<string, string>()
+  const responseCookies = new Map<string, CookieMutation>()
+
+  return {
+    setHeader: (name: string, value: string) => {
+      responseHeaders.set(name, value)
+    },
+    getHeader: (name: string) => responseHeaders.get(name),
+    getAllHeaders: () => responseHeaders,
+    setCookie: (name: string, value: string, options?: CookieOptions) => {
+      responseCookies.set(name, { value, options })
+    },
+    getCookie: (name: string) => responseCookies.get(name),
+    getAllCookies: () => responseCookies,
+  }
+}
 
 // Mock NodeCompilationPipeline to prevent full compilation pipeline from running in tests
 jest.mock('@form-engine/core/compilation/NodeCompilationPipeline', () => ({
@@ -315,20 +375,20 @@ describe('ThunkEvaluator', () => {
   describe('createContext()', () => {
     it('should build context from request data', () => {
       // Arrange
-      const request: EvaluatorRequestData = {
-        method: 'GET',
+      const request = createTestRequest({
         post: { email: 'test@example.com' },
         query: { returnUrl: '/dashboard' },
         params: { id: '123' },
-      }
+      })
+      const response = createTestResponse()
 
       // Act
-      const context = evaluator.createContext(request)
+      const context = evaluator.createContext(request, response)
 
       // Assert
-      expect(context.request.post).toBe(request.post)
-      expect(context.request.query).toBe(request.query)
-      expect(context.request.params).toBe(request.params)
+      expect(context.request.getPost('email')).toBe('test@example.com')
+      expect(context.request.getQuery('returnUrl')).toBe('/dashboard')
+      expect(context.request.getParam('id')).toBe('123')
       expect(context.global.data).toEqual({})
       expect(context.global.answers).toEqual({})
       expect(context.functionRegistry).toBe(mockFunctionRegistry)
@@ -344,12 +404,8 @@ describe('ThunkEvaluator', () => {
       const childNode1: NodeId = 'compile_ast:101'
       const childNode2: NodeId = 'compile_ast:102'
 
-      const request: EvaluatorRequestData = {
-        method: 'GET',
-        post: {},
-        query: {},
-        params: {},
-      }
+      const request = createTestRequest()
+      const response = createTestResponse()
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()
 
@@ -391,7 +447,7 @@ describe('ThunkEvaluator', () => {
       when(mockHandlerRegistry.get).calledWith(childNode2).mockReturnValue(childHandler2)
 
       // Act
-      const context = evaluator.createContext(request)
+      const context = evaluator.createContext(request, response)
       await evaluator.evaluate(context)
 
       // Assert - Journey should be evaluated first, then its children
@@ -405,12 +461,7 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const journeyNodeId: NodeId = 'compile_ast:200'
       const childNodeId: NodeId = 'compile_ast:201'
-      const request: EvaluatorRequestData = {
-        method: 'GET',
-        post: {},
-        query: {},
-        params: {},
-      }
+      const request = createTestRequest()
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()
 
@@ -445,7 +496,7 @@ describe('ThunkEvaluator', () => {
         mockFormInstanceDependencies,
         mockRuntimeOverlayBuilder,
       )
-      await evaluator1.evaluate(evaluator1.createContext(request))
+      await evaluator1.evaluate(evaluator1.createContext(request, createTestResponse()))
 
       // Assert - First evaluation
       expect(callCount).toBe(1)
@@ -456,7 +507,7 @@ describe('ThunkEvaluator', () => {
         mockFormInstanceDependencies,
         mockRuntimeOverlayBuilder,
       )
-      await evaluator2.evaluate(evaluator2.createContext(request))
+      await evaluator2.evaluate(evaluator2.createContext(request, createTestResponse()))
 
       // Assert - Handler should be called again (not using evaluator1's cache)
       expect(callCount).toBe(2)
@@ -466,12 +517,8 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const journeyNodeId: NodeId = 'compile_ast:300'
       const answerNodeId: PseudoNodeId = 'compile_pseudo:301'
-      const request: EvaluatorRequestData = {
-        method: 'GET',
-        post: {},
-        query: {},
-        params: {},
-      }
+      const request = createTestRequest()
+      const response = createTestResponse()
 
       const journeyNode = ASTTestFactory.journey().withId(journeyNodeId).build()
 
@@ -509,7 +556,7 @@ describe('ThunkEvaluator', () => {
       when(mockHandlerRegistry.get).calledWith(answerNodeId).mockReturnValue(answerHandler)
 
       // Act
-      const context = evaluator.createContext(request)
+      const context = evaluator.createContext(request, response)
       await evaluator.evaluate(context)
 
       // Assert

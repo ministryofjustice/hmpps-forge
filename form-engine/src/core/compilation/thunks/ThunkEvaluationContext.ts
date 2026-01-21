@@ -1,7 +1,8 @@
 import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
-import { AnswerHistory, EvaluatorRequestData } from '@form-engine/core/compilation/thunks/types'
+import { AnswerHistory } from '@form-engine/core/compilation/thunks/types'
 import ThunkCacheManager from '@form-engine/core/compilation/thunks/ThunkCacheManager'
+import { StepResponse, StepRequest } from '@form-engine/core/runtime/routes/types'
 
 /**
  * Global mutable state that persists across thunk evaluations
@@ -27,17 +28,6 @@ export interface ThunkEvaluationGlobalState {
  */
 export default class ThunkEvaluationContext {
   /**
-   * Global mutable state
-   *
-   * Contains state that persists across all thunk evaluations:
-   * - data: External data loaded via onLoad transitions
-   * - answers: Resolved field answers (maps field codes to AnswerHistory with mutation tracking)
-   *
-   * Both properties are mutable and populated during evaluation.
-   */
-  readonly global: ThunkEvaluationGlobalState
-
-  /**
    * Scoped variables (lexically scoped)
    *
    * Stack of scope levels where the last element is the current scope.
@@ -54,22 +44,19 @@ export default class ThunkEvaluationContext {
    * - Push scope before entering collection iteration or function call
    * - Pop scope when exiting
    */
-  readonly scope: Record<string, unknown>[]
+  readonly scope: Record<string, unknown>[] = []
 
   constructor(
     private readonly compilationDependencies: CompilationDependencies,
     private readonly formInstanceDependencies: FormInstanceDependencies,
     readonly cacheManager: ThunkCacheManager,
-    readonly request: EvaluatorRequestData,
-    global?: ThunkEvaluationGlobalState,
-  ) {
-    this.global = global ?? {
+    readonly request: StepRequest,
+    readonly response: StepResponse,
+    readonly global: ThunkEvaluationGlobalState = {
       data: {},
       answers: {},
-    }
-
-    this.scope = []
-  }
+    },
+  ) {}
 
   get nodeRegistry() {
     return this.compilationDependencies.nodeRegistry
@@ -96,6 +83,7 @@ export default class ThunkEvaluationContext {
    *
    * The cloned context shares:
    * - global state (answers, data) - mutations are shared
+   * - response mutations (headers, cookies) - mutations are shared
    * - request data
    * - dependencies (nodeRegistry, functionRegistry, logger)
    *
@@ -103,7 +91,7 @@ export default class ThunkEvaluationContext {
    * - scope array (shallow copy of current scope stack)
    *
    * This enables parallel evaluations to have isolated scope stacks
-   * while still sharing global mutable state.
+   * while still sharing global mutable state and response mutations.
    */
   withIsolatedScope(): ThunkEvaluationContext {
     const clone = new ThunkEvaluationContext(
@@ -111,6 +99,7 @@ export default class ThunkEvaluationContext {
       this.formInstanceDependencies,
       this.cacheManager,
       this.request,
+      this.response,
       this.global,
     )
 

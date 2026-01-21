@@ -7,12 +7,12 @@ import ThunkEvaluationContext, {
 import {
   AnswerHistory,
   AnswerSource,
-  EvaluatorRequestData,
   ThunkErrorType,
   ThunkInvocationAdapter,
   ThunkResult,
   ThunkRuntimeHooks,
 } from '@form-engine/core/compilation/thunks/types'
+import { StepResponse, StepRequest, CookieMutation, CookieOptions } from '@form-engine/core/runtime/routes/types'
 
 /**
  * Mock answer input - can be a simple value or a full AnswerHistory
@@ -44,10 +44,25 @@ function toAnswerHistory(input: MockAnswerInput, defaultSource: AnswerSource = '
 }
 
 /**
+ * Mock request data for testing - uses simple objects instead of methods
+ */
+export interface MockRequestData {
+  method?: 'GET' | 'POST'
+  url?: string
+  session?: unknown
+  state?: Record<string, unknown>
+  headers?: Record<string, string | string[] | undefined>
+  cookies?: Record<string, string | undefined>
+  params?: Record<string, string>
+  query?: Record<string, string | string[]>
+  post?: Record<string, string | string[]>
+}
+
+/**
  * Options for creating a mock ThunkEvaluationContext
  */
 export interface MockContextOptions {
-  mockRequest?: Partial<EvaluatorRequestData>
+  mockRequest?: MockRequestData
   mockData?: Record<string, unknown>
   /**
    * Mock answers - can be simple values or full AnswerHistory objects.
@@ -95,13 +110,32 @@ export interface MockContextOptions {
  * @param options
  */
 export function createMockContext(options: MockContextOptions = {}): ThunkEvaluationContext {
-  const request: EvaluatorRequestData = {
+  // Create mock request data
+  const headers = options.mockRequest?.headers ?? {}
+  const cookies = options.mockRequest?.cookies ?? {}
+  const params = options.mockRequest?.params ?? {}
+  const query = options.mockRequest?.query ?? {}
+  const post = options.mockRequest?.post ?? {}
+  const session = options.mockRequest?.session
+  const state = options.mockRequest?.state ?? {}
+
+  const request: StepRequest = {
     method: options.mockRequest?.method ?? 'GET',
-    post: options.mockRequest?.post ?? {},
-    query: options.mockRequest?.query ?? {},
-    params: options.mockRequest?.params ?? {},
-    session: options.mockRequest?.session,
-    state: options.mockRequest?.state,
+    url: options.mockRequest?.url ?? 'http://localhost/mock-path',
+
+    getHeader: (name: string) => headers[name.toLowerCase()],
+    getAllHeaders: () => headers,
+    getCookie: (name: string) => cookies[name],
+    getAllCookies: () => cookies,
+    getParam: (name: string) => params[name],
+    getParams: () => params,
+    getQuery: (name: string) => query[name],
+    getAllQuery: () => query,
+    getPost: (name: string) => post[name],
+    getAllPost: () => post,
+    getSession: () => session,
+    getState: (key: string) => state[key],
+    getAllState: () => state,
   }
 
   // Convert mockAnswers to AnswerHistory format
@@ -174,10 +208,28 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     findNodesWhere: jest.fn((): NodeId[] => []),
   }
 
+  // Create mock response with methods that track state
+  const responseHeaders = new Map<string, string>()
+  const responseCookies = new Map<string, CookieMutation>()
+
+  const response: StepResponse = {
+    setHeader: (name: string, value: string) => {
+      responseHeaders.set(name, value)
+    },
+    getHeader: (name: string) => responseHeaders.get(name),
+    getAllHeaders: () => responseHeaders,
+    setCookie: (name: string, value: string, cookieOptions?: CookieOptions) => {
+      responseCookies.set(name, { value, options: cookieOptions })
+    },
+    getCookie: (name: string) => responseCookies.get(name),
+    getAllCookies: () => responseCookies,
+  }
+
   return {
     request,
     global,
     scope,
+    response,
     findFieldByCode,
     nodeRegistry: mockNodeRegistry,
     metadataRegistry: mockMetadataRegistry,

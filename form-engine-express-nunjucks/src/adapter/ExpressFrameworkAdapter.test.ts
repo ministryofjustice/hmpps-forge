@@ -13,6 +13,7 @@ describe('ExpressFrameworkAdapter', () => {
   let adapter: FrameworkAdapter<express.Router, express.Request, express.Response>
   let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
   let mockComponentRegistry: jest.Mocked<ComponentRegistry>
+  let mockLogger: Console
 
   beforeEach(() => {
     mockNunjucksEnv = {
@@ -28,9 +29,11 @@ describe('ExpressFrameworkAdapter', () => {
       getAll: jest.fn().mockReturnValue(new Map()),
     } as unknown as jest.Mocked<ComponentRegistry>
 
+    mockLogger = { debug: jest.fn() } as unknown as Console
+
     const builder = ExpressFrameworkAdapter.configure({ nunjucksEnv: mockNunjucksEnv })
 
-    adapter = builder.build({ componentRegistry: mockComponentRegistry })
+    adapter = builder.build({ componentRegistry: mockComponentRegistry, logger: mockLogger })
   })
 
   describe('createRouter()', () => {
@@ -116,6 +119,9 @@ describe('ExpressFrameworkAdapter', () => {
         query: { page: '1' },
         params: { id: '123' },
         path: '/step',
+        protocol: 'https',
+        host: 'example.com',
+        originalUrl: '/step?page=1',
         session: { user: 'test' },
       } as unknown as express.Request
       const mockRes = {} as express.Response
@@ -134,17 +140,7 @@ describe('ExpressFrameworkAdapter', () => {
       await capturedHandler!(mockReq, mockRes, mockNext)
 
       // Assert
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          method: 'GET',
-          post: { field: 'value' },
-          query: { page: '1' },
-          params: { id: '123' },
-          path: '/step',
-        }),
-        mockReq,
-        mockRes,
-      )
+      expect(handler).toHaveBeenCalledWith(mockReq, mockRes)
     })
   })
 
@@ -195,14 +191,18 @@ describe('ExpressFrameworkAdapter', () => {
   })
 
   describe('toStepRequest()', () => {
-    it('should convert Express request to StepRequest', () => {
+    it('should convert Express request to StepRequest with method-based access', () => {
       // Arrange
       const mockReq = {
         method: 'POST',
         body: { field1: 'value1' },
         query: { page: '1' },
         params: { id: '123' },
-        path: '/step-one',
+        headers: { 'content-type': 'application/json' },
+        cookies: { session: 'abc123' },
+        protocol: 'https',
+        host: 'example.com:3000',
+        originalUrl: '/step-one?page=1',
         session: { userId: 'user1' },
       } as unknown as express.Request
 
@@ -210,15 +210,21 @@ describe('ExpressFrameworkAdapter', () => {
       const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result).toEqual({
-        method: 'POST',
-        post: { field1: 'value1' },
-        query: { page: '1' },
-        params: { id: '123' },
-        path: '/step-one',
-        session: { userId: 'user1' },
-        state: {},
-      })
+      expect(result.method).toBe('POST')
+      expect(result.url).toBe('https://example.com:3000/step-one?page=1')
+      expect(result.getSession()).toEqual({ userId: 'user1' })
+      expect(result.getAllState()).toEqual({})
+
+      expect(result.getPost('field1')).toBe('value1')
+      expect(result.getAllPost()).toEqual({ field1: 'value1' })
+      expect(result.getQuery('page')).toBe('1')
+      expect(result.getAllQuery()).toEqual({ page: '1' })
+      expect(result.getParam('id')).toBe('123')
+      expect(result.getParams()).toEqual({ id: '123' })
+      expect(result.getHeader('content-type')).toBe('application/json')
+      expect(result.getAllHeaders()).toEqual({ 'content-type': 'application/json' })
+      expect(result.getCookie('session')).toBe('abc123')
+      expect(result.getAllCookies()).toEqual({ session: 'abc123' })
     })
 
     it('should handle undefined body and query', () => {
@@ -228,7 +234,9 @@ describe('ExpressFrameworkAdapter', () => {
         body: undefined,
         query: undefined,
         params: {},
-        path: '/step',
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/step',
         session: undefined,
       } as unknown as express.Request
 
@@ -236,8 +244,10 @@ describe('ExpressFrameworkAdapter', () => {
       const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result.post).toEqual({})
-      expect(result.query).toEqual({})
+      expect(result.getAllPost()).toEqual({})
+      expect(result.getAllQuery()).toEqual({})
+      expect(result.getPost('nonexistent')).toBeUndefined()
+      expect(result.getQuery('nonexistent')).toBeUndefined()
     })
 
     it('should extract state from extended request', () => {
@@ -247,7 +257,9 @@ describe('ExpressFrameworkAdapter', () => {
         body: {},
         query: {},
         params: {},
-        path: '/step',
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/step',
         session: {},
         state: { customData: 'value' },
       } as unknown as express.Request
@@ -256,7 +268,146 @@ describe('ExpressFrameworkAdapter', () => {
       const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result.state).toEqual({ customData: 'value' })
+      expect(result.getState('customData')).toBe('value')
+      expect(result.getAllState()).toEqual({ customData: 'value' })
+    })
+
+    it('should normalize header names to lowercase for lookups', () => {
+      // Arrange
+      const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        headers: { 'content-type': 'application/json', 'x-custom-header': 'value' },
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/step',
+      } as unknown as express.Request
+
+      // Act
+      const result = adapter.toStepRequest(mockReq)
+
+      // Assert
+      expect(result.getHeader('Content-Type')).toBe('application/json')
+      expect(result.getHeader('X-Custom-Header')).toBe('value')
+    })
+  })
+
+  describe('toStepResponse()', () => {
+    it('should create a StepResponse that writes headers directly to Express response', () => {
+      // Arrange
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn().mockReturnValue('test-value'),
+        getHeaderNames: jest.fn().mockReturnValue(['x-custom']),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+
+      // Act
+      const result = adapter.toStepResponse(mockRes)
+      result.setHeader('X-Custom', 'test-value')
+
+      // Assert
+      expect(mockRes.setHeader).toHaveBeenCalledWith('X-Custom', 'test-value')
+      expect(result.getHeader('X-Custom')).toBe('test-value')
+    })
+
+    it('should create a StepResponse that writes cookies directly to Express response', () => {
+      // Arrange
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn().mockImplementation((name: string) => {
+          if (name === 'Set-Cookie') {
+            return ['session=abc123; HttpOnly']
+          }
+
+          return undefined
+        }),
+        getHeaderNames: jest.fn().mockReturnValue([]),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+
+      // Act
+      const result = adapter.toStepResponse(mockRes)
+      result.setCookie('session', 'abc123', { httpOnly: true })
+
+      // Assert
+      expect(mockRes.cookie).toHaveBeenCalledWith('session', 'abc123', { httpOnly: true })
+    })
+
+    it('should create a new instance each time', () => {
+      // Arrange
+      const mockRes1 = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn(),
+        getHeaderNames: jest.fn().mockReturnValue([]),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+      const mockRes2 = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn(),
+        getHeaderNames: jest.fn().mockReturnValue([]),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+
+      // Act
+      const result1 = adapter.toStepResponse(mockRes1)
+      const result2 = adapter.toStepResponse(mockRes2)
+
+      // Assert
+      expect(result1).not.toBe(result2)
+    })
+
+    it('should return empty maps when no headers or cookies have been set', () => {
+      // Arrange
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn().mockReturnValue(undefined),
+        getHeaderNames: jest.fn().mockReturnValue([]),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+
+      // Act
+      const result = adapter.toStepResponse(mockRes)
+
+      // Assert
+      expect(result.getAllHeaders().size).toBe(0)
+      expect(result.getAllCookies().size).toBe(0)
+    })
+
+    it('should parse Set-Cookie header to return cookies that have been set', () => {
+      // Arrange
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn().mockImplementation((name: string) => {
+          if (name === 'Set-Cookie') {
+            return ['session=abc123; HttpOnly; Secure', 'preference=dark; Max-Age=86400; SameSite=Lax; Path=/']
+          }
+
+          return undefined
+        }),
+        getHeaderNames: jest.fn().mockReturnValue([]),
+        cookie: jest.fn(),
+      } as unknown as express.Response
+
+      // Act
+      const result = adapter.toStepResponse(mockRes)
+
+      // Assert
+      const sessionCookie = result.getCookie('session')
+      expect(sessionCookie?.value).toBe('abc123')
+      expect(sessionCookie?.options?.httpOnly).toBe(true)
+      expect(sessionCookie?.options?.secure).toBe(true)
+
+      const preferenceCookie = result.getCookie('preference')
+      expect(preferenceCookie?.value).toBe('dark')
+      expect(preferenceCookie?.options?.maxAge).toBe(86400)
+      expect(preferenceCookie?.options?.sameSite).toBe('lax')
+      expect(preferenceCookie?.options?.path).toBe('/')
+
+      const allCookies = result.getAllCookies()
+      expect(allCookies.size).toBe(2)
     })
   })
 
@@ -451,4 +602,5 @@ describe('ExpressFrameworkAdapter', () => {
       expect(() => adapter.forwardError(mockRes, error)).toThrow('Something went wrong')
     })
   })
+
 })

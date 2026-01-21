@@ -7,6 +7,7 @@ import {
   DataPseudoNode,
   PseudoNodeType,
 } from '@form-engine/core/types/pseudoNodes.type'
+import { CookieMutation, CookieOptions } from '@form-engine/core/runtime/routes/types'
 
 /**
  * User-friendly context object provided to effect functions.
@@ -16,6 +17,7 @@ import {
  * - Answers (get, set, check, clear) with mutation history tracking
  * - Data (get, set)
  * - Request data (params, query, post, session, state)
+ * - Response mutations (headers, cookies)
  *
  * The transitionType parameter determines the source recorded when setting answers.
  * This enables precedence logic: action-set answers are protected from POST override.
@@ -104,7 +106,7 @@ export default class EffectFunctionContext<
   /**
    * Get all answers (current values only, without history)
    */
-  getAnswers(): TAnswers {
+  getAllAnswers(): TAnswers {
     const result: Record<string, unknown> = {}
 
     Object.entries(this.context.global.answers).forEach(([key, history]) => {
@@ -180,66 +182,166 @@ export default class EffectFunctionContext<
   }
 
   /**
+   * Get the full request URL
+   *
+   * @example
+   * const url = new URL(ctx.getRequestUrl())
+   *
+   * url.origin      // 'https://example.com:3000'
+   * url.pathname    // '/forms/journey/step-one'
+   * url.search      // '?page=1&filter=active'
+   * url.searchParams.get('page')  // '1'
+   * url.hash        // '#section'
+   */
+  getRequestUrl(): string {
+    return this.context.request.url
+  }
+
+  /**
    * Get a specific route parameter
    */
   getRequestParam(key: string): string | undefined {
-    return this.context.request.params?.[key]
+    return this.context.request.getParam(key)
   }
 
   /**
    * Get all route parameters
    */
-  getRequestParams(): Record<string, string> {
-    return this.context.request.params ? { ...this.context.request.params } : {}
+  getAllRequestParams(): Record<string, string> {
+    return { ...this.context.request.getParams() }
   }
 
   /**
    * Get a specific query parameter
    */
   getQueryParam(key: string): string | string[] | undefined {
-    return this.context.request.query?.[key]
+    return this.context.request.getQuery(key)
   }
 
   /**
    * Get all query parameters
    */
-  getQueryParams(): Record<string, string | string[]> {
-    return this.context.request.query ? { ...this.context.request.query } : {}
+  getAllQueryParams(): Record<string, string | string[]> {
+    return { ...this.context.request.getAllQuery() }
   }
 
   /**
    * Get raw POST data (before formatting)
    */
   getPostData(key?: string): any | undefined {
-    if (!this.context.request.post) {
-      return undefined
-    }
-
     if (key === undefined) {
-      return { ...this.context.request.post }
+      return { ...this.context.request.getAllPost() }
     }
 
-    return this.context.request.post[key]
+    return this.context.request.getPost(key)
   }
 
   /**
    * Get the session object
    */
   getSession(): TSession | undefined {
-    return this.context.request.session as TSession | undefined
+    return this.context.request.getSession() as TSession | undefined
   }
 
   /**
    * Get a custom request state value by key
    */
   getState<K extends string & keyof TState>(key: K): TState[K] | undefined {
-    return this.context.request.state?.[key] as TState[K] | undefined
+    return this.context.request.getState(key) as TState[K] | undefined
   }
 
   /**
    * Get all custom request state data
    */
   getAllState(): TState {
-    return (this.context.request.state ? { ...this.context.request.state } : {}) as TState
+    return { ...this.context.request.getAllState() } as TState
+  }
+
+  /**
+   * Get a request header value
+   */
+  getRequestHeader(name: string): string | string[] | undefined {
+    return this.context.request.getHeader(name)
+  }
+
+  /**
+   * Get all request headers
+   */
+  getAllRequestHeaders(): Record<string, string | string[] | undefined> {
+    return { ...this.context.request.getAllHeaders() }
+  }
+
+  /**
+   * Get a request cookie value
+   */
+  getRequestCookie(name: string): string | undefined {
+    return this.context.request.getCookie(name)
+  }
+
+  /**
+   * Get all request cookies
+   */
+  getAllRequestCookies(): Record<string, string | undefined> {
+    return { ...this.context.request.getAllCookies() }
+  }
+
+  /**
+   * Set a response header
+   *
+   * Headers are written directly to the response via the framework adapter.
+   * Setting the same header multiple times will overwrite the previous value.
+   */
+  setResponseHeader(name: string, value: string): void {
+    this.context.response.setHeader(name, value)
+  }
+
+  /**
+   * Get a previously set response header
+   */
+  getResponseHeader(name: string): string | undefined {
+    return this.context.response.getHeader(name)
+  }
+
+  /**
+   * Get all response headers that have been set
+   */
+  getAllResponseHeaders(): ReadonlyMap<string, string> {
+    return this.context.response.getAllHeaders()
+  }
+
+  /**
+   * Set a cookie in the response
+   *
+   * Cookies are written directly to the response via the framework adapter.
+   * To clear a cookie, use maxAge: 0.
+   *
+   * @example
+   * // Set a cookie with options
+   * context.setResponseCookie('preference', 'dark', {
+   *   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+   *   httpOnly: true,
+   *   secure: true,
+   *   sameSite: 'lax',
+   * })
+   *
+   * // Clear a cookie
+   * context.setResponseCookie('preference', '', { maxAge: 0 })
+   */
+  setResponseCookie(name: string, value: string, options?: CookieOptions): void {
+    this.context.response.setCookie(name, value, options)
+  }
+
+  /**
+   * Get a previously set response cookie
+   */
+  getResponseCookie(name: string): CookieMutation | undefined {
+    return this.context.response.getCookie(name)
+  }
+
+  /**
+   * Get all response cookies that have been set
+   */
+  getAllResponseCookies(): ReadonlyMap<string, CookieMutation> {
+    return this.context.response.getAllCookies()
   }
 }

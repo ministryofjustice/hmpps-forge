@@ -2,7 +2,7 @@ import createHttpError from 'http-errors'
 import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompiledForm } from '@form-engine/core/compilation/FormCompilationFactory'
 import ThunkEvaluator, { EvaluationResult } from '@form-engine/core/compilation/thunks/ThunkEvaluator'
-import { EvaluatorRequestData, ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
+import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { AccessTransitionResult } from '@form-engine/core/nodes/transitions/access/AccessHandler'
 import { SubmitTransitionResult } from '@form-engine/core/nodes/transitions/submit/SubmitHandler'
@@ -20,7 +20,7 @@ import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import { JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
 import { ExpressionType } from '@form-engine/form/types/enums'
-import { StepController, StepRequest } from './types'
+import { StepController } from './types'
 
 /**
  * FormStepController - Handles the full request lifecycle for form steps
@@ -56,11 +56,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   ) {}
 
   /** Handle GET request: run access lifecycle, evaluate AST, render response. */
-  async get(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
-    this.dependencies.logger.debug(`GET request to step at path ${request.path}`)
+  async get(req: TRequest, res: TResponse): Promise<void> {
+    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(this.buildRequestData(request))
+    const context = evaluator.createContext(request, response)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -70,11 +71,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
       if (accessResult.outcome === 'redirect') {
-        return this.redirect(res, req, accessResult.redirect!)
+        return this.redirect(res, req, accessResult.redirect, context)
       }
 
       if (accessResult.outcome === 'error') {
-        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
+        throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
       }
     }
 
@@ -90,11 +91,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /** Handle POST request: run access lifecycle, action/submit transitions, render or redirect. */
-  async post(request: StepRequest, req: TRequest, res: TResponse): Promise<void> {
-    this.dependencies.logger.debug(`POST request to step at path ${request.path}`)
+  async post(req: TRequest, res: TResponse): Promise<void> {
+    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
 
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = evaluator.createContext(this.buildRequestData(request))
+    const context = evaluator.createContext(request, response)
     const ancestors = this.findLifecycleAncestors(context)
 
     for (const ancestor of ancestors) {
@@ -104,11 +106,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       const accessResult = await this.runAccessTransitions(evaluator, ancestor, context)
 
       if (accessResult.outcome === 'redirect') {
-        return this.redirect(res, req, accessResult.redirect!)
+        return this.redirect(res, req, accessResult.redirect, context)
       }
 
       if (accessResult.outcome === 'error') {
-        throw createHttpError(accessResult.status!, accessResult.message || 'Access denied')
+        throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
       }
     }
 
@@ -129,7 +131,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     if (submitResult.outcome === 'redirect') {
-      return this.redirect(res, req, submitResult.redirect!)
+      return this.redirect(res, req, submitResult.redirect, context)
     }
 
     if (submitResult.validated) {
@@ -144,7 +146,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   }
 
   /** Redirect to a URL, resolving relative paths against the current base URL. */
-  private redirect(res: TResponse, req: TRequest, redirect: string): void {
+  private redirect(res: TResponse, req: TRequest, redirect: string, _context: ThunkEvaluationContext): void {
     if (redirect.includes('://') || redirect.startsWith('/')) {
       return this.dependencies.frameworkAdapter.redirect(res, redirect)
     }
@@ -395,17 +397,5 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
   /** Get the current step node from the context. */
   private getCurrentStep(context: ThunkEvaluationContext): StepASTNode {
     return context.nodeRegistry.get(this.compiledForm.currentStepId) as StepASTNode
-  }
-
-  /** Convert framework-agnostic StepRequest to EvaluatorRequestData. */
-  private buildRequestData(request: StepRequest): EvaluatorRequestData {
-    return {
-      method: request.method,
-      post: request.post as Record<string, string | string[]>,
-      query: request.query as Record<string, string | string[]>,
-      params: request.params,
-      session: request.session,
-      state: request.state,
-    }
   }
 }

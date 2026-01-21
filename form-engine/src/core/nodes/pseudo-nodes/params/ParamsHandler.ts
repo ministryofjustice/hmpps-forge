@@ -41,6 +41,6 @@ export default class ParamsHandler implements ThunkHandler {
     }
 
     // Read route parameter value from context - direct return, no Promise!
-    return { value: context.request.params[paramName] }
+    return { value: context.request.getParam(paramName) }
   }
 }

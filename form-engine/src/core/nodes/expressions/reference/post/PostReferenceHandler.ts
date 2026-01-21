@@ -61,7 +61,7 @@ export default class PostReferenceHandler implements ThunkHandler {
     const relatedPseudoNode = this.findPseudoNodeInRegistry(context.nodeRegistry, path[1] as string)
     const baseValue = relatedPseudoNode
       ? invoker.invokeSync(relatedPseudoNode.id, context).value
-      : context.request.post[path[1] as string]
+      : context.request.getPost(path[1] as string)
 
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
   }
@@ -82,7 +82,7 @@ export default class PostReferenceHandler implements ThunkHandler {
     const relatedPseudoNode = this.findPseudoNodeInRegistry(context.nodeRegistry, path[1] as string)
     const baseValue = relatedPseudoNode
       ? (await invoker.invoke(relatedPseudoNode.id, context)).value
-      : context.request.post[path[1] as string]
+      : context.request.getPost(path[1] as string)
 
     return { value: getByPath(baseValue, path.slice(2).join('.')) }
   }

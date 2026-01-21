@@ -42,13 +42,13 @@ export default class PostHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
+    // Read raw POST value from context
+    const rawValue = context.request.getPost(baseFieldCode)
+
     // If field isn't in POST at all, return undefined
-    if (!Object.hasOwn(context.request.post, baseFieldCode)) {
+    if (rawValue === undefined) {
       return { value: undefined }
     }
-
-    // Read raw POST value from context
-    const rawValue = context.request.post[baseFieldCode]
 
     // Apply multiple behavior if we have a field reference
     const value = this.applyMultipleBehavior(rawValue, fieldNodeId, context)

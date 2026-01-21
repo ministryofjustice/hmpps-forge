@@ -4,9 +4,9 @@ import {
   ThunkInvocationAdapter,
   ThunkResult,
   RuntimeOverlayBuilder,
-  EvaluatorRequestData,
   ThunkRuntimeHooks,
 } from '@form-engine/core/compilation/thunks/types'
+import { StepRequest, StepResponse } from '@form-engine/core/runtime/routes/types'
 import ThunkHandlerRegistryError from '@form-engine/errors/ThunkHandlerRegistryError'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import ThunkCompilerFactory from '@form-engine/core/compilation/thunks/ThunkCompilerFactory'
@@ -349,20 +349,22 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
   }
 
   /**
-   * Create an evaluation context from request data.
+   * Create an evaluation context from request and response.
    *
    * Use this to create a context before running lifecycle transitions,
    * then pass the same context to evaluate().
    *
-   * @param request - HTTP request data (post, query, params)
+   * @param request - HTTP request data (url, post, query, params, etc.)
+   * @param response - Response accumulator for headers and cookies
    * @returns A new ThunkEvaluationContext
    */
-  createContext(request: EvaluatorRequestData): ThunkEvaluationContext {
+  createContext(request: StepRequest, response: StepResponse): ThunkEvaluationContext {
     return new ThunkEvaluationContext(
       this.compilationDependencies,
       this.formInstanceDependencies,
       this.cacheManager,
       request,
+      response,
     )
   }
 

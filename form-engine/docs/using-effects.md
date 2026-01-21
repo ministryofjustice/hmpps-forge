@@ -93,7 +93,7 @@ Every effect receives an `EffectFunctionContext` as its first parameter. This pr
 ```typescript
 // Answers (form field values)
 context.getAnswer('fieldCode')     // Get single answer
-context.getAnswers()               // Get all answers
+context.getAllAnswers()               // Get all answers
 context.hasAnswer('fieldCode')     // Check if answer exists
 
 // Supplementary data
@@ -345,7 +345,7 @@ export const { effects: MyEffects, createRegistry: createMyEffectsRegistry } =
 
     SaveAnswers: deps => async (context: EffectFunctionContext) => {
       const assessmentId = context.getData('assessment').id
-      const answers = context.getAnswers()
+      const answers = context.getAllAnswers()
 
       await deps.api.saveAnswers(assessmentId, answers)
       deps.logger.info(`Answers saved for: ${assessmentId}`)
@@ -404,7 +404,7 @@ Effects should handle errors appropriately based on criticality:
 export const { effects, createRegistry } = defineEffectsWithDeps<MyDeps>()({
   // Critical: let errors propagate (stops form progression)
   SaveAnswers: deps => async (context) => {
-    await deps.api.save(context.getAnswers())
+    await deps.api.save(context.getAllAnswers())
   },
 
   // Non-critical: handle gracefully (don't block user)
@@ -425,7 +425,7 @@ export const { effects, createRegistry } = defineEffectsWithDeps<MyDeps>()({
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await deps.api.save(context.getAnswers())
+        await deps.api.save(context.getAllAnswers())
         return
       } catch (error) {
         lastError = error as Error

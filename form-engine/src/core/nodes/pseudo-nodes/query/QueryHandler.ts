@@ -41,6 +41,6 @@ export default class QueryHandler implements ThunkHandler {
     }
 
     // Read query parameter value from context - direct return, no Promise!
-    return { value: context.request.query[paramName] }
+    return { value: context.request.getQuery(paramName) }
   }
 }
