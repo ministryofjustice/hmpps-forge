@@ -1,6 +1,7 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
 import { block as blockBuilder } from '@form-engine/form/builders'
 import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
+import { escapeHtmlEntities } from '@form-engine/core/utils/sanitize'
 import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from '../../form/types/structures.type'
 
 /**
@@ -113,6 +114,8 @@ const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Pr
   let content = block.template
 
   // Replace value markers: {{valueName}}
+  // Values are developer-controlled (not user input), so no escaping needed.
+  // User input flows through form fields and is escaped by Nunjucks at render time.
   if (block.values) {
     Object.entries(block.values).forEach(([key, value]) => {
       const marker = `{{${key}}}`
@@ -137,10 +140,10 @@ const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Pr
   const hasWrapper = block.classes || block.attributes
 
   if (hasWrapper) {
-    const classAttr = block.classes ? ` class="${block.classes}"` : ''
+    const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
     const customAttrs = block.attributes
       ? Object.entries(block.attributes)
-          .map(([key, value]) => ` ${key}="${value}"`)
+          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
           .join('')
       : ''
 

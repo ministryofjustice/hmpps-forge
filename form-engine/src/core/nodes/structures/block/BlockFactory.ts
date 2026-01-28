@@ -76,10 +76,6 @@ export default class BlockFactory {
       properties.metadata = dataProperties.metadata
     }
 
-    if (dataProperties.sanitize !== undefined) {
-      properties.sanitize = dataProperties.sanitize
-    }
-
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.BLOCK,

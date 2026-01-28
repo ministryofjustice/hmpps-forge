@@ -13,7 +13,6 @@ import {
 } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { isSafePropertyKey } from '@form-engine/core/utils/propertyAccess'
-import { sanitizeValue } from '@form-engine/core/utils/sanitize'
 import ThunkEvaluationError from '@form-engine/errors/ThunkEvaluationError'
 import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
 
@@ -26,11 +25,8 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * 1. Check action-protected answers → return existing (protected from override)
  * 2. Invoke POST pseudo node → get raw value
  * 3. Record raw POST data → source: 'post'
- * 4. Sanitize value (if sanitize !== false) → source: 'sanitized' (if changed)
- * 5. Execute formatters inline on sanitized value → source: 'processed'
- * 6. If dependent condition exists and is false → clear value, source: 'dependent'
- *
- * Note: Sanitization happens BEFORE formatters, ensuring formatters receive safe input.
+ * 4. Execute formatters inline on value → source: 'processed'
+ * 5. If dependent condition exists and is false → clear value, source: 'dependent'
  *
  * GET request (page load)
  * 1. Try existing answer (from previous submissions or onLoad effects)
@@ -45,8 +41,9 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * condition that must be true for the field's value to be kept. If the dependent
  * evaluates to false on POST, the answer is cleared with source 'dependent'.
  *
- * Sanitization: By default, string values are HTML entity encoded to prevent XSS.
- * Set `sanitize: false` on a field to allow raw HTML (e.g., for rich text editors).
+ * XSS Prevention: HTML escaping is handled at the rendering layer (components
+ * and templates), not at input time. This preserves raw data and avoids
+ * double-encoding issues.
  *
  * Synchronous when formatters, dependent, and defaultValue are all sync (or absent).
  * Asynchronous when any of these expressions is async.
@@ -165,9 +162,8 @@ export default class AnswerLocalHandler implements ThunkHandler {
    *
    * Flow:
    * 1. Get raw value from POST pseudo node
-   * 2. Sanitize (if enabled) - prevents XSS
-   * 3. Execute formatters inline on sanitized value
-   * 4. Check dependent condition
+   * 2. Execute formatters inline on value
+   * 3. Check dependent condition
    */
   private async resolveFromPost(
     context: ThunkEvaluationContext,
@@ -190,21 +186,8 @@ export default class AnswerLocalHandler implements ThunkHandler {
     // Record raw POST mutation (preserves original for audit)
     this.pushMutation(context, baseFieldCode, rawValue, 'post')
 
-    // 2. Sanitize (if enabled)
-    const shouldSanitize = fieldNode.properties.sanitize !== false
-    let sanitizedValue = rawValue
-
-    if (shouldSanitize) {
-      sanitizedValue = sanitizeValue(rawValue)
-
-      // Only record sanitized mutation if value actually changed
-      if (sanitizedValue !== rawValue) {
-        this.pushMutation(context, baseFieldCode, sanitizedValue, 'sanitized')
-      }
-    }
-
-    // 3. Execute formatters inline on sanitized value
-    let resolvedValue = sanitizedValue
+    // 2. Execute formatters inline on value
+    let resolvedValue = rawValue
     const formatters = fieldNode.properties.formatters
 
     if (Array.isArray(formatters) && formatters.length > 0) {
@@ -228,12 +211,12 @@ export default class AnswerLocalHandler implements ThunkHandler {
       }
 
       // Record processed mutation if formatters changed the value
-      if (resolvedValue !== sanitizedValue) {
+      if (resolvedValue !== rawValue) {
         this.pushMutation(context, baseFieldCode, resolvedValue, 'processed')
       }
     }
 
-    // 4. Check dependent condition - if false, clear the answer
+    // 3. Check dependent condition - if false, clear the answer
     const dependent = fieldNode.properties.dependent
 
     if (dependent && isASTNode(dependent)) {
@@ -302,9 +285,8 @@ export default class AnswerLocalHandler implements ThunkHandler {
    *
    * Flow:
    * 1. Get raw value from POST pseudo node
-   * 2. Sanitize (if enabled) - prevents XSS
-   * 3. Execute formatters inline on sanitized value
-   * 4. Check dependent condition
+   * 2. Execute formatters inline on value
+   * 3. Check dependent condition
    */
   private resolveFromPostSync(
     context: ThunkEvaluationContext,
@@ -327,21 +309,8 @@ export default class AnswerLocalHandler implements ThunkHandler {
     // Record raw POST mutation (preserves original for audit)
     this.pushMutation(context, baseFieldCode, rawValue, 'post')
 
-    // 2. Sanitize (if enabled)
-    const shouldSanitize = fieldNode.properties.sanitize !== false
-    let sanitizedValue = rawValue
-
-    if (shouldSanitize) {
-      sanitizedValue = sanitizeValue(rawValue)
-
-      // Only record sanitized mutation if value actually changed
-      if (sanitizedValue !== rawValue) {
-        this.pushMutation(context, baseFieldCode, sanitizedValue, 'sanitized')
-      }
-    }
-
-    // 3. Execute formatters inline on sanitized value
-    let resolvedValue = sanitizedValue
+    // 2. Execute formatters inline on value
+    let resolvedValue = rawValue
     const formatters = fieldNode.properties.formatters
 
     if (Array.isArray(formatters) && formatters.length > 0) {
@@ -364,12 +333,12 @@ export default class AnswerLocalHandler implements ThunkHandler {
       }
 
       // Record processed mutation if formatters changed the value
-      if (resolvedValue !== sanitizedValue) {
+      if (resolvedValue !== rawValue) {
         this.pushMutation(context, baseFieldCode, resolvedValue, 'processed')
       }
     }
 
-    // 4. Check dependent condition - if false, clear the answer
+    // 3. Check dependent condition - if false, clear the answer
     const dependent = fieldNode.properties.dependent
 
     if (dependent && isASTNode(dependent)) {

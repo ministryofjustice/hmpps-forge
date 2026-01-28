@@ -213,14 +213,6 @@ For checkboxes or components that can somehow return an array of inputs - captur
 multiple: true
 ```
 
-### `sanitize` (Optional)
-
-Controls HTML entity escaping. Default `true` for XSS protection:
-
-```typescript
-sanitize: false  // Allow raw HTML (use with caution)
-```
-
 ---
 
 ## Dynamic Content

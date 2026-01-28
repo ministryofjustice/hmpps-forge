@@ -1,5 +1,6 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
 import { block as blockBuilder } from '@form-engine/form/builders'
+import { escapeHtmlEntities } from '@form-engine/core/utils/sanitize'
 import { BasicBlockProps, BlockDefinition, ConditionalString } from '../../form/types/structures.type'
 
 /**
@@ -52,10 +53,10 @@ export const html = buildComponent<HtmlBlock>('html', async block => {
   const hasWrapper = block.classes || block.attributes
 
   if (hasWrapper) {
-    const classAttr = block.classes ? ` class="${block.classes}"` : ''
+    const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
     const customAttrs = block.attributes
       ? Object.entries(block.attributes)
-          .map(([key, value]) => ` ${key}="${value}"`)
+          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
           .join('')
       : ''
 

@@ -189,14 +189,6 @@ export interface FieldBlockProps extends BasicBlockProps {
    */
   multiple?: boolean
 
-  /**
-   * Whether to sanitize input by escaping HTML entities.
-   * When true (default), string values have < > & " ' converted to HTML entities.
-   * Set to false for fields that need to accept raw HTML (e.g., rich text editors).
-   *
-   * @default true
-   */
-  sanitize?: boolean
 }
 
 /**

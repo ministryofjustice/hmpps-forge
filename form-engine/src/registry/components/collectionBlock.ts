@@ -2,6 +2,7 @@ import { buildComponent } from '@form-engine/registry/utils/buildComponent'
 import { ChainableExpr, block as blockBuilder } from '@form-engine/form/builders'
 import { StructureType } from '@form-engine/form/types/enums'
 import { isRenderedBlock } from '@form-engine/form/typeguards/structures'
+import { escapeHtmlEntities } from '@form-engine/core/utils/sanitize'
 import { BasicBlockProps, BlockDefinition, ConditionalString, RenderedBlock } from '../../form/types/structures.type'
 
 /**
@@ -126,10 +127,10 @@ const renderCollectionBlock = async (block: EvaluatedCollectionBlock): Promise<s
   const hasWrapper = block.classes || block.attributes
 
   if (hasWrapper) {
-    const classAttr = block.classes ? ` class="${block.classes}"` : ''
+    const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
     const customAttrs = block.attributes
       ? Object.entries(block.attributes)
-          .map(([key, value]) => ` ${key}="${value}"`)
+          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
           .join('')
       : ''
 
