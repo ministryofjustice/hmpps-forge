@@ -188,7 +188,6 @@ export interface FieldBlockProps extends BasicBlockProps {
    * @example true // For checkbox groups
    */
   multiple?: boolean
-
 }
 
 /**
