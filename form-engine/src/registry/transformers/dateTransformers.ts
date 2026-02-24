@@ -6,12 +6,40 @@ import { assertDate, assertNumber, assertString } from '@form-engine/registry/ut
  * Format tokens for date formatting
  */
 const formatDate = (date: Date, format: string): string => {
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+
+  const getOrdinal = (n: number): string => {
+    const remainder10 = n % 10
+    const remainder100 = n % 100
+
+    if (remainder100 >= 11 && remainder100 <= 13) return `${n}th`
+    if (remainder10 === 1) return `${n}st`
+    if (remainder10 === 2) return `${n}nd`
+    if (remainder10 === 3) return `${n}rd`
+    return `${n}th`
+  }
+
   const tokens: Record<string, () => string> = {
     YYYY: () => String(date.getFullYear()),
     YY: () => String(date.getFullYear()).slice(-2),
+    MMMM: () => monthNames[date.getMonth()],
     MM: () => String(date.getMonth() + 1).padStart(2, '0'),
     M: () => String(date.getMonth() + 1),
     DD: () => String(date.getDate()).padStart(2, '0'),
+    Do: () => getOrdinal(date.getDate()),
     D: () => String(date.getDate()),
     HH: () => String(date.getHours()).padStart(2, '0'),
     H: () => String(date.getHours()),
@@ -46,9 +74,11 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * Supported tokens:
    * - YYYY: 4-digit year (2024)
    * - YY: 2-digit year (24)
+   * - MMMM: Full month name (January, February, March, etc.)
    * - MM: 2-digit month (01-12)
    * - M: Month (1-12)
    * - DD: 2-digit day (01-31)
+   * - Do: Day of month (1st, 2nd, 3rd, etc.)
    * - D: Day (1-31)
    * - HH: 2-digit hours (00-23)
    * - H: Hours (0-23)

@@ -284,4 +284,34 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
 
     return `${paddedYear}-${paddedMonth}-${paddedDay}`
   },
+
+  /**
+   * Converts an epoch millisecond date string to a Date (local time).
+   * Throws on invalid input so pipeline errors and original value are preserved.
+   *
+   * @example
+   * // ToTimestampDate("1771429146000") -> 2026-02-18T15:39:06 local
+   * // ToTimestampDate("") -> throws Error
+   */
+  ToTimestampDate: (value: any) => {
+    assertString(value, 'Transformer.String.ToTimestampDate')
+
+    if (!/^\d+$/.test(value)) {
+      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
+    }
+
+    const epoch = Number(value)
+
+    if (!Number.isSafeInteger(epoch)) {
+      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid timestamp`)
+    }
+
+    const date = new Date(epoch)
+
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid epoch timestamp`)
+    }
+
+    return date
+  },
 })
