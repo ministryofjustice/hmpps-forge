@@ -3,8 +3,17 @@ import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.
 import RegistrationTraverser from '@form-engine/core/compilation/traversers/RegistrationTraverser'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { NodeCompilationPipeline } from '@form-engine/core/compilation/NodeCompilationPipeline'
-import { FormInstanceDependencies } from '@form-engine/core/types/engine.type'
+import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
+import { NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+
+export type StepIndex = Map<NodeId, StepASTNode>
+
+export interface SharedCompiledForm {
+  rootNode: JourneyASTNode
+  sharedDependencies: CompilationDependencies
+  stepIndex: StepIndex
+}
 
 /**
  * FormCompilationFactory - Compiles journey definitions into per-step artefacts
@@ -18,32 +27,57 @@ export default class FormCompilationFactory {
   constructor(private readonly formInstanceDependencies: FormInstanceDependencies) {}
 
   /**
-   * Main entry point - compile a journey definition into per-step artefacts
+   * Main entry point - eager compatibility wrapper for per-step artefacts
    */
   compile(journeyDef: JourneyDefinition) {
-    const compilationDependencies = new CompilationDependencies()
+    const shared = this.compileShared(journeyDef)
+
+    return [...shared.stepIndex.keys()].map(stepId => this.compileStep(shared, stepId))
+  }
+
+  /**
+   * Compile shared artefacts that are invariant across steps.
+   */
+  compileShared(journeyDef: JourneyDefinition): SharedCompiledForm {
+    const sharedDependencies = new CompilationDependencies()
 
     // Phase 1 - Transform JourneyDefinition into AST nodes
-    const rootNode = NodeCompilationPipeline.transform(journeyDef, compilationDependencies) as JourneyASTNode
+    const rootNode = NodeCompilationPipeline.transform(journeyDef, sharedDependencies) as JourneyASTNode
 
     // Phase 2 - Normalize AST nodes
-    NodeCompilationPipeline.normalize(rootNode, compilationDependencies)
+    NodeCompilationPipeline.normalize(rootNode, sharedDependencies, NodeIDCategory.COMPILE_AST)
 
     // Phase 3 - Register nodes
-    new RegistrationTraverser(compilationDependencies.nodeRegistry).register(rootNode)
+    new RegistrationTraverser(sharedDependencies.nodeRegistry).register(rootNode)
 
     // Phase 4 - Set parent metadata
-    NodeCompilationPipeline.setParentMetadata(rootNode, compilationDependencies)
+    NodeCompilationPipeline.setParentMetadata(rootNode, sharedDependencies)
 
     // Phase 5 - Wire static dependencies
-    NodeCompilationPipeline.wireStaticDependencies(compilationDependencies)
+    NodeCompilationPipeline.wireStaticDependencies(sharedDependencies)
 
-    // Compile artefact for each step using overlays
-    return compilationDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP).map(stepNode => {
-      const { deps: overlayDeps } = compilationDependencies.createOverlay()
+    const stepNodes = sharedDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
 
-      return this.compileForStep(rootNode, stepNode, overlayDeps)
-    })
+    return {
+      rootNode,
+      sharedDependencies,
+      stepIndex: new Map(stepNodes.map(stepNode => [stepNode.id, stepNode])),
+    }
+  }
+
+  /**
+   * Compile a single step artefact from shared compilation output.
+   */
+  compileStep(shared: SharedCompiledForm, stepId: NodeId) {
+    const stepNode = shared.stepIndex.get(stepId)
+
+    if (!stepNode) {
+      throw new Error(`Unable to compile step "${stepId}" - step not found in shared step index`)
+    }
+
+    const { deps: overlayDeps } = shared.sharedDependencies.createOverlay()
+
+    return this.compileForStep(shared.rootNode, stepNode, overlayDeps)
   }
 
   /**
@@ -74,4 +108,5 @@ export default class FormCompilationFactory {
 }
 
 export type CompiledForm = ReturnType<FormCompilationFactory['compile']>
-export type CompilationArtefact = ReturnType<FormCompilationFactory['compileForStep']>['artefact']
+export type CompiledStep = ReturnType<FormCompilationFactory['compileStep']>
+export type CompilationArtefact = CompiledStep['artefact']

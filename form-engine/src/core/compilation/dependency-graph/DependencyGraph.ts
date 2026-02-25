@@ -1,5 +1,7 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 
+const EMPTY_NODE_SET: ReadonlySet<NodeId> = new Set<NodeId>()
+
 /**
  * Edge types in the dependency graph
  */
@@ -210,7 +212,7 @@ export default class DependencyGraph {
 
     this.nodes.forEach(node => {
       // In-degree = number of nodes this node depends on (incoming edges)
-      const dependencies = this.reverseAdjacencyList.get(node) ?? new Set()
+      const dependencies = this.reverseAdjacencyList.get(node) ?? EMPTY_NODE_SET
 
       inDegree.set(node, dependencies.size)
     })
@@ -227,14 +229,16 @@ export default class DependencyGraph {
 
     const sorted: NodeId[] = []
 
-    while (queue.length > 0) {
-      const node = queue.shift()!
+    let queueIndex = 0
+
+    while (queueIndex < queue.length) {
+      const node = queue[queueIndex++]!
 
       sorted.push(node)
 
       // Process dependents (nodes that depend on this node)
       // Use adjacency list to find nodes that come after this one
-      const dependents = this.adjacencyList.get(node) ?? new Set()
+      const dependents = this.adjacencyList.get(node) ?? EMPTY_NODE_SET
 
       dependents.forEach(dependent => {
         const newDegree = (inDegree.get(dependent) ?? 0) - 1
@@ -290,7 +294,7 @@ export default class DependencyGraph {
       recursionStack.add(node)
       path.push(node)
 
-      const deps = this.adjacencyList.get(node) ?? new Set()
+      const deps = this.adjacencyList.get(node) ?? EMPTY_NODE_SET
 
       for (const dep of deps) {
         if (!visited.has(dep)) {

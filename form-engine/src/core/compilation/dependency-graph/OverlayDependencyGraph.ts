@@ -82,9 +82,85 @@ export default class OverlayDependencyGraph extends DependencyGraph {
   }
 
   topologicalSort(): { sort: NodeId[]; cycles: NodeId[][]; hasCycles: boolean } {
+    const allNodes = this.getAllNodes()
+    const inDegree = new Map<NodeId, number>()
+
+    // Compute in-degree from union(main, pending) without materializing merged edges
+    allNodes.forEach(nodeId => {
+      const mainDependencies = this.main.getDependencies(nodeId)
+      const pendingDependencies = this.pending.getDependencies(nodeId)
+
+      if (pendingDependencies.size === 0) {
+        inDegree.set(nodeId, mainDependencies.size)
+        return
+      }
+
+      if (mainDependencies.size === 0) {
+        inDegree.set(nodeId, pendingDependencies.size)
+        return
+      }
+
+      let degree = mainDependencies.size
+
+      pendingDependencies.forEach(depId => {
+        if (!mainDependencies.has(depId)) {
+          degree += 1
+        }
+      })
+
+      inDegree.set(nodeId, degree)
+    })
+
+    const queue: NodeId[] = []
+    inDegree.forEach((degree, nodeId) => {
+      if (degree === 0) {
+        queue.push(nodeId)
+      }
+    })
+
+    const sorted: NodeId[] = []
+    let queueIndex = 0
+
+    while (queueIndex < queue.length) {
+      const nodeId = queue[queueIndex++]!
+
+      sorted.push(nodeId)
+
+      const mainDependents = this.main.getDependents(nodeId)
+      const pendingDependents = this.pending.getDependents(nodeId)
+
+      mainDependents.forEach(dependentId => {
+        const newDegree = (inDegree.get(dependentId) ?? 0) - 1
+
+        inDegree.set(dependentId, newDegree)
+        if (newDegree === 0) {
+          queue.push(dependentId)
+        }
+      })
+
+      pendingDependents.forEach(dependentId => {
+        // Avoid double-decrement for edges present in both graphs
+        if (mainDependents.has(dependentId)) {
+          return
+        }
+
+        const newDegree = (inDegree.get(dependentId) ?? 0) - 1
+
+        inDegree.set(dependentId, newDegree)
+        if (newDegree === 0) {
+          queue.push(dependentId)
+        }
+      })
+    }
+
+    if (sorted.length === allNodes.size) {
+      return { sort: sorted, cycles: [], hasCycles: false }
+    }
+
+    // Cycle case is exceptional. Fall back to merged graph for full cycle diagnostics.
     const merged = new DependencyGraph()
 
-    this.getAllNodes().forEach(nodeId => merged.addNode(nodeId))
+    allNodes.forEach(nodeId => merged.addNode(nodeId))
     this.getAllEdges().forEach(edge => merged.addEdge(edge.from, edge.to, edge.type, edge.metadata))
 
     return merged.topologicalSort()

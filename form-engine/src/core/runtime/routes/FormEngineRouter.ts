@@ -1,7 +1,7 @@
-import { CompilationArtefact, CompiledForm } from '@form-engine/core/compilation/FormCompilationFactory'
+import { CompilationArtefact } from '@form-engine/core/compilation/FormCompilationFactory'
 import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { FormEngineOptions } from '@form-engine/core/FormEngine'
-import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { JourneyASTNode } from '@form-engine/core/types/structures.type'
 import { JourneyDefinition, StepDefinition } from '@form-engine/form/types/structures.type'
 import { JourneyMetadata, StepMetadata } from '@form-engine/core/runtime/rendering/types'
 import FormStepController from '@form-engine/core/runtime/routes/FormStepController'
@@ -9,6 +9,7 @@ import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
 import { isJourneyStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import DuplicateRouteError from '@form-engine/errors/DuplicateRouteError'
 import type FormInstance from '@form-engine/core/FormInstance'
+import { RouteMapEntry, StepMountContext } from '@form-engine/core/runtime/routes/types'
 
 /**
  * Unified routing and navigation service for the form engine.
@@ -26,7 +27,7 @@ export default class FormEngineRouter<TRouter> {
 
   private readonly basePath: string
 
-  private readonly routeMap: Map<string, CompilationArtefact> = new Map()
+  private readonly routeMap: Map<string, RouteMapEntry> = new Map()
 
   private readonly registeredRoutes: Array<{ method: 'GET' | 'POST'; path: string }> = []
 
@@ -75,10 +76,18 @@ export default class FormEngineRouter<TRouter> {
    * @param formInstance - Form instance containing compiled form and configuration
    */
   mountForm(formInstance: FormInstance): void {
-    const compiledForm = formInstance.getCompiledForm()
+    const stepIndex = formInstance.getStepIndex()
+    const sharedArtefact = formInstance.getSharedCompilationArtefact()
     const config = formInstance.getConfiguration()
 
-    compiledForm.forEach(compiled => this.mountStep(this.router, compiled))
+    stepIndex.forEach((stepNode, stepId) => {
+      this.mountStep(this.router, {
+        stepId,
+        stepNode,
+        sharedArtefact,
+        resolveCompiledStep: () => formInstance.getCompiledStep(stepId),
+      })
+    })
 
     this.storeNavigationMetadata(config)
 
@@ -110,27 +119,35 @@ export default class FormEngineRouter<TRouter> {
   /**
    * Mount a single step as GET and POST routes
    */
-  private mountStep(rootRouter: TRouter, compiledForm: CompiledForm[number]): void {
-    const step = compiledForm.artefact.nodeRegistry.get(compiledForm.currentStepId) as StepASTNode
-    const journeyAncestry = this.getJourneyAncestry(compiledForm.currentStepId, compiledForm.artefact)
+  private mountStep(rootRouter: TRouter, stepMountContext: StepMountContext): void {
+    const { stepId, stepNode, sharedArtefact, resolveCompiledStep } = stepMountContext
+    const journeyAncestry = this.getJourneyAncestry(stepId, sharedArtefact)
     const { router, basePath } = this.getOrCreateJourneyRouter(rootRouter, journeyAncestry)
 
-    const stepPath = step.properties.path
+    const stepPath = stepNode.properties.path
     const fullPath = basePath + stepPath
 
     if (this.routeMap.has(fullPath)) {
       throw new DuplicateRouteError({ path: fullPath })
     }
 
-    this.routeMap.set(fullPath, compiledForm.artefact)
+    this.routeMap.set(fullPath, { stepId, resolveCompiledStep })
 
-    const controller = new FormStepController(compiledForm, this.dependencies, this.navigationMetadata, fullPath)
+    this.dependencies.frameworkAdapter.get(router, stepPath, async (req, res) => {
+      const compiledStep = await resolveCompiledStep()
+      const controller = new FormStepController(compiledStep, this.dependencies, this.navigationMetadata, fullPath)
 
-    this.dependencies.frameworkAdapter.get(router, stepPath, controller.get.bind(controller))
+      return controller.get(req, res)
+    })
     this.registeredRoutes.push({ method: 'GET', path: fullPath })
     this.dependencies.logger.debug(`[FormEngineRouter]: Registered GET route: ${fullPath}`)
 
-    this.dependencies.frameworkAdapter.post(router, stepPath, controller.post.bind(controller))
+    this.dependencies.frameworkAdapter.post(router, stepPath, async (req, res) => {
+      const compiledStep = await resolveCompiledStep()
+      const controller = new FormStepController(compiledStep, this.dependencies, this.navigationMetadata, fullPath)
+
+      return controller.post(req, res)
+    })
     this.registeredRoutes.push({ method: 'POST', path: fullPath })
     this.dependencies.logger.debug(`[FormEngineRouter]: Registered POST route: ${fullPath}`)
   }

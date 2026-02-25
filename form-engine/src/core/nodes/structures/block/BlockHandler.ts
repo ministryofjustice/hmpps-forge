@@ -35,6 +35,8 @@ export default class BlockHandler implements ThunkHandler {
   // Properties needed for validation/data on non-current steps
   private static readonly VALIDATION_PROPS = ['code', 'validate', 'dependent']
 
+  private static readonly VALIDATION_PROPS_SET = new Set(BlockHandler.VALIDATION_PROPS)
+
   constructor(
     public readonly nodeId: NodeId,
     private readonly node: BlockASTNode,
@@ -42,44 +44,67 @@ export default class BlockHandler implements ThunkHandler {
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
     const isOnCurrentStep = deps.metadataRegistry.get(this.nodeId, 'isDescendantOfStep', false)
+    const properties = this.node.properties as Record<string, unknown>
 
-    // For blocks on current step: check ALL properties except formatters (which aren't evaluated during rendering)
-    // For blocks on other steps: only check validation properties
-    const propertiesToCheck = isOnCurrentStep
-      ? Object.entries(this.node.properties).filter(([key]) => key !== 'formatters')
-      : Object.entries(this.node.properties).filter(([key]) => BlockHandler.VALIDATION_PROPS.includes(key))
-
-    const asyncProperties: string[] = []
-
-    propertiesToCheck.forEach(([key, value]) => {
-      if (this.containsAsyncNodes(value, deps)) {
-        asyncProperties.push(key)
+    // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.keys() allocation in this hot path
+    for (const key in properties) {
+      if (!Object.prototype.hasOwnProperty.call(properties, key)) {
+        continue // eslint-disable-line no-continue
       }
-    })
 
-    this.isAsync = asyncProperties.length > 0
+      const isRelevant = isOnCurrentStep ? key !== 'formatters' : BlockHandler.VALIDATION_PROPS_SET.has(key)
+
+      if (!isRelevant) {
+        continue // eslint-disable-line no-continue
+      }
+
+      if (this.containsAsyncNodes(properties[key], deps)) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    this.isAsync = false
   }
 
   /**
    * Recursively check if a value contains any async AST nodes
    */
-  private containsAsyncNodes(value: unknown, deps: MetadataComputationDependencies): boolean {
-    if (value === null || value === undefined) {
-      return false
-    }
+  private containsAsyncNodes(root: unknown, deps: MetadataComputationDependencies): boolean {
+    const stack: unknown[] = [root]
 
-    if (isASTNode(value)) {
-      const handler = deps.thunkHandlerRegistry.get(value.id)
+    while (stack.length > 0) {
+      const value = stack.pop()
 
-      return handler?.isAsync ?? true
-    }
+      if (value === null || value === undefined) {
+        continue // eslint-disable-line no-continue
+      }
 
-    if (Array.isArray(value)) {
-      return value.some(item => this.containsAsyncNodes(item, deps))
-    }
+      if (isASTNode(value)) {
+        const handler = deps.thunkHandlerRegistry.get(value.id)
 
-    if (typeof value === 'object') {
-      return Object.values(value).some(prop => this.containsAsyncNodes(prop, deps))
+        if (handler?.isAsync ?? true) {
+          return true
+        }
+
+        continue // eslint-disable-line no-continue
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach(item => stack.push(item))
+        continue // eslint-disable-line no-continue
+      }
+
+      if (typeof value === 'object') {
+        const obj = value as Record<string, unknown>
+
+        // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.values() allocation in this hot path
+        for (const key in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            stack.push(obj[key])
+          }
+        }
+      }
     }
 
     return false

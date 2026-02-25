@@ -35,8 +35,12 @@ export default class StepHandler implements ThunkHandler {
   // Transition properties are handled separately by FormStepController
   private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess', 'onAction', 'onSubmission']
 
+  private static readonly TRANSITION_PROPS_SET = new Set(StepHandler.TRANSITION_PROPS)
+
   // Properties needed for navigation/validation on non-current steps
   private static readonly NAVIGATION_PROPS = ['path', 'title', 'isEntryPoint', 'description', 'blocks', 'metadata']
+
+  private static readonly NAVIGATION_PROPS_SET = new Set(StepHandler.NAVIGATION_PROPS)
 
   constructor(
     public readonly nodeId: NodeId,
@@ -46,41 +50,67 @@ export default class StepHandler implements ThunkHandler {
   computeIsAsync(deps: MetadataComputationDependencies): void {
     const isCurrentStep = deps.metadataRegistry.get(this.nodeId, 'isCurrentStep', false)
     const isAncestorOfStep = deps.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
+    const isCurrentOrAncestor = isCurrentStep || isAncestorOfStep
+    const properties = this.node.properties as Record<string, unknown>
 
-    // Determine which properties to check based on step context
-    const propertiesToCheck =
-      isCurrentStep || isAncestorOfStep
-        ? Object.entries(this.node.properties).filter(([key]) => !StepHandler.TRANSITION_PROPS.includes(key))
-        : Object.entries(this.node.properties).filter(([key]) => StepHandler.NAVIGATION_PROPS.includes(key))
-
-    const asyncProperties: string[] = []
-
-    propertiesToCheck.forEach(([key, value]) => {
-      if (this.containsAsyncNodes(value, deps)) {
-        asyncProperties.push(key)
+    // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.keys() allocation in this hot path
+    for (const key in properties) {
+      if (!Object.prototype.hasOwnProperty.call(properties, key)) {
+        continue // eslint-disable-line no-continue
       }
-    })
 
-    this.isAsync = asyncProperties.length > 0
+      const isRelevant = isCurrentOrAncestor
+        ? !StepHandler.TRANSITION_PROPS_SET.has(key)
+        : StepHandler.NAVIGATION_PROPS_SET.has(key)
+
+      if (!isRelevant) {
+        continue // eslint-disable-line no-continue
+      }
+
+      if (this.containsAsyncNodes(properties[key], deps)) {
+        this.isAsync = true
+        return
+      }
+    }
+
+    this.isAsync = false
   }
 
-  private containsAsyncNodes(value: unknown, deps: MetadataComputationDependencies): boolean {
-    if (value === null || value === undefined) {
-      return false
-    }
+  private containsAsyncNodes(root: unknown, deps: MetadataComputationDependencies): boolean {
+    const stack: unknown[] = [root]
 
-    if (isASTNode(value)) {
-      const handler = deps.thunkHandlerRegistry.get(value.id)
+    while (stack.length > 0) {
+      const value = stack.pop()
 
-      return handler?.isAsync ?? true
-    }
+      if (value === null || value === undefined) {
+        continue // eslint-disable-line no-continue
+      }
 
-    if (Array.isArray(value)) {
-      return value.some(item => this.containsAsyncNodes(item, deps))
-    }
+      if (isASTNode(value)) {
+        const handler = deps.thunkHandlerRegistry.get(value.id)
 
-    if (typeof value === 'object') {
-      return Object.values(value).some(prop => this.containsAsyncNodes(prop, deps))
+        if (handler?.isAsync ?? true) {
+          return true
+        }
+
+        continue // eslint-disable-line no-continue
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach(item => stack.push(item))
+        continue // eslint-disable-line no-continue
+      }
+
+      if (typeof value === 'object') {
+        const obj = value as Record<string, unknown>
+
+        // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.values() allocation in this hot path
+        for (const key in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            stack.push(obj[key])
+          }
+        }
+      }
     }
 
     return false

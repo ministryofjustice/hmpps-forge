@@ -7,6 +7,7 @@ import { StructureType } from '@form-engine/form/types/enums'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import DuplicateRouteError from '@form-engine/errors/DuplicateRouteError'
 import FormInstance from '@form-engine/core/FormInstance'
+import FormStepController from '@form-engine/core/runtime/routes/FormStepController'
 import FormEngineRouter from './FormEngineRouter'
 
 jest.mock('@form-engine/core/runtime/routes/FormStepController')
@@ -19,9 +20,20 @@ describe('FormEngineRouter', () => {
   let mockDependencies: FormInstanceDependencies
   let mockOptions: FormEngineOptions
   let mockMainRouter: unknown
+  let mockControllerGet: jest.Mock
+  let mockControllerPost: jest.Mock
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockControllerGet = jest.fn().mockResolvedValue(undefined)
+    mockControllerPost = jest.fn().mockResolvedValue(undefined)
+    ;(FormStepController as unknown as jest.MockedClass<typeof FormStepController>).mockImplementation(
+      () =>
+        ({
+          get: mockControllerGet,
+          post: mockControllerPost,
+        }) as unknown as FormStepController<unknown, unknown>,
+    )
 
     mockMainRouter = { _type: 'main-router' }
 
@@ -121,8 +133,56 @@ describe('FormEngineRouter', () => {
     compiledForm: Array<{ artefact: any; currentStepId: NodeId }>,
     config: JourneyDefinition,
   ): jest.Mocked<FormInstance> {
+    const byStepId = new Map(compiledForm.map(compiled => [compiled.currentStepId, compiled]))
+    const stepIndex = new Map(
+      compiledForm.map(compiled => [
+        compiled.currentStepId,
+        compiled.artefact.nodeRegistry.get(compiled.currentStepId),
+      ]),
+    )
+
+    const sharedArtefact = {
+      nodeRegistry: {
+        get: jest.fn((nodeId: NodeId) => {
+          for (const compiled of compiledForm) {
+            const node = compiled.artefact.nodeRegistry.get(nodeId)
+
+            if (node !== undefined) {
+              return node
+            }
+          }
+
+          return undefined
+        }),
+      },
+      metadataRegistry: {
+        get: jest.fn((nodeId: NodeId, key: string) => {
+          for (const compiled of compiledForm) {
+            const metadata = compiled.artefact.metadataRegistry.get(nodeId, key)
+
+            if (metadata !== undefined) {
+              return metadata
+            }
+          }
+
+          return undefined
+        }),
+      },
+    }
+
     return {
       getCompiledForm: jest.fn().mockReturnValue(compiledForm),
+      getCompiledStep: jest.fn().mockImplementation((stepId: NodeId) => {
+        const compiledStep = byStepId.get(stepId)
+
+        if (!compiledStep) {
+          throw new Error(`Unable to resolve compiled step for ${stepId}`)
+        }
+
+        return Promise.resolve(compiledStep)
+      }),
+      getStepIndex: jest.fn().mockImplementation(() => new Map(stepIndex)),
+      getSharedCompilationArtefact: jest.fn().mockReturnValue(sharedArtefact),
       getConfiguration: jest.fn().mockReturnValue(config),
       getFormCode: jest.fn().mockReturnValue(config.code),
       getFormTitle: jest.fn().mockReturnValue(config.title),
@@ -167,6 +227,31 @@ describe('FormEngineRouter', () => {
   })
 
   describe('mountForm()', () => {
+    it('should mount routes without eagerly resolving the full compiled form', () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
+      }
+
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mountForm(formInstance)
+
+      // Assert
+      expect(formInstance.getStepIndex).toHaveBeenCalledTimes(1)
+      expect(formInstance.getSharedCompilationArtefact).toHaveBeenCalledTimes(1)
+      expect(formInstance.getCompiledForm).not.toHaveBeenCalled()
+    })
+
     it('should mount GET and POST routes for each step', () => {
       // Arrange
       const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
@@ -189,6 +274,34 @@ describe('FormEngineRouter', () => {
       // Assert
       expect(mockFrameworkAdapter.get).toHaveBeenCalledWith(expect.anything(), '/step-one', expect.any(Function))
       expect(mockFrameworkAdapter.post).toHaveBeenCalledWith(expect.anything(), '/step-one', expect.any(Function))
+    })
+
+    it('should resolve compiled step at request time, not mount time', async () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
+      }
+      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mountForm(formInstance)
+
+      // Assert mount-time behaviour
+      expect(formInstance.getCompiledStep).not.toHaveBeenCalled()
+
+      const getHandler = mockFrameworkAdapter.get.mock.calls[0][2] as (req: unknown, res: unknown) => Promise<void>
+
+      await getHandler({}, {})
+      expect(formInstance.getCompiledStep).toHaveBeenCalledTimes(1)
+      expect(formInstance.getCompiledStep).toHaveBeenCalledWith(stepNode.id)
+      expect(mockControllerGet).toHaveBeenCalledTimes(1)
     })
 
     it('should register routes with correct full paths', () => {

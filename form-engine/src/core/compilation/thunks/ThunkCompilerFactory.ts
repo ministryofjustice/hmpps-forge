@@ -63,6 +63,10 @@ import ValidationHandler from '@form-engine/core/nodes/expressions/validation/Va
 import RedirectOutcomeHandler from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeHandler'
 import ThrowErrorOutcomeHandler from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
 
+export interface ThunkCompilationInstrumentation {
+  stageSync?: <T>(name: string, fn: () => T) => T
+}
+
 /**
  * Compiler that orchestrates the creation of thunk handlers for all nodes.
  *
@@ -86,12 +90,28 @@ export default class ThunkCompilerFactory {
    * @param compilationDependencies - Contains nodeRegistry with all nodes to compile
    * @param functionRegistry - Registry of user-defined functions (for async metadata)
    */
-  compile(compilationDependencies: CompilationDependencies, functionRegistry: FunctionRegistry) {
-    // PASS 1: Create all handlers
-    compilationDependencies.nodeRegistry.getAllEntries().forEach((entry, nodeId) => {
-      const handler = this.compileASTNode(nodeId, entry.node)
+  compile(
+    compilationDependencies: CompilationDependencies,
+    functionRegistry: FunctionRegistry,
+    instrumentation?: ThunkCompilationInstrumentation,
+  ) {
+    const withStage = <T>(name: string, fn: () => T): T => {
+      if (instrumentation?.stageSync) {
+        return instrumentation.stageSync(name, fn)
+      }
 
-      compilationDependencies.thunkHandlerRegistry.register(nodeId, handler)
+      return fn()
+    }
+
+    const nodeEntries = compilationDependencies.nodeRegistry.getAllEntries()
+
+    // PASS 1: Create all handlers
+    withStage('pass1.createAndRegisterHandlers', () => {
+      nodeEntries.forEach((entry, nodeId) => {
+        const handler = this.compileASTNode(nodeId, entry.node)
+
+        compilationDependencies.thunkHandlerRegistry.register(nodeId, handler)
+      })
     })
 
     // PASS 2: Compute isAsync metadata for hybrid handlers
@@ -104,14 +124,18 @@ export default class ThunkCompilerFactory {
       metadataRegistry: compilationDependencies.metadataRegistry,
     }
 
-    const sortResult = compilationDependencies.dependencyGraph.topologicalSort()
+    const sortResult = withStage('pass2.topologicalSort', () =>
+      compilationDependencies.dependencyGraph.topologicalSort(),
+    )
 
-    sortResult.sort.forEach(nodeId => {
-      const handler = compilationDependencies.thunkHandlerRegistry.get(nodeId)
+    withStage('pass2.computeIsAsync', () => {
+      sortResult.sort.forEach(nodeId => {
+        const handler = compilationDependencies.thunkHandlerRegistry.get(nodeId)
 
-      if (handler) {
-        handler.computeIsAsync(metadataDeps)
-      }
+        if (handler) {
+          handler.computeIsAsync(metadataDeps)
+        }
+      })
     })
   }
 
