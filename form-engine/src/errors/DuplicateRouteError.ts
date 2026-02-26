@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface DuplicateRouteErrorOptions {
   /** The duplicate route path */
@@ -17,12 +17,6 @@ export default class DuplicateRouteError extends Error {
   }
 
   toString() {
-    return formatBox(
-      [
-        { label: 'Path', value: this.path },
-        { label: 'Message', value: this.message },
-      ],
-      { title: this.name },
-    )
+    return `${this.name}: ${this.message} [${formatFields([{ label: 'Path', value: this.path }])}]`
   }
 }

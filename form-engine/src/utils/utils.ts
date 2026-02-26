@@ -24,3 +24,13 @@ export function getByPath<T = unknown>(obj: unknown, path: string): T | undefine
 
   return current as T
 }
+
+type Field = { label: string; value?: unknown }
+
+/** Format an array of label/value fields as a single-line string: `label=value, label=value` */
+export default function formatFields(fields: Field[]): string {
+  return fields
+    .filter(f => f.value !== undefined && f.value !== null && String(f.value) !== '')
+    .map(f => `${f.label}=${Array.isArray(f.value) ? f.value.join(', ') : f.value}`)
+    .join(', ')
+}

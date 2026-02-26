@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface InvalidNodeErrorOptions {
   /** Specific validation failure message */
@@ -70,6 +70,6 @@ export default class InvalidNodeError extends Error {
       fields.push({ label: 'Node Type', value: this.node.type })
     }
 
-    return formatBox(fields, { title: this.name })
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

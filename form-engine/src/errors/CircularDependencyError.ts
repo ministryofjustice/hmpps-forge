@@ -1,5 +1,5 @@
-import { formatBox } from '@form-engine/logging/formatBox'
 import { NodeId } from '@form-engine/core/types/engine.type'
+import formatFields from '@form-engine/utils/utils'
 
 interface CircularDependencyErrorOptions {
   /** Human-readable error message */
@@ -48,6 +48,6 @@ export default class CircularDependencyError extends Error {
       })
     })
 
-    return formatBox(fields, { title: this.name })
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

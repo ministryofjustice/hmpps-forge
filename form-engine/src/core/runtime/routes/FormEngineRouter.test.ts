@@ -360,31 +360,6 @@ describe('FormEngineRouter', () => {
       })
     })
 
-    it('should log success message after mounting form', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
-      }
-
-      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mountForm(formInstance)
-
-      // Assert
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        '[FormEngineRouter]: Successfully registered routes for form: test-journey',
-      )
-    })
-
     it('should throw DuplicateRouteError when same path is registered twice', () => {
       // Arrange
       const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
@@ -416,29 +391,6 @@ describe('FormEngineRouter', () => {
       expect(() => router.mountForm(formInstance)).toThrow(DuplicateRouteError)
     })
 
-    it('should log debug messages for each route registration', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/step-one')
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
-      }
-
-      const formInstance = createMockFormInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mountForm(formInstance)
-
-      // Assert
-      expect(mockLogger.debug).toHaveBeenCalledWith('[FormEngineRouter]: Registered GET route: /journey/step-one')
-      expect(mockLogger.debug).toHaveBeenCalledWith('[FormEngineRouter]: Registered POST route: /journey/step-one')
-    })
   })
 
   describe('nested journey routing', () => {
@@ -810,7 +762,6 @@ describe('FormEngineRouter', () => {
 
       // Assert
       expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/journey/first-step')
-      expect(mockLogger.debug).toHaveBeenCalledWith('[FormEngineRouter]: Registered redirect handler: /journey')
     })
 
     it('should register redirect to step with isEntryPoint when entryPath not defined', () => {
@@ -859,9 +810,6 @@ describe('FormEngineRouter', () => {
 
       // Assert
       expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
-      expect(mockLogger.debug).not.toHaveBeenCalledWith(
-        expect.stringContaining('[FormEngineRouter]: Registered redirect handler'),
-      )
     })
 
     it('should handle nested journey redirects', () => {
@@ -906,9 +854,6 @@ describe('FormEngineRouter', () => {
       expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledTimes(2)
       expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/parent/first')
       expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/parent/child/nested')
-
-      expect(mockLogger.debug).toHaveBeenCalledWith('[FormEngineRouter]: Registered redirect handler: /parent')
-      expect(mockLogger.debug).toHaveBeenCalledWith('[FormEngineRouter]: Registered redirect handler: /parent/child')
     })
 
     it('should prefer entryPath over isEntryPoint step', () => {

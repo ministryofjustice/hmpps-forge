@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface RegistryValidationErrorOptions {
   /** Type of registry (function or component) */
@@ -44,6 +44,6 @@ export default class RegistryValidationError extends Error {
 
     fields.push({ label: 'Message', value: this.message })
 
-    return formatBox(fields, { title: this.name })
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

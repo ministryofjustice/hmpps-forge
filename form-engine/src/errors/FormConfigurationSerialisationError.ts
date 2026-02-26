@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface FormConfigurationSerialisationErrorOptions {
   /** Path to the invalid field */
@@ -32,13 +32,11 @@ export default class FormConfigurationSerialisationError extends Error {
   }
 
   toString() {
-    return formatBox(
-      [
-        { label: 'Path', value: this.path.join('.') },
-        { label: 'Code', value: this.code },
-        { label: 'Message', value: this.getMessage() },
-      ],
-      { title: this.name },
-    )
+    const fields = [
+      { label: 'Path', value: this.path.join('.') },
+      { label: 'Code', value: this.code },
+    ]
+
+    return `${this.name}: ${this.getMessage()} [${formatFields(fields)}]`
   }
 }

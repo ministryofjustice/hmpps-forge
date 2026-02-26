@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface UnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
@@ -71,6 +71,6 @@ export default class UnknownNodeTypeError extends Error {
       }
     }
 
-    return formatBox(fields, { title: this.name })
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

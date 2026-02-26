@@ -1,6 +1,5 @@
 import { buildComponent } from '@form-engine/registry/utils/buildComponent'
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
-import { formatBox } from '@form-engine/logging/formatBox'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import { FrameworkAdapter, FrameworkAdapterBuilder } from '@form-engine/core/runtime/routes/types'
@@ -11,7 +10,6 @@ import FormEngine from './FormEngine'
 jest.mock('./FormInstance')
 jest.mock('@form-engine/registry/ComponentRegistry')
 jest.mock('@form-engine/registry/FunctionRegistry')
-jest.mock('@form-engine/logging/formatBox')
 jest.mock('@form-engine/core/runtime/routes/FormEngineRouter')
 
 describe('FormEngine', () => {
@@ -55,18 +53,19 @@ describe('FormEngine', () => {
       build: jest.fn().mockReturnValue(mockFrameworkAdapter),
     } as any
 
-    // Mock formatBox
-    ;(formatBox as jest.Mock).mockReturnValue('formatted box')
+    // Mock FormEngineRouter with a mutable routes array that mountForm populates
+    const mockRoutes: Array<{ method: string; path: string }> = []
 
-    // Mock FormEngineRouter
     mockFormEngineRouter = {
-      mountForm: jest.fn(),
+      mountForm: jest.fn().mockImplementation(() => {
+        mockRoutes.push(
+          { method: 'GET', path: '/start' },
+          { method: 'GET', path: '/page-1' },
+          { method: 'POST', path: '/page-1' },
+        )
+      }),
       getRouter: jest.fn().mockReturnValue(mockRouter),
-      getRegisteredRoutes: jest.fn().mockReturnValue([
-        { method: 'GET', path: '/start' },
-        { method: 'GET', path: '/page-1' },
-        { method: 'POST', path: '/page-1' },
-      ]),
+      getRegisteredRoutes: jest.fn().mockImplementation(() => [...mockRoutes]),
     } as any
     ;(FormEngineRouter as jest.MockedClass<typeof FormEngineRouter>).mockImplementation(
       () => mockFormEngineRouter as any,
@@ -203,17 +202,11 @@ describe('FormEngine', () => {
       // Verify FormEngineRouter.mountForm was called
       expect(mockFormEngineRouter.mountForm).toHaveBeenCalledWith(mockFormInstance)
 
-      // Verify logging
-      expect(formatBox).toHaveBeenCalledWith(
-        [
-          { label: 'Form', value: 'Test Form' },
-          { label: 'Code', value: 'test-form' },
-          { label: 'Routes', value: '2 registered' },
-          { label: 'GET Paths', value: '/start\n/page-1' },
-        ],
-        { title: 'FormEngine' },
+      // Verify structured logging
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        { form: 'test-form', routes: 3 },
+        "FormEngine: Registered form 'Test Form' with 3 routes",
       )
-      expect(mockLogger.info).toHaveBeenCalledWith('formatted box')
     })
 
     it('should successfully register a form from JourneyDefinition object', () => {
@@ -228,36 +221,6 @@ describe('FormEngine', () => {
       engine.registerForm(formConfig)
 
       expect(FormInstance.createFromConfiguration).toHaveBeenCalledWith(formConfig, expect.any(Object))
-    })
-
-    it('should not include GET paths in log when there are no GET routes', () => {
-      mockFormEngineRouter.getRegisteredRoutes.mockReturnValue([
-        { method: 'POST', path: '/submit' },
-        { method: 'PUT', path: '/update' },
-      ] as any)
-
-      const engine = new FormEngine(createDefaultOptions())
-      engine.registerForm('test-config')
-
-      expect(formatBox).toHaveBeenCalledWith(
-        [
-          { label: 'Form', value: 'Test Form' },
-          { label: 'Code', value: 'test-form' },
-          { label: 'Routes', value: '0 registered' },
-        ],
-        { title: 'FormEngine' },
-      )
-    })
-
-    it('should include GET paths in logged output', () => {
-      const engine = new FormEngine(createDefaultOptions())
-      engine.registerForm('test-config')
-
-      expect(mockFormEngineRouter.mountForm).toHaveBeenCalledWith(mockFormInstance)
-      expect(formatBox).toHaveBeenCalledWith(
-        expect.arrayContaining([{ label: 'GET Paths', value: '/start\n/page-1' }]),
-        expect.any(Object),
-      )
     })
 
     it('should handle regular errors during form registration', () => {

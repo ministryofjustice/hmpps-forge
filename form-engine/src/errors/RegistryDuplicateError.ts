@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface RegistryDuplicateErrorOptions {
   /** Type of registry (function or component) */
@@ -22,13 +22,11 @@ export default class RegistryDuplicateError extends Error {
   }
 
   toString() {
-    return formatBox(
-      [
-        { label: 'Registry Type', value: this.registryType },
-        { label: 'Item Name', value: this.itemName },
-        { label: 'Message', value: this.message },
-      ],
-      { title: this.name },
-    )
+    const fields = [
+      { label: 'Registry Type', value: this.registryType },
+      { label: 'Item Name', value: this.itemName },
+    ]
+
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

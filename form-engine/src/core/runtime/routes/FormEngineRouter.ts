@@ -90,8 +90,6 @@ export default class FormEngineRouter<TRouter> {
     })
 
     this.storeNavigationMetadata(config)
-
-    this.dependencies.logger.info(`[FormEngineRouter]: Successfully registered routes for form: ${config.code}`)
   }
 
   /**
@@ -140,7 +138,6 @@ export default class FormEngineRouter<TRouter> {
       return controller.get(req, res)
     })
     this.registeredRoutes.push({ method: 'GET', path: fullPath })
-    this.dependencies.logger.debug(`[FormEngineRouter]: Registered GET route: ${fullPath}`)
 
     this.dependencies.frameworkAdapter.post(router, stepPath, async (req, res) => {
       const compiledStep = await resolveCompiledStep()
@@ -149,7 +146,6 @@ export default class FormEngineRouter<TRouter> {
       return controller.post(req, res)
     })
     this.registeredRoutes.push({ method: 'POST', path: fullPath })
-    this.dependencies.logger.debug(`[FormEngineRouter]: Registered POST route: ${fullPath}`)
   }
 
   /**
@@ -203,7 +199,6 @@ export default class FormEngineRouter<TRouter> {
 
     if (entryPath) {
       this.dependencies.frameworkAdapter.registerRedirect(router, '/', entryPath)
-      this.dependencies.logger.debug(`[FormEngineRouter]: Registered redirect handler: ${basePath}`)
     }
   }
 

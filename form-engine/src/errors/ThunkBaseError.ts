@@ -1,6 +1,6 @@
-import { formatBox } from '@form-engine/logging/formatBox'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ThunkError, ThunkErrorType } from '@form-engine/core/compilation/thunks/types'
+import formatFields from '@form-engine/utils/utils'
 
 export default class ThunkBaseError extends Error {
   readonly type: ThunkErrorType
@@ -39,6 +39,6 @@ export default class ThunkBaseError extends Error {
         .map(([k, v]) => ({ label: k, value: String(v) })),
     ]
 
-    return formatBox(fields, { title: this.name })
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

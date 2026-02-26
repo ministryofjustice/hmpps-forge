@@ -1,4 +1,4 @@
-import { formatBox } from '@form-engine/logging/formatBox'
+import formatFields from '@form-engine/utils/utils'
 
 interface FormConfigurationSchemaErrorOptions {
   /** Path to the invalid field */
@@ -28,14 +28,12 @@ export default class FormConfigurationSchemaError extends Error {
   }
 
   toString() {
-    return formatBox(
-      [
-        { label: 'Path', value: this.path.join('.') },
-        { label: 'Code', value: this.code },
-        { label: 'Message', value: this.message },
-        { label: 'Expected', value: this.expected },
-      ],
-      { title: this.name },
-    )
+    const fields = [
+      { label: 'Path', value: this.path.join('.') },
+      { label: 'Code', value: this.code },
+      { label: 'Expected', value: this.expected },
+    ]
+
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }
