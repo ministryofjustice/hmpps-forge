@@ -3,6 +3,7 @@ import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/b
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalArray,
   ConditionalString,
   EvaluatedBlock,
 } from '@form-engine/form/types/structures.type'
@@ -89,8 +90,8 @@ export type TableRow = TableCell[]
  * ```
  */
 export interface GovUKTableProps extends BasicBlockProps {
-  /** The rows within the table. Each row is an array of cells. Required. */
-  rows: TableRow[]
+  /** The rows within the table. Each row is an array of cells. Supports dynamic expressions. */
+  rows: ConditionalArray<TableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
   head?: TableHeadCell[]

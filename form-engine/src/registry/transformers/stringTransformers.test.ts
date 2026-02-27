@@ -571,8 +571,26 @@ describe('String Transformers', () => {
       expect(() => evaluate('   ')).toThrow('is not a valid date')
     })
 
-    it('should throw for ISO format (not supported)', () => {
-      expect(() => evaluate('2024-03-15')).toThrow('is not a valid UK date')
+    it('should parse ISO format (YYYY-MM-DD)', () => {
+      const result = evaluate('2024-03-15')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toBe(2024)
+      expect(result.getMonth()).toBe(2)
+      expect(result.getDate()).toBe(15)
+    })
+
+    it('should parse ISO format with time and timezone', () => {
+      const result = evaluate('2024-03-15T14:30:00Z')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toBe(2024)
+      expect(result.getMonth()).toBe(2)
+      expect(result.getDate()).toBe(15)
+    })
+
+    it('should throw for non realistic ISO dates that js would silently roll over', () => {
+      expect(() => evaluate('2026-02-30')).toThrow('is not a valid date')
+      expect(() => evaluate('2024-04-31')).toThrow('is not a valid date')
+      expect(() => evaluate('2023-02-29')).toThrow('is not a valid date')
     })
 
     it('should throw for US format (not supported)', () => {
@@ -580,7 +598,7 @@ describe('String Transformers', () => {
     })
 
     it('should throw for invalid date string', () => {
-      expect(() => evaluate('not a date')).toThrow('is not a valid UK date')
+      expect(() => evaluate('not a date')).toThrow('is not a valid date')
     })
 
     it('should throw for invalid day', () => {
@@ -596,11 +614,11 @@ describe('String Transformers', () => {
     })
 
     it('should throw for wrong format', () => {
-      expect(() => evaluate('2024/03/15')).toThrow('is not a valid UK date')
+      expect(() => evaluate('2024/03/15')).toThrow('is not a valid date')
     })
 
     it('should throw for partial dates', () => {
-      expect(() => evaluate('15/03')).toThrow('is not a valid UK date')
+      expect(() => evaluate('15/03')).toThrow('is not a valid date')
     })
 
     it('should throw error for non-string values', () => {
@@ -691,6 +709,186 @@ describe('String Transformers', () => {
         type: FunctionType.TRANSFORMER,
         name: 'ToISODate',
         arguments: [],
+      })
+    })
+  })
+
+  describe('ToSentenceLength', () => {
+    const { evaluate } = StringTransformersRegistry.ToSentenceLength
+
+    describe('basic duration calculations', () => {
+      it('should calculate years only', () => {
+        expect(evaluate('2024-01-01', '2026-01-01')).toBe('(2 years)')
+      })
+
+      it('should calculate months only', () => {
+        expect(evaluate('2024-01-01', '2024-07-01')).toBe('(6 months)')
+      })
+
+      it('should calculate days only', () => {
+        expect(evaluate('2024-01-01', '2024-01-15')).toBe('(14 days)')
+      })
+
+      it('should calculate years and months', () => {
+        expect(evaluate('2024-01-01', '2025-07-01')).toBe('(1 year and 6 months)')
+      })
+
+      it('should calculate months and days', () => {
+        expect(evaluate('2024-01-31', '2024-03-01')).toBe('(1 month and 1 day)')
+      })
+
+      it('should calculate years and days', () => {
+        expect(evaluate('2024-01-01', '2025-01-15')).toBe('(1 year and 14 days)')
+      })
+
+      it('should calculate years, months, and days', () => {
+        expect(evaluate('2024-01-01', '2025-03-15')).toBe('(1 year, 2 months and 14 days)')
+      })
+    })
+
+    describe('pluralisation', () => {
+      it('should use singular "year" for 1 year', () => {
+        expect(evaluate('2024-01-01', '2025-01-01')).toBe('(1 year)')
+      })
+
+      it('should use plural "years" for multiple years', () => {
+        expect(evaluate('2024-01-01', '2027-01-01')).toBe('(3 years)')
+      })
+
+      it('should use singular "month" for 1 month', () => {
+        expect(evaluate('2024-01-01', '2024-02-01')).toBe('(1 month)')
+      })
+
+      it('should use plural "months" for multiple months', () => {
+        expect(evaluate('2024-01-01', '2024-04-01')).toBe('(3 months)')
+      })
+
+      it('should use singular "day" for 1 day', () => {
+        expect(evaluate('2024-01-01', '2024-01-02')).toBe('(1 day)')
+      })
+
+      it('should use plural "days" for multiple days', () => {
+        expect(evaluate('2024-01-01', '2024-01-05')).toBe('(4 days)')
+      })
+
+      it('should handle mixed singular and plural', () => {
+        expect(evaluate('2024-01-01', '2026-02-03')).toBe('(2 years, 1 month and 2 days)')
+      })
+    })
+
+    describe('empty and invalid inputs', () => {
+      it('should return empty string for empty start date', () => {
+        expect(evaluate('', '2024-01-01')).toBe('')
+      })
+
+      it('should return empty string for empty end date', () => {
+        expect(evaluate('2024-01-01', '')).toBe('')
+      })
+
+      it('should return empty string for both empty dates', () => {
+        expect(evaluate('', '')).toBe('')
+      })
+
+      it('should return empty string for whitespace-only start date', () => {
+        expect(evaluate('   ', '2024-01-01')).toBe('')
+      })
+
+      it('should return empty string for whitespace-only end date', () => {
+        expect(evaluate('2024-01-01', '   ')).toBe('')
+      })
+
+      it('should handle dates with leading/trailing whitespace', () => {
+        expect(evaluate('  2024-01-01  ', '  2025-01-01  ')).toBe('(1 year)')
+      })
+
+      it('should return empty string for same dates', () => {
+        expect(evaluate('2024-01-01', '2024-01-01')).toBe('')
+      })
+
+      it('should throw for non-string start date', () => {
+        expect(() => evaluate(123, '2024-01-01')).toThrow(
+          'Transformer.String.ToSentenceLength (startDate) expects a string but received number.',
+        )
+      })
+
+      it('should throw for non-string end date', () => {
+        expect(() => evaluate('2024-01-01', 123)).toThrow(
+          'Transformer.String.ToSentenceLength (endDate) expects a string but received number.',
+        )
+      })
+
+      it('should throw for null start date', () => {
+        expect(() => evaluate(null, '2024-01-01')).toThrow(
+          'Transformer.String.ToSentenceLength (startDate) expects a string but received object.',
+        )
+      })
+
+      it('should throw for undefined end date', () => {
+        expect(() => evaluate('2024-01-01', undefined)).toThrow(
+          'Transformer.String.ToSentenceLength (endDate) expects a string but received undefined.',
+        )
+      })
+    })
+
+    describe('negative durations (end date before start date)', () => {
+      it('should return empty string when end date is before start date by years', () => {
+        expect(evaluate('2025-01-01', '2024-01-01')).toBe('')
+      })
+
+      it('should return empty string when end date is before start date by months', () => {
+        expect(evaluate('2024-06-01', '2024-01-01')).toBe('')
+      })
+
+      it('should return empty string when end date is before start date by days', () => {
+        expect(evaluate('2024-01-15', '2024-01-01')).toBe('')
+      })
+    })
+
+    describe('date boundary edge cases', () => {
+      it('should handle month with 31 days to month with 28 days', () => {
+        const result = evaluate('2024-01-31', '2024-02-28')
+        expect(result).toBe('(28 days)')
+      })
+
+      it('should handle leap year February 29 to next February 28', () => {
+        expect(evaluate('2024-02-29', '2025-02-28')).toBe('(1 year)')
+      })
+
+      it('should handle leap year February 29 to next March 1', () => {
+        expect(evaluate('2024-02-29', '2025-03-01')).toBe('(1 year and 1 day)')
+      })
+
+      it('should handle crossing year boundary', () => {
+        expect(evaluate('2024-12-01', '2025-02-01')).toBe('(2 months)')
+      })
+
+      it('should handle end of year to start of year', () => {
+        expect(evaluate('2024-12-31', '2025-01-01')).toBe('(1 day)')
+      })
+
+      it('should handle full leap year', () => {
+        expect(evaluate('2024-01-01', '2025-01-01')).toBe('(1 year)')
+      })
+
+      it('should handle multiple leap years', () => {
+        expect(evaluate('2016-01-01', '2024-01-02')).toBe('(8 years and 1 day)')
+      })
+    })
+
+    describe('large durations', () => {
+      it('should handle multi-decade spans', () => {
+        expect(evaluate('2000-01-01', '2050-01-01')).toBe('(50 years)')
+      })
+    })
+
+    describe('expression builder', () => {
+      it('should return a function expression when called', () => {
+        const expr = StringTransformers.ToSentenceLength('2025-01-01')
+        expect(expr).toEqual({
+          type: FunctionType.TRANSFORMER,
+          name: 'ToSentenceLength',
+          arguments: ['2025-01-01'],
+        })
       })
     })
   })

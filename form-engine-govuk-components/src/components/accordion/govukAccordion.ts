@@ -3,6 +3,7 @@ import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/b
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalArray,
   ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
@@ -103,8 +104,8 @@ export interface GovUKAccordionProps extends BasicBlockProps {
    */
   id: ConditionalString
 
-  /** The sections within the accordion. Required. */
-  items: AccordionItem[]
+  /** The sections within the accordion. Required. Supports dynamic expressions. */
+  items: ConditionalArray<AccordionItem>
 
   /** Heading level for section headings, from 1 to 6. Defaults to 2. */
   headingLevel?: number
@@ -151,6 +152,9 @@ export interface GovUKAccordion extends BlockDefinition, GovUKAccordionProps {
   variant: 'govukAccordion'
 }
 
+/** Evaluated accordion item after expression resolution */
+type EvaluatedAccordionItem = EvaluatedBlock<AccordionItem, false>
+
 /**
  * Renders the GOV.UK Accordion component using the official Nunjucks template.
  */
@@ -159,7 +163,9 @@ async function accordionRenderer(
   nunjucksEnv: nunjucks.Environment,
 ): Promise<string> {
   // Process items, handling child blocks in content
-  const processedItems = block.items.map(item => {
+  // NOTE: items is typed as ConditionalArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
+  const items = block.items as EvaluatedAccordionItem[]
+  const processedItems = items.map(item => {
     let contentHtml: string | undefined
 
     // If content blocks are provided, render them and use as HTML

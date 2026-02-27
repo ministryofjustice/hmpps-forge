@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
 import { ValueExpr } from '@form-engine/form/types/expressions.type'
@@ -199,18 +200,21 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
   },
 
   /**
-   * Converts a UK-formatted date string to a Date (local time).
+   * Converts a date string to a Date object (local time).
+   * Supports both UK format (DD/MM/YYYY) and ISO-8601 format (YYYY-MM-DD or full ISO with time/timezone).
    * Throws on invalid input so pipeline errors and original value is preserved.
    *
    * //TODO: This probably needs to support supplying/choosing a format.
    * @example
    * // ToDate("15/03/2024") -> 2024-03-15T00:00:00 local
    * // ToDate("15-03-2024") -> 2024-03-15T00:00:00 local
-   * // ToDate("2024-03-15") -> throws Error (ISO format not supported)
+   * // ToDate("2024-03-15") -> 2024-03-15T00:00:00 local
+   * // ToDate("2024-03-15T14:30:00Z") -> Date object with time
    * // ToDate("") -> throws Error
    */
   ToDate: (value: any) => {
     const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
+    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
     assertString(value, 'Transformer.String.ToDate')
 
     const trimmed = value.trim()
@@ -219,23 +223,43 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
       throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
     }
 
-    const match = UK_DATE_RE.exec(trimmed)
+    const ukMatch = UK_DATE_RE.exec(trimmed)
 
-    if (!match) {
-      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
+    if (ukMatch) {
+      const day = Number(ukMatch[1])
+      const month = Number(ukMatch[2])
+      const year = Number(ukMatch[3])
+
+      const date = new Date(year, month - 1, day)
+
+      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
+      }
+
+      return date
     }
 
-    const day = Number(match[1])
-    const month = Number(match[2])
-    const year = Number(match[3])
+    if (ISO_DATE_RE.test(trimmed)) {
+      const [datePart] = trimmed.split('T')
+      const [yearStr, monthStr, dayStr] = datePart.split('-')
+      const year = Number(yearStr)
+      const month = Number(monthStr)
+      const day = Number(dayStr)
 
-    const date = new Date(year, month - 1, day)
+      const date = new Date(trimmed)
 
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
+      if (Number.isNaN(date.getTime())) {
+        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid ISO date`)
+      }
+
+      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
+      }
+
+      return date
     }
 
-    return date
+    throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
   },
 
   /**
@@ -283,6 +307,60 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
     const paddedDay = String(day).padStart(2, '0')
 
     return `${paddedYear}-${paddedMonth}-${paddedDay}`
+  },
+
+  // Calculates the duration between two ISO date strings and formats it as a sentence length.
+  // Returns a string in the form "(X years and Y months)" with appropriate pluralisation.
+  // Components with zero value are omitted from the output.
+
+  // @param value - The start date as an ISO-8601 string (YYYY-MM-DD)
+  // @param endDate - The end date as an ISO-8601 string (YYYY-MM-DD)
+  // @returns Formatted sentence length string, for example: "(1 year and 6 months)"
+
+  // @example
+  // ToSentenceLength("2024-01-01", "2025-07-01") >>> "(1 year and 6 months)"
+  // ToSentenceLength("2024-01-01", "2024-03-15") >>> "(2 months and 14 days)"
+  // ToSentenceLength("2024-01-01", "2026-01-01") >>> "(2 years)"
+  ToSentenceLength: (value: string, endDate: string | ValueExpr) => {
+    assertString(value, 'Transformer.String.ToSentenceLength (startDate)')
+    assertString(endDate, 'Transformer.String.ToSentenceLength (endDate)')
+
+    let sentenceLengthString = ''
+    const startTrimmed = value.trim()
+    const endTrimmed = endDate.trim()
+
+    if (!startTrimmed || !endTrimmed) {
+      return ''
+    }
+
+    const { years, months, days } = DateTime.fromISO(endTrimmed).diff(DateTime.fromISO(startTrimmed), [
+      'years',
+      'months',
+      'days',
+    ])
+
+    // helper to pluralise units
+    const pluralise = (count: number, unit: string): string => {
+      return count === 1 ? `${count} ${unit}` : `${count} ${unit}s`
+    }
+
+    const parts = [
+      years > 0 ? pluralise(years, 'year') : null,
+      months > 0 ? pluralise(months, 'month') : null,
+      days > 0 ? pluralise(days, 'day') : null,
+    ].filter((part): part is string => Boolean(part))
+
+    if (parts.length === 0) {
+      sentenceLengthString = ''
+    } else if (parts.length === 1) {
+      sentenceLengthString = `(${parts[0]})`
+    } else if (parts.length === 2) {
+      sentenceLengthString = `(${parts[0]} and ${parts[1]})`
+    } else {
+      sentenceLengthString = `(${parts[0]}, ${parts[1]} and ${parts[2]})`
+    }
+
+    return sentenceLengthString
   },
 
   /**

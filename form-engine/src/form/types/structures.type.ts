@@ -12,7 +12,7 @@ import {
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
-import { ChainableExpr, ChainableRef } from '../builders/types'
+import { ChainableExpr, ChainableIterable, ChainableRef } from '../builders/types'
 import { BlockType, StructureType, ExpressionType } from './enums'
 
 /**
@@ -319,6 +319,7 @@ export type ConditionalArray<T> =
   | PipelineExpr
   | ConditionalExpr
   | ConditionalExprBuilder
+  | ChainableIterable
   | ChainableRef
   | ChainableExpr<any>
 
