@@ -22,7 +22,6 @@ export const { conditions: StringConditions, registry: StringConditionsRegistry 
 
     try {
       return new RegExp(pattern).test(value)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_) {
       throw new Error(`Condition.String.MatchesRegex: Invalid regex pattern "${pattern}"`)
     }

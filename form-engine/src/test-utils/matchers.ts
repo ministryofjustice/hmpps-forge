@@ -91,12 +91,15 @@ const toHaveDepth: jest.CustomMatcher = function toHaveDepthMatcher(
       for (const value of Object.values(node.properties)) {
         if (typeof value === 'object') {
           if (Array.isArray(value)) {
-            // eslint-disable-next-line no-loop-func
-            value.forEach(item => {
+            const arrayMax = value.reduce((max, item) => {
               if (item && typeof item === 'object' && 'type' in item) {
-                maxDepth = Math.max(maxDepth, getDepth(item, currentDepth + 1))
+                return Math.max(max, getDepth(item, currentDepth + 1))
               }
-            })
+
+              return max
+            }, currentDepth)
+
+            maxDepth = Math.max(maxDepth, arrayMax)
           } else if ('type' in value) {
             maxDepth = Math.max(maxDepth, getDepth(value, currentDepth + 1))
           }

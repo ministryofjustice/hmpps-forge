@@ -390,7 +390,6 @@ describe('FormEngineRouter', () => {
       // Act & Assert
       expect(() => router.mountForm(formInstance)).toThrow(DuplicateRouteError)
     })
-
   })
 
   describe('nested journey routing', () => {

@@ -39,9 +39,11 @@ export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdap
  * Handles routing (Express-specific concerns) and delegates
  * block/template rendering to TemplateRenderer.
  */
-export default class ExpressFrameworkAdapter
-  implements FrameworkAdapter<express.Router, express.Request, express.Response>
-{
+export default class ExpressFrameworkAdapter implements FrameworkAdapter<
+  express.Router,
+  express.Request,
+  express.Response
+> {
   private readonly logger: Logger | Console
 
   private readonly templateRenderer: TemplateRenderer

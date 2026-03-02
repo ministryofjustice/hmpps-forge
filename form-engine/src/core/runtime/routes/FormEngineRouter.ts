@@ -37,7 +37,7 @@ export default class FormEngineRouter<TRouter> {
 
   constructor(
     private readonly dependencies: FormInstanceDependencies,
-    private readonly options: FormEngineOptions,
+    options: FormEngineOptions,
   ) {
     this.router = dependencies.frameworkAdapter.createRouter()
     this.basePath = this.normalizeBasePath(options.basePath)

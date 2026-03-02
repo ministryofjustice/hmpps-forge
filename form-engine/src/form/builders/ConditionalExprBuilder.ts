@@ -46,6 +46,7 @@ export class ConditionalExprBuilder {
    * Builds the final conditional expression.
    * Note: This is private to hide its interface from the user, finaliseBuilders calls this
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
   private build(): ConditionalExpr {
     return {
       type: ExpressionType.CONDITIONAL,

@@ -192,8 +192,9 @@ describe('FormValidator', () => {
         date: new Date(),
         symbol: Symbol('test'),
         nested: {
-          // eslint-disable-next-line no-empty-function
-          anotherFunc() {},
+          anotherFunc() {
+            /* empty */
+          },
         },
       }
 
