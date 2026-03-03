@@ -18,7 +18,6 @@ describe('GOV.UK Button Components', () => {
 
         expect(params.text).toBe('Click me')
         expect(params.type).toBe('submit')
-        expect(params.element).toBe('button')
         expect(params.name).toBe('action')
         expect(params.html).toBeUndefined()
       })
@@ -31,7 +30,6 @@ describe('GOV.UK Button Components', () => {
 
         expect(params.text).toBeUndefined()
         expect(params.html).toBe('<span>HTML content</span>')
-        expect(params.element).toBe('button')
       })
 
       it('passes through button-specific attributes', async () => {
@@ -97,7 +95,6 @@ describe('GOV.UK Button Components', () => {
         })
 
         expect(params).toEqual({
-          element: 'button',
           text: 'Submit application',
           html: undefined,
           name: 'action',
@@ -164,7 +161,6 @@ describe('GOV.UK Button Components', () => {
         })
 
         expect(params.text).toBe('Continue')
-        expect(params.element).toBe('a')
         expect(params.href).toBe('/next-page')
         expect(params.html).toBeUndefined()
 
@@ -184,7 +180,6 @@ describe('GOV.UK Button Components', () => {
 
         expect(params.text).toBeUndefined()
         expect(params.html).toBe('<strong>Continue</strong> to next step')
-        expect(params.element).toBe('a')
         expect(params.href).toBe('/next')
       })
 
@@ -222,7 +217,6 @@ describe('GOV.UK Button Components', () => {
         })
 
         expect(params).toEqual({
-          element: 'a',
           text: 'Continue to SAN',
           html: undefined,
           href: '/san-assessment',
@@ -255,7 +249,6 @@ describe('GOV.UK Button Components', () => {
         expect(context).toHaveProperty('params')
         expect(context.params).toHaveProperty('text', 'Link button')
         expect(context.params).toHaveProperty('href', '/destination')
-        expect(context.params).toHaveProperty('element', 'a')
       })
     })
 

@@ -66,7 +66,7 @@ describe('GOV.UK Task List Component', () => {
             title: { text: 'Contact details' },
             href: '/contact-details',
             status: {
-              tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+              tag: { text: 'In progress', classes: 'govuk-tag--blue' },
             },
           },
           {
@@ -267,14 +267,14 @@ describe('GOV.UK Task List Component', () => {
           {
             title: { text: 'Contact details' },
             status: {
-              tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+              tag: { text: 'In progress', classes: 'govuk-tag--blue' },
             },
           },
         ],
       })
 
       // Assert
-      expect(params.items[0].status.tag?.classes).toBe('govuk-tag--light-blue')
+      expect(params.items[0].status.tag?.classes).toBe('govuk-tag--blue')
     })
 
     it('sets status tag with classes for grey color', async () => {
@@ -526,7 +526,7 @@ describe('GOV.UK Task List Component', () => {
             title: { text: 'Contact details' },
             href: '/contact-details',
             status: {
-              tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+              tag: { text: 'In progress', classes: 'govuk-tag--blue' },
             },
           },
         ],
@@ -670,7 +670,7 @@ describe('GOV.UK Task List Component', () => {
           {
             title: { text: 'Task 2' },
             status: {
-              tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+              tag: { text: 'In progress', classes: 'govuk-tag--blue' },
             },
           },
           {
@@ -685,7 +685,7 @@ describe('GOV.UK Task List Component', () => {
       // Assert
       expect(html).toContain('govuk-task-list')
       expect(html).toContain('govuk-tag--blue')
-      expect(html).toContain('govuk-tag--light-blue')
+      expect(html).toContain('govuk-tag--blue')
       expect(html).toContain('govuk-tag--grey')
     })
   })

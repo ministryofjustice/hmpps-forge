@@ -15,8 +15,8 @@ import { block as blockBuilder } from '@form-engine/form/builders'
  * piece of information that needs to stand out from surrounding content.
  *
  * Different colours can be applied using the `classes` property with modifier
- * classes like `govuk-tag--grey`, `govuk-tag--green`, `govuk-tag--turquoise`,
- * `govuk-tag--blue`, `govuk-tag--light-blue`, `govuk-tag--purple`, `govuk-tag--pink`,
+ * classes like `govuk-tag--grey`, `govuk-tag--green`, `govuk-tag--teal`,
+ * `govuk-tag--blue`, `govuk-tag--purple`, `govuk-tag--magenta`,
  * `govuk-tag--red`, `govuk-tag--orange`, or `govuk-tag--yellow`.
  *
  * @see https://design-system.service.gov.uk/components/tag/
@@ -48,11 +48,10 @@ export interface GovUKTagProps extends BasicBlockProps {
    * Use modifier classes to change the tag colour:
    * - `govuk-tag--grey` - Grey tag for inactive or default states
    * - `govuk-tag--green` - Green tag for success or completed states
-   * - `govuk-tag--turquoise` - Turquoise tag
+   * - `govuk-tag--teal` - Teal tag
    * - `govuk-tag--blue` - Blue tag (default colour if no modifier)
-   * - `govuk-tag--light-blue` - Light blue tag
    * - `govuk-tag--purple` - Purple tag
-   * - `govuk-tag--pink` - Pink tag
+   * - `govuk-tag--magenta` - Magenta tag
    * - `govuk-tag--red` - Red tag for errors or urgent states
    * - `govuk-tag--orange` - Orange tag for warnings
    * - `govuk-tag--yellow` - Yellow tag for pending or attention states

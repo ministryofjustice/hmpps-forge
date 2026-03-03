@@ -146,7 +146,7 @@ export interface TaskListItem {
  *       hint: { text: 'Include email and phone number' },
  *       href: '/contact-details',
  *       status: {
- *         tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+ *         tag: { text: 'In progress', classes: 'govuk-tag--blue' },
  *       },
  *     },
  *     {
@@ -229,7 +229,7 @@ export const govukTaskList = buildNunjucksComponent<GovUKTaskList>('govukTaskLis
  *       hint: { text: 'Include email and phone number' },
  *       href: '/contact-details',
  *       status: {
- *         tag: { text: 'In progress', classes: 'govuk-tag--light-blue' },
+ *         tag: { text: 'In progress', classes: 'govuk-tag--blue' },
  *       },
  *     },
  *     {

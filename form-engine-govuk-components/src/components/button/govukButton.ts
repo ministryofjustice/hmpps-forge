@@ -135,14 +135,12 @@ async function buttonRenderer(block: EvaluatedBlock<GovUKButton | GovUKLinkButto
   if (isLinkButton(block)) {
     params = {
       ...params,
-      element: 'a',
       href: block.href,
     }
   } else {
     const buttonBlock = block as EvaluatedBlock<GovUKButton>
     params = {
       ...params,
-      element: 'button',
       name: buttonBlock.name ?? 'action',
       type: buttonBlock.buttonType || 'submit',
       value: buttonBlock.value,
