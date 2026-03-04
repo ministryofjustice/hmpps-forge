@@ -892,4 +892,87 @@ describe('String Transformers', () => {
       })
     })
   })
+
+  describe('EscapeHtml', () => {
+    const { evaluate } = StringTransformersRegistry.EscapeHtml
+
+    it('should escape angle brackets', () => {
+      // Arrange
+      const input = '<script>alert(1)</script>'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('&lt;script&gt;alert(1)&lt;/script&gt;')
+    })
+
+    it('should escape double quotes', () => {
+      // Arrange
+      const input = '"><img src=x onerror=alert(1)>'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('&quot;&gt;&lt;img src=x onerror=alert(1)&gt;')
+    })
+
+    it('should escape single quotes', () => {
+      // Arrange
+      const input = "it's a test"
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('it&#39;s a test')
+    })
+
+    it('should escape ampersands', () => {
+      // Arrange
+      const input = 'foo & bar'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('foo &amp; bar')
+    })
+
+    it('should return safe strings unchanged', () => {
+      // Arrange
+      const input = 'Buy milk'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('Buy milk')
+    })
+
+    it('should handle empty strings', () => {
+      // Arrange / Act
+      const result = evaluate('')
+
+      // Assert
+      expect(result).toBe('')
+    })
+
+    it('should throw error for non-string values', () => {
+      expect(() => evaluate(123)).toThrow('Transformer.String.EscapeHtml expects a string but received number.')
+    })
+
+    it('should return a function expression when called', () => {
+      // Arrange / Act
+      const expr = StringTransformers.EscapeHtml()
+
+      // Assert
+      expect(expr).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'EscapeHtml',
+        arguments: [],
+      })
+    })
+  })
 })

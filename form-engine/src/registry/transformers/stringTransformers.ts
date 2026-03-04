@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
 import { ValueExpr } from '@form-engine/form/types/expressions.type'
+import { escapeHtmlEntities } from '@form-engine/core/utils/sanitize'
 
 /**
  * String transformation functions for data processing
@@ -391,5 +392,21 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
     }
 
     return date
+  },
+
+  /**
+   * Escapes HTML entities in a string to prevent XSS attacks.
+   * Use this when piping untrusted data (user input, external API data) into HTML contexts.
+   *
+   * Converts: < > & " ' to their HTML entity equivalents.
+   *
+   * @example
+   * // EscapeHtml('"><img src=x onerror=alert(1)>') returns '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;'
+   * // Usage: Data('goalTitle').pipe(Transformer.String.EscapeHtml())
+   */
+  EscapeHtml: (value: any) => {
+    assertString(value, 'Transformer.String.EscapeHtml')
+
+    return escapeHtmlEntities(value)
   },
 })

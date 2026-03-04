@@ -49,6 +49,9 @@ export interface TemplateWrapperProps extends BasicBlockProps {
   /**
    * String values to inject into the template at {{name}} markers.
    *
+   * **WARNING: Not sanitized.** Values are injected directly into the HTML template.
+   * Escape any untrusted data with `Transformer.String.EscapeHtml()`.
+   *
    * @example { title: 'Section Title', footer: 'Footer text' }
    */
   values?: Record<string, ConditionalString>

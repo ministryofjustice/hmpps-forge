@@ -7,24 +7,44 @@ import { BasicBlockProps, BlockDefinition, ConditionalString } from '../../form/
  * Props for the HtmlBlock component.
  *
  * Use this to render raw HTML content within forms.
- * Content is embedded directly without sanitization, so ensure HTML
- * comes from trusted sources only.
  *
- * @example
+ * **WARNING: XSS Risk — Content is rendered as raw HTML without any sanitization.**
+ *
+ * Any dynamic data interpolated into the content (e.g. via `Format()`, `Data()`, `Item()`)
+ * will be rendered as-is. If that data comes from user input or external sources, it **must**
+ * be escaped using `Transformer.String.EscapeHtml()` to prevent injection attacks.
+ *
+ * @example Safe — static developer HTML:
  * ```typescript
  * HtmlBlock({
- *   content: `
- *     <div>
- *       <p class='govuk-body'>By proceeding, you agree to our
- *          <a href="/terms">Terms of Service</a>
- *       </p>
- *     </div>
- *   `,
+ *   content: '<p class="govuk-body">Terms of Service</p>',
+ * })
+ * ```
+ *
+ * @example Safe — dynamic data escaped before interpolation:
+ * ```typescript
+ * HtmlBlock({
+ *   content: Format(
+ *     '<p class="govuk-body">%1</p>',
+ *     Data('goalTitle').pipe(Transformer.String.EscapeHtml()),
+ *   ),
+ * })
+ * ```
+ *
+ * @example UNSAFE — dynamic data interpolated without escaping:
+ * ```typescript
+ * // DO NOT do this — vulnerable to XSS if goalTitle contains malicious HTML
+ * HtmlBlock({
+ *   content: Format('<p class="govuk-body">%1</p>', Data('goalTitle')),
  * })
  * ```
  */
 export interface HtmlBlockProps extends BasicBlockProps {
-  /** Raw HTML content to render */
+  /**
+   * Raw HTML content to render.
+   *
+   * **WARNING: Not sanitized.** Escape any untrusted data with `Transformer.String.EscapeHtml()`.
+   */
   content: ConditionalString
 
   /** Additional CSS classes to apply to wrapper div (optional) */
@@ -47,7 +67,9 @@ export interface HtmlBlock extends BlockDefinition, HtmlBlockProps {
 
 /**
  * Renders raw HTML content with optional wrapper.
- * The content is embedded directly without sanitization.
+ *
+ * **WARNING: Content is embedded directly without sanitization.**
+ * Escape any untrusted data with `Transformer.String.EscapeHtml()`.
  */
 export const html = buildComponent<HtmlBlock>('html', async block => {
   const hasWrapper = block.classes || block.attributes
@@ -68,18 +90,12 @@ export const html = buildComponent<HtmlBlock>('html', async block => {
 
 /**
  * Creates an HTML block for rendering raw HTML content.
- * Content is embedded directly without sanitization.
  *
- * @example
- * ```typescript
- * HtmlBlock({
- *   content: `
- *     <p class='govuk-body'>By proceeding, you agree to our
- *        <a href="/terms">Terms of Service</a>
- *     </p>
- *   `,
- * })
- * ```
+ * **WARNING: XSS Risk — Content is rendered as raw HTML without any sanitization.**
+ *
+ * Escape any untrusted data with `Transformer.String.EscapeHtml()` before interpolation.
+ *
+ * @see {@link HtmlBlockProps} for full documentation and examples.
  */
 export function HtmlBlock(props: HtmlBlockProps): HtmlBlock {
   return blockBuilder<HtmlBlock>({ ...props, variant: 'html' })
