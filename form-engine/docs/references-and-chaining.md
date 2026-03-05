@@ -16,12 +16,14 @@ This enables:
 
 ## Reference Types
 
-The form-engine provides seven reference types, each pointing to a different data source:
+The form-engine provides these reference types, each pointing to a different data source:
 
 | Reference | Data Source | Common Use |
 |-----------|-------------|------------|
 | `Answer('code')` | Field responses | Referencing user input from any field |
 | `Data('key')` | External data | API responses, database lookups, configuration |
+| `Request.*()` | Request metadata | URL, method, headers, cookies, and request state |
+| `Session('key')` | Server-side session | Persisted user/session data |
 | `Self()` | Current field | Validation rules, field-scoped logic |
 | `Item()` | Iterator item | Accessing current item in `.each()` iterations |
 | `Params('key')` | URL path params | Route parameters like `/users/:id` |
@@ -32,7 +34,7 @@ The form-engine provides seven reference types, each pointing to a different dat
 
 ```typescript
 import {
-  Answer, Data, Self, Item, Post, Params, Query, Iterator,
+  Answer, Data, Request, Session, Self, Item, Post, Params, Query, Iterator,
 } from '@form-engine/form/builders'
 ```
 
@@ -217,6 +219,85 @@ Data('lookupOptions')
 Data('user.email')
 Data('user.profile.address.postcode')
 Data('config.features.darkMode')
+```
+
+---
+
+## `Request.*()` - Request Metadata
+
+Use `Request` when you need metadata from the current HTTP request without first promoting it into `Data()` inside an effect.
+
+### Available Methods
+
+```typescript
+Request.Url()              // Full request URL
+Request.Path()             // Pathname derived from the request URL
+Request.Method()           // HTTP method ('GET' | 'POST')
+Request.Headers('referer') // Exact header key lookup
+Request.Cookies('session') // Exact cookie key lookup
+Request.State('user.name') // Request state with dot notation
+```
+
+### Key Behavior
+
+- `Request.Headers()` uses the argument as an exact key and does not split dots.
+- `Request.Cookies()` uses the argument as an exact key and does not split dots.
+- `Request.State()` supports dot notation in the same way as `Answer()` and `Data()`.
+
+### Common Use Cases
+
+```typescript
+// Display the current path
+HtmlBlock({
+  content: Format('Current path: %1', Request.Path()),
+})
+
+// Branch on request method
+HtmlBlock({
+  hidden: Request.Method().not.match(Condition.Equals('POST')),
+  content: '<p class="govuk-body">Thanks for submitting.</p>',
+})
+
+// Read request-scoped user state
+HtmlBlock({
+  content: Format('Signed in as %1', Request.State('user.name')),
+})
+```
+
+---
+
+## `Session()` - Server-Side Session Data
+
+Use `Session()` when you need persisted server-side session values directly in your form definitions.
+
+### Signature
+
+```typescript
+Session(key: string): ReferenceExpr
+```
+
+### Basic Usage
+
+```typescript
+Session('user')
+Session('user.name')
+Session('permissions.canEdit')
+Session('featureFlags.betaAccess')
+```
+
+### Common Use Cases
+
+```typescript
+// Show the signed-in user from session state
+HtmlBlock({
+  content: Format('Signed in as %1', Session('user.name')),
+})
+
+// Branch based on session permissions
+HtmlBlock({
+  hidden: Session('permissions.canEdit').not.match(Condition.Equals(true)),
+  content: '<p class="govuk-body">Editing is enabled for this account.</p>',
+})
 ```
 
 ### Common Use Cases

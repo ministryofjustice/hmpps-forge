@@ -5,6 +5,7 @@ import { PseudoNode, PseudoNodeType } from '@form-engine/core/types/pseudoNodes.
  *
  * Different pseudo node types use different property names for their key:
  * - DATA → baseProperty
+ * - SESSION → baseSessionKey
  * - POST, ANSWER_LOCAL, ANSWER_REMOTE → baseFieldCode
  * - QUERY, PARAMS → paramName
  *
@@ -14,6 +15,12 @@ export function getPseudoNodeKey(node: PseudoNode): string | undefined {
   switch (node.type) {
     case PseudoNodeType.DATA:
       return node.properties.baseProperty
+
+    case PseudoNodeType.REQUEST:
+      return node.properties.requestPath
+
+    case PseudoNodeType.SESSION:
+      return node.properties.baseSessionKey
 
     case PseudoNodeType.POST:
     case PseudoNodeType.ANSWER_LOCAL:

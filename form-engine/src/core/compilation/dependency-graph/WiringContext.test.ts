@@ -70,34 +70,75 @@ describe('WiringContext', () => {
 
   describe('findReferenceNodes', () => {
     it('should find reference nodes matching the specified source', () => {
+      // Arrange
       const postRef1 = ASTTestFactory.reference(['post', 'firstName'])
       const postRef2 = ASTTestFactory.reference(['post', 'lastName'])
       const queryRef = ASTTestFactory.reference(['query', 'id'])
+      const requestRef = ASTTestFactory.reference(['request', 'method'])
+      const sessionRef = ASTTestFactory.reference(['session', 'user'])
 
       when(mockNodeRegistry.findByType)
         .calledWith(ExpressionType.REFERENCE)
-        .mockReturnValue([postRef1, postRef2, queryRef])
+        .mockReturnValue([postRef1, postRef2, queryRef, requestRef, sessionRef])
 
+      // Act
       const result = context.findReferenceNodes('post')
 
+      // Assert
       expect(result).toHaveLength(2)
       expect(result).toContain(postRef1)
       expect(result).toContain(postRef2)
     })
 
+    it('should find request reference nodes', () => {
+      // Arrange
+      const requestRef = ASTTestFactory.reference(['request', 'headers', 'referer'])
+      const queryRef = ASTTestFactory.reference(['query', 'id'])
+
+      when(mockNodeRegistry.findByType)
+        .calledWith(ExpressionType.REFERENCE)
+        .mockReturnValue([requestRef, queryRef])
+
+      // Act
+      const result = context.findReferenceNodes('request')
+
+      // Assert
+      expect(result).toEqual([requestRef])
+    })
+
+    it('should find session reference nodes', () => {
+      // Arrange
+      const sessionRef = ASTTestFactory.reference(['session', 'user', 'name'])
+      const queryRef = ASTTestFactory.reference(['query', 'id'])
+
+      when(mockNodeRegistry.findByType)
+        .calledWith(ExpressionType.REFERENCE)
+        .mockReturnValue([sessionRef, queryRef])
+
+      // Act
+      const result = context.findReferenceNodes('session')
+
+      // Assert
+      expect(result).toEqual([sessionRef])
+    })
+
     it('should return empty array when no references match source', () => {
+      // Arrange
       const queryRef = ASTTestFactory.reference(['query', 'id'])
 
       when(mockNodeRegistry.findByType)
         .calledWith(ExpressionType.REFERENCE)
         .mockReturnValue([queryRef])
 
+      // Act
       const result = context.findReferenceNodes('post')
 
+      // Assert
       expect(result).toEqual([])
     })
 
     it('should filter out references with invalid path length', () => {
+      // Arrange
       const validRef = ASTTestFactory.reference(['post', 'firstName'])
       const invalidRef = ASTTestFactory.reference(['post'])
 
@@ -105,8 +146,10 @@ describe('WiringContext', () => {
         .calledWith(ExpressionType.REFERENCE)
         .mockReturnValue([validRef, invalidRef])
 
+      // Act
       const result = context.findReferenceNodes('post')
 
+      // Assert
       expect(result).toHaveLength(1)
       expect(result).toContain(validRef)
     })

@@ -91,6 +91,8 @@ A unified way to reference data throughout the form:
 - `Self()` - Current field's value
 - `Answer('field_name')` - Other field values
 - `Data('source.path')` - External data loaded at step level
+- `Request.Url()`, `Request.Path()`, `Request.Method()`, `Request.Headers()`, `Request.Cookies()`, `Request.State()` - Request metadata
+- `Session('source.path')` - Server-side session data
 - `Item()` - Current item in a collection loop
 - `Post()`, `Params()`, `Query()` - HTTP request data
 

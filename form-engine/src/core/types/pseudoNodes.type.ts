@@ -9,6 +9,8 @@ export enum PseudoNodeType {
   QUERY = 'PseudoNodeType.Query',
   PARAMS = 'PseudoNodeType.Params',
   DATA = 'PseudoNodeType.Data',
+  REQUEST = 'PseudoNodeType.Request',
+  SESSION = 'PseudoNodeType.Session',
   ANSWER_LOCAL = 'PseudoNodeType.AnswerLocal',
   ANSWER_REMOTE = 'PseudoNodeType.AnswerRemote',
 }
@@ -70,6 +72,40 @@ export interface DataPseudoNode extends BasePseudoNode {
 }
 
 /**
+ * REQUEST pseudo node - represents request metadata exposed via Request.*
+ *
+ * Stores a single request lookup path, following the same pattern as other
+ * pseudo nodes that expose one internal key.
+ *
+ * Examples:
+ * - 'url'
+ * - 'path'
+ * - 'method'
+ * - 'headers.referer'
+ * - 'cookies.session_id'
+ * - 'state.user'
+ */
+export interface RequestPseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.REQUEST
+  properties: {
+    requestPath: string
+  }
+}
+
+/**
+ * SESSION pseudo node - represents server-side session data exposed via Session()
+ *
+ * Stores only the base session key.
+ * Nested property access (e.g., 'user.profile.name') is handled by the expression evaluator.
+ */
+export interface SessionPseudoNode extends BasePseudoNode {
+  type: PseudoNodeType.SESSION
+  properties: {
+    baseSessionKey: string
+  }
+}
+
+/**
  * ANSWER_LOCAL pseudo node - represents resolved field answer for a field on the current step
  * Has dependencies on POST, formatters, defaultValue, and onLoad transitions
  *
@@ -112,5 +148,7 @@ export type PseudoNode =
   | QueryPseudoNode
   | ParamsPseudoNode
   | DataPseudoNode
+  | RequestPseudoNode
+  | SessionPseudoNode
   | AnswerLocalPseudoNode
   | AnswerRemotePseudoNode

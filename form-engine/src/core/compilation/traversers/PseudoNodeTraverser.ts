@@ -20,6 +20,7 @@ import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
  * - ANSWER_REMOTE: Field answers from other steps (read from context.answers)
  * - QUERY: URL query parameters
  * - PARAMS: URL path parameters
+ * - SESSION: Server-side session data
  * - DATA: External data loaded via onLoad transitions
  */
 export default class PseudoNodeTraverser {
@@ -38,6 +39,8 @@ export default class PseudoNodeTraverser {
     this.created.set(PseudoNodeType.QUERY, new Set())
     this.created.set(PseudoNodeType.PARAMS, new Set())
     this.created.set(PseudoNodeType.DATA, new Set())
+    this.created.set(PseudoNodeType.REQUEST, new Set())
+    this.created.set(PseudoNodeType.SESSION, new Set())
   }
 
   createPseudoNodes() {
@@ -85,6 +88,14 @@ export default class PseudoNodeTraverser {
               case 'data':
                 // Create pseudo node with only base property name
                 this.createDataPseudoNode(baseFieldCode)
+                break
+
+              case 'request':
+                this.createRequestPseudoNode(path)
+                break
+
+              case 'session':
+                this.createSessionPseudoNode(baseFieldCode)
                 break
 
               case 'answers':
@@ -233,5 +244,59 @@ export default class PseudoNodeTraverser {
 
     this.nodeRegistry.register(node.id, node)
     this.created.get(PseudoNodeType.DATA)!.add(baseProperty)
+  }
+
+  /**
+   * Create a REQUEST pseudo node with deduplication
+   */
+  private createRequestPseudoNode(path: unknown[]): void {
+    const requestRef = this.parseRequestReference(path)
+
+    if (!requestRef) {
+      return
+    }
+
+    if (
+      this.created.get(PseudoNodeType.REQUEST)!.has(requestRef.requestPath) ||
+      this.pseudoNodeExists(PseudoNodeType.REQUEST, requestRef.requestPath)
+    ) {
+      return
+    }
+
+    const node = this.pseudoNodeFactory.createRequestPseudoNode(requestRef.requestPath)
+
+    this.nodeRegistry.register(node.id, node)
+    this.created.get(PseudoNodeType.REQUEST)!.add(requestRef.requestPath)
+  }
+
+  /**
+   * Create a SESSION pseudo node with deduplication
+   */
+  private createSessionPseudoNode(baseSessionKey: string): void {
+    if (
+      this.created.get(PseudoNodeType.SESSION)!.has(baseSessionKey) ||
+      this.pseudoNodeExists(PseudoNodeType.SESSION, baseSessionKey)
+    ) {
+      return
+    }
+
+    const node = this.pseudoNodeFactory.createSessionPseudoNode(baseSessionKey)
+
+    this.nodeRegistry.register(node.id, node)
+    this.created.get(PseudoNodeType.SESSION)!.add(baseSessionKey)
+  }
+
+  private parseRequestReference(path: unknown[]): { requestPath: string } | undefined {
+    const [, source, key] = path
+
+    if (source === 'url' || source === 'path' || source === 'method') {
+      return { requestPath: source }
+    }
+
+    if ((source === 'headers' || source === 'cookies' || source === 'state') && typeof key === 'string') {
+      return { requestPath: `${source}.${key}` }
+    }
+
+    return undefined
   }
 }

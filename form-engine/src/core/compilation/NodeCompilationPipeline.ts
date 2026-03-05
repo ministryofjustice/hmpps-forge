@@ -16,6 +16,8 @@ import DataWiring from '@form-engine/core/nodes/pseudo-nodes/data/DataWiring'
 import QueryWiring from '@form-engine/core/nodes/pseudo-nodes/query/QueryWiring'
 import ParamsWiring from '@form-engine/core/nodes/pseudo-nodes/params/ParamsWiring'
 import PostWiring from '@form-engine/core/nodes/pseudo-nodes/post/PostWiring'
+import RequestWiring from '@form-engine/core/nodes/pseudo-nodes/request/RequestWiring'
+import SessionWiring from '@form-engine/core/nodes/pseudo-nodes/session/SessionWiring'
 import ConditionalWiring from '@form-engine/core/nodes/expressions/conditional/ConditionalWiring'
 import ReferenceWiring from '@form-engine/core/nodes/expressions/reference/ReferenceWiring'
 import AndWiring from '@form-engine/core/nodes/predicates/and/AndWiring'
@@ -131,6 +133,8 @@ export class NodeCompilationPipeline {
    * - POST: Raw form submission data
    * - QUERY: URL query parameters
    * - PARAMS: URL path parameters
+   * - REQUEST: Request metadata exposed via Request.*
+   * - SESSION: Session data exposed via Session()
    * - DATA: External data loaded via onLoad
    *
    * Pseudo nodes are automatically registered in the node registry.
@@ -197,7 +201,7 @@ export class NodeCompilationPipeline {
    * Wires relationships that depend on step-scope metadata or pseudo nodes.
    * Must be called after:
    * 1. setStepScopeMetadata() - sets isCurrentStep, isDescendantOfStep, isAncestorOfStep
-   * 2. createPseudoNodes() - creates Answer, Data, Query, Params, Post pseudo nodes
+   * 2. createPseudoNodes() - creates Answer, Data, Query, Params, Post, Request, Session pseudo nodes
    *
    * Includes:
    * - onAccess transition wiring (uses isAncestorOfStep, getCurrentStepNode for cross-depth chaining)
@@ -222,6 +226,8 @@ export class NodeCompilationPipeline {
     new QueryWiring(wiringContext).wire()
     new ParamsWiring(wiringContext).wire()
     new PostWiring(wiringContext).wire()
+    new RequestWiring(wiringContext).wire()
+    new SessionWiring(wiringContext).wire()
   }
 
   /**
@@ -255,7 +261,8 @@ export class NodeCompilationPipeline {
     new QueryWiring(wiringContext).wireNodes(nodeIds)
     new ParamsWiring(wiringContext).wireNodes(nodeIds)
     new PostWiring(wiringContext).wireNodes(nodeIds)
-
+    new RequestWiring(wiringContext).wireNodes(nodeIds)
+    new SessionWiring(wiringContext).wireNodes(nodeIds)
     // Wire predicate nodes
     new TestWiring(wiringContext).wireNodes(nodeIds)
     new AndWiring(wiringContext).wireNodes(nodeIds)

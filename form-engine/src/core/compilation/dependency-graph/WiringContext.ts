@@ -32,7 +32,9 @@ export class WiringContext {
     return this.nodeRegistry.get(stepId) as StepASTNode
   }
 
-  findReferenceNodes(referenceSource: 'post' | 'query' | 'params' | 'data' | 'answers'): ReferenceASTNode[] {
+  findReferenceNodes(
+    referenceSource: 'post' | 'query' | 'params' | 'data' | 'answers' | 'request' | 'session',
+  ): ReferenceASTNode[] {
     return (
       this.nodeRegistry.findByType<ReferenceASTNode>(ExpressionType.REFERENCE)
         .filter(node => {
