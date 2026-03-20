@@ -1,4 +1,4 @@
-import { AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
+import { AstNodeId, NodeId, PseudoNodeId, TemplateNodeId } from '@form-engine/core/types/engine.type'
 
 /**
  * Categories for node IDs
@@ -9,6 +9,7 @@ export enum NodeIDCategory {
   COMPILE_PSEUDO = 'compile_pseudo',
   RUNTIME_AST = 'runtime_ast',
   RUNTIME_PSEUDO = 'runtime_pseudo',
+  TEMPLATE = 'template',
 }
 
 /**
@@ -21,6 +22,7 @@ export class NodeIDGenerator {
     [NodeIDCategory.COMPILE_PSEUDO, 0],
     [NodeIDCategory.RUNTIME_AST, 0],
     [NodeIDCategory.RUNTIME_PSEUDO, 0],
+    [NodeIDCategory.TEMPLATE, 0],
   ])
 
   /**
@@ -28,11 +30,13 @@ export class NodeIDGenerator {
    * @param category - Which counter to use
    * @returns String ID like "compile_ast:1" or "runtime_ast:1"
    */
+  next(category: NodeIDCategory.TEMPLATE): TemplateNodeId
+
   next(category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST): AstNodeId
 
   next(category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
 
-  next(category: NodeIDCategory): NodeId {
+  next(category: NodeIDCategory): NodeId | TemplateNodeId {
     const current = this.counters.get(category)!
     const next = current + 1
 

@@ -15,7 +15,7 @@ import { getByPath } from '@form-engine/utils/utils'
 import { PseudoNodeType, SessionPseudoNode } from '@form-engine/core/types/pseudoNodes.type'
 
 export default class SessionReferenceHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

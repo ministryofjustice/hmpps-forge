@@ -29,7 +29,7 @@ import { NotPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Asynchronous when operand is an async node.
  */
 export default class NotHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

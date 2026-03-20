@@ -6,4 +6,5 @@ export enum ASTNodeType {
   PREDICATE = 'AstNode.Predicate',
   TRANSITION = 'AstNode.Transition',
   OUTCOME = 'AstNode.Outcome',
+  TEMPLATE = 'AstNode.Template',
 }

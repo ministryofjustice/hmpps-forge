@@ -1,552 +1,257 @@
-import { AstNodeId, NodeId } from '@form-engine/core/types/engine.type'
+import { AstNodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { BlockType } from '@form-engine/form/types/enums'
-import { EvaluationResult } from '@form-engine/core/compilation/thunks/ThunkEvaluator'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
-import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
-import ThunkCacheManager from '@form-engine/core/compilation/thunks/ThunkCacheManager'
-import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
-import RenderContextFactory, { RenderContextOptions } from './RenderContextFactory'
-import { Evaluated, JourneyMetadata, StepMetadata } from './types'
+import { StepValidationFailure } from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
+import { Evaluated, JourneyAncestor, JourneyMetadata, StepMetadata } from './types'
 
-describe('RenderContextFactory', () => {
-  const createMockBlock = (id: AstNodeId, variant: string = 'TextInput'): Evaluated<BlockASTNode> => ({
+function createMockBlock(id: AstNodeId, overrides: Partial<Evaluated<BlockASTNode>['properties']> = {}) {
+  return {
     id,
     type: ASTNodeType.BLOCK,
-    variant,
+    variant: 'TextInput',
     blockType: BlockType.FIELD,
-    properties: { label: 'Test Label' },
-  })
-
-  const createMockStep = (
-    id: AstNodeId,
-    overrides: Partial<Evaluated<StepASTNode>['properties']> = {},
-  ): Evaluated<StepASTNode> => ({
-    id,
-    type: ASTNodeType.STEP,
     properties: {
-      path: '/test-step',
-      title: 'Test Step',
-      blocks: [],
+      label: 'Test Label',
       ...overrides,
     },
-  })
+  } as Evaluated<BlockASTNode>
+}
 
-  const createMockJourney = (
-    id: AstNodeId,
-    steps: Evaluated<StepASTNode>[],
-    overrides: Partial<JourneyASTNode['properties']> = {},
-  ): JourneyASTNode =>
-    ({
-      id,
-      type: ASTNodeType.JOURNEY,
-      properties: {
-        code: 'test-journey',
-        path: '/test-journey',
-        steps,
-        ...overrides,
-      } as any,
-    }) as any
-
-  /**
-   * Build parent map from journey structure for metadata registry
-   */
-  const buildParentMapFromJourney = (journey: JourneyASTNode): Record<NodeId, NodeId> => {
-    const parentMap: Record<NodeId, NodeId> = {}
-
-    const traverse = (node: JourneyASTNode, parentId?: NodeId) => {
-      if (parentId) {
-        parentMap[node.id] = parentId
-      }
-
-      node.properties.steps?.forEach(step => {
-        parentMap[step.id] = node.id
-      })
-
-      node.properties.children?.forEach(child => {
-        traverse(child as JourneyASTNode, node.id)
-      })
-    }
-
-    traverse(journey)
-
-    return parentMap
+function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderContextInput {
+  return {
+    step: {
+      path: '/journey/step',
+      title: 'Step Title',
+    },
+    ancestors: [],
+    blocks: [],
+    answers: { email: { current: 'user@example.com', mutations: [] } },
+    data: { existingData: 'value' },
+    validationFailures: [],
+    ...overrides,
   }
+}
 
-  /**
-   * Collect all nodes from journey tree to populate cache
-   */
-  const collectNodesFromJourney = (
-    journey: JourneyASTNode,
-  ): Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>> => {
-    const nodes = new Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>>()
-
-    const traverse = (node: JourneyASTNode) => {
-      nodes.set(node.id, node as Evaluated<JourneyASTNode>)
-
-      node.properties.steps?.forEach(step => {
-        nodes.set(step.id, step as Evaluated<StepASTNode>)
-      })
-
-      node.properties.children?.forEach(child => {
-        traverse(child as JourneyASTNode)
-      })
-    }
-
-    traverse(journey)
-
-    return nodes
-  }
-
-  const createMockMetadataRegistry = (parentMap: Record<NodeId, NodeId>): MetadataRegistry => {
-    const registry = new MetadataRegistry()
-
-    Object.entries(parentMap).forEach(([childId, parentId]) => {
-      registry.set(childId as NodeId, 'attachedToParentNode', parentId)
-    })
-
-    return registry
-  }
-
-  const createMockCacheManager = (
-    nodes: Map<NodeId, Evaluated<JourneyASTNode> | Evaluated<StepASTNode>>,
-  ): ThunkCacheManager => {
-    const cacheManager = new ThunkCacheManager()
-
-    nodes.forEach((value, nodeId) => {
-      cacheManager.set(nodeId, { value, metadata: {} })
-    })
-
-    return cacheManager
-  }
-
-  const createMockNodeRegistry = (): NodeRegistry => {
-    // Create a mock registry that returns empty arrays for node lookups
-    return {
-      findByPseudoType: jest.fn().mockReturnValue([]),
-      findByType: jest.fn().mockReturnValue([]),
-    } as unknown as NodeRegistry
-  }
-
-  const createMockEvaluationResult = (journeyValue: JourneyASTNode): EvaluationResult => {
-    const parentMap = buildParentMapFromJourney(journeyValue)
-    const nodes = collectNodesFromJourney(journeyValue)
-
-    return {
-      context: {
-        global: {
-          answers: { existingAnswer: { current: 'answer-value', mutations: [] } },
-          data: { existingData: 'data-value' },
-        },
-        metadataRegistry: createMockMetadataRegistry(parentMap),
-        cacheManager: createMockCacheManager(nodes),
-        nodeRegistry: createMockNodeRegistry(),
-      } as any,
-      journey: {
-        value: journeyValue,
-        metadata: { source: 'test', timestamp: Date.now() },
-      },
-    }
-  }
-
-  const createStoredStep = (path: string, title?: string): StepMetadata => ({
+function createStoredStep(path: string, title?: string): StepMetadata {
+  return {
     path,
     title,
-  })
+  }
+}
 
-  const createStoredJourney = (
-    path: string,
-    children: Array<JourneyMetadata | StepMetadata>,
-    overrides: Partial<JourneyMetadata> = {},
-  ): JourneyMetadata => ({
+function createStoredJourney(
+  path: string,
+  children: Array<JourneyMetadata | StepMetadata>,
+  overrides: Partial<JourneyMetadata> = {},
+): JourneyMetadata {
+  return {
     path,
     children,
     ...overrides,
-  })
+  }
+}
 
+describe('RenderContextFactory', () => {
   describe('build()', () => {
-    it('should build render context with step and blocks', () => {
+    it('should build render context from explicit evaluated inputs', () => {
       // Arrange
-      const block = createMockBlock('compile_ast:3')
-      const step = createMockStep('compile_ast:2', { blocks: [block] })
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
+      const block = createMockBlock('compile_ast:1')
+      const ancestor: JourneyAncestor = {
+        code: 'journey',
+        path: '/journey',
+        title: 'Journey Title',
+      }
+      const input = createRenderInput({
+        ancestors: [ancestor],
+        blocks: [block],
+      })
 
       // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
+      const result = RenderContextFactory.build(input)
 
       // Assert
       expect(result.step).toEqual({
-        path: '/test-step',
-        title: 'Test Step',
+        path: '/journey/step',
+        title: 'Step Title',
       })
+      expect(result.ancestors).toEqual([ancestor])
       expect(result.blocks).toEqual([block])
+      expect(result.answers).toEqual({ email: { current: 'user@example.com', mutations: [] } })
+      expect(result.data).toEqual({ existingData: 'value' })
       expect(result.showValidationFailures).toBe(false)
+      expect(result.validationErrors).toEqual([])
     })
 
-    it('should include answers and data from evaluation context', () => {
+    it('should attach stored validation failures to matching field blocks when enabled', () => {
       // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.answers).toEqual({ existingAnswer: { current: 'answer-value', mutations: [] } })
-      expect(result.data).toEqual({ existingData: 'data-value' })
-    })
-
-    it('should set showValidationFailures when option is true', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-      const options: RenderContextOptions = { showValidationFailures: true }
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
-
-      // Assert
-      expect(result.showValidationFailures).toBe(true)
-    })
-
-    it('should exclude transitions from step properties', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2', {
-        onAction: [{ type: 'action-transition' }],
-        onSubmission: [{ type: 'submit-transition' }],
-        backlink: '/previous',
-        metadata: { custom: 'value' },
+      const block = createMockBlock('compile_ast:2', {
+        validate: [{ passed: false, message: 'Old cached error', submissionOnly: true }],
       })
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.step).toEqual({
-        path: '/test-step',
-        title: 'Test Step',
-        backlink: '/previous',
-        metadata: { custom: 'value' },
-      })
-      expect(result.step).not.toHaveProperty('onLoad')
-      expect(result.step).not.toHaveProperty('onAction')
-      expect(result.step).not.toHaveProperty('onSubmission')
-      expect(result.step).not.toHaveProperty('blocks')
-    })
-
-    it('should preserve custom step properties', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2', {
-        view: { layout: 'two-thirds', template: 'custom' },
-        customProperty: 'custom-value',
-      } as any)
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.step.view).toEqual({ layout: 'two-thirds', template: 'custom' })
-      expect((result.step as any).customProperty).toBe('custom-value')
-    })
-
-    it('should return empty ancestors array for step in root journey', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.ancestors).toHaveLength(1)
-      expect(result.ancestors[0]).toEqual({
-        code: 'test-journey',
-        path: '/test-journey',
-      })
-    })
-
-    it('should collect journey ancestors from root to parent', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:3')
-      const childJourney: JourneyASTNode = {
-        id: 'compile_ast:2' as NodeId,
-        type: 'AstNode.Journey',
-        properties: {
-          code: 'child-journey',
-          path: '/parent/child',
-          title: 'Child Journey',
-          steps: [step],
+      const failures: StepValidationFailure[] = [
+        {
+          blockId: block.id,
+          blockCode: 'email',
+          passed: false,
+          message: 'Enter your email address',
+          submissionOnly: true,
+          details: { code: 'required' },
         },
-      } as any
-      const parentJourney: JourneyASTNode = {
-        id: 'compile_ast:1' as NodeId,
-        type: 'AstNode.Journey',
-        properties: {
-          code: 'parent-journey',
-          path: '/parent',
-          title: 'Parent Journey',
-          children: [childJourney],
-          steps: [],
-        },
-      } as any
-      const evaluationResult = createMockEvaluationResult(parentJourney)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:3' as NodeId)
-
-      // Assert
-      expect(result.ancestors).toHaveLength(2)
-      expect(result.ancestors[0]).toEqual({
-        code: 'parent-journey',
-        path: '/parent',
-        title: 'Parent Journey',
-      })
-      expect(result.ancestors[1]).toEqual({
-        code: 'child-journey',
-        path: '/parent/child',
-        title: 'Child Journey',
-      })
-    })
-
-    it('should exclude transitions from journey ancestors', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step], {
-        onAccess: [{ type: ASTNodeType.TRANSITION }] as any,
-        title: 'Journey Title',
-        metadata: { version: '1.0' },
-      })
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.ancestors[0]).toEqual({
-        code: 'test-journey',
-        path: '/test-journey',
-        title: 'Journey Title',
-        metadata: { version: '1.0' },
-      })
-      expect(result.ancestors[0]).not.toHaveProperty('onLoad')
-      expect(result.ancestors[0]).not.toHaveProperty('onAccess')
-      expect(result.ancestors[0]).not.toHaveProperty('children')
-      expect(result.ancestors[0]).not.toHaveProperty('steps')
-    })
-
-    it('should return empty navigation when no metadata provided', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2')
-
-      // Assert
-      expect(result.navigation).toEqual([])
-    })
-
-    it('should build navigation tree from metadata', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      const navigationMetadata: JourneyMetadata[] = [
-        createStoredJourney('/journey-1', [createStoredStep('/journey-1/step-1', 'Step 1')], { title: 'Journey 1' }),
       ]
-
-      const options: RenderContextOptions = { navigationMetadata }
+      const input = createRenderInput({
+        blocks: [block],
+        validationFailures: failures,
+      })
 
       // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
+      const result = RenderContextFactory.build(input, { showValidationFailures: true })
 
       // Assert
-      expect(result.navigation).toHaveLength(1)
-      expect(result.navigation[0]).toEqual({
-        type: 'journey',
-        title: 'Journey 1',
-        description: undefined,
-        path: '/journey-1',
-        active: false,
-        children: [
+      expect(result.validationErrors).toEqual([
+        {
+          blockCode: 'email',
+          passed: false,
+          message: 'Enter your email address',
+          submissionOnly: true,
+          details: { code: 'required' },
+        },
+      ])
+      expect(result.blocks[0].properties.validate).toEqual([
+        {
+          blockCode: 'email',
+          passed: false,
+          message: 'Enter your email address',
+          submissionOnly: true,
+          details: { code: 'required' },
+        },
+      ])
+    })
+
+    it('should preserve existing block validation state when failures are not supplied', () => {
+      // Arrange
+      const block = createMockBlock('compile_ast:3', {
+        validate: [{ passed: false, message: 'Existing error', submissionOnly: true }],
+      })
+      const input = createRenderInput({
+        blocks: [block],
+      })
+
+      // Act
+      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+
+      // Assert
+      expect(result.validationErrors).toEqual([])
+      expect(result.blocks[0].properties.validate).toEqual([
+        { passed: false, message: 'Existing error', submissionOnly: true },
+      ])
+    })
+
+    it('should apply validation failures to nested field blocks', () => {
+      // Arrange
+      const nestedBlock = createMockBlock('compile_ast:4')
+      const containerBlock = {
+        id: 'compile_ast:container' as AstNodeId,
+        type: ASTNodeType.BLOCK,
+        variant: 'SummaryCard',
+        blockType: BlockType.BASIC,
+        properties: {
+          content: {
+            child: nestedBlock,
+          },
+        },
+      } as Evaluated<BlockASTNode>
+      const input = createRenderInput({
+        blocks: [containerBlock],
+        validationFailures: [
           {
-            type: 'step',
-            title: 'Step 1',
-            path: '/journey-1/step-1',
-            active: false,
+            blockId: nestedBlock.id,
+            blockCode: 'nested',
+            passed: false,
+            message: 'Nested error',
+            submissionOnly: true,
           },
         ],
       })
+
+      // Act
+      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+
+      // Assert
+      const renderedNestedBlock = (result.blocks[0].properties.content as { child: Evaluated<BlockASTNode> }).child
+
+      expect(renderedNestedBlock.properties.validate).toEqual([
+        {
+          blockCode: 'nested',
+          passed: false,
+          message: 'Nested error',
+          submissionOnly: true,
+        },
+      ])
     })
 
-    it('should mark current step as active', () => {
+    it('should build navigation tree with active state from metadata', () => {
       // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      const navigationMetadata: JourneyMetadata[] = [
-        createStoredJourney('/journey', [
-          createStoredStep('/journey/step-1', 'Step 1'),
-          createStoredStep('/journey/step-2', 'Step 2'),
-        ]),
-      ]
-
+      const input = createRenderInput()
       const options: RenderContextOptions = {
-        navigationMetadata,
-        currentStepPath: '/journey/step-2',
+        navigationMetadata: [
+          createStoredJourney(
+            '/journey',
+            [
+              createStoredStep('/journey/step-1', 'Step 1'),
+              createStoredJourney('/journey/child', [createStoredStep('/journey/child/step', 'Child Step')], {
+                title: 'Child Journey',
+              }),
+            ],
+            {
+              title: 'Journey',
+              description: 'Journey Description',
+            },
+          ),
+        ],
+        currentStepPath: '/journey/child/step',
       }
 
       // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
+      const result = RenderContextFactory.build(input, options)
 
       // Assert
-      expect(result.navigation[0].active).toBe(true)
-      expect(result.navigation[0].children[0].active).toBe(false)
-      expect(result.navigation[0].children[1].active).toBe(true)
-    })
-
-    it('should mark parent journey as active when child step is active', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      const navigationMetadata: JourneyMetadata[] = [
-        createStoredJourney('/parent', [
-          createStoredJourney('/parent/child', [createStoredStep('/parent/child/step', 'Active Step')]),
-        ]),
-      ]
-
-      const options: RenderContextOptions = {
-        navigationMetadata,
-        currentStepPath: '/parent/child/step',
-      }
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
-
-      // Assert
-      expect(result.navigation[0].active).toBe(true)
-      expect((result.navigation[0].children[0] as any).active).toBe(true)
-      expect((result.navigation[0].children[0] as any).children[0].active).toBe(true)
-    })
-
-    it('should handle deeply nested navigation structure', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      const navigationMetadata: JourneyMetadata[] = [
-        createStoredJourney(
-          '/level1',
-          [
-            createStoredJourney(
-              '/level1/level2',
-              [
-                createStoredJourney(
-                  '/level1/level2/level3',
-                  [createStoredStep('/level1/level2/level3/step', 'Deep Step')],
-                  {
-                    title: 'Level 3',
-                  },
-                ),
-              ],
-              { title: 'Level 2' },
-            ),
-          ],
-          { title: 'Level 1' },
-        ),
-      ]
-
-      const options: RenderContextOptions = {
-        navigationMetadata,
-        currentStepPath: '/level1/level2/level3/step',
-      }
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
-
-      // Assert
-      const level1 = result.navigation[0]
-      const level2 = level1.children[0] as any
-      const level3 = level2.children[0] as any
-      const deepStep = level3.children[0]
-
-      expect(level1.active).toBe(true)
-      expect(level2.active).toBe(true)
-      expect(level3.active).toBe(true)
-      expect(deepStep.active).toBe(true)
-    })
-
-    it('should include description in navigation journey', () => {
-      // Arrange
-      const step = createMockStep('compile_ast:2')
-      const journey = createMockJourney('compile_ast:1', [step])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      const navigationMetadata: JourneyMetadata[] = [
-        createStoredJourney('/journey', [createStoredStep('/journey/step', 'Step')], {
-          title: 'Journey Title',
+      expect(result.navigation).toEqual([
+        {
+          type: 'journey',
+          title: 'Journey',
           description: 'Journey Description',
-        }),
-      ]
-
-      const options: RenderContextOptions = { navigationMetadata }
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:2' as NodeId, options)
-
-      // Assert
-      expect(result.navigation[0].description).toBe('Journey Description')
-    })
-
-    it('should find step in nested journey structure', () => {
-      // Arrange
-      const targetStep = createMockStep('compile_ast:4', { title: 'Target Step' })
-      const otherStep = createMockStep('compile_ast:3', { title: 'Other Step' })
-      const childJourney = createMockJourney('compile_ast:2', [targetStep], {
-        code: 'child',
-        path: '/parent/child',
-      })
-      const parentJourney = createMockJourney('compile_ast:1', [otherStep], {
-        code: 'parent',
-        path: '/parent',
-        children: [childJourney],
-      })
-      const evaluationResult = createMockEvaluationResult(parentJourney)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:4')
-
-      // Assert
-      expect(result.step.title).toBe('Target Step')
-    })
-
-    it('should find step among multiple steps in journey', () => {
-      // Arrange
-      const step1 = createMockStep('compile_ast:2', { title: 'First Step' })
-      const step2 = createMockStep('compile_ast:3', { title: 'Second Step' })
-      const step3 = createMockStep('compile_ast:4', { title: 'Third Step' })
-      const journey = createMockJourney('compile_ast:1', [step1, step2, step3])
-      const evaluationResult = createMockEvaluationResult(journey)
-
-      // Act
-      const result = RenderContextFactory.build(evaluationResult, 'compile_ast:3' as NodeId)
-
-      // Assert
-      expect(result.step.title).toBe('Second Step')
+          path: '/journey',
+          active: true,
+          hiddenFromNavigation: undefined,
+          children: [
+            {
+              type: 'step',
+              title: 'Step 1',
+              path: '/journey/step-1',
+              active: false,
+              hiddenFromNavigation: undefined,
+            },
+            {
+              type: 'journey',
+              title: 'Child Journey',
+              description: undefined,
+              path: '/journey/child',
+              active: true,
+              hiddenFromNavigation: undefined,
+              children: [
+                {
+                  type: 'step',
+                  title: 'Child Step',
+                  path: '/journey/child/step',
+                  active: true,
+                  hiddenFromNavigation: undefined,
+                },
+              ],
+            },
+          ],
+        },
+      ])
     })
   })
 })

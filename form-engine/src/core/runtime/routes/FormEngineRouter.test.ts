@@ -8,6 +8,7 @@ import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import DuplicateRouteError from '@form-engine/errors/DuplicateRouteError'
 import FormInstance from '@form-engine/core/FormInstance'
 import FormStepController from '@form-engine/core/runtime/routes/FormStepController'
+import { StepRuntimePlan } from '@form-engine/core/compilation/StepRuntimePlanBuilder'
 import FormEngineRouter from './FormEngineRouter'
 
 jest.mock('@form-engine/core/runtime/routes/FormStepController')
@@ -130,12 +131,33 @@ describe('FormEngineRouter', () => {
   }
 
   function createMockFormInstance(
-    compiledForm: Array<{ artefact: any; currentStepId: NodeId }>,
+    compiledForm: Array<{ artefact: any; currentStepId: NodeId; runtimePlan?: StepRuntimePlan }>,
     config: JourneyDefinition,
   ): jest.Mocked<FormInstance> {
-    const byStepId = new Map(compiledForm.map(compiled => [compiled.currentStepId, compiled]))
+    const compiledSteps = compiledForm.map(compiled => {
+      if (compiled.runtimePlan !== undefined) {
+        return compiled
+      }
+
+      return {
+        ...compiled,
+        runtimePlan: {
+          stepId: compiled.currentStepId,
+          accessAncestorIds: [compiled.currentStepId],
+          actionTransitionIds: [],
+          submitTransitionIds: [],
+          fieldIteratorRootIds: [],
+          validationIterateNodeIds: [],
+          validationBlockIds: [],
+          renderAncestorIds: [],
+          renderStepId: compiled.currentStepId,
+        },
+      }
+    })
+
+    const byStepId = new Map(compiledSteps.map(compiled => [compiled.currentStepId, compiled]))
     const stepIndex = new Map(
-      compiledForm.map(compiled => [
+      compiledSteps.map(compiled => [
         compiled.currentStepId,
         compiled.artefact.nodeRegistry.get(compiled.currentStepId),
       ]),
@@ -144,7 +166,7 @@ describe('FormEngineRouter', () => {
     const sharedArtefact = {
       nodeRegistry: {
         get: jest.fn((nodeId: NodeId) => {
-          for (const compiled of compiledForm) {
+          for (const compiled of compiledSteps) {
             const node = compiled.artefact.nodeRegistry.get(nodeId)
 
             if (node !== undefined) {
@@ -157,7 +179,7 @@ describe('FormEngineRouter', () => {
       },
       metadataRegistry: {
         get: jest.fn((nodeId: NodeId, key: string) => {
-          for (const compiled of compiledForm) {
+          for (const compiled of compiledSteps) {
             const metadata = compiled.artefact.metadataRegistry.get(nodeId, key)
 
             if (metadata !== undefined) {
@@ -171,7 +193,7 @@ describe('FormEngineRouter', () => {
     }
 
     return {
-      getCompiledForm: jest.fn().mockReturnValue(compiledForm),
+      getCompiledForm: jest.fn().mockReturnValue(compiledSteps),
       getCompiledStep: jest.fn().mockImplementation((stepId: NodeId) => {
         const compiledStep = byStepId.get(stepId)
 

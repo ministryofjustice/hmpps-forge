@@ -1,6 +1,5 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
-import DependencyGraph from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import ThunkCacheManager from './ThunkCacheManager'
 
 const createSuccessResult = <T>(value: T): ThunkResult<T> => ({
@@ -22,12 +21,6 @@ const createErrorResult = (nodeId: NodeId, message: string): ThunkResult<never> 
     timestamp: Date.now(),
   },
 })
-
-const createMockDependencyGraph = (dependentsMap: Map<NodeId, NodeId[]>): DependencyGraph => {
-  return {
-    getDependents: (nodeId: NodeId) => dependentsMap.get(nodeId) ?? [],
-  } as unknown as DependencyGraph
-}
 
 describe('ThunkCacheManager', () => {
   let cacheManager: ThunkCacheManager
@@ -315,178 +308,38 @@ describe('ThunkCacheManager', () => {
     })
   })
 
-  describe('invalidateCascading()', () => {
-    it('should increment version of invalidated node', () => {
+  describe('clearCache()', () => {
+    it('should clear all cached results', () => {
       // Arrange
-      const nodeId: NodeId = 'compile_pseudo:1'
-      const graph = createMockDependencyGraph(new Map())
-
-      // Act
-      cacheManager.invalidateCascading(nodeId, graph)
-
-      // Assert
-      expect(cacheManager.getVersion(nodeId)).toBe(1)
-    })
-
-    it('should remove invalidated node from cache', () => {
-      // Arrange
-      const nodeId: NodeId = 'compile_pseudo:1'
-      const graph = createMockDependencyGraph(new Map())
-      cacheManager.set(nodeId, createSuccessResult('cached'))
-
-      // Act
-      cacheManager.invalidateCascading(nodeId, graph)
-
-      // Assert
-      expect(cacheManager.has(nodeId)).toBe(false)
-    })
-
-    it('should increment version even when node is not cached', () => {
-      // Arrange
-      const nodeId: NodeId = 'compile_pseudo:1'
-      const graph = createMockDependencyGraph(new Map())
-
-      // Act
-      cacheManager.invalidateCascading(nodeId, graph)
-
-      // Assert
-      expect(cacheManager.getVersion(nodeId)).toBe(1)
-    })
-
-    it('should cascade invalidation to dependent nodes', () => {
-      // Arrange
-      //     A
-      //    / \
-      //   B   C
       const nodeA: NodeId = 'compile_pseudo:1'
       const nodeB: NodeId = 'compile_pseudo:2'
-      const nodeC: NodeId = 'compile_pseudo:3'
-
-      const dependentsMap = new Map<NodeId, NodeId[]>([[nodeA, [nodeB, nodeC]]])
-      const graph = createMockDependencyGraph(dependentsMap)
-
       cacheManager.set(nodeA, createSuccessResult('A'))
       cacheManager.set(nodeB, createSuccessResult('B'))
-      cacheManager.set(nodeC, createSuccessResult('C'))
 
       // Act
-      cacheManager.invalidateCascading(nodeA, graph)
+      cacheManager.clearCache()
 
       // Assert
       expect(cacheManager.has(nodeA)).toBe(false)
       expect(cacheManager.has(nodeB)).toBe(false)
-      expect(cacheManager.has(nodeC)).toBe(false)
+    })
 
-      expect(cacheManager.getVersion(nodeA)).toBe(1)
+    it('should preserve version counters', () => {
+      // Arrange
+      const nodeA: NodeId = 'compile_pseudo:1'
+      const nodeB: NodeId = 'compile_pseudo:2'
+      cacheManager.incrementVersion(nodeA)
+      cacheManager.incrementVersion(nodeA)
+      cacheManager.incrementVersion(nodeB)
+      cacheManager.set(nodeA, createSuccessResult('A'))
+
+      // Act
+      cacheManager.clearCache()
+
+      // Assert
+      expect(cacheManager.has(nodeA)).toBe(false)
+      expect(cacheManager.getVersion(nodeA)).toBe(2)
       expect(cacheManager.getVersion(nodeB)).toBe(1)
-      expect(cacheManager.getVersion(nodeC)).toBe(1)
-    })
-
-    it('should cascade invalidation through multiple levels', () => {
-      // Arrange
-      //   A → B → C → D
-      const nodeA: NodeId = 'compile_pseudo:1'
-      const nodeB: NodeId = 'compile_pseudo:2'
-      const nodeC: NodeId = 'compile_pseudo:3'
-      const nodeD: NodeId = 'compile_pseudo:4'
-
-      const dependentsMap = new Map<NodeId, NodeId[]>([
-        [nodeA, [nodeB]],
-        [nodeB, [nodeC]],
-        [nodeC, [nodeD]],
-      ])
-      const graph = createMockDependencyGraph(dependentsMap)
-
-      cacheManager.set(nodeA, createSuccessResult('A'))
-      cacheManager.set(nodeB, createSuccessResult('B'))
-      cacheManager.set(nodeC, createSuccessResult('C'))
-      cacheManager.set(nodeD, createSuccessResult('D'))
-
-      // Act
-      cacheManager.invalidateCascading(nodeA, graph)
-
-      // Assert
-      expect(cacheManager.has(nodeA)).toBe(false)
-      expect(cacheManager.has(nodeB)).toBe(false)
-      expect(cacheManager.has(nodeC)).toBe(false)
-      expect(cacheManager.has(nodeD)).toBe(false)
-    })
-
-    it('should not affect nodes that are not dependents', () => {
-      // Arrange
-      //   A → B    C (independent)
-      const nodeA: NodeId = 'compile_pseudo:1'
-      const nodeB: NodeId = 'compile_pseudo:2'
-      const nodeC: NodeId = 'compile_pseudo:3'
-
-      const dependentsMap = new Map<NodeId, NodeId[]>([[nodeA, [nodeB]]])
-      const graph = createMockDependencyGraph(dependentsMap)
-
-      cacheManager.set(nodeA, createSuccessResult('A'))
-      cacheManager.set(nodeB, createSuccessResult('B'))
-      cacheManager.set(nodeC, createSuccessResult('C'))
-
-      // Act
-      cacheManager.invalidateCascading(nodeA, graph)
-
-      // Assert
-      expect(cacheManager.has(nodeA)).toBe(false)
-      expect(cacheManager.has(nodeB)).toBe(false)
-      expect(cacheManager.has(nodeC)).toBe(true)
-      expect(cacheManager.getVersion(nodeC)).toBe(0)
-    })
-
-    it('should handle circular dependencies without infinite recursion', () => {
-      // Arrange
-      //   A → B → A (circular)
-      const nodeA: NodeId = 'compile_pseudo:1'
-      const nodeB: NodeId = 'compile_pseudo:2'
-
-      const dependentsMap = new Map<NodeId, NodeId[]>([
-        [nodeA, [nodeB]],
-        [nodeB, [nodeA]],
-      ])
-      const graph = createMockDependencyGraph(dependentsMap)
-
-      cacheManager.set(nodeA, createSuccessResult('A'))
-      cacheManager.set(nodeB, createSuccessResult('B'))
-
-      // Act & Assert
-      expect(() => cacheManager.invalidateCascading(nodeA, graph)).not.toThrow()
-      expect(cacheManager.has(nodeA)).toBe(false)
-      expect(cacheManager.has(nodeB)).toBe(false)
-    })
-
-    it('should increment version only once per node in diamond dependencies', () => {
-      // Arrange
-      //     A
-      //    / \
-      //   B   C
-      //    \ /
-      //     D
-      const nodeA: NodeId = 'compile_pseudo:1'
-      const nodeB: NodeId = 'compile_pseudo:2'
-      const nodeC: NodeId = 'compile_pseudo:3'
-      const nodeD: NodeId = 'compile_pseudo:4'
-
-      const dependentsMap = new Map<NodeId, NodeId[]>([
-        [nodeA, [nodeB, nodeC]],
-        [nodeB, [nodeD]],
-        [nodeC, [nodeD]],
-      ])
-      const graph = createMockDependencyGraph(dependentsMap)
-
-      cacheManager.set(nodeA, createSuccessResult('A'))
-      cacheManager.set(nodeB, createSuccessResult('B'))
-      cacheManager.set(nodeC, createSuccessResult('C'))
-      cacheManager.set(nodeD, createSuccessResult('D'))
-
-      // Act
-      cacheManager.invalidateCascading(nodeA, graph)
-
-      // Assert
-      expect(cacheManager.has(nodeD)).toBe(false)
-      expect(cacheManager.getVersion(nodeD)).toBe(1)
     })
   })
 })

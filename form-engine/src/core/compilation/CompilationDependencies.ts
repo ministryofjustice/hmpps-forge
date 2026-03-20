@@ -4,19 +4,19 @@ import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
 import PseudoNodeFactory from '@form-engine/core/nodes/PseudoNodeFactory'
-import DependencyGraph from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import OverlayNodeRegistry from '@form-engine/core/compilation/registries/OverlayNodeRegistry'
 import OverlayMetadataRegistry from '@form-engine/core/compilation/registries/OverlayMetadataRegistry'
-import OverlayDependencyGraph from '@form-engine/core/compilation/dependency-graph/OverlayDependencyGraph'
 import ThunkHandlerRegistry from '@form-engine/core/compilation/registries/ThunkHandlerRegistry'
 import OverlayThunkHandlerRegistry from '@form-engine/core/compilation/registries/OverlayThunkHandlerRegistry'
+import ASTNodeTree from '@form-engine/core/compilation/node-tree/ASTNodeTree'
+import OverlayASTNodeTree from '@form-engine/core/compilation/node-tree/OverlayASTNodeTree'
 import { NodeId } from '@form-engine/core/types/engine.type'
 
 export type OverlayDependencies = CompilationDependencies & {
   nodeRegistry: OverlayNodeRegistry
   metadataRegistry: OverlayMetadataRegistry
-  dependencyGraph: OverlayDependencyGraph
   thunkHandlerRegistry: OverlayThunkHandlerRegistry
+  astNodeTree: OverlayASTNodeTree
 }
 
 export class CompilationDependencies {
@@ -27,7 +27,7 @@ export class CompilationDependencies {
     readonly nodeRegistry: NodeRegistry = new NodeRegistry(),
     readonly metadataRegistry: MetadataRegistry = new MetadataRegistry(),
     readonly thunkHandlerRegistry = new ThunkHandlerRegistry(),
-    readonly dependencyGraph: DependencyGraph = new DependencyGraph(),
+    readonly astNodeTree: ASTNodeTree = new ASTNodeTree(),
   ) {}
 
   clone() {
@@ -37,7 +37,7 @@ export class CompilationDependencies {
     const clonedNodeRegistry = this.nodeRegistry.clone()
     const clonedMetadataRegistry = this.metadataRegistry.clone()
     const clonedThunkHandlerRegistry = this.thunkHandlerRegistry.clone()
-    const clonedDependencyGraph = this.dependencyGraph.clone()
+    const clonedAstNodeTree = this.astNodeTree.clone()
 
     return new CompilationDependencies(
       clonedNodeIdGenerator,
@@ -46,7 +46,7 @@ export class CompilationDependencies {
       clonedNodeRegistry,
       clonedMetadataRegistry,
       clonedThunkHandlerRegistry,
-      clonedDependencyGraph,
+      clonedAstNodeTree,
     )
   }
 
@@ -59,7 +59,6 @@ export class CompilationDependencies {
    * - PseudoNodeFactory: New factory referencing overlay generator
    * - NodeRegistry: OverlayNodeRegistry
    * - MetadataRegistry: OverlayMetadataRegistry
-   * - DependencyGraph: OverlayDependencyGraph
    * - ThunkHandlerRegistry: OverlayThunkHandlerRegistry
    *
    * Returns overlay deps with flush() and getPendingNodeIds() helpers.
@@ -74,8 +73,8 @@ export class CompilationDependencies {
     const overlayIdGenerator = new OverlayNodeIDGenerator(this.nodeIdGenerator)
     const overlayNodeRegistry = new OverlayNodeRegistry(this.nodeRegistry)
     const overlayMetadata = new OverlayMetadataRegistry(this.metadataRegistry)
-    const overlayGraph = new OverlayDependencyGraph(this.dependencyGraph)
     const overlayHandlerRegistry = new OverlayThunkHandlerRegistry(this.thunkHandlerRegistry)
+    const overlayTree = new OverlayASTNodeTree(this.astNodeTree)
 
     const deps = new CompilationDependencies(
       overlayIdGenerator,
@@ -84,7 +83,7 @@ export class CompilationDependencies {
       overlayNodeRegistry,
       overlayMetadata,
       overlayHandlerRegistry,
-      overlayGraph,
+      overlayTree,
     ) as OverlayDependencies
 
     return {
@@ -94,8 +93,8 @@ export class CompilationDependencies {
         overlayIdGenerator.flushIntoMain()
         overlayNodeRegistry.flushIntoMain()
         overlayMetadata.flushIntoMain()
-        overlayGraph.flushIntoMain()
         overlayHandlerRegistry.flushIntoMain()
+        overlayTree.flushIntoMain()
       },
     }
   }

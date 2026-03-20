@@ -1,11 +1,12 @@
 import { JourneyDefinition } from '@form-engine/form/types/structures.type'
 import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
-import RegistrationTraverser from '@form-engine/core/compilation/traversers/RegistrationTraverser'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { NodeCompilationPipeline } from '@form-engine/core/compilation/NodeCompilationPipeline'
-import { FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
+import NodeRegistrationWalker from '@form-engine/core/compilation/traversers/NodeRegistrationWalker'
+import { AstNodeId, FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
 import { NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
+import StepRuntimePlanBuilder, { StepRuntimePlan } from '@form-engine/core/compilation/StepRuntimePlanBuilder'
 
 export type StepIndex = Map<NodeId, StepASTNode>
 
@@ -15,12 +16,17 @@ export interface SharedCompiledForm {
   stepIndex: StepIndex
 }
 
+export interface CompiledStep {
+  artefact: CompilationDependencies
+  currentStepId: AstNodeId
+  runtimePlan: StepRuntimePlan
+}
+
 /**
  * FormCompilationFactory - Compiles journey definitions into per-step artefacts
  *
  * Each artefact contains:
  * - Full AST with all nodes
- * - Dependency graph for evaluation ordering
  * - Compiled thunk handlers
  */
 export default class FormCompilationFactory {
@@ -44,17 +50,18 @@ export default class FormCompilationFactory {
     // Phase 1 - Transform JourneyDefinition into AST nodes
     const rootNode = NodeCompilationPipeline.transform(journeyDef, sharedDependencies) as JourneyASTNode
 
-    // Phase 2 - Normalize AST nodes
-    NodeCompilationPipeline.normalize(rootNode, sharedDependencies, NodeIDCategory.COMPILE_AST)
+    // Phase 2-4 - Normalize, register, and set parent metadata in a single pass
+    const walker = new NodeRegistrationWalker(
+      sharedDependencies.nodeIdGenerator,
+      NodeIDCategory.COMPILE_AST,
+      sharedDependencies.nodeRegistry,
+      sharedDependencies.nodeFactory,
+      sharedDependencies.metadataRegistry,
+      false,
+      sharedDependencies.astNodeTree,
+    )
 
-    // Phase 3 - Register nodes
-    new RegistrationTraverser(sharedDependencies.nodeRegistry).register(rootNode)
-
-    // Phase 4 - Set parent metadata
-    NodeCompilationPipeline.setParentMetadata(rootNode, sharedDependencies)
-
-    // Phase 5 - Wire static dependencies
-    NodeCompilationPipeline.wireStaticDependencies(sharedDependencies)
+    walker.register(rootNode)
 
     const stepNodes = sharedDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
 
@@ -94,8 +101,7 @@ export default class FormCompilationFactory {
     // Phase 7 - Add pseudo-nodes
     NodeCompilationPipeline.createPseudoNodes(compilationDependencies)
 
-    // Phase 8 - Wire step-scope dependencies (pseudo nodes and onLoad transitions)
-    NodeCompilationPipeline.wireStepScopeDependencies(compilationDependencies)
+    const runtimePlan = new StepRuntimePlanBuilder().build(stepNode, compilationDependencies)
 
     // Phase 9 - Compile thunk handlers
     NodeCompilationPipeline.compileThunks(compilationDependencies, this.formInstanceDependencies.functionRegistry)
@@ -103,10 +109,10 @@ export default class FormCompilationFactory {
     return {
       artefact: compilationDependencies,
       currentStepId: stepNode.id,
+      runtimePlan,
     }
   }
 }
 
 export type CompiledForm = ReturnType<FormCompilationFactory['compile']>
-export type CompiledStep = ReturnType<FormCompilationFactory['compileStep']>
 export type CompilationArtefact = CompiledStep['artefact']

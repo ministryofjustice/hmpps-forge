@@ -15,27 +15,28 @@ describe('ThunkCompilerFactory', () => {
   let mockThunkHandlerRegistry: jest.Mocked<ThunkHandlerRegistry>
   let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
   let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
-  const mockDependencyGraph = {
-    topologicalSort: jest.fn().mockReturnValue({ sort: [] }),
-  }
   const mockMetadataRegistry = {
     get: jest.fn(),
     set: jest.fn(),
     has: jest.fn(),
   }
+  const mockAstNodeTree = {
+    postOrder: jest.fn().mockReturnValue([]),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    mockDependencyGraph.topologicalSort.mockClear()
-    mockDependencyGraph.topologicalSort.mockReturnValue({ sort: [] })
     mockMetadataRegistry.get.mockClear()
     mockMetadataRegistry.set.mockClear()
     mockMetadataRegistry.has.mockClear()
+    mockAstNodeTree.postOrder.mockClear()
+    mockAstNodeTree.postOrder.mockReturnValue([])
 
     mockNodeRegistry = {
       get: jest.fn(),
       getAll: jest.fn(),
       getAllEntries: jest.fn(),
+      getIds: jest.fn().mockReturnValue([]),
       has: jest.fn(),
       size: jest.fn(),
     } as unknown as jest.Mocked<NodeRegistry>
@@ -57,8 +58,8 @@ describe('ThunkCompilerFactory', () => {
     mockCompilationDependencies = {
       nodeRegistry: mockNodeRegistry,
       thunkHandlerRegistry: mockThunkHandlerRegistry,
-      dependencyGraph: mockDependencyGraph as any,
       metadataRegistry: mockMetadataRegistry as any,
+      astNodeTree: mockAstNodeTree as any,
     } as unknown as jest.Mocked<CompilationDependencies>
 
     compiler = new ThunkCompilerFactory()

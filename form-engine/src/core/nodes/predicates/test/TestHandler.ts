@@ -34,7 +34,7 @@ import { TestPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Asynchronous when either subject or condition is an async node.
  */
 export default class TestHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

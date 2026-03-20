@@ -34,7 +34,7 @@ export type RedirectOutcomeResult = string | undefined
  * Used in transition `next` arrays with first-match semantics.
  */
 export default class RedirectOutcomeHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

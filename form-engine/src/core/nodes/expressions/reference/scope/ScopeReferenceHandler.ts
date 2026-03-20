@@ -20,7 +20,7 @@ import { getByPath } from '@form-engine/utils/utils'
  * Always synchronous - scope access is a pure property lookup.
  */
 export default class ScopeReferenceHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

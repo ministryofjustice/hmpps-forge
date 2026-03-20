@@ -27,7 +27,7 @@ import { getByPath } from '@form-engine/utils/utils'
  * Asynchronous when the base expression is async.
  */
 export default class BaseReferenceHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

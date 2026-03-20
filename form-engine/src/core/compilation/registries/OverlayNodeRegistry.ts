@@ -99,4 +99,8 @@ export default class OverlayNodeRegistry extends NodeRegistry {
   getPendingIds(): NodeId[] {
     return this.pending.getIds()
   }
+
+  getPendingRegistry(): NodeRegistry {
+    return this.pending
+  }
 }

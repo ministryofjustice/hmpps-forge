@@ -42,7 +42,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Asynchronous when input or any step is async.
  */
 export default class PipelineHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

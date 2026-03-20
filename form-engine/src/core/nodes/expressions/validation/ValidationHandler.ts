@@ -55,7 +55,7 @@ export interface ValidationResult {
  * Asynchronous when when predicate or message is async.
  */
 export default class ValidationHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

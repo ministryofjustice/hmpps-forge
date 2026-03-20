@@ -23,7 +23,7 @@ import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
  * Asynchronous when path contains dynamic expressions.
  */
 export default class DataReferenceHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

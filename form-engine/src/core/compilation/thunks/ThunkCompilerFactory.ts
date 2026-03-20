@@ -67,10 +67,6 @@ import ValidationHandler from '@form-engine/core/nodes/expressions/validation/Va
 import RedirectOutcomeHandler from '@form-engine/core/nodes/outcomes/redirect/RedirectOutcomeHandler'
 import ThrowErrorOutcomeHandler from '@form-engine/core/nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
 
-export interface ThunkCompilationInstrumentation {
-  stageSync?: <T>(name: string, fn: () => T) => T
-}
-
 /**
  * Compiler that orchestrates the creation of thunk handlers for all nodes.
  *
@@ -90,56 +86,43 @@ export default class ThunkCompilerFactory {
    *
    * This two-pass approach allows handlers to check their dependencies'
    * async metadata during the second pass, enabling sync optimization.
-   *
-   * @param compilationDependencies - Contains nodeRegistry with all nodes to compile
-   * @param functionRegistry - Registry of user-defined functions (for async metadata)
    */
-  compile(
-    compilationDependencies: CompilationDependencies,
-    functionRegistry: FunctionRegistry,
-    instrumentation?: ThunkCompilationInstrumentation,
-  ) {
-    const withStage = <T>(name: string, fn: () => T): T => {
-      if (instrumentation?.stageSync) {
-        return instrumentation.stageSync(name, fn)
-      }
-
-      return fn()
-    }
-
+  compile(compilationDependencies: CompilationDependencies, functionRegistry: FunctionRegistry) {
     const nodeEntries = compilationDependencies.nodeRegistry.getAllEntries()
 
     // PASS 1: Create all handlers
-    withStage('pass1.createAndRegisterHandlers', () => {
-      nodeEntries.forEach((entry, nodeId) => {
-        const handler = this.compileASTNode(nodeId, entry.node)
+    nodeEntries.forEach((entry, nodeId) => {
+      const handler = this.compileASTNode(nodeId, entry.node)
 
-        compilationDependencies.thunkHandlerRegistry.register(nodeId, handler)
-      })
+      compilationDependencies.thunkHandlerRegistry.register(nodeId, handler)
     })
 
     // PASS 2: Compute isAsync metadata for hybrid handlers
-    // Use topological sort to compute in dependency order (leaves → roots)
+    // Use post-order traversal to compute in dependency order (leaves → roots)
     // This ensures children compute before parents, so parents see accurate isAsync values
     const metadataDeps: MetadataComputationDependencies = {
       thunkHandlerRegistry: compilationDependencies.thunkHandlerRegistry,
       functionRegistry,
       nodeRegistry: compilationDependencies.nodeRegistry,
       metadataRegistry: compilationDependencies.metadataRegistry,
+      astNodeTree: compilationDependencies.astNodeTree,
     }
 
-    const sortResult = withStage('pass2.topologicalSort', () =>
-      compilationDependencies.dependencyGraph.topologicalSort(),
-    )
+    const postOrderIds = compilationDependencies.astNodeTree.postOrder()
 
-    withStage('pass2.computeIsAsync', () => {
-      sortResult.sort.forEach(nodeId => {
-        const handler = compilationDependencies.thunkHandlerRegistry.get(nodeId)
+    // Pseudo nodes aren't in the tree — collect and process first
+    const treeNodeSet = new Set(postOrderIds)
+    const pseudoNodeIds = compilationDependencies.nodeRegistry.getIds()
+      .filter(id => !treeNodeSet.has(id))
 
-        if (handler) {
-          handler.computeIsAsync(metadataDeps)
-        }
-      })
+    const computeOrder = [...pseudoNodeIds, ...postOrderIds]
+
+    computeOrder.forEach(nodeId => {
+      const handler = compilationDependencies.thunkHandlerRegistry.get(nodeId)
+
+      if (handler) {
+        handler.computeIsAsync(metadataDeps)
+      }
     })
   }
 

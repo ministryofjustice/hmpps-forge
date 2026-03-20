@@ -70,7 +70,7 @@ export interface AccessTransitionResult {
  * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class AccessHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

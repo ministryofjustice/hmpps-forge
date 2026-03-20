@@ -1,8 +1,18 @@
 import { ASTNodeType } from '@form-engine/core/types/enums'
-import { ExpressionType, FunctionType, IteratorType, PredicateType } from '@form-engine/form/types/enums'
-import type { IterateExpr, PredicateTestExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
+import type { IterateExpr, PredicateTestExpr, ReferenceExpr } from '@form-engine/form/types/expressions.type'
+import {
+  BlockType,
+  ExpressionType,
+  FunctionType,
+  IteratorType,
+  PredicateType,
+  StructureType,
+} from '@form-engine/form/types/enums'
+import { isTemplateNode } from '@form-engine/core/typeguards/nodes'
+import { TemplateNode } from '@form-engine/core/types/template.type'
+import TemplateFactory from '@form-engine/core/nodes/template/TemplateFactory'
 import IterateFactory from './IterateFactory'
 
 describe('IterateFactory', () => {
@@ -17,7 +27,7 @@ describe('IterateFactory', () => {
   })
 
   describe('create()', () => {
-    it('should create an Iterate expression with MAP iterator', () => {
+    it('should create an Iterate expression with a compiled MAP template', () => {
       // Arrange
       const json = {
         type: ExpressionType.ITERATE,
@@ -36,13 +46,12 @@ describe('IterateFactory', () => {
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.ITERATE)
       expect(result.raw).toBe(json)
-
-      expect(result.properties.input).toBeDefined()
       expect(result.properties.iterator.type).toBe(IteratorType.MAP)
-      expect(result.properties.iterator.yield).toBeDefined()
+      expect(result.properties.iterator.yieldTemplate).toBeDefined()
+      expect(isTemplateNode(result.properties.iterator.yieldTemplate)).toBe(true)
     })
 
-    it('should create an Iterate expression with FILTER iterator', () => {
+    it('should create an Iterate expression with a compiled FILTER template', () => {
       // Arrange
       const predicate: PredicateTestExpr = {
         type: PredicateType.TEST,
@@ -64,15 +73,12 @@ describe('IterateFactory', () => {
       const result = iterateFactory.create(json)
 
       // Assert
-      expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.ITERATE)
-
       expect(result.properties.iterator.type).toBe(IteratorType.FILTER)
-      expect(result.properties.iterator.predicate).toBeDefined()
+      expect(result.properties.iterator.predicateTemplate).toBeDefined()
+      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
-    it('should create an Iterate expression with FIND iterator', () => {
+    it('should create an Iterate expression with a compiled FIND template', () => {
       // Arrange
       const predicate: PredicateTestExpr = {
         type: PredicateType.TEST,
@@ -94,15 +100,12 @@ describe('IterateFactory', () => {
       const result = iterateFactory.create(json)
 
       // Assert
-      expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.ITERATE)
-
       expect(result.properties.iterator.type).toBe(IteratorType.FIND)
-      expect(result.properties.iterator.predicate).toBeDefined()
+      expect(result.properties.iterator.predicateTemplate).toBeDefined()
+      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
-    it('should transform input expression', () => {
+    it('should transform the input expression', () => {
       // Arrange
       const json = {
         type: ExpressionType.ITERATE,
@@ -122,7 +125,7 @@ describe('IterateFactory', () => {
       expect(result.properties.input.expressionType).toBe(ExpressionType.REFERENCE)
     })
 
-    it('should store yield template as raw JSON for MAP iterator', () => {
+    it('should store compiled templates instead of raw iterator JSON', () => {
       // Arrange
       const yieldTemplate = { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'value'] }
       const json = {
@@ -137,38 +140,75 @@ describe('IterateFactory', () => {
       // Act
       const result = iterateFactory.create(json)
 
-      // Assert - yield should be stored as raw JSON, not transformed
-      expect(result.properties.iterator.yield).toEqual(yieldTemplate)
-      expect(result.properties.iterator.yield).not.toHaveProperty('id')
+      // Assert
+      expect(result.properties.iterator.yieldTemplate).toBeDefined()
+      expect(result.properties.iterator.yieldTemplate).not.toEqual(yieldTemplate)
+
+      const compiledTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+
+      expect(compiledTemplate.type).toBe(ASTNodeType.TEMPLATE)
+      expect(compiledTemplate.originalType).toBe(ASTNodeType.EXPRESSION)
+      expect(compiledTemplate.properties?.path).toEqual(['scope', 'item', 'value'])
     })
 
-    it('should store predicate template as raw JSON for FILTER iterator', () => {
+    it('should not add Self() value to fields at compile time (deferred to runtime)', () => {
       // Arrange
-      const predicateTemplate: PredicateTestExpr = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'active'] },
-        negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
-      }
-
       const json = {
         type: ExpressionType.ITERATE,
         input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.FILTER,
-          predicate: predicateTemplate,
+          type: IteratorType.MAP,
+          yield: {
+            type: StructureType.BLOCK,
+            blockType: BlockType.FIELD,
+            variant: 'textInput',
+            code: 'street',
+            label: 'Street',
+          },
         },
       } satisfies IterateExpr
 
       // Act
       const result = iterateFactory.create(json)
+      const instantiatedTemplate = TemplateFactory.instantiate(result.properties.iterator.yieldTemplate!) as {
+        properties: { value?: unknown }
+      }
 
-      // Assert - predicate should be stored as raw JSON, not transformed
-      expect(result.properties.iterator.predicate).toEqual(predicateTemplate)
-      expect(result.properties.iterator.predicate).not.toHaveProperty('id')
+      // Assert — value is NOT set; AddSelfValueToFields runs at runtime in registerRuntimeNodesBatch
+      expect(instantiatedTemplate.properties.value).toBeUndefined()
     })
 
-    it('should generate unique node IDs', () => {
+    it('should preserve @self references for runtime resolution', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.ITERATE,
+        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        iterator: {
+          type: IteratorType.MAP,
+          yield: {
+            type: StructureType.BLOCK,
+            blockType: BlockType.FIELD,
+            variant: 'textInput',
+            code: 'street',
+            label: {
+              type: ExpressionType.REFERENCE,
+              path: ['answers', '@self'],
+            },
+          },
+        },
+      } satisfies IterateExpr
+
+      // Act
+      const result = iterateFactory.create(json)
+      const instantiatedTemplate = TemplateFactory.instantiate(result.properties.iterator.yieldTemplate!) as {
+        properties: { label: { properties: { path: unknown[] } } }
+      }
+
+      // Assert — @self is preserved; ResolveSelfReferences runs at runtime in registerRuntimeNodesBatch
+      expect(instantiatedTemplate.properties.label.properties.path).toEqual(['answers', '@self'])
+    })
+
+    it('should generate unique iterate node ids', () => {
       // Arrange
       const json = {
         type: ExpressionType.ITERATE,

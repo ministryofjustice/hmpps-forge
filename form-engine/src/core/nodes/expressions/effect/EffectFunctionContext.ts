@@ -1,12 +1,5 @@
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { AnswerHistory, TransitionType } from '@form-engine/core/compilation/thunks/types'
-import { getPseudoNodeKey } from '@form-engine/core/utils/pseudoNodeKeyExtractor'
-import {
-  AnswerLocalPseudoNode,
-  AnswerRemotePseudoNode,
-  DataPseudoNode,
-  PseudoNodeType,
-} from '@form-engine/core/types/pseudoNodes.type'
 import { CookieMutation, CookieOptions } from '@form-engine/core/runtime/routes/types'
 
 /**
@@ -77,9 +70,8 @@ export default class EffectFunctionContext<
    * Pushes a mutation to the answer's history with the current transitionType as source.
    * This enables precedence logic and delta tracking via mutation history.
    *
-   * Also invalidates the cached answer pseudo nodes (ANSWER_LOCAL and ANSWER_REMOTE)
-   * for this field and all dependent nodes, ensuring subsequent evaluations see the
-   * updated value rather than a stale cached result.
+   * Clears the evaluation cache so subsequent phases (validation, render) re-evaluate
+   * nodes that may depend on this answer rather than serving stale cached results.
    */
   setAnswer<K extends string & keyof TAnswers>(key: K, value: TAnswers[K]): void {
     const history = this.context.global.answers[key] ?? { current: undefined, mutations: [] }
@@ -88,19 +80,7 @@ export default class EffectFunctionContext<
     history.current = value
     this.context.global.answers[key] = history
 
-    // Invalidate cached pseudo nodes and dependents so next access re-evaluates
-    const localPseudoNode = this.context.nodeRegistry.findByType<AnswerLocalPseudoNode>(PseudoNodeType.ANSWER_LOCAL)
-      .find(node => getPseudoNodeKey(node) === key)
-    const remotePseudoNode = this.context.nodeRegistry.findByType<AnswerRemotePseudoNode>(PseudoNodeType.ANSWER_REMOTE)
-      .find(node => getPseudoNodeKey(node) === key)
-
-    if (localPseudoNode) {
-      this.context.cacheManager.invalidateCascading(localPseudoNode.id, this.context.dependencyGraph)
-    }
-
-    if (remotePseudoNode) {
-      this.context.cacheManager.invalidateCascading(remotePseudoNode.id, this.context.dependencyGraph)
-    }
+    this.context.cacheManager.clearCache()
   }
 
   /**
@@ -159,19 +139,13 @@ export default class EffectFunctionContext<
   /**
    * Store data in the context
    *
-   * Also invalidates cached DATA pseudo nodes for this key and all dependent nodes,
-   * ensuring subsequent evaluations see the updated value rather than a stale cached result.
+   * Clears the evaluation cache so subsequent phases see the updated value
+   * rather than stale cached results from nodes that depend on this data key.
    */
   setData<K extends string & keyof TData>(key: K, value: TData[K]): void {
     this.context.global.data[key] = value
 
-    // Invalidate cached pseudo node and dependents so next access re-evaluates
-    const dataPseudoNode = this.context.nodeRegistry.findByType<DataPseudoNode>(PseudoNodeType.DATA)
-      .find(node => getPseudoNodeKey(node) === key)
-
-    if (dataPseudoNode) {
-      this.context.cacheManager.invalidateCascading(dataPseudoNode.id, this.context.dependencyGraph)
-    }
+    this.context.cacheManager.clearCache()
   }
 
   /**

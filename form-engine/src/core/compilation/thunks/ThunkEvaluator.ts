@@ -1,9 +1,9 @@
-import { NodeId, FormInstanceDependencies, ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, FormInstanceDependencies, NodeId } from '@form-engine/core/types/engine.type'
 import {
+  RuntimeOverlayBuilder,
   ThunkHandler,
   ThunkInvocationAdapter,
   ThunkResult,
-  RuntimeOverlayBuilder,
   ThunkRuntimeHooks,
 } from '@form-engine/core/compilation/thunks/types'
 import { StepRequest, StepResponse } from '@form-engine/core/runtime/routes/types'
@@ -80,7 +80,6 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     this.runtimeHooksFactory = new ThunkRuntimeHooksFactory(
       compilationDependencies,
       new ThunkCompilerFactory(),
-      this.cacheManager,
       runtimeOverlayBuilder,
       formInstanceDependencies.functionRegistry,
     )
@@ -106,7 +105,6 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     const overlay: RuntimeOverlayBuilder = {
       handlerRegistry: runtimeDeps.thunkHandlerRegistry,
       metadataRegistry: runtimeDeps.metadataRegistry,
-      dependencyGraph: runtimeDeps.dependencyGraph,
       nodeRegistry: runtimeDeps.nodeRegistry,
       nodeFactory: runtimeDeps.nodeFactory,
       runtimeNodes: new Map<NodeId, ASTNode>(),
@@ -329,7 +327,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     // (because sync handlers were already handled in invokeWithRetry)
     // So we handle the sync case gracefully just in case
     if (!handler.isAsync) {
-      return handler.evaluateSync(context, this) as ThunkResult<T>
+      return handler.evaluateSync(context, this, hooks) as ThunkResult<T>
     }
 
     return (await handler.evaluate(context, this, hooks)) as ThunkResult<T>
@@ -345,7 +343,9 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
    * @returns Evaluation result
    */
   private executeSyncHandler<T>(handler: ThunkHandler, context: ThunkEvaluationContext): ThunkResult<T> {
-    return handler.evaluateSync(context, this) as ThunkResult<T>
+    const hooks = this.runtimeHooksFactory.create(handler.nodeId)
+
+    return handler.evaluateSync(context, this, hooks) as ThunkResult<T>
   }
 
   /**

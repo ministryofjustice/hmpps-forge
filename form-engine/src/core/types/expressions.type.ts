@@ -1,6 +1,7 @@
 import { ExpressionType, FunctionType, IteratorType, TransitionType, OutcomeType } from '@form-engine/form/types/enums'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ASTNode } from '@form-engine/core/types/engine.type'
+import { TemplateValue } from '@form-engine/core/types/template.type'
 
 /**
  * Expression AST node - represents any expression in the form
@@ -93,8 +94,8 @@ export interface FormatASTNode extends ExpressionASTNode {
 /**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
- * Similar to Collection, the yield/predicate templates are stored as raw JSON
- * and instantiated at runtime per item.
+ * Iterator templates are compiled once and instantiated with fresh runtime IDs
+ * per item during evaluation.
  */
 export interface IterateASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.ITERATE
@@ -104,10 +105,10 @@ export interface IterateASTNode extends ExpressionASTNode {
     /** Iterator configuration */
     iterator: {
       type: IteratorType
-      /** For MAP: template to yield per item (raw JSON, instantiated at runtime) */
-      yield?: any
-      /** For FILTER: predicate (raw JSON, instantiated at runtime) */
-      predicate?: any
+      /** For MAP: compiled template instantiated per item at runtime */
+      yieldTemplate?: TemplateValue
+      /** For FILTER/FIND: compiled predicate template instantiated per item at runtime */
+      predicateTemplate?: TemplateValue
     }
   }
 }

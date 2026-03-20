@@ -1,6 +1,5 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { ThunkResult } from '@form-engine/core/compilation/thunks/types'
-import DependencyGraph from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 
 /**
  * Manages memoization cache and dirty version tracking for thunk evaluation.
@@ -8,7 +7,7 @@ import DependencyGraph from '@form-engine/core/compilation/dependency-graph/Depe
  * Responsibilities:
  * - Cache storage and retrieval for evaluation results
  * - Version counter tracking for dirty detection
- * - Cascading cache invalidation through dependency graph
+ * - Bulk cache clearing when state mutations occur
  *
  * The version counter system allows detection of mid-evaluation invalidations.
  * When a node is invalidated during evaluation, its version increments,
@@ -101,6 +100,14 @@ export default class ThunkCacheManager {
   }
 
   /**
+   * Clear all cached results without resetting version counters.
+   * Used when state mutations (setAnswer, setData) make cached results potentially stale.
+   */
+  clearCache(): void {
+    this.cache.clear()
+  }
+
+  /**
    * Get current version counter for a node
    */
   getVersion(nodeId: NodeId): number {
@@ -115,53 +122,4 @@ export default class ThunkCacheManager {
     this.dirtyVersions.set(nodeId, currentVersion + 1)
   }
 
-  /**
-   * Invalidate cache for a node, cascading through all dependent nodes
-   *
-   * When a new dependency edge is added at runtime (e.g., Field C → OnSubmit),
-   * the target node's cached result becomes stale because it was computed before
-   * the new dependency existed. This method ensures correctness by cascading
-   * the invalidation through the entire dependency chain:
-   *
-   * 1. Skip if already visited (prevents cycles and diamond duplicates)
-   * 2. Increment the node's version counter (marks as dirty)
-   * 3. Remove the node from cache (if cached)
-   * 4. Find all nodes that depend on it (via adjacency list)
-   * 5. Recursively invalidate those dependents (cascade continues)
-   *
-   * The version counter increment happens REGARDLESS of cache status, allowing
-   * in-flight evaluations to detect they were invalidated mid-execution and retry.
-   *
-   * The visited set ensures each node is invalidated exactly once, handling:
-   * - Circular dependencies (A → B → A) without infinite recursion
-   * - Diamond patterns (A → B → D, A → C → D) without double-incrementing D
-   *
-   * @param nodeId - The node to invalidate
-   * @param graph - Dependency graph for finding dependents
-   * @param visited - Set of already-invalidated nodes (used internally for recursion)
-   */
-  invalidateCascading(nodeId: NodeId, graph: DependencyGraph, visited: Set<NodeId> = new Set()): void {
-    if (visited.has(nodeId)) {
-      return
-    }
-
-    visited.add(nodeId)
-
-    // Always increment version counter (even if not cached)
-    // This allows in-flight evaluations to detect they were invalidated
-    this.incrementVersion(nodeId)
-
-    // Remove from cache if present
-    if (this.cache.has(nodeId)) {
-      this.cache.delete(nodeId)
-    }
-
-    // Cascade: invalidate all nodes that depend on this one
-    // getDependents returns nodes that must be evaluated AFTER nodeId
-    const dependents = graph.getDependents(nodeId)
-
-    dependents.forEach((dependentId: NodeId) => {
-      this.invalidateCascading(dependentId, graph, visited)
-    })
-  }
 }

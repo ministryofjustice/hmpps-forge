@@ -10,23 +10,26 @@ import {
 } from '@form-engine/form/typeguards/expressions'
 import { NodeIDGenerator, NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
+import { TemplateValue } from '@form-engine/core/types/template.type'
+import TemplateFactory from '@form-engine/core/nodes/template/TemplateFactory'
 
 /**
  * IterateFactory: Creates Iterate expression AST nodes
  *
  * Iterate expressions implement per-item iteration over collections.
- *
- * IMPORTANT: Like Collection, the yield/predicate templates are stored as raw JSON,
- * NOT pre-compiled AST nodes. At runtime, they are instantiated once per collection item,
- * creating fresh AST nodes with unique runtime IDs. This allows Item() references to be
- * substituted with actual item data before node creation.
+ * Iterator payloads are compiled once into reusable templates.
+ * At runtime, those templates are instantiated per collection item with fresh IDs.
  */
 export default class IterateFactory {
+  private readonly templateFactory: TemplateFactory
+
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
     private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
-  ) {}
+  ) {
+    this.templateFactory = new TemplateFactory(nodeIDGenerator)
+  }
 
   /**
    * Transform Iterate expression: Per-item iteration over collections
@@ -36,8 +39,8 @@ export default class IterateFactory {
       input: ASTNode | any
       iterator: {
         type: IteratorType
-        yield?: any
-        predicate?: any
+        yieldTemplate?: TemplateValue
+        predicateTemplate?: TemplateValue
       }
     } = {
       // Transform the input data source (this IS an expression that needs evaluation)
@@ -47,19 +50,19 @@ export default class IterateFactory {
       },
     }
 
-    // For MAP: store yield template as raw JSON (instantiated at runtime per item)
+    // For MAP: compile yield template once and instantiate per item at runtime
     if (isMapIteratorConfig(json.iterator)) {
-      properties.iterator.yield = json.iterator.yield
+      properties.iterator.yieldTemplate = this.compileIteratorTemplate(json.iterator.yield)
     }
 
-    // For FILTER: store predicate as raw JSON (instantiated at runtime per item)
+    // For FILTER: compile predicate template once and instantiate per item at runtime
     if (isFilterIteratorConfig(json.iterator)) {
-      properties.iterator.predicate = json.iterator.predicate
+      properties.iterator.predicateTemplate = this.compileIteratorTemplate(json.iterator.predicate)
     }
 
-    // For FIND: store predicate as raw JSON (instantiated at runtime per item)
+    // For FIND: compile predicate template once and instantiate per item at runtime
     if (isFindIteratorConfig(json.iterator)) {
-      properties.iterator.predicate = json.iterator.predicate
+      properties.iterator.predicateTemplate = this.compileIteratorTemplate(json.iterator.predicate)
     }
 
     return {
@@ -69,5 +72,11 @@ export default class IterateFactory {
       properties,
       raw: json,
     }
+  }
+
+  private compileIteratorTemplate(template: unknown): TemplateValue {
+    const transformedTemplate = this.nodeFactory.transformValue(template)
+
+    return this.templateFactory.compile(transformedTemplate)
   }
 }

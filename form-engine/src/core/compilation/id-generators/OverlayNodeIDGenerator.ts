@@ -1,4 +1,4 @@
-import { AstNodeId, NodeId, PseudoNodeId } from '@form-engine/core/types/engine.type'
+import { AstNodeId, NodeId, PseudoNodeId, TemplateNodeId } from '@form-engine/core/types/engine.type'
 import { NodeIDCategory, NodeIDGenerator } from './NodeIDGenerator'
 
 /**
@@ -15,11 +15,13 @@ export default class OverlayNodeIDGenerator extends NodeIDGenerator {
     this.pending.syncFrom(main)
   }
 
+  next(category: NodeIDCategory.TEMPLATE): TemplateNodeId
+
   next(category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST): AstNodeId
 
   next(category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
 
-  next(category: NodeIDCategory): NodeId {
+  next(category: NodeIDCategory): NodeId | TemplateNodeId {
     return this.pending.next(category as NodeIDCategory.COMPILE_AST)
   }
 

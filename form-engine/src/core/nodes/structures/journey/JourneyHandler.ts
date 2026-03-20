@@ -9,7 +9,6 @@ import {
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { evaluatePropertyValue } from '@form-engine/core/utils/thunkEvaluatorsAsync'
 import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
-import { isASTNode } from '@form-engine/core/typeguards/nodes'
 
 /**
  * Handler for Journey structure nodes
@@ -30,7 +29,9 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Asynchronous when any nested AST node is async.
  */
 export default class JourneyHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
+
+  private propertiesWithNodes: ReadonlySet<string> | undefined
 
   // Transition properties are handled separately by FormStepController
   private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess']
@@ -58,74 +59,44 @@ export default class JourneyHandler implements ThunkHandler {
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
     const isAncestorOfStep = deps.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
-    const properties = this.node.properties as Record<string, unknown>
+    const propertiesWithNodes = new Set<string>()
+    let hasAsync = false
 
-    // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.keys() allocation in this hot path
-    for (const key in properties) {
-      if (!Object.prototype.hasOwnProperty.call(properties, key)) {
-        continue // eslint-disable-line no-continue
+    deps.astNodeTree.getChildren(this.nodeId).forEach(childId => {
+      const property = deps.metadataRegistry.get<string>(childId, 'attachedToParentProperty')
+
+      if (!property) {
+        return
+      }
+
+      propertiesWithNodes.add(property)
+
+      if (hasAsync) {
+        return
       }
 
       const isRelevant = isAncestorOfStep
-        ? !JourneyHandler.TRANSITION_PROPS_SET.has(key)
-        : JourneyHandler.STRUCTURAL_PROPS_SET.has(key)
+        ? !JourneyHandler.TRANSITION_PROPS_SET.has(property)
+        : JourneyHandler.STRUCTURAL_PROPS_SET.has(property)
 
       if (!isRelevant) {
-        continue // eslint-disable-line no-continue
-      }
-
-      if (this.containsAsyncNodes(properties[key], deps)) {
-        this.isAsync = true
         return
       }
-    }
 
-    this.isAsync = false
-  }
+      const handler = deps.thunkHandlerRegistry.get(childId)
 
-  private containsAsyncNodes(root: unknown, deps: MetadataComputationDependencies): boolean {
-    const stack: unknown[] = [root]
-
-    while (stack.length > 0) {
-      const value = stack.pop()
-
-      if (value === null || value === undefined) {
-        continue // eslint-disable-line no-continue
+      if (handler?.isAsync ?? true) {
+        hasAsync = true
       }
+    })
 
-      if (isASTNode(value)) {
-        const handler = deps.thunkHandlerRegistry.get(value.id)
-
-        if (handler?.isAsync ?? true) {
-          return true
-        }
-
-        continue // eslint-disable-line no-continue
-      }
-
-      if (Array.isArray(value)) {
-        value.forEach(item => stack.push(item))
-        continue // eslint-disable-line no-continue
-      }
-
-      if (typeof value === 'object') {
-        const obj = value as Record<string, unknown>
-
-        // eslint-disable-next-line no-restricted-syntax -- for...in avoids Object.values() allocation in this hot path
-        for (const key in obj) {
-          if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            stack.push(obj[key])
-          }
-        }
-      }
-    }
-
-    return false
+    this.isAsync = hasAsync
+    this.propertiesWithNodes = propertiesWithNodes
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult {
     const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
-    const evaluatedProperties = evaluatePropertyValueSync(propertiesToEvaluate, context, invoker)
+    const evaluatedProperties = this.evaluatePropertiesSync(propertiesToEvaluate, context, invoker)
 
     return {
       value: {
@@ -138,7 +109,7 @@ export default class JourneyHandler implements ThunkHandler {
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const propertiesToEvaluate = this.getPropertiesToEvaluate(context)
-    const evaluatedProperties = await evaluatePropertyValue(propertiesToEvaluate, context, invoker)
+    const evaluatedProperties = await this.evaluateProperties(propertiesToEvaluate, context, invoker)
 
     return {
       value: {
@@ -147,6 +118,46 @@ export default class JourneyHandler implements ThunkHandler {
         properties: evaluatedProperties,
       },
     }
+  }
+
+  private evaluatePropertiesSync(
+    properties: Record<string, unknown>,
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
+
+    Object.entries(properties).forEach(([key, value]) => {
+      if (this.propertiesWithNodes && !this.propertiesWithNodes.has(key)) {
+        result[key] = value
+        return
+      }
+
+      result[key] = evaluatePropertyValueSync(value, context, invoker)
+    })
+
+    return result
+  }
+
+  private async evaluateProperties(
+    properties: Record<string, unknown>,
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+  ): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {}
+
+    await Promise.all(
+      Object.entries(properties).map(async ([key, value]) => {
+        if (this.propertiesWithNodes && !this.propertiesWithNodes.has(key)) {
+          result[key] = value
+          return
+        }
+
+        result[key] = await evaluatePropertyValue(value, context, invoker)
+      }),
+    )
+
+    return result
   }
 
   /**

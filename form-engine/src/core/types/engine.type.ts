@@ -31,6 +31,7 @@ export type CompileAstNodeId = `compile_ast:${number}`
 export type CompilePseudoNodeId = `compile_pseudo:${number}`
 export type RuntimeAstNodeId = `runtime_ast:${number}`
 export type RuntimePseudoNodeId = `runtime_pseudo:${number}`
+export type TemplateNodeId = `template:${number}`
 
 /**
  * Union of all valid NodeId formats

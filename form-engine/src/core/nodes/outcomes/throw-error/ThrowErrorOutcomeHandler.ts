@@ -39,7 +39,7 @@ export type ThrowErrorOutcomeResult = ThrowErrorOutcomeData | undefined
  * Used in transition `next` arrays with first-match semantics.
  */
 export default class ThrowErrorOutcomeHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

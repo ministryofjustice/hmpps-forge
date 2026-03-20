@@ -2,7 +2,6 @@ import { when } from 'jest-when'
 import { ASTNode, NodeId, PseudoNodeId, FormInstanceDependencies } from '@form-engine/core/types/engine.type'
 import ThunkEvaluator from '@form-engine/core/compilation/thunks/ThunkEvaluator'
 import ThunkHandlerRegistry from '@form-engine/core/compilation/registries/ThunkHandlerRegistry'
-import DependencyGraph from '@form-engine/core/compilation/dependency-graph/DependencyGraph'
 import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
@@ -102,7 +101,6 @@ describe('ThunkEvaluator', () => {
   let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
   let mockFormInstanceDependencies: jest.Mocked<FormInstanceDependencies>
   let mockHandlerRegistry: jest.Mocked<ThunkHandlerRegistry>
-  let mockDependencyGraph: jest.Mocked<DependencyGraph>
   let mockNodeRegistry: jest.Mocked<NodeRegistry>
   let mockMetadataRegistry: jest.Mocked<MetadataRegistry>
   let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
@@ -117,7 +115,6 @@ describe('ThunkEvaluator', () => {
       nodeRegistry: {} as NodeRegistry,
       handlerRegistry: {} as ThunkHandlerRegistry,
       metadataRegistry: {} as MetadataRegistry,
-      dependencyGraph: {} as DependencyGraph,
       nodeFactory: { createNode: jest.fn() } as any,
       runtimeNodes: new Map(),
     }
@@ -128,12 +125,6 @@ describe('ThunkEvaluator', () => {
       size: jest.fn().mockReturnValue(0),
       getIds: jest.fn().mockReturnValue([]),
     } as unknown as jest.Mocked<ThunkHandlerRegistry>
-
-    mockDependencyGraph = {
-      topologicalSort: jest.fn().mockReturnValue({ sort: [], cycles: [], hasCycles: false }),
-      addNode: jest.fn(),
-      addEdge: jest.fn(),
-    } as unknown as jest.Mocked<DependencyGraph>
 
     mockNodeRegistry = {
       get: jest.fn(),
@@ -153,7 +144,6 @@ describe('ThunkEvaluator', () => {
 
     mockCompilationDependencies = {
       thunkHandlerRegistry: mockHandlerRegistry,
-      dependencyGraph: mockDependencyGraph,
       nodeRegistry: mockNodeRegistry,
       metadataRegistry: mockMetadataRegistry,
       createPendingView: jest.fn().mockImplementation(() => {
@@ -173,7 +163,6 @@ describe('ThunkEvaluator', () => {
           deps: {
             nodeRegistry: pendingNodeRegistry,
             metadataRegistry: mockMetadataRegistry,
-            dependencyGraph: mockDependencyGraph,
             thunkHandlerRegistry: mockHandlerRegistry,
           },
           flush: jest.fn(),

@@ -9,8 +9,6 @@ import {
 } from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
 import { evaluateNextOutcomes, OutcomeEvaluationResult } from '@form-engine/core/utils/thunkEvaluatorsAsync'
 import { evaluateNextOutcomesSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 
@@ -62,10 +60,11 @@ export interface SubmitTransitionResult {
  *
  * Evaluates onSubmission transitions by:
  * 1. Checking when/guards predicates
- * 2. Running validation if validate=true
+ * 2. Reading stored step validation state from context if validate=true
  * 3. Pushing @transitionType: 'submit' onto scope for effect execution
- * 4. Executing effects from appropriate branch (effects run immediately)
- * 5. Evaluating next outcomes for navigation/errors (AFTER effects have run)
+ * 4. Executing onAlways effects first when validate=true
+ * 5. Choosing onValid or onInvalid based on the stored validation result
+ * 6. Evaluating next outcomes for navigation/errors after effects have run
  *
  * ## Key Design: Effects Execute Before Next
  * Effects are executed BEFORE next expressions are evaluated. This ensures
@@ -77,16 +76,16 @@ export interface SubmitTransitionResult {
  * Outcomes are evaluated in order until one matches (when condition is true or absent).
  * First match wins and determines the transition result.
  *
- * ## Wiring Pattern
+ * ## Execution Pattern
  * - when → transition (must evaluate before transition)
  * - guards → transition (must evaluate before transition)
- * - validations → transition (if validate=true)
+ * - validation state is prepared earlier in the request lifecycle
  * - effects are executed sequentially within each branch
  * - next expressions are evaluated after effects complete
  *
  * ## Validation Logic
  * If validate=true:
- * - Evaluates all validation nodes attached to parent step
+ * - Reads step validation state prepared earlier in the request lifecycle
  * - If all validations pass: executes onValid branch
  * - If any validation fails: executes onInvalid branch
  * - Always executes onAlways branch effects first
@@ -99,7 +98,7 @@ export interface SubmitTransitionResult {
  * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class SubmitHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
@@ -156,19 +155,6 @@ export default class SubmitHandler implements ThunkHandler {
       }
     }
 
-    // TODO: Wire SubmitTransition to its parent step's blocks in the dependency graph
-    // Currently, there's no explicit edge from SubmitTransition to the blocks it validates,
-    // so the topological sort can't guarantee blocks are processed before this transition.
-    // This causes us to check isAsync on block handlers that may not have been computed yet.
-    // For now, we conservatively mark as async if validate=true.
-    //
-    // Proper fix: During dependency wiring, add edges from SubmitTransition (with validate=true)
-    // to all field blocks in its parent step. This ensures blocks compute isAsync first.
-    if (this.node.properties.validate === true) {
-      this.isAsync = true
-      return
-    }
-
     this.isAsync = false
   }
 
@@ -207,7 +193,13 @@ export default class SubmitHandler implements ThunkHandler {
     let isValid: boolean | undefined
 
     if (validate === true) {
-      isValid = this.evaluateValidationsSync(context, invoker)
+      const validation = this.getStoredValidationState(context)
+
+      if ('error' in validation) {
+        return { error: validation.error }
+      }
+
+      isValid = validation.isValid
     }
 
     // Push transition type onto scope for effect execution
@@ -303,7 +295,13 @@ export default class SubmitHandler implements ThunkHandler {
     let isValid: boolean | undefined
 
     if (validate === true) {
-      isValid = await this.evaluateValidations(context, invoker)
+      const validation = this.getStoredValidationState(context)
+
+      if ('error' in validation) {
+        return { error: validation.error }
+      }
+
+      isValid = validation.isValid
     }
 
     // Push transition type onto scope for effect execution
@@ -448,109 +446,22 @@ export default class SubmitHandler implements ThunkHandler {
   }
 
   /**
-   * Evaluate all validations for the current step by evaluating blocks
-   * Returns true if all validations pass, false if any fail
-   *
-   * This method:
-   * 1. Finds the parent step of this transition
-   * 2. Finds all block nodes that belong to this step (by traversing their parent chain)
-   * 3. Evaluates each block (which handles the dependent logic)
-   * 4. Collects all validation results and checks if they all passed
+   * Read validation state prepared earlier by request orchestration.
    */
-  private async evaluateValidations(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): Promise<boolean> {
-    try {
-      // Step 1: Find the parent step of this transition
-      const parentStepId = this.findParentStepIdForNode(this.nodeId, context)
+  private getStoredValidationState(context: ThunkEvaluationContext): { isValid: boolean } | { error: ThunkError } {
+    const validation = context.global.validation
 
-      if (!parentStepId) {
-        return true
+    if (!validation?.validated) {
+      return {
+        error: {
+          type: 'EVALUATION_FAILED',
+          nodeId: this.nodeId,
+          message: 'Submit validation state missing from evaluation context',
+        },
       }
-
-      // Step 2: Find all blocks that belong to this step
-      const blockIds = this.findBlocksForStep(parentStepId, context)
-
-      if (blockIds.length === 0) {
-        return true
-      }
-
-      // Step 3: Evaluate all blocks
-      const blockResults = await Promise.all(
-        blockIds.map(async blockId => {
-          const result = await invoker.invoke(blockId, context)
-
-          if (result.error) {
-            return { properties: { validate: [] } }
-          }
-
-          return result.value as { properties?: { validate?: Array<{ passed: boolean }> } }
-        }),
-      )
-
-      // Step 4: Collect all validation results from evaluated blocks
-      const allValidations = blockResults.flatMap(block => {
-        if (!block.properties || !Array.isArray(block.properties.validate)) {
-          return []
-        }
-
-        return block.properties.validate as Array<{ passed: boolean }>
-      })
-
-      if (allValidations.length === 0) {
-        return true
-      }
-
-      // Check if all validations passed
-      return allValidations.every(validation => validation.passed === true)
-    } catch {
-      return false
     }
-  }
 
-  /**
-   * Find all block nodes that belong to a specific step
-   *
-   * Algorithm:
-   * 1. Get all nodes from the registry
-   * 2. Filter for BLOCK type nodes
-   * 3. For each block, traverse up its parent chain until reaching a STEP
-   * 4. If the step ID matches the target step, include this block
-   */
-  private findBlocksForStep(stepId: NodeId, context: ThunkEvaluationContext): NodeId[] {
-    const blockIds: NodeId[] = []
-    const allNodes = context.nodeRegistry.getAll()
-
-    allNodes.forEach((node, nodeId) => {
-      // Only consider BLOCK nodes
-      if (node.type !== ASTNodeType.BLOCK) {
-        return
-      }
-
-      // Traverse up to find the parent step
-      const blockStepId = this.findParentStepIdForNode(nodeId, context)
-
-      // If this block belongs to our target step, include it
-      if (blockStepId === stepId) {
-        blockIds.push(nodeId)
-      }
-    })
-
-    return blockIds
-  }
-
-  /**
-   * Find the parent Step ID for any given node by traversing up the parent chain
-   */
-  private findParentStepIdForNode(nodeId: NodeId, context: ThunkEvaluationContext): NodeId | undefined {
-    const ancestors = getAncestorChain(nodeId, context.metadataRegistry)
-
-    return ancestors.find(ancestorId => {
-      const node = context.nodeRegistry.get(ancestorId)
-
-      return node?.type === ASTNodeType.STEP
-    })
+    return { isValid: validation.isValid }
   }
 
   /**
@@ -639,48 +550,6 @@ export default class SubmitHandler implements ThunkHandler {
     }
 
     return Boolean(result.value)
-  }
-
-  private evaluateValidationsSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): boolean {
-    try {
-      const parentStepId = this.findParentStepIdForNode(this.nodeId, context)
-
-      if (!parentStepId) {
-        return true
-      }
-
-      const blockIds = this.findBlocksForStep(parentStepId, context)
-
-      if (blockIds.length === 0) {
-        return true
-      }
-
-      const blockResults = blockIds.map(blockId => {
-        const result = invoker.invokeSync(blockId, context)
-
-        if (result.error) {
-          return { properties: { validate: [] } }
-        }
-
-        return result.value as { properties?: { validate?: Array<{ passed: boolean }> } }
-      })
-
-      const allValidations = blockResults.flatMap(block => {
-        if (!block.properties || !Array.isArray(block.properties.validate)) {
-          return []
-        }
-
-        return block.properties.validate as Array<{ passed: boolean }>
-      })
-
-      if (allValidations.length === 0) {
-        return true
-      }
-
-      return allValidations.every(validation => validation.passed === true)
-    } catch {
-      return false
-    }
   }
 
   private executeEffectsSync(

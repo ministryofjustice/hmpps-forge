@@ -343,6 +343,7 @@ export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked
   return {
     invoke: jest.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
     invokeSync: jest.fn().mockImplementation(options.invokeSyncImpl ?? defaultSyncImpl),
+    isSync: jest.fn().mockReturnValue(false),
   }
 }
 
@@ -441,8 +442,11 @@ export function createMockInvokerWithError(
  * expect(hooks.registerRuntimeNodesBatch).toHaveBeenCalledWith([node], 'template')
  */
 export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
+  const templateValueMock = jest.fn()
+
   return {
-    transformValue: jest.fn(),
+    instantiateTemplateValue: templateValueMock,
+    transformValue: templateValueMock,
     registerRuntimeNodesBatch: jest.fn(),
   }
 }

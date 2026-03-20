@@ -1,44 +1,20 @@
 import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
-import PseudoNodeTraverser from '@form-engine/core/compilation/traversers/PseudoNodeTraverser'
+import NodeRegistry from '@form-engine/core/compilation/registries/NodeRegistry'
+import MetadataRegistry from '@form-engine/core/compilation/registries/MetadataRegistry'
+import PseudoNodeCreator from '@form-engine/core/compilation/traversers/PseudoNodeCreator'
 import FunctionRegistry from '@form-engine/registry/FunctionRegistry'
-import { MetadataTraverser } from '@form-engine/core/compilation/traversers/MetadataTraverser'
-import { JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
-import { AddSelfValueToFieldsNormalizer } from '@form-engine/core/compilation/normalizers/AddSelfValueToFields'
-import { ResolveSelfReferencesNormalizer } from '@form-engine/core/compilation/normalizers/ResolveSelfReferences'
-import { WiringContext } from '@form-engine/core/compilation/dependency-graph/WiringContext'
-import StructuralWiring from '@form-engine/core/nodes/structures/StructuralWiring'
-import SubmitWiring from '@form-engine/core/nodes/transitions/submit/SubmitWiring'
-import ActionWiring from '@form-engine/core/nodes/transitions/action/ActionWiring'
-import AccessWiring from '@form-engine/core/nodes/transitions/access/AccessWiring'
-import AnswerLocalWiring from '@form-engine/core/nodes/pseudo-nodes/answer-local/AnswerLocalWiring'
-import AnswerRemoteWiring from '@form-engine/core/nodes/pseudo-nodes/answer-remote/AnswerRemoteWiring'
-import DataWiring from '@form-engine/core/nodes/pseudo-nodes/data/DataWiring'
-import QueryWiring from '@form-engine/core/nodes/pseudo-nodes/query/QueryWiring'
-import ParamsWiring from '@form-engine/core/nodes/pseudo-nodes/params/ParamsWiring'
-import PostWiring from '@form-engine/core/nodes/pseudo-nodes/post/PostWiring'
-import RequestWiring from '@form-engine/core/nodes/pseudo-nodes/request/RequestWiring'
-import SessionWiring from '@form-engine/core/nodes/pseudo-nodes/session/SessionWiring'
-import ConditionalWiring from '@form-engine/core/nodes/expressions/conditional/ConditionalWiring'
-import ReferenceWiring from '@form-engine/core/nodes/expressions/reference/ReferenceWiring'
-import AndWiring from '@form-engine/core/nodes/predicates/and/AndWiring'
-import OrWiring from '@form-engine/core/nodes/predicates/or/OrWiring'
-import XorWiring from '@form-engine/core/nodes/predicates/xor/XorWiring'
-import NotWiring from '@form-engine/core/nodes/predicates/not/NotWiring'
-import PipelineWiring from '@form-engine/core/nodes/expressions/pipeline/PipelineWiring'
-import FunctionWiring from '@form-engine/core/nodes/expressions/function/FunctionWiring'
-import ValidationWiring from '@form-engine/core/nodes/expressions/validation/ValidationWiring'
-import FormatWiring from '@form-engine/core/nodes/expressions/format/FormatWiring'
-import IterateWiring from '@form-engine/core/nodes/expressions/iterate/IterateWiring'
-import TestWiring from '@form-engine/core/nodes/predicates/test/TestWiring'
+import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { ReferenceASTNode } from '@form-engine/core/types/expressions.type'
+import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
-import { NodeIDCategory } from '@form-engine/core/compilation/id-generators/NodeIDGenerator'
 import ThunkCompilerFactory from '@form-engine/core/compilation/thunks/ThunkCompilerFactory'
 
 /**
  * NodeCompilationPipeline - Reusable compilation phases for AST nodes
  *
- * Encapsulates the compilation pipeline phases (normalization, pseudo node creation,
- * dependency wiring) so they can be reused for both:
+ * Encapsulates the compilation pipeline phases (normalization, pseudo node creation)
+ * so they can be reused for both:
  * - Compile-time: Full tree compilation in FormCompilationFactory
  * - Runtime: Subset compilation for dynamically created nodes
  *
@@ -54,74 +30,64 @@ export class NodeCompilationPipeline {
   }
 
   /**
-   * Compile Phase 2 / Runtime Phase 1: Normalize nodes
-   *
-   * Runs all normalizers on the provided nodes. Normalizers modify nodes in-place.
-   * Can operate on full tree (compile-time) or subset of nodes (runtime).
-   *
-   * Normalizers applied:
-   * 1. AddSelfValueToFieldsNormalizer - Adds Self() references to field blocks
-   * 2. ResolveSelfReferencesNormalizer - Resolves Self() references to actual field codes
-   *
-   * @param nodes - Root node(s) to normalize. Can be single node or array.
-   * @param compilationDependencies
-   * @param idCategory
-   */
-  static normalize(
-    nodes: ASTNode | ASTNode[],
-    compilationDependencies: CompilationDependencies,
-    idCategory: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST = NodeIDCategory.COMPILE_AST,
-  ): void {
-    const nodesToNormalize = Array.isArray(nodes) ? nodes : [nodes]
-
-    // Create normalizers
-    const normalizers = [
-      new AddSelfValueToFieldsNormalizer(compilationDependencies.nodeFactory),
-      new ResolveSelfReferencesNormalizer(compilationDependencies.nodeIdGenerator, idCategory),
-    ]
-
-    // Run each normalizer on each node
-    // Normalizers use structuralTraverse internally to walk the tree
-    nodesToNormalize.forEach(node => {
-      normalizers.forEach(normalizer => {
-        normalizer.normalize(node)
-      })
-    })
-  }
-
-  /**
-   * Compile Phase 4: Set parent metadata via MetadataTraverser
-   *
-   * Marks nodes with parent attachment metadata:
-   * - attachedToParentNode: NodeId of parent
-   * - attachedToParentProperty: Property key on parent
-   *
-   * @param rootNode - Root journey node to traverse from
-   * @param compilationDependencies
-   */
-  static setParentMetadata(rootNode: JourneyASTNode, compilationDependencies: CompilationDependencies): void {
-    new MetadataTraverser(compilationDependencies.metadataRegistry).setParentMetadata(rootNode)
-  }
-
-  /**
    * Compile Phase 6: Set step-scope metadata (isCurrentStep, isDescendantOfStep, isAncestorOfStep)
+   *
+   * Walks UP from the step node via attachedToParentNode metadata to mark ancestors,
+   * then walks DOWN through the step subtree to mark descendants.
    */
   static setStepScopeMetadata(
-    rootNode: JourneyASTNode,
+    _rootNode: JourneyASTNode,
     stepNode: StepASTNode,
     compilationDependencies: CompilationDependencies,
   ): void {
-    new MetadataTraverser(compilationDependencies.metadataRegistry).setStepScopeMetadata(rootNode, stepNode)
+    const { metadataRegistry } = compilationDependencies
+
+    // Mark the step node itself
+    metadataRegistry.set(stepNode.id, 'isCurrentStep', true)
+    metadataRegistry.set(stepNode.id, 'isAncestorOfStep', true)
+    metadataRegistry.set(stepNode.id, 'isDescendantOfStep', true)
+
+    // Walk UP: Mark all ancestors as isAncestorOfStep
+    let currentId = metadataRegistry.get<NodeId>(stepNode.id, 'attachedToParentNode')
+
+    while (currentId) {
+      metadataRegistry.set(currentId, 'isAncestorOfStep', true)
+      currentId = metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
+    }
+
+    // Walk DOWN: Mark all descendants as isDescendantOfStep
+    this.markDescendants(stepNode, metadataRegistry)
   }
 
-  /**
-   * Runtime Phase 3: Set metadata for runtime node
-   *
-   * @param node - Root node to traverse
-   * @param compilationDependencies
-   */
-  static setRuntimeMetadata(node: ASTNode, compilationDependencies: CompilationDependencies): void {
-    new MetadataTraverser(compilationDependencies.metadataRegistry).traverseSubtree(node)
+  private static markDescendants(node: ASTNode, metadataRegistry: MetadataRegistry): void {
+    if (!(node as any).properties) {
+      return
+    }
+
+    Object.values((node as any).properties).forEach((value: unknown) => {
+      this.walkDescendantValues(value, metadataRegistry)
+    })
+  }
+
+  private static walkDescendantValues(value: unknown, metadataRegistry: MetadataRegistry): void {
+    if (value === null || value === undefined || typeof value !== 'object') {
+      return
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(item => this.walkDescendantValues(item, metadataRegistry))
+
+      return
+    }
+
+    if (isASTNode(value)) {
+      metadataRegistry.set(value.id, 'isDescendantOfStep', true)
+      this.markDescendants(value, metadataRegistry)
+
+      return
+    }
+
+    Object.values(value).forEach(v => this.walkDescendantValues(v, metadataRegistry))
   }
 
   /**
@@ -141,143 +107,17 @@ export class NodeCompilationPipeline {
    *
    * @param compilationDependencies
    */
-  static createPseudoNodes(compilationDependencies: CompilationDependencies): void {
-    // Create pseudo nodes by scanning the entire registry
-    new PseudoNodeTraverser(
+  static createPseudoNodes(compilationDependencies: CompilationDependencies, scanSource?: NodeRegistry): void {
+    const registry = scanSource ?? compilationDependencies.nodeRegistry
+
+    const creator = new PseudoNodeCreator(
       compilationDependencies.nodeRegistry,
       compilationDependencies.pseudoNodeFactory,
       compilationDependencies.metadataRegistry,
-    ).createPseudoNodes()
-  }
-
-  /**
-   * Compile Phase 5: Wire static dependencies (call ONCE before per-step compilation)
-   *
-   * Wires AST node relationships that don't depend on step-scope metadata.
-   * These edges are invariant across all steps and can be done once then cloned.
-   *
-   * Includes:
-   * - Structural parent-child hierarchy
-   * - Expression node dependencies (conditional, logic, reference, pipeline, function, etc.)
-   * - Transition wiring that doesn't use step-scope (onAction, onSubmit)
-   * - Validation dependencies
-   *
-   * @param compilationDependencies
-   */
-  static wireStaticDependencies(compilationDependencies: CompilationDependencies): void {
-    const wiringContext = new WiringContext(
-      compilationDependencies.nodeRegistry,
-      compilationDependencies.metadataRegistry,
-      compilationDependencies.dependencyGraph,
     )
 
-    // Structural hierarchy
-    new StructuralWiring(wiringContext).wire()
-
-    // Transitions that don't use step-scope metadata
-    new ActionWiring(wiringContext).wire()
-    new SubmitWiring(wiringContext).wire()
-
-    // All predicate wiring
-    new TestWiring(wiringContext).wire()
-    new AndWiring(wiringContext).wire()
-    new OrWiring(wiringContext).wire()
-    new XorWiring(wiringContext).wire()
-    new NotWiring(wiringContext).wire()
-
-    // All expression wiring
-    new ConditionalWiring(wiringContext).wire()
-    new ReferenceWiring(wiringContext).wire()
-    new PipelineWiring(wiringContext).wire()
-    new FunctionWiring(wiringContext).wire()
-    new ValidationWiring(wiringContext).wire()
-    new FormatWiring(wiringContext).wire()
-    new IterateWiring(wiringContext).wire()
-  }
-
-  /**
-   * Compile Phase 8: Wire step-scope dependencies (call PER-STEP after pseudo node creation)
-   *
-   * Wires relationships that depend on step-scope metadata or pseudo nodes.
-   * Must be called after:
-   * 1. setStepScopeMetadata() - sets isCurrentStep, isDescendantOfStep, isAncestorOfStep
-   * 2. createPseudoNodes() - creates Answer, Data, Query, Params, Post, Request, Session pseudo nodes
-   *
-   * Includes:
-   * - onAccess transition wiring (uses isAncestorOfStep, getCurrentStepNode for cross-depth chaining)
-   * - All pseudo node wiring (pseudo nodes are step-specific)
-   *
-   * @param compilationDependencies
-   */
-  static wireStepScopeDependencies(compilationDependencies: CompilationDependencies): void {
-    const wiringContext = new WiringContext(
-      compilationDependencies.nodeRegistry,
-      compilationDependencies.metadataRegistry,
-      compilationDependencies.dependencyGraph,
-    )
-
-    // onAccess uses step-scope metadata (isAncestorOfStep, getCurrentStepNode) for cross-depth chaining
-    new AccessWiring(wiringContext).wire()
-
-    // Pseudo node wiring (pseudo nodes are created per-step)
-    new AnswerLocalWiring(wiringContext).wire()
-    new AnswerRemoteWiring(wiringContext).wire()
-    new DataWiring(wiringContext).wire()
-    new QueryWiring(wiringContext).wire()
-    new ParamsWiring(wiringContext).wire()
-    new PostWiring(wiringContext).wire()
-    new RequestWiring(wiringContext).wire()
-    new SessionWiring(wiringContext).wire()
-  }
-
-  /**
-   * Runtime Phase 6: Wire dependency graph for runtime nodes (scoped wiring)
-   *
-   * Creates dependency edges for dynamically created nodes at runtime.
-   * Wires both directions - new nodes to existing graph and existing nodes to new nodes.
-   *
-   * @param compilationDependencies
-   * @param nodeIds - The specific nodes to wire
-   */
-  static wireRuntimeDependencies(compilationDependencies: CompilationDependencies, nodeIds: NodeId[]): void {
-    const wiringContext = new WiringContext(
-      compilationDependencies.nodeRegistry,
-      compilationDependencies.metadataRegistry,
-      compilationDependencies.dependencyGraph,
-    )
-
-    // Scoped wiring - only process specified nodes with bidirectional wiring
-    new StructuralWiring(wiringContext).wireNodes(nodeIds)
-
-    // Wire lifecycle transitions (entry = onAccess, action = onAction, exit = onSubmit)
-    new AccessWiring(wiringContext).wireNodes(nodeIds)
-    new ActionWiring(wiringContext).wireNodes(nodeIds)
-    new SubmitWiring(wiringContext).wireNodes(nodeIds)
-
-    // Wire pseudo nodes
-    new AnswerLocalWiring(wiringContext).wireNodes(nodeIds)
-    new AnswerRemoteWiring(wiringContext).wireNodes(nodeIds)
-    new DataWiring(wiringContext).wireNodes(nodeIds)
-    new QueryWiring(wiringContext).wireNodes(nodeIds)
-    new ParamsWiring(wiringContext).wireNodes(nodeIds)
-    new PostWiring(wiringContext).wireNodes(nodeIds)
-    new RequestWiring(wiringContext).wireNodes(nodeIds)
-    new SessionWiring(wiringContext).wireNodes(nodeIds)
-    // Wire predicate nodes
-    new TestWiring(wiringContext).wireNodes(nodeIds)
-    new AndWiring(wiringContext).wireNodes(nodeIds)
-    new OrWiring(wiringContext).wireNodes(nodeIds)
-    new XorWiring(wiringContext).wireNodes(nodeIds)
-    new NotWiring(wiringContext).wireNodes(nodeIds)
-
-    // Wire expression nodes
-    new ConditionalWiring(wiringContext).wireNodes(nodeIds)
-    new ReferenceWiring(wiringContext).wireNodes(nodeIds)
-    new PipelineWiring(wiringContext).wireNodes(nodeIds)
-    new FunctionWiring(wiringContext).wireNodes(nodeIds)
-    new ValidationWiring(wiringContext).wireNodes(nodeIds)
-    new FormatWiring(wiringContext).wireNodes(nodeIds)
-    new IterateWiring(wiringContext).wireNodes(nodeIds)
+    creator.createForFields(registry.findByType<FieldBlockASTNode>(BlockType.FIELD))
+    creator.createForReferences(registry.findByType<ReferenceASTNode>(ExpressionType.REFERENCE))
   }
 
   /**

@@ -1,9 +1,7 @@
 import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { BlockType, TransitionType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
+import { TransitionType, ExpressionType, FunctionType } from '@form-engine/form/types/enums'
 import { ASTTestFactory } from '@form-engine/test-utils/ASTTestFactory'
 import { createMockInvoker } from '@form-engine/test-utils/thunkTestHelpers'
-import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
-import { PseudoNode } from '@form-engine/core/types/pseudoNodes.type'
 import SubmitHandler from './SubmitHandler'
 
 /**
@@ -15,6 +13,7 @@ function createMockContext() {
     global: {
       answers: {},
       data: {},
+      validation: undefined,
     },
     request: {
       params: {},
@@ -282,28 +281,9 @@ describe('SubmitHandler', () => {
 
       const handler = new SubmitHandler(transition.id, transition)
 
-      // Mock a step node
-      const stepNode = ASTTestFactory.step().build()
-
-      // Mock a block node with a passing validation
-      const blockNode = ASTTestFactory.block('text-input', BlockType.FIELD).build()
-
       const effectsExecuted: string[] = []
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
-          // Mock block evaluation returning a passing validation
-          if (nodeId === blockNode.id) {
-            return {
-              value: {
-                properties: {
-                  validate: [{ passed: true }],
-                },
-              },
-              metadata: { source: 'BlockHandler', timestamp: Date.now() },
-            }
-          }
-
-          // Mock effect node invocations - effects execute immediately now
           if (nodeId === alwaysEffect.id) {
             effectsExecuted.push('logAttempt')
 
@@ -331,39 +311,15 @@ describe('SubmitHandler', () => {
 
       const mockContext = {
         ...createMockContext(),
-        metadataRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string, key: string) => {
-            if (key === 'attachedToParentNode') {
-              if (nodeId === transition.id) {
-                return stepNode.id
-              }
-
-              if (nodeId === blockNode.id) {
-                return stepNode.id
-              }
-            }
-
-            return undefined
-          }),
-        },
-        nodeRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string) => {
-            if (nodeId === stepNode.id) {
-              return stepNode
-            }
-
-            if (nodeId === blockNode.id) {
-              return blockNode
-            }
-
-            return undefined
-          }),
-          getAll: jest.fn().mockReturnValue(
-            new Map<NodeId, ASTNode | PseudoNode>([
-              [stepNode.id, stepNode],
-              [blockNode.id, blockNode],
-            ]),
-          ),
+        global: {
+          answers: {},
+          data: {},
+          validation: {
+            stepId: 'compile_ast:1',
+            validated: true,
+            isValid: true,
+            failures: [],
+          },
         },
         logger: {
           debug: jest.fn(),
@@ -394,27 +350,8 @@ describe('SubmitHandler', () => {
 
       const handler = new SubmitHandler(transition.id, transition)
 
-      // Mock a step node
-      const stepNode = ASTTestFactory.step().build()
-
-      // Mock a block node with a passing validation
-      const blockNode = ASTTestFactory.block('text-input', BlockType.FIELD).build()
-
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
-          // Mock block evaluation returning a passing validation
-          if (nodeId === blockNode.id) {
-            return {
-              value: {
-                properties: {
-                  validate: [{ passed: true }],
-                },
-              },
-              metadata: { source: 'BlockHandler', timestamp: Date.now() },
-            }
-          }
-
-          // Mock redirect outcome evaluation
           if (nodeId === validRedirect.id) {
             return {
               value: '/success',
@@ -431,39 +368,15 @@ describe('SubmitHandler', () => {
 
       const mockContext = {
         ...createMockContext(),
-        metadataRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string, key: string) => {
-            if (key === 'attachedToParentNode') {
-              if (nodeId === transition.id) {
-                return stepNode.id
-              }
-
-              if (nodeId === blockNode.id) {
-                return stepNode.id
-              }
-            }
-
-            return undefined
-          }),
-        },
-        nodeRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string) => {
-            if (nodeId === stepNode.id) {
-              return stepNode
-            }
-
-            if (nodeId === blockNode.id) {
-              return blockNode
-            }
-
-            return undefined
-          }),
-          getAll: jest.fn().mockReturnValue(
-            new Map<NodeId, ASTNode | PseudoNode>([
-              [stepNode.id, stepNode],
-              [blockNode.id, blockNode],
-            ]),
-          ),
+        global: {
+          answers: {},
+          data: {},
+          validation: {
+            stepId: 'compile_ast:1',
+            validated: true,
+            isValid: true,
+            failures: [],
+          },
         },
         logger: {
           debug: jest.fn(),
@@ -493,27 +406,8 @@ describe('SubmitHandler', () => {
 
       const handler = new SubmitHandler(transition.id, transition)
 
-      // Mock a step node
-      const stepNode = ASTTestFactory.step().build()
-
-      // Mock a block node with a failed validation
-      const blockNode = ASTTestFactory.block('text-input', BlockType.FIELD).build()
-
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
-          // Mock block evaluation returning a failed validation
-          if (nodeId === blockNode.id) {
-            return {
-              value: {
-                properties: {
-                  validate: [{ passed: false, message: 'Field is required' }],
-                },
-              },
-              metadata: { source: 'BlockHandler', timestamp: Date.now() },
-            }
-          }
-
-          // Mock redirect outcome evaluation
           if (nodeId === invalidRedirect.id) {
             return {
               value: '/error',
@@ -530,39 +424,15 @@ describe('SubmitHandler', () => {
 
       const mockContext = {
         ...createMockContext(),
-        metadataRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string, key: string) => {
-            if (key === 'attachedToParentNode') {
-              if (nodeId === transition.id) {
-                return stepNode.id
-              }
-
-              if (nodeId === blockNode.id) {
-                return stepNode.id
-              }
-            }
-
-            return undefined
-          }),
-        },
-        nodeRegistry: {
-          get: jest.fn().mockImplementation((nodeId: string) => {
-            if (nodeId === stepNode.id) {
-              return stepNode
-            }
-
-            if (nodeId === blockNode.id) {
-              return blockNode
-            }
-
-            return undefined
-          }),
-          getAll: jest.fn().mockReturnValue(
-            new Map<NodeId, ASTNode | PseudoNode>([
-              [stepNode.id, stepNode],
-              [blockNode.id, blockNode],
-            ]),
-          ),
+        global: {
+          answers: {},
+          data: {},
+          validation: {
+            stepId: 'compile_ast:1',
+            validated: true,
+            isValid: false,
+            failures: [],
+          },
         },
         logger: {
           debug: jest.fn(),
@@ -578,6 +448,20 @@ describe('SubmitHandler', () => {
       expect(result.value?.isValid).toBe(false)
       expect(result.value?.redirect).toBe('/error')
       expect(mockInvoker.invoke).toHaveBeenCalledWith(invalidRedirect.id, mockContext)
+    })
+
+    it('should error when validation is enabled but validation state is missing', async () => {
+      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+        .withProperty('validate', true)
+        .build() as SubmitTransitionASTNode
+
+      const handler = new SubmitHandler(transition.id, transition)
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker()
+
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      expect(result.error?.message).toContain('Submit validation state missing')
     })
 
     it('should execute multiple effects sequentially', async () => {

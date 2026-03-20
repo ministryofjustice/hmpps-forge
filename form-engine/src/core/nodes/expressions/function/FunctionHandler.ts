@@ -46,7 +46,7 @@ import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluato
  * Asynchronous when function or any argument is async.
  */
 export default class FunctionHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

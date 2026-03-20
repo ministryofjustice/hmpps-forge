@@ -50,7 +50,7 @@ export interface ActionTransitionResult {
  * EffectFunctionContext with the correct transition type for answer source tracking.
  */
 export default class ActionHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

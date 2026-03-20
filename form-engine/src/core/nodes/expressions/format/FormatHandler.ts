@@ -37,7 +37,7 @@ import { isASTNode } from '@form-engine/core/typeguards/nodes'
  * Asynchronous when any argument is an async node.
  */
 export default class FormatHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

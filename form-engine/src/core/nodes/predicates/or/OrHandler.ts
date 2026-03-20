@@ -34,7 +34,7 @@ import { OrPredicateASTNode } from '@form-engine/core/types/predicates.type'
  * Asynchronous when any operand is an async node.
  */
 export default class OrHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

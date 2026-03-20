@@ -49,7 +49,7 @@ import ThunkLookupError from '@form-engine/errors/ThunkLookupError'
  * Asynchronous when any of these expressions is async.
  */
 export default class AnswerLocalHandler implements ThunkHandler {
-  isAsync = true
+  isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,

@@ -282,9 +282,8 @@ describe('BlockHandler', () => {
       })
     })
 
-    it('should skip validation when dependent property evaluates to false', async () => {
+    it('should skip validation on current-step blocks', async () => {
       // Arrange
-      const dependentNode = ASTTestFactory.reference(['answers', 'businessType'])
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validationNode = ASTTestFactory.expression(ExpressionType.VALIDATION)
         .withProperty('when', predicateNode)
@@ -292,19 +291,16 @@ describe('BlockHandler', () => {
         .build()
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('tradingHours')
-        .withProperty('dependent', dependentNode)
         .withProperty('validate', [validationNode])
         .build()
       const handler = new BlockHandler(block.id, block)
       const mockContext = createMockContext({
         mockNodes: new Map<NodeId, ASTNode>([
-          [dependentNode.id, dependentNode],
           [predicateNode.id, predicateNode],
           [validationNode.id, validationNode],
         ]),
       })
       const mockInvoker = createMockInvoker({
-        returnValueMap: new Map([[dependentNode.id, false]]),
         defaultValue: { passed: false, message: 'This should not be evaluated' },
       })
 
@@ -312,11 +308,11 @@ describe('BlockHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect((result.value as FieldBlockASTNode).properties.dependent).toBe(false)
-      expect((result.value as FieldBlockASTNode).properties.validate).toEqual([])
+      expect((result.value as FieldBlockASTNode).properties.validate).toBeUndefined()
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(validationNode.id, mockContext)
     })
 
-    it('should evaluate validation when dependent property evaluates to true', async () => {
+    it('should skip dependent when validation is skipped', async () => {
       // Arrange
       const dependentNode = ASTTestFactory.reference(['answers', 'businessType'])
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
@@ -346,13 +342,13 @@ describe('BlockHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect((result.value as FieldBlockASTNode).properties.dependent).toBe(true)
-      expect((result.value as FieldBlockASTNode).properties.validate).toEqual([
-        { passed: false, message: 'Enter your typical trading hours' },
-      ])
+      expect((result.value as FieldBlockASTNode).properties.dependent).toBeUndefined()
+      expect((result.value as FieldBlockASTNode).properties.validate).toBeUndefined()
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(dependentNode.id, mockContext)
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(validationNode.id, mockContext)
     })
 
-    it('should evaluate validation when dependent property does not exist', async () => {
+    it('should omit validation when dependent property does not exist', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validationNode = ASTTestFactory.expression(ExpressionType.VALIDATION)
@@ -379,9 +375,8 @@ describe('BlockHandler', () => {
 
       // Assert
       expect((result.value as FieldBlockASTNode).properties.dependent).toBeUndefined()
-      expect((result.value as FieldBlockASTNode).properties.validate).toEqual([
-        { passed: false, message: 'Select the type of food business' },
-      ])
+      expect((result.value as FieldBlockASTNode).properties.validate).toBeUndefined()
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(validationNode.id, mockContext)
     })
 
     it('should pass formatters through without evaluating AST nodes', async () => {
