@@ -224,7 +224,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
 
 export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
   'govukCharacterCount',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     const id = block.id ?? block.code
 
     const params = {

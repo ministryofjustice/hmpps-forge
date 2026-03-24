@@ -14,7 +14,7 @@ import { BlockDefinition } from '../../form/types/structures.type'
  *
  * @example
  * ```typescript
- * export const html = buildComponent<HtmlBlock>('html', async block => {
+ * export const html = buildComponent<HtmlBlock>('html', block => {
  *   return block.content
  * })
  * ```

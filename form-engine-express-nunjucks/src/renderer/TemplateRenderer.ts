@@ -46,8 +46,8 @@ export default class TemplateRenderer {
   }
 
   /** Render a full page from RenderContext and return HTML string */
-  async render(context: RenderContext, locals: Record<string, unknown> = {}): Promise<string> {
-    const renderedBlocks = await this.renderBlocks(context.blocks, context.showValidationFailures)
+  render(context: RenderContext, locals: Record<string, unknown> = {}): string {
+    const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures)
     const mergedViewLocals = this.mergeViewLocals(context)
 
     const templateContext: TemplateContext = {
@@ -107,28 +107,23 @@ export default class TemplateRenderer {
   }
 
   /** Render a Nunjucks template with the given context */
-  private renderTemplate(template: string, context: TemplateContext): Promise<string> {
-    return new Promise((resolve, reject) => {
-      this.nunjucksEnv.render(template, context, (err, result) => {
-        if (err) {
-          reject(this.wrapError(err))
-          return
-        }
-
-        resolve(result ?? '')
-      })
-    })
+  private renderTemplate(template: string, context: TemplateContext): string {
+    try {
+      return this.nunjucksEnv.render(template, context)
+    } catch (err) {
+      throw this.wrapError(err)
+    }
   }
 
   /** Render all visible blocks to HTML strings (filters out hidden blocks) */
-  private async renderBlocks(blocks: Evaluated<BlockASTNode>[], showValidationFailures: boolean): Promise<string[]> {
+  private renderBlocks(blocks: Evaluated<BlockASTNode>[], showValidationFailures: boolean): string[] {
     const visibleBlocks = blocks.filter(block => block.properties.hidden !== true)
 
-    return Promise.all(visibleBlocks.map(block => this.renderBlock(block, showValidationFailures)))
+    return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures))
   }
 
   /** Render a single block to HTML using the ComponentRegistry */
-  private async renderBlock(block: Evaluated<BlockASTNode>, showValidationFailures: boolean): Promise<string> {
+  private renderBlock(block: Evaluated<BlockASTNode>, showValidationFailures: boolean): string {
     try {
       const component = this.componentRegistry.get(block.variant)
 
@@ -141,10 +136,7 @@ export default class TemplateRenderer {
         )
       }
 
-      const transformedProperties = await this.transformPropertiesWithRenderedBlocks(
-        block.properties,
-        showValidationFailures,
-      )
+      const transformedProperties = this.transformPropertiesWithRenderedBlocks(block.properties, showValidationFailures)
 
       const evaluatedBlock = this.toEvaluatedBlock(
         {
@@ -154,7 +146,7 @@ export default class TemplateRenderer {
         showValidationFailures,
       )
 
-      return await component.render(evaluatedBlock, this.nunjucksEnv)
+      return component.render(evaluatedBlock, this.nunjucksEnv)
     } catch (err) {
       throw this.wrapError(err)
     }
@@ -187,24 +179,21 @@ export default class TemplateRenderer {
   }
 
   /** Recursively transform properties, rendering nested blocks to HTML */
-  private async transformPropertiesWithRenderedBlocks(
+  private transformPropertiesWithRenderedBlocks(
     properties: Record<string, unknown>,
     showValidationFailures: boolean,
-  ): Promise<Record<string, unknown>> {
-    const entries = Object.entries(properties)
-    const transformedEntries = await Promise.all(
-      entries.map(async ([key, value]) => {
-        const transformedValue = await this.transformValue(value, showValidationFailures)
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
 
-        return [key, transformedValue]
-      }),
-    )
+    Object.entries(properties).forEach(([key, value]) => {
+      result[key] = this.transformValue(value, showValidationFailures)
+    })
 
-    return Object.fromEntries(transformedEntries)
+    return result
   }
 
   /** Transform a single value, rendering nested blocks as needed */
-  private async transformValue(value: unknown, showValidationFailures: boolean): Promise<unknown> {
+  private transformValue(value: unknown, showValidationFailures: boolean): unknown {
     if (value === null || value === undefined) {
       return value
     }
@@ -214,7 +203,7 @@ export default class TemplateRenderer {
     }
 
     if (Array.isArray(value)) {
-      const transformed = await Promise.all(value.map(element => this.transformValue(element, showValidationFailures)))
+      const transformed = value.map(element => this.transformValue(element, showValidationFailures))
 
       // Filter out null values (hidden nested blocks)
       return transformed.filter(item => item !== null)
@@ -228,17 +217,14 @@ export default class TemplateRenderer {
   }
 
   /** Render a nested block to RenderedBlock format (block metadata + HTML) */
-  private async renderNestedBlock(
-    block: Evaluated<BlockASTNode>,
-    showValidationFailures: boolean,
-  ): Promise<RenderedBlock | null> {
+  private renderNestedBlock(block: Evaluated<BlockASTNode>, showValidationFailures: boolean): RenderedBlock | null {
     const { hidden, ...properties } = block.properties
     // Skip hidden nested blocks
     if (block.properties.hidden === true) {
       return null
     }
 
-    const html = await this.renderBlock(block, showValidationFailures)
+    const html = this.renderBlock(block, showValidationFailures)
 
     return {
       block: {

@@ -15,9 +15,7 @@ describe('TemplateRenderer', () => {
 
   beforeEach(() => {
     mockNunjucksEnv = {
-      render: jest.fn((template, data, callback) => {
-        callback(null, '<html>rendered</html>')
-      }),
+      render: jest.fn().mockReturnValue('<html>rendered</html>'),
     } as unknown as jest.Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
@@ -57,11 +55,11 @@ describe('TemplateRenderer', () => {
   }
 
   describe('render()', () => {
-    it('should render page with blocks and return HTML string', async () => {
+    it('should render page with blocks and return HTML string', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockResolvedValue('<input type="text" />'),
+        render: jest.fn().mockReturnValue('<input type="text" />'),
       })
 
       const context = createRenderContext({
@@ -69,18 +67,18 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      const result = await renderer.render(context)
+      const result = renderer.render(context)
 
       // Assert
       expect(result).toBe('<html>rendered</html>')
       expect(mockNunjucksEnv.render).toHaveBeenCalled()
     })
 
-    it('should pass rendered blocks to template context', async () => {
+    it('should pass rendered blocks to template context', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockResolvedValue('<input type="text" />'),
+        render: jest.fn().mockReturnValue('<input type="text" />'),
       })
 
       const context = createRenderContext({
@@ -88,14 +86,14 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
       expect(templateContext.blocks).toEqual(['<input type="text" />'])
     })
 
-    it('should include step, ancestors, navigation, answers, and data in template context', async () => {
+    it('should include step, ancestors, navigation, answers, and data in template context', () => {
       // Arrange
       const context = createRenderContext({
         answers: { email: 'test@example.com' },
@@ -103,7 +101,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
@@ -114,13 +112,13 @@ describe('TemplateRenderer', () => {
       expect(templateContext.data).toEqual({ userId: '123' })
     })
 
-    it('should merge provided locals into template context', async () => {
+    it('should merge provided locals into template context', () => {
       // Arrange
       const context = createRenderContext()
       const locals = { csrfToken: 'abc123', applicationName: 'My App' }
 
       // Act
-      await renderer.render(context, locals)
+      renderer.render(context, locals)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
@@ -128,11 +126,11 @@ describe('TemplateRenderer', () => {
       expect(templateContext.applicationName).toBe('My App')
     })
 
-    it('should filter out hidden blocks', async () => {
+    it('should filter out hidden blocks', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockResolvedValue('<input />'),
+        render: jest.fn().mockReturnValue('<input />'),
       })
 
       const visibleBlock = createMockBlock({ id: 'compile_ast:1' })
@@ -146,45 +144,41 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
       expect(templateContext.blocks).toHaveLength(1)
     })
 
-    it('should throw error when Nunjucks render fails', async () => {
+    it('should throw error when Nunjucks render fails', () => {
       // Arrange
-      const renderError = Object.assign(new Error('Template syntax error'), {
-        lineno: 1,
-        colno: 1,
-      }) as nunjucks.lib.TemplateError
-      mockNunjucksEnv.render.mockImplementation((template, data, callback) => {
-        callback(renderError, null)
+      mockNunjucksEnv.render.mockImplementation(() => {
+        throw new Error('Template syntax error')
       })
 
       const context = createRenderContext()
 
       // Act & Assert
-      await expect(renderer.render(context)).rejects.toThrow('Template syntax error')
+      expect(() => renderer.render(context)).toThrow('Template syntax error')
     })
   })
 
   describe('resolveTemplate()', () => {
-    it('should use step template when specified', async () => {
+    it('should use step template when specified', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test', view: { template: 'custom-step.njk' } },
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-step.njk', expect.any(Object), expect.any(Function))
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-step.njk', expect.any(Object))
     })
 
-    it('should use immediate parent template when step has no template', async () => {
+    it('should use immediate parent template when step has no template', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test' },
@@ -195,17 +189,13 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith(
-        'parent-template.njk',
-        expect.any(Object),
-        expect.any(Function),
-      )
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('parent-template.njk', expect.any(Object))
     })
 
-    it('should fall back to ancestor template when immediate parent has no template', async () => {
+    it('should fall back to ancestor template when immediate parent has no template', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test' },
@@ -216,13 +206,13 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('root-template.njk', expect.any(Object), expect.any(Function))
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('root-template.njk', expect.any(Object))
     })
 
-    it('should use default template when no template specified anywhere', async () => {
+    it('should use default template when no template specified anywhere', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test' },
@@ -230,49 +220,41 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object), expect.any(Function))
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object))
     })
 
-    it('should append .njk extension when not present', async () => {
+    it('should append .njk extension when not present', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test', view: { template: 'custom-template' } },
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith(
-        'custom-template.njk',
-        expect.any(Object),
-        expect.any(Function),
-      )
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-template.njk', expect.any(Object))
     })
 
-    it('should not double-append .njk extension', async () => {
+    it('should not double-append .njk extension', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test', view: { template: 'custom-template.njk' } },
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith(
-        'custom-template.njk',
-        expect.any(Object),
-        expect.any(Function),
-      )
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-template.njk', expect.any(Object))
     })
   })
 
   describe('mergeViewLocals()', () => {
-    it('should merge ancestor locals in order from root to immediate parent', async () => {
+    it('should merge ancestor locals in order from root to immediate parent', () => {
       // Arrange
       const context = createRenderContext({
         ancestors: [
@@ -282,7 +264,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
@@ -290,7 +272,7 @@ describe('TemplateRenderer', () => {
       expect(templateContext.brand).toBe('default')
     })
 
-    it('should merge step locals with highest priority', async () => {
+    it('should merge step locals with highest priority', () => {
       // Arrange
       const context = createRenderContext({
         step: { path: '/step', title: 'Test', view: { locals: { theme: 'custom', stepVar: 'value' } } },
@@ -298,7 +280,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
@@ -306,7 +288,7 @@ describe('TemplateRenderer', () => {
       expect(templateContext.stepVar).toBe('value')
     })
 
-    it('should handle ancestors without view config', async () => {
+    it('should handle ancestors without view config', () => {
       // Arrange
       const context = createRenderContext({
         ancestors: [
@@ -316,21 +298,21 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
       expect(templateContext.parentVar).toBe('value')
     })
 
-    it('should handle ancestors with view but no locals', async () => {
+    it('should handle ancestors with view but no locals', () => {
       // Arrange
       const context = createRenderContext({
         ancestors: [{ code: 'journey', path: '/journey', title: 'Journey', view: { template: 'custom.njk' } }],
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
@@ -339,7 +321,7 @@ describe('TemplateRenderer', () => {
   })
 
   describe('renderBlock()', () => {
-    it('should throw error when component variant not found', async () => {
+    it('should throw error when component variant not found', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue(undefined)
       mockComponentRegistry.getAll.mockReturnValue(
@@ -354,14 +336,14 @@ describe('TemplateRenderer', () => {
       })
 
       // Act & Assert
-      await expect(renderer.render(context)).rejects.toThrow(
+      expect(() => renderer.render(context)).toThrow(
         'Component variant "unknown-component" not found in registry. Available variants: html, radios',
       )
     })
 
-    it('should call component render with evaluated block', async () => {
+    it('should call component render with evaluated block', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -377,7 +359,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -394,9 +376,9 @@ describe('TemplateRenderer', () => {
   })
 
   describe('extractErrorsFromValidations()', () => {
-    it('should extract failed validations as errors when showValidationFailures is true', async () => {
+    it('should extract failed validations as errors when showValidationFailures is true', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -418,7 +400,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -432,9 +414,9 @@ describe('TemplateRenderer', () => {
       )
     })
 
-    it('should not include errors when showValidationFailures is false', async () => {
+    it('should not include errors when showValidationFailures is false', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -452,7 +434,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -463,9 +445,9 @@ describe('TemplateRenderer', () => {
       )
     })
 
-    it('should handle validate property that is not an array', async () => {
+    it('should handle validate property that is not an array', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -481,7 +463,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -494,9 +476,9 @@ describe('TemplateRenderer', () => {
   })
 
   describe('transformPropertiesWithRenderedBlocks()', () => {
-    it('should render nested blocks to RenderedBlock format', async () => {
+    it('should render nested blocks to RenderedBlock format', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<div>Nested content</div>')
+      const mockRender = jest.fn().mockReturnValue('<div>Nested content</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'fieldset',
         render: mockRender,
@@ -523,7 +505,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledTimes(2)
@@ -534,9 +516,9 @@ describe('TemplateRenderer', () => {
       })
     })
 
-    it('should handle arrays with nested blocks', async () => {
+    it('should handle arrays with nested blocks', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<div>Block</div>')
+      const mockRender = jest.fn().mockReturnValue('<div>Block</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'html',
         render: mockRender,
@@ -569,7 +551,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[2][0]
@@ -577,9 +559,9 @@ describe('TemplateRenderer', () => {
       expect(parentCallArgs.items[0].html).toBe('<div>Block</div>')
     })
 
-    it('should filter out hidden nested blocks from arrays', async () => {
+    it('should filter out hidden nested blocks from arrays', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<div>Block</div>')
+      const mockRender = jest.fn().mockReturnValue('<div>Block</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'html',
         render: mockRender,
@@ -611,7 +593,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
@@ -619,9 +601,9 @@ describe('TemplateRenderer', () => {
       expect(parentCallArgs.items[0].html).toBe('<div>Block</div>')
     })
 
-    it('should recursively transform nested objects', async () => {
+    it('should recursively transform nested objects', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<span>Hint</span>')
+      const mockRender = jest.fn().mockReturnValue('<span>Hint</span>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -651,16 +633,16 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
       expect(parentCallArgs.config.hint.content.html).toBe('<span>Hint</span>')
     })
 
-    it('should preserve null and undefined values', async () => {
+    it('should preserve null and undefined values', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -679,7 +661,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -692,9 +674,9 @@ describe('TemplateRenderer', () => {
       )
     })
 
-    it('should preserve primitive values unchanged', async () => {
+    it('should preserve primitive values unchanged', () => {
       // Arrange
-      const mockRender = jest.fn().mockResolvedValue('<input />')
+      const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -713,7 +695,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -728,39 +710,37 @@ describe('TemplateRenderer', () => {
   })
 
   describe('render() edge cases', () => {
-    it('should handle empty blocks array', async () => {
+    it('should handle empty blocks array', () => {
       // Arrange
       const context = createRenderContext({ blocks: [] })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
       const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
       expect(templateContext.blocks).toEqual([])
     })
 
-    it('should handle empty ancestors array', async () => {
+    it('should handle empty ancestors array', () => {
       // Arrange
       const context = createRenderContext({ ancestors: [] })
 
       // Act
-      await renderer.render(context)
+      renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object), expect.any(Function))
+      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object))
     })
 
-    it('should return empty string when Nunjucks returns null result', async () => {
+    it('should return empty string when Nunjucks returns empty string', () => {
       // Arrange
-      mockNunjucksEnv.render.mockImplementation((template, data, callback) => {
-        callback(null, null)
-      })
+      ;(mockNunjucksEnv.render as jest.Mock).mockReturnValue('')
 
       const context = createRenderContext()
 
       // Act
-      const result = await renderer.render(context)
+      const result = renderer.render(context)
 
       // Assert
       expect(result).toBe('')

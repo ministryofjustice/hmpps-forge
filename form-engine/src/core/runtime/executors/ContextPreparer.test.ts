@@ -76,6 +76,8 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
     validationBlockIds: [],
     renderAncestorIds: accessAncestorIds.slice(0, -1),
     renderStepId: ancestors.at(-1)!.id,
+    isRenderSync: false,
+    isAnswerPrepareSync: false,
   }
 
   const request = {} as StepRequest

@@ -146,10 +146,7 @@ export interface MOJMessages extends BlockDefinition, MOJMessagesProps {
 /**
  * Renders an MOJ Messages component using Nunjucks template
  */
-async function messagesRenderer(
-  block: EvaluatedBlock<MOJMessages>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     items: block.items,
     id: block.id,

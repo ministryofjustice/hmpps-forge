@@ -94,6 +94,8 @@ function createRuntimePlan(step: StepASTNode, options: Partial<StepRuntimePlan> 
     validationBlockIds: [],
     renderAncestorIds: [],
     renderStepId: step.id,
+    isRenderSync: false,
+    isAnswerPrepareSync: false,
     ...options,
   }
 }

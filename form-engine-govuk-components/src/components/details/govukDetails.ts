@@ -65,10 +65,7 @@ export interface GovUKDetails extends BlockDefinition, GovUKDetailsProps {
 /**
  * Renders the GOV.UK Details component using the official Nunjucks template.
  */
-async function detailsRenderer(
-  block: EvaluatedBlock<GovUKDetails>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function detailsRenderer(block: EvaluatedBlock<GovUKDetails>, nunjucksEnv: nunjucks.Environment): string {
   // If content blocks are provided, render them and use as HTML
   let contentHtml: string | undefined
 

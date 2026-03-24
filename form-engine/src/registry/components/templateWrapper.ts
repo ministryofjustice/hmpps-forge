@@ -113,7 +113,7 @@ const extractStringValue = (value: unknown): string => {
  * Renders the template wrapper by replacing slot markers with rendered block HTML
  * and value markers with their corresponding values.
  */
-const renderTemplateWrapper = async (block: EvaluatedBlock<TemplateWrapper>): Promise<string> => {
+const renderTemplateWrapper = (block: EvaluatedBlock<TemplateWrapper>): string => {
   let content = block.template
 
   // Replace value markers: {{valueName}}

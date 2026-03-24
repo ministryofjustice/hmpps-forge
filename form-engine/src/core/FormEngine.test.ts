@@ -139,7 +139,7 @@ describe('FormEngine', () => {
   describe('registerComponent', () => {
     it('should register a single component', () => {
       const engine = new FormEngine(createDefaultOptions())
-      const mockComponent = buildComponent('test-component', async () => '<div>Test</div>')
+      const mockComponent = buildComponent('test-component', () => '<div>Test</div>')
 
       engine.registerComponent(mockComponent)
 
@@ -152,8 +152,8 @@ describe('FormEngine', () => {
     it('should register multiple components', () => {
       const engine = new FormEngine(createDefaultOptions())
       const mockComponents = [
-        buildComponent('component-1', async () => '<div>1</div>'),
-        buildComponent('component-2', async () => '<div>2</div>'),
+        buildComponent('component-1', () => '<div>1</div>'),
+        buildComponent('component-2', () => '<div>2</div>'),
       ]
 
       engine.registerComponents(mockComponents)
@@ -327,8 +327,8 @@ describe('FormEngine', () => {
   describe('fluent interface / method chaining', () => {
     it('should support method chaining for all registration methods', () => {
       const engine = new FormEngine(createDefaultOptions())
-      const component1 = buildComponent('comp-1', async () => '<div>1</div>')
-      const component2 = buildComponent('comp-2', async () => '<div>2</div>')
+      const component1 = buildComponent('comp-1', () => '<div>1</div>')
+      const component2 = buildComponent('comp-2', () => '<div>2</div>')
       const functions1 = {
         Func1: { name: 'Func1', evaluate: () => true, isAsync: false },
       }
@@ -350,7 +350,7 @@ describe('FormEngine', () => {
 
     it('should support chaining even when form registration fails', () => {
       const engine = new FormEngine(createDefaultOptions({ logger: mockLogger }))
-      const component = buildComponent('comp', async () => '<div />')
+      const component = buildComponent('comp', () => '<div />')
 
       ;(FormInstance.createFromConfiguration as jest.Mock)
         .mockImplementationOnce(() => {
@@ -370,7 +370,7 @@ describe('FormEngine', () => {
 
     it('should handle complete registration workflow with chaining', () => {
       const engine = new FormEngine(createDefaultOptions())
-      const customComponent = buildComponent('custom-input', async () => '<input />')
+      const customComponent = buildComponent('custom-input', () => '<input />')
       const customFunctions = {
         CustomValidator: {
           name: 'CustomValidator',

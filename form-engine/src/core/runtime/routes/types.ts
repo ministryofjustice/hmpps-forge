@@ -259,5 +259,5 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
    * @param req - Native framework request (for accessing app.locals, etc.)
    * @param res - Native framework response (for accessing res.locals and sending response)
    */
-  render(context: RenderContext, req: TRequest, res: TResponse): Promise<void>
+  render(context: RenderContext, req: TRequest, res: TResponse): void
 }

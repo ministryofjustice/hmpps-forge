@@ -158,10 +158,7 @@ type EvaluatedAccordionItem = EvaluatedBlock<AccordionItem, false>
 /**
  * Renders the GOV.UK Accordion component using the official Nunjucks template.
  */
-async function accordionRenderer(
-  block: EvaluatedBlock<GovUKAccordion>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: nunjucks.Environment): string {
   // Process items, handling child blocks in content
   // NOTE: items is typed as ConditionalArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
   const items = block.items as EvaluatedAccordionItem[]

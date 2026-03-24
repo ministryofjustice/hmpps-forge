@@ -104,10 +104,7 @@ export interface GovUKPagination extends BlockDefinition, GovUKPaginationProps {
 /**
  * Renders the GOV.UK Pagination component using the official Nunjucks template.
  */
-async function paginationRenderer(
-  block: EvaluatedBlock<GovUKPagination>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function paginationRenderer(block: EvaluatedBlock<GovUKPagination>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     previous: block.previous,
     next: block.next,

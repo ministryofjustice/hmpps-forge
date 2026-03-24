@@ -79,7 +79,7 @@ export interface GovUKTag extends BlockDefinition, GovUKTagProps {
 /**
  * Renders the GOV.UK Tag component using the official Nunjucks template.
  */
-async function tagRenderer(block: EvaluatedBlock<GovUKTag>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function tagRenderer(block: EvaluatedBlock<GovUKTag>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     text: block.html ? undefined : block.text,
     html: block.html,

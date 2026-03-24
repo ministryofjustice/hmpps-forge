@@ -145,10 +145,7 @@ export interface MOJProgressBar extends BlockDefinition, MOJProgressBarProps {
 /**
  * Renders an MOJ Progress Bar component using Nunjucks template
  */
-async function progressBarRenderer(
-  block: EvaluatedBlock<MOJProgressBar>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function progressBarRenderer(block: EvaluatedBlock<MOJProgressBar>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     id: block.id,
     label: block.label,

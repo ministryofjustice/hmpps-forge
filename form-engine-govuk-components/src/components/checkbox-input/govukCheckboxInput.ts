@@ -5,6 +5,7 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
+  RenderedBlock,
 } from '@form-engine/form/types/structures.type'
 import { ChainableExpr, field } from '@form-engine/form/builders'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
@@ -275,7 +276,7 @@ interface GovUKCheckboxInputItem {
    *
    * @example someConditionalField // A field definition that appears when this checkbox is selected
    */
-  block?: BlockDefinition
+  block?: BlockDefinition | BlockDefinition[]
 }
 
 /**
@@ -292,7 +293,7 @@ interface GovUKCheckboxInputDivider {
 
 export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
   'govukCheckboxInput',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     // At render time, items has been evaluated (Collection expressions resolved to arrays)
     const evaluatedItems = block.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
     const items = evaluatedItems.map(option => makeOption(option, block.value))
@@ -319,6 +320,18 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
   },
 )
 
+const getConditionalContent = (block: RenderedBlock | RenderedBlock[] | undefined) => {
+  if (!block) {
+    return undefined
+  }
+
+  if (Array.isArray(block)) {
+    return { html: block.map(b => b.html).join('') }
+  }
+
+  return { html: block.html }
+}
+
 const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>, blockValue?: any) => {
   if (isCheckboxDivider(option)) {
     return {
@@ -341,7 +354,7 @@ const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckbo
     id: option.id,
     hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
     checked: isChecked,
-    conditional: option.block,
+    conditional: getConditionalContent(option.block),
     disabled: option.disabled,
     behaviour: option.behaviour,
     attributes: option.attributes,

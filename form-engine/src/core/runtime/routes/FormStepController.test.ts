@@ -224,6 +224,8 @@ describe('FormStepController', () => {
       validationBlockIds: [],
       renderAncestorIds: [],
       renderStepId: stepNode.id,
+      isRenderSync: false,
+      isAnswerPrepareSync: false,
     }
 
     return {

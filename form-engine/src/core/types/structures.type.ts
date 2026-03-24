@@ -37,6 +37,7 @@ export interface StepASTNode extends ASTNode {
   type: ASTNodeType.STEP
   properties: {
     path: string
+    code?: string
     onAccess?: AccessTransitionASTNode[]
     onAction?: ActionTransitionASTNode[]
     onSubmission?: SubmitTransitionASTNode[]

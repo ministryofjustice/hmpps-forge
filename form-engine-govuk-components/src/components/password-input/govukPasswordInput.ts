@@ -200,7 +200,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
 
 export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
   'govukPasswordInput',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     const params = {
       id: block.id ?? block.code,
       name: block.code,

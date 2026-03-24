@@ -69,8 +69,12 @@ function resolvePredicate(p: PredicateExpr | PredicateTestExprBuilder | Predicat
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if all operands are true
  */
-export const and = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr => {
+export function and(p: PredicateExpr[]): PredicateAndExpr
+export function and(...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr
+export function and(...args: [PredicateExpr[]] | [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateAndExpr {
+  const p = Array.isArray(args[0]) && args.length === 1 ? args[0] : (args as PredicateExpr[])
   const resolved = p.map(resolvePredicate)
+
   return {
     type: PredicateType.AND,
     operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
@@ -82,8 +86,12 @@ export const and = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): P
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if any operand is true
  */
-export const or = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr => {
+export function or(p: PredicateExpr[]): PredicateOrExpr
+export function or(...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr
+export function or(...args: [PredicateExpr[]] | [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateOrExpr {
+  const p = Array.isArray(args[0]) && args.length === 1 ? args[0] : (args as PredicateExpr[])
   const resolved = p.map(resolvePredicate)
+
   return {
     type: PredicateType.OR,
     operands: resolved as unknown as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
@@ -95,7 +103,10 @@ export const or = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): Pr
  * @param p - Two or more predicate expressions to combine
  * @returns A logic predicate that evaluates to true if exactly one operand is true
  */
-export const xor = (...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr => {
+export function xor(p: PredicateExpr[]): PredicateXorExpr
+export function xor(...p: [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr
+export function xor(...args: [PredicateExpr[]] | [PredicateExpr, PredicateExpr, ...PredicateExpr[]]): PredicateXorExpr {
+  const p = Array.isArray(args[0]) && args.length === 1 ? args[0] : (args as PredicateExpr[])
   const resolved = p.map(resolvePredicate)
   return {
     type: PredicateType.XOR,

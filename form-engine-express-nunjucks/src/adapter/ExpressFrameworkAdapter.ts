@@ -274,13 +274,13 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   }
 
   /** Render a full page from RenderContext and send the HTML response */
-  async render(context: RenderContext, req: express.Request, res: express.Response): Promise<void> {
+  render(context: RenderContext, req: express.Request, res: express.Response): void {
     const locals = {
       ...req.app.locals,
       ...res.locals,
     }
 
-    const html = await this.templateRenderer.render(context, locals)
+    const html = this.templateRenderer.render(context, locals)
 
     res.type('html').send(html)
   }

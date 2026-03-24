@@ -191,10 +191,7 @@ export interface GovUKTaskList extends BlockDefinition, GovUKTaskListProps {
 /**
  * Renders the GOV.UK Task List component using the official Nunjucks template.
  */
-async function taskListRenderer(
-  block: EvaluatedBlock<GovUKTaskList>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function taskListRenderer(block: EvaluatedBlock<GovUKTaskList>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     items: block.items,
     classes: block.classes,

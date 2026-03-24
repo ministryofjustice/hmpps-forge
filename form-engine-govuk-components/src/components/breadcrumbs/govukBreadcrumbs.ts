@@ -74,10 +74,7 @@ export interface GovUKBreadcrumbs extends BlockDefinition, GovUKBreadcrumbsProps
 /**
  * Renders the GOV.UK Breadcrumbs component using the official Nunjucks template.
  */
-async function breadcrumbsRenderer(
-  block: EvaluatedBlock<GovUKBreadcrumbs>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function breadcrumbsRenderer(block: EvaluatedBlock<GovUKBreadcrumbs>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     items: block.items,
     collapseOnMobile: block.collapseOnMobile,

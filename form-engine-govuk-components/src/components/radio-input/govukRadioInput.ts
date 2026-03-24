@@ -5,6 +5,7 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
+  RenderedBlock,
 } from '@form-engine/form/types/structures.type'
 import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import { field } from '@form-engine/form/builders'
@@ -230,7 +231,7 @@ interface GovUKRadioInputItem {
    * Useful for collecting additional information when specific options are selected.
    * @example someConditionalField // A field definition that appears when this radio is selected
    */
-  block?: BlockDefinition
+  block?: BlockDefinition | BlockDefinition[]
 }
 
 /**
@@ -246,33 +247,42 @@ interface GovUKRadioInputDivider {
   divider: ConditionalString
 }
 
-export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>(
-  'govukRadioInput',
-  async (block, nunjucksEnv) => {
-    const items = block.items.map(option => makeOption(option, block.value as string))
+export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRadioInput', (block, nunjucksEnv) => {
+  const items = block.items.map(option => makeOption(option, block.value as string))
 
-    const params = {
-      fieldset: block.fieldset || {
-        legend: {
-          text: block.label,
-        },
+  const params = {
+    fieldset: block.fieldset || {
+      legend: {
+        text: block.label,
       },
-      idPrefix: block.idPrefix || block.code,
-      name: block.code,
-      value: block.value,
-      formGroup: block.formGroup,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-      items,
-      classes: block.classes,
-      attributes: block.attributes,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
-    }
+    },
+    idPrefix: block.idPrefix || block.code,
+    name: block.code,
+    value: block.value,
+    formGroup: block.formGroup,
+    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    items,
+    classes: block.classes,
+    attributes: block.attributes,
+    errorMessage: block.errors?.length && { text: block.errors[0].message },
+  }
 
-    return nunjucksEnv.render('govuk/components/radios/template.njk', {
-      params,
-    })
-  },
-)
+  return nunjucksEnv.render('govuk/components/radios/template.njk', {
+    params,
+  })
+})
+
+const getConditionalContent = (block: RenderedBlock | RenderedBlock[] | undefined) => {
+  if (!block) {
+    return undefined
+  }
+
+  if (Array.isArray(block)) {
+    return { html: block.map(b => b.html).join('') }
+  }
+
+  return { html: block.html }
+}
 
 const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInputDivider>, checkedValue: string) => {
   if (isRadioDivider(option)) {
@@ -288,9 +298,7 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
     id: option.id,
     hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
     checked: checkedValue === option.value || (option.checked ?? false),
-    conditional: option.block && {
-      html: option.block.html,
-    },
+    conditional: getConditionalContent(option.block),
     disabled: option.disabled,
     attributes: option.attributes,
   }

@@ -132,10 +132,7 @@ export interface MOJMultiSelect extends BlockDefinition, MOJMultiSelectProps {
  * Renders the MOJ Multi Select component using the GOV.UK Table template
  * with the moj-multi-select data-module attribute.
  */
-async function multiSelectRenderer(
-  block: EvaluatedBlock<MOJMultiSelect>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function multiSelectRenderer(block: EvaluatedBlock<MOJMultiSelect>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     rows: block.rows,
     head: block.head,

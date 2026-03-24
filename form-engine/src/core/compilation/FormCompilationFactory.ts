@@ -101,10 +101,10 @@ export default class FormCompilationFactory {
     // Phase 7 - Add pseudo-nodes
     NodeCompilationPipeline.createPseudoNodes(compilationDependencies)
 
-    const runtimePlan = new StepRuntimePlanBuilder().build(stepNode, compilationDependencies)
-
     // Phase 9 - Compile thunk handlers
     NodeCompilationPipeline.compileThunks(compilationDependencies, this.formInstanceDependencies.functionRegistry)
+
+    const runtimePlan = new StepRuntimePlanBuilder().build(stepNode, compilationDependencies)
 
     return {
       artefact: compilationDependencies,

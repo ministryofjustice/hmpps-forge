@@ -17,9 +17,7 @@ describe('ExpressFrameworkAdapter', () => {
 
   beforeEach(() => {
     mockNunjucksEnv = {
-      render: jest.fn((template, data, callback) => {
-        callback(null, '<html>rendered</html>')
-      }),
+      render: jest.fn().mockReturnValue('<html>rendered</html>'),
     } as unknown as jest.Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
@@ -574,7 +572,6 @@ describe('ExpressFrameworkAdapter', () => {
           csrfToken: 'abc123',
           step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         }),
-        expect.any(Function),
       )
     })
   })

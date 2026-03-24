@@ -23,10 +23,7 @@ import { BlockDefinition, EvaluatedBlock } from '@form-engine/form/types/structu
  * }
  * ```
  */
-export type ComponentRenderer<T extends BlockDefinition> = (
-  block: EvaluatedBlock<T>,
-  renderer?: unknown,
-) => Promise<string>
+export type ComponentRenderer<T extends BlockDefinition> = (block: EvaluatedBlock<T>, renderer?: unknown) => string
 
 /**
  * Component registry entry

@@ -56,6 +56,8 @@ function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {
     validationBlockIds: [],
     renderAncestorIds: [],
     renderStepId: stepId,
+    isRenderSync: false,
+    isAnswerPrepareSync: false,
     ...options,
   }
 }
@@ -300,6 +302,82 @@ describe('ValidationExecutor', () => {
       failures: [],
     })
     expect(invoker.invoke).not.toHaveBeenCalledWith(runtimeBlock.id, context)
+  })
+
+  it('should order validation failures by document position when iterator fields appear before static fields', async () => {
+    // Arrange
+    const step = createStep('compile_ast:20')
+    const wrapperBlock = ASTTestFactory.block('template-wrapper', BlockType.BASIC).withId('compile_ast:21').build()
+    const iterate = createIterate('compile_ast:22', {
+      field: {
+        type: ASTNodeType.TEMPLATE,
+        originalType: ASTNodeType.BLOCK,
+        id: 'template:10',
+        blockType: BlockType.FIELD,
+        properties: {
+          validate: ['required'],
+        },
+      },
+    })
+    const staticBlock = createFieldBlock('compile_ast:23')
+    const staticValidationNode = createValidationNode('compile_ast:24', 'Static field is required')
+    const runtimeBlock = createFieldBlock('runtime_ast:10')
+    const runtimeValidationNode = createValidationNode('runtime_ast:11', 'Dynamic field is required')
+
+    step.properties.blocks = [wrapperBlock, staticBlock]
+
+    const runtimePlan = createRuntimePlan(step.id, {
+      validationBlockIds: [staticBlock.id],
+      validationIterateNodeIds: [iterate.id],
+    })
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    staticBlock.properties.code = 'static-field'
+    staticBlock.properties.validate = [staticValidationNode]
+    runtimeBlock.properties.code = 'dynamic-field'
+    runtimeBlock.properties.validate = [runtimeValidationNode]
+
+    nodes.set(step.id, step)
+    nodes.set(wrapperBlock.id, wrapperBlock)
+    nodes.set(iterate.id, iterate)
+    nodes.set(staticBlock.id, staticBlock)
+    nodes.set(staticValidationNode.id, staticValidationNode)
+    nodes.set(staticValidationNode.properties.when.id, staticValidationNode.properties.when)
+    nodes.set(runtimeValidationNode.id, runtimeValidationNode)
+    nodes.set(runtimeValidationNode.properties.when.id, runtimeValidationNode.properties.when)
+
+    parentByNodeId.set(wrapperBlock.id, step.id)
+    parentByNodeId.set(iterate.id, wrapperBlock.id)
+    parentByNodeId.set(staticBlock.id, step.id)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === iterate.id) {
+        nodes.set(runtimeBlock.id, runtimeBlock)
+        parentByNodeId.set(runtimeBlock.id, iterate.id)
+
+        return successResult([])
+      }
+
+      if (nodeId === runtimeValidationNode.id) {
+        return successResult({ passed: false, message: 'Dynamic field is required', submissionOnly: true })
+      }
+
+      if (nodeId === staticValidationNode.id) {
+        return successResult({ passed: false, message: 'Static field is required', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new ValidationExecutor()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result.isValid).toBe(false)
+    expect(result.failures).toHaveLength(2)
+    expect(result.failures[0].blockCode).toBe('dynamic-field')
+    expect(result.failures[1].blockCode).toBe('static-field')
   })
 
   it('should skip validation nodes when dependent evaluates to false', async () => {

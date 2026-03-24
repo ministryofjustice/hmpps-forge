@@ -165,7 +165,7 @@ export interface MOJFilter extends BlockDefinition, MOJFilterProps {
 /**
  * Renders an MOJ Filter component using Nunjucks template
  */
-async function filterRenderer(block: EvaluatedBlock<MOJFilter>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function filterRenderer(block: EvaluatedBlock<MOJFilter>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     heading: block.heading,
     selectedFilters: block.selectedFilters,

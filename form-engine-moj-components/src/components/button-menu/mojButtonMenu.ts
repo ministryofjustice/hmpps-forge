@@ -209,10 +209,7 @@ export interface MOJButtonMenu extends BlockDefinition, MOJButtonMenuProps {
 /**
  * Renders an MOJ Button Menu component using Nunjucks template
  */
-async function buttonMenuRenderer(
-  block: EvaluatedBlock<MOJButtonMenu>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function buttonMenuRenderer(block: EvaluatedBlock<MOJButtonMenu>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     button: block.button,
     alignMenu: block.alignMenu,

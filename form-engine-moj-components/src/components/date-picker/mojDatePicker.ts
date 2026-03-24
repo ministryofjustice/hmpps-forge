@@ -175,10 +175,7 @@ function toUKDateFormat(value: unknown): string | undefined {
 /**
  * Renders an MOJ Date Picker component using Nunjucks template
  */
-async function datePickerRenderer(
-  block: EvaluatedBlock<MOJDatePicker>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function datePickerRenderer(block: EvaluatedBlock<MOJDatePicker>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     id: block.id ?? block.code,
     name: block.code,

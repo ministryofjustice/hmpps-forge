@@ -175,10 +175,7 @@ export interface MOJTimeline extends BlockDefinition, MOJTimelineProps {
 /**
  * Renders an MOJ Timeline component using Nunjucks template
  */
-async function timelineRenderer(
-  block: EvaluatedBlock<MOJTimeline>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function timelineRenderer(block: EvaluatedBlock<MOJTimeline>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     items: block.items,
     headingLevel: block.headingLevel,

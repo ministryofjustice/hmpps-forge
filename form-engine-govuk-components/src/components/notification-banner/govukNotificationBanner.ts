@@ -133,10 +133,10 @@ export interface GovUKNotificationBanner extends BlockDefinition, GovUKNotificat
 /**
  * Renders the GOV.UK Notification Banner component using the official Nunjucks template.
  */
-async function notificationBannerRenderer(
+function notificationBannerRenderer(
   block: EvaluatedBlock<GovUKNotificationBanner>,
   nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+): string {
   // If content blocks are provided, render them and use as HTML
   let contentHtml: string | undefined
 

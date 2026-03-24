@@ -195,10 +195,7 @@ export interface GovUKSummaryList extends BlockDefinition, GovUKSummaryListProps
 /**
  * Renders the GOV.UK Summary List component using the official Nunjucks template.
  */
-async function summaryListRenderer(
-  block: EvaluatedBlock<GovUKSummaryList>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function summaryListRenderer(block: EvaluatedBlock<GovUKSummaryList>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     rows: block.rows,
     card: block.card,

@@ -103,7 +103,7 @@ export interface MOJBadge extends BlockDefinition, MOJBadgeProps {
 /**
  * Renders an MOJ Badge component using Nunjucks template
  */
-async function badgeRenderer(block: EvaluatedBlock<MOJBadge>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function badgeRenderer(block: EvaluatedBlock<MOJBadge>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     text: block.text,
     html: block.html,

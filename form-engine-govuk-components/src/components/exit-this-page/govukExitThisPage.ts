@@ -102,10 +102,7 @@ export interface GovUKExitThisPage extends BlockDefinition, GovUKExitThisPagePro
 /**
  * Renders the GOV.UK Exit This Page component using the official Nunjucks template.
  */
-async function exitThisPageRenderer(
-  block: EvaluatedBlock<GovUKExitThisPage>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function exitThisPageRenderer(block: EvaluatedBlock<GovUKExitThisPage>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     id: block.id,
     text: block.html ? undefined : block.text,

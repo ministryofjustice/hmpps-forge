@@ -24,6 +24,7 @@ describe('StepFactory', () => {
       const json = {
         type: StructureType.STEP,
         path: 'test-step',
+        code: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
       } satisfies StepDefinition
@@ -36,6 +37,7 @@ describe('StepFactory', () => {
       expect(result.type).toBe(ASTNodeType.STEP)
       expect(result.raw).toBe(json)
       expect(result.properties.path).toBe('test-step')
+      expect(result.properties.code).toBe('test-step')
     })
 
     it('should transform nested blocks using nodeFactory', () => {

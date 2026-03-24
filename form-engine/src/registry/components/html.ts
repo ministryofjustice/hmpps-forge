@@ -71,7 +71,7 @@ export interface HtmlBlock extends BlockDefinition, HtmlBlockProps {
  * **WARNING: Content is embedded directly without sanitization.**
  * Escape any untrusted data with `Transformer.String.EscapeHtml()`.
  */
-export const html = buildComponent<HtmlBlock>('html', async block => {
+export const html = buildComponent<HtmlBlock>('html', block => {
   const hasWrapper = block.classes || block.attributes
 
   if (hasWrapper) {

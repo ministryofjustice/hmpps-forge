@@ -10,7 +10,7 @@ import { ComponentRegistryEntry } from '@form-engine/registry/types/components.t
 export type NunjucksComponentRenderer<T extends BlockDefinition> = (
   block: EvaluatedBlock<T>,
   nunjucksEnv: nunjucks.Environment,
-) => Promise<string>
+) => string
 
 /**
  * Creates a Nunjucks component that receives its renderer at render time.
@@ -23,7 +23,7 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
  * ```typescript
  * export const myTextInput = buildNunjucksComponent<MyTextInput>(
  *   'myTextInput',
- *   async (block, nunjucksEnv) => {
+ *   (block, nunjucksEnv) => {
  *     return nunjucksEnv.render('components/text-input.njk', { block })
  *   }
  * )

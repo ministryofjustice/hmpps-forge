@@ -70,10 +70,7 @@ export interface GovUKInsetText extends BlockDefinition, GovUKInsetTextProps {
 /**
  * Renders the GOV.UK Inset Text component using the official Nunjucks template.
  */
-async function insetTextRenderer(
-  block: EvaluatedBlock<GovUKInsetText>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function insetTextRenderer(block: EvaluatedBlock<GovUKInsetText>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     text: block.html ? undefined : block.text,
     html: block.html,

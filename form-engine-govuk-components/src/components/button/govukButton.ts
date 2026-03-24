@@ -122,7 +122,7 @@ export interface GovUKLinkButton extends BlockDefinition, GovUKLinkButtonProps {
  * Shared renderer function for both button types.
  * Determines the appropriate element type and parameters based on the variant.
  */
-async function buttonRenderer(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>, nunjucksEnv: nunjucks.Environment) {
+function buttonRenderer(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>, nunjucksEnv: nunjucks.Environment) {
   let params: Record<string, any> = {
     id: block.id,
     text: block.html ? undefined : block.text,

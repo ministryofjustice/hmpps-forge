@@ -197,6 +197,8 @@ describe('StepRuntimePlanBuilder', () => {
         validationBlockIds: [staticValidatingField.id],
         renderAncestorIds: [journey.id],
         renderStepId: step.id,
+        isRenderSync: true,
+        isAnswerPrepareSync: false,
       })
     })
   })

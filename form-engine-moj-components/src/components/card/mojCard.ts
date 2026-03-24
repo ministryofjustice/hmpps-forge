@@ -96,7 +96,7 @@ export interface MOJCard extends BlockDefinition, MOJCardProps {
 /**
  * Renders an MOJ Card component using Nunjucks template
  */
-async function cardRenderer(block: EvaluatedBlock<MOJCard>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function cardRenderer(block: EvaluatedBlock<MOJCard>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     heading: typeof block.heading === 'object' ? block.heading : { text: block.heading },
     href: block.href,

@@ -132,10 +132,7 @@ function normalizeCardItem(item: MOJCardGroupItem) {
 /**
  * Renders an MOJ Card Group component using Nunjucks template
  */
-async function cardGroupRenderer(
-  block: EvaluatedBlock<MOJCardGroup>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function cardGroupRenderer(block: EvaluatedBlock<MOJCardGroup>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     items: block.items.map(normalizeCardItem),
     columns: block.columns,

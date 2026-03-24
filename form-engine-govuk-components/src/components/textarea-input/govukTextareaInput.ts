@@ -149,30 +149,27 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>(
-  'govukTextarea',
-  async (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      spellcheck: block.spellcheck,
-      rows: block.rows || '5',
-      value: block.value,
-      disabled: block.disabled,
-      label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
-      formGroup: block.formGroup,
-      classes: block.classes,
-      autocomplete: block.autocomplete,
-      attributes: block.attributes,
-    }
+export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>('govukTextarea', (block, nunjucksEnv) => {
+  const params = {
+    id: block.id ?? block.code,
+    name: block.code,
+    spellcheck: block.spellcheck,
+    rows: block.rows || '5',
+    value: block.value,
+    disabled: block.disabled,
+    label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
+    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    formGroup: block.formGroup,
+    classes: block.classes,
+    autocomplete: block.autocomplete,
+    attributes: block.attributes,
+  }
 
-    return nunjucksEnv.render('govuk/components/textarea/template.njk', {
-      params,
-    })
-  },
-)
+  return nunjucksEnv.render('govuk/components/textarea/template.njk', {
+    params,
+  })
+})
 
 /**
  * GOV.UK Textarea Component

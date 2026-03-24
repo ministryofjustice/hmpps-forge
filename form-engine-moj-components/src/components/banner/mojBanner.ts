@@ -92,7 +92,7 @@ export interface MOJBanner extends BlockDefinition, MOJBannerProps {
 /**
  * Renders an MOJ Banner component using Nunjucks template
  */
-async function bannerRenderer(block: EvaluatedBlock<MOJBanner>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function bannerRenderer(block: EvaluatedBlock<MOJBanner>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     type: block.bannerType,
     text: block.text,

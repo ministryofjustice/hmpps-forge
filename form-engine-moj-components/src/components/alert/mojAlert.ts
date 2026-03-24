@@ -156,7 +156,7 @@ export interface MOJAlert extends BlockDefinition, MOJAlertProps {
 /**
  * Renders an MOJ Alert component using Nunjucks template
  */
-async function alertRenderer(block: EvaluatedBlock<MOJAlert>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function alertRenderer(block: EvaluatedBlock<MOJAlert>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     variant: block.alertVariant,
     title: block.title,

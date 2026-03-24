@@ -343,7 +343,6 @@ export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked
   return {
     invoke: jest.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
     invokeSync: jest.fn().mockImplementation(options.invokeSyncImpl ?? defaultSyncImpl),
-    isSync: jest.fn().mockReturnValue(false),
   }
 }
 

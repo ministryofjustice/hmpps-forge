@@ -1,4 +1,3 @@
-import { NodeId } from '@form-engine/core/types/engine.type'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
@@ -179,26 +178,6 @@ function evaluatePropertyObjectSync(
   })
 
   return result
-}
-
-/**
- * Synchronous version of evaluateUntilFirstMatch
- */
-export function evaluateUntilFirstMatchSync(
-  nodeIds: NodeId[],
-  context: ThunkEvaluationContext,
-  invoker: ThunkInvocationAdapter,
-  isMatch: (value: unknown) => boolean = value => value !== undefined,
-): unknown {
-  for (const nodeId of nodeIds) {
-    const result = invoker.invokeSync(nodeId, context)
-
-    if (!result.error && isMatch(result.value)) {
-      return result.value
-    }
-  }
-
-  return undefined
 }
 
 /**

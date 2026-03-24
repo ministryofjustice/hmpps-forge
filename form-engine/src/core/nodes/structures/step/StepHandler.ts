@@ -19,7 +19,7 @@ import { evaluatePropertyValueSync } from '@form-engine/core/utils/thunkEvaluato
  * - All properties except transitions (handled by FormStepController)
  *
  * For OTHER STEPS:
- * - Only navigation/validation properties: path, title, description, isEntryPoint, blocks, metadata
+ * - Only navigation/validation properties: path, code, title, description, isEntryPoint, blocks, metadata
  * - Rendering properties are skipped
  *
  * This runtime filtering replaces compile-time filtering in findRelevantNodes,
@@ -39,7 +39,15 @@ export default class StepHandler implements ThunkHandler {
   private static readonly TRANSITION_PROPS_SET = new Set(StepHandler.TRANSITION_PROPS)
 
   // Properties needed for navigation/validation on non-current steps
-  private static readonly NAVIGATION_PROPS = ['path', 'title', 'isEntryPoint', 'description', 'blocks', 'metadata']
+  private static readonly NAVIGATION_PROPS = [
+    'path',
+    'code',
+    'title',
+    'isEntryPoint',
+    'description',
+    'blocks',
+    'metadata',
+  ]
 
   private static readonly NAVIGATION_PROPS_SET = new Set(StepHandler.NAVIGATION_PROPS)
 

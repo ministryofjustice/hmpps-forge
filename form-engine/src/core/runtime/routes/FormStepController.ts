@@ -5,13 +5,14 @@ import ThunkEvaluator from '@form-engine/core/compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
-import { JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
+import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import { Evaluated, JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import TransitionExecutor from '@form-engine/core/runtime/executors/TransitionExecutor'
 import ContextPreparer from '@form-engine/core/runtime/executors/ContextPreparer'
 import ValidationExecutor from '@form-engine/core/runtime/executors/ValidationExecutor'
 import AnswerPreparer from '@form-engine/core/runtime/executors/AnswerPreparer'
-import MetadataExecutor from '@form-engine/core/runtime/executors/MetadataExecutor'
+import MetadataExecutor, { MetadataExecutionResult } from '@form-engine/core/runtime/executors/MetadataExecutor'
 import RenderExecutor from '@form-engine/core/runtime/executors/RenderExecutor'
 import { StepController } from './types'
 
@@ -67,9 +68,17 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     // TODO: Add 'reachability' check
 
-    await this.answerPreparer.prepare(plan, evaluator, context)
+    if (plan.isAnswerPrepareSync) {
+      this.answerPreparer.prepareSync(plan, evaluator, context)
+    } else {
+      await this.answerPreparer.prepare(plan, evaluator, context)
+    }
 
-    return this.render(res, req, evaluator, context)
+    if (plan.isRenderSync) {
+      return this.renderSync(res, req, evaluator, context)
+    }
+
+    return await this.render(res, req, evaluator, context)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
@@ -88,7 +97,12 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     // TODO: Add 'reachability' check
 
-    await this.answerPreparer.prepare(plan, evaluator, context)
+    if (plan.isAnswerPrepareSync) {
+      this.answerPreparer.prepareSync(plan, evaluator, context)
+    } else {
+      await this.answerPreparer.prepare(plan, evaluator, context)
+    }
+
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
     await this.evaluateValidationIfNeeded(evaluator, context)
 
@@ -102,11 +116,13 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       return this.redirect(res, req, submitResult.redirect)
     }
 
-    if (submitResult.validated) {
-      return this.render(res, req, evaluator, context, { showValidationFailures: true })
+    const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
+
+    if (plan.isRenderSync) {
+      return this.renderSync(res, req, evaluator, context, renderOptions)
     }
 
-    return this.render(res, req, evaluator, context)
+    return await this.render(res, req, evaluator, context, renderOptions)
   }
 
   private prepareRequest(req: TRequest, res: TResponse) {
@@ -142,6 +158,31 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       this.renderExecutor.execute(plan, evaluator, context),
     ])
 
+    this.buildAndRender(res, req, metadata, blocks, context, options)
+  }
+
+  private renderSync(
+    res: TResponse,
+    req: TRequest,
+    evaluator: ThunkEvaluator,
+    context: ThunkEvaluationContext,
+    options: { showValidationFailures?: boolean } = {},
+  ): void {
+    const plan = this.compiledForm.runtimePlan
+    const metadata = this.metadataExecutor.executeSync(plan, evaluator, context)
+    const blocks = this.renderExecutor.executeSync(plan, evaluator, context)
+
+    this.buildAndRender(res, req, metadata, blocks, context, options)
+  }
+
+  private buildAndRender(
+    res: TResponse,
+    req: TRequest,
+    metadata: MetadataExecutionResult,
+    blocks: Evaluated<BlockASTNode>[],
+    context: ThunkEvaluationContext,
+    options: { showValidationFailures?: boolean } = {},
+  ): void {
     const renderContext = RenderContextFactory.build(
       {
         step: metadata.step,
@@ -158,7 +199,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       },
     )
 
-    return this.dependencies.frameworkAdapter.render(renderContext, req, res)
+    this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   private getStepValidationFailures(context: ThunkEvaluationContext) {

@@ -53,10 +53,7 @@ export interface GovUKWarningText extends BlockDefinition, GovUKWarningTextProps
 /**
  * Renders the GOV.UK Warning Text component using the official Nunjucks template.
  */
-async function warningTextRenderer(
-  block: EvaluatedBlock<GovUKWarningText>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function warningTextRenderer(block: EvaluatedBlock<GovUKWarningText>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     text: block.html ? undefined : block.text,
     html: block.html,

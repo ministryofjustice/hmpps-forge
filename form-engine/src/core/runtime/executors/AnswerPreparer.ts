@@ -22,6 +22,19 @@ export default class AnswerPreparer {
     await this.evaluateAnswerPseudoNodes(invoker, context)
   }
 
+  prepareSync(runtimePlan: StepRuntimePlan, invoker: ThunkInvocationAdapter, context: ThunkEvaluationContext): void {
+    for (const iteratorRootId of runtimePlan.fieldIteratorRootIds) {
+      invoker.invokeSync(iteratorRootId, context)
+    }
+
+    const localAnswerNodes = context.nodeRegistry.findByType(PseudoNodeType.ANSWER_LOCAL)
+    const remoteAnswerNodes = context.nodeRegistry.findByType(PseudoNodeType.ANSWER_REMOTE)
+
+    for (const node of [...localAnswerNodes, ...remoteAnswerNodes]) {
+      invoker.invokeSync(node.id, context)
+    }
+  }
+
   private async expandFieldIterators(
     fieldIteratorRootIds: StepRuntimePlan['fieldIteratorRootIds'],
     invoker: ThunkInvocationAdapter,

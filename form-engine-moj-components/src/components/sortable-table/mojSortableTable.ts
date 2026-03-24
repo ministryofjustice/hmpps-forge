@@ -128,10 +128,7 @@ export interface MOJSortableTable extends BlockDefinition, MOJSortableTableProps
  * Renders the MOJ Sortable Table component using the GOV.UK Table template
  * with the moj-sortable-table data-module attribute.
  */
-async function sortableTableRenderer(
-  block: EvaluatedBlock<MOJSortableTable>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function sortableTableRenderer(block: EvaluatedBlock<MOJSortableTable>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     rows: block.rows,
     head: block.head,

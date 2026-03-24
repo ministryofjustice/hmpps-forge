@@ -149,10 +149,7 @@ export interface MOJSideNavigation extends BlockDefinition, MOJSideNavigationPro
 /**
  * Renders an MOJ Side Navigation component using Nunjucks template
  */
-async function sideNavigationRenderer(
-  block: EvaluatedBlock<MOJSideNavigation>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function sideNavigationRenderer(block: EvaluatedBlock<MOJSideNavigation>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     label: block.label,
     items: block.items,

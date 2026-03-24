@@ -126,7 +126,7 @@ export interface GovUKTable extends BlockDefinition, GovUKTableProps {
 /**
  * Renders the GOV.UK Table component using the official Nunjucks template.
  */
-async function tableRenderer(block: EvaluatedBlock<GovUKTable>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function tableRenderer(block: EvaluatedBlock<GovUKTable>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     rows: block.rows,
     head: block.head,

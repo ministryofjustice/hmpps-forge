@@ -332,7 +332,7 @@ function buildParams(
  */
 export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
   'govukDateInputFull',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 
@@ -359,7 +359,7 @@ export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
  */
 export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYearMonth>(
   'govukDateInputYearMonth',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 
@@ -385,7 +385,7 @@ export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYear
  */
 export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonthDay>(
   'govukDateInputMonthDay',
-  async (block, nunjucksEnv) => {
+  (block, nunjucksEnv) => {
     const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
     const errorDetails = block.errors?.[0]?.details
 

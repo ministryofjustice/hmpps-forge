@@ -110,7 +110,7 @@ export interface GovUKTabs extends BlockDefinition, GovUKTabsProps {
 /**
  * Renders the GOV.UK Tabs component using the official Nunjucks template.
  */
-async function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.Environment): string {
   // Process items, handling child blocks in panel content
   const processedItems = block.items.map(item => {
     let panelHtml: string | undefined

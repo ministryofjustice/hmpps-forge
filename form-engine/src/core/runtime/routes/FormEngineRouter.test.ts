@@ -151,6 +151,8 @@ describe('FormEngineRouter', () => {
           validationBlockIds: [],
           renderAncestorIds: [],
           renderStepId: compiled.currentStepId,
+          isRenderSync: false,
+          isAnswerPrepareSync: false,
         },
       }
     })

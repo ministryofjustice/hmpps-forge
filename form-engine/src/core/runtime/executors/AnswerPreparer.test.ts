@@ -16,6 +16,8 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
     validationBlockIds: [],
     renderAncestorIds: [],
     renderStepId: 'compile_ast:1',
+    isRenderSync: false,
+    isAnswerPrepareSync: false,
     ...options,
   }
 }

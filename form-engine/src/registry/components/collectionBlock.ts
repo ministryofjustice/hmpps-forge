@@ -113,7 +113,7 @@ const extractItemValue = (item: unknown): string => {
  * Cast to any because the generic EvaluatedBlock<CollectionBlock> type
  * cannot express that `collection` transforms from an expression to RenderedBlock[].
  */
-const renderCollectionBlock = async (block: EvaluatedCollectionBlock): Promise<string> => {
+const renderCollectionBlock = (block: EvaluatedCollectionBlock): string => {
   let content = ''
 
   const hasItems = block.collection && block.collection.length > 0

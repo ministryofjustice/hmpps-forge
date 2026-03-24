@@ -400,6 +400,11 @@ export class StepBuilder {
     return this
   }
 
+  withCode(code: string): this {
+    this.properties.code = code
+    return this
+  }
+
   withBlock(variant: string, blockType: BlockType, configFn?: (builder: BlockBuilder) => BlockBuilder): this {
     const blockBuilder = new BlockBuilder(variant, blockType)
     const block = configFn ? configFn(blockBuilder).build() : blockBuilder.build()

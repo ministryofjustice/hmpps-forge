@@ -5,7 +5,7 @@ import ThunkEvaluationContext, {
   StepValidationFailure,
 } from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { IterateASTNode, ValidationASTNode } from '@form-engine/core/types/expressions.type'
-import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
+import { FieldBlockASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
 import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
@@ -97,7 +97,45 @@ export default class ValidationExecutor {
         blockById.set(block.id, block)
       })
 
-    return [...blockById.values()]
+    return this.sortByDocumentOrder([...blockById.values()], runtimePlan, context)
+  }
+
+  private sortByDocumentOrder(
+    fieldBlocks: FieldBlockASTNode[],
+    runtimePlan: StepRuntimePlan,
+    context: ThunkEvaluationContext,
+  ): FieldBlockASTNode[] {
+    const stepNode = context.nodeRegistry.get(runtimePlan.stepId) as StepASTNode | undefined
+    const topLevelBlocks = stepNode?.properties.blocks
+
+    if (!topLevelBlocks?.length) {
+      return fieldBlocks
+    }
+
+    const positionIndex = new Map<NodeId, number>()
+
+    topLevelBlocks.forEach((block, index) => {
+      positionIndex.set(block.id, index)
+    })
+
+    const fieldPositions = fieldBlocks.map((field, originalIndex) => {
+      const ancestors = getAncestorChain(field.id, context.metadataRegistry)
+      const stepIndex = ancestors.indexOf(runtimePlan.stepId)
+      const topLevelId = stepIndex >= 0 && stepIndex < ancestors.length - 1 ? ancestors[stepIndex + 1] : undefined
+      const position = topLevelId !== undefined ? (positionIndex.get(topLevelId) ?? -1) : -1
+
+      return { field, position, originalIndex }
+    })
+
+    fieldPositions.sort((a, b) => {
+      if (a.position !== b.position) {
+        return a.position - b.position
+      }
+
+      return a.originalIndex - b.originalIndex
+    })
+
+    return fieldPositions.map(({ field }) => field)
   }
 
   private async collectValidationFailures(
@@ -151,9 +189,7 @@ export default class ValidationExecutor {
       return true
     }
 
-    const dependentValue = await evaluateOperand(block.properties.dependent, context, invoker)
-
-    return Boolean(dependentValue)
+    return Boolean(await evaluateOperand(block.properties.dependent, context, invoker))
   }
 
   private async evaluateBlockCode(

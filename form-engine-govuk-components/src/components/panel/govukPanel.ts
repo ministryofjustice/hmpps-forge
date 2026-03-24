@@ -83,7 +83,7 @@ export interface GovUKPanel extends BlockDefinition, GovUKPanelProps {
 /**
  * Renders the GOV.UK Panel component using the official Nunjucks template.
  */
-async function panelRenderer(block: EvaluatedBlock<GovUKPanel>, nunjucksEnv: nunjucks.Environment): Promise<string> {
+function panelRenderer(block: EvaluatedBlock<GovUKPanel>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     titleText: block.titleHtml ? undefined : block.titleText,
     titleHtml: block.titleHtml,

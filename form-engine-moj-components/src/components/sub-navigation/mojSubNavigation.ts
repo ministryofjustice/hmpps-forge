@@ -79,10 +79,7 @@ export interface MOJSubNavigation extends BlockDefinition, MOJSubNavigationProps
 /**
  * Renders an MOJ Sub-Navigation component using Nunjucks template
  */
-async function subNavigationRenderer(
-  block: EvaluatedBlock<MOJSubNavigation>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function subNavigationRenderer(block: EvaluatedBlock<MOJSubNavigation>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     label: block.label,
     items: block.items,

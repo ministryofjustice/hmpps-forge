@@ -70,10 +70,7 @@ export interface GovUKBackLink extends BlockDefinition, GovUKBackLinkProps {
 /**
  * Renders the GOV.UK Back Link component using the official Nunjucks template.
  */
-async function backLinkRenderer(
-  block: EvaluatedBlock<GovUKBackLink>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function backLinkRenderer(block: EvaluatedBlock<GovUKBackLink>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
     href: block.href,
     text: block.html ? undefined : block.text,

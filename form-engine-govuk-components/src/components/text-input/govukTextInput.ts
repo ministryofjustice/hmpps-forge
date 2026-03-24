@@ -228,7 +228,7 @@ export interface GovUKTextInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextInput', async (block, nunjucksEnv) => {
+export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextInput', (block, nunjucksEnv) => {
   const params = {
     id: block.id ?? block.code,
     name: block.code,

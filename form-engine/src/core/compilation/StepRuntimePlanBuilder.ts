@@ -1,8 +1,11 @@
 import { CompilationDependencies } from '@form-engine/core/compilation/CompilationDependencies'
+import ThunkHandlerRegistry from '@form-engine/core/compilation/registries/ThunkHandlerRegistry'
 import ValidationTemplateAnalyzer from '@form-engine/core/compilation/analyzers/ValidationTemplateAnalyzer'
 import { NodeId } from '@form-engine/core/types/engine.type'
 import { IterateASTNode } from '@form-engine/core/types/expressions.type'
-import { FieldBlockASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
+import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
+import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
 import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
 
@@ -16,6 +19,8 @@ export interface StepRuntimePlan {
   validationBlockIds: NodeId[]
   renderAncestorIds: NodeId[]
   renderStepId: NodeId
+  isRenderSync: boolean
+  isAnswerPrepareSync: boolean
 }
 
 export default class StepRuntimePlanBuilder {
@@ -27,6 +32,7 @@ export default class StepRuntimePlanBuilder {
     const fieldIteratorRootIds = this.findIteratorRootIds(fieldIterateNodeIds, compilationDependencies)
     const validationIterateNodeIds = this.findValidationIterateNodeIds(fieldIterateNodeIds, compilationDependencies)
     const validationBlockIds = this.findValidationBlockIds(compilationDependencies)
+    const renderAncestorIds = accessAncestorIds.slice(0, -1)
 
     return {
       stepId: stepNode.id,
@@ -36,8 +42,10 @@ export default class StepRuntimePlanBuilder {
       fieldIteratorRootIds,
       validationIterateNodeIds,
       validationBlockIds,
-      renderAncestorIds: accessAncestorIds.slice(0, -1),
+      renderAncestorIds,
       renderStepId: stepNode.id,
+      isRenderSync: this.computeIsRenderSync(stepNode, renderAncestorIds, compilationDependencies),
+      isAnswerPrepareSync: this.computeIsAnswerPrepareSync(fieldIteratorRootIds, compilationDependencies),
     }
   }
 
@@ -107,5 +115,98 @@ export default class StepRuntimePlanBuilder {
     }
 
     return topmostId
+  }
+
+  private computeIsAnswerPrepareSync(
+    fieldIteratorRootIds: NodeId[],
+    compilationDependencies: CompilationDependencies,
+  ): boolean {
+    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
+
+    for (const rootId of fieldIteratorRootIds) {
+      const handler = handlerRegistry.get(rootId)
+
+      if (!handler || handler.isAsync) {
+        return false
+      }
+    }
+
+    const answerLocalNodes = compilationDependencies.nodeRegistry.findByType(PseudoNodeType.ANSWER_LOCAL)
+    const answerRemoteNodes = compilationDependencies.nodeRegistry.findByType(PseudoNodeType.ANSWER_REMOTE)
+
+    for (const node of [...answerLocalNodes, ...answerRemoteNodes]) {
+      const handler = handlerRegistry.get(node.id)
+
+      if (!handler || handler.isAsync) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private computeIsRenderSync(
+    stepNode: StepASTNode,
+    renderAncestorIds: NodeId[],
+    compilationDependencies: CompilationDependencies,
+  ): boolean {
+    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
+    const stepExcludedProps = new Set(['onAccess', 'onAction', 'onSubmission', 'blocks'])
+    const ancestorExcludedProps = new Set(['onAccess', 'children', 'steps'])
+
+    const blocks = stepNode.properties.blocks ?? []
+
+    if (!this.isValueTreeSync(blocks, handlerRegistry)) {
+      return false
+    }
+
+    if (!this.areFilteredPropertiesSync(stepNode.properties, stepExcludedProps, handlerRegistry)) {
+      return false
+    }
+
+    for (const ancestorId of renderAncestorIds) {
+      const ancestorNode = compilationDependencies.nodeRegistry.get(ancestorId) as JourneyASTNode | undefined
+
+      if (
+        ancestorNode &&
+        !this.areFilteredPropertiesSync(ancestorNode.properties, ancestorExcludedProps, handlerRegistry)
+      ) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private areFilteredPropertiesSync(
+    properties: Record<string, unknown>,
+    excludedKeys: Set<string>,
+    handlerRegistry: ThunkHandlerRegistry,
+  ): boolean {
+    return Object.entries(properties)
+      .filter(([key]) => !excludedKeys.has(key))
+      .every(([, value]) => this.isValueTreeSync(value, handlerRegistry))
+  }
+
+  private isValueTreeSync(value: unknown, handlerRegistry: ThunkHandlerRegistry): boolean {
+    if (value === null || value === undefined) {
+      return true
+    }
+
+    if (isASTNode(value)) {
+      const handler = handlerRegistry.get(value.id)
+
+      return handler !== undefined && !handler.isAsync
+    }
+
+    if (Array.isArray(value)) {
+      return value.every(element => this.isValueTreeSync(element, handlerRegistry))
+    }
+
+    if (typeof value === 'object') {
+      return Object.values(value as Record<string, unknown>).every(v => this.isValueTreeSync(v, handlerRegistry))
+    }
+
+    return true
   }
 }

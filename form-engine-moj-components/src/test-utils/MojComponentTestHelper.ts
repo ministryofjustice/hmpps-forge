@@ -29,8 +29,8 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
    * MOJ templates expect params wrapped in a { params: ... } object.
    * This method extracts just the params for easy assertion.
    */
-  async getParams(props: Partial<EvaluatedBlock<T>> = {}): Promise<Record<string, any>> {
-    const { context } = await this.executeComponent(props)
+  getParams(props: Partial<EvaluatedBlock<T>> = {}): Record<string, any> {
+    const { context } = this.executeComponent(props)
 
     return (context as { params: Record<string, any> }).params
   }
@@ -38,13 +38,13 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
   /**
    * Executes the component and returns the template and context passed to nunjucks
    */
-  async executeComponent(props: Partial<EvaluatedBlock<T>> = {}) {
+  executeComponent(props: Partial<EvaluatedBlock<T>> = {}) {
     const block: EvaluatedBlock<T> = {
       type: StructureType.BLOCK,
       ...props,
     } as EvaluatedBlock<T>
 
-    await this.renderFn(block, this.mockNunjucksEnv)
+    this.renderFn(block, this.mockNunjucksEnv)
 
     const lastCallIndex = this.mockNunjucksEnv.render.mock.calls.length - 1
     const [template, context] = this.mockNunjucksEnv.render.mock.calls[lastCallIndex]
@@ -55,7 +55,7 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
   /**
    * Renders the component with real nunjucks for DOM testing
    */
-  async renderWithNunjucks(props: Partial<EvaluatedBlock<T>> = {}) {
+  renderWithNunjucks(props: Partial<EvaluatedBlock<T>> = {}) {
     const nunjucksReal = jest.requireActual('nunjucks') as typeof nunjucks
     const realEnv = nunjucksReal.configure([
       'node_modules/govuk-frontend/dist/',

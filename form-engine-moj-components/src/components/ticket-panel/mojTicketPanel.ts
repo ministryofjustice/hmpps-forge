@@ -115,10 +115,7 @@ export interface MOJTicketPanel extends BlockDefinition, MOJTicketPanelProps {
 /**
  * Renders an MOJ Ticket Panel component using Nunjucks template
  */
-async function ticketPanelRenderer(
-  block: EvaluatedBlock<MOJTicketPanel>,
-  nunjucksEnv: nunjucks.Environment,
-): Promise<string> {
+function ticketPanelRenderer(block: EvaluatedBlock<MOJTicketPanel>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     items: block.items,
     classes: block.classes,

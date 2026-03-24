@@ -252,6 +252,9 @@ export interface StepDefinition {
   /** URL path segment for the step */
   path: string
 
+  /** Optional stable identifier for persistence and effect logic */
+  code?: string
+
   /** Array of blocks to render in this step */
   blocks?: BlockDefinition[]
 
