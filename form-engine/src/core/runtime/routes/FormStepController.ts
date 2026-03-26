@@ -4,8 +4,8 @@ import { CompiledForm } from '@form-engine/core/compilation/FormCompilationFacto
 import ThunkEvaluator from '@form-engine/core/compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/types'
 import ThunkEvaluationContext from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
-import { SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { Evaluated, JourneyMetadata } from '@form-engine/core/runtime/rendering/types'
 import RenderContextFactory from '@form-engine/core/runtime/rendering/RenderContextFactory'
 import TransitionExecutor from '@form-engine/core/runtime/executors/TransitionExecutor'
@@ -104,7 +104,14 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
-    await this.evaluateValidationIfNeeded(evaluator, context)
+
+    if (plan.hasValidatingSubmitTransition) {
+      if (plan.isValidationSync) {
+        this.evaluateValidationSync(evaluator, context)
+      } else {
+        await this.evaluateValidation(evaluator, context)
+      }
+    }
 
     const submitResult = await this.transitionExecutor.executeSubmitTransitions(plan, evaluator, context)
 
@@ -183,6 +190,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     context: ThunkEvaluationContext,
     options: { showValidationFailures?: boolean } = {},
   ): void {
+    const { astNodeTree } = context
+
     const renderContext = RenderContextFactory.build(
       {
         step: metadata.step,
@@ -191,6 +200,13 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
         answers: context.global.answers,
         data: context.global.data,
         validationFailures: this.getStepValidationFailures(context),
+        hasNestedBlocks: blockId => {
+          if (astNodeTree.getNodeType(blockId) === undefined) {
+            return true
+          }
+
+          return astNodeTree.hasDescendantOfType(blockId, ASTNodeType.BLOCK)
+        },
       },
       {
         navigationMetadata: this.navigationMetadata,
@@ -212,14 +228,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     return []
   }
 
-  private async evaluateValidationIfNeeded(
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): Promise<void> {
-    if (!this.hasValidatingSubmitTransition()) {
-      return
-    }
-
+  private async evaluateValidation(invoker: ThunkInvocationAdapter, context: ThunkEvaluationContext): Promise<void> {
     const validation = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context)
 
     context.global.validation = {
@@ -230,13 +239,14 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     }
   }
 
-  private hasValidatingSubmitTransition(): boolean {
-    return this.compiledForm.runtimePlan.submitTransitionIds.some(transitionId => {
-      const transition = this.compiledForm.artefact.nodeRegistry.get(transitionId) as
-        | SubmitTransitionASTNode
-        | undefined
+  private evaluateValidationSync(invoker: ThunkInvocationAdapter, context: ThunkEvaluationContext): void {
+    const validation = this.validationExecutor.executeSync(this.compiledForm.runtimePlan, invoker, context)
 
-      return transition?.properties.validate === true
-    })
+    context.global.validation = {
+      stepId: this.compiledForm.runtimePlan.stepId,
+      validated: true,
+      isValid: validation.isValid,
+      failures: validation.failures,
+    }
   }
 }

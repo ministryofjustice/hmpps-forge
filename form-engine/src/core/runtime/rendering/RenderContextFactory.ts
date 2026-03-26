@@ -14,6 +14,7 @@ import {
   JourneyMetadata,
   StepMetadata,
   Evaluated,
+  HasNestedBlocksLookup,
 } from './types'
 
 export interface RenderContextOptions {
@@ -34,6 +35,7 @@ export interface RenderContextInput {
   answers: Record<string, unknown>
   data: Record<string, unknown>
   validationFailures?: StepValidationFailure[]
+  hasNestedBlocks?: HasNestedBlocksLookup
 }
 
 /** Builds RenderContext from explicit evaluated render inputs. */
@@ -53,6 +55,7 @@ export default class RenderContextFactory {
       validationErrors: validationFailures.map(stripBlockId),
       answers: input.answers,
       data: input.data,
+      hasNestedBlocks: input.hasNestedBlocks,
     }
   }
 }

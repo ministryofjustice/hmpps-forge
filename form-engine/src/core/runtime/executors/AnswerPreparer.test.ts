@@ -18,6 +18,8 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
     renderStepId: 'compile_ast:1',
     isRenderSync: false,
     isAnswerPrepareSync: false,
+    isValidationSync: false,
+    hasValidatingSubmitTransition: false,
     ...options,
   }
 }

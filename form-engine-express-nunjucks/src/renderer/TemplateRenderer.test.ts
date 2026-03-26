@@ -12,10 +12,13 @@ describe('TemplateRenderer', () => {
   let renderer: TemplateRenderer
   let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
   let mockComponentRegistry: jest.Mocked<ComponentRegistry>
+  let mockTemplate: { render: jest.Mock }
 
   beforeEach(() => {
+    mockTemplate = { render: jest.fn().mockReturnValue('<html>rendered</html>') }
+
     mockNunjucksEnv = {
-      render: jest.fn().mockReturnValue('<html>rendered</html>'),
+      getTemplate: jest.fn().mockReturnValue(mockTemplate),
     } as unknown as jest.Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
@@ -71,7 +74,7 @@ describe('TemplateRenderer', () => {
 
       // Assert
       expect(result).toBe('<html>rendered</html>')
-      expect(mockNunjucksEnv.render).toHaveBeenCalled()
+      expect(mockTemplate.render).toHaveBeenCalled()
     })
 
     it('should pass rendered blocks to template context', () => {
@@ -89,7 +92,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.blocks).toEqual(['<input type="text" />'])
     })
 
@@ -104,7 +107,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.step).toEqual({ path: '/step', title: 'Test Step' })
       expect(templateContext.ancestors).toEqual([{ code: 'test-journey', path: '/journey', title: 'Test Journey' }])
       expect(templateContext.navigation).toEqual([])
@@ -121,7 +124,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context, locals)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.csrfToken).toBe('abc123')
       expect(templateContext.applicationName).toBe('My App')
     })
@@ -147,13 +150,13 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.blocks).toHaveLength(1)
     })
 
     it('should throw error when Nunjucks render fails', () => {
       // Arrange
-      mockNunjucksEnv.render.mockImplementation(() => {
+      mockTemplate.render.mockImplementation(() => {
         throw new Error('Template syntax error')
       })
 
@@ -175,7 +178,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-step.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-step.njk')
     })
 
     it('should use immediate parent template when step has no template', () => {
@@ -192,7 +195,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('parent-template.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('parent-template.njk')
     })
 
     it('should fall back to ancestor template when immediate parent has no template', () => {
@@ -209,7 +212,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('root-template.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('root-template.njk')
     })
 
     it('should use default template when no template specified anywhere', () => {
@@ -223,7 +226,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
     })
 
     it('should append .njk extension when not present', () => {
@@ -236,7 +239,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-template.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
     })
 
     it('should not double-append .njk extension', () => {
@@ -249,7 +252,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('custom-template.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
     })
   })
 
@@ -267,7 +270,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.theme).toBe('dark')
       expect(templateContext.brand).toBe('default')
     })
@@ -283,7 +286,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.theme).toBe('custom')
       expect(templateContext.stepVar).toBe('value')
     })
@@ -301,7 +304,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.parentVar).toBe('value')
     })
 
@@ -315,7 +318,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.step).toBeDefined()
     })
   })
@@ -370,7 +373,7 @@ describe('TemplateRenderer', () => {
           name: 'email',
           errors: [],
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
   })
@@ -410,7 +413,7 @@ describe('TemplateRenderer', () => {
             { message: 'Email format is invalid', details: undefined },
           ],
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
 
@@ -441,7 +444,7 @@ describe('TemplateRenderer', () => {
         expect.objectContaining({
           errors: [],
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
 
@@ -470,7 +473,7 @@ describe('TemplateRenderer', () => {
         expect.objectContaining({
           errors: [],
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
   })
@@ -670,7 +673,7 @@ describe('TemplateRenderer', () => {
           hint: null,
           description: undefined,
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
 
@@ -704,7 +707,7 @@ describe('TemplateRenderer', () => {
           maxLength: 100,
           required: true,
         }),
-        mockNunjucksEnv,
+        expect.anything(),
       )
     })
   })
@@ -718,7 +721,7 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      const templateContext = mockNunjucksEnv.render.mock.calls[0][1] as TemplateContext
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.blocks).toEqual([])
     })
 
@@ -730,12 +733,12 @@ describe('TemplateRenderer', () => {
       renderer.render(context)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith('form-step.njk', expect.any(Object))
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
     })
 
     it('should return empty string when Nunjucks returns empty string', () => {
       // Arrange
-      ;(mockNunjucksEnv.render as jest.Mock).mockReturnValue('')
+      mockTemplate.render.mockReturnValue('')
 
       const context = createRenderContext()
 

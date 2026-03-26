@@ -6,6 +6,7 @@ import { NodeFactory } from '@form-engine/core/nodes/NodeFactory'
 import { FieldBlockASTNode } from '@form-engine/core/types/structures.type'
 import { ExpressionType } from '@form-engine/form/types/enums'
 import { ReferenceExpr } from '@form-engine/form/types/expressions.type'
+import { ASTNodeType } from '@form-engine/core/types/enums'
 import { isASTNode, isTemplateNode } from '@form-engine/core/typeguards/nodes'
 import { isFieldBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { isReferenceExprNode } from '@form-engine/core/typeguards/expression-nodes'
@@ -60,6 +61,10 @@ export default class NodeRegistrationWalker {
     }
 
     if (isTemplateNode(value)) {
+      if (parentNodeId !== undefined && propertyKey !== undefined) {
+        this.scanTemplateForBlockTypes(value, parentNodeId, propertyKey)
+      }
+
       return
     }
 
@@ -93,7 +98,7 @@ export default class NodeRegistrationWalker {
 
     // 4. Register (replaces RegistrationTraverser)
     this.nodeRegistry.register(node.id, node)
-    this.astNodeTree.addNode(node.id, parentNodeId)
+    this.astNodeTree.addNode(node.id, parentNodeId, propertyKey, node.type)
 
     // 5. Set metadata (replaces MetadataTraverser)
     if (parentNodeId) {
@@ -191,5 +196,45 @@ export default class NodeRegistrationWalker {
     }
 
     Object.values(value as Record<string, unknown>).forEach(v => this.assignIdsRecursive(v))
+  }
+
+  /** Scan a template node for block-type descendants and mark the parent's property edge */
+  private scanTemplateForBlockTypes(
+    value: { originalType: string; properties?: Record<string, unknown> },
+    parentNodeId: NodeId,
+    propertyKey: string,
+  ): void {
+    if (value.originalType === ASTNodeType.BLOCK) {
+      this.astNodeTree.markPropertyContainsType(parentNodeId, propertyKey, ASTNodeType.BLOCK)
+
+      return
+    }
+
+    if (value.properties) {
+      Object.values(value.properties).forEach(propValue => {
+        this.scanTemplateValueForBlocks(propValue, parentNodeId, propertyKey)
+      })
+    }
+  }
+
+  /** Recursively scan template values for block-type template nodes */
+  private scanTemplateValueForBlocks(value: unknown, parentNodeId: NodeId, propertyKey: string): void {
+    if (value === null || value === undefined || typeof value !== 'object') {
+      return
+    }
+
+    if (isTemplateNode(value)) {
+      this.scanTemplateForBlockTypes(value, parentNodeId, propertyKey)
+
+      return
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(item => this.scanTemplateValueForBlocks(item, parentNodeId, propertyKey))
+
+      return
+    }
+
+    Object.values(value).forEach(v => this.scanTemplateValueForBlocks(v, parentNodeId, propertyKey))
   }
 }

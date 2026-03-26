@@ -19,6 +19,20 @@ export interface FormEngineOptions {
   /** Enable debug logging for form compilation and evaluation. Default: false */
   debug?: boolean
 
+  /**
+   * Defer per-step compilation (thunk handlers, linked closures, runtime plans)
+   * until the step is first accessed.
+   *
+   * When `true` (default), each step compiles on first request — faster startup,
+   * but the first user to hit a step pays the compilation cost.
+   *
+   * When `false`, all steps compile at form registration time — slower startup,
+   * but zero compilation overhead on any request.
+   *
+   * @default true
+   */
+  lazyStepCompilation?: boolean
+
   /** Logger instance for form engine output */
   logger?: Logger | Console
 
@@ -98,6 +112,7 @@ export default class FormEngine {
       disableBuiltInFunctions: false,
       disableBuiltInComponents: false,
       debug: false,
+      lazyStepCompilation: true,
       logger: console,
       ...constructorOptions,
     }
@@ -150,6 +165,10 @@ export default class FormEngine {
       const instance = FormInstance.createFromConfiguration(formConfiguration, this.dependencies)
 
       const routesBefore = this.formEngineRouter.getRegisteredRoutes().length
+
+      if (!this.options.lazyStepCompilation) {
+        instance.compileAllSteps()
+      }
 
       this.formEngineRouter.mountForm(instance)
 

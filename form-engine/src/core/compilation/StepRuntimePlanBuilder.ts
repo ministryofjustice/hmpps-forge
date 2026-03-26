@@ -2,7 +2,7 @@ import { CompilationDependencies } from '@form-engine/core/compilation/Compilati
 import ThunkHandlerRegistry from '@form-engine/core/compilation/registries/ThunkHandlerRegistry'
 import ValidationTemplateAnalyzer from '@form-engine/core/compilation/analyzers/ValidationTemplateAnalyzer'
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { IterateASTNode } from '@form-engine/core/types/expressions.type'
+import { IterateASTNode, SubmitTransitionASTNode } from '@form-engine/core/types/expressions.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '@form-engine/core/types/structures.type'
 import { PseudoNodeType } from '@form-engine/core/types/pseudoNodes.type'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
@@ -21,6 +21,8 @@ export interface StepRuntimePlan {
   renderStepId: NodeId
   isRenderSync: boolean
   isAnswerPrepareSync: boolean
+  isValidationSync: boolean
+  hasValidatingSubmitTransition: boolean
 }
 
 export default class StepRuntimePlanBuilder {
@@ -46,6 +48,12 @@ export default class StepRuntimePlanBuilder {
       renderStepId: stepNode.id,
       isRenderSync: this.computeIsRenderSync(stepNode, renderAncestorIds, compilationDependencies),
       isAnswerPrepareSync: this.computeIsAnswerPrepareSync(fieldIteratorRootIds, compilationDependencies),
+      isValidationSync: this.computeIsValidationSync(
+        validationIterateNodeIds,
+        validationBlockIds,
+        compilationDependencies,
+      ),
+      hasValidatingSubmitTransition: this.computeHasValidatingSubmitTransition(stepNode),
     }
   }
 
@@ -186,6 +194,48 @@ export default class StepRuntimePlanBuilder {
     return Object.entries(properties)
       .filter(([key]) => !excludedKeys.has(key))
       .every(([, value]) => this.isValueTreeSync(value, handlerRegistry))
+  }
+
+  private computeIsValidationSync(
+    validationIterateNodeIds: NodeId[],
+    validationBlockIds: NodeId[],
+    compilationDependencies: CompilationDependencies,
+  ): boolean {
+    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
+
+    for (const iterateNodeId of validationIterateNodeIds) {
+      const handler = handlerRegistry.get(iterateNodeId)
+
+      if (!handler || handler.isAsync) {
+        return false
+      }
+    }
+
+    for (const blockId of validationBlockIds) {
+      const block = compilationDependencies.nodeRegistry.get(blockId) as FieldBlockASTNode | undefined
+
+      if (block) {
+        if (!this.isValueTreeSync(block.properties.validate, handlerRegistry)) {
+          return false
+        }
+
+        if (!this.isValueTreeSync(block.properties.dependent, handlerRegistry)) {
+          return false
+        }
+
+        if (!this.isValueTreeSync(block.properties.code, handlerRegistry)) {
+          return false
+        }
+      }
+    }
+
+    return true
+  }
+
+  private computeHasValidatingSubmitTransition(stepNode: StepASTNode): boolean {
+    return (stepNode.properties.onSubmission ?? []).some(
+      (transition: SubmitTransitionASTNode) => transition.properties.validate === true,
+    )
   }
 
   private isValueTreeSync(value: unknown, handlerRegistry: ThunkHandlerRegistry): boolean {

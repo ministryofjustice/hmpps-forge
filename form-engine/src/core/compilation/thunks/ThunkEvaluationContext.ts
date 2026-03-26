@@ -87,6 +87,10 @@ export default class ThunkEvaluationContext {
     return this.compilationDependencies.metadataRegistry
   }
 
+  get astNodeTree() {
+    return this.compilationDependencies.astNodeTree
+  }
+
   /**
    * Create a clone of this context with an isolated scope snapshot
    *

@@ -80,11 +80,6 @@ export interface ThunkResultMetadata {
    * When the evaluation occurred (milliseconds since epoch)
    */
   timestamp?: number
-
-  /**
-   * Whether this result came from memoization cache
-   */
-  cached?: boolean
 }
 
 /**

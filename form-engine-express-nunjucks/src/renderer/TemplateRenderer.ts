@@ -1,6 +1,6 @@
 import nunjucks from 'nunjucks'
 import { InternalServerError } from 'http-errors'
-import { RenderContext, Evaluated } from '@form-engine/core/runtime/rendering/types'
+import { RenderContext, Evaluated, HasNestedBlocksLookup } from '@form-engine/core/runtime/rendering/types'
 import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
 import { StructureType } from '@form-engine/form/types/enums'
 import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@form-engine/form/types/structures.type'
@@ -27,10 +27,35 @@ export default class TemplateRenderer {
 
   private readonly defaultTemplate: string
 
+  private readonly templateCache = new Map<string, nunjucks.Template>()
+
+  /**
+   * A render-compatible proxy passed to components instead of the raw nunjucksEnv.
+   * Caches resolved Template objects to avoid repeated loader chain lookups
+   * on every component.render() call.
+   */
+  private readonly cachedRenderer: unknown
+
   constructor(options: TemplateRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
     this.componentRegistry = options.componentRegistry
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
+
+    const env = this.nunjucksEnv
+    const cache = this.templateCache
+
+    this.cachedRenderer = {
+      render(name: string, ctx?: object): string {
+        let tmpl = cache.get(name)
+
+        if (!tmpl) {
+          tmpl = env.getTemplate(name)
+          cache.set(name, tmpl)
+        }
+
+        return tmpl.render(ctx)
+      },
+    }
   }
 
   /** Wrap an error as InternalServerError, preserving stack trace */
@@ -47,7 +72,8 @@ export default class TemplateRenderer {
 
   /** Render a full page from RenderContext and return HTML string */
   render(context: RenderContext, locals: Record<string, unknown> = {}): string {
-    const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures)
+    const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures, context.hasNestedBlocks)
+
     const mergedViewLocals = this.mergeViewLocals(context)
 
     const templateContext: TemplateContext = {
@@ -109,21 +135,36 @@ export default class TemplateRenderer {
   /** Render a Nunjucks template with the given context */
   private renderTemplate(template: string, context: TemplateContext): string {
     try {
-      return this.nunjucksEnv.render(template, context)
+      let tmpl = this.templateCache.get(template)
+
+      if (!tmpl) {
+        tmpl = this.nunjucksEnv.getTemplate(template)
+        this.templateCache.set(template, tmpl)
+      }
+
+      return tmpl.render(context)
     } catch (err) {
       throw this.wrapError(err)
     }
   }
 
   /** Render all visible blocks to HTML strings (filters out hidden blocks) */
-  private renderBlocks(blocks: Evaluated<BlockASTNode>[], showValidationFailures: boolean): string[] {
+  private renderBlocks(
+    blocks: Evaluated<BlockASTNode>[],
+    showValidationFailures: boolean,
+    hasNestedBlocks?: HasNestedBlocksLookup,
+  ): string[] {
     const visibleBlocks = blocks.filter(block => block.properties.hidden !== true)
 
-    return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures))
+    return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures, hasNestedBlocks))
   }
 
   /** Render a single block to HTML using the ComponentRegistry */
-  private renderBlock(block: Evaluated<BlockASTNode>, showValidationFailures: boolean): string {
+  private renderBlock(
+    block: Evaluated<BlockASTNode>,
+    showValidationFailures: boolean,
+    hasNestedBlocks?: HasNestedBlocksLookup,
+  ): string {
     try {
       const component = this.componentRegistry.get(block.variant)
 
@@ -136,7 +177,10 @@ export default class TemplateRenderer {
         )
       }
 
-      const transformedProperties = this.transformPropertiesWithRenderedBlocks(block.properties, showValidationFailures)
+      const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
+      const transformedProperties = needsTransform
+        ? this.transformPropertiesWithRenderedBlocks(block.properties, showValidationFailures, hasNestedBlocks)
+        : block.properties
 
       const evaluatedBlock = this.toEvaluatedBlock(
         {
@@ -146,7 +190,7 @@ export default class TemplateRenderer {
         showValidationFailures,
       )
 
-      return component.render(evaluatedBlock, this.nunjucksEnv)
+      return component.render(evaluatedBlock, this.cachedRenderer)
     } catch (err) {
       throw this.wrapError(err)
     }
@@ -182,49 +226,63 @@ export default class TemplateRenderer {
   private transformPropertiesWithRenderedBlocks(
     properties: Record<string, unknown>,
     showValidationFailures: boolean,
+    hasNestedBlocks?: HasNestedBlocksLookup,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
     Object.entries(properties).forEach(([key, value]) => {
-      result[key] = this.transformValue(value, showValidationFailures)
+      result[key] = this.transformValue(value, showValidationFailures, hasNestedBlocks)
     })
 
     return result
   }
 
   /** Transform a single value, rendering nested blocks as needed */
-  private transformValue(value: unknown, showValidationFailures: boolean): unknown {
+  private transformValue(
+    value: unknown,
+    showValidationFailures: boolean,
+    hasNestedBlocks?: HasNestedBlocksLookup,
+  ): unknown {
     if (value === null || value === undefined) {
       return value
     }
 
     if (isBlockStructNode(value)) {
-      return this.renderNestedBlock(value as Evaluated<BlockASTNode>, showValidationFailures)
+      return this.renderNestedBlock(value as Evaluated<BlockASTNode>, showValidationFailures, hasNestedBlocks)
     }
 
     if (Array.isArray(value)) {
-      const transformed = value.map(element => this.transformValue(element, showValidationFailures))
+      const transformed = value.map(element => this.transformValue(element, showValidationFailures, hasNestedBlocks))
 
       // Filter out null values (hidden nested blocks)
       return transformed.filter(item => item !== null)
     }
 
     if (typeof value === 'object') {
-      return this.transformPropertiesWithRenderedBlocks(value as Record<string, unknown>, showValidationFailures)
+      return this.transformPropertiesWithRenderedBlocks(
+        value as Record<string, unknown>,
+        showValidationFailures,
+        hasNestedBlocks,
+      )
     }
 
     return value
   }
 
   /** Render a nested block to RenderedBlock format (block metadata + HTML) */
-  private renderNestedBlock(block: Evaluated<BlockASTNode>, showValidationFailures: boolean): RenderedBlock | null {
+  private renderNestedBlock(
+    block: Evaluated<BlockASTNode>,
+    showValidationFailures: boolean,
+    hasNestedBlocks?: HasNestedBlocksLookup,
+  ): RenderedBlock | null {
     const { hidden, ...properties } = block.properties
+
     // Skip hidden nested blocks
     if (block.properties.hidden === true) {
       return null
     }
 
-    const html = this.renderBlock(block, showValidationFailures)
+    const html = this.renderBlock(block, showValidationFailures, hasNestedBlocks)
 
     return {
       block: {

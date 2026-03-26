@@ -14,10 +14,13 @@ describe('ExpressFrameworkAdapter', () => {
   let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
   let mockComponentRegistry: jest.Mocked<ComponentRegistry>
   let mockLogger: Console
+  let mockTemplate: { render: jest.Mock }
 
   beforeEach(() => {
+    mockTemplate = { render: jest.fn().mockReturnValue('<html>rendered</html>') }
+
     mockNunjucksEnv = {
-      render: jest.fn().mockReturnValue('<html>rendered</html>'),
+      getTemplate: jest.fn().mockReturnValue(mockTemplate),
     } as unknown as jest.Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
@@ -565,8 +568,8 @@ describe('ExpressFrameworkAdapter', () => {
       await adapter.render(renderContext, mockReq, mockRes)
 
       // Assert
-      expect(mockNunjucksEnv.render).toHaveBeenCalledWith(
-        'test.njk',
+      expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('test.njk')
+      expect(mockTemplate.render).toHaveBeenCalledWith(
         expect.objectContaining({
           applicationName: 'My App',
           csrfToken: 'abc123',

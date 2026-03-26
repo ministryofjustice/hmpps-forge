@@ -153,6 +153,8 @@ describe('FormEngineRouter', () => {
           renderStepId: compiled.currentStepId,
           isRenderSync: false,
           isAnswerPrepareSync: false,
+          isValidationSync: false,
+          hasValidatingSubmitTransition: false,
         },
       }
     })

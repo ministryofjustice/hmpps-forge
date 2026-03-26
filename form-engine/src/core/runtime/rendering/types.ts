@@ -1,4 +1,4 @@
-import { ASTNode } from '@form-engine/core/types/engine.type'
+import { ASTNode, NodeId } from '@form-engine/core/types/engine.type'
 import { ASTNodeType } from '@form-engine/core/types/enums'
 import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
@@ -112,4 +112,9 @@ export interface RenderContext {
 
   /** Current data state */
   data: Record<string, unknown>
+
+  /** Lookup to check if a block has nested blocks in its properties (used to skip unnecessary property walks) */
+  hasNestedBlocks?: HasNestedBlocksLookup
 }
+
+export type HasNestedBlocksLookup = (blockId: NodeId) => boolean

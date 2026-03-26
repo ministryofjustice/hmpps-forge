@@ -58,6 +58,8 @@ function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {
     renderStepId: stepId,
     isRenderSync: false,
     isAnswerPrepareSync: false,
+    isValidationSync: false,
+    hasValidatingSubmitTransition: false,
     ...options,
   }
 }
@@ -378,6 +380,131 @@ describe('ValidationExecutor', () => {
     expect(result.failures).toHaveLength(2)
     expect(result.failures[0].blockCode).toBe('dynamic-field')
     expect(result.failures[1].blockCode).toBe('static-field')
+  })
+
+  describe('executeSync()', () => {
+    it('should evaluate static validation blocks synchronously', () => {
+      // Arrange
+      const step = createStep('compile_ast:30')
+      const block = createFieldBlock('compile_ast:31')
+      const validationNode = createValidationNode('compile_ast:32', 'Looks good')
+      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
+      const { context, invoker, nodes, parentByNodeId } = setup()
+
+      block.properties.code = 'field-1'
+      block.properties.validate = [validationNode]
+      nodes.set(step.id, step)
+      nodes.set(block.id, block)
+      nodes.set(validationNode.id, validationNode)
+      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
+      parentByNodeId.set(block.id, step.id)
+
+      invoker.invokeSync.mockImplementation(nodeId => {
+        if (nodeId === validationNode.id) {
+          return successResult({ passed: true, message: 'Looks good', submissionOnly: true })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = executor.executeSync(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: true,
+        failures: [],
+      })
+      expect(invoker.invokeSync).not.toHaveBeenCalledWith(block.id, context)
+    })
+
+    it('should collect failures synchronously', () => {
+      // Arrange
+      const step = createStep('compile_ast:33')
+      const block = createFieldBlock('compile_ast:34')
+      const validationNode = createValidationNode('compile_ast:35', 'This field is required')
+      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
+      const { context, invoker, nodes, parentByNodeId } = setup()
+
+      block.properties.code = 'field-1'
+      block.properties.validate = [validationNode]
+      nodes.set(step.id, step)
+      nodes.set(block.id, block)
+      nodes.set(validationNode.id, validationNode)
+      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
+      parentByNodeId.set(block.id, step.id)
+
+      invoker.invokeSync.mockImplementation(nodeId => {
+        if (nodeId === validationNode.id) {
+          return successResult({ passed: false, message: 'This field is required', submissionOnly: true })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = executor.executeSync(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: false,
+        failures: [
+          {
+            blockId: block.id,
+            blockCode: 'field-1',
+            message: 'This field is required',
+            passed: false,
+            submissionOnly: true,
+          },
+        ],
+      })
+    })
+
+    it('should skip validation when dependent evaluates to false synchronously', () => {
+      // Arrange
+      const step = createStep('compile_ast:36')
+      const block = createFieldBlock('compile_ast:37')
+      const dependentNode = ASTTestFactory.reference(['answers', 'businessType'])
+      const validationNode = createValidationNode('compile_ast:38', 'Should not run')
+      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
+      const { context, invoker, nodes, parentByNodeId } = setup()
+
+      block.properties.code = 'business-hours'
+      block.properties.dependent = dependentNode
+      block.properties.validate = [validationNode]
+      nodes.set(step.id, step)
+      nodes.set(block.id, block)
+      nodes.set(dependentNode.id, dependentNode)
+      nodes.set(validationNode.id, validationNode)
+      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
+      parentByNodeId.set(block.id, step.id)
+
+      invoker.invokeSync.mockImplementation(nodeId => {
+        if (nodeId === dependentNode.id) {
+          return successResult(false)
+        }
+
+        if (nodeId === validationNode.id) {
+          return successResult({ passed: false, message: 'Should not run', submissionOnly: true })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = executor.executeSync(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: true,
+        failures: [],
+      })
+      expect(invoker.invokeSync).toHaveBeenCalledWith(dependentNode.id, context)
+      expect(invoker.invokeSync).not.toHaveBeenCalledWith(validationNode.id, context)
+    })
   })
 
   it('should skip validation nodes when dependent evaluates to false', async () => {

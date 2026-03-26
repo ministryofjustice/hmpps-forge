@@ -13,18 +13,6 @@ export default class ThunkEvaluationError extends ThunkBaseError {
     })
   }
 
-  static maxRetriesExceeded(nodeId: NodeId, retryCount: number, maxRetries: number): ThunkEvaluationError {
-    return new ThunkEvaluationError(
-      'EVALUATION_FAILED',
-      nodeId,
-      `Node "${nodeId}" exceeded maximum retries (${maxRetries}). This likely indicates an infinite invalidation loop.`,
-      {
-        'Retry Count': retryCount,
-        'Max Retries': maxRetries,
-      },
-    )
-  }
-
   static expansionLimitExceeded(
     nodeId: NodeId,
     iterations: number,

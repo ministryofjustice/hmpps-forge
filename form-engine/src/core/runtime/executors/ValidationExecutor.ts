@@ -9,6 +9,7 @@ import { FieldBlockASTNode, StepASTNode } from '@form-engine/core/types/structur
 import { NodeId } from '@form-engine/core/types/engine.type'
 import getAncestorChain from '@form-engine/core/utils/getAncestorChain'
 import { evaluateOperand } from '@form-engine/core/utils/thunkEvaluatorsAsync'
+import { evaluateOperandSync } from '@form-engine/core/utils/thunkEvaluatorsSync'
 import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import { isASTNode } from '@form-engine/core/typeguards/nodes'
 import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
@@ -27,6 +28,21 @@ export default class ValidationExecutor {
     const expandedIterateNodeIds = await this.expandValidationIterators(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
     const failures = await this.collectValidationFailures(fieldBlocks, invoker, context)
+
+    return {
+      isValid: failures.length === 0,
+      failures,
+    }
+  }
+
+  executeSync(
+    runtimePlan: StepRuntimePlan,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): ValidationExecutionResult {
+    const expandedIterateNodeIds = this.expandValidationIteratorsSync(runtimePlan, invoker, context)
+    const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
+    const failures = this.collectValidationFailuresSync(fieldBlocks, invoker, context)
 
     return {
       isValid: failures.length === 0,
@@ -223,6 +239,121 @@ export default class ValidationExecutor {
     )
 
     return results
+      .filter(result => !result.error && result.value !== undefined)
+      .map(result => result.value as ValidationResult)
+  }
+
+  private expandValidationIteratorsSync(
+    runtimePlan: StepRuntimePlan,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): NodeId[] {
+    const pendingIterateNodeIds = [...runtimePlan.validationIterateNodeIds]
+    const expandedIterateNodeIds: NodeId[] = []
+    const seenIterateNodeIds = new Set<NodeId>()
+
+    while (pendingIterateNodeIds.length > 0) {
+      const iterateNodeId = pendingIterateNodeIds.shift()
+
+      if (iterateNodeId !== undefined && !seenIterateNodeIds.has(iterateNodeId)) {
+        seenIterateNodeIds.add(iterateNodeId)
+        expandedIterateNodeIds.push(iterateNodeId)
+
+        invoker.invokeSync(iterateNodeId, context)
+
+        const nestedIterateNodeIds = this.findNestedValidationIterateNodeIds(iterateNodeId, context)
+
+        nestedIterateNodeIds.forEach(nestedIterateNodeId => {
+          if (!seenIterateNodeIds.has(nestedIterateNodeId)) {
+            pendingIterateNodeIds.push(nestedIterateNodeId)
+          }
+        })
+      }
+    }
+
+    return expandedIterateNodeIds
+  }
+
+  private collectValidationFailuresSync(
+    fieldBlocks: FieldBlockASTNode[],
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): StepValidationFailure[] {
+    if (fieldBlocks.length === 0) {
+      return []
+    }
+
+    return fieldBlocks.flatMap(block => this.evaluateFieldBlockSync(block, invoker, context))
+  }
+
+  private evaluateFieldBlockSync(
+    block: FieldBlockASTNode,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): StepValidationFailure[] {
+    const isDependentActive = this.isDependentActiveSync(block, invoker, context)
+
+    if (!isDependentActive) {
+      return []
+    }
+
+    const validations = this.evaluateValidationNodesSync(block, invoker, context)
+
+    if (validations.length === 0) {
+      return []
+    }
+
+    const blockCode = this.evaluateBlockCodeSync(block, invoker, context)
+
+    return validations
+      .filter(validation => validation.passed === false)
+      .map(validation => ({
+        ...validation,
+        blockId: block.id,
+        blockCode: validation.blockCode ?? blockCode,
+      }))
+  }
+
+  private isDependentActiveSync(
+    block: FieldBlockASTNode,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): boolean {
+    if (block.properties.dependent === undefined) {
+      return true
+    }
+
+    return Boolean(evaluateOperandSync(block.properties.dependent, context, invoker))
+  }
+
+  private evaluateBlockCodeSync(
+    block: FieldBlockASTNode,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): string | undefined {
+    const code = evaluateOperandSync(block.properties.code, context, invoker)
+
+    if (typeof code === 'string') {
+      return code
+    }
+
+    return undefined
+  }
+
+  private evaluateValidationNodesSync(
+    block: FieldBlockASTNode,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): ValidationResult[] {
+    const validationNodes = (block.properties.validate ?? [])
+      .filter((validation): validation is ValidationASTNode => isASTNode(validation))
+
+    if (validationNodes.length === 0) {
+      return []
+    }
+
+    return validationNodes
+      .map(validationNode => invoker.invokeSync(validationNode.id, context))
       .filter(result => !result.error && result.value !== undefined)
       .map(result => result.value as ValidationResult)
   }

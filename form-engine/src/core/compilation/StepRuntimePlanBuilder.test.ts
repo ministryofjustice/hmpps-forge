@@ -199,6 +199,8 @@ describe('StepRuntimePlanBuilder', () => {
         renderStepId: step.id,
         isRenderSync: true,
         isAnswerPrepareSync: false,
+        isValidationSync: false,
+        hasValidatingSubmitTransition: false,
       })
     })
   })

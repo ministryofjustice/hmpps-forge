@@ -43,6 +43,12 @@ export default class FormInstance {
     return new FormInstance(configurationAsObject, dependencies)
   }
 
+  compileAllSteps(): void {
+    this.sharedCompilation.stepIndex.forEach((_, stepId) => {
+      this.getOrCompileStep(stepId)
+    })
+  }
+
   getCompiledForm(): CompiledForm {
     return [...this.sharedCompilation.stepIndex.keys()].map(stepId => this.getOrCompileStep(stepId))
   }
