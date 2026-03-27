@@ -71,6 +71,26 @@ export const ConditionalExprSchema = z.lazy(() =>
 )
 
 /**
+ * @see {@link MatchBranch}
+ */
+export const MatchBranchSchema = z.object({
+  condition: ConditionFunctionExprSchema,
+  value: ValueExprSchema,
+})
+
+/**
+ * @see {@link MatchExpr}
+ */
+export const MatchExprSchema = z.lazy(() =>
+  z.object({
+    type: z.literal(ExpressionType.MATCH),
+    subject: ValueExprSchema,
+    branches: z.array(MatchBranchSchema).min(1),
+    otherwise: ValueExprSchema.optional(),
+  }),
+)
+
+/**
  * @see {@link RedirectOutcome}
  */
 export const RedirectOutcomeSchema = z.object({

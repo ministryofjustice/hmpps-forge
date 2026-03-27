@@ -126,6 +126,20 @@ export interface ConditionalASTNode extends ExpressionASTNode {
 }
 
 /**
+ * Match Expression AST node
+ */
+export interface MatchASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.MATCH
+  properties: {
+    branches: Array<{
+      predicate: ASTNode
+      value: ASTNode | any
+    }>
+    otherwise?: ASTNode | any
+  }
+}
+
+/**
  * Function Expression AST node
  */
 export interface FunctionASTNode extends ExpressionASTNode {

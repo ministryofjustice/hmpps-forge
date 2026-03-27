@@ -7,11 +7,13 @@ import {
   SubmitTransition,
   FormatExpr,
   ConditionalExpr,
+  MatchExpr,
   AccessTransition,
   ActionTransition,
 } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../builders/ConditionalExprBuilder'
+import { MatchExprBuilder } from '../builders/MatchExprBuilder'
 import { ChainableExpr, ChainableIterable, ChainableRef } from '../builders/types'
 import { BlockType, StructureType, ExpressionType } from './enums'
 
@@ -298,7 +300,9 @@ export type ConditionalString =
   | FormatExpr
   | PipelineExpr
   | ConditionalExpr
+  | MatchExpr
   | ConditionalExprBuilder
+  | MatchExprBuilder
   | ChainableRef
   | ChainableExpr<any>
 
@@ -307,7 +311,9 @@ export type ConditionalBoolean =
   | ReferenceExpr
   | PipelineExpr
   | ConditionalExpr
+  | MatchExpr
   | ConditionalExprBuilder
+  | MatchExprBuilder
   | ChainableRef
   | ChainableExpr<any>
 
@@ -316,7 +322,9 @@ export type ConditionalNumber =
   | ReferenceExpr
   | PipelineExpr
   | ConditionalExpr
+  | MatchExpr
   | ConditionalExprBuilder
+  | MatchExprBuilder
   | ChainableRef
   | ChainableExpr<any>
 
@@ -325,7 +333,9 @@ export type ConditionalArray<T> =
   | ReferenceExpr
   | PipelineExpr
   | ConditionalExpr
+  | MatchExpr
   | ConditionalExprBuilder
+  | MatchExprBuilder
   | ChainableIterable
   | ChainableRef
   | ChainableExpr<any>

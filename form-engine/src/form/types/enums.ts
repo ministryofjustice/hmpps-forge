@@ -24,6 +24,7 @@ export enum ExpressionType {
   VALIDATION = 'ExpressionType.Validation',
   ITERATE = 'ExpressionType.Iterate',
   CONDITIONAL = 'ExpressionType.Conditional',
+  MATCH = 'ExpressionType.Match',
 }
 
 export enum IteratorType {

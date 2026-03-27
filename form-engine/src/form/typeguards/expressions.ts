@@ -5,6 +5,7 @@ import {
   FormatExpr,
   PipelineExpr,
   ConditionalExpr,
+  MatchExpr,
   IterateExpr,
   MapIteratorConfig,
   FilterIteratorConfig,
@@ -31,6 +32,10 @@ export function isPipelineExpr(obj: any): obj is PipelineExpr {
 
 export function isConditionalExpr(obj: any): obj is ConditionalExpr {
   return obj != null && obj.type === ExpressionType.CONDITIONAL
+}
+
+export function isMatchExpr(obj: any): obj is MatchExpr {
+  return obj != null && obj.type === ExpressionType.MATCH
 }
 
 export function isIterateExpr(obj: any): obj is IterateExpr {
@@ -96,6 +101,7 @@ export function isExpression(node: any): boolean {
     isFormatExpr(node) ||
     isPipelineExpr(node) ||
     isConditionalExpr(node) ||
+    isMatchExpr(node) ||
     isIterateExpr(node) ||
     isPredicateExpr(node) ||
     isFunctionExpr(node) ||

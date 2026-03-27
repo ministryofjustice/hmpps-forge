@@ -560,6 +560,50 @@ export interface ConditionalExpr {
   elseValue?: ValueExpr
 }
 
+/**
+ * Represents a single branch in a match expression.
+ * Each branch pairs a condition with a value to return when the condition matches.
+ */
+export interface MatchBranch {
+  /** The condition to evaluate against the match subject. */
+  condition: ConditionFunctionExpr<any>
+
+  /** The value to return when this branch's condition matches. */
+  value: ValueExpr
+}
+
+/**
+ * Represents a match expression that evaluates a subject against multiple branches.
+ * Returns the value of the first branch whose condition matches, or the otherwise value.
+ *
+ * @example
+ * // Match on status
+ * {
+ *   type: 'ExpressionType.Match',
+ *   subject: { type: 'ExpressionType.Reference', path: ['data', 'status'] },
+ *   branches: [
+ *     { condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] }, value: 'Active' },
+ *     { condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['CLOSED'] }, value: 'Closed' },
+ *   ],
+ *   otherwise: 'Unknown'
+ * }
+ */
+export interface MatchExpr {
+  type: ExpressionType.MATCH
+
+  /** The value to test each branch's condition against. */
+  subject: ValueExpr
+
+  /** Ordered array of branches. The first matching branch's value is returned. */
+  branches: MatchBranch[]
+
+  /**
+   * The value to return when no branch matches.
+   * If omitted, defaults to undefined.
+   */
+  otherwise?: ValueExpr
+}
+
 /* ===== Transition Outcomes ===== */
 
 /**

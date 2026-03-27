@@ -10,6 +10,7 @@ import {
   isIterateExprNode,
   isValidationExprNode,
   isConditionalExprNode,
+  isMatchExprNode,
 } from '@form-engine/core/typeguards/expression-nodes'
 import {
   isAccessTransitionNode,
@@ -30,6 +31,7 @@ import SessionReferenceHandler from '@form-engine/core/nodes/expressions/referen
 import BaseReferenceHandler from '@form-engine/core/nodes/expressions/reference/base/BaseReferenceHandler'
 import IterateHandler from '@form-engine/core/nodes/expressions/iterate/IterateHandler'
 import ConditionalHandler from '@form-engine/core/nodes/expressions/conditional/ConditionalHandler'
+import MatchHandler from '@form-engine/core/nodes/expressions/match/MatchHandler'
 import AndHandler from '@form-engine/core/nodes/predicates/and/AndHandler'
 import OrHandler from '@form-engine/core/nodes/predicates/or/OrHandler'
 import XorHandler from '@form-engine/core/nodes/predicates/xor/XorHandler'
@@ -254,6 +256,11 @@ export default class ThunkCompilerFactory {
       return new ConditionalHandler(nodeId, node)
     }
 
+    // Match expressions
+    if (isMatchExprNode(node)) {
+      return new MatchHandler(nodeId, node)
+    }
+
     // TEST Predicate expressions
     if (isTestPredicateNode(node)) {
       return new TestHandler(nodeId, node)
@@ -335,6 +342,7 @@ export default class ThunkCompilerFactory {
       'PIPELINE',
       'ITERATE',
       'CONDITIONAL',
+      'MATCH',
       'TEST',
       'AND',
       'OR',

@@ -2,6 +2,7 @@ import { isJourneyDefinition, isStepDefinition, isBlockDefinition } from '@form-
 import {
   isExpression,
   isConditionalExpr,
+  isMatchExpr,
   isReferenceExpr,
   isFormatExpr,
   isPipelineExpr,
@@ -31,6 +32,7 @@ import AccessFactory from '@form-engine/core/nodes/transitions/access/AccessFact
 import ActionFactory from '@form-engine/core/nodes/transitions/action/ActionFactory'
 import SubmitFactory from '@form-engine/core/nodes/transitions/submit/SubmitFactory'
 import ConditionalFactory from '@form-engine/core/nodes/expressions/conditional/ConditionalFactory'
+import MatchFactory from '@form-engine/core/nodes/expressions/match/MatchFactory'
 import TestFactory from '@form-engine/core/nodes/predicates/test/TestFactory'
 import NotFactory from '@form-engine/core/nodes/predicates/not/NotFactory'
 import AndFactory from '@form-engine/core/nodes/predicates/and/AndFactory'
@@ -65,6 +67,8 @@ export class NodeFactory {
   private readonly submitFactory: SubmitFactory
 
   private readonly conditionalFactory: ConditionalFactory
+
+  private readonly matchFactory: MatchFactory
 
   private readonly testFactory: TestFactory
 
@@ -103,6 +107,7 @@ export class NodeFactory {
     this.actionFactory = new ActionFactory(this.nodeIDGenerator, this, this.category)
     this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this, this.category)
     this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this, this.category)
+    this.matchFactory = new MatchFactory(this.nodeIDGenerator, this, this.category)
     this.testFactory = new TestFactory(this.nodeIDGenerator, this, this.category)
     this.notFactory = new NotFactory(this.nodeIDGenerator, this, this.category)
     this.andFactory = new AndFactory(this.nodeIDGenerator, this, this.category)
@@ -148,6 +153,10 @@ export class NodeFactory {
     // Logic nodes: Conditionals and Predicates
     if (isConditionalExpr(json)) {
       return this.conditionalFactory.create(json)
+    }
+
+    if (isMatchExpr(json)) {
+      return this.matchFactory.create(json)
     }
 
     if (isPredicateTestExpr(json)) {

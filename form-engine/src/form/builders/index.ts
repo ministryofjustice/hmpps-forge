@@ -42,6 +42,9 @@ export { and, or, xor, not } from './PredicateTestExprBuilder'
 // Re-export conditional builders
 export { when, Conditional } from './ConditionalExprBuilder'
 
+// Re-export match builder
+export { match } from './MatchExprBuilder'
+
 export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
   return finaliseBuilders({
     ...definition,

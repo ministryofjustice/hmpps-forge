@@ -1,7 +1,12 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, TransitionType } from '@form-engine/form/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
-import { PredicateExprSchema, ConditionalExprSchema, TransitionOutcomeSchema } from './predicates.schema'
+import {
+  PredicateExprSchema,
+  ConditionalExprSchema,
+  MatchExprSchema,
+  TransitionOutcomeSchema,
+} from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
 /**
@@ -23,6 +28,7 @@ export const ConditionalStringSchema = z.union([
   FormatExprSchema,
   PipelineExprSchema,
   ConditionalExprSchema,
+  MatchExprSchema,
 ])
 
 /**

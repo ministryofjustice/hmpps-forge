@@ -6,6 +6,7 @@ import {
   FormatASTNode,
   FunctionASTNode,
   IterateASTNode,
+  MatchASTNode,
   PipelineASTNode,
   ReferenceASTNode,
   ValidationASTNode,
@@ -58,6 +59,13 @@ export function isIterateExprNode(obj: any): obj is IterateASTNode {
  */
 export function isConditionalExprNode(obj: any): obj is ConditionalASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.CONDITIONAL
+}
+
+/**
+ * Check if an AST node is a Match Expression node
+ */
+export function isMatchExprNode(obj: any): obj is MatchASTNode {
+  return isExpressionNode(obj) && obj.expressionType === ExpressionType.MATCH
 }
 
 /**
