@@ -93,7 +93,8 @@ const mockMetadataExecutorExecute = jest.fn().mockResolvedValue({
 const mockRenderExecutorExecute = jest.fn().mockResolvedValue([])
 const mockValidationExecutorExecute = jest.fn().mockResolvedValue({
   isValid: true,
-  failures: [],
+  fieldFailures: [],
+  domainFailures: [],
 })
 
 jest.mock('@form-engine/core/runtime/executors/MetadataExecutor', () => {
@@ -158,7 +159,8 @@ describe('FormStepController', () => {
     mockRenderExecutorExecute.mockResolvedValue([])
     mockValidationExecutorExecute.mockResolvedValue({
       isValid: true,
-      failures: [],
+      fieldFailures: [],
+      domainFailures: [],
     })
 
     mockCurrentStepPath = '/journey/step-1'
@@ -222,6 +224,7 @@ describe('FormStepController', () => {
       fieldIteratorRootIds: [],
       validationIterateNodeIds: [],
       validationBlockIds: [],
+      domainValidationNodeIds: [],
       renderAncestorIds: [],
       renderStepId: stepNode.id,
       isRenderSync: false,
@@ -230,6 +233,7 @@ describe('FormStepController', () => {
       hasValidatingSubmitTransition: (stepNode.properties.onSubmission ?? []).some(
         (t: SubmitTransitionASTNode) => t.properties.validate === true,
       ),
+      hasDomainValidation: false,
     }
 
     return {
@@ -733,7 +737,7 @@ describe('FormStepController', () => {
         }
         mockValidationExecutorExecute.mockResolvedValue({
           isValid: false,
-          failures: [
+          fieldFailures: [
             {
               blockId: 'compile_ast:999',
               blockCode: 'email',
@@ -742,6 +746,7 @@ describe('FormStepController', () => {
               submissionOnly: true,
             },
           ],
+          domainFailures: [],
         })
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
@@ -767,7 +772,7 @@ describe('FormStepController', () => {
           stepId: mockCompiledForm.runtimePlan.stepId,
           validated: true,
           isValid: false,
-          failures: [
+          fieldFailures: [
             {
               blockId: 'compile_ast:999',
               blockCode: 'email',
@@ -776,6 +781,7 @@ describe('FormStepController', () => {
               submissionOnly: true,
             },
           ],
+          domainFailures: [],
         })
       })
 

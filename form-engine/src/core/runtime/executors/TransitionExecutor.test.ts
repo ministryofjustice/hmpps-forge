@@ -92,12 +92,14 @@ function createRuntimePlan(step: StepASTNode, options: Partial<StepRuntimePlan> 
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
+    domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: step.id,
     isRenderSync: false,
     isAnswerPrepareSync: false,
     isValidationSync: false,
     hasValidatingSubmitTransition: false,
+    hasDomainValidation: false,
     ...options,
   }
 }

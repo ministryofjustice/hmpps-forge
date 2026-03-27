@@ -1,5 +1,8 @@
 import { NodeId } from '@form-engine/core/types/engine.type'
-import { StepValidationFailure } from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
+import {
+  DomainValidationFailure,
+  StepValidationFailure,
+} from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { ValidationResult } from '@form-engine/core/nodes/expressions/validation/ValidationHandler'
 import { isBlockStructNode } from '@form-engine/core/typeguards/structure-nodes'
 import { BlockASTNode } from '@form-engine/core/types/structures.type'
@@ -34,7 +37,8 @@ export interface RenderContextInput {
   blocks: Evaluated<BlockASTNode>[]
   answers: Record<string, unknown>
   data: Record<string, unknown>
-  validationFailures?: StepValidationFailure[]
+  fieldValidationFailures?: StepValidationFailure[]
+  domainValidationFailures?: DomainValidationFailure[]
   hasNestedBlocks?: HasNestedBlocksLookup
 }
 
@@ -42,9 +46,12 @@ export interface RenderContextInput {
 export default class RenderContextFactory {
   static build(input: RenderContextInput, options: RenderContextOptions = {}): RenderContext {
     const showValidationFailures = options.showValidationFailures ?? false
-    const validationFailures = showValidationFailures ? (input.validationFailures ?? []) : []
+    const fieldValidationFailures = showValidationFailures ? (input.fieldValidationFailures ?? []) : []
+    const domainValidationFailures = showValidationFailures ? (input.domainValidationFailures ?? []) : []
     const blocks =
-      validationFailures.length > 0 ? attachValidationToBlocks(input.blocks, validationFailures) : input.blocks
+      fieldValidationFailures.length > 0
+        ? attachValidationToBlocks(input.blocks, fieldValidationFailures)
+        : input.blocks
 
     return {
       navigation: buildNavigationTree(options.navigationMetadata ?? [], options.currentStepPath ?? ''),
@@ -52,7 +59,8 @@ export default class RenderContextFactory {
       ancestors: input.ancestors,
       blocks,
       showValidationFailures,
-      validationErrors: validationFailures.map(stripBlockId),
+      fieldValidationErrors: fieldValidationFailures.map(stripBlockId),
+      domainValidationErrors: domainValidationFailures,
       answers: input.answers,
       data: input.data,
       hasNestedBlocks: input.hasNestedBlocks,

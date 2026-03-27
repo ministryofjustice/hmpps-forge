@@ -2,6 +2,7 @@ import { ThunkInvocationAdapter } from '@form-engine/core/compilation/thunks/typ
 import ValidationTemplateAnalyzer from '@form-engine/core/compilation/analyzers/ValidationTemplateAnalyzer'
 import { StepRuntimePlan } from '@form-engine/core/compilation/StepRuntimePlanBuilder'
 import ThunkEvaluationContext, {
+  DomainValidationFailure,
   StepValidationFailure,
 } from '@form-engine/core/compilation/thunks/ThunkEvaluationContext'
 import { IterateASTNode, ValidationASTNode } from '@form-engine/core/types/expressions.type'
@@ -16,7 +17,8 @@ import { BlockType, ExpressionType } from '@form-engine/form/types/enums'
 
 export interface ValidationExecutionResult {
   isValid: boolean
-  failures: StepValidationFailure[]
+  fieldFailures: StepValidationFailure[]
+  domainFailures: DomainValidationFailure[]
 }
 
 export default class ValidationExecutor {
@@ -27,11 +29,13 @@ export default class ValidationExecutor {
   ): Promise<ValidationExecutionResult> {
     const expandedIterateNodeIds = await this.expandValidationIterators(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
-    const failures = await this.collectValidationFailures(fieldBlocks, invoker, context)
+    const fieldFailures = await this.collectValidationFailures(fieldBlocks, invoker, context)
+    const domainFailures = await this.collectDomainValidationFailures(runtimePlan, invoker, context)
 
     return {
-      isValid: failures.length === 0,
-      failures,
+      isValid: fieldFailures.length === 0 && domainFailures.length === 0,
+      fieldFailures,
+      domainFailures,
     }
   }
 
@@ -42,11 +46,13 @@ export default class ValidationExecutor {
   ): ValidationExecutionResult {
     const expandedIterateNodeIds = this.expandValidationIteratorsSync(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
-    const failures = this.collectValidationFailuresSync(fieldBlocks, invoker, context)
+    const fieldFailures = this.collectValidationFailuresSync(fieldBlocks, invoker, context)
+    const domainFailures = this.collectDomainValidationFailuresSync(runtimePlan, invoker, context)
 
     return {
-      isValid: failures.length === 0,
-      failures,
+      isValid: fieldFailures.length === 0 && domainFailures.length === 0,
+      fieldFailures,
+      domainFailures,
     }
   }
 
@@ -356,6 +362,49 @@ export default class ValidationExecutor {
       .map(validationNode => invoker.invokeSync(validationNode.id, context))
       .filter(result => !result.error && result.value !== undefined)
       .map(result => result.value as ValidationResult)
+  }
+
+  private async collectDomainValidationFailures(
+    runtimePlan: StepRuntimePlan,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): Promise<DomainValidationFailure[]> {
+    if (runtimePlan.domainValidationNodeIds.length === 0) {
+      return []
+    }
+
+    const results = await Promise.all(
+      runtimePlan.domainValidationNodeIds.map(async nodeId => invoker.invoke(nodeId, context)),
+    )
+
+    return results
+      .filter(result => !result.error && result.value !== undefined)
+      .flatMap(result => (Array.isArray(result.value) ? result.value : [result.value]))
+      .filter(this.isFailedValidation)
+  }
+
+  private collectDomainValidationFailuresSync(
+    runtimePlan: StepRuntimePlan,
+    invoker: ThunkInvocationAdapter,
+    context: ThunkEvaluationContext,
+  ): DomainValidationFailure[] {
+    if (runtimePlan.domainValidationNodeIds.length === 0) {
+      return []
+    }
+
+    return runtimePlan.domainValidationNodeIds
+      .map(nodeId => invoker.invokeSync(nodeId, context))
+      .filter(result => !result.error && result.value !== undefined)
+      .flatMap(result => (Array.isArray(result.value) ? result.value : [result.value]))
+      .filter(this.isFailedValidation)
+  }
+
+  private isFailedValidation(value: unknown): value is ValidationResult {
+    return value !== null &&
+      value !== undefined &&
+      typeof value === 'object' &&
+      'passed' in value &&
+      (value as ValidationResult).passed === false
   }
 
   private findNestedValidationIterateNodeIds(parentIterateNodeId: NodeId, context: ThunkEvaluationContext): NodeId[] {

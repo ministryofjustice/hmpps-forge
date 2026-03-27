@@ -195,12 +195,14 @@ describe('StepRuntimePlanBuilder', () => {
         fieldIteratorRootIds: [block.id],
         validationIterateNodeIds: [iterateA.id],
         validationBlockIds: [staticValidatingField.id],
+        domainValidationNodeIds: [],
         renderAncestorIds: [journey.id],
         renderStepId: step.id,
         isRenderSync: true,
         isAnswerPrepareSync: false,
         isValidationSync: false,
         hasValidatingSubmitTransition: false,
+        hasDomainValidation: false,
       })
     })
   })

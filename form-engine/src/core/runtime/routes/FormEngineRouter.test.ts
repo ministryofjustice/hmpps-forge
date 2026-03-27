@@ -149,12 +149,14 @@ describe('FormEngineRouter', () => {
           fieldIteratorRootIds: [],
           validationIterateNodeIds: [],
           validationBlockIds: [],
+          domainValidationNodeIds: [],
           renderAncestorIds: [],
           renderStepId: compiled.currentStepId,
           isRenderSync: false,
           isAnswerPrepareSync: false,
           isValidationSync: false,
           hasValidatingSubmitTransition: false,
+          hasDomainValidation: false,
         },
       }
     })

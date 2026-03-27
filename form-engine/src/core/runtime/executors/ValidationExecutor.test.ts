@@ -54,12 +54,14 @@ function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
+    domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: stepId,
     isRenderSync: false,
     isAnswerPrepareSync: false,
     isValidationSync: false,
     hasValidatingSubmitTransition: false,
+    hasDomainValidation: false,
     ...options,
   }
 }
@@ -155,7 +157,8 @@ describe('ValidationExecutor', () => {
     // Assert
     expect(result).toEqual({
       isValid: true,
-      failures: [],
+      fieldFailures: [],
+      domainFailures: [],
     })
     expect(invoker.invoke).not.toHaveBeenCalledWith(block.id, context)
   })
@@ -209,7 +212,7 @@ describe('ValidationExecutor', () => {
     // Assert
     expect(result).toEqual({
       isValid: false,
-      failures: [
+      fieldFailures: [
         {
           blockId: runtimeBlock.id,
           blockCode: 'runtime-field',
@@ -218,6 +221,7 @@ describe('ValidationExecutor', () => {
           submissionOnly: true,
         },
       ],
+      domainFailures: [],
     })
     expect(invoker.invoke).not.toHaveBeenCalledWith(runtimeBlock.id, context)
   })
@@ -301,7 +305,8 @@ describe('ValidationExecutor', () => {
     // Assert
     expect(result).toEqual({
       isValid: true,
-      failures: [],
+      fieldFailures: [],
+      domainFailures: [],
     })
     expect(invoker.invoke).not.toHaveBeenCalledWith(runtimeBlock.id, context)
   })
@@ -377,9 +382,9 @@ describe('ValidationExecutor', () => {
 
     // Assert
     expect(result.isValid).toBe(false)
-    expect(result.failures).toHaveLength(2)
-    expect(result.failures[0].blockCode).toBe('dynamic-field')
-    expect(result.failures[1].blockCode).toBe('static-field')
+    expect(result.fieldFailures).toHaveLength(2)
+    expect(result.fieldFailures[0].blockCode).toBe('dynamic-field')
+    expect(result.fieldFailures[1].blockCode).toBe('static-field')
   })
 
   describe('executeSync()', () => {
@@ -414,7 +419,8 @@ describe('ValidationExecutor', () => {
       // Assert
       expect(result).toEqual({
         isValid: true,
-        failures: [],
+        fieldFailures: [],
+        domainFailures: [],
       })
       expect(invoker.invokeSync).not.toHaveBeenCalledWith(block.id, context)
     })
@@ -450,7 +456,7 @@ describe('ValidationExecutor', () => {
       // Assert
       expect(result).toEqual({
         isValid: false,
-        failures: [
+        fieldFailures: [
           {
             blockId: block.id,
             blockCode: 'field-1',
@@ -459,6 +465,7 @@ describe('ValidationExecutor', () => {
             submissionOnly: true,
           },
         ],
+        domainFailures: [],
       })
     })
 
@@ -500,10 +507,279 @@ describe('ValidationExecutor', () => {
       // Assert
       expect(result).toEqual({
         isValid: true,
-        failures: [],
+        fieldFailures: [],
+        domainFailures: [],
       })
       expect(invoker.invokeSync).toHaveBeenCalledWith(dependentNode.id, context)
       expect(invoker.invokeSync).not.toHaveBeenCalledWith(validationNode.id, context)
+    })
+  })
+
+  describe('domain validation', () => {
+    it('should evaluate domain validations and return failures', async () => {
+      // Arrange
+      const step = createStep('compile_ast:40')
+      const domainValidationNode = createValidationNode('compile_ast:41', 'Assessment is not open')
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: false, message: 'Assessment is not open', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: false,
+        fieldFailures: [],
+        domainFailures: [
+          {
+            passed: false,
+            message: 'Assessment is not open',
+            submissionOnly: false,
+          },
+        ],
+      })
+    })
+
+    it('should return empty domainFailures when all domain validations pass', async () => {
+      // Arrange
+      const step = createStep('compile_ast:42')
+      const domainValidationNode = createValidationNode('compile_ast:43', 'Assessment is not open')
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: true, message: 'Assessment is not open', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: true,
+        fieldFailures: [],
+        domainFailures: [],
+      })
+    })
+
+    it('should evaluate domain validations synchronously', () => {
+      // Arrange
+      const step = createStep('compile_ast:44')
+      const domainValidationNode = createValidationNode('compile_ast:45', 'Section not signed off')
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+
+      invoker.invokeSync.mockImplementation(nodeId => {
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: false, message: 'Section not signed off', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = executor.executeSync(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: false,
+        fieldFailures: [],
+        domainFailures: [
+          {
+            passed: false,
+            message: 'Section not signed off',
+            submissionOnly: false,
+          },
+        ],
+      })
+    })
+
+    it('should flatten array results from iterate-driven domain validations', async () => {
+      // Arrange
+      const step = createStep('compile_ast:50')
+      const iterateNodeId = 'compile_ast:51' as AstNodeId
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [iterateNodeId],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === iterateNodeId) {
+          return successResult([
+            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+            { passed: true, message: "Add steps to 'Goal B'", submissionOnly: false },
+            { passed: false, message: "Add steps to 'Goal C'", submissionOnly: false, details: { href: '#goal-3' } },
+          ])
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toEqual([
+        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+        { passed: false, message: "Add steps to 'Goal C'", submissionOnly: false, details: { href: '#goal-3' } },
+      ])
+    })
+
+    it('should flatten array results from iterate-driven domain validations synchronously', () => {
+      // Arrange
+      const step = createStep('compile_ast:52')
+      const iterateNodeId = 'compile_ast:53' as AstNodeId
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [iterateNodeId],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+
+      invoker.invokeSync.mockImplementation(nodeId => {
+        if (nodeId === iterateNodeId) {
+          return successResult([
+            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+            { passed: true, message: "Add steps to 'Goal B'", submissionOnly: false },
+          ])
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = executor.executeSync(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toEqual([
+        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+      ])
+    })
+
+    it('should handle mixed single and array domain validation results', async () => {
+      // Arrange
+      const step = createStep('compile_ast:54')
+      const singleValidationNode = createValidationNode('compile_ast:55', 'No active goals')
+      const iterateNodeId = 'compile_ast:56' as AstNodeId
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [singleValidationNode.id, iterateNodeId],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(singleValidationNode.id, singleValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === singleValidationNode.id) {
+          return successResult({ passed: true, message: 'No active goals', submissionOnly: false })
+        }
+
+        if (nodeId === iterateNodeId) {
+          return successResult([
+            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+          ])
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toEqual([
+        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+      ])
+    })
+
+    it('should combine field and domain validation failures', async () => {
+      // Arrange
+      const step = createStep('compile_ast:46')
+      const block = createFieldBlock('compile_ast:47')
+      const fieldValidationNode = createValidationNode('compile_ast:48', 'Field is required')
+      const domainValidationNode = createValidationNode('compile_ast:49', 'Assessment is locked')
+      const runtimePlan = createRuntimePlan(step.id, {
+        validationBlockIds: [block.id],
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes, parentByNodeId } = setup()
+
+      block.properties.code = 'field-1'
+      block.properties.validate = [fieldValidationNode]
+      nodes.set(step.id, step)
+      nodes.set(block.id, block)
+      nodes.set(fieldValidationNode.id, fieldValidationNode)
+      nodes.set(fieldValidationNode.properties.when.id, fieldValidationNode.properties.when)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+      parentByNodeId.set(block.id, step.id)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === fieldValidationNode.id) {
+          return successResult({ passed: false, message: 'Field is required', submissionOnly: true })
+        }
+
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: false, message: 'Assessment is locked', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new ValidationExecutor()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].message).toBe('Field is required')
+      expect(result.domainFailures).toHaveLength(1)
+      expect(result.domainFailures[0].message).toBe('Assessment is locked')
     })
   })
 
@@ -545,7 +821,8 @@ describe('ValidationExecutor', () => {
     // Assert
     expect(result).toEqual({
       isValid: true,
-      failures: [],
+      fieldFailures: [],
+      domainFailures: [],
     })
     expect(invoker.invoke).toHaveBeenCalledWith(dependentNode.id, context)
     expect(invoker.invoke).not.toHaveBeenCalledWith(validationNode.id, context)

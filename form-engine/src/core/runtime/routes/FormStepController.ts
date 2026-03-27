@@ -105,7 +105,7 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
 
-    if (plan.hasValidatingSubmitTransition) {
+    if (plan.hasValidatingSubmitTransition || plan.hasDomainValidation) {
       if (plan.isValidationSync) {
         this.evaluateValidationSync(evaluator, context)
       } else {
@@ -199,7 +199,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
         blocks,
         answers: context.global.answers,
         data: context.global.data,
-        validationFailures: this.getStepValidationFailures(context),
+        fieldValidationFailures: this.getStepFieldValidationFailures(context),
+        domainValidationFailures: this.getStepDomainValidationFailures(context),
         hasNestedBlocks: blockId => {
           if (astNodeTree.getNodeType(blockId) === undefined) {
             return true
@@ -218,11 +219,21 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
-  private getStepValidationFailures(context: ThunkEvaluationContext) {
+  private getStepFieldValidationFailures(context: ThunkEvaluationContext) {
     const validation = context.global.validation
 
     if (validation?.stepId === this.compiledForm.runtimePlan.stepId) {
-      return validation.failures
+      return validation.fieldFailures
+    }
+
+    return []
+  }
+
+  private getStepDomainValidationFailures(context: ThunkEvaluationContext) {
+    const validation = context.global.validation
+
+    if (validation?.stepId === this.compiledForm.runtimePlan.stepId) {
+      return validation.domainFailures
     }
 
     return []
@@ -235,7 +246,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       stepId: this.compiledForm.runtimePlan.stepId,
       validated: true,
       isValid: validation.isValid,
-      failures: validation.failures,
+      fieldFailures: validation.fieldFailures,
+      domainFailures: validation.domainFailures,
     }
   }
 
@@ -246,7 +258,8 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
       stepId: this.compiledForm.runtimePlan.stepId,
       validated: true,
       isValid: validation.isValid,
-      failures: validation.failures,
+      fieldFailures: validation.fieldFailures,
+      domainFailures: validation.domainFailures,
     }
   }
 }

@@ -17,12 +17,14 @@ export interface StepRuntimePlan {
   fieldIteratorRootIds: NodeId[]
   validationIterateNodeIds: NodeId[]
   validationBlockIds: NodeId[]
+  domainValidationNodeIds: NodeId[]
   renderAncestorIds: NodeId[]
   renderStepId: NodeId
   isRenderSync: boolean
   isAnswerPrepareSync: boolean
   isValidationSync: boolean
   hasValidatingSubmitTransition: boolean
+  hasDomainValidation: boolean
 }
 
 export default class StepRuntimePlanBuilder {
@@ -34,6 +36,7 @@ export default class StepRuntimePlanBuilder {
     const fieldIteratorRootIds = this.findIteratorRootIds(fieldIterateNodeIds, compilationDependencies)
     const validationIterateNodeIds = this.findValidationIterateNodeIds(fieldIterateNodeIds, compilationDependencies)
     const validationBlockIds = this.findValidationBlockIds(compilationDependencies)
+    const domainValidationNodeIds = this.findDomainValidationNodeIds(stepNode)
     const renderAncestorIds = accessAncestorIds.slice(0, -1)
 
     return {
@@ -44,6 +47,7 @@ export default class StepRuntimePlanBuilder {
       fieldIteratorRootIds,
       validationIterateNodeIds,
       validationBlockIds,
+      domainValidationNodeIds,
       renderAncestorIds,
       renderStepId: stepNode.id,
       isRenderSync: this.computeIsRenderSync(stepNode, renderAncestorIds, compilationDependencies),
@@ -51,9 +55,11 @@ export default class StepRuntimePlanBuilder {
       isValidationSync: this.computeIsValidationSync(
         validationIterateNodeIds,
         validationBlockIds,
+        domainValidationNodeIds,
         compilationDependencies,
       ),
       hasValidatingSubmitTransition: this.computeHasValidatingSubmitTransition(stepNode),
+      hasDomainValidation: domainValidationNodeIds.length > 0,
     }
   }
 
@@ -90,6 +96,10 @@ export default class StepRuntimePlanBuilder {
       .filter((node): node is IterateASTNode => node !== undefined)
       .filter(node => ValidationTemplateAnalyzer.mayYieldValidatingFields(node.properties.iterator.yieldTemplate))
       .map(node => node.id)
+  }
+
+  private findDomainValidationNodeIds(stepNode: StepASTNode): NodeId[] {
+    return (stepNode.properties.validate ?? []).map(node => node.id)
   }
 
   private findValidationBlockIds(compilationDependencies: CompilationDependencies): NodeId[] {
@@ -159,7 +169,7 @@ export default class StepRuntimePlanBuilder {
     compilationDependencies: CompilationDependencies,
   ): boolean {
     const handlerRegistry = compilationDependencies.thunkHandlerRegistry
-    const stepExcludedProps = new Set(['onAccess', 'onAction', 'onSubmission', 'blocks'])
+    const stepExcludedProps = new Set(['onAccess', 'onAction', 'onSubmission', 'blocks', 'validate'])
     const ancestorExcludedProps = new Set(['onAccess', 'children', 'steps'])
 
     const blocks = stepNode.properties.blocks ?? []
@@ -199,6 +209,7 @@ export default class StepRuntimePlanBuilder {
   private computeIsValidationSync(
     validationIterateNodeIds: NodeId[],
     validationBlockIds: NodeId[],
+    domainValidationNodeIds: NodeId[],
     compilationDependencies: CompilationDependencies,
   ): boolean {
     const handlerRegistry = compilationDependencies.thunkHandlerRegistry
@@ -226,6 +237,14 @@ export default class StepRuntimePlanBuilder {
         if (!this.isValueTreeSync(block.properties.code, handlerRegistry)) {
           return false
         }
+      }
+    }
+
+    for (const nodeId of domainValidationNodeIds) {
+      const handler = handlerRegistry.get(nodeId)
+
+      if (!handler || handler.isAsync) {
+        return false
       }
     }
 

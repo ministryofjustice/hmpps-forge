@@ -74,12 +74,14 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
+    domainValidationNodeIds: [],
     renderAncestorIds: accessAncestorIds.slice(0, -1),
     renderStepId: ancestors.at(-1)!.id,
     isRenderSync: false,
     isAnswerPrepareSync: false,
     isValidationSync: false,
     hasValidatingSubmitTransition: false,
+    hasDomainValidation: false,
   }
 
   const request = {} as StepRequest

@@ -49,6 +49,7 @@ export interface StepASTNode extends ASTNode {
     backlink?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>
+    validate?: ASTNode[]
   }
 }
 

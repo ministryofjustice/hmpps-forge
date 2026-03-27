@@ -87,6 +87,10 @@ export default class StepFactory {
       properties.data = dataProperties.data
     }
 
+    if (dataProperties.validate !== undefined) {
+      properties.validate = this.nodeFactory.transformValue(dataProperties.validate)
+    }
+
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.STEP,

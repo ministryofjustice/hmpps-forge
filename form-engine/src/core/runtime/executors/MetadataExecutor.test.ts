@@ -17,12 +17,14 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
+    domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: 'compile_ast:1',
     isRenderSync: false,
     isAnswerPrepareSync: false,
     isValidationSync: false,
     hasValidatingSubmitTransition: false,
+    hasDomainValidation: false,
     ...options,
   }
 }

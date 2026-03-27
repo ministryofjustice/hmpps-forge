@@ -29,7 +29,7 @@ function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderC
     blocks: [],
     answers: { email: { current: 'user@example.com', mutations: [] } },
     data: { existingData: 'value' },
-    validationFailures: [],
+    fieldValidationFailures: [],
     ...overrides,
   }
 }
@@ -81,7 +81,8 @@ describe('RenderContextFactory', () => {
       expect(result.answers).toEqual({ email: { current: 'user@example.com', mutations: [] } })
       expect(result.data).toEqual({ existingData: 'value' })
       expect(result.showValidationFailures).toBe(false)
-      expect(result.validationErrors).toEqual([])
+      expect(result.fieldValidationErrors).toEqual([])
+      expect(result.domainValidationErrors).toEqual([])
     })
 
     it('should attach stored validation failures to matching field blocks when enabled', () => {
@@ -101,14 +102,14 @@ describe('RenderContextFactory', () => {
       ]
       const input = createRenderInput({
         blocks: [block],
-        validationFailures: failures,
+        fieldValidationFailures: failures,
       })
 
       // Act
       const result = RenderContextFactory.build(input, { showValidationFailures: true })
 
       // Assert
-      expect(result.validationErrors).toEqual([
+      expect(result.fieldValidationErrors).toEqual([
         {
           blockCode: 'email',
           passed: false,
@@ -141,7 +142,7 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, { showValidationFailures: true })
 
       // Assert
-      expect(result.validationErrors).toEqual([])
+      expect(result.fieldValidationErrors).toEqual([])
       expect(result.blocks[0].properties.validate).toEqual([
         { passed: false, message: 'Existing error', submissionOnly: true },
       ])
@@ -163,7 +164,7 @@ describe('RenderContextFactory', () => {
       } as Evaluated<BlockASTNode>
       const input = createRenderInput({
         blocks: [containerBlock],
-        validationFailures: [
+        fieldValidationFailures: [
           {
             blockId: nestedBlock.id,
             blockCode: 'nested',
@@ -188,6 +189,50 @@ describe('RenderContextFactory', () => {
           submissionOnly: true,
         },
       ])
+    })
+
+    it('should include domain validation errors when showValidationFailures is true', () => {
+      // Arrange
+      const input = createRenderInput({
+        domainValidationFailures: [
+          {
+            passed: false,
+            message: 'Assessment is not open',
+            submissionOnly: false,
+          },
+        ],
+      })
+
+      // Act
+      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+
+      // Assert
+      expect(result.domainValidationErrors).toEqual([
+        {
+          passed: false,
+          message: 'Assessment is not open',
+          submissionOnly: false,
+        },
+      ])
+    })
+
+    it('should not include domain validation errors when showValidationFailures is false', () => {
+      // Arrange
+      const input = createRenderInput({
+        domainValidationFailures: [
+          {
+            passed: false,
+            message: 'Assessment is not open',
+            submissionOnly: false,
+          },
+        ],
+      })
+
+      // Act
+      const result = RenderContextFactory.build(input)
+
+      // Assert
+      expect(result.domainValidationErrors).toEqual([])
     })
 
     it('should build navigation tree with active state from metadata', () => {

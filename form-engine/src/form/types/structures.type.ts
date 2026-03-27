@@ -286,6 +286,10 @@ export interface StepDefinition {
 
   /** Static data available to this step, merged with inherited journey data */
   data?: Record<string, unknown>
+
+  /** Step-level domain validations, evaluated on submission alongside field validations.
+   *  Accepts individual validation expressions or iterable expressions that yield validation arrays. */
+  validate?: (ValidationExpr | unknown)[]
 }
 
 export type ConditionalString =

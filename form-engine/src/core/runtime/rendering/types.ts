@@ -105,7 +105,10 @@ export interface RenderContext {
   showValidationFailures: boolean
 
   /** Failed validation results from field blocks (only populated when showValidationFailures is true) */
-  validationErrors: ValidationResult[]
+  fieldValidationErrors: ValidationResult[]
+
+  /** Failed domain validation results from step-level validations (only populated when showValidationFailures is true) */
+  domainValidationErrors: ValidationResult[]
 
   /** Current answers state */
   answers: Record<string, unknown>

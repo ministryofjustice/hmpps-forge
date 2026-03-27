@@ -9,11 +9,14 @@ export interface StepValidationFailure extends ValidationResult {
   blockId: NodeId
 }
 
+export type DomainValidationFailure = ValidationResult
+
 export interface StepValidationState {
   stepId: NodeId
   validated: boolean
   isValid: boolean
-  failures: StepValidationFailure[]
+  fieldFailures: StepValidationFailure[]
+  domainFailures: DomainValidationFailure[]
 }
 
 /**
