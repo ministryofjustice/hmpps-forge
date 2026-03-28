@@ -85,4 +85,77 @@ describe('html component', () => {
   it('should have the correct variant', () => {
     expect(html.variant).toBe('html')
   })
+
+  describe('tag element', () => {
+    it('should render content within the specified tag', async () => {
+      // Arrange
+      const block = mockBlock({ tag: 'p', content: 'Hello world' })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<p>Hello world</p>')
+    })
+
+    it('should apply classes to the tag element', async () => {
+      // Arrange
+      const block = mockBlock({ tag: 'h1', content: 'Title', classes: 'govuk-heading-l' })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<h1 class="govuk-heading-l">Title</h1>')
+    })
+
+    it('should apply attributes to the tag element', async () => {
+      // Arrange
+      const block = mockBlock({ tag: 'p', content: 'Text', attributes: { id: 'intro' } })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<p id="intro">Text</p>')
+    })
+
+    it('should apply both classes and attributes to the tag element', async () => {
+      // Arrange
+      const block = mockBlock({
+        tag: 'p',
+        content: 'Text',
+        classes: 'govuk-body',
+        attributes: { 'data-test': 'value' },
+      })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<p class="govuk-body" data-test="value">Text</p>')
+    })
+
+    it('should render void elements as self-closing', async () => {
+      // Arrange
+      const block = mockBlock({ tag: 'hr', classes: 'govuk-section-break' })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<hr class="govuk-section-break">')
+    })
+
+    it('should ignore content for void elements', async () => {
+      // Arrange
+      const block = mockBlock({ tag: 'hr', content: 'should be ignored', classes: 'govuk-section-break' })
+
+      // Act
+      const result = await html.render(block)
+
+      // Assert
+      expect(result).toBe('<hr class="govuk-section-break">')
+    })
+  })
 })
