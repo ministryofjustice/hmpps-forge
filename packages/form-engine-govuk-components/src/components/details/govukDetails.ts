@@ -1,13 +1,13 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKDetails component.
@@ -103,5 +103,5 @@ export const govukDetails = buildNunjucksComponent<GovUKDetails>('govukDetails',
  * ```
  */
 export function GovUKDetails(props: GovUKDetailsProps): GovUKDetails {
-  return blockBuilder<GovUKDetails>({ ...props, variant: 'govukDetails' })
+  return buildBlock<GovUKDetails>({ ...props, variant: 'govukDetails' })
 }

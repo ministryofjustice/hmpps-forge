@@ -3,9 +3,9 @@ import {
   ConditionalString,
   FieldBlockDefinition,
   FieldBlockProps,
-} from '@form-engine/form/types/structures.type'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { field } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKPasswordInput component.
@@ -270,5 +270,5 @@ export interface GovUKPasswordInput extends FieldBlockDefinition, GovUKPasswordI
  * ```
  */
 export function GovUKPasswordInput(props: GovUKPasswordInputProps): GovUKPasswordInput {
-  return field<GovUKPasswordInput>({ ...props, variant: 'govukPasswordInput' })
+  return buildField<GovUKPasswordInput>({ ...props, variant: 'govukPasswordInput' })
 }

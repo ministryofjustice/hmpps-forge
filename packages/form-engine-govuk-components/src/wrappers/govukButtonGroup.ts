@@ -1,5 +1,4 @@
-import { TemplateWrapper } from '@form-engine/registry/components/templateWrapper'
-import type { BasicBlockProps, BlockDefinition } from '@form-engine/form/types/structures.type'
+import { TemplateWrapper, BasicBlockProps, BlockDefinition } from 'hmpps-forge/core/components'
 
 export interface GovUKButtonGroupProps extends BasicBlockProps {
   /** The buttons/links to render inside the group. */

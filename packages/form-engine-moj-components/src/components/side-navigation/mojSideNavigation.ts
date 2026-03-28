@@ -1,6 +1,5 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
@@ -8,8 +7,9 @@ import {
   ConditionalBoolean,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Heading configuration for a side navigation section.
@@ -180,5 +180,5 @@ export const mojSideNavigation = buildNunjucksComponent<MOJSideNavigation>('mojS
  * ```
  */
 export function MOJSideNavigation(props: MOJSideNavigationProps): MOJSideNavigation {
-  return blockBuilder<MOJSideNavigation>({ ...props, variant: 'mojSideNavigation' })
+  return buildBlock<MOJSideNavigation>({ ...props, variant: 'mojSideNavigation' })
 }

@@ -1,5 +1,4 @@
-import { HtmlBlock } from '@form-engine/registry/components/html'
-import type { BasicBlockProps } from '@form-engine/form/types/structures.type'
+import { HtmlBlock, BasicBlockProps } from 'hmpps-forge/core/components'
 
 type SectionBreakSize = 'xl' | 'l' | 'm'
 

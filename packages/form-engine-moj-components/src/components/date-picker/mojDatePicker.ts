@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   FieldBlockDefinition,
   FieldBlockProps,
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { field } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Label configuration for the MOJ Date Picker component.
@@ -215,5 +215,5 @@ export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicke
  * ```
  */
 export function MOJDatePicker(props: MOJDatePickerProps): MOJDatePicker {
-  return field<MOJDatePicker>({ ...props, variant: 'mojDatePicker' })
+  return buildField<MOJDatePicker>({ ...props, variant: 'mojDatePicker' })
 }

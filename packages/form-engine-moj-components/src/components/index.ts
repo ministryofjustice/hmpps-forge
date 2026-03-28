@@ -1,4 +1,4 @@
-import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { ComponentRegistryEntry } from 'hmpps-forge/core/components'
 
 import { mojAlert } from './alert/mojAlert'
 import { mojBadge } from './badge/mojBadge'

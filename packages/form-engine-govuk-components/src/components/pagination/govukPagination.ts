@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Pagination link configuration for previous/next navigation.
@@ -139,5 +134,5 @@ export const govukPagination = buildNunjucksComponent<GovUKPagination>('govukPag
  * ```
  */
 export function GovUKPagination(props: GovUKPaginationProps): GovUKPagination {
-  return blockBuilder<GovUKPagination>({ ...props, variant: 'govukPagination' })
+  return buildBlock<GovUKPagination>({ ...props, variant: 'govukPagination' })
 }

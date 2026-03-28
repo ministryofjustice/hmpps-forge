@@ -1,5 +1,4 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
@@ -8,8 +7,9 @@ import {
   ConditionalString,
   EvaluatedBlock,
   RenderedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Heading configuration for an accordion section.
@@ -251,5 +251,5 @@ export const govukAccordion = buildNunjucksComponent<GovUKAccordion>('govukAccor
  * ```
  */
 export function GovUKAccordion(props: GovUKAccordionProps): GovUKAccordion {
-  return blockBuilder<GovUKAccordion>({ ...props, variant: 'govukAccordion' })
+  return buildBlock<GovUKAccordion>({ ...props, variant: 'govukAccordion' })
 }

@@ -1,5 +1,4 @@
-import { HtmlBlock } from '@form-engine/registry/components/html'
-import type { BasicBlockProps, ConditionalString } from '@form-engine/form/types/structures.type'
+import { HtmlBlock, BasicBlockProps, ConditionalString } from 'hmpps-forge/core/components'
 
 type BodySize = 'l' | 's'
 

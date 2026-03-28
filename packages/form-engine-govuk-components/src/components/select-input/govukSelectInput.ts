@@ -4,9 +4,9 @@ import {
   ConditionalString,
   FieldBlockDefinition,
   FieldBlockProps,
-} from '@form-engine/form/types/structures.type'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { field } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Select item configuration
@@ -193,5 +193,5 @@ export interface GovUKSelectInput extends FieldBlockDefinition, GovUKSelectInput
  * ```
  */
 export function GovUKSelectInput(props: GovUKSelectInputProps): GovUKSelectInput {
-  return field<GovUKSelectInput>({ ...props, variant: 'govukSelectInput' })
+  return buildField<GovUKSelectInput>({ ...props, variant: 'govukSelectInput' })
 }

@@ -1,13 +1,8 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Heading configuration object for card items.
@@ -111,12 +106,23 @@ export interface MOJCardGroup extends BlockDefinition, MOJCardGroupProps {
   variant: 'mojCardGroup'
 }
 
+type EvaluatedMOJCardGroupItem = EvaluatedBlock<MOJCardGroup>['items'][number]
+
 /**
  * Normalizes a card item's heading and description to object form
  */
-function normalizeCardItem(item: MOJCardGroupItem) {
+function normalizeCardItem(item: EvaluatedMOJCardGroupItem): {
+  heading: MOJCardGroupItemHeading
+  href: string
+  description: MOJCardGroupItemDescription | undefined
+  clickable: boolean | undefined
+  classes: string | undefined
+  attributes: Record<string, string> | undefined
+} {
+  const heading = typeof item.heading === 'object' ? normalizeHeading(item.heading) : { text: item.heading }
+
   return {
-    heading: typeof item.heading === 'object' ? item.heading : { text: item.heading },
+    heading,
     href: item.href,
     description: item.description
       ? typeof item.description === 'object'
@@ -127,6 +133,23 @@ function normalizeCardItem(item: MOJCardGroupItem) {
     classes: item.classes,
     attributes: item.attributes,
   }
+}
+
+function normalizeHeading(heading: EvaluatedMOJCardGroupItem['heading']): MOJCardGroupItemHeading {
+  if (typeof heading === 'string') {
+    return { text: heading }
+  }
+
+  return {
+    text: heading.text,
+    html: heading.html,
+    classes: heading.classes,
+    level: isHeadingLevel(heading.level) ? heading.level : undefined,
+  }
+}
+
+function isHeadingLevel(value: number | undefined): value is NonNullable<MOJCardGroupItemHeading['level']> {
+  return value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6
 }
 
 /**
@@ -162,5 +185,5 @@ export const mojCardGroup = buildNunjucksComponent<MOJCardGroup>('mojCardGroup',
  * ```
  */
 export function MOJCardGroup(props: MOJCardGroupProps): MOJCardGroup {
-  return blockBuilder<MOJCardGroup>({ ...props, variant: 'mojCardGroup' })
+  return buildBlock<MOJCardGroup>({ ...props, variant: 'mojCardGroup' })
 }

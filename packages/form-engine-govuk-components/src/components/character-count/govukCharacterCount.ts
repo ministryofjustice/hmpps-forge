@@ -4,9 +4,9 @@ import {
   ConditionalString,
   FieldBlockDefinition,
   FieldBlockProps,
-} from '@form-engine/form/types/structures.type'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { field } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKCharacterCount component.
@@ -285,5 +285,5 @@ export interface GovUKCharacterCount extends FieldBlockDefinition, GovUKCharacte
  * ```
  */
 export function GovUKCharacterCount(props: GovUKCharacterCountProps): GovUKCharacterCount {
-  return field<GovUKCharacterCount>({ ...props, variant: 'govukCharacterCount' })
+  return buildField<GovUKCharacterCount>({ ...props, variant: 'govukCharacterCount' })
 }

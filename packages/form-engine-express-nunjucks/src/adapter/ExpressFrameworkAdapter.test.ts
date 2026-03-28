@@ -1,12 +1,16 @@
 import express from 'express'
 import nunjucks from 'nunjucks'
 
-import { FrameworkAdapter, StepHandler } from '@form-engine/core/runtime/routes/types'
-import { Evaluated, RenderContext } from '@form-engine/core/runtime/rendering/types'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import { BlockType } from '@form-engine/form/types/enums'
-import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { BlockASTNode } from '@form-engine/core/types/structures.type'
+import { BlockType } from 'hmpps-forge/core/authoring'
+import {
+  FrameworkAdapter,
+  StepHandler,
+  Evaluated,
+  RenderContext,
+  ASTNodeType,
+  BlockASTNode,
+} from 'hmpps-forge/core/framework'
+import { ComponentRegistry } from 'hmpps-forge/core/components'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
 describe('ExpressFrameworkAdapter', () => {

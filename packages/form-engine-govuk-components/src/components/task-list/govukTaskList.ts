@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Tag configuration for task status.
@@ -254,5 +249,5 @@ export const govukTaskList = buildNunjucksComponent<GovUKTaskList>('govukTaskLis
  * ```
  */
 export function GovUKTaskList(props: GovUKTaskListProps): GovUKTaskList {
-  return blockBuilder<GovUKTaskList>({ ...props, variant: 'govukTaskList' })
+  return buildBlock<GovUKTaskList>({ ...props, variant: 'govukTaskList' })
 }

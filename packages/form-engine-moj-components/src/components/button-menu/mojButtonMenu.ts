@@ -1,6 +1,5 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
@@ -8,8 +7,9 @@ import {
   ConditionalBoolean,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Menu alignment options for the button menu dropdown.
@@ -247,5 +247,5 @@ export const mojButtonMenu = buildNunjucksComponent<MOJButtonMenu>('mojButtonMen
  * ```
  */
 export function MOJButtonMenu(props: MOJButtonMenuProps): MOJButtonMenu {
-  return blockBuilder<MOJButtonMenu>({ ...props, variant: 'mojButtonMenu' })
+  return buildBlock<MOJButtonMenu>({ ...props, variant: 'mojButtonMenu' })
 }

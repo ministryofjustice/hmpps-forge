@@ -1,8 +1,5 @@
-import { Item } from '@form-engine/form/builders'
-import { Iterator } from '@form-engine/form/builders/IteratorBuilder'
-import { HtmlBlock } from '@form-engine/registry/components/html'
-import type { BasicBlockProps } from '@form-engine/form/types/structures.type'
-import type { ChainableExpr, ChainableIterable, ChainableRef } from '@form-engine/form/builders'
+import { Item, ChainableIterable, ChainableRef, Iterator, ChainableExpr } from 'hmpps-forge/core/authoring'
+import { HtmlBlock, BasicBlockProps } from 'hmpps-forge/core/components'
 
 type ListType = 'bullet' | 'number'
 

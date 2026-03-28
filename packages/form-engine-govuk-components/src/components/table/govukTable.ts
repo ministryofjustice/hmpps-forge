@@ -1,13 +1,13 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalArray,
   ConditionalString,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Configuration for a table header cell.
@@ -164,5 +164,5 @@ export const govukTable = buildNunjucksComponent<GovUKTable>('govukTable', table
  * ```
  */
 export function GovUKTable(props: GovUKTableProps): GovUKTable {
-  return blockBuilder<GovUKTable>({ ...props, variant: 'govukTable' })
+  return buildBlock<GovUKTable>({ ...props, variant: 'govukTable' })
 }

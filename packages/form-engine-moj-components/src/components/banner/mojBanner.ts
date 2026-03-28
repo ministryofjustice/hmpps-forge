@@ -1,13 +1,8 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Banner type that determines styling and icon.
@@ -124,5 +119,5 @@ export const mojBanner = buildNunjucksComponent<MOJBanner>('mojBanner', bannerRe
  * ```
  */
 export function MOJBanner(props: MOJBannerProps): MOJBanner {
-  return blockBuilder<MOJBanner>({ ...props, variant: 'mojBanner' })
+  return buildBlock<MOJBanner>({ ...props, variant: 'mojBanner' })
 }

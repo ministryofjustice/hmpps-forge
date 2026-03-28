@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BlockDefinition,
-  BasicBlockProps,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BlockDefinition, BasicBlockProps, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Configuration for a sortable table header cell.
@@ -173,5 +168,5 @@ export const mojSortableTable = buildNunjucksComponent<MOJSortableTable>('mojSor
  * ```
  */
 export function MOJSortableTable(props: MOJSortableTableProps): MOJSortableTable {
-  return blockBuilder<MOJSortableTable>({ ...props, variant: 'mojSortableTable' })
+  return buildBlock<MOJSortableTable>({ ...props, variant: 'mojSortableTable' })
 }

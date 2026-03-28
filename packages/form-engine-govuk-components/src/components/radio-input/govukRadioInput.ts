@@ -6,9 +6,9 @@ import {
   FieldBlockDefinition,
   FieldBlockProps,
   RenderedBlock,
-} from '@form-engine/form/types/structures.type'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { field } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKRadioInput component.
@@ -342,5 +342,5 @@ export interface GovUKRadioInput extends FieldBlockDefinition, GovUKRadioInputPr
  * ```
  */
 export function GovUKRadioInput(props: GovUKRadioInputProps): GovUKRadioInput {
-  return field<GovUKRadioInput>({ ...props, variant: 'govukRadioInput' })
+  return buildField<GovUKRadioInput>({ ...props, variant: 'govukRadioInput' })
 }

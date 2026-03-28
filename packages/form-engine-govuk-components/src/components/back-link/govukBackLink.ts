@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKBackLink component.
@@ -103,5 +98,5 @@ export const govukBackLink = buildNunjucksComponent<GovUKBackLink>('govukBackLin
  * ```
  */
 export function GovUKBackLink(props: GovUKBackLinkProps): GovUKBackLink {
-  return blockBuilder<GovUKBackLink>({ ...props, variant: 'govukBackLink' })
+  return buildBlock<GovUKBackLink>({ ...props, variant: 'govukBackLink' })
 }

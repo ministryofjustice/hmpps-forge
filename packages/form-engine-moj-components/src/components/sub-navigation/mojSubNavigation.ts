@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Navigation item configuration.
@@ -109,5 +109,5 @@ export const mojSubNavigation = buildNunjucksComponent<MOJSubNavigation>('mojSub
  * ```
  */
 export function MOJSubNavigation(props: MOJSubNavigationProps): MOJSubNavigation {
-  return blockBuilder<MOJSubNavigation>({ ...props, variant: 'mojSubNavigation' })
+  return buildBlock<MOJSubNavigation>({ ...props, variant: 'mojSubNavigation' })
 }

@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKInsetText component.
@@ -97,5 +92,5 @@ export const govukInsetText = buildNunjucksComponent<GovUKInsetText>('govukInset
  * ```
  */
 export function GovUKInsetText(props: GovUKInsetTextProps): GovUKInsetText {
-  return blockBuilder<GovUKInsetText>({ ...props, variant: 'govukInsetText' })
+  return buildBlock<GovUKInsetText>({ ...props, variant: 'govukInsetText' })
 }

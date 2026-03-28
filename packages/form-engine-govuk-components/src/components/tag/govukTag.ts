@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKTag component.
@@ -119,5 +114,5 @@ export const govukTag = buildNunjucksComponent<GovUKTag>('govukTag', tagRenderer
  * ```
  */
 export function GovUKTag(props: GovUKTagProps): GovUKTag {
-  return blockBuilder<GovUKTag>({ ...props, variant: 'govukTag' })
+  return buildBlock<GovUKTag>({ ...props, variant: 'govukTag' })
 }

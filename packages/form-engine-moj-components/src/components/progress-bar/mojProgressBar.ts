@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Label configuration for a progress bar item.
@@ -187,5 +187,5 @@ export const mojProgressBar = buildNunjucksComponent<MOJProgressBar>('mojProgres
  * ```
  */
 export function MOJProgressBar(props: MOJProgressBarProps): MOJProgressBar {
-  return blockBuilder<MOJProgressBar>({ ...props, variant: 'mojProgressBar' })
+  return buildBlock<MOJProgressBar>({ ...props, variant: 'mojProgressBar' })
 }

@@ -1,4 +1,4 @@
-import { HtmlBlock } from '@form-engine/registry/components/html'
+import { HtmlBlock } from 'hmpps-forge/core/components'
 import { GovUKButtonGroup } from './govukButtonGroup'
 
 describe('GovUKButtonGroup', () => {

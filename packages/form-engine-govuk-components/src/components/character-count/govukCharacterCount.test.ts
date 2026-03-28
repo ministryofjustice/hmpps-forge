@@ -1,5 +1,5 @@
-import { GovukComponentTestHelper } from '@form-engine-govuk-components/test-utils/GovukComponentTestHelper'
-import { setupComponentTest } from '@form-engine-govuk-components/test-utils/setupComponentTest'
+import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
+import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukCharacterCount } from './govukCharacterCount'
 
 jest.mock('nunjucks')

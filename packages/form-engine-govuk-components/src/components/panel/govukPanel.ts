@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKPanel component.
@@ -114,5 +109,5 @@ export const govukPanel = buildNunjucksComponent<GovUKPanel>('govukPanel', panel
  * ```
  */
 export function GovUKPanel(props: GovUKPanelProps): GovUKPanel {
-  return blockBuilder<GovUKPanel>({ ...props, variant: 'govukPanel' })
+  return buildBlock<GovUKPanel>({ ...props, variant: 'govukPanel' })
 }

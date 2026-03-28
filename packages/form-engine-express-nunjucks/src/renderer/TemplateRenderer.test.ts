@@ -1,10 +1,8 @@
 import nunjucks from 'nunjucks'
 
-import { RenderContext, Evaluated } from '@form-engine/core/runtime/rendering/types'
-import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import { BlockASTNode } from '@form-engine/core/types/structures.type'
-import { ASTNodeType } from '@form-engine/core/types/enums'
-import { BlockType, StructureType } from '@form-engine/form/types/enums'
+import { BlockType, StructureType } from 'hmpps-forge/core/authoring'
+import { RenderContext, Evaluated, BlockASTNode, ASTNodeType } from 'hmpps-forge/core/framework'
+import { ComponentRegistry } from 'hmpps-forge/core/components'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
 

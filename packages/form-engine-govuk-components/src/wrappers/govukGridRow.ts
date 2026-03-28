@@ -1,5 +1,4 @@
-import { TemplateWrapper } from '@form-engine/registry/components/templateWrapper'
-import type { BasicBlockProps, BlockDefinition } from '@form-engine/form/types/structures.type'
+import { TemplateWrapper, BasicBlockProps, BlockDefinition } from 'hmpps-forge/core/components'
 
 type GridColumnWidth = 'full' | 'one-half' | 'one-third' | 'two-thirds' | 'one-quarter' | 'three-quarters' | 'one-sixth'
 

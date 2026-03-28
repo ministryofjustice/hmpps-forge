@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Heading configuration for the filter component.
@@ -198,5 +198,5 @@ export const mojFilter = buildNunjucksComponent<MOJFilter>('mojFilter', filterRe
  * ```
  */
 export function MOJFilter(props: MOJFilterProps): MOJFilter {
-  return blockBuilder<MOJFilter>({ ...props, variant: 'mojFilter' })
+  return buildBlock<MOJFilter>({ ...props, variant: 'mojFilter' })
 }

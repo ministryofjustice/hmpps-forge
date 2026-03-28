@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Message type indicating whether the message was sent or received.
@@ -203,5 +203,5 @@ export const mojMessages = buildNunjucksComponent<MOJMessages>('mojMessages', me
  * ```
  */
 export function MOJMessages(props: MOJMessagesProps): MOJMessages {
-  return blockBuilder<MOJMessages>({ ...props, variant: 'mojMessages' })
+  return buildBlock<MOJMessages>({ ...props, variant: 'mojMessages' })
 }

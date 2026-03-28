@@ -1,10 +1,9 @@
 import type nunjucks from 'nunjucks'
 
-import { BlockDefinition, EvaluatedBlock } from '@form-engine/form/types/structures.type'
-import { StructureType } from '@form-engine/form/types/enums'
-import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { StructureType } from 'hmpps-forge/core/authoring'
+import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from 'hmpps-forge/core/components'
 
-import { NunjucksComponentRenderer } from '../internal/buildNunjucksComponent'
+import { NunjucksComponentRenderer } from 'hmpps-forge/express-nunjucks'
 
 /**
  * Test helper for MOJ Frontend components

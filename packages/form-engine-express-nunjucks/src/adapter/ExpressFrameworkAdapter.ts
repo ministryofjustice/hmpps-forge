@@ -1,20 +1,20 @@
 import type Logger from 'bunyan'
 import express from 'express'
+import nunjucks from 'nunjucks'
+import { ComponentRegistry } from 'hmpps-forge/core/components'
 import {
   CookieMutation,
   CookieOptions,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
+  RenderContext,
   StepHandler,
   StepRequest,
   StepResponse,
-} from '@form-engine/core/runtime/routes/types'
-import { RenderContext } from '@form-engine/core/runtime/rendering/types'
-import ComponentRegistry from '@form-engine/registry/ComponentRegistry'
-import nunjucks from 'nunjucks'
-import TemplateRenderer from '@form-engine-express-nunjucks/renderer/TemplateRenderer'
-import { RequestWithState } from '@form-engine-express-nunjucks/adapter/types'
+} from 'hmpps-forge/core/framework'
+import TemplateRenderer from '../renderer/TemplateRenderer'
+import { RequestWithState } from './types'
 
 export interface ExpressFrameworkAdapterUserOptions {
   /**
@@ -123,8 +123,13 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       getAllHeaders: () => headers,
       getCookie: (name: string) => cookies[name],
       getAllCookies: () => cookies,
-      getParam: (name: string) => params[name],
-      getParams: () => params,
+      getParam: (name: string) => this.normalizeParamValue(params[name]),
+      getParams: () =>
+        Object.fromEntries(
+          Object.entries(params)
+            .map(([name, value]) => [name, this.normalizeParamValue(value)])
+            .filter((entry): entry is [string, string] => entry[1] !== undefined),
+        ),
       getQuery: (name: string) => query[name],
       getAllQuery: () => query,
       getPost: (name: string) => post[name],
@@ -161,11 +166,25 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
         return result
       },
       setCookie: (name: string, value: string, options?: CookieOptions) => {
-        res.cookie(name, value, options)
+        if (options) {
+          res.cookie(name, value, options)
+
+          return
+        }
+
+        res.cookie(name, value)
       },
       getCookie: (name: string) => this.parseSetCookieHeader(res).get(name),
       getAllCookies: () => this.parseSetCookieHeader(res),
     }
+  }
+
+  private normalizeParamValue(value: string | string[] | undefined): string | undefined {
+    if (Array.isArray(value)) {
+      return value[0]
+    }
+
+    return value
   }
 
   /**

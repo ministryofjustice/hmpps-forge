@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKExitThisPage component.
@@ -147,5 +142,5 @@ export const govukExitThisPage = buildNunjucksComponent<GovUKExitThisPage>('govu
  * ```
  */
 export function GovUKExitThisPage(props: GovUKExitThisPageProps): GovUKExitThisPage {
-  return blockBuilder<GovUKExitThisPage>({ ...props, variant: 'govukExitThisPage' })
+  return buildBlock<GovUKExitThisPage>({ ...props, variant: 'govukExitThisPage' })
 }

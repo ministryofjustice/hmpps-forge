@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BlockDefinition,
-  BasicBlockProps,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BlockDefinition, BasicBlockProps, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Configuration for a table header cell.
@@ -181,5 +176,5 @@ export const mojMultiSelect = buildNunjucksComponent<MOJMultiSelect>('mojMultiSe
  * ```
  */
 export function MOJMultiSelect(props: MOJMultiSelectProps): MOJMultiSelect {
-  return blockBuilder<MOJMultiSelect>({ ...props, variant: 'mojMultiSelect' })
+  return buildBlock<MOJMultiSelect>({ ...props, variant: 'mojMultiSelect' })
 }

@@ -1,6 +1,6 @@
-import { GovukComponentTestHelper } from '@form-engine-govuk-components/test-utils/GovukComponentTestHelper'
-import { setupComponentTest } from '@form-engine-govuk-components/test-utils/setupComponentTest'
-import { StructureType } from '@form-engine/form/types/enums'
+import { StructureType } from 'hmpps-forge/core/authoring'
+import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
+import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukTabs } from './govukTabs'
 
 jest.mock('nunjucks')

@@ -1,3 +1,4 @@
+import { ChainableExpr, field as buildField } from 'hmpps-forge/core/authoring'
 import {
   BlockDefinition,
   ConditionalBoolean,
@@ -6,9 +7,8 @@ import {
   FieldBlockDefinition,
   FieldBlockProps,
   RenderedBlock,
-} from '@form-engine/form/types/structures.type'
-import { ChainableExpr, field } from '@form-engine/form/builders'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
 
 /**
  * Props for the GovUKCheckboxInput component.
@@ -340,7 +340,7 @@ const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckbo
   }
 
   // For checkboxes, check if the option value is in the array of values
-  let isChecked: boolean
+  let isChecked = false
   if (option.checked !== undefined) {
     isChecked = Boolean(option.checked)
   } else if (Array.isArray(blockValue)) {
@@ -404,5 +404,5 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition, GovUKCheckboxI
  * ```
  */
 export function GovUKCheckboxInput(props: GovUKCheckboxInputProps): GovUKCheckboxInput {
-  return field<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput', multiple: true })
+  return buildField<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput', multiple: true })
 }

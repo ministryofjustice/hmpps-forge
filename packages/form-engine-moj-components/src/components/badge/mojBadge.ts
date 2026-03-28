@@ -1,13 +1,8 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Available badge colour classes.
@@ -142,5 +137,5 @@ export const mojBadge = buildNunjucksComponent<MOJBadge>('mojBadge', badgeRender
  * ```
  */
 export function MOJBadge(props: MOJBadgeProps): MOJBadge {
-  return blockBuilder<MOJBadge>({ ...props, variant: 'mojBadge' })
+  return buildBlock<MOJBadge>({ ...props, variant: 'mojBadge' })
 }

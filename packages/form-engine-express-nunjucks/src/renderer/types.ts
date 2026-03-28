@@ -1,4 +1,4 @@
-import { RenderContext } from '@form-engine/core/runtime/rendering/types'
+import { RenderContext } from 'hmpps-forge/core/framework'
 
 /** Error format expected by components for displaying validation errors */
 export interface FieldError {

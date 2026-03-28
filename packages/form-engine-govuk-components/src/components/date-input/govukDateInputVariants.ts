@@ -4,9 +4,9 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
-} from '@form-engine/form/types/structures.type'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import { field as fieldBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { field as buildField } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for GOV.UK Date Input Components.
@@ -298,7 +298,7 @@ function buildItems(
       value,
       pattern: '[0-9]*',
       inputmode: 'numeric',
-      classes: combineClasses(field.classes, hasFieldError && 'govuk-input--error'),
+      classes: combineClasses(field.classes, hasFieldError ? 'govuk-input--error' : undefined),
     }
   })
 }
@@ -420,7 +420,7 @@ export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonth
  * ```
  */
 export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFull {
-  return fieldBuilder<GovUKDateInputFull>({ ...props, variant: 'govukDateInputFull' })
+  return buildField<GovUKDateInputFull>({ ...props, variant: 'govukDateInputFull' })
 }
 
 /**
@@ -439,7 +439,7 @@ export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFu
  * ```
  */
 export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateInputYearMonth {
-  return fieldBuilder<GovUKDateInputYearMonth>({ ...props, variant: 'govukDateInputYearMonth' })
+  return buildField<GovUKDateInputYearMonth>({ ...props, variant: 'govukDateInputYearMonth' })
 }
 
 /**
@@ -458,5 +458,5 @@ export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateIn
  * ```
  */
 export function GovUKDateInputMonthDay(props: GovUKDateInputProps): GovUKDateInputMonthDay {
-  return fieldBuilder<GovUKDateInputMonthDay>({ ...props, variant: 'govukDateInputMonthDay' })
+  return buildField<GovUKDateInputMonthDay>({ ...props, variant: 'govukDateInputMonthDay' })
 }

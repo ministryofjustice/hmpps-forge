@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalArray,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Label configuration for a timeline item.
@@ -218,5 +218,5 @@ export const mojTimeline = buildNunjucksComponent<MOJTimeline>('mojTimeline', ti
  * ```
  */
 export function MOJTimeline(props: MOJTimelineProps): MOJTimeline {
-  return blockBuilder<MOJTimeline>({ ...props, variant: 'mojTimeline' })
+  return buildBlock<MOJTimeline>({ ...props, variant: 'mojTimeline' })
 }

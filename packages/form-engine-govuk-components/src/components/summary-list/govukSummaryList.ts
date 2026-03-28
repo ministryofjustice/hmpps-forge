@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Action item for summary list rows or card headers.
@@ -249,5 +244,5 @@ export const govukSummaryList = buildNunjucksComponent<GovUKSummaryList>('govukS
  * ```
  */
 export function GovUKSummaryList(props: GovUKSummaryListProps): GovUKSummaryList {
-  return blockBuilder<GovUKSummaryList>({ ...props, variant: 'govukSummaryList' })
+  return buildBlock<GovUKSummaryList>({ ...props, variant: 'govukSummaryList' })
 }

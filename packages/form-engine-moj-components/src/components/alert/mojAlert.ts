@@ -1,14 +1,14 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Alert variant types that determine styling and icon.
@@ -197,5 +197,5 @@ export const mojAlert = buildNunjucksComponent<MOJAlert>('mojAlert', alertRender
  * ```
  */
 export function MOJAlert(props: MOJAlertProps): MOJAlert {
-  return blockBuilder<MOJAlert>({ ...props, variant: 'mojAlert' })
+  return buildBlock<MOJAlert>({ ...props, variant: 'mojAlert' })
 }

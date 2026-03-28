@@ -1,13 +1,13 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
   EvaluatedBlock,
   RenderedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Panel content configuration for a tab.
@@ -190,5 +190,5 @@ export const govukTabs = buildNunjucksComponent<GovUKTabs>('govukTabs', tabsRend
  * ```
  */
 export function GovUKTabs(props: GovUKTabsProps): GovUKTabs {
-  return blockBuilder<GovUKTabs>({ ...props, variant: 'govukTabs' })
+  return buildBlock<GovUKTabs>({ ...props, variant: 'govukTabs' })
 }

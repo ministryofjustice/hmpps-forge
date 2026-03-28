@@ -9,9 +9,9 @@
  *
  * @example
  * ```typescript
- * import { FormEngine } from '@form-engine/core'
- * import { ExpressFrameworkAdapter } from '@form-engine-express-nunjucks'
- * import { govukComponents } from '@form-engine-govuk-components'
+ * import { FormEngine } from 'hmpps-forge/core'
+ * import { ExpressFrameworkAdapter } from 'hmpps-forge/express-nunjucks'
+ * import { govukComponents } from 'hmpps-forge/govuk-components'
  *
  * const nunjucksEnv = nunjucks.configure([...])
  *
@@ -24,6 +24,6 @@
  * ```
  */
 
-export { default as ExpressFrameworkAdapter } from '@form-engine-express-nunjucks/adapter/ExpressFrameworkAdapter'
-export { buildNunjucksComponent } from '@form-engine-express-nunjucks/utils/buildNunjucksComponent'
-export type { NunjucksComponentRenderer } from '@form-engine-express-nunjucks/utils/buildNunjucksComponent'
+export { default as ExpressFrameworkAdapter } from './adapter/ExpressFrameworkAdapter'
+export { buildNunjucksComponent } from './utils/buildNunjucksComponent'
+export type { NunjucksComponentRenderer } from './utils/buildNunjucksComponent'

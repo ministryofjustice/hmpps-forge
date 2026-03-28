@@ -1,7 +1,6 @@
 import nunjucks from 'nunjucks'
 
-import { BlockDefinition, EvaluatedBlock } from '@form-engine/form/types/structures.type'
-import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from 'hmpps-forge/core/components'
 
 /**
  * Render function for Nunjucks components.
@@ -34,5 +33,15 @@ export const buildNunjucksComponent = <T extends BlockDefinition>(
   render: NunjucksComponentRenderer<T>,
 ): ComponentRegistryEntry<T> => ({
   variant,
-  render: (block, renderer: nunjucks.Environment) => render(block, renderer),
+  render: (block, renderer) => {
+    if (!isNunjucksEnvironment(renderer)) {
+      throw new Error(`Component "${variant}" requires a Nunjucks renderer`)
+    }
+
+    return render(block, renderer)
+  },
 })
+
+function isNunjucksEnvironment(renderer: unknown): renderer is nunjucks.Environment {
+  return renderer instanceof nunjucks.Environment
+}

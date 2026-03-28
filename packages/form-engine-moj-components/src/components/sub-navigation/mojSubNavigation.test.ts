@@ -1,5 +1,5 @@
-import { MojComponentTestHelper } from '@form-engine-moj-components/test-utils/MojComponentTestHelper'
-import { setupComponentTest } from '@form-engine-moj-components/test-utils/setupComponentTest'
+import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
+import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojSubNavigation } from './mojSubNavigation'
 
 jest.mock('nunjucks')

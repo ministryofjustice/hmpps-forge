@@ -1,4 +1,4 @@
-import { ComponentRegistryEntry } from '@form-engine/registry/types/components.type'
+import { ComponentRegistryEntry } from 'hmpps-forge/core/components'
 
 import { govukAccordion } from './accordion/govukAccordion'
 import { govukBackLink } from './back-link/govukBackLink'

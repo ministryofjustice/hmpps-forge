@@ -1,12 +1,7 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Individual breadcrumb item configuration.
@@ -105,5 +100,5 @@ export const govukBreadcrumbs = buildNunjucksComponent<GovUKBreadcrumbs>('govukB
  * ```
  */
 export function GovUKBreadcrumbs(props: GovUKBreadcrumbsProps): GovUKBreadcrumbs {
-  return blockBuilder<GovUKBreadcrumbs>({ ...props, variant: 'govukBreadcrumbs' })
+  return buildBlock<GovUKBreadcrumbs>({ ...props, variant: 'govukBreadcrumbs' })
 }

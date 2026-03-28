@@ -1,13 +1,13 @@
 import type nunjucks from 'nunjucks'
-import { buildNunjucksComponent } from '@form-engine-govuk-components/internal/buildNunjucksComponent'
 import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+} from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKButton component.
@@ -176,7 +176,7 @@ function isLinkButton(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>): blo
  * ```
  */
 export function GovUKButton(props: GovUKButtonProps): GovUKButton {
-  return blockBuilder<GovUKButton>({ ...props, variant: 'govukButton' })
+  return buildBlock<GovUKButton>({ ...props, variant: 'govukButton' })
 }
 
 /**
@@ -194,5 +194,5 @@ export function GovUKButton(props: GovUKButtonProps): GovUKButton {
  * ```
  */
 export function GovUKLinkButton(props: GovUKLinkButtonProps): GovUKLinkButton {
-  return blockBuilder<GovUKLinkButton>({ ...props, variant: 'govukLinkButton' })
+  return buildBlock<GovUKLinkButton>({ ...props, variant: 'govukLinkButton' })
 }

@@ -1,13 +1,8 @@
 import type nunjucks from 'nunjucks'
 
-import { buildNunjucksComponent } from '@form-engine-moj-components/internal/buildNunjucksComponent'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ConditionalString,
-  EvaluatedBlock,
-} from '@form-engine/form/types/structures.type'
-import { block as blockBuilder } from '@form-engine/form/builders'
+import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+import { block as buildBlock } from 'hmpps-forge/core/authoring'
 
 /**
  * Color variants available for ticket panel sections.
@@ -161,5 +156,5 @@ export const mojTicketPanel = buildNunjucksComponent<MOJTicketPanel>('mojTicketP
  * ```
  */
 export function MOJTicketPanel(props: MOJTicketPanelProps): MOJTicketPanel {
-  return blockBuilder<MOJTicketPanel>({ ...props, variant: 'mojTicketPanel' })
+  return buildBlock<MOJTicketPanel>({ ...props, variant: 'mojTicketPanel' })
 }

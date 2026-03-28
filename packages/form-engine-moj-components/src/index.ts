@@ -9,9 +9,9 @@
  *
  * @example
  * ```typescript
- * import { FormEngine } from '@form-engine/core'
- * import { ExpressFrameworkAdapter } from '@form-engine-express-nunjucks'
- * import { mojComponents } from '@form-engine-moj-components'
+ * import { FormEngine } from 'hmpps-forge/core'
+ * import { ExpressFrameworkAdapter } from 'hmpps-forge/express-nunjucks'
+ * import { mojComponents } from 'hmpps-forge/moj-components'
  *
  * const formEngine = new FormEngine({
  *   logger,

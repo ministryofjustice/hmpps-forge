@@ -1,7 +1,7 @@
-import { GovukComponentTestHelper } from '@form-engine-govuk-components/test-utils/GovukComponentTestHelper'
-import { BlockType, StructureType } from '@form-engine/form/types/enums'
-import { BlockDefinition } from '@form-engine/form/types/structures.type'
-import { setupComponentTest } from '@form-engine-govuk-components/test-utils/setupComponentTest'
+import { BlockType, StructureType } from 'hmpps-forge/core/authoring'
+import { BlockDefinition } from 'hmpps-forge/core/components'
+import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
+import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukRadioInput } from './govukRadioInput'
 
 jest.mock('nunjucks')

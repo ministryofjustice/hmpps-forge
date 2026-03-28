@@ -1,0 +1,98 @@
+import { ASTNodeType } from './enums'
+import { BlockType } from '../../authoring/types/enums'
+import { ASTNode } from './engine.type'
+import {
+  AccessTransitionASTNode,
+  ActionTransitionASTNode,
+  SubmitTransitionASTNode,
+  ValidationASTNode,
+} from './expressions.type'
+import type { ViewConfig } from '../../authoring/types/structures.type'
+
+/**
+ * Journey AST node - represents the top-level form journey
+ */
+export interface JourneyASTNode extends ASTNode {
+  type: ASTNodeType.JOURNEY
+  properties: {
+    path: string
+    code: string
+    onAccess?: AccessTransitionASTNode[]
+    steps?: StepASTNode[]
+    children?: JourneyASTNode[]
+    title: string
+    description?: string
+    version?: string
+    view?: ViewConfig
+    entryPath?: string
+    metadata?: Record<string, any>
+    data?: Record<string, unknown>
+  }
+}
+
+/**
+ * Step AST node - represents a single page/step in the journey
+ */
+export interface StepASTNode extends ASTNode {
+  type: ASTNodeType.STEP
+  properties: {
+    path: string
+    code?: string
+    onAccess?: AccessTransitionASTNode[]
+    onAction?: ActionTransitionASTNode[]
+    onSubmission?: SubmitTransitionASTNode[]
+    blocks?: BlockASTNode[]
+    title: string
+    description?: string
+    view?: ViewConfig
+    isEntryPoint?: boolean
+    backlink?: string
+    metadata?: Record<string, any>
+    data?: Record<string, unknown>
+    validate?: ASTNode[]
+  }
+}
+
+/**
+ * Basic Block AST node - for non-field UI components (HTML, dividers, etc.)
+ */
+export interface BasicBlockASTNode extends ASTNode {
+  type: ASTNodeType.BLOCK
+  variant: string
+  blockType: BlockType.BASIC
+  properties: {
+    hidden?: ASTNode // Conditional visibility
+    metadata?: Record<string, any>
+    // Component-specific arbitrary parameters
+    [key: string]: any
+  }
+}
+
+/**
+ * Field Block AST node - for input fields with validation
+ */
+export interface FieldBlockASTNode extends ASTNode {
+  type: ASTNodeType.BLOCK
+  variant: string
+  blockType: BlockType.FIELD
+  properties: {
+    // Known field properties
+    code?: string | ASTNode // Optional because it might not be set initially
+    defaultValue?: ASTNode | any
+    formatters?: ASTNode[] // Array of transformer function AST nodes
+    hidden?: ASTNode
+    validate?: ValidationASTNode[]
+    dependent?: ASTNode
+    value?: ASTNode // Added by normalizer (Self reference)
+    metadata?: Record<string, any>
+    multiple?: boolean
+
+    // Component-specific arbitrary parameters
+    [key: string]: any
+  }
+}
+
+/**
+ * Block AST node - union type for all block variants
+ */
+export type BlockASTNode = BasicBlockASTNode | FieldBlockASTNode

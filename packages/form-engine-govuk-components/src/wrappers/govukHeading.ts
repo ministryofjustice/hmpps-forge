@@ -1,6 +1,5 @@
-import { Format } from '@form-engine/form/builders'
-import { HtmlBlock } from '@form-engine/registry/components/html'
-import type { BasicBlockProps, ConditionalString } from '@form-engine/form/types/structures.type'
+import { Format } from 'hmpps-forge/core/authoring'
+import { HtmlBlock, BasicBlockProps, ConditionalString } from 'hmpps-forge/core/components'
 
 type HeadingSize = 'xl' | 'l' | 'm' | 's'
 type HeadingLevel = 1 | 2 | 3 | 4
