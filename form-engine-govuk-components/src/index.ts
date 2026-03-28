@@ -24,6 +24,18 @@
 
 export { govukComponents } from './components/index'
 export { govukUtilityClasses } from './utils/govukUtilityClasses'
+export { GovUKButtonGroup } from '@form-engine-govuk-components/wrappers/govukButtonGroup'
+export { GovUKGridRow } from '@form-engine-govuk-components/wrappers/govukGridRow'
+export { GovUKSectionBreak } from '@form-engine-govuk-components/wrappers/govukSectionBreak'
+export { GovUKHeading } from '@form-engine-govuk-components/wrappers/govukHeading'
+export { GovUKBody } from '@form-engine-govuk-components/wrappers/govukBody'
+export { GovUKList } from '@form-engine-govuk-components/wrappers/govukList'
+export type { GovUKButtonGroupProps } from '@form-engine-govuk-components/wrappers/govukButtonGroup'
+export type { GovUKGridRowProps, GovUKGridColumn } from '@form-engine-govuk-components/wrappers/govukGridRow'
+export type { GovUKSectionBreakProps } from '@form-engine-govuk-components/wrappers/govukSectionBreak'
+export type { GovUKHeadingProps } from '@form-engine-govuk-components/wrappers/govukHeading'
+export type { GovUKBodyProps } from '@form-engine-govuk-components/wrappers/govukBody'
+export type { GovUKListProps } from '@form-engine-govuk-components/wrappers/govukList'
 
 // Re-export types
 export type {
