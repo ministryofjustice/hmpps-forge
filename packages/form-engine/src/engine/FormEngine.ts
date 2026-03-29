@@ -73,7 +73,7 @@ export interface FormEngineOptions {
 }
 
 export default class FormEngine {
-  private readonly options: FormEngineOptions
+  private readonly options: Required<FormEngineOptions>
 
   private readonly functionRegistry = new FunctionRegistry()
 
@@ -108,12 +108,17 @@ export default class FormEngine {
    * ```
    */
   constructor(constructorOptions: FormEngineOptions) {
-    this.options = {
+    const defaultOptions = {
       disableBuiltInFunctions: false,
       disableBuiltInComponents: false,
       debug: false,
       lazyStepCompilation: true,
       logger: console,
+      basePath: '',
+    }
+
+    this.options = {
+      ...defaultOptions,
       ...constructorOptions,
     }
 
@@ -131,7 +136,7 @@ export default class FormEngine {
       logger: this.options.logger,
       frameworkAdapter: this.options.frameworkAdapter.build({
         componentRegistry: this.componentRegistry,
-        logger: this.options.logger!,
+        logger: this.options.logger,
       }),
     }
 

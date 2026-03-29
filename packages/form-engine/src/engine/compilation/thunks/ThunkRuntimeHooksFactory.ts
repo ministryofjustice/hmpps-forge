@@ -8,6 +8,7 @@ import { CompilationDependencies } from '../CompilationDependencies'
 import FunctionRegistry from '../../FunctionRegistry'
 import { TemplateValue } from '../../types/template.type'
 import TemplateFactory from '../../nodes/template/TemplateFactory'
+import { isASTNode } from '../../typeguards/nodes'
 
 /**
  * Factory for creating runtime hooks used during thunk evaluation.
@@ -77,6 +78,7 @@ export default class ThunkRuntimeHooksFactory {
 
       astNodeIds
         .map(id => pendingOverlay.nodeRegistry.get(id))
+        .filter(isASTNode)
         .forEach((runtimeNode: ASTNode) => {
           runtimeOverlay.runtimeNodes.set(runtimeNode.id, runtimeNode)
         })

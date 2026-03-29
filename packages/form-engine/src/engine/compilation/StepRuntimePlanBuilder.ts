@@ -117,7 +117,10 @@ export default class StepRuntimePlanBuilder {
     let topmostId: NodeId | undefined
 
     while (currentId !== undefined) {
-      const parentId = compilationDependencies.metadataRegistry.get<NodeId>(currentId, 'attachedToParentNode')
+      const parentId: NodeId | undefined = compilationDependencies.metadataRegistry.get<NodeId | undefined>(
+        currentId,
+        'attachedToParentNode',
+      )
 
       if (parentId === undefined) {
         break

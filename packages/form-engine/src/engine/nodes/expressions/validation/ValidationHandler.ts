@@ -105,6 +105,24 @@ export default class ValidationHandler implements ThunkHandler {
     return false
   }
 
+  private toValidationDetails(details: unknown): ValidationResult['details'] {
+    if (details === undefined) {
+      return undefined
+    }
+
+    if (details === null || typeof details !== 'object' || Array.isArray(details)) {
+      return undefined
+    }
+
+    const validationDetails: NonNullable<ValidationResult['details']> = {}
+
+    Object.entries(details).forEach(([key, value]) => {
+      validationDetails[key] = value
+    })
+
+    return validationDetails
+  }
+
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ValidationResult> {
     // Evaluate the 'when' predicate
     const predicateResult = invoker.invokeSync(this.node.properties.when.id, context)
@@ -113,7 +131,9 @@ export default class ValidationHandler implements ThunkHandler {
     const message = evaluateOperandSync(this.node.properties.message, context, invoker)
 
     // Evaluate details (resolve any AST nodes recursively)
-    const evaluatedDetails = evaluatePropertyValueSync(this.node.properties.details, context, invoker)
+    const evaluatedDetails = this.toValidationDetails(
+      evaluatePropertyValueSync(this.node.properties.details, context, invoker),
+    )
 
     // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {
@@ -148,7 +168,9 @@ export default class ValidationHandler implements ThunkHandler {
     const message = await evaluateOperand(this.node.properties.message, context, invoker)
 
     // Evaluate details (resolve any AST nodes recursively)
-    const evaluatedDetails = await evaluatePropertyValue(this.node.properties.details, context, invoker)
+    const evaluatedDetails = this.toValidationDetails(
+      await evaluatePropertyValue(this.node.properties.details, context, invoker),
+    )
 
     // If predicate evaluation fails, treat as invalid with the user's message
     if (predicateResult.error) {

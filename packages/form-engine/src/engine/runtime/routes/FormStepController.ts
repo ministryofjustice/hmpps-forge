@@ -59,11 +59,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
-      return this.redirect(res, req, accessResult.redirect)
+      return this.redirect(res, req, this.getRedirectTarget(accessResult.redirect))
     }
 
     if (accessResult.outcome === 'error') {
-      throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
+      throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
     // TODO: Add 'reachability' check
@@ -88,11 +88,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
-      return this.redirect(res, req, accessResult.redirect)
+      return this.redirect(res, req, this.getRedirectTarget(accessResult.redirect))
     }
 
     if (accessResult.outcome === 'error') {
-      throw createHttpError(accessResult.status, accessResult.message || 'Access denied')
+      throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
     // TODO: Add 'reachability' check
@@ -116,11 +116,11 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const submitResult = await this.transitionExecutor.executeSubmitTransitions(plan, evaluator, context)
 
     if (submitResult.outcome === 'error') {
-      throw createHttpError(submitResult.status!, submitResult.message || 'Submission error')
+      throw createHttpError(this.getErrorStatus(submitResult.status), submitResult.message || 'Submission error')
     }
 
     if (submitResult.outcome === 'redirect') {
-      return this.redirect(res, req, submitResult.redirect)
+      return this.redirect(res, req, this.getRedirectTarget(submitResult.redirect))
     }
 
     const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
@@ -149,6 +149,18 @@ export default class FormStepController<TRequest, TResponse> implements StepCont
     const baseUrl = this.dependencies.frameworkAdapter.getBaseUrl(req)
 
     return this.dependencies.frameworkAdapter.redirect(res, `${baseUrl}/${redirect}`)
+  }
+
+  private getRedirectTarget(redirect: string | undefined): string {
+    if (redirect === undefined) {
+      throw createHttpError(500, 'Transition redirect target is missing')
+    }
+
+    return redirect
+  }
+
+  private getErrorStatus(status: number | undefined): number {
+    return status ?? 500
   }
 
   private async render(

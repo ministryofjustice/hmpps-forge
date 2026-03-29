@@ -1,6 +1,7 @@
 import { NodeId, ASTNode } from '../../../types/engine.type'
 import { IterateASTNode } from '../../../types/expressions.type'
 import { IteratorType } from '../../../../authoring/types/enums'
+import { FieldBlockASTNode } from '../../../types/structures.type'
 import {
   ThunkHandler,
   ThunkInvocationAdapter,
@@ -729,15 +730,15 @@ export default class IterateHandler implements ThunkHandler {
    * Find all field blocks within a node tree that have expression codes (AST nodes)
    * rather than string codes. These need their codes resolved before registration.
    */
-  private findFieldsWithExpressionCodes(node: ASTNode): ASTNode[] {
-    const fields: ASTNode[] = []
+  private findFieldsWithExpressionCodes(node: ASTNode): FieldBlockASTNode[] {
+    const fields: FieldBlockASTNode[] = []
 
     this.collectFieldsWithExpressionCodes(node, fields)
 
     return fields
   }
 
-  private collectFieldsWithExpressionCodes(value: unknown, fields: ASTNode[]): void {
+  private collectFieldsWithExpressionCodes(value: unknown, fields: FieldBlockASTNode[]): void {
     if (value == null || typeof value !== 'object') {
       return
     }

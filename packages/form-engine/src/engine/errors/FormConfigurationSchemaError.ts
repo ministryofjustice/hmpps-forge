@@ -16,7 +16,7 @@ export default class FormConfigurationSchemaError extends Error {
 
   readonly expected?: string
 
-  readonly path?: (string | number)[]
+  readonly path: (string | number)[]
 
   constructor(options: FormConfigurationSchemaErrorOptions) {
     super(options.message)
@@ -29,7 +29,7 @@ export default class FormConfigurationSchemaError extends Error {
 
   toString() {
     const fields = [
-      { label: 'Path', value: this.path.join('.') },
+      { label: 'Path', value: this.path.length > 0 ? this.path.join('.') : 'root' },
       { label: 'Code', value: this.code },
       { label: 'Expected', value: this.expected },
     ]

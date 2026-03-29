@@ -19,16 +19,16 @@ export default class FormConfigurationSerialisationError extends Error {
   readonly type: string
 
   constructor(options: FormConfigurationSerialisationErrorOptions) {
-    super(options.message)
+    const message =
+      options.message ??
+      `${options.type} at ${options.path.length > 0 ? options.path.join('.') : 'root'} (not JSON serializable)`
+
+    super(message)
     this.name = new.target.name
-    this.message = options.message
+    this.path = options.path
     this.type = options.type
     this.code = options.code
-    this.path = options.path
-  }
-
-  private getMessage() {
-    return this.message ?? `${this.type} at ${this.path.length ? this.path.join('.') : 'root'} (not JSON serializable)`
+    this.message = message
   }
 
   toString() {
@@ -37,6 +37,6 @@ export default class FormConfigurationSerialisationError extends Error {
       { label: 'Code', value: this.code },
     ]
 
-    return `${this.name}: ${this.getMessage()} [${formatFields(fields)}]`
+    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }
