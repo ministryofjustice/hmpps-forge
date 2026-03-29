@@ -130,3 +130,6 @@ integration_tests/screenshots/
 
 # LocalStack volume data
 volume/
+
+# Temporary build artifact for Docker (TODO: remove once hmpps-forge is published)
+forge-package/

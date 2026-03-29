@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 import path from 'path'
 import nunjucks from 'nunjucks'
 import express from 'express'
@@ -11,14 +10,24 @@ export default function nunjucksSetup(app: express.Express): void {
   app.set('view engine', 'njk')
 
   app.locals.asset_path = '/assets/'
-  app.locals.applicationName = 'HMPPS Typescript Template'
+  app.locals.applicationName = 'HMPPS Forge Example App'
   app.locals.environmentName = config.environmentName
   app.locals.environmentNameColour = config.environmentName === 'PRE-PRODUCTION' ? 'govuk-tag--green' : ''
   let assetManifest: Record<string, string> = {}
 
   try {
-    const assetMetadataPath = path.resolve(__dirname, '../../assets/manifest.json')
-    assetManifest = JSON.parse(fs.readFileSync(assetMetadataPath, 'utf8'))
+    const paths = [
+      path.join(process.cwd(), 'dist/assets/manifest.json'),
+      path.resolve(__dirname, '../../assets/manifest.json'),
+    ]
+
+    const validPath = paths.find(p => fs.existsSync(p))
+
+    if (!validPath) {
+      throw new Error('Asset manifest not found')
+    }
+
+    assetManifest = JSON.parse(fs.readFileSync(validPath, 'utf8'))
   } catch (e) {
     if (process.env.NODE_ENV !== 'test') {
       logger.error(e, 'Could not read asset manifest file')
@@ -27,6 +36,7 @@ export default function nunjucksSetup(app: express.Express): void {
 
   const njkEnv = nunjucks.configure(
     [
+      path.join(__dirname, 'server/views'),
       path.join(__dirname, '../../server/views'),
       'node_modules/govuk-frontend/dist/',
       'node_modules/@ministryofjustice/frontend/',
@@ -34,7 +44,6 @@ export default function nunjucksSetup(app: express.Express): void {
     {
       autoescape: true,
       express: app,
-      noCache: process.env.NODE_ENV !== 'production',
     },
   )
 

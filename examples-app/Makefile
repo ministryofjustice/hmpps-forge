@@ -18,8 +18,12 @@ default: help
 help: ## The help text you're reading.
 	@grep --no-filename -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+# TODO: Remove forge-package copy once @ministryofjustice/hmpps-forge is published to npm
 prod-build: ## Builds a production image of the app.
-	docker compose ${PROD_COMPOSE_FILES} build app
+	rm -rf forge-package
+	mkdir -p forge-package && cp -r ../packages/dist ../packages/package.json forge-package/
+	docker compose ${PROD_COMPOSE_FILES} build app; \
+	EXIT_CODE=$$?; rm -rf forge-package; exit $$EXIT_CODE
 
 prod-up: ## Starts/restarts the app in a production container.
 	docker compose ${PROD_COMPOSE_FILES} down app
@@ -57,6 +61,7 @@ lint: ## Runs the linter.
 lint-fix: ## Automatically fixes linting issues.
 	docker compose exec ${SERVICE_NAME} npm run lint-fix
 
+# TODO(unpublished-forge): Remove the node -e forge strip once published. Restore plain npm ci.
 install-node-modules: ## Installs Node modules into the Docker volume.
 	@docker volume create ${PROJECT_NAME}_node_modules > /dev/null 2>&1 || true
 	@docker run --rm \

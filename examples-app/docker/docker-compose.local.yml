@@ -9,7 +9,7 @@ services:
     volumes:
       - ../:/app:cached
       - node_modules:/app/node_modules
-      - ../../packages:/app/node_modules/@ministryofjustice/hmpps-forge:cached
+      - ../../packages:/app/node_modules/@ministryofjustice/hmpps-forge:cached # TODO(unpublished-forge): Remove once published
     environment:
       NODE_ENV: development
       ENVIRONMENT_NAME: dev
