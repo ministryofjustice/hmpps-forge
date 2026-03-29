@@ -1,0 +1,45 @@
+# `docker-compose.base.yml` defines common configuration shared across all deployment states.
+# Other compose files (local, test) extend or override these settings as needed.
+
+services:
+  redis:
+    image: redis:8.6
+    networks:
+      - hmpps
+    ports:
+      - "6379:6379"
+    environment:
+      ALLOW_EMPTY_PASSWORD: yes
+
+  app:
+    image: ghcr.io/ministryofjustice/hmpps-forge-examples:${APP_VERSION:-local}
+    networks:
+      - hmpps
+    depends_on:
+      - redis
+    build:
+      context: ../
+      target: production
+      args:
+        BUILD_NUMBER: "1.0.0"
+        GIT_REF: "a1b2c3"
+        GIT_BRANCH: main
+    command: npm run start
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 5s
+      retries: 20
+    environment:
+      PRODUCT_ID: UNASSIGNED
+      REDIS_ENABLED: true
+      REDIS_HOST: redis
+      SESSION_SECRET: somesecretvalue
+      INGRESS_URL: http://localhost:3000
+      NO_HTTPS: true
+      TOKEN_VERIFICATION_ENABLED: false
+
+networks:
+  hmpps:

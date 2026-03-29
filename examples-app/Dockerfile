@@ -1,38 +1,42 @@
 # Stage: base image
 FROM ghcr.io/ministryofjustice/hmpps-node:24-alpine AS base
 
+# Stage: development target (used by docker-compose.local.yml)
+FROM base AS development
+ENV NODE_ENV=development
+
+# Stage: install ALL dependencies (dev + prod) for building
+FROM base AS deps
+COPY package*.json .allowed-scripts.mjs ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm run setup
+
+# Stage: install ONLY production dependencies
+FROM base AS prod-deps
+COPY package*.json .allowed-scripts.mjs ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
+
+# Stage: build assets using full deps
+FROM deps AS build
+COPY . .
+RUN npm run build
+
+# Stage: production image
+FROM base AS production
+
 ARG BUILD_NUMBER
 ARG GIT_REF
 ARG GIT_BRANCH
 
-# Cache breaking and ensure required build / git args defined
 RUN test -n "$BUILD_NUMBER" || (echo "BUILD_NUMBER not set" && false)
 RUN test -n "$GIT_REF" || (echo "GIT_REF not set" && false)
 RUN test -n "$GIT_BRANCH" || (echo "GIT_BRANCH not set" && false)
 
-# Define env variables for runtime health / info
-ENV BUILD_NUMBER=${BUILD_NUMBER}
-ENV GIT_REF=${GIT_REF}
-ENV GIT_BRANCH=${GIT_BRANCH}
-
-# Stage: build assets
-FROM base AS build
-
-ARG BUILD_NUMBER
-ARG GIT_REF
-ARG GIT_BRANCH
-
-COPY package*.json .allowed-scripts.mjs ./
-RUN NPM_CONFIG_AUDIT=false NPM_CONFIG_FUND=false npm run setup
-ENV NODE_ENV='production'
-
-COPY . .
-RUN npm run build
-
-RUN npm prune --no-audit --no-fund --omit=dev
-
-# Stage: copy production assets and dependencies
-FROM base
+ENV BUILD_NUMBER=${BUILD_NUMBER} \
+    GIT_REF=${GIT_REF} \
+    GIT_BRANCH=${GIT_BRANCH} \
+    NODE_ENV=production
 
 COPY --from=build --chown=appuser:appgroup \
         /app/package.json \
@@ -42,11 +46,10 @@ COPY --from=build --chown=appuser:appgroup \
 COPY --from=build --chown=appuser:appgroup \
         /app/dist ./dist
 
-COPY --from=build --chown=appuser:appgroup \
+COPY --from=prod-deps --chown=appuser:appgroup \
         /app/node_modules ./node_modules
 
 EXPOSE 3000
-ENV NODE_ENV='production'
 USER 2000
 
 CMD [ "npm", "start" ]

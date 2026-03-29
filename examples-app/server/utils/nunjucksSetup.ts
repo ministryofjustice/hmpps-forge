@@ -5,7 +5,7 @@ import express from 'express'
 import fs from 'fs'
 import { initialiseName } from './utils'
 import config from '../config'
-import logger from '../../logger'
+import logger from '../logger'
 
 export default function nunjucksSetup(app: express.Express): void {
   app.set('view engine', 'njk')

@@ -184,11 +184,7 @@ class ServerManager {
       this.serverProcess = null
     }
 
-    const nodeArgs = [
-      ...(this.options.envFile ? [`--env-file=${this.options.envFile}`] : []),
-      '--enable-source-maps',
-      'dist/server.js',
-    ]
+    const nodeArgs = ['--inspect=0.0.0.0', '--enable-source-maps', 'dist/server.js']
 
     this.serverProcess = spawnPrefixed('node', nodeArgs, {
       label: this.options.label,
@@ -238,17 +234,8 @@ function cleanPlugin(patterns = []) {
   }
 }
 
-function getEnvFile(args) {
-  const index = args.findIndex(arg => arg === '--env' || arg.startsWith('--env='))
-  if (index === -1) return '.env'
-
-  const value = args[index].slice(6) || args[index + 1]
-  return value && !value.startsWith('--') ? value : '.env'
-}
-
 module.exports = {
   emojis,
-  getEnvFile,
   buildNotificationPlugin,
   cleanPlugin,
   ESBuildManager,

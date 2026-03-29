@@ -1,0 +1,35 @@
+# docker-compose.test.yml is used to spin up the app specifically for integration testing.
+
+services:
+  app:
+    build:
+      target: production
+    command: npm run start
+    environment:
+      NODE_ENV: production
+      INGRESS_URL: http://app:3000
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.58.2-noble
+    networks:
+      - hmpps
+    depends_on:
+      - app
+    environment:
+      CI: true
+      BASE_URL: http://app:3000
+      WIREMOCK_URL: http://wiremock:8080/__admin
+    working_dir: /playwright
+    command: npx playwright test
+    volumes:
+      - ../package.json:/playwright/package.json
+      - ../package-lock.json:/playwright/package-lock.json
+      - ../playwright.config.ts:/playwright/playwright.config.ts
+      - ../integration_tests:/playwright/integration_tests
+      - ../test_results:/playwright/test_results
+      - node_modules:/playwright/node_modules
+
+volumes:
+  node_modules:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME}_node_modules

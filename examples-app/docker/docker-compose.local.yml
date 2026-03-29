@@ -1,0 +1,21 @@
+# `docker-compose.local.yml` defines services that must be run locally
+# to support a fully self-contained local development environment.
+
+services:
+  app:
+    build:
+      target: development
+    command: npm run start:dev
+    volumes:
+      - ../:/app:cached
+      - node_modules:/app/node_modules
+      - ../../packages:/app/node_modules/@ministryofjustice/hmpps-forge:cached
+    environment:
+      NODE_ENV: development
+      ENVIRONMENT_NAME: dev
+      NODE_CLUSTER_ENABLED: false
+
+volumes:
+  node_modules:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME}_node_modules
