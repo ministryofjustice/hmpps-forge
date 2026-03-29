@@ -3,6 +3,7 @@
   "compileOnSave": true,
   "compilerOptions": {
     "isolatedModules": true,
+    "rootDir": ".",
     "outDir": "./dist",
     "sourceMap": true,
     "noEmit": false,

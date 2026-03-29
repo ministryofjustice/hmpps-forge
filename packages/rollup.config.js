@@ -24,12 +24,12 @@ var subpaths = {
     'govuk-components': 'form-engine-govuk-components/src/index.ts',
     'moj-components': 'form-engine-moj-components/src/index.ts',
 };
-var external = ['bunyan', 'express', 'express-session', 'hmpps-forge/core', 'http-errors', 'nunjucks', 'zod'];
+var external = ['bunyan', 'express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod'];
 var externalPrefixes = [
-    'hmpps-forge/core/',
-    'hmpps-forge/express-nunjucks',
-    'hmpps-forge/govuk-components',
-    'hmpps-forge/moj-components',
+    '@ministryofjustice/hmpps-forge/core/',
+    '@ministryofjustice/hmpps-forge/express-nunjucks',
+    '@ministryofjustice/hmpps-forge/govuk-components',
+    '@ministryofjustice/hmpps-forge/moj-components',
 ];
 var isExternal = function (id) {
     if (external.includes(id)) {
@@ -57,7 +57,28 @@ var jsConfigs = Object.entries(subpaths).map(function (_a) {
         external: isExternal,
     });
 });
-var dtsConfigs = Object.entries(subpaths).map(function (_a) {
+var formEngineSubpaths = {
+    'core/index': 'form-engine/src/index.ts',
+    'core/authoring/index': 'form-engine/src/authoring/index.ts',
+    'core/components/index': 'form-engine/src/components/index.ts',
+    'core/framework/index': 'form-engine/src/framework/index.ts',
+    'core/testing/index': 'form-engine/src/testing/index.ts',
+};
+var otherSubpaths = {
+    'express-nunjucks': 'form-engine-express-nunjucks/src/index.ts',
+    'govuk-components': 'form-engine-govuk-components/src/index.ts',
+    'moj-components': 'form-engine-moj-components/src/index.ts',
+};
+var formEngineDtsConfig = {
+    input: formEngineSubpaths,
+    output: {
+        dir: 'dist',
+        format: 'esm',
+    },
+    plugins: [(0, rollup_plugin_dts_1.dts)({ tsconfig: './tsconfig.json', respectExternal: true })],
+    external: isExternal,
+};
+var otherDtsConfigs = Object.entries(otherSubpaths).map(function (_a) {
     var name = _a[0], input = _a[1];
     return ({
         input: input,
@@ -70,4 +91,4 @@ var dtsConfigs = Object.entries(subpaths).map(function (_a) {
         external: isExternal,
     });
 });
-exports.default = __spreadArray(__spreadArray([], jsConfigs, true), dtsConfigs, true);
+exports.default = __spreadArray(__spreadArray(__spreadArray([], jsConfigs, true), [formEngineDtsConfig], false), otherDtsConfigs, true);

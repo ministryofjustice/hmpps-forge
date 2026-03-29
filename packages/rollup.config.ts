@@ -49,7 +49,31 @@ const jsConfigs = Object.entries(subpaths).map(([name, input]) => ({
   external: isExternal,
 }))
 
-const dtsConfigs = Object.entries(subpaths).map(([name, input]) => ({
+const formEngineSubpaths = {
+  'core/index': 'form-engine/src/index.ts',
+  'core/authoring/index': 'form-engine/src/authoring/index.ts',
+  'core/components/index': 'form-engine/src/components/index.ts',
+  'core/framework/index': 'form-engine/src/framework/index.ts',
+  'core/testing/index': 'form-engine/src/testing/index.ts',
+}
+
+const otherSubpaths = {
+  'express-nunjucks': 'form-engine-express-nunjucks/src/index.ts',
+  'govuk-components': 'form-engine-govuk-components/src/index.ts',
+  'moj-components': 'form-engine-moj-components/src/index.ts',
+}
+
+const formEngineDtsConfig = {
+  input: formEngineSubpaths,
+  output: {
+    dir: 'dist',
+    format: 'esm',
+  },
+  plugins: [dts({ tsconfig: './tsconfig.json', respectExternal: true })],
+  external: isExternal,
+}
+
+const otherDtsConfigs = Object.entries(otherSubpaths).map(([name, input]) => ({
   input,
   output: {
     file: `dist/${name}/index.d.ts`,
@@ -60,4 +84,4 @@ const dtsConfigs = Object.entries(subpaths).map(([name, input]) => ({
   external: isExternal,
 }))
 
-export default [...jsConfigs, ...dtsConfigs]
+export default [...jsConfigs, formEngineDtsConfig, ...otherDtsConfigs]

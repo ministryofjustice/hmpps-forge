@@ -31,6 +31,7 @@
     "@ministryofjustice/frontend": "^8.0.0",
     "@ministryofjustice/hmpps-auth-clients": "^1.0.1",
     "@ministryofjustice/hmpps-azure-telemetry": "0.0.1-alpha.1",
+    "@ministryofjustice/hmpps-forge": "file:../packages",
     "@ministryofjustice/hmpps-monitoring": "^1.0.1",
     "@ministryofjustice/hmpps-rest-client": "^1.0.0",
     "bunyan": "^1.8.15",
@@ -50,8 +51,7 @@
     "passport": "^0.7.0",
     "passport-oauth2": "^1.8.0",
     "redis": "^5.11.0",
-    "superagent": "^10.3.0",
-    "@ministryofjustice/hmpps-forge": "*"
+    "superagent": "^10.3.0"
   },
   "devDependencies": {
     "@jgoz/esbuild-plugin-typecheck": "^4.0.4",

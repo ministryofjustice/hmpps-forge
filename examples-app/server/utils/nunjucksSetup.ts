@@ -6,13 +6,16 @@ import { initialiseName } from './utils'
 import config from '../config'
 import logger from '../logger'
 
-export default function nunjucksSetup(app: express.Express): void {
+export default function nunjucksSetup(app: express.Express): nunjucks.Environment {
   app.set('view engine', 'njk')
 
-  app.locals.asset_path = '/assets/'
-  app.locals.applicationName = 'HMPPS Forge Example App'
-  app.locals.environmentName = config.environmentName
-  app.locals.environmentNameColour = config.environmentName === 'PRE-PRODUCTION' ? 'govuk-tag--green' : ''
+  const { locals } = app
+
+  locals.asset_path = '/assets/'
+  locals.applicationName = 'HMPPS Forge Example App'
+  locals.environmentName = config.environmentName
+  locals.environmentNameColour = config.environmentName === 'PRE-PRODUCTION' ? 'govuk-tag--green' : ''
+
   let assetManifest: Record<string, string> = {}
 
   try {
@@ -49,4 +52,6 @@ export default function nunjucksSetup(app: express.Express): void {
 
   njkEnv.addFilter('initialiseName', initialiseName)
   njkEnv.addFilter('assetMap', (url: string) => assetManifest[url] || url)
+
+  return njkEnv
 }

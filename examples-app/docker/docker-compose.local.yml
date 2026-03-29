@@ -5,17 +5,21 @@ services:
   app:
     build:
       target: development
+    working_dir: /app/examples-app
     command: npm run start:dev
     volumes:
-      - ../:/app:cached
-      - node_modules:/app/node_modules
-      - ../../packages:/app/node_modules/@ministryofjustice/hmpps-forge:cached # TODO(unpublished-forge): Remove once published
+      - ../../:/app:cached
+      - root_node_modules:/app/node_modules
+      - examples_app_node_modules:/app/examples-app/node_modules
     environment:
       NODE_ENV: development
       ENVIRONMENT_NAME: dev
       NODE_CLUSTER_ENABLED: false
 
 volumes:
-  node_modules:
+  root_node_modules:
     external: true
     name: ${COMPOSE_PROJECT_NAME}_node_modules
+  examples_app_node_modules:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME}_examples_app_node_modules

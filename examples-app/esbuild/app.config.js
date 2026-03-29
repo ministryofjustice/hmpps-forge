@@ -13,6 +13,9 @@ const getAppConfig = buildConfig => ({
   sourcemap: true,
   platform: 'node',
   format: 'cjs',
+  loader: {
+    '.njk': 'empty',
+  },
   plugins: [
     typecheckPlugin({ watch: buildConfig.isWatchMode }),
     copy({
