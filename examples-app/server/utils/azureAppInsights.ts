@@ -1,5 +1,5 @@
 import { initialiseTelemetry, flushTelemetry, telemetry } from '@ministryofjustice/hmpps-azure-telemetry'
-import logger from '../../logger'
+import logger from '../logger'
 
 initialiseTelemetry({
   serviceName: 'hmpps-template-typescript',
