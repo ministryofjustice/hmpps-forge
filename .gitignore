@@ -117,6 +117,7 @@ dist
 
 
 .idea
+*.iml
 .vscode
 dist/
 test_results/

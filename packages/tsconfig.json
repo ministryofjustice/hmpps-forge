@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "./dist",
+    "declarationDir": "./dist",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "paths": {
+      "hmpps-forge/core": ["form-engine/src/index.ts"],
+      "hmpps-forge/core/authoring": ["form-engine/src/authoring/index.ts"],
+      "hmpps-forge/core/components": ["form-engine/src/components/index.ts"],
+      "hmpps-forge/core/framework": ["form-engine/src/framework/index.ts"],
+      "hmpps-forge/core/testing": ["form-engine/src/testing/index.ts"],
+      "hmpps-forge/express-nunjucks": ["form-engine-express-nunjucks/src/index.ts"],
+      "hmpps-forge/govuk-components": ["form-engine-govuk-components/src/index.ts"],
+      "hmpps-forge/moj-components": ["form-engine-moj-components/src/index.ts"]
+    }
+  },
+  "include": ["./**/src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}

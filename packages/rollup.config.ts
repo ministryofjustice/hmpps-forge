@@ -5,25 +5,17 @@ import { dts } from 'rollup-plugin-dts'
 /* eslint-enable import/no-extraneous-dependencies */
 
 const subpaths = {
-  core: 'packages/form-engine/src/index.ts',
-  'core/authoring': 'packages/form-engine/src/authoring/index.ts',
-  'core/components': 'packages/form-engine/src/components/index.ts',
-  'core/framework': 'packages/form-engine/src/framework/index.ts',
-  'core/testing': 'packages/form-engine/src/testing/index.ts',
-  'express-nunjucks': 'packages/form-engine-express-nunjucks/src/index.ts',
-  'govuk-components': 'packages/form-engine-govuk-components/src/index.ts',
-  'moj-components': 'packages/form-engine-moj-components/src/index.ts',
+  core: 'form-engine/src/index.ts',
+  'core/authoring': 'form-engine/src/authoring/index.ts',
+  'core/components': 'form-engine/src/components/index.ts',
+  'core/framework': 'form-engine/src/framework/index.ts',
+  'core/testing': 'form-engine/src/testing/index.ts',
+  'express-nunjucks': 'form-engine-express-nunjucks/src/index.ts',
+  'govuk-components': 'form-engine-govuk-components/src/index.ts',
+  'moj-components': 'form-engine-moj-components/src/index.ts',
 }
 
-const external = [
-  'bunyan',
-  'express',
-  'express-session',
-  'hmpps-forge/core',
-  'http-errors',
-  'nunjucks',
-  'zod',
-]
+const external = ['bunyan', 'express', 'express-session', 'hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
 const externalPrefixes = [
   'hmpps-forge/core/',
   'hmpps-forge/express-nunjucks',

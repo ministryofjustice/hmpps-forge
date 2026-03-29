@@ -2,7 +2,7 @@ import hmppsConfig from '@ministryofjustice/eslint-config-hmpps'
 
 export default [
   ...hmppsConfig({
-    extraIgnorePaths: ['dist/'],
+    extraIgnorePaths: ['dist/', '*.config.*'],
   }),
   {
     rules: {
@@ -29,7 +29,7 @@ export default [
     },
   },
   {
-    files: ['packages/form-engine/**/*.ts'],
+    files: ['form-engine/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -40,7 +40,7 @@ export default [
     },
   },
   {
-    files: ['packages/form-engine-express-nunjucks/**/*.ts'],
+    files: ['form-engine-express-nunjucks/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -60,7 +60,7 @@ export default [
     },
   },
   {
-    files: ['packages/form-engine-govuk-components/**/*.ts'],
+    files: ['form-engine-govuk-components/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -80,7 +80,7 @@ export default [
     },
   },
   {
-    files: ['packages/form-engine-moj-components/**/*.ts'],
+    files: ['form-engine-moj-components/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -100,13 +100,13 @@ export default [
     },
   },
   {
-    files: ['packages/form-engine-moj-components/**/*.ts'],
+    files: ['form-engine-moj-components/**/*.ts'],
     rules: {
       'no-nested-ternary': 'off',
     },
   },
   {
-    files: ['packages/form-engine-govuk-components/**/*.ts'],
+    files: ['form-engine-govuk-components/**/*.ts'],
     rules: {
       'no-nested-ternary': 'off',
     },

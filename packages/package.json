@@ -57,8 +57,8 @@
     "build": "rollup -c rollup.config.ts --bundleConfigAsCjs",
     "clean": "rm -rf ./dist/",
     "test": "jest",
-    "lint": "eslint packages --cache --max-warnings 0",
-    "lint-fix": "eslint packages --cache --max-warnings 0 --fix",
+    "lint": "eslint . --cache --max-warnings 0",
+    "lint-fix": "eslint . --cache --max-warnings 0 --fix",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
