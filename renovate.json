@@ -37,12 +37,7 @@
     },
     {
       "matchManagers": ["github-actions"],
-      "matchFileNames": ["**/.github/workflows/**/*.ya?ml"],
-      "separateMinorPatch": true
-    },
-    {
-      "matchManagers": ["pre-commit"],
-      "groupName": "all pre-commit dependencies"
+      "fileMatch": ["^\\.github/workflows/.*\\.yml$"]
     }
   ],
   "vulnerabilityAlerts": {

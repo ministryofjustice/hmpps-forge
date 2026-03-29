@@ -1,20 +1,5 @@
 # Change log
 
-**February 26th 2026** - Run lint, tests and type checking on package-lock changes.
-
-There was an issue where precommit hooks weren't firing for package-lock changes.
-
-See PR [#679](https://github.com/ministryofjustice/hmpps-template-typescript/pull/679)
-
-**February 5th 2026** - Move over to use new version of pre-commit library.
-
-The new version of the library moves away from pre-commit to [prek](https://prek.j178.dev/cli/), which is a rust port of [pre-commit](https://pre-commit.com/).
-
-See pre-commit library README for more details of how to use [here](https://github.com/ministryofjustice/hmpps-typescript-lib/tree/main/packages/precommit-hooks).
-
-See PR [#648](https://github.com/ministryofjustice/hmpps-template-typescript/pull/648)
-
-
 **February 4th 2026** - Fix issue with running allowed scripts silently failing .
 
 This fixes an issue where allowed scripts were not running on the docker image:
@@ -34,7 +19,7 @@ This fixes an issue where every second asset build would result in this error:
 ```
 ℹ  Typecheck started…
 [ESBuild] ✘ [ERROR] Invalid option from onStart() callback in plugin "clean": "0" [plugin clean]
-[ESBuild]
+[ESBuild] 
 [ESBuild]     node_modules/esbuild/lib/main.js:259:12:
 [ESBuild]       259 │       throw new Error(`Invalid option ${where}: ${quote(key)}`);
 ```
@@ -51,9 +36,9 @@ This has an improvement which means `.allowed-scripts.mjs` no longer needs to be
 
 See PR [#643](https://github.com/ministryofjustice/hmpps-template-typescript/pull/643)
 
-**December 4th 2025** - Move to use shared HMPPS typescript base image
+**December 4th 2025** - Remove mocha-junit-reporter and reporter-config.json.
 
-Replaced the custom Node.js base image setup with the standardized `hmpps-node:24-alpine` base image from GitHub Container Registry `hmpps-base-container-images`. This simplifies maintenance and ensures consistency across projects.
+Replaced the custom Node.js base image setup with the standardized `hmpps-node:24-alpine` base image from GitHub Container Registry `hmpps-base-container-images`. This simplifies maintenance and ensures consistency across projects. 
 
 See PR [#638](https://github.com/ministryofjustice/hmpps-template-typescript/pull/638)
 
@@ -75,8 +60,8 @@ See PR [#635](https://github.com/ministryofjustice/hmpps-template-typescript/pul
 Adding script allowlist library to provide some level of protection against supply chain attacks.
 
 Developers and build agents will need to run `npm run setup` rather than `npm install` or `npm ci` as otherwise, necessary `postinstall` scripts may not be run.
-
-See [here](https://github.com/ministryofjustice/hmpps-typescript-lib/blob/main/packages/npm-script-allowlist/README.md) for more information.
+ 
+See [here](https://github.com/ministryofjustice/hmpps-typescript-lib/blob/main/packages/npm-script-allowlist/README.md) for more information. 
 
 See PR [#632](https://github.com/ministryofjustice/hmpps-template-typescript/pull/632)
 
