@@ -7,14 +7,14 @@ export default {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
   moduleNameMapper: {
-    '^hmpps-forge/core$': '<rootDir>/form-engine/src/index.ts',
-    '^hmpps-forge/core/authoring$': '<rootDir>/form-engine/src/authoring/index.ts',
-    '^hmpps-forge/core/components$': '<rootDir>/form-engine/src/components/index.ts',
-    '^hmpps-forge/core/framework$': '<rootDir>/form-engine/src/framework/index.ts',
-    '^hmpps-forge/core/testing$': '<rootDir>/form-engine/src/testing/index.ts',
-    '^hmpps-forge/express-nunjucks$': '<rootDir>/form-engine-express-nunjucks/src/index.ts',
-    '^hmpps-forge/govuk-components$': '<rootDir>/form-engine-govuk-components/src/index.ts',
-    '^hmpps-forge/moj-components$': '<rootDir>/form-engine-moj-components/src/index.ts',
+    '^@ministryofjustice/hmpps-forge/core$': '<rootDir>/form-engine/src/index.ts',
+    '^@ministryofjustice/hmpps-forge/core/authoring$': '<rootDir>/form-engine/src/authoring/index.ts',
+    '^@ministryofjustice/hmpps-forge/core/components$': '<rootDir>/form-engine/src/components/index.ts',
+    '^@ministryofjustice/hmpps-forge/core/framework$': '<rootDir>/form-engine/src/framework/index.ts',
+    '^@ministryofjustice/hmpps-forge/core/testing$': '<rootDir>/form-engine/src/testing/index.ts',
+    '^@ministryofjustice/hmpps-forge/express-nunjucks$': '<rootDir>/form-engine-express-nunjucks/src/index.ts',
+    '^@ministryofjustice/hmpps-forge/govuk-components$': '<rootDir>/form-engine-govuk-components/src/index.ts',
+    '^@ministryofjustice/hmpps-forge/moj-components$': '<rootDir>/form-engine-moj-components/src/index.ts',
   },
   coverageThreshold: {
     global: {

@@ -1,7 +1,12 @@
 import type nunjucks from 'nunjucks'
-import { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from 'hmpps-forge/core/components'
-import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
-import { block as buildBlock } from 'hmpps-forge/core/authoring'
+import {
+  BasicBlockProps,
+  BlockDefinition,
+  ConditionalString,
+  EvaluatedBlock,
+} from '@ministryofjustice/hmpps-forge/core/components'
+import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKExitThisPage component.

@@ -7,9 +7,9 @@
  *
  * @example
  * ```typescript
- * import { FormEngine } from 'hmpps-forge/core'
- * import { ExpressFrameworkAdapter } from 'hmpps-forge/express-nunjucks'
- * import { govukComponents } from 'hmpps-forge/govuk-components'
+ * import { FormEngine } from '@ministryofjustice/hmpps-forge/core'
+ * import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+ * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
  *
  * const nunjucksEnv = nunjucksSetup(app)
  *

@@ -1,4 +1,4 @@
-import { ComponentRegistryEntry } from 'hmpps-forge/core/components'
+import { ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { mojAlert } from './alert/mojAlert'
 import { mojBadge } from './badge/mojBadge'

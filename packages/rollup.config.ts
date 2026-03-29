@@ -15,12 +15,12 @@ const subpaths = {
   'moj-components': 'form-engine-moj-components/src/index.ts',
 }
 
-const external = ['bunyan', 'express', 'express-session', 'hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
+const external = ['bunyan', 'express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
 const externalPrefixes = [
-  'hmpps-forge/core/',
-  'hmpps-forge/express-nunjucks',
-  'hmpps-forge/govuk-components',
-  'hmpps-forge/moj-components',
+  '@ministryofjustice/hmpps-forge/core/',
+  '@ministryofjustice/hmpps-forge/express-nunjucks',
+  '@ministryofjustice/hmpps-forge/govuk-components',
+  '@ministryofjustice/hmpps-forge/moj-components',
 ]
 
 const isExternal = id => {

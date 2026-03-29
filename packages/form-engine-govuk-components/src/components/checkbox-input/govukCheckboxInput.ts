@@ -1,4 +1,4 @@
-import { ChainableExpr, field as buildField } from 'hmpps-forge/core/authoring'
+import { ChainableExpr, field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   BlockDefinition,
   ConditionalBoolean,
@@ -7,8 +7,8 @@ import {
   FieldBlockDefinition,
   FieldBlockProps,
   RenderedBlock,
-} from 'hmpps-forge/core/components'
-import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
+} from '@ministryofjustice/hmpps-forge/core/components'
+import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Props for the GovUKCheckboxInput component.

@@ -1,5 +1,5 @@
 {
-  "name": "hmpps-forge",
+  "name": "@ministryofjustice/hmpps-forge",
   "version": "0.0.1",
   "description": "HMPPS Form Engine",
   "author": "hmpps-developers",
@@ -63,6 +63,7 @@
   },
   "devDependencies": {
     "@ministryofjustice/eslint-config-hmpps": "^1.0.3",
+    "@ministryofjustice/frontend": "^9.0.0",
     "@rollup/plugin-commonjs": "^28.0.9",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
@@ -79,6 +80,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "govuk-frontend": "^6.1.0",
     "http-errors": "^2.0.1",
     "jest": "^30.2.0",
     "jest-when": "^3.7.0",

@@ -1,5 +1,11 @@
-import { Item, ChainableIterable, ChainableRef, Iterator, ChainableExpr } from 'hmpps-forge/core/authoring'
-import { HtmlBlock, BasicBlockProps } from 'hmpps-forge/core/components'
+import {
+  Item,
+  ChainableIterable,
+  ChainableRef,
+  Iterator,
+  ChainableExpr,
+} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { HtmlBlock, BasicBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 
 type ListType = 'bullet' | 'number'
 

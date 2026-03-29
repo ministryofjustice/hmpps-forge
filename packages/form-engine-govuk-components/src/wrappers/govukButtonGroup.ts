@@ -1,4 +1,4 @@
-import { TemplateWrapper, BasicBlockProps, BlockDefinition } from 'hmpps-forge/core/components'
+import { TemplateWrapper, BasicBlockProps, BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface GovUKButtonGroupProps extends BasicBlockProps {
   /** The buttons/links to render inside the group. */

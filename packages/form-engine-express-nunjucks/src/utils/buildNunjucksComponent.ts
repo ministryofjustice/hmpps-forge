@@ -1,6 +1,6 @@
 import nunjucks from 'nunjucks'
 
-import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from 'hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 /**
  * Render function for Nunjucks components.
@@ -33,15 +33,5 @@ export const buildNunjucksComponent = <T extends BlockDefinition>(
   render: NunjucksComponentRenderer<T>,
 ): ComponentRegistryEntry<T> => ({
   variant,
-  render: (block, renderer) => {
-    if (!isNunjucksEnvironment(renderer)) {
-      throw new Error(`Component "${variant}" requires a Nunjucks renderer`)
-    }
-
-    return render(block, renderer)
-  },
+  render: (block, renderer) => render(block, renderer as nunjucks.Environment),
 })
-
-function isNunjucksEnvironment(renderer: unknown): renderer is nunjucks.Environment {
-  return renderer instanceof nunjucks.Environment
-}

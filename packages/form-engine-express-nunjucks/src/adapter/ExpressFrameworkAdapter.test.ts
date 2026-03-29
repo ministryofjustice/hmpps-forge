@@ -1,7 +1,7 @@
 import express from 'express'
 import nunjucks from 'nunjucks'
 
-import { BlockType } from 'hmpps-forge/core/authoring'
+import { BlockType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   FrameworkAdapter,
   StepHandler,
@@ -9,8 +9,8 @@ import {
   RenderContext,
   ASTNodeType,
   BlockASTNode,
-} from 'hmpps-forge/core/framework'
-import { ComponentRegistry } from 'hmpps-forge/core/components'
+} from '@ministryofjustice/hmpps-forge/core/framework'
+import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
 describe('ExpressFrameworkAdapter', () => {

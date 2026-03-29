@@ -1,4 +1,4 @@
-import { Data } from 'hmpps-forge/core/authoring'
+import { Data } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKList } from './govukList'
 
 describe('GovUKList', () => {

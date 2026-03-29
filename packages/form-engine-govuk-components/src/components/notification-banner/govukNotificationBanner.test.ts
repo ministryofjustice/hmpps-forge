@@ -1,4 +1,4 @@
-import { StructureType } from 'hmpps-forge/core/authoring'
+import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukNotificationBanner } from './govukNotificationBanner'

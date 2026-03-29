@@ -1,5 +1,5 @@
-import { BlockType, StructureType } from 'hmpps-forge/core/authoring'
-import { BlockDefinition } from 'hmpps-forge/core/components'
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukRadioInput } from './govukRadioInput'

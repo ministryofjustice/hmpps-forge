@@ -4,9 +4,9 @@ import {
   ConditionalString,
   FieldBlockDefinition,
   FieldBlockProps,
-} from 'hmpps-forge/core/components'
-import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
-import { field as buildField } from 'hmpps-forge/core/authoring'
+} from '@ministryofjustice/hmpps-forge/core/components'
+import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Select item configuration

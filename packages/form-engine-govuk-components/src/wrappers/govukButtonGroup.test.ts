@@ -1,4 +1,4 @@
-import { HtmlBlock } from 'hmpps-forge/core/components'
+import { HtmlBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKButtonGroup } from './govukButtonGroup'
 
 describe('GovUKButtonGroup', () => {

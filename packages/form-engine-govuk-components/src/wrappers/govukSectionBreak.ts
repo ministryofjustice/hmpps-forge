@@ -1,4 +1,4 @@
-import { HtmlBlock, BasicBlockProps } from 'hmpps-forge/core/components'
+import { HtmlBlock, BasicBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 
 type SectionBreakSize = 'xl' | 'l' | 'm'
 

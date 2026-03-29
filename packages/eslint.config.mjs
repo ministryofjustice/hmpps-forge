@@ -34,7 +34,7 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          patterns: ['hmpps-forge/core', 'hmpps-forge/core/*'],
+          patterns: ['@ministryofjustice/hmpps-forge/core', '@ministryofjustice/hmpps-forge/core/*'],
         },
       ],
     },
@@ -46,8 +46,8 @@ export default [
         'error',
         {
           patterns: [
-            'hmpps-forge/express-nunjucks',
-            'hmpps-forge/express-nunjucks/*',
+            '@ministryofjustice/hmpps-forge/express-nunjucks',
+            '@ministryofjustice/hmpps-forge/express-nunjucks/*',
             '**/form-engine/src',
             '**/form-engine/src/**',
             '**/form-engine-govuk-components/src',
@@ -66,8 +66,8 @@ export default [
         'error',
         {
           patterns: [
-            'hmpps-forge/govuk-components',
-            'hmpps-forge/govuk-components/*',
+            '@ministryofjustice/hmpps-forge/govuk-components',
+            '@ministryofjustice/hmpps-forge/govuk-components/*',
             '**/form-engine/src',
             '**/form-engine/src/**',
             '**/form-engine-express-nunjucks/src',
@@ -86,8 +86,8 @@ export default [
         'error',
         {
           patterns: [
-            'hmpps-forge/moj-components',
-            'hmpps-forge/moj-components/*',
+            '@ministryofjustice/hmpps-forge/moj-components',
+            '@ministryofjustice/hmpps-forge/moj-components/*',
             '**/form-engine/src',
             '**/form-engine/src/**',
             '**/form-engine-express-nunjucks/src',

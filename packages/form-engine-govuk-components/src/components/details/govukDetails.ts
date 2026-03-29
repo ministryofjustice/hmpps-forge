@@ -5,9 +5,9 @@ import {
   ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
-} from 'hmpps-forge/core/components'
-import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
-import { block as buildBlock } from 'hmpps-forge/core/authoring'
+} from '@ministryofjustice/hmpps-forge/core/components'
+import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Props for the GovUKDetails component.

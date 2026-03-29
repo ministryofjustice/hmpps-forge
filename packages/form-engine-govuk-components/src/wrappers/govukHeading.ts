@@ -1,5 +1,5 @@
-import { Format } from 'hmpps-forge/core/authoring'
-import { HtmlBlock, BasicBlockProps, ConditionalString } from 'hmpps-forge/core/components'
+import { Format } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { HtmlBlock, BasicBlockProps, ConditionalString } from '@ministryofjustice/hmpps-forge/core/components'
 
 type HeadingSize = 'xl' | 'l' | 'm' | 's'
 type HeadingLevel = 1 | 2 | 3 | 4

@@ -1,4 +1,4 @@
-import { HtmlBlock, BasicBlockProps, ConditionalString } from 'hmpps-forge/core/components'
+import { HtmlBlock, BasicBlockProps, ConditionalString } from '@ministryofjustice/hmpps-forge/core/components'
 
 type BodySize = 'l' | 's'
 

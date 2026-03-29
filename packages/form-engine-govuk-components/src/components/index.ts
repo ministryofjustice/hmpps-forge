@@ -1,4 +1,4 @@
-import { ComponentRegistryEntry } from 'hmpps-forge/core/components'
+import { ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { govukAccordion } from './accordion/govukAccordion'
 import { govukBackLink } from './back-link/govukBackLink'

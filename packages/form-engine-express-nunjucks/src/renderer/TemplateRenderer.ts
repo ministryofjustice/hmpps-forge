@@ -1,6 +1,11 @@
 import nunjucks from 'nunjucks'
-import { StructureType } from 'hmpps-forge/core/authoring'
-import { BlockDefinition, EvaluatedBlock, RenderedBlock, ComponentRegistry } from 'hmpps-forge/core/components'
+import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  BlockDefinition,
+  EvaluatedBlock,
+  RenderedBlock,
+  ComponentRegistry,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import {
   isBlockStructNode,
   BlockASTNode,
@@ -8,7 +13,7 @@ import {
   HasNestedBlocksLookup,
   RenderContext,
   ValidationResult,
-} from 'hmpps-forge/core/framework'
+} from '@ministryofjustice/hmpps-forge/core/framework'
 import { InternalServerError } from 'http-errors'
 import { FieldError, TemplateContext } from './types'
 

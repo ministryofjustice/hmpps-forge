@@ -1,4 +1,4 @@
-import { TemplateWrapper, BasicBlockProps, BlockDefinition } from 'hmpps-forge/core/components'
+import { TemplateWrapper, BasicBlockProps, BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
 type GridColumnWidth = 'full' | 'one-half' | 'one-third' | 'two-thirds' | 'one-quarter' | 'three-quarters' | 'one-sixth'
 

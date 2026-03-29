@@ -1,9 +1,9 @@
 import type nunjucks from 'nunjucks'
 
-import { StructureType } from 'hmpps-forge/core/authoring'
-import { BlockDefinition, ComponentRegistryEntry, EvaluatedBlock } from 'hmpps-forge/core/components'
+import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ComponentRegistryEntry, EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
-import { NunjucksComponentRenderer } from 'hmpps-forge/express-nunjucks'
+import { NunjucksComponentRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Test helper for GOV.UK Frontend components
@@ -56,7 +56,8 @@ export class GovukComponentTestHelper<T extends BlockDefinition> {
    */
   async renderWithNunjucks(props: Partial<EvaluatedBlock<T>> = {}) {
     const nunjucksReal = jest.requireActual('nunjucks') as typeof nunjucks
-    const realEnv = nunjucksReal.configure(['node_modules/govuk-frontend/dist/'])
+    const govukPath = require.resolve('govuk-frontend/package.json').replace('/package.json', '/dist/')
+    const realEnv = nunjucksReal.configure([govukPath])
 
     const block: EvaluatedBlock<T> = {
       type: StructureType.BLOCK,

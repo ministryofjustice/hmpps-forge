@@ -1,7 +1,7 @@
 import type Logger from 'bunyan'
 import express from 'express'
 import nunjucks from 'nunjucks'
-import { ComponentRegistry } from 'hmpps-forge/core/components'
+import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   CookieMutation,
   CookieOptions,
@@ -12,7 +12,7 @@ import {
   StepHandler,
   StepRequest,
   StepResponse,
-} from 'hmpps-forge/core/framework'
+} from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from '../renderer/TemplateRenderer'
 import { RequestWithState } from './types'
 

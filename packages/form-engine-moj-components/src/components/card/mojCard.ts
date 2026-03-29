@@ -6,9 +6,9 @@ import {
   ConditionalString,
   ConditionalBoolean,
   EvaluatedBlock,
-} from 'hmpps-forge/core/components'
-import { buildNunjucksComponent } from 'hmpps-forge/express-nunjucks'
-import { block as buildBlock } from 'hmpps-forge/core/authoring'
+} from '@ministryofjustice/hmpps-forge/core/components'
+import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Heading configuration for the MOJ Card component.
