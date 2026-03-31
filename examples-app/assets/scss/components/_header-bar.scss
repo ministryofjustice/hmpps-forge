@@ -1,7 +1,9 @@
 .hmpps-header {
   @include govuk-responsive-padding(3, 'top');
   @include govuk-responsive-padding(3, 'bottom');
-  background-color: govuk-colour('black');
+  border-bottom: 1px solid transparent;
+  color: govuk-colour('white');
+  background: govuk-functional-colour(brand);
 
   &__container {
     @include govuk-width-container;
@@ -122,7 +124,7 @@
   width: 100%;
   display: flex;
   flex-wrap: wrap;
-  border-bottom: 1px solid $govuk-border-colour;
+  border-bottom: 1px solid govuk-functional-colour(border);
 
   &__location {
     @include govuk-font($size: 19, $weight: 'bold');

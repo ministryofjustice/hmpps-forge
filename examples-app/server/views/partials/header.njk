@@ -12,16 +12,6 @@
       </a>
 
       <a class="hmpps-header__link hmpps-header__title__service-name" href="/">{{ applicationName }}</a>
-
-      {% if environmentName %}
-        <div class="govuk-phase-banner">
-          {{ govukTag({
-            text: environmentName,
-            classes: environmentNameColour,
-            attributes: { "data-qa": "header-phase-banner" }
-          }) }}
-        </div>
-      {% endif %}
     </div>
 
     <nav aria-label="Account navigation">
@@ -34,10 +24,6 @@
             </a>
           </li>
         {% endif %}
-
-        <li class="hmpps-header__navigation__item">
-          <a data-qa="signOut" class="hmpps-header__link" href="/sign-out">Sign out</a>
-        </li>
       </ul>
     </nav>
   </div>
