@@ -23,7 +23,7 @@
  */
 
 export { govukComponents } from './components/index'
-export { govukUtilityClasses } from './utils/govukUtilityClasses'
+export { GovukUtilityClasses } from './utils/govukUtilityClasses'
 export { GovUKButtonGroup } from './wrappers/govukButtonGroup'
 export { GovUKGridRow } from './wrappers/govukGridRow'
 export { GovUKSectionBreak } from './wrappers/govukSectionBreak'
