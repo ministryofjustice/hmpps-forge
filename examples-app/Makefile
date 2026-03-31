@@ -5,7 +5,7 @@ PROJECT_NAME = hmpps-forge-examples-app
 SERVICE_NAME = app
 
 APP_VERSION ?= local
-NODE_MODULES_LAYOUT_VERSION = workspace-layout-v1
+NODE_MODULES_LAYOUT_VERSION = standalone-layout-v1
 
 DEV_COMPOSE_FILES = -f docker/docker-compose.base.yml -f docker/docker-compose.local.yml
 CI_COMPOSE_FILES = -f docker/docker-compose.base.yml -f docker/docker-compose.test.yml
@@ -59,30 +59,29 @@ lint-fix: ## Automatically fixes linting issues.
 	@docker compose exec ${SERVICE_NAME} npm run lint-fix
 
 install-node-modules: ## Installs Node modules into the Docker volume.
-	@docker volume create ${PROJECT_NAME}_node_modules > /dev/null 2>&1 || true
 	@docker volume create ${PROJECT_NAME}_examples_app_node_modules > /dev/null 2>&1 || true
 	@docker run --rm \
-	  -v ../package.json:/tmp/src/package.json:ro \
-	  -v ../package-lock.json:/tmp/src/package-lock.json:ro \
 	  -v ./package.json:/tmp/src/examples-app/package.json:ro \
+	  -v ./package-lock.json:/tmp/src/examples-app/package-lock.json:ro \
 	  -v ./.allowed-scripts.mjs:/tmp/src/examples-app/.allowed-scripts.mjs:ro \
 	  -v ./.npmrc:/tmp/src/examples-app/.npmrc:ro \
-	  -v ../packages/package.json:/app/packages/package.json:ro \
-	  -v ../packages/dist:/app/packages/dist:ro \
+	  -v ../packages/package.json:/tmp/src/packages/package.json:ro \
+	  -v ../packages/dist:/tmp/src/packages/dist:ro \
 	  -v ~/.npm:/npm_cache \
-	  -v ${PROJECT_NAME}_node_modules:/app/node_modules \
 	  -v ${PROJECT_NAME}_examples_app_node_modules:/app/examples-app/node_modules \
 	  node:24-alpine \
 	  /bin/sh -c '\
-	    CURRENT_HASH=$$({ printf "%s\n" "${NODE_MODULES_LAYOUT_VERSION}"; cat /tmp/src/package.json /tmp/src/package-lock.json /tmp/src/examples-app/package.json /tmp/src/examples-app/.npmrc; } | sha256sum | cut -d" " -f1); \
-	    STORED_HASH=$$(cat /app/node_modules/.package-hash 2>/dev/null || echo ""); \
+	    PACKAGES_DIST_HASH=$$(find /tmp/src/packages/dist -type f -exec sha256sum {} \; | sort | sha256sum | cut -d" " -f1); \
+	    CURRENT_HASH=$$({ printf "%s\n" "${NODE_MODULES_LAYOUT_VERSION}" "$$PACKAGES_DIST_HASH"; cat /tmp/src/examples-app/package.json /tmp/src/examples-app/package-lock.json /tmp/src/examples-app/.npmrc /tmp/src/packages/package.json; } | sha256sum | cut -d" " -f1); \
+	    STORED_HASH=$$(cat /app/examples-app/node_modules/.package-hash 2>/dev/null || echo ""); \
 	    if [ "$$CURRENT_HASH" != "$$STORED_HASH" ]; then \
 	      echo "Package files changed, running npm ci..."; \
-	      mkdir -p /app/examples-app && \
-	      cp /tmp/src/package.json /tmp/src/package-lock.json /app/ && \
-	      cp /tmp/src/examples-app/package.json /tmp/src/examples-app/.allowed-scripts.mjs /tmp/src/examples-app/.npmrc /app/examples-app/ && \
-	      cd /app && npm ci -w examples-app --cache /npm_cache --prefer-offline && \
-	      echo "$$CURRENT_HASH" > /app/node_modules/.package-hash; \
+	      mkdir -p /app/examples-app /app/packages/dist && \
+	      cp /tmp/src/examples-app/package.json /tmp/src/examples-app/package-lock.json /tmp/src/examples-app/.allowed-scripts.mjs /tmp/src/examples-app/.npmrc /app/examples-app/ && \
+	      cp /tmp/src/packages/package.json /app/packages/ && \
+	      cp -R /tmp/src/packages/dist/. /app/packages/dist/ && \
+	      cd /app/examples-app && npm ci --install-links --cache /npm_cache && \
+	      echo "$$CURRENT_HASH" > /app/examples-app/node_modules/.package-hash; \
 	    else \
 	      echo "node_modules is up-to-date."; \
 	    fi'

@@ -7,24 +7,25 @@ ENV NODE_ENV=development
 
 # Stage: install ALL dependencies (dev + prod) for building
 FROM base AS deps
-COPY package.json package-lock.json ./
-COPY examples-app/package.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./examples-app/
-COPY packages ./packages/
+WORKDIR /app/examples-app
+COPY examples-app/package.json examples-app/package-lock.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./
+COPY packages/package.json ../packages/package.json
+COPY packages/dist ../packages/dist
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci -w examples-app --ignore-scripts
+    npm ci --install-links --ignore-scripts
 
 # Stage: install ONLY production dependencies
 FROM base AS prod-deps
-COPY package.json package-lock.json ./
-COPY examples-app/package.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./examples-app/
-COPY packages ./packages/
+WORKDIR /app/examples-app
+COPY examples-app/package.json examples-app/package-lock.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./
+COPY packages/package.json ../packages/package.json
+COPY packages/dist ../packages/dist
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci -w examples-app --omit=dev --ignore-scripts
+    npm ci --install-links --omit=dev --ignore-scripts
 
 # Stage: build assets using full deps
 FROM deps AS build
-COPY examples-app/ ./examples-app/
-WORKDIR /app/examples-app
+COPY examples-app/ ./
 RUN npm run build
 
 # Stage: production image
@@ -43,7 +44,7 @@ ENV BUILD_NUMBER=${BUILD_NUMBER} \
     GIT_BRANCH=${GIT_BRANCH} \
     NODE_ENV=production
 
-WORKDIR /app/examples-app
+WORKDIR /app
 
 COPY --from=build --chown=appuser:appgroup \
         /app/examples-app/package.json \
@@ -52,10 +53,6 @@ COPY --from=build --chown=appuser:appgroup \
 COPY --from=build --chown=appuser:appgroup \
         /app/examples-app/dist \
         ./dist
-
-COPY --from=prod-deps --chown=appuser:appgroup \
-        /app/node_modules \
-        /app/node_modules
 
 COPY --from=prod-deps --chown=appuser:appgroup \
         /app/examples-app/node_modules \

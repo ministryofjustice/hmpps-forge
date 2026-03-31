@@ -12,7 +12,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
   const { locals } = app
 
   locals.asset_path = '/assets/'
-  locals.applicationName = 'HMPPS Forge Example App'
+  locals.applicationName = 'Forge Examples App'
   locals.environmentName = config.environmentName
   locals.environmentNameColour = config.environmentName === 'PRE-PRODUCTION' ? 'govuk-tag--green' : ''
 

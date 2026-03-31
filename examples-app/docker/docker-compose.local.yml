@@ -9,7 +9,6 @@ services:
     command: npm run start:dev
     volumes:
       - ../../:/app:cached
-      - root_node_modules:/app/node_modules
       - examples_app_node_modules:/app/examples-app/node_modules
     environment:
       NODE_ENV: development
@@ -17,9 +16,6 @@ services:
       NODE_CLUSTER_ENABLED: false
 
 volumes:
-  root_node_modules:
-    external: true
-    name: ${COMPOSE_PROJECT_NAME}_node_modules
   examples_app_node_modules:
     external: true
     name: ${COMPOSE_PROJECT_NAME}_examples_app_node_modules

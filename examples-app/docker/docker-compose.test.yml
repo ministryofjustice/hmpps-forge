@@ -32,4 +32,4 @@ services:
 volumes:
   node_modules:
     external: true
-    name: ${COMPOSE_PROJECT_NAME}_node_modules
+    name: ${COMPOSE_PROJECT_NAME}_examples_app_node_modules
