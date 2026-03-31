@@ -1,0 +1,28 @@
+.hmpps-demo-banner {
+  @include govuk-width-container;
+  padding-top: govuk-spacing(2);
+  padding-bottom: govuk-spacing(2);
+  border-bottom: 1px solid govuk-functional-colour(border);
+
+  &__container {
+    @include govuk-font($size: 16);
+    display: table;
+    margin: 0;
+    color: govuk-functional-colour(text);
+  }
+
+  &__tag {
+    @include govuk-font-size($size: 16);
+    margin-right: govuk-spacing(3);
+
+    @media #{govuk-from-breakpoint(tablet)} {
+      margin-right: govuk-spacing(2);
+    }
+  }
+
+  &__text {
+    @include govuk-font($size: 16, $weight: 'bold');
+    display: table-cell;
+    vertical-align: middle;
+  }
+}
