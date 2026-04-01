@@ -167,45 +167,14 @@ field<GovUKDateInputFull>({
 
 ## Custom Transformers
 
-### `defineTransformers()` - Without Dependencies
+### `defineTransformers()`
 
-Create transformers that don't need external services:
+Create transformers with a single registration shape.
+If a transformer does not need dependencies, ignore the `deps` argument and call `createRegistry({})`.
 
 ```typescript
 import { defineTransformers } from '@form-engine/registry/utils/createRegisterableFunction'
-import { assertString, assertNumber } from '@form-engine/registry/utils/asserts'
-
-export const { transformers: MyTransformers, registry: MyTransformersRegistry } = defineTransformers({
-  // Simple transformer - no extra parameters
-  NormalisePrisonNumber: value => {
-    assertString(value, 'MyTransformers.NormalisePrisonNumber')
-    return value.replace(/\s/g, '').toUpperCase()
-  },
-
-  // Transformer with parameters
-  TruncateWithSuffix: (value, maxLength: number, suffix: string = '...') => {
-    assertString(value, 'MyTransformers.TruncateWithSuffix')
-    assertNumber(maxLength, 'MyTransformers.TruncateWithSuffix (maxLength)')
-    assertString(suffix, 'MyTransformers.TruncateWithSuffix (suffix)')
-    if (value.length <= maxLength) return value
-    return value.substring(0, maxLength - suffix.length) + suffix
-  },
-})
-
-// Registration
-formEngine.registerFunctions(MyTransformersRegistry)
-
-// Usage
-formatters: [MyTransformers.NormalisePrisonNumber()]
-```
-
-### `defineTransformersWithDeps()` - With Dependencies
-
-Create transformers that need access to external services:
-
-```typescript
-import { defineTransformersWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
-import { assertString } from '@form-engine/registry/utils/asserts'
+import { assertNumber, assertString } from '@form-engine/registry/utils/asserts'
 
 interface MyDeps {
   formatter: Intl.NumberFormat
@@ -213,7 +182,20 @@ interface MyDeps {
 }
 
 export const { transformers: MyTransformers, createRegistry: createMyTransformersRegistry } =
-  defineTransformersWithDeps<MyDeps>()({
+  defineTransformers<MyDeps>({
+    NormalisePrisonNumber: () => value => {
+      assertString(value, 'MyTransformers.NormalisePrisonNumber')
+      return value.replace(/\s/g, '').toUpperCase()
+    },
+
+    TruncateWithSuffix: () => (value, maxLength: number, suffix: string = '...') => {
+      assertString(value, 'MyTransformers.TruncateWithSuffix')
+      assertNumber(maxLength, 'MyTransformers.TruncateWithSuffix (maxLength)')
+      assertString(suffix, 'MyTransformers.TruncateWithSuffix (suffix)')
+      if (value.length <= maxLength) return value
+      return value.substring(0, maxLength - suffix.length) + suffix
+    },
+
     FormatCurrency: deps => (value: number) => {
       assertNumber(value, 'MyTransformers.FormatCurrency')
       return deps.formatter.format(value)
@@ -239,15 +221,9 @@ formEngine.registerFunctions(registry)
 Merge multiple transformer registries:
 
 ```typescript
-// Without dependencies
-export const MyTransformersRegistry = {
-  ...PrisonerTransformersRegistry,
-  ...AddressTransformersRegistry,
-}
-
-// Mixed (some with deps, some without)
 export const createMyTransformersRegistry = (deps: ApiDeps) => ({
-  ...PrisonerTransformersRegistry,           // No deps
+  ...createPrisonerTransformersRegistry({}),
+  ...createAddressTransformersRegistry({}),
   ...createApiTransformersRegistry(deps),    // Needs deps
 })
 ```

@@ -2,7 +2,7 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleFileExtensions: ['ts', 'tsx', 'js'],
-  testMatch: ['**/__tests__/**/*.+(ts|tsx|js)', '**/?(*.)+(spec|test).+(ts|tsx|js)'],
+  testMatch: ['**/__tests__/**/*.+(ts|tsx)', '**/?(*.)+(spec|test).+(ts|tsx)'],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
@@ -11,7 +11,6 @@ export default {
     '^@ministryofjustice/hmpps-forge/core/authoring$': '<rootDir>/form-engine/src/authoring/index.ts',
     '^@ministryofjustice/hmpps-forge/core/components$': '<rootDir>/form-engine/src/components/index.ts',
     '^@ministryofjustice/hmpps-forge/core/framework$': '<rootDir>/form-engine/src/framework/index.ts',
-    '^@ministryofjustice/hmpps-forge/core/testing$': '<rootDir>/form-engine/src/testing/index.ts',
     '^@ministryofjustice/hmpps-forge/express-nunjucks$': '<rootDir>/form-engine-express-nunjucks/src/index.ts',
     '^@ministryofjustice/hmpps-forge/govuk-components$': '<rootDir>/form-engine-govuk-components/src/index.ts',
     '^@ministryofjustice/hmpps-forge/moj-components$': '<rootDir>/form-engine-moj-components/src/index.ts',

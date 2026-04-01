@@ -1,9 +1,15 @@
-import bunyan from 'bunyan'
-import bunyanFormat from 'bunyan-format'
+import { pino } from 'pino'
 import config from './config'
 
-const formatOut = bunyanFormat({ outputMode: 'short', color: !config.production })
-
-const logger = bunyan.createLogger({ name: 'HMPPS Forge Examples App', stream: formatOut, level: 'debug' })
+const logger = pino({
+  name: 'HMPPS Forge Examples App',
+  level: 'debug',
+  transport: config.production
+    ? undefined
+    : {
+        target: 'pino-pretty',
+        options: { colorize: true },
+      },
+})
 
 export default logger

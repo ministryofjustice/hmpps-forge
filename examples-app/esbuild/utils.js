@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-const { deleteSync } = require('del')
+const fs = require('node:fs')
 const childProcess = require('node:child_process')
 const { styleText } = require('node:util')
 
@@ -228,7 +228,7 @@ function cleanPlugin(patterns = []) {
       }
 
       registerOnStartCallback(() => {
-        deleteSync(patterns)
+        patterns.forEach(p => fs.rmSync(p, { recursive: true, force: true }))
       })
     },
   }

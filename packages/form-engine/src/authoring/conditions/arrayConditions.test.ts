@@ -1,9 +1,12 @@
-import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
+import { ArrayConditions, ArrayConditionsImplementations } from './arrayConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('ArrayConditions', () => {
+  const registry = createFunctionsRegistry(ArrayConditionsImplementations)
+
   describe('IsIn', () => {
-    const { evaluate } = ArrayConditionsRegistry.IsIn
+    const { evaluate } = registry.IsIn
 
     test('should return true when value is in the expected array', () => {
       expect(evaluate('apple', ['apple', 'banana', 'orange'])).toBe(true)
@@ -65,7 +68,7 @@ describe('ArrayConditions', () => {
   })
 
   describe('Contains', () => {
-    const { evaluate } = ArrayConditionsRegistry.Contains
+    const { evaluate } = registry.Contains
 
     test('should return true when value array contains the expected value', () => {
       expect(evaluate(['apple', 'banana'], 'apple')).toBe(true)
@@ -126,7 +129,7 @@ describe('ArrayConditions', () => {
   })
 
   describe('ContainsAny', () => {
-    const { evaluate } = ArrayConditionsRegistry.ContainsAny
+    const { evaluate } = registry.ContainsAny
 
     test('should return true when value array contains any of the items from expected array', () => {
       expect(evaluate(['apple', 'banana'], ['orange', 'apple'])).toBe(true)
@@ -192,7 +195,7 @@ describe('ArrayConditions', () => {
   })
 
   describe('ContainsAll', () => {
-    const { evaluate } = ArrayConditionsRegistry.ContainsAll
+    const { evaluate } = registry.ContainsAll
 
     test('should return true when all items in value array are in expected array', () => {
       expect(evaluate(['apple', 'banana'], ['apple', 'banana', 'orange'])).toBe(true)

@@ -1,6 +1,6 @@
-import { defineGenerators } from '../utils/createRegisterableFunction'
+import { createFunctionsRegistry, defineGeneratorFunctions } from '../utils/defineFunction'
 
-export const { generators: DateGenerators, registry: DateGeneratorsRegistry } = defineGenerators({
+const { generators: DateGenerators, implementations } = defineGeneratorFunctions({
   /**
    * Generates the current date and time.
    *
@@ -14,7 +14,7 @@ export const { generators: DateGenerators, registry: DateGeneratorsRegistry } = 
    * // With pipeline
    * deadline: Generator.Date.Now().pipe(Transformer.Date.AddDays(7))
    */
-  Now: () => new Date(),
+  Now: () => () => new Date(),
 
   /**
    * Generates today's date at midnight (start of day).
@@ -26,9 +26,13 @@ export const { generators: DateGenerators, registry: DateGeneratorsRegistry } = 
    * // In form definition
    * defaultDate: Generator.Date.Today()
    */
-  Today: () => {
+  Today: () => () => {
     const now = new Date()
 
     return new Date(now.getFullYear(), now.getMonth(), now.getDate())
   },
 })
+
+const DateGeneratorsRegistry = createFunctionsRegistry(implementations)
+
+export { DateGenerators, DateGeneratorsRegistry }

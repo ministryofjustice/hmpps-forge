@@ -1,4 +1,4 @@
-import { defineTransformers } from '../utils/createRegisterableFunction'
+import { createFunctionsRegistry, defineTransformerFunctions } from '../utils/defineFunction'
 import { ValueExpr } from '../types/expressions.type'
 import { assertDate, assertNumber, assertString } from '../utils/asserts'
 
@@ -67,7 +67,7 @@ const formatDate = (date: Date, format: string): string => {
  * // Add days to a date
  * Generator.Date.Today().pipe(Transformer.Date.AddDays(7))
  */
-export const { transformers: DateTransformers, registry: DateTransformersRegistry } = defineTransformers({
+const { transformers: DateTransformers, implementations } = defineTransformerFunctions({
   /**
    * Formats a Date object into a string using the specified format
    *
@@ -93,7 +93,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * // Format("D M YYYY") -> "15 3 2024"
    * // Format("HH:mm:ss") -> "14:30:45"
    */
-  Format: (value: any, format: string | ValueExpr) => {
+  Format: () => (value: any, format: string | ValueExpr) => {
     assertDate(value, 'Transformer.Date.Format')
     assertString(format, 'Transformer.Date.Format (format)')
 
@@ -106,7 +106,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: (value: any, days: number | ValueExpr) => {
+  AddDays: () => (value: any, days: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddDays')
     assertNumber(days, 'Transformer.Date.AddDays (days)')
 
@@ -120,7 +120,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: (value: any, days: number | ValueExpr) => {
+  SubtractDays: () => (value: any, days: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.SubtractDays')
     assertNumber(days, 'Transformer.Date.SubtractDays (days)')
 
@@ -135,7 +135,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: (value: any, months: number | ValueExpr) => {
+  AddMonths: () => (value: any, months: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddMonths')
     assertNumber(months, 'Transformer.Date.AddMonths (months)')
 
@@ -150,7 +150,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: (value: any, years: number | ValueExpr) => {
+  AddYears: () => (value: any, years: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddYears')
     assertNumber(years, 'Transformer.Date.AddYears (years)')
 
@@ -164,7 +164,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * @example
    * // StartOfDay() -> 2024-03-15T00:00:00.000
    */
-  StartOfDay: (value: any) => {
+  StartOfDay: () => (value: any) => {
     assertDate(value, 'Transformer.Date.StartOfDay')
 
     const result = new Date(value)
@@ -177,7 +177,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * @example
    * // EndOfDay() -> 2024-03-15T23:59:59.999
    */
-  EndOfDay: (value: any) => {
+  EndOfDay: () => (value: any) => {
     assertDate(value, 'Transformer.Date.EndOfDay')
 
     const result = new Date(value)
@@ -190,7 +190,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * @example
    * // ToISOString() -> "2024-03-15T14:30:45.123Z"
    */
-  ToISOString: (value: any) => {
+  ToISOString: () => (value: any) => {
     assertDate(value, 'Transformer.Date.ToISOString')
     return value.toISOString()
   },
@@ -201,7 +201,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * // ToLocaleString() -> "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') -> "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: (value: any, locale?: string) => {
+  ToLocaleString: () => (value: any, locale?: string) => {
     assertDate(value, 'Transformer.Date.ToLocaleString')
     return locale ? value.toLocaleString(locale) : value.toLocaleString()
   },
@@ -211,7 +211,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
    * @example
    * // ToUKLongDate() -> "18 March 2026"
    */
-  ToUKLongDate: (value: any) => {
+  ToUKLongDate: () => (value: any) => {
     assertDate(value, 'Transformer.Date.ToUKLongDate')
     return value.toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -220,3 +220,7 @@ export const { transformers: DateTransformers, registry: DateTransformersRegistr
     })
   },
 })
+
+const DateTransformersRegistry = createFunctionsRegistry(implementations)
+
+export { DateTransformers, DateTransformersRegistry }

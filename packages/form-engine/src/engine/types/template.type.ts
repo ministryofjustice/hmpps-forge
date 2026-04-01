@@ -1,5 +1,5 @@
 import { ASTNodeType } from './enums'
-import { TemplateNodeId } from './engine.type'
+import { TemplateNodeId } from './ast.type'
 
 /**
  * A template node preserves the shape of an AST node but with:

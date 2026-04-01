@@ -1,5 +1,5 @@
 import { assertNumber, assertString } from '../utils/asserts'
-import { defineTransformers } from '../utils/createRegisterableFunction'
+import { createFunctionsRegistry, defineTransformerFunctions } from '../utils/defineFunction'
 import { ValueExpr } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
@@ -10,13 +10,13 @@ import { escapeHtmlEntities } from '../../shared/utils/sanitize'
  * - Static: Transformer.String.Substring(0, 5)
  * - Dynamic: Transformer.String.Replace(Answer('search'), Answer('replace'))
  */
-export const { transformers: StringTransformers, registry: StringTransformersRegistry } = defineTransformers({
+const { transformers: StringTransformers, implementations } = defineTransformerFunctions({
   /**
    * Removes whitespace from both ends of a string
    * @example
    * // Transforms "  hello world  " to "hello world"
    */
-  Trim: (value: any) => {
+  Trim: () => (value: any) => {
     assertString(value, 'Transformer.String.Trim')
     return value.trim()
   },
@@ -26,7 +26,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Transforms "Hello World" to "HELLO WORLD"
    */
-  ToUpperCase: (value: any) => {
+  ToUpperCase: () => (value: any) => {
     assertString(value, 'Transformer.String.ToUpperCase')
     return value.toUpperCase()
   },
@@ -36,7 +36,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Transforms "Hello World" to "hello world"
    */
-  ToLowerCase: (value: any) => {
+  ToLowerCase: () => (value: any) => {
     assertString(value, 'Transformer.String.ToLowerCase')
     return value.toLowerCase()
   },
@@ -46,7 +46,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Transforms "hello world" to "Hello World"
    */
-  ToTitleCase: (value: any) => {
+  ToTitleCase: () => (value: any) => {
     assertString(value, 'Transformer.String.ToTitleCase')
     return value.replace(/\w\S*/g, text => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase())
   },
@@ -56,7 +56,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Transforms "hello world" to "Hello world"
    */
-  Capitalize: (value: any) => {
+  Capitalize: () => (value: any) => {
     assertString(value, 'Transformer.String.Capitalize')
     if (value.length === 0) return value
     return value.charAt(0).toUpperCase() + value.slice(1)
@@ -70,7 +70,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // Possessive("James") returns "James'"
    * // Possessive("Chris") returns "Chris'"
    */
-  Possessive: (value: any) => {
+  Possessive: () => (value: any) => {
     assertString(value, 'Transformer.String.Possessive')
     if (value.length === 0) return value
     if (value.toLowerCase().endsWith('s')) {
@@ -84,7 +84,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Substring("hello", 1, 4) returns "ell"
    */
-  Substring: (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
+  Substring: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
     assertString(value, 'Transformer.String.Substring')
     assertNumber(start, 'Transformer.String.Substring (start)')
     if (end !== undefined) {
@@ -99,7 +99,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // Replace("hello world", "world", "universe") returns "hello universe"
    */
-  Replace: (value: any, searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => {
+  Replace: () => (value: any, searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => {
     assertString(value, 'Transformer.String.Replace')
     assertString(searchValue, 'Transformer.String.Replace (searchValue)')
     assertString(replaceValue, 'Transformer.String.Replace (replaceValue)')
@@ -111,24 +111,28 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * @example
    * // PadStart("5", 3) returns "  5"
    */
-  PadStart: (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
-    assertString(value, 'Transformer.String.PadStart')
-    assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
-    assertString(padString, 'Transformer.String.PadStart (padString)')
-    return value.padStart(targetLength, padString)
-  },
+  PadStart:
+    () =>
+    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+      assertString(value, 'Transformer.String.PadStart')
+      assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
+      assertString(padString, 'Transformer.String.PadStart (padString)')
+      return value.padStart(targetLength, padString)
+    },
 
   /**
    * Pads the string to a specified length with spaces on the right
    * @example
    * // PadEnd("5", 3) returns "5  "
    */
-  PadEnd: (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
-    assertString(value, 'Transformer.String.PadEnd')
-    assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
-    assertString(padString, 'Transformer.String.PadEnd (padString)')
-    return value.padEnd(targetLength, padString)
-  },
+  PadEnd:
+    () =>
+    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+      assertString(value, 'Transformer.String.PadEnd')
+      assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
+      assertString(padString, 'Transformer.String.PadEnd (padString)')
+      return value.padEnd(targetLength, padString)
+    },
 
   /**
    * TODO: I wonder if the below transformers should instead be broken off into a `Type` transformer group, like
@@ -146,7 +150,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToInt("abc") throws Error
    * // ToInt("123abc") throws Error (partial parse rejected)
    */
-  ToInt: (value: any) => {
+  ToInt: () => (value: any) => {
     assertString(value, 'Transformer.String.ToInt')
 
     const trimmed = value.trim()
@@ -170,7 +174,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToFloat("abc") throws Error
    * // ToFloat("123abc") throws Error (partial parse rejected)
    */
-  ToFloat: (value: any) => {
+  ToFloat: () => (value: any) => {
     assertString(value, 'Transformer.String.ToFloat')
 
     const trimmed = value.trim()
@@ -190,7 +194,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToArray("hello,world", ",") returns ["hello", "world"]
    * // ToArray("a-b-c", "-") returns ["a", "b", "c"]
    */
-  ToArray: (value: any, separator?: string | ValueExpr) => {
+  ToArray: () => (value: any, separator?: string | ValueExpr) => {
     assertString(value, 'Transformer.String.ToArray')
     if (separator === undefined) {
       return value.split('')
@@ -212,7 +216,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToDate("2024-03-15T14:30:00Z") -> Date object with time
    * // ToDate("") -> throws Error
    */
-  ToDate: (value: any) => {
+  ToDate: () => (value: any) => {
     const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
     const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
     assertString(value, 'Transformer.String.ToDate')
@@ -274,7 +278,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToISODate("") -> throws Error
    * // ToISODate("31/02/2024") -> throws Error (invalid date)
    */
-  ToISODate: (value: any) => {
+  ToISODate: () => (value: any) => {
     const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
     assertString(value, 'Transformer.String.ToISODate')
 
@@ -317,7 +321,7 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // ToTimestampDate("1771429146000") -> 2026-02-18T15:39:06 local
    * // ToTimestampDate("") -> throws Error
    */
-  ToTimestampDate: (value: any) => {
+  ToTimestampDate: () => (value: any) => {
     assertString(value, 'Transformer.String.ToTimestampDate')
 
     if (!/^\d+$/.test(value)) {
@@ -349,9 +353,13 @@ export const { transformers: StringTransformers, registry: StringTransformersReg
    * // EscapeHtml('"><img src=x onerror=alert(1)>') returns '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;'
    * // Usage: Data('goalTitle').pipe(Transformer.String.EscapeHtml())
    */
-  EscapeHtml: (value: any) => {
+  EscapeHtml: () => (value: any) => {
     assertString(value, 'Transformer.String.EscapeHtml')
 
     return escapeHtmlEntities(value)
   },
 })
+
+const StringTransformersRegistry = createFunctionsRegistry(implementations)
+
+export { StringTransformers, StringTransformersRegistry }

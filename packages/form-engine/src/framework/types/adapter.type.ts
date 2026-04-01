@@ -1,8 +1,17 @@
-import type Logger from 'bunyan'
 import type ComponentRegistry from '../../components/ComponentRegistry'
 import type { RenderContext } from '../rendering/types'
 import type { StepRequest } from './request.type'
 import type { StepResponse } from './response.type'
+
+/**
+ * A minimal logger interface compatible with pino, bunyan, console, and most logging libraries.
+ */
+export interface Logger {
+  info(...args: unknown[]): void
+  error(...args: unknown[]): void
+  warn(...args: unknown[]): void
+  debug(...args: unknown[]): void
+}
 
 /**
  * Dependencies provided by FormEngine when building an adapter.

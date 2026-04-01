@@ -14,7 +14,7 @@ export default class FunctionRegistry {
 
   /**
    * Register functions - accepts either an array of functions or a registry object
-   * @param input - Array of functions or registry object from defineConditions/defineTransformers
+   * @param input - Registry object created by the authoring function helpers
    * @throws RegistryDuplicateError if a function with the same name already exists
    * @throws RegistryValidationError if a function has invalid structure
    * @throws AggregateError if multiple validation errors occur

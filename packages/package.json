@@ -8,43 +8,38 @@
   "exports": {
     "./core": {
       "types": "./dist/core/index.d.ts",
-      "require": "./dist/core/index.cjs.js",
-      "import": "./dist/core/index.esm.js"
+      "import": "./dist/core/index.mjs",
+      "default": "./dist/core/index.mjs"
     },
     "./core/authoring": {
       "types": "./dist/core/authoring/index.d.ts",
-      "require": "./dist/core/authoring/index.cjs.js",
-      "import": "./dist/core/authoring/index.esm.js"
+      "import": "./dist/core/authoring/index.mjs",
+      "default": "./dist/core/authoring/index.mjs"
     },
     "./core/components": {
       "types": "./dist/core/components/index.d.ts",
-      "require": "./dist/core/components/index.cjs.js",
-      "import": "./dist/core/components/index.esm.js"
+      "import": "./dist/core/components/index.mjs",
+      "default": "./dist/core/components/index.mjs"
     },
     "./core/framework": {
       "types": "./dist/core/framework/index.d.ts",
-      "require": "./dist/core/framework/index.cjs.js",
-      "import": "./dist/core/framework/index.esm.js"
-    },
-    "./core/testing": {
-      "types": "./dist/core/testing/index.d.ts",
-      "require": "./dist/core/testing/index.cjs.js",
-      "import": "./dist/core/testing/index.esm.js"
+      "import": "./dist/core/framework/index.mjs",
+      "default": "./dist/core/framework/index.mjs"
     },
     "./express-nunjucks": {
       "types": "./dist/express-nunjucks/index.d.ts",
-      "require": "./dist/express-nunjucks/index.cjs.js",
-      "import": "./dist/express-nunjucks/index.esm.js"
+      "import": "./dist/express-nunjucks/index.mjs",
+      "default": "./dist/express-nunjucks/index.mjs"
     },
     "./govuk-components": {
       "types": "./dist/govuk-components/index.d.ts",
-      "require": "./dist/govuk-components/index.cjs.js",
-      "import": "./dist/govuk-components/index.esm.js"
+      "import": "./dist/govuk-components/index.mjs",
+      "default": "./dist/govuk-components/index.mjs"
     },
     "./moj-components": {
       "types": "./dist/moj-components/index.d.ts",
-      "require": "./dist/moj-components/index.cjs.js",
-      "import": "./dist/moj-components/index.esm.js"
+      "import": "./dist/moj-components/index.mjs",
+      "default": "./dist/moj-components/index.mjs"
     }
   },
   "files": [
@@ -54,7 +49,7 @@
     "node": "20 || 22 || 24"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.ts --bundleConfigAsCjs",
+    "build": "rollup -c rollup.config.ts",
     "clean": "rm -rf ./dist/",
     "test": "jest",
     "lint": "eslint . --cache --max-warnings 0",
@@ -62,20 +57,18 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.2",
     "@ministryofjustice/eslint-config-hmpps": "^1.0.3",
     "@ministryofjustice/frontend": "^9.0.0",
     "@rollup/plugin-commonjs": "^28.0.9",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-typescript": "^12.3.0",
     "@tsconfig/node24": "^24.0.1",
-    "@types/bunyan": "^1.8.11",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
     "@types/jest": "^30.0.0",
     "@types/jest-when": "^3.5.5",
     "@types/nunjucks": "^3.2.6",
     "@yikes2000/prettier-plugin-merge-extras": "^0.7.3-extras.2",
-    "bunyan": "^1.8.15",
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "express": "^5.2.1",
@@ -84,17 +77,19 @@
     "http-errors": "^2.0.1",
     "jest": "^30.2.0",
     "jest-when": "^3.7.0",
+    "magic-string": "^0.30.21",
     "nunjucks": "^3.2.4",
     "rollup": "^4.52.5",
     "rollup-plugin-dts": "^6.2.3",
+    "rollup-plugin-esbuild": "^6.2.1",
     "ts-jest": "^29.4.5",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "zod": "^4.1.5",
     "express": "^4.21.0 || ^5.0.0",
     "http-errors": "^2.0.0",
-    "nunjucks": "^3.2.4"
+    "nunjucks": "^3.2.4",
+    "zod": "^4.1.5"
   }
 }

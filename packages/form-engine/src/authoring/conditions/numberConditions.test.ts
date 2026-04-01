@@ -1,9 +1,12 @@
-import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
+import { NumberConditions, NumberConditionsImplementations } from './numberConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('NumberConditions', () => {
+  const registry = createFunctionsRegistry(NumberConditionsImplementations)
+
   describe('IsNumber', () => {
-    const { evaluate } = NumberConditionsRegistry.IsNumber
+    const { evaluate } = registry.IsNumber
 
     test('should return true for valid numbers', () => {
       expect(evaluate(0)).toBe(true)
@@ -39,7 +42,7 @@ describe('NumberConditions', () => {
   })
 
   describe('IsInteger', () => {
-    const { evaluate } = NumberConditionsRegistry.IsInteger
+    const { evaluate } = registry.IsInteger
 
     test('should return true for integers', () => {
       expect(evaluate(0)).toBe(true)
@@ -78,7 +81,7 @@ describe('NumberConditions', () => {
   })
 
   describe('GreaterThan', () => {
-    const { evaluate } = NumberConditionsRegistry.GreaterThan
+    const { evaluate } = registry.GreaterThan
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -124,7 +127,7 @@ describe('NumberConditions', () => {
   })
 
   describe('GreaterThanOrEqual', () => {
-    const { evaluate } = NumberConditionsRegistry.GreaterThanOrEqual
+    const { evaluate } = registry.GreaterThanOrEqual
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -159,7 +162,7 @@ describe('NumberConditions', () => {
   })
 
   describe('LessThan', () => {
-    const { evaluate } = NumberConditionsRegistry.LessThan
+    const { evaluate } = registry.LessThan
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -199,7 +202,7 @@ describe('NumberConditions', () => {
   })
 
   describe('LessThanOrEqual', () => {
-    const { evaluate } = NumberConditionsRegistry.LessThanOrEqual
+    const { evaluate } = registry.LessThanOrEqual
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -233,7 +236,7 @@ describe('NumberConditions', () => {
   })
 
   describe('Between', () => {
-    const { evaluate } = NumberConditionsRegistry.Between
+    const { evaluate } = registry.Between
 
     test('should return true when value is between min and max (inclusive)', () => {
       expect(evaluate(5, 1, 10)).toBe(true)

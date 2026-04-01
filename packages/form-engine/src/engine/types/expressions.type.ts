@@ -1,6 +1,6 @@
 import { ExpressionType, FunctionType, IteratorType, TransitionType, OutcomeType } from '../../authoring/types/enums'
 import { ASTNodeType } from './enums'
-import { ASTNode } from './engine.type'
+import { ASTNode } from './ast.type'
 import { TemplateValue } from './template.type'
 
 /**

@@ -7,6 +7,7 @@ import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
 import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
 import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
 import { ObjectConditions, ObjectConditionsRegistry } from './objectConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 
 export const Condition = {
   ...GeneralConditions,
@@ -36,7 +37,7 @@ export const Condition = {
   Object: ObjectConditions,
 }
 
-export const ConditionsRegistry = {
+export const ConditionsRegistry = createFunctionsRegistry({
   ...GeneralConditionsRegistry,
   ...StringConditionsRegistry,
   ...EmailConditionsRegistry,
@@ -46,4 +47,4 @@ export const ConditionsRegistry = {
   ...NumberConditionsRegistry,
   ...ArrayConditionsRegistry,
   ...ObjectConditionsRegistry,
-}
+})

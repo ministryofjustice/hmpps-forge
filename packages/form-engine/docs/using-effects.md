@@ -19,7 +19,7 @@ This enables:
 ### Import
 
 ```typescript
-import { defineEffects, defineEffectsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
+import { defineEffects } from '@form-engine/registry/utils/createRegisterableFunction'
 import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
 ```
 
@@ -280,50 +280,12 @@ LoadAssessment: deps => async (context, assessmentId: string) => {
 
 ## Custom Effects
 
-### `defineEffects()` - Without Dependencies
+### `defineEffects()` - Defining Effects
 
-Create effects that don't need external services:
+Effects use a factory pattern with dependency injection. Each effect is a factory function that receives dependencies and returns the effect evaluator:
 
 ```typescript
 import { defineEffects } from '@form-engine/registry/utils/createRegisterableFunction'
-import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
-
-export const { effects: MyEffects, registry: MyEffectsRegistry } = defineEffects({
-  // Simple effect - no parameters
-  InitializeSession: (context: EffectFunctionContext) => {
-    const session = context.getSession()
-    if (!session.startedAt) {
-      session.startedAt = new Date().toISOString()
-      session.stepsCompleted = []
-    }
-  },
-
-  // Effect with parameters
-  TrackStepComplete: (context: EffectFunctionContext, stepName: string) => {
-    const session = context.getSession()
-    if (!session.stepsCompleted.includes(stepName)) {
-      session.stepsCompleted.push(stepName)
-    }
-  },
-
-  // Async effect
-  LoadData: async (context: EffectFunctionContext, endpoint: string) => {
-    const response = await fetch(endpoint)
-    const data = await response.json()
-    context.setData('loadedData', data)
-  },
-})
-
-// Registration
-formEngine.registerFunctions(MyEffectsRegistry)
-```
-
-### `defineEffectsWithDeps()` - With Dependencies
-
-Create effects that need access to external services:
-
-```typescript
-import { defineEffectsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 import EffectFunctionContext from '@form-engine/core/ast/thunks/EffectFunctionContext'
 
 interface MyEffectsDeps {
@@ -332,7 +294,7 @@ interface MyEffectsDeps {
 }
 
 export const { effects: MyEffects, createRegistry: createMyEffectsRegistry } =
-  defineEffectsWithDeps<MyEffectsDeps>()({
+  defineEffects<MyEffectsDeps>({
     LoadAssessment: deps => async (context: EffectFunctionContext, assessmentId: string) => {
       deps.logger.info(`Loading assessment: ${assessmentId}`)
       const assessment = await deps.api.getAssessment(assessmentId)
@@ -378,19 +340,29 @@ const registry = createMyEffectsRegistry({
 formEngine.registerFunctions(registry)
 ```
 
+For effects that don't need external dependencies, use `object` as the deps type:
+
+```typescript
+export const { effects: SessionEffects, createRegistry: createSessionEffectsRegistry } =
+  defineEffects<object>({
+    InitializeSession: () => (context: EffectFunctionContext) => {
+      const session = context.getSession()
+      if (!session.startedAt) {
+        session.startedAt = new Date().toISOString()
+        session.stepsCompleted = []
+      }
+    },
+  })
+
+const registry = createSessionEffectsRegistry({})
+```
+
 ### Combining Registries
 
 ```typescript
-// Without dependencies
-export const MyEffectsRegistry = {
-  ...SessionEffectsRegistry,
-  ...AnalyticsEffectsRegistry,
-}
-
-// Mixed (some with deps, some without)
 export const createMyEffectsRegistry = (deps: ApiDeps) => ({
-  ...SessionEffectsRegistry,           // No deps
-  ...createApiEffectsRegistry(deps),   // Needs deps
+  ...createSessionEffectsRegistry({}),
+  ...createApiEffectsRegistry(deps),
 })
 ```
 
@@ -401,7 +373,7 @@ export const createMyEffectsRegistry = (deps: ApiDeps) => ({
 Effects should handle errors appropriately based on criticality:
 
 ```typescript
-export const { effects, createRegistry } = defineEffectsWithDeps<MyDeps>()({
+export const { effects, createRegistry } = defineEffects<MyDeps>({
   // Critical: let errors propagate (stops form progression)
   SaveAnswers: deps => async (context) => {
     await deps.api.save(context.getAllAnswers())
@@ -445,21 +417,13 @@ export const { effects, createRegistry } = defineEffectsWithDeps<MyDeps>()({
 
 ### Use Dependency Injection
 
-Prefer `defineEffectsWithDeps` for effects that need external services. This makes testing easier and keeps dependencies explicit:
+Inject external services via the deps parameter. This makes testing easier and keeps dependencies explicit:
 
 ```typescript
 // DO: Inject dependencies
-defineEffectsWithDeps<{ api: ApiClient }>()({
+defineEffects<{ api: ApiClient }>({
   LoadData: deps => async (context) => {
     const data = await deps.api.getData()
-    context.setData('data', data)
-  },
-})
-
-// DON'T: Import dependencies directly
-defineEffects({
-  LoadData: async (context) => {
-    const data = await apiClient.getData()  // Hard to test
     context.setData('data', data)
   },
 })
@@ -521,4 +485,3 @@ InitializeSession: (context) => {
   session.startedAt = new Date().toISOString()  // Overwrites on every request
 }
 ```
-

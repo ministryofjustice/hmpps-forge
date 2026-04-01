@@ -1,9 +1,12 @@
-import { StringConditions, StringConditionsRegistry } from './stringConditions'
+import { StringConditions, StringConditionsImplementations } from './stringConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('StringConditions', () => {
+  const registry = createFunctionsRegistry(StringConditionsImplementations)
+
   describe('MatchesRegex', () => {
-    const { evaluate } = StringConditionsRegistry.MatchesRegex
+    const { evaluate } = registry.MatchesRegex
 
     test('should return true when string matches regex pattern', () => {
       expect(evaluate('hello', 'h.*o')).toBe(true)
@@ -40,7 +43,7 @@ describe('StringConditions', () => {
   })
 
   describe('HasMinLength', () => {
-    const { evaluate } = StringConditionsRegistry.HasMinLength
+    const { evaluate } = registry.HasMinLength
 
     test('should return true when string length is greater than or equal to min', () => {
       expect(evaluate('hello', 3)).toBe(true)
@@ -73,7 +76,7 @@ describe('StringConditions', () => {
   })
 
   describe('HasMaxLength', () => {
-    const { evaluate } = StringConditionsRegistry.HasMaxLength
+    const { evaluate } = registry.HasMaxLength
 
     test('should return true when string length is less than or equal to max', () => {
       expect(evaluate('hello', 10)).toBe(true)
@@ -105,7 +108,7 @@ describe('StringConditions', () => {
   })
 
   describe('HasExactLength', () => {
-    const { evaluate } = StringConditionsRegistry.HasExactLength
+    const { evaluate } = registry.HasExactLength
 
     test('should return true when string length equals the specified length', () => {
       expect(evaluate('hello', 5)).toBe(true)
@@ -138,7 +141,7 @@ describe('StringConditions', () => {
   })
 
   describe('HasMaxWords', () => {
-    const { evaluate } = StringConditionsRegistry.HasMaxWords
+    const { evaluate } = registry.HasMaxWords
 
     test('should return true when word count is less than or equal to max', () => {
       expect(evaluate('hello world', 2)).toBe(true)
@@ -180,7 +183,7 @@ describe('StringConditions', () => {
   })
 
   describe('LettersOnly', () => {
-    const { evaluate } = StringConditionsRegistry.LettersOnly
+    const { evaluate } = registry.LettersOnly
 
     test('should return true for strings with only letters', () => {
       expect(evaluate('hello')).toBe(true)
@@ -212,7 +215,7 @@ describe('StringConditions', () => {
   })
 
   describe('DigitsOnly', () => {
-    const { evaluate } = StringConditionsRegistry.DigitsOnly
+    const { evaluate } = registry.DigitsOnly
 
     test('should return true for strings with only digits', () => {
       expect(evaluate('123')).toBe(true)
@@ -243,7 +246,7 @@ describe('StringConditions', () => {
   })
 
   describe('LettersWithCommonPunctuation', () => {
-    const { evaluate } = StringConditionsRegistry.LettersWithCommonPunctuation
+    const { evaluate } = registry.LettersWithCommonPunctuation
 
     test('should return true for letters with allowed punctuation', () => {
       expect(evaluate('Hello, World!')).toBe(true)
@@ -278,7 +281,7 @@ describe('StringConditions', () => {
   })
 
   describe('LettersWithSpaceDashApostrophe', () => {
-    const { evaluate } = StringConditionsRegistry.LettersWithSpaceDashApostrophe
+    const { evaluate } = registry.LettersWithSpaceDashApostrophe
 
     test('should return true for letters with space, dash, and apostrophe', () => {
       expect(evaluate('Hello World')).toBe(true)
@@ -312,7 +315,7 @@ describe('StringConditions', () => {
   })
 
   describe('LettersAndDigitsOnly', () => {
-    const { evaluate } = StringConditionsRegistry.LettersAndDigitsOnly
+    const { evaluate } = registry.LettersAndDigitsOnly
 
     test('should return true for alphanumeric strings', () => {
       expect(evaluate('Hello123')).toBe(true)
@@ -343,7 +346,7 @@ describe('StringConditions', () => {
   })
 
   describe('AlphanumericWithCommonPunctuation', () => {
-    const { evaluate } = StringConditionsRegistry.AlphanumericWithCommonPunctuation
+    const { evaluate } = registry.AlphanumericWithCommonPunctuation
 
     test('should return true for alphanumeric with allowed punctuation', () => {
       expect(evaluate('Hello123!')).toBe(true)
@@ -377,7 +380,7 @@ describe('StringConditions', () => {
   })
 
   describe('AlphanumericWithAllSafeSymbols', () => {
-    const { evaluate } = StringConditionsRegistry.AlphanumericWithAllSafeSymbols
+    const { evaluate } = registry.AlphanumericWithAllSafeSymbols
 
     test('should return true for alphanumeric with all safe symbols', () => {
       expect(evaluate('Hello@123')).toBe(true)
@@ -412,7 +415,7 @@ describe('StringConditions', () => {
   })
 
   describe('StartsWith', () => {
-    const { evaluate } = StringConditionsRegistry.StartsWith
+    const { evaluate } = registry.StartsWith
 
     test('should return true when string starts with the prefix', () => {
       expect(evaluate('hello world', 'hello')).toBe(true)
@@ -448,7 +451,7 @@ describe('StringConditions', () => {
   })
 
   describe('EndsWith', () => {
-    const { evaluate } = StringConditionsRegistry.EndsWith
+    const { evaluate } = registry.EndsWith
 
     test('should return true when string ends with the suffix', () => {
       expect(evaluate('hello world', 'world')).toBe(true)
@@ -484,7 +487,7 @@ describe('StringConditions', () => {
   })
 
   describe('Contains', () => {
-    const { evaluate } = StringConditionsRegistry.Contains
+    const { evaluate } = registry.Contains
 
     test('should return true when string contains the substring', () => {
       expect(evaluate('hello world', 'lo wo')).toBe(true)

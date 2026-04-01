@@ -1,5 +1,5 @@
 import { assertObject } from '../utils/asserts'
-import { defineTransformers } from '../utils/createRegisterableFunction'
+import { createFunctionsRegistry, defineTransformerFunctions } from '../utils/defineFunction'
 import { getByPath } from '../../shared/utils/utils'
 
 export interface DateParts {
@@ -8,7 +8,7 @@ export interface DateParts {
   day?: string
 }
 
-export const { transformers: ObjectTransformers, registry: ObjectTransformersRegistry } = defineTransformers({
+const { transformers: ObjectTransformers, implementations } = defineTransformerFunctions({
   /**
    * Converts an object with date parts to an ISO 8601 date string
    * Supports full dates (YYYY-MM-DD), partial dates (YYYY-MM, MM-DD), or single components
@@ -24,7 +24,7 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
    * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} → "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
-  ToISO: (value: any, paths: DateParts) => {
+  ToISO: () => (value: any, paths: DateParts) => {
     assertObject(value, 'Transformer.Object.ToISO')
 
     if (!paths || typeof paths !== 'object') {
@@ -104,3 +104,7 @@ export const { transformers: ObjectTransformers, registry: ObjectTransformersReg
     throw new Error('Transformer.Object.ToISO: No valid date components found in object')
   },
 })
+
+const ObjectTransformersRegistry = createFunctionsRegistry(implementations)
+
+export { ObjectTransformers, ObjectTransformersRegistry }

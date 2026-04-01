@@ -1,9 +1,12 @@
-import { EmailConditions, EmailConditionsRegistry } from './emailConditions'
+import { EmailConditions, EmailConditionsImplementations } from './emailConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('EmailConditions', () => {
+  const registry = createFunctionsRegistry(EmailConditionsImplementations)
+
   describe('IsValidEmail', () => {
-    const { evaluate } = EmailConditionsRegistry.IsValidEmail
+    const { evaluate } = registry.IsValidEmail
 
     test('should return true for valid email addresses', () => {
       expect(evaluate('test@example.com')).toBe(true)

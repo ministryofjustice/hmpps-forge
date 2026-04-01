@@ -1,4 +1,4 @@
-import { NodeId } from '../../../types/engine.type'
+import { NodeId } from '../../../types/ast.type'
 import { ValidationASTNode } from '../../../types/expressions.type'
 import {
   ThunkHandler,

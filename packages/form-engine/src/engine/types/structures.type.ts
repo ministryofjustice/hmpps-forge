@@ -1,6 +1,6 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
-import { ASTNode } from './engine.type'
+import { ASTNode } from './ast.type'
 import {
   AccessTransitionASTNode,
   ActionTransitionASTNode,

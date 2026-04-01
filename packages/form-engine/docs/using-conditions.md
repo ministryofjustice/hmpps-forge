@@ -239,54 +239,33 @@ field<GovUKCheckboxInput>({
 
 ## Custom Conditions
 
-### `defineConditions()` - Without Dependencies
+### `defineConditions()`
 
-Create conditions that don't need external services:
+Create conditions with a single registration shape.
+If a condition does not need dependencies, ignore the `deps` argument and call `createRegistry({})`.
 
 ```typescript
 import { defineConditions } from '@form-engine/registry/utils/createRegisterableFunction'
 import { assertString, assertNumber } from '@form-engine/registry/utils/asserts'
-
-export const { conditions: MyConditions, registry: MyConditionsRegistry } = defineConditions({
-  // Simple condition - no extra parameters
-  IsPrisonNumber: value => {
-    assertString(value, 'MyConditions.IsPrisonNumber')
-    return /^[A-Z][0-9]{4}[A-Z]{2}$/i.test(value.trim())
-  },
-
-  // Condition with parameters
-  IsValidAge: (value, min: number = 18, max: number = 120) => {
-    assertNumber(value, 'MyConditions.IsValidAge')
-    assertNumber(min, 'MyConditions.IsValidAge (min)')
-    assertNumber(max, 'MyConditions.IsValidAge (max)')
-    return Number.isInteger(value) && value >= min && value <= max
-  },
-})
-
-// Registration
-formEngine.registerFunctions(MyConditionsRegistry)
-
-// Usage
-validation({
-  when: Self().not.match(MyConditions.IsPrisonNumber()),
-  message: 'Enter a valid prison number',
-})
-```
-
-### `defineConditionsWithDeps()` - With Dependencies
-
-Create conditions that need access to external services:
-
-```typescript
-import { defineConditionsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
-import { assertString } from '@form-engine/registry/utils/asserts'
 
 interface MyDeps {
   apiClient: ValidationApiClient
 }
 
 export const { conditions: MyConditions, createRegistry: createMyConditionsRegistry } =
-  defineConditionsWithDeps<MyDeps>()({
+  defineConditions<MyDeps>({
+    IsPrisonNumber: () => value => {
+      assertString(value, 'MyConditions.IsPrisonNumber')
+      return /^[A-Z][0-9]{4}[A-Z]{2}$/i.test(value.trim())
+    },
+
+    IsValidAge: () => (value, min: number = 18, max: number = 120) => {
+      assertNumber(value, 'MyConditions.IsValidAge')
+      assertNumber(min, 'MyConditions.IsValidAge (min)')
+      assertNumber(max, 'MyConditions.IsValidAge (max)')
+      return Number.isInteger(value) && value >= min && value <= max
+    },
+
     IsValidPostcode: deps => async (value: string) => {
       assertString(value, 'MyConditions.IsValidPostcode')
       const result = await deps.apiClient.validatePostcode(value)
@@ -310,16 +289,10 @@ formEngine.registerFunctions(registry)
 ### Combining Registries
 
 ```typescript
-// Without dependencies
-export const MyConditionsRegistry = {
-  ...PrisonerConditionsRegistry,
-  ...AddressConditionsRegistry,
-}
-
-// Mixed (some with deps, some without)
 export const createMyConditionsRegistry = (deps: ApiDeps) => ({
-  ...PrisonerConditionsRegistry,           // No deps
-  ...createApiConditionsRegistry(deps),    // Needs deps
+  ...createPrisonerConditionsRegistry({}),
+  ...createAddressConditionsRegistry({}),
+  ...createApiConditionsRegistry(deps),
 })
 ```
 

@@ -1,4 +1,3 @@
-import type Logger from 'bunyan'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import FormInstance from './FormInstance'
 import { FormInstanceDependencies, FormPackage } from './types/engine.type'
@@ -6,7 +5,7 @@ import FunctionRegistry from './FunctionRegistry'
 import ComponentRegistry from '../components/ComponentRegistry'
 import { ComponentRegistryEntry } from '../components/types/components.type'
 import { FunctionRegistryObject } from '../authoring/types/functions.type'
-import type { FrameworkAdapterBuilder } from '../framework/types/adapter.type'
+import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
 import FormEngineRouter from './runtime/routes/FormEngineRouter'
 
 export interface FormEngineOptions {
@@ -78,8 +77,6 @@ export default class FormEngine {
   private readonly functionRegistry = new FunctionRegistry()
 
   private readonly componentRegistry = new ComponentRegistry()
-
-  private readonly forms = new Map<string, FormInstance>()
 
   private readonly dependencies: FormInstanceDependencies
 
@@ -177,8 +174,6 @@ export default class FormEngine {
 
       this.formEngineRouter.mountForm(instance)
 
-      this.forms.set(instance.getFormCode(), instance)
-
       const routeCount = this.formEngineRouter.getRegisteredRoutes().length - routesBefore
 
       this.dependencies.logger.info(
@@ -253,12 +248,5 @@ export default class FormEngine {
    */
   getRouter(): unknown {
     return this.formEngineRouter.getRouter()
-  }
-
-  /**
-   * Get a specific form instance by its code
-   */
-  getFormInstance(code: string): FormInstance | undefined {
-    return this.forms.get(code)
   }
 }

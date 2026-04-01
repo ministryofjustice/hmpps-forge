@@ -1,4 +1,3 @@
-import type Logger from 'bunyan'
 import express from 'express'
 import nunjucks from 'nunjucks'
 import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
@@ -8,6 +7,7 @@ import {
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
+  Logger,
   RenderContext,
   StepHandler,
   StepRequest,

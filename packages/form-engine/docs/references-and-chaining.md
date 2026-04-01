@@ -185,7 +185,7 @@ Data must be loaded before you can reference it. This happens in `onAccess` tran
 ```typescript
 // In your effects file
 export const { effects: MyEffects, createRegistry } =
-  defineEffectsWithDeps<{ api: ApiService }>()({
+  defineEffects<{ api: ApiService }>({
     loadUserProfile: deps => async (context: EffectFunctionContext) => {
       const userId = context.getParams().id
       const user = await deps.api.getUser(userId)

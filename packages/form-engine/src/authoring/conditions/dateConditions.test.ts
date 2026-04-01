@@ -1,9 +1,12 @@
-import { DateConditions, DateConditionsRegistry } from './dateConditions'
+import { DateConditions, DateConditionsImplementations } from './dateConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('DateConditions', () => {
+  const registry = createFunctionsRegistry(DateConditionsImplementations)
+
   describe('IsValid', () => {
-    const { evaluate } = DateConditionsRegistry.IsValid
+    const { evaluate } = registry.IsValid
 
     test('should return true for valid ISO date strings', () => {
       expect(evaluate('2025-09-05')).toBe(true)
@@ -45,7 +48,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsValidYear', () => {
-    const { evaluate } = DateConditionsRegistry.IsValidYear
+    const { evaluate } = registry.IsValidYear
 
     test('should return true for valid years in ISO date strings', () => {
       expect(evaluate('2024-01-01')).toBe(true)
@@ -80,7 +83,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsValidMonth', () => {
-    const { evaluate } = DateConditionsRegistry.IsValidMonth
+    const { evaluate } = registry.IsValidMonth
 
     test('should return true for valid months in ISO date strings', () => {
       expect(evaluate('1990-01-01')).toBe(true)
@@ -113,7 +116,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsValidDay', () => {
-    const { evaluate } = DateConditionsRegistry.IsValidDay
+    const { evaluate } = registry.IsValidDay
 
     test('should return true for valid days in regular months', () => {
       expect(evaluate('2024-01-15')).toBe(true) // January (31 days)
@@ -165,7 +168,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsBefore', () => {
-    const { evaluate } = DateConditionsRegistry.IsBefore
+    const { evaluate } = registry.IsBefore
 
     test('should return true when date is before comparison date', () => {
       expect(evaluate('2024-01-01', '2024-01-02')).toBe(true)
@@ -218,7 +221,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsAfter', () => {
-    const { evaluate } = DateConditionsRegistry.IsAfter
+    const { evaluate } = registry.IsAfter
 
     test('should return true when date is after comparison date', () => {
       expect(evaluate('2024-01-02', '2024-01-01')).toBe(true)
@@ -265,7 +268,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsFutureDate', () => {
-    const { evaluate } = DateConditionsRegistry.IsFutureDate
+    const { evaluate } = registry.IsFutureDate
 
     test('should return true for future dates', () => {
       const tomorrow = new Date()
@@ -316,7 +319,7 @@ describe('DateConditions', () => {
   })
 
   describe('IsToday', () => {
-    const { evaluate } = DateConditionsRegistry.IsToday
+    const { evaluate } = registry.IsToday
 
     test('should return true for today', () => {
       const today = new Date().toISOString().split('T')[0]

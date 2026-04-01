@@ -1,5 +1,5 @@
 import { assertArray, assertNumber, assertString } from '../utils/asserts'
-import { defineTransformers } from '../utils/createRegisterableFunction'
+import { createFunctionsRegistry, defineTransformerFunctions } from '../utils/defineFunction'
 import { ValueExpr } from '../types/expressions.type'
 
 /**
@@ -9,13 +9,13 @@ import { ValueExpr } from '../types/expressions.type'
  * - Static: Transformer.Array.Slice(0, 5)
  * - Dynamic: Transformer.Array.Slice(0, Answer('limit'))
  */
-export const { transformers: ArrayTransformers, registry: ArrayTransformersRegistry } = defineTransformers({
+const { transformers: ArrayTransformers, implementations } = defineTransformerFunctions({
   /**
    * Returns the length of the array
    * @example
    * // Length([1, 2, 3, 4]) returns 4
    */
-  Length: (value: any) => {
+  Length: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Length')
     return value.length
   },
@@ -25,7 +25,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // First([1, 2, 3]) returns 1
    */
-  First: (value: any) => {
+  First: () => (value: any) => {
     assertArray(value, 'Transformer.Array.First')
     return value.length > 0 ? value[0] : undefined
   },
@@ -35,7 +35,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Last([1, 2, 3]) returns 3
    */
-  Last: (value: any) => {
+  Last: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Last')
     return value.length > 0 ? value[value.length - 1] : undefined
   },
@@ -45,7 +45,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Reverse([1, 2, 3]) returns [3, 2, 1]
    */
-  Reverse: (value: any) => {
+  Reverse: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Reverse')
     return [...value].reverse()
   },
@@ -55,18 +55,20 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Join([1, 2, 3], ", ") returns "1, 2, 3"
    */
-  Join: (value: any, separator: string | ValueExpr = ',') => {
-    assertArray(value, 'Transformer.Array.Join')
-    assertString(separator, 'Transformer.Array.Join (separator)')
-    return value.join(separator)
-  },
+  Join:
+    () =>
+    (value: any, separator: string | ValueExpr = ',') => {
+      assertArray(value, 'Transformer.Array.Join')
+      assertString(separator, 'Transformer.Array.Join (separator)')
+      return value.join(separator)
+    },
 
   /**
    * Returns a slice of the array from start to end index
    * @example
    * // Slice([1, 2, 3, 4, 5], 1, 4) returns [2, 3, 4]
    */
-  Slice: (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
+  Slice: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Slice')
     assertNumber(start, 'Transformer.Array.Slice (start)')
     if (end !== undefined) {
@@ -81,20 +83,22 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Concat([1, 2], [3, 4]) returns [1, 2, 3, 4]
    */
-  Concat: (value: any, ...arrays: (any[] | ValueExpr)[]) => {
-    assertArray(value, 'Transformer.Array.Concat')
-    arrays.forEach((arr, index) => {
-      assertArray(arr, `Transformer.Array.Concat (array at position ${index + 1})`)
-    })
-    return value.concat(...(arrays as any[][]))
-  },
+  Concat:
+    () =>
+    (value: any, ...arrays: (any[] | ValueExpr)[]) => {
+      assertArray(value, 'Transformer.Array.Concat')
+      arrays.forEach((arr, index) => {
+        assertArray(arr, `Transformer.Array.Concat (array at position ${index + 1})`)
+      })
+      return value.concat(...(arrays as any[][]))
+    },
 
   /**
    * Returns unique elements from the array (removes duplicates)
    * @example
    * // Unique([1, 2, 2, 3, 1]) returns [1, 2, 3]
    */
-  Unique: (value: any) => {
+  Unique: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Unique')
     return [...new Set(value)]
   },
@@ -104,7 +108,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Sort([3, 1, 4, 2]) returns [1, 2, 3, 4]
    */
-  Sort: (value: any) => {
+  Sort: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Sort')
     return [...value].sort((a, b) => {
       if (typeof a === 'number' && typeof b === 'number') {
@@ -119,7 +123,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Filter([1, 2, 2, 3], 2) returns [2, 2]
    */
-  Filter: (value: any, filterValue: any | ValueExpr) => {
+  Filter: () => (value: any, filterValue: any | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Filter')
     return value.filter((item: any) => item === filterValue)
   },
@@ -130,7 +134,7 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * // Map([{name: 'John'}, {name: 'Jane'}], 'name') returns ['John', 'Jane']
    * // Map([[1, 2], [3, 4]], 0) returns [1, 3]
    */
-  Map: (value: any, property: string | number | ValueExpr) => {
+  Map: () => (value: any, property: string | number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Map')
     if (typeof property !== 'string' && typeof property !== 'number') {
       throw new Error(`Transformer.Array.Map (property) expects a string or number but received ${typeof property}.`)
@@ -151,8 +155,12 @@ export const { transformers: ArrayTransformers, registry: ArrayTransformersRegis
    * @example
    * // Flatten([[1, 2], [3, 4]]) returns [1, 2, 3, 4]
    */
-  Flatten: (value: any) => {
+  Flatten: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Flatten')
     return value.flat()
   },
 })
+
+const ArrayTransformersRegistry = createFunctionsRegistry(implementations)
+
+export { ArrayTransformers, ArrayTransformersRegistry }

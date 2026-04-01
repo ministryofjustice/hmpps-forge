@@ -3,15 +3,14 @@
   "extends": "@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
     "strict": true,
+    "stripInternal": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
+    "noEmit": true,
     "sourceMap": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "baseUrl": ".",
     "rootDir": ".",
-    "outDir": "./dist",
-    "declarationDir": "./dist",
     "module": "ESNext",
     "moduleResolution": "node",
     "paths": {
@@ -19,7 +18,6 @@
       "@ministryofjustice/hmpps-forge/core/authoring": ["form-engine/src/authoring/index.ts"],
       "@ministryofjustice/hmpps-forge/core/components": ["form-engine/src/components/index.ts"],
       "@ministryofjustice/hmpps-forge/core/framework": ["form-engine/src/framework/index.ts"],
-      "@ministryofjustice/hmpps-forge/core/testing": ["form-engine/src/testing/index.ts"],
       "@ministryofjustice/hmpps-forge/express-nunjucks": ["form-engine-express-nunjucks/src/index.ts"],
       "@ministryofjustice/hmpps-forge/govuk-components": ["form-engine-govuk-components/src/index.ts"],
       "@ministryofjustice/hmpps-forge/moj-components": ["form-engine-moj-components/src/index.ts"]

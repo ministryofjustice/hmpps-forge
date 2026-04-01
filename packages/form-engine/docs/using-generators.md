@@ -161,42 +161,13 @@ field<GovUKTextInput>({
 
 ## Custom Generators
 
-### `defineGenerators()` - Without Dependencies
+### `defineGenerators()`
 
-Create generators that don't need external services:
+Create generators with a single registration shape.
+If a generator does not need dependencies, ignore the `deps` argument and call `createRegistry({})`.
 
 ```typescript
 import { defineGenerators } from '@form-engine/registry/utils/createRegisterableFunction'
-
-export const { generators: MyGenerators, registry: MyGeneratorsRegistry } = defineGenerators({
-  // Simple generator: no arguments
-  UUID: () => crypto.randomUUID(),
-
-  // Generator with arguments
-  PrefixedUUID: (prefix: string) => `${prefix}${crypto.randomUUID()}`,
-
-  // Date generator
-  Tomorrow: () => {
-    const date = new Date()
-    date.setDate(date.getDate() + 1)
-    return date
-  },
-})
-
-// Registration
-formEngine.registerFunctions(MyGeneratorsRegistry)
-
-// Usage in forms
-defaultValue: MyGenerators.UUID()
-defaultValue: MyGenerators.PrefixedUUID('order-')
-```
-
-### `defineGeneratorsWithDeps()` - With Dependencies
-
-Create generators that need access to external services:
-
-```typescript
-import { defineGeneratorsWithDeps } from '@form-engine/registry/utils/createRegisterableFunction'
 
 interface MyDeps {
   userService: UserService
@@ -205,7 +176,17 @@ interface MyDeps {
 
 // Define generators - builders available immediately without deps
 export const { generators: MyGenerators, createRegistry: createMyGeneratorsRegistry } =
-  defineGeneratorsWithDeps<MyDeps>()({
+  defineGenerators<MyDeps>({
+    UUID: () => () => crypto.randomUUID(),
+
+    PrefixedUUID: () => (prefix: string) => `${prefix}${crypto.randomUUID()}`,
+
+    Tomorrow: () => () => {
+      const date = new Date()
+      date.setDate(date.getDate() + 1)
+      return date
+    },
+
     // Sync generator with deps
     CurrentUserId: deps => () => deps.userService.getCurrentUserId(),
 
@@ -236,15 +217,9 @@ defaultValue: MyGenerators.ServerTime()
 Merge multiple generator registries:
 
 ```typescript
-// Without dependencies
-export const MyGeneratorsRegistry = {
-  ...DateGeneratorsRegistry,
-  ...IdentifierGeneratorsRegistry,
-}
-
-// Mixed (some with deps, some without)
 export const createMyGeneratorsRegistry = (deps: ApiDeps) => ({
   ...DateGeneratorsRegistry,              // No deps
+  ...IdentifierGeneratorsRegistry,        // No deps
   ...createApiGeneratorsRegistry(deps),   // Needs deps
 })
 ```

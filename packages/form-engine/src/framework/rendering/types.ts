@@ -1,4 +1,4 @@
-import { ASTNode, NodeId } from '../../engine/types/engine.type'
+import { ASTNode, NodeId } from '../../engine/types/ast.type'
 import { ASTNodeType } from '../../engine/types/enums'
 import { ValidationResult } from '../../engine/nodes/expressions/validation/ValidationHandler'
 import { BlockASTNode } from '../../engine/types/structures.type'

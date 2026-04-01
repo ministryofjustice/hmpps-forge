@@ -14,7 +14,7 @@ import {
   RenderContext,
   ValidationResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import { InternalServerError } from 'http-errors'
+import createHttpError from 'http-errors'
 import { FieldError, TemplateContext } from './types'
 
 export interface TemplateRendererOptions {
@@ -68,7 +68,7 @@ export default class TemplateRenderer {
 
   /** Wrap an error as InternalServerError, preserving stack trace */
   private wrapError(err: unknown) {
-    const error = new InternalServerError(err instanceof Error ? err.message : String(err))
+    const error = new createHttpError.InternalServerError(err instanceof Error ? err.message : String(err))
     error.cause = err
 
     if (err instanceof Error && err.stack) {

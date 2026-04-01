@@ -61,11 +61,6 @@ export interface AnswerHistory {
 }
 
 /**
- * HTTP method for the request
- */
-export type HttpMethod = 'GET' | 'POST'
-
-/**
  * Metadata about a thunk evaluation
  */
 export interface ThunkResultMetadata {

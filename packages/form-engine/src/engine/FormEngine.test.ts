@@ -271,13 +271,6 @@ describe('FormEngine', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('null')
     })
 
-    it('should store form instance after successful registration', () => {
-      const engine = new FormEngine(createDefaultOptions())
-      engine.registerForm('test-config')
-
-      const instance = engine.getFormInstance('test-form')
-      expect(instance).toBe(mockFormInstance)
-    })
   })
 
   describe('getRouter', () => {
@@ -286,41 +279,6 @@ describe('FormEngine', () => {
       const router = engine.getRouter()
 
       expect(router).toBe(mockRouter)
-    })
-  })
-
-  describe('getFormInstance', () => {
-    it('should return a registered form instance', () => {
-      const engine = new FormEngine(createDefaultOptions())
-      engine.registerForm('test-config')
-
-      const instance = engine.getFormInstance('test-form')
-      expect(instance).toBe(mockFormInstance)
-    })
-
-    it('should return undefined for non-existent form', () => {
-      const engine = new FormEngine(createDefaultOptions())
-
-      const instance = engine.getFormInstance('non-existent')
-      expect(instance).toBeUndefined()
-    })
-
-    it('should handle multiple form registrations', () => {
-      const engine = new FormEngine(createDefaultOptions())
-
-      // First form
-      engine.registerForm('config-1')
-
-      // Second form with different code
-      const mockFormInstance2 = {
-        ...mockFormInstance,
-        getFormCode: jest.fn().mockReturnValue('test-form-2'),
-      }
-      ;(FormInstance.createFromConfiguration as jest.Mock).mockReturnValue(mockFormInstance2)
-      engine.registerForm('config-2')
-
-      expect(engine.getFormInstance('test-form')).toBe(mockFormInstance)
-      expect(engine.getFormInstance('test-form-2')).toBe(mockFormInstance2)
     })
   })
 
@@ -345,7 +303,7 @@ describe('FormEngine', () => {
         .registerForm('config-2')
 
       expect(result).toBe(engine)
-      expect(engine.getFormInstance('test-form')).toBeDefined()
+      expect(mockFormEngineRouter.mountForm).toHaveBeenCalledTimes(2)
     })
 
     it('should support chaining even when form registration fails', () => {
@@ -365,7 +323,7 @@ describe('FormEngine', () => {
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
-      expect(engine.getFormInstance('test-form')).toBeDefined()
+      expect(mockFormEngineRouter.mountForm).toHaveBeenCalledTimes(1)
     })
 
     it('should handle complete registration workflow with chaining', () => {
@@ -393,7 +351,7 @@ describe('FormEngine', () => {
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith(customFunctions)
-      expect(engine.getFormInstance('test-form')).toBeDefined()
+      expect(mockFormEngineRouter.mountForm).toHaveBeenCalledWith(mockFormInstance)
     })
   })
 })

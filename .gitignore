@@ -133,3 +133,6 @@ volume/
 
 # Temporary build artifact for Docker (TODO: remove once hmpps-forge is published)
 forge-package/
+
+# Rollup transpiles .ts config to .js during build
+packages/rollup.config.js

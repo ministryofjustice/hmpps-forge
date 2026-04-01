@@ -46,12 +46,13 @@ import type { CookieMutation, CookieOptions } from '../../../../framework/types/
  *   context.getData('nonExistent')     // compile error
  * }
  */
-export default class EffectFunctionContext<
+class EffectFunctionContext<
   TData extends Record<string, unknown> = Record<string, unknown>,
   TAnswers extends Record<string, unknown> = Record<string, unknown>,
   TSession = unknown,
   TState extends Record<string, unknown> = Record<string, unknown>,
 > {
+  /** @internal */
   constructor(
     private readonly context: ThunkEvaluationContext,
     private readonly transitionType: TransitionType,
@@ -319,3 +320,6 @@ export default class EffectFunctionContext<
     return this.context.response.getAllCookies()
   }
 }
+
+export default EffectFunctionContext
+export { EffectFunctionContext }

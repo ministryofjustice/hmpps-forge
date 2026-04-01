@@ -1,9 +1,12 @@
-import { ObjectConditions, ObjectConditionsRegistry } from './objectConditions'
+import { ObjectConditions, ObjectConditionsImplementations } from './objectConditions'
+import { createFunctionsRegistry } from '../utils/defineFunction'
 import { FunctionType } from '../types/enums'
 
 describe('ObjectConditions', () => {
+  const registry = createFunctionsRegistry(ObjectConditionsImplementations)
+
   describe('IsObject', () => {
-    const { evaluate } = ObjectConditionsRegistry.IsObject
+    const { evaluate } = registry.IsObject
 
     test('should return true for plain objects', () => {
       expect(evaluate({})).toBe(true)
@@ -57,7 +60,7 @@ describe('ObjectConditions', () => {
   })
 
   describe('HasProperty', () => {
-    const { evaluate } = ObjectConditionsRegistry.HasProperty
+    const { evaluate } = registry.HasProperty
 
     test('should return true when object has the property', () => {
       expect(evaluate({ name: 'John' }, 'name')).toBe(true)
@@ -116,7 +119,7 @@ describe('ObjectConditions', () => {
   })
 
   describe('PropertyIsEmpty', () => {
-    const { evaluate } = ObjectConditionsRegistry.PropertyIsEmpty
+    const { evaluate } = registry.PropertyIsEmpty
 
     test('should return true when property is null', () => {
       expect(evaluate({ value: null }, 'value')).toBe(true)
@@ -184,7 +187,7 @@ describe('ObjectConditions', () => {
   })
 
   describe('PropertyHasValue', () => {
-    const { evaluate } = ObjectConditionsRegistry.PropertyHasValue
+    const { evaluate } = registry.PropertyHasValue
 
     test('should return true when property has a non-empty value', () => {
       expect(evaluate({ value: 'text' }, 'value')).toBe(true)

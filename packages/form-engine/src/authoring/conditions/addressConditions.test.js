@@ -1,14 +1,13 @@
-import { AddressConditions, AddressConditionsImplementations } from './addressConditions'
-import { createFunctionsRegistry } from '../utils/defineFunction'
-import { FunctionType } from '../types/enums'
+Object.defineProperty(exports, '__esModule', { value: true })
+const addressConditions_1 = require('./addressConditions')
+const defineFunction_1 = require('../utils/defineFunction')
+const enums_1 = require('../types/enums')
 
-describe('AddressConditions', () => {
-  const registry = createFunctionsRegistry(AddressConditionsImplementations)
-
-  describe('IsValidPostcode', () => {
-    const { evaluate } = registry.IsValidPostcode
-
-    test('should return true for valid UK postcodes', () => {
+describe('AddressConditions', function () {
+  const registry = (0, defineFunction_1.createFunctionsRegistry)(addressConditions_1.AddressConditionsImplementations)
+  describe('IsValidPostcode', function () {
+    const evaluate = registry.IsValidPostcode.evaluate
+    test('should return true for valid UK postcodes', function () {
       expect(evaluate('SW1A 1AA')).toBe(true)
       expect(evaluate('SW1A1AA')).toBe(true)
       expect(evaluate('EC1A 1BB')).toBe(true)
@@ -24,15 +23,13 @@ describe('AddressConditions', () => {
       expect(evaluate('DN55 1PT')).toBe(true)
       expect(evaluate('DN551PT')).toBe(true)
     })
-
-    test('should be case insensitive', () => {
+    test('should be case insensitive', function () {
       expect(evaluate('sw1a 1aa')).toBe(true)
       expect(evaluate('Sw1A 1Aa')).toBe(true)
       expect(evaluate('SW1A 1AA')).toBe(true)
       expect(evaluate('sw1a1aa')).toBe(true)
     })
-
-    test('should handle different valid formats', () => {
+    test('should handle different valid formats', function () {
       expect(evaluate('N1 1AA')).toBe(true)
       expect(evaluate('N11 1AA')).toBe(true)
       expect(evaluate('NW1 1AA')).toBe(true)
@@ -40,8 +37,7 @@ describe('AddressConditions', () => {
       expect(evaluate('N1W 1AA')).toBe(true)
       expect(evaluate('NW1W 1AA')).toBe(true)
     })
-
-    test('should return false for invalid postcodes', () => {
+    test('should return false for invalid postcodes', function () {
       expect(evaluate('1234567')).toBe(false)
       expect(evaluate('')).toBe(false)
       expect(evaluate('ABC 123')).toBe(false)
@@ -56,30 +52,37 @@ describe('AddressConditions', () => {
       expect(evaluate('SW1A 111')).toBe(false)
       expect(evaluate('SW1A AAA')).toBe(false)
     })
-
-    test('should handle edge cases', () => {
+    test('should handle edge cases', function () {
       expect(evaluate('SW1A  1AA')).toBe(false)
       expect(evaluate(' SW1A 1AA')).toBe(false)
       expect(evaluate('SW1A 1AA ')).toBe(false)
       expect(evaluate('SW1A-1AA')).toBe(false)
       expect(evaluate('SW1A.1AA')).toBe(false)
     })
-
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123456)).toThrow('Condition.Address.IsValidPostcode expects a string but received number')
-      expect(() => evaluate(null)).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.Address.IsValidPostcode expects a string but received undefined',
-      )
-      expect(() => evaluate([])).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
-      expect(() => evaluate({})).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
-      expect(() => evaluate(true)).toThrow('Condition.Address.IsValidPostcode expects a string but received boolean')
+    test('should throw error when value is not a string', function () {
+      expect(function () {
+        return evaluate(123456)
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received number')
+      expect(function () {
+        return evaluate(null)
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
+      expect(function () {
+        return evaluate(undefined)
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received undefined')
+      expect(function () {
+        return evaluate([])
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
+      expect(function () {
+        return evaluate({})
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
+      expect(function () {
+        return evaluate(true)
+      }).toThrow('Condition.Address.IsValidPostcode expects a string but received boolean')
     })
-
-    test('should build correct expression object', () => {
-      const expr = AddressConditions.IsValidPostcode()
+    test('should build correct expression object', function () {
+      const expr = addressConditions_1.AddressConditions.IsValidPostcode()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: enums_1.FunctionType.CONDITION,
         name: 'IsValidPostcode',
         arguments: [],
       })

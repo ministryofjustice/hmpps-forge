@@ -1,4 +1,7 @@
-import { HttpMethod } from '../../engine/compilation/thunks/types'
+/**
+ * HTTP method for the request
+ */
+export type HttpMethod = 'GET' | 'POST'
 
 /**
  * Framework-agnostic request interface.
