@@ -1,7 +1,7 @@
 {
   "name": "@ministryofjustice/hmpps-forge",
   "version": "0.0.1",
-  "description": "HMPPS Form Engine",
+  "description": "HMPPS Forge",
   "author": "hmpps-developers",
   "license": "MIT",
   "private": true,

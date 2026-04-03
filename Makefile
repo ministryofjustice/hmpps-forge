@@ -21,6 +21,7 @@ help: ## The help text you're reading.
 
 build: ## Builds packages and installs into examples-app.
 	@cd packages && npm run build
+	@rm -rf examples-app/node_modules/@ministryofjustice/hmpps-forge
 	@cd examples-app && npm install
 
 prod-build: ## Builds a production image of the app.

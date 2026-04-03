@@ -1,6 +1,7 @@
 import hmppsConfig from '@ministryofjustice/eslint-config-hmpps'
 
 export default [
+  { ignores: ['**/dist/**'] },
   ...hmppsConfig({
     extraIgnorePaths: ['dist/', '*.config.*'],
   }),
@@ -29,7 +30,7 @@ export default [
     },
   },
   {
-    files: ['form-engine/**/*.ts'],
+    files: ['forge-core/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -40,7 +41,7 @@ export default [
     },
   },
   {
-    files: ['form-engine-express-nunjucks/**/*.ts'],
+    files: ['forge-express-nunjucks/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -48,19 +49,19 @@ export default [
           patterns: [
             '@ministryofjustice/hmpps-forge/express-nunjucks',
             '@ministryofjustice/hmpps-forge/express-nunjucks/*',
-            '**/form-engine/src',
-            '**/form-engine/src/**',
-            '**/form-engine-govuk-components/src',
-            '**/form-engine-govuk-components/src/**',
-            '**/form-engine-moj-components/src',
-            '**/form-engine-moj-components/src/**',
+            '**/forge-core/src',
+            '**/forge-core/src/**',
+            '**/forge-govuk-components/src',
+            '**/forge-govuk-components/src/**',
+            '**/forge-moj-components/src',
+            '**/forge-moj-components/src/**',
           ],
         },
       ],
     },
   },
   {
-    files: ['form-engine-govuk-components/**/*.ts'],
+    files: ['forge-govuk-components/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -68,19 +69,19 @@ export default [
           patterns: [
             '@ministryofjustice/hmpps-forge/govuk-components',
             '@ministryofjustice/hmpps-forge/govuk-components/*',
-            '**/form-engine/src',
-            '**/form-engine/src/**',
-            '**/form-engine-express-nunjucks/src',
-            '**/form-engine-express-nunjucks/src/**',
-            '**/form-engine-moj-components/src',
-            '**/form-engine-moj-components/src/**',
+            '**/forge-core/src',
+            '**/forge-core/src/**',
+            '**/forge-express-nunjucks/src',
+            '**/forge-express-nunjucks/src/**',
+            '**/forge-moj-components/src',
+            '**/forge-moj-components/src/**',
           ],
         },
       ],
     },
   },
   {
-    files: ['form-engine-moj-components/**/*.ts'],
+    files: ['forge-moj-components/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -88,25 +89,25 @@ export default [
           patterns: [
             '@ministryofjustice/hmpps-forge/moj-components',
             '@ministryofjustice/hmpps-forge/moj-components/*',
-            '**/form-engine/src',
-            '**/form-engine/src/**',
-            '**/form-engine-express-nunjucks/src',
-            '**/form-engine-express-nunjucks/src/**',
-            '**/form-engine-govuk-components/src',
-            '**/form-engine-govuk-components/src/**',
+            '**/forge-core/src',
+            '**/forge-core/src/**',
+            '**/forge-express-nunjucks/src',
+            '**/forge-express-nunjucks/src/**',
+            '**/forge-govuk-components/src',
+            '**/forge-govuk-components/src/**',
           ],
         },
       ],
     },
   },
   {
-    files: ['form-engine-moj-components/**/*.ts'],
+    files: ['forge-moj-components/**/*.ts'],
     rules: {
       'no-nested-ternary': 'off',
     },
   },
   {
-    files: ['form-engine-govuk-components/**/*.ts'],
+    files: ['forge-govuk-components/**/*.ts'],
     rules: {
       'no-nested-ternary': 'off',
     },

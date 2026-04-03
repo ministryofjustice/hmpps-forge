@@ -6,13 +6,13 @@ import { dts } from 'rollup-plugin-dts'
 /* eslint-enable import/no-extraneous-dependencies */
 
 const subpaths = {
-  core: 'form-engine/src/index.ts',
-  'core/authoring': 'form-engine/src/authoring/index.ts',
-  'core/components': 'form-engine/src/components/index.ts',
-  'core/framework': 'form-engine/src/framework/index.ts',
-  'express-nunjucks': 'form-engine-express-nunjucks/src/index.ts',
-  'govuk-components': 'form-engine-govuk-components/src/index.ts',
-  'moj-components': 'form-engine-moj-components/src/index.ts',
+  core: 'forge-core/src/index.ts',
+  'core/authoring': 'forge-core/src/authoring/index.ts',
+  'core/components': 'forge-core/src/components/index.ts',
+  'core/framework': 'forge-core/src/framework/index.ts',
+  'express-nunjucks': 'forge-express-nunjucks/src/index.ts',
+  'govuk-components': 'forge-govuk-components/src/index.ts',
+  'moj-components': 'forge-moj-components/src/index.ts',
 }
 
 const packageName = '@ministryofjustice/hmpps-forge'
@@ -34,17 +34,17 @@ const isExternal = id => {
 }
 
 const dtsOwnershipRules = [
-  { match: '/form-engine/src/components/', entrypoint: 'core/components' },
-  { match: '/form-engine/src/authoring/', entrypoint: 'core/authoring' },
-  { match: '/form-engine/src/framework/', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/types/ast.type', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/types/enums', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/types/expressions.type', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/types/structures.type', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/types/template.type', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/engine/nodes/expressions/validation/ValidationHandler', entrypoint: 'core/framework' },
-  { match: '/form-engine/src/index.ts', entrypoint: 'core' },
-  { match: '/form-engine/src/engine/', entrypoint: 'core' },
+  { match: '/forge-core/src/components/', entrypoint: 'core/components' },
+  { match: '/forge-core/src/authoring/', entrypoint: 'core/authoring' },
+  { match: '/forge-core/src/framework/', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/types/ast.type', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/types/enums', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/types/expressions.type', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/types/structures.type', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/types/template.type', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/engine/nodes/expressions/validation/ValidationHandler', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/index.ts', entrypoint: 'core' },
+  { match: '/forge-core/src/engine/', entrypoint: 'core' },
 ]
 
 const normalizeId = id => id.replaceAll('\\', '/')
