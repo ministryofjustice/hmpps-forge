@@ -11,7 +11,10 @@ export default function setUpStaticResources(): Router {
   router.use(compression())
 
   //  Static Resources Configuration
-  const staticResourcesConfig = { maxAge: config.staticResourceCacheDuration, redirect: false }
+  const staticResourcesConfig = {
+    maxAge: config.staticResourceCacheDuration,
+    redirect: false,
+  }
 
   Array.of(
     '/dist/assets',

@@ -206,13 +206,17 @@ function buildNotificationPlugin(buildName, isWatchMode) {
 
       build.onEnd(result => {
         if (result.errors.length === 0) {
-          process.stderr.write(`${styleText('bold', `${emojis.rocket} ${buildName} build complete!`)}\n`)
+          process.stderr.write(
+            `${styleText('bold', `${emojis.rocket} ${buildName} build complete!`)}\n`,
+          )
 
           if (isWatchMode) {
             process.send({ type: 'app-build-complete' })
           }
         } else {
-          process.stderr.write(`${styleText('bold', `${emojis.crossmark} ${buildName} build failed`)}\n`)
+          process.stderr.write(
+            `${styleText('bold', `${emojis.crossmark} ${buildName} build failed`)}\n`,
+          )
         }
       })
     },

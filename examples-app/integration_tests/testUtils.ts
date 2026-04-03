@@ -16,7 +16,12 @@ export const attemptHmppsAuthLogin = async (page: Page) => {
 
 export const login = async (
   page: Page,
-  { name, roles = DEFAULT_ROLES, active = true, authSource = 'nomis' }: UserToken & { active?: boolean } = {},
+  {
+    name,
+    roles = DEFAULT_ROLES,
+    active = true,
+    authSource = 'nomis',
+  }: UserToken & { active?: boolean } = {},
 ) => {
   await Promise.all([
     hmppsAuth.favicon(),

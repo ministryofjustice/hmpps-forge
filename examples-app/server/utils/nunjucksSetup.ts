@@ -14,7 +14,6 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
   locals.asset_path = '/assets/'
   locals.applicationName = 'Forge Examples App'
   locals.environmentName = config.environmentName
-  locals.environmentNameColour = config.environmentName === 'PRE-PRODUCTION' ? 'govuk-tag--green' : ''
 
   let assetManifest: Record<string, string> = {}
 
@@ -43,6 +42,8 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
       path.join(__dirname, '../../server/views'),
       'node_modules/govuk-frontend/dist/',
       'node_modules/@ministryofjustice/frontend/',
+      'node_modules/@ministryofjustice/hmpps-forge/dist/govuk-components/',
+      'node_modules/@ministryofjustice/hmpps-forge/dist/moj-components/',
     ],
     {
       autoescape: true,

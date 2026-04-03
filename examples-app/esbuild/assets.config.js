@@ -36,7 +36,9 @@ const getAssetsConfig = buildConfig => ({
     cleanPlugin(globSync(buildConfig.assets.clear)),
     manifestPlugin({
       generate: entries =>
-        Object.fromEntries(Object.entries(entries).map(paths => paths.map(p => p.replace(/^dist\//, '/')))),
+        Object.fromEntries(
+          Object.entries(entries).map(paths => paths.map(p => p.replace(/^dist\//, '/'))),
+        ),
     }),
     sassPlugin({
       quietDeps: true,

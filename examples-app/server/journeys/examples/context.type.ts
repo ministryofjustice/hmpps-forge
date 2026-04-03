@@ -1,5 +1,6 @@
 import { EffectFunctionContext } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type FormDataStore from '../../data/formDataStore'
+import type AppointmentApi from '../../data/appointmentApi'
 
 // FORGE-EXAMPLE: Define typed interfaces for answers, session, and data to get
 // full type safety in effect functions via a custom EffectFunctionContext alias.
@@ -14,6 +15,17 @@ export interface FeedbackFormAnswers extends Record<string, unknown> {
   phoneNumber: string
   mobileNumber: string
   feedback: string
+}
+
+export interface BookingFormAnswers extends Record<string, unknown> {
+  appointmentType: 'in-person' | 'phone' | 'video'
+  fullName: string
+  email: string
+  phoneNumber: string
+  location: string
+  appointmentDate: string
+  appointmentTime: string
+  additionalInfo: string
 }
 
 /**
@@ -41,4 +53,5 @@ export type ExampleJourneyContext = EffectFunctionContext<
 
 export interface ExampleJourneyDeps {
   formDataStore: FormDataStore
+  appointmentApi: AppointmentApi
 }

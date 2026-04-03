@@ -1,4 +1,8 @@
-import { initialiseTelemetry, flushTelemetry, telemetry } from '@ministryofjustice/hmpps-azure-telemetry'
+import {
+  initialiseTelemetry,
+  flushTelemetry,
+  telemetry,
+} from '@ministryofjustice/hmpps-azure-telemetry'
 import logger from '../logger'
 
 initialiseTelemetry({
@@ -7,7 +11,15 @@ initialiseTelemetry({
   connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
   debug: process.env.DEBUG_TELEMETRY === 'true',
 })
-  .addFilter(telemetry.processors.filterSpanWherePath(['/health', '/ping', '/info', '/assets/*', '/favicon.ico']))
+  .addFilter(
+    telemetry.processors.filterSpanWherePath([
+      '/health',
+      '/ping',
+      '/info',
+      '/assets/*',
+      '/favicon.ico',
+    ]),
+  )
   .addModifier(telemetry.processors.enrichSpanNameWithHttpRoute())
   .startRecording()
 

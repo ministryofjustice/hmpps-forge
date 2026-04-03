@@ -1,12 +1,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import * as path from 'node:path'
+import * as fs from 'node:fs'
 import esbuild from 'rollup-plugin-esbuild'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import { dts } from 'rollup-plugin-dts'
 /* eslint-enable import/no-extraneous-dependencies */
 
 const subpaths = {
-  core: 'forge-core/src/index.ts',
+  'core': 'forge-core/src/index.ts',
   'core/authoring': 'forge-core/src/authoring/index.ts',
   'core/components': 'forge-core/src/components/index.ts',
   'core/framework': 'forge-core/src/framework/index.ts',
@@ -85,12 +86,44 @@ const createDtsEntrypointPlugin = entrypoint => ({
   },
 })
 
+/**
+ * Copies non-TS assets (templates, styles) from a source package into its dist output.
+ * This ensures nunjucks templates and SCSS files are available at runtime.
+ */
+const copyAssets = (sourceDir: string, destDir: string, extensions: string[]) => ({
+  name: 'copy-assets',
+  writeBundle() {
+    const copyRecursive = (src: string, dest: string) => {
+      if (!fs.existsSync(src)) {
+        return
+      }
+
+      for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+        const srcPath = path.join(src, entry.name)
+        const destPath = path.join(dest, entry.name)
+
+        if (entry.isDirectory()) {
+          copyRecursive(srcPath, destPath)
+        } else if (extensions.some(ext => entry.name.endsWith(ext))) {
+          fs.mkdirSync(path.dirname(destPath), { recursive: true })
+          fs.copyFileSync(srcPath, destPath)
+        }
+      }
+    }
+
+    copyRecursive(sourceDir, destDir)
+  },
+})
+
 const jsConfigs = Object.entries(subpaths).map(([name, input]) => ({
   input,
   output: [{ file: `dist/${name}/index.mjs`, format: 'esm', sourcemap: true }],
   plugins: [
     nodeResolve({ preferBuiltins: true }),
     esbuild({ tsconfig: './tsconfig.json', target: 'es2024', exclude: 'rollup.config.ts' }),
+    ...(name === 'moj-components'
+      ? [copyAssets('forge-moj-components/src', 'dist/moj-components', ['.njk', '.scss'])]
+      : []),
   ],
   external: isExternal,
 }))

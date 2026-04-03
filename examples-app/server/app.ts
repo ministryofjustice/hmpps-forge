@@ -16,7 +16,7 @@ import setUpWebRequestParsing from './middleware/setupRequestParsing'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
-import exampleJourneysPackage from './forms/example-journeys'
+import exampleJourneysPackage from './journeys/examples'
 
 import type { Services } from './services'
 
@@ -35,6 +35,7 @@ export default function createApp(services: Services): express.Application {
     // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
     .registerPackage(exampleJourneysPackage, {
       formDataStore: services.formDataStore,
+      appointmentApi: services.appointmentApi,
     })
 
   app.set('json spaces', 2)
