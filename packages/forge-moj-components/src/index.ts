@@ -24,16 +24,33 @@
 
 export { mojComponents } from './components/index'
 
-// Re-export types
-export type {
+// Re-export wrapper functions (each also exports its interface type)
+export {
+  MOJAlert,
+  MOJBadge,
+  MOJBanner,
+  MOJButtonMenu,
   MOJCard,
+  MOJCardGroup,
+  MOJDatePicker,
+  MOJFilter,
+  MOJProgressBar,
+  MOJSideNavigation,
+  MOJSubNavigation,
+  MOJTicketPanel,
+  MOJTimeline,
+  MOJMessages,
+  MOJMultiSelect,
+  MOJSortableTable,
+} from './components'
+
+// Re-export supporting types
+export type {
   MOJCardHeading,
   MOJCardDescription,
-  MOJCardGroup,
   MOJCardGroupItem,
   MOJCardGroupItemHeading,
   MOJCardGroupItemDescription,
-  MOJDatePicker,
   MOJDatePickerLabel,
   MOJDatePickerHint,
   MOJDatePickerFormGroup,
