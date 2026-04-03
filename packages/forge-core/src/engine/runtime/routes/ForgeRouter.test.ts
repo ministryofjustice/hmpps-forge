@@ -920,6 +920,109 @@ describe('ForgeRouter', () => {
         '/journey/explicit-entry',
       )
     })
+
+    it('should not register redirect when entry step path is / (would redirect to self)', () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/')
+      stepNode.properties.isEntryPoint = true
+      journeyNode.properties.steps = [stepNode]
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step', isEntryPoint: true }],
+      }
+
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mount(journeyInstance)
+
+      // Assert
+      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
+    })
+
+    it('should not register redirect when entryPath is /', () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
+      journeyNode.properties.entryPath = '/'
+      const stepNode = createMockStepNode('compile_ast:2', '/')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        entryPath: '/',
+        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
+      }
+
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mount(journeyInstance)
+
+      // Assert
+      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
+    })
+
+    it('should register correct fullPath when journey is at root with step at /', () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/', 'root-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/')
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/',
+        code: 'root-journey',
+        title: 'Root Journey',
+        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
+      }
+
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mount(journeyInstance)
+
+      // Assert
+      const routes = router.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/' })
+      expect(routes).toContainEqual({ method: 'POST', path: '/' })
+      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
+    })
+
+    it('should register redirect for root journey with non-root entry step', () => {
+      // Arrange
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/', 'root-journey')
+      const stepNode = createMockStepNode('compile_ast:2', '/home')
+      stepNode.properties.isEntryPoint = true
+      journeyNode.properties.steps = [stepNode]
+      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/',
+        code: 'root-journey',
+        title: 'Root Journey',
+        steps: [{ type: StructureType.STEP, path: '/home', title: 'Home', isEntryPoint: true }],
+      }
+
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+
+      // Act
+      router.mount(journeyInstance)
+
+      // Assert
+      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/home')
+      const routes = router.getRegisteredRoutes()
+      expect(routes).toContainEqual({ method: 'GET', path: '/home' })
+    })
   })
 
   describe('basePath configuration', () => {
