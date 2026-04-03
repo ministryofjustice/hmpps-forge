@@ -1,0 +1,62 @@
+{# FORGE-EXAMPLE: This is the Nunjucks template that Forge renders for each step.
+   It receives `blocks` (rendered HTML), `step`, `fieldValidationErrors`, and any view.locals. #}
+{%- extends "partials/layout.njk" -%}
+{% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
+
+{% set mainClasses = "govuk-body" %}
+
+{% block govukServiceNavigation %}
+  {{ govukServiceNavigation({
+    serviceName: serviceName | default("HMPPS Forge Examples"),
+    serviceUrl: "/"
+  }) }}
+{% endblock %}
+
+{% block beforeContent %}
+  <div class="hmpps-demo-banner">
+    <div class="hmpps-demo-banner__container">
+      <strong class="hmpps-demo-banner__tag govuk-tag govuk-tag--red">Demo</strong>
+      <span class="hmpps-demo-banner__text">
+        This is a demonstration app built with HMPPS Forge. It is not a real GOV.UK service.
+      </span>
+    </div>
+  </div>
+  {% if step.backlink %}
+    <a href="{{ step.backlink }}" class="govuk-back-link">Back</a>
+  {% else %}
+    <div class="govuk-!-margin-bottom-5"></div>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="{{ contentClasses | default('govuk-grid-column-two-thirds') }}">
+      {% if fieldValidationErrors and fieldValidationErrors.length %}
+        <div class="govuk-error-summary" data-module="govuk-error-summary">
+          <div role="alert">
+            <h2 class="govuk-error-summary__title">There is a problem</h2>
+            <div class="govuk-error-summary__body">
+              <ul class="govuk-list govuk-error-summary__list">
+                {% set seenFields = "" %}
+                {% for error in fieldValidationErrors %}
+                  {% if ("," + error.blockCode + ",") not in ("," + seenFields + ",") %}
+                    {% set seenFields = seenFields + ("," if seenFields) + error.blockCode %}
+                    <li><a href="#{{ error.blockCode }}">{{ error.message }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+        {% for block in blocks %}
+          {{ block | safe }}
+        {% endfor %}
+      </form>
+    </div>
+  </div>
+{% endblock %}
