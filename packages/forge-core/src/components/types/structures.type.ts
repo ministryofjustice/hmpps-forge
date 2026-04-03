@@ -21,11 +21,13 @@ import type { ValidationExpr } from '../../authoring/types/structures.type'
  */
 export interface BasicBlockProps {
   /**
-   * Conditional visibility - field is hidden when this evaluates to truthy.
-   * Hidden fields are not rendered but retain their values.
+   * Conditional visibility - the block is not rendered when this evaluates to truthy.
+   * Hidden fields retain their values and still participate in validation.
+   *
+   * To also skip validation and clear the value, use `dependent` on field blocks.
    *
    * @example true // Always hidden
-   * @example Answer('contactMethod').not.equals('email') // Hide unless email selected
+   * @example Answer('contactMethod').not.match(Condition.Equals('email')) // Hide unless email selected
    */
   hidden?: boolean | PredicateExpr | PredicateTestExprBuilder
 
@@ -96,9 +98,18 @@ export interface FieldBlockProps extends BasicBlockProps {
 
   /**
    * Marks field as dependent on other fields.
-   * If false, this field is skipped for validation, and its answer is set to blank.
+   * When the predicate evaluates to false, validation is skipped and the answer is cleared.
    *
-   * @example Answer('startDate') // This field depends on startDate
+   * **Note:** This does not affect rendering — the field is still visible.
+   * To visually hide a conditional field, use `hidden` alongside `dependent`.
+   * They are typically logical opposites: `hidden` controls visibility,
+   * `dependent` controls validation and value retention.
+   *
+   * @example
+   * // Only validate and keep this field's value when appointmentType is 'phone'
+   * dependent: Answer('appointmentType').match(Condition.Equals('phone'))
+   * // Pair with hidden to also control visibility:
+   * hidden: Answer('appointmentType').not.match(Condition.Equals('phone'))
    */
   dependent?: PredicateExpr
 

@@ -188,7 +188,11 @@ describe('ThunkEvaluator', () => {
       frameworkAdapter: {} as any,
     } as jest.Mocked<JourneyInstanceDependencies>
 
-    evaluator = new ThunkEvaluator(mockCompilationDependencies, mockJourneyInstanceDependencies, mockRuntimeOverlayBuilder)
+    evaluator = new ThunkEvaluator(
+      mockCompilationDependencies,
+      mockJourneyInstanceDependencies,
+      mockRuntimeOverlayBuilder,
+    )
   })
 
   describe('invoke()', () => {
