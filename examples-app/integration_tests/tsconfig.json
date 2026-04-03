@@ -2,7 +2,7 @@
   "extends": "@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "lib": ["es5", "dom", "es2015.promise"],
+    "lib": ["es2017", "dom"],
     "types": ["@playwright/test"],
     "esModuleInterop": true,
     "skipLibCheck": true

@@ -18,9 +18,9 @@ export default defineConfig({
   /* Maximum time test suite can run for. (millis) */
   globalTimeout: 60 * 60 * 1000,
   /* Run tests in files in parallel */
-  fullyParallel: false,
+  fullyParallel: true,
   /* Ensure tests run consecutively due to inability to share wiremock instance */
-  workers: 1,
+  workers: 4,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
@@ -41,12 +41,11 @@ export default defineConfig({
   use: {
     actionTimeout: 30 /* seconds */ * 1000,
     timezoneId: 'Europe/London',
-    launchOptions: { slowMo: 150 },
     screenshot: 'only-on-failure',
     trace: process.env.CI ? 'off' : 'on',
     ...devices['Desktop Chrome'],
     testIdAttribute: 'data-qa',
-    baseURL: 'http://localhost:3007',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
   },
 
   /* Configure projects */

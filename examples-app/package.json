@@ -13,6 +13,8 @@
     "typecheck": "tsc && tsc -p integration_tests",
     "test": "jest",
     "test:ci": "jest --runInBand",
+    "int-test": "npx playwright test",
+    "int-test-ui": "npx playwright test --ui",
     "security_audit": "npx audit-ci --config audit-ci.json",
     "clean": "rm -rf dist test_results",
     "rebuild": "npm run clean && npm run setup && npm run build",

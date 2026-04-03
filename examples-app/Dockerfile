@@ -11,8 +11,8 @@ WORKDIR /app/examples-app
 COPY examples-app/package.json examples-app/package-lock.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./
 COPY packages/package.json ../packages/package.json
 COPY packages/dist ../packages/dist
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --install-links --ignore-scripts
+RUN --mount=type=cache,target=/npm_cache \
+    npm ci --install-links --cache /npm_cache --prefer-offline --ignore-scripts
 
 # Stage: install ONLY production dependencies
 FROM base AS prod-deps
@@ -20,8 +20,8 @@ WORKDIR /app/examples-app
 COPY examples-app/package.json examples-app/package-lock.json examples-app/.allowed-scripts.mjs examples-app/.npmrc ./
 COPY packages/package.json ../packages/package.json
 COPY packages/dist ../packages/dist
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --install-links --omit=dev --ignore-scripts
+RUN --mount=type=cache,target=/npm_cache \
+    npm ci --install-links --cache /npm_cache --prefer-offline --omit=dev --ignore-scripts
 
 # Stage: build assets using full deps
 FROM deps AS build
