@@ -12,17 +12,21 @@ const DEFAULT_TTL_SECONDS = 60 * 60 // 1 hour
 export default class FormDataStore {
   private client: RedisClient
 
-  private connected = false
+  private connectPromise: Promise<unknown> | undefined
 
   constructor(client?: RedisClient) {
     this.client = client ?? createRedisClient()
   }
 
   private async ensureConnected(): Promise<void> {
-    if (!this.connected) {
-      await this.client.connect()
-      this.connected = true
+    if (!this.connectPromise) {
+      this.connectPromise = this.client.connect().catch(err => {
+        this.connectPromise = undefined
+        throw err
+      })
     }
+
+    await this.connectPromise
   }
 
   private getKey(sessionId: string, formCode: string): string {
