@@ -19,23 +19,25 @@ default: help
 help: ## The help text you're reading.
 	@grep --no-filename -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-build: ## Builds packages and installs into examples-app.
+build-packages: ## Builds the @packages.
 	@cd packages && npm run build
+
+build: build-packages ## Builds packages and installs into examples-app.
 	@rm -rf examples-app/node_modules/@ministryofjustice/hmpps-forge
 	@cd examples-app && npm install
 
-prod-build: ## Builds a production image of the app.
+prod-build: build-packages ## Builds a production image of the app.
 	@docker compose ${PROD_COMPOSE_FILES} build app
 
 prod-up: ## Starts/restarts the app in a production container.
 	@docker compose ${PROD_COMPOSE_FILES} down app
 	@docker compose ${PROD_COMPOSE_FILES} up app --wait --no-recreate
 
-dev-build: ## Builds a development image of the app and installs Node dependencies.
+dev-build: build-packages ## Builds a development image of the app and installs Node dependencies.
 	@make install-node-modules
 	@docker compose ${DEV_COMPOSE_FILES} build app
 
-dev-up: ## Starts/restarts a development container. A remote debugger can be attached on port 9229.
+dev-up: build-packages ## Starts/restarts a development container. A remote debugger can be attached on port 9229.
 	@make install-node-modules
 	@docker compose down ${SERVICE_NAME}
 	@docker compose ${DEV_COMPOSE_FILES} up ${SERVICE_NAME} --wait --no-recreate
@@ -56,7 +58,7 @@ e2e-ui: ## Run Playwright tests with UI mode (dev environment must be running).
 e2e-ci: ## Run Playwright tests in Docker container (for CI).
 	@make install-node-modules
 	@docker compose $(CI_COMPOSE_FILES) up $(SERVICE_NAME) --wait $(if $(filter local,$(APP_VERSION)),--build) && \
-	@docker compose $(CI_COMPOSE_FILES) run --rm playwright
+	docker compose $(CI_COMPOSE_FILES) run --rm playwright
 
 lint: ## Runs the linter.
 	@cd packages && npm run lint
