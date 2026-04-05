@@ -1,7 +1,12 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
+import { FunctionType } from '../../authoring/types/enums'
+import type FunctionRegistry from '../FunctionRegistry'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
+import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
 import { JourneySchema } from './schemas/structures.schema'
+
+const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionType))
 
 /**
  * Form configuration validator that checks JSON and schema validity
@@ -57,6 +62,55 @@ export class DSLValidator {
         type: 'json_error',
       })
     }
+  }
+
+  /**
+   * Validate that all functions referenced in the journey configuration are registered
+   */
+  static validateFunctions(input: JourneyDefinition, functionRegistry: FunctionRegistry): void {
+    const errors: UnregisteredFunctionError[] = []
+
+    this.walkForFunctionReferences(input, [], (path, name, type) => {
+      if (!functionRegistry.has(name)) {
+        errors.push(new UnregisteredFunctionError({ path, functionName: name, functionType: type }))
+      }
+    })
+
+    if (errors.length > 0) {
+      throw new AggregateError(
+        errors,
+        'Function validation failed: unregistered functions found in journey configuration',
+      )
+    }
+  }
+
+  /**
+   * Recursively walk an object tree, invoking the callback for each function reference found
+   */
+  private static walkForFunctionReferences(
+    obj: unknown,
+    path: (string | number)[],
+    onFunction: (path: (string | number)[], name: string, type: string) => void,
+  ): void {
+    if (!obj || typeof obj !== 'object') {
+      return
+    }
+
+    if (Array.isArray(obj)) {
+      obj.forEach((item, i) => this.walkForFunctionReferences(item, [...path, i], onFunction))
+
+      return
+    }
+
+    const record = obj as Record<string, unknown>
+
+    if (typeof record.type === 'string' && FUNCTION_TYPE_VALUES.has(record.type) && typeof record.name === 'string') {
+      onFunction(path, record.name, record.type)
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      this.walkForFunctionReferences(value, [...path, key], onFunction)
+    })
   }
 
   /**

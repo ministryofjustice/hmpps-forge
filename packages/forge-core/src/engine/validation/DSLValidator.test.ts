@@ -1,7 +1,17 @@
-import { StructureType, TransitionType, OutcomeType } from '../../authoring/types/enums'
+import {
+  StructureType,
+  TransitionType,
+  OutcomeType,
+  FunctionType,
+  PredicateType,
+  ExpressionType,
+  BlockType,
+} from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
+import FunctionRegistry from '../FunctionRegistry'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
+import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
 import { DSLValidator } from './DSLValidator'
 
 describe('FormValidator', () => {
@@ -293,6 +303,328 @@ describe('FormValidator', () => {
             expect(err.type).toContain('Non-plain object')
             expect(err.type).toContain('CustomClass')
           }
+        }
+      }
+    })
+  })
+
+  describe('validateFunctions()', () => {
+    const createRegistry = (...names: string[]): FunctionRegistry => {
+      const registry = new FunctionRegistry()
+
+      if (names.length > 0) {
+        const entries: Record<string, { name: string; evaluate: () => void }> = {}
+
+        names.forEach(name => {
+          entries[name] = { name, evaluate: () => {} }
+        })
+
+        registry.register(entries)
+      }
+
+      return registry
+    }
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should not throw when journey has no function references', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      // Act / Assert
+      expect(() => DSLValidator.validateFunctions(baseJourney, registry)).not.toThrow()
+    })
+
+    it('should not throw when all referenced functions are registered', () => {
+      // Arrange
+      const registry = createRegistry('isEqualTo', 'saveToApi')
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            onSubmission: [
+              {
+                type: TransitionType.SUBMIT,
+                validate: true,
+                onValid: {
+                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ type: OutcomeType.REDIRECT, goto: '/next' }],
+                },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateFunctions(journey, registry)).not.toThrow()
+    })
+
+    it('should throw when an effect is not registered', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            onSubmission: [
+              {
+                type: TransitionType.SUBMIT,
+                onValid: {
+                  effects: [{ type: FunctionType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
+                },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateFunctions(journey, registry)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          expect(error.errors[0]).toBeInstanceOf(UnregisteredFunctionError)
+          expect(error.errors[0].functionName).toBe('nonExistentEffect')
+          expect(error.errors[0].functionType).toBe(FunctionType.EFFECT)
+        }
+      }
+    })
+
+    it('should throw when a condition is not registered', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                validate: [
+                  {
+                    type: ExpressionType.VALIDATION,
+                    message: 'Required',
+                    when: {
+                      type: PredicateType.TEST,
+                      subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                      negate: false,
+                      condition: { type: FunctionType.CONDITION, name: 'missingCondition', arguments: [] },
+                    },
+                  },
+                ],
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateFunctions(journey, registry)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+      } catch (error) {
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          expect(error.errors[0]).toBeInstanceOf(UnregisteredFunctionError)
+          expect(error.errors[0].functionName).toBe('missingCondition')
+          expect(error.errors[0].functionType).toBe(FunctionType.CONDITION)
+        }
+      }
+    })
+
+    it('should collect multiple unregistered function errors', () => {
+      // Arrange
+      const registry = createRegistry('registeredEffect')
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            onAccess: [
+              {
+                type: TransitionType.ACCESS,
+                effects: [
+                  { type: FunctionType.EFFECT, name: 'registeredEffect', arguments: [] },
+                  { type: FunctionType.EFFECT, name: 'missingEffect1', arguments: [] },
+                ],
+              },
+            ],
+            onSubmission: [
+              {
+                type: TransitionType.SUBMIT,
+                onValid: {
+                  effects: [{ type: FunctionType.EFFECT, name: 'missingEffect2', arguments: [] }],
+                },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(2)
+
+          const names = error.errors.map((e: UnregisteredFunctionError) => e.functionName)
+          expect(names).toContain('missingEffect1')
+          expect(names).toContain('missingEffect2')
+        }
+      }
+    })
+
+    it('should find unregistered functions in nested child journeys', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child',
+            title: 'Child',
+            steps: [
+              {
+                type: StructureType.STEP,
+                path: '/nested-step',
+                title: 'Nested',
+                blocks: [],
+                onAccess: [
+                  {
+                    type: TransitionType.ACCESS,
+                    effects: [{ type: FunctionType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
+                  },
+                ],
+              } as StepDefinition,
+            ],
+          },
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          expect(error.errors[0].functionName).toBe('deeplyNestedEffect')
+        }
+      }
+    })
+
+    it('should detect unregistered transformer and generator functions', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                defaultValue: { type: FunctionType.GENERATOR, name: 'missingGenerator', arguments: [] },
+                formatters: [{ type: FunctionType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(2)
+
+          const types = error.errors.map((e: UnregisteredFunctionError) => e.functionType)
+          expect(types).toContain(FunctionType.GENERATOR)
+          expect(types).toContain(FunctionType.TRANSFORMER)
+        }
+      }
+    })
+
+    it('should include the path to the unregistered function in the error', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            onAccess: [
+              {
+                type: TransitionType.ACCESS,
+                effects: [{ type: FunctionType.EFFECT, name: 'missingEffect', arguments: [] }],
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateFunctions(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        if (error instanceof AggregateError) {
+          const err = error.errors[0] as UnregisteredFunctionError
+          expect(err.path.join('.')).toContain('effects')
+          expect(err.path.join('.')).toContain('0')
         }
       }
     })

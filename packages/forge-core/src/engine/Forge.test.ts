@@ -221,20 +221,38 @@ describe('Forge', () => {
       expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(formConfig, expect.any(Object))
     })
 
-    it('should handle regular errors during registration', () => {
+    it('should throw registration errors by default', () => {
+      // Arrange
       const error = new Error('Registration failed')
       ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
         throw error
       })
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-      engine.register('invalid-config')
 
+      // Act & Assert
+      expect(() => engine.register('invalid-config')).toThrow(error)
       expect(mockLogger.error).toHaveBeenCalledWith(error)
       expect(mockForgeRouter.mount).not.toHaveBeenCalled()
     })
 
-    it('should handle AggregateError during registration', () => {
+    it('should swallow registration errors when strictRegistration is false', () => {
+      // Arrange
+      const error = new Error('Registration failed')
+      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+        throw error
+      })
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
+
+      // Act & Assert
+      expect(() => engine.register('invalid-config')).not.toThrow()
+      expect(mockLogger.error).toHaveBeenCalledWith(error)
+      expect(mockForgeRouter.mount).not.toHaveBeenCalled()
+    })
+
+    it('should log AggregateError details during registration', () => {
+      // Arrange
       const error1 = new Error('Validation error 1')
       const error2 = new Error('Validation error 2')
       const aggregateError = new AggregateError([error1, error2], 'Multiple validation errors')
@@ -243,9 +261,10 @@ describe('Forge', () => {
         throw aggregateError
       })
 
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       engine.register('invalid-config')
 
+      // Assert
       expect(mockLogger.error).toHaveBeenCalledWith('Multiple validation errors:')
       expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 1')
       expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 2')
@@ -253,6 +272,7 @@ describe('Forge', () => {
     })
 
     it('should handle errors without toString method in AggregateError', () => {
+      // Arrange
       const error1 = { message: 'Object error' }
       const error2: any = null
       const aggregateError = new AggregateError([error1, error2], 'Mixed errors')
@@ -261,12 +281,115 @@ describe('Forge', () => {
         throw aggregateError
       })
 
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       engine.register('invalid-config')
 
+      // Assert
       expect(mockLogger.error).toHaveBeenCalledWith('Mixed errors:')
       expect(mockLogger.error).toHaveBeenCalledWith('[object Object]')
       expect(mockLogger.error).toHaveBeenCalledWith('null')
+    })
+  })
+
+  describe('registerPackage()', () => {
+    const mockJourneyDef = { type: 'journey', code: 'pkg-journey', title: 'Package Journey' } as any
+
+    it('should register components, functions, and journey from a package', () => {
+      // Arrange
+      const mockComponent = buildComponent('pkg-comp', () => '<div />')
+      const mockFunctions = {
+        PkgFunc: { name: 'PkgFunc', evaluate: () => true, isAsync: false },
+      }
+      const pkg = {
+        journey: mockJourneyDef,
+        components: [mockComponent],
+        functions: (() => mockFunctions) as any,
+      }
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      engine.registerPackage(pkg, {})
+
+      // Assert
+      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
+
+      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([mockComponent])
+      expect(JourneyInstance.createFromConfiguration).toHaveBeenCalled()
+    })
+
+    it('should skip registration when enabled is false', () => {
+      // Arrange
+      const pkg = { journey: mockJourneyDef, enabled: false }
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      engine.registerPackage(pkg)
+
+      // Assert
+      expect(JourneyInstance.createFromConfiguration).not.toHaveBeenCalled()
+    })
+
+    it('should throw on journey registration failure by default', () => {
+      // Arrange
+      const error = new Error('Journey failed')
+      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+        throw error
+      })
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act & Assert
+      expect(() => engine.registerPackage({ journey: mockJourneyDef })).toThrow(error)
+      expect(mockLogger.error).toHaveBeenCalledWith(error)
+    })
+
+    it('should throw on component registration failure by default', () => {
+      // Arrange
+      jest.clearAllMocks()
+      mockFrameworkAdapterBuilder = { build: jest.fn().mockReturnValue(mockFrameworkAdapter) } as any
+      ;(ForgeRouter as jest.MockedClass<typeof ForgeRouter>).mockImplementation(() => mockForgeRouter as any)
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const freshMockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock
+        .instances[0]
+
+      const error = new Error('Bad component')
+      ;(freshMockComponentRegistry.registerMany as jest.Mock).mockImplementation(() => {
+        throw error
+      })
+
+      const pkg = {
+        journey: mockJourneyDef,
+        components: [{ variant: 'bad', render: null as any }],
+      }
+
+      // Act & Assert
+      expect(() => engine.registerPackage(pkg)).toThrow(error)
+    })
+
+    it('should swallow errors when strictRegistration is false', () => {
+      // Arrange
+      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+        throw new Error('Journey failed')
+      })
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
+
+      // Act & Assert
+      expect(() => engine.registerPackage({ journey: mockJourneyDef })).not.toThrow()
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    it('should return this for chaining', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      const result = engine.registerPackage({ journey: mockJourneyDef })
+
+      // Assert
+      expect(result).toBe(engine)
     })
   })
 
@@ -304,7 +427,7 @@ describe('Forge', () => {
     })
 
     it('should support chaining even when form registration fails', () => {
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       const component = buildComponent('comp', () => '<div />')
 
       ;(JourneyInstance.createFromConfiguration as jest.Mock)

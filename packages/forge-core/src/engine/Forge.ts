@@ -20,6 +20,19 @@ export interface ForgeOptions {
   debug?: boolean
 
   /**
+   * When `true` (default), registration errors (from `register()` and
+   * `registerPackage()`) throw immediately — fail fast on invalid journey
+   * definitions, schema errors, duplicate routes, or compilation failures.
+   *
+   * When `false`, registration errors are logged via the configured logger
+   * and the application continues starting — the failing journey simply
+   * won't be available at runtime.
+   *
+   * @default true
+   */
+  strictRegistration?: boolean
+
+  /**
    * Defer per-step compilation (thunk handlers, linked closures, runtime plans)
    * until the step is first accessed.
    *
@@ -110,6 +123,7 @@ export default class Forge {
       disableBuiltInFunctions: false,
       disableBuiltInComponents: false,
       debug: false,
+      strictRegistration: true,
       lazyStepCompilation: true,
       logger: console,
       basePath: '',
@@ -182,7 +196,7 @@ export default class Forge {
         `Forge: Registered journey '${instance.getJourneyTitle()}' with ${routeCount} routes`,
       )
     } catch (e) {
-      this.logRegistrationError(e)
+      this.handleRegistrationError(e)
     }
 
     return this
@@ -217,21 +231,33 @@ export default class Forge {
       return this
     }
 
-    if (pkg.components) {
-      this.registerComponents(pkg.components)
-    }
+    try {
+      if (pkg.components) {
+        this.registerComponents(pkg.components)
+      }
 
-    if (pkg.functions) {
-      const resolvedDeps = (deps ?? {}) as TDeps
-      this.registerFunctions(createFunctionsRegistry(pkg.functions, resolvedDeps))
-    }
+      if (pkg.functions) {
+        const resolvedDeps = (deps ?? {}) as TDeps
+        this.registerFunctions(createFunctionsRegistry(pkg.functions, resolvedDeps))
+      }
 
-    this.register(pkg.journey)
+      this.register(pkg.journey)
+    } catch (e) {
+      this.handleRegistrationError(e)
+    }
 
     return this
   }
 
-  private logRegistrationError(e: unknown) {
+  private handleRegistrationError(e: unknown): void {
+    this.logRegistrationError(e)
+
+    if (this.options.strictRegistration) {
+      throw e
+    }
+  }
+
+  private logRegistrationError(e: unknown): void {
     if (e instanceof AggregateError) {
       this.dependencies.logger.error(`${e.message}:`)
 
