@@ -1,6 +1,13 @@
 import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationContext'
 import { AnswerHistory, TransitionType } from '../../../compilation/thunks/types'
 import type { CookieMutation, CookieOptions } from '../../../../framework/types/response.type'
+import { assertSerializable } from '../../../../shared/utils/asserts'
+
+function assertStringParam(value: unknown, method: string, param: string): void {
+  if (typeof value !== 'string') {
+    throw new TypeError(`${method}: ${param} must be a string, got ${typeof value}`)
+  }
+}
 
 /**
  * User-friendly context object provided to effect functions.
@@ -75,6 +82,8 @@ class EffectFunctionContext<
    * nodes that may depend on this answer rather than serving stale cached results.
    */
   setAnswer<K extends string & keyof TAnswers>(key: K, value: TAnswers[K]): void {
+    assertSerializable(value, 'setAnswer', [key])
+
     const history = this.context.global.answers[key] ?? { current: undefined, mutations: [] }
 
     history.mutations.push({ value, source: this.transitionType })
@@ -144,6 +153,8 @@ class EffectFunctionContext<
    * rather than stale cached results from nodes that depend on this data key.
    */
   setData<K extends string & keyof TData>(key: K, value: TData[K]): void {
+    assertSerializable(value, 'setData', [key])
+
     this.context.global.data[key] = value
 
     this.context.cacheManager.clearCache()
@@ -267,6 +278,9 @@ class EffectFunctionContext<
    * Setting the same header multiple times will overwrite the previous value.
    */
   setResponseHeader(name: string, value: string): void {
+    assertStringParam(name, 'setResponseHeader', 'name')
+    assertStringParam(value, 'setResponseHeader', 'value')
+
     this.context.response.setHeader(name, value)
   }
 
@@ -303,6 +317,9 @@ class EffectFunctionContext<
    * context.setResponseCookie('preference', '', { maxAge: 0 })
    */
   setResponseCookie(name: string, value: string, options?: CookieOptions): void {
+    assertStringParam(name, 'setResponseCookie', 'name')
+    assertStringParam(value, 'setResponseCookie', 'value')
+
     this.context.response.setCookie(name, value, options)
   }
 

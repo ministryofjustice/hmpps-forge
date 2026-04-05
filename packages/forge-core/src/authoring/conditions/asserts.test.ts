@@ -1,4 +1,4 @@
-import { assertNumber, assertDate, assertString, assertArray, assertObject } from '../utils/asserts'
+import { assertNumber, assertDate, assertString, assertArray, assertObject } from '../../shared/utils/asserts'
 
 describe('asserts', () => {
   describe('assertNumber', () => {

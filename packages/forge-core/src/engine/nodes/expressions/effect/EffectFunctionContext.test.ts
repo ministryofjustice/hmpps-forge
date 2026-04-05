@@ -2,6 +2,120 @@ import { createMockContext } from '../../../../testing/thunkTestHelpers'
 import { EffectFunctionContext } from './EffectFunctionContext'
 
 describe('EffectFunctionContext', () => {
+  describe('setAnswer()', () => {
+    it('should accept serializable values', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      mockContext.cacheManager = { clearCache: jest.fn() } as any
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', 'hello')).not.toThrow()
+      expect(() => effectContext.setAnswer('field', 42 as any)).not.toThrow()
+      expect(() => effectContext.setAnswer('field', true as any)).not.toThrow()
+      expect(() => effectContext.setAnswer('field', null as any)).not.toThrow()
+      expect(() => effectContext.setAnswer('field', ['a', 'b'] as any)).not.toThrow()
+      expect(() => effectContext.setAnswer('field', { nested: 'value' } as any)).not.toThrow()
+    })
+
+    it('should throw when setting a function', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', (() => {}) as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', (() => {}) as any)).toThrow('Cannot set a function')
+    })
+
+    it('should throw when setting a Symbol', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', Symbol('test') as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', Symbol('test') as any)).toThrow('Cannot set a Symbol')
+    })
+
+    it('should throw when setting a Date object', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', new Date() as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', new Date() as any)).toThrow('use an ISO string instead')
+    })
+
+    it('should throw when setting a BigInt', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', BigInt(123) as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', BigInt(123) as any)).toThrow('Cannot set a BigInt')
+    })
+
+    it('should throw when setting a class instance', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      class MyClass {
+        value = 1
+      }
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', new MyClass() as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', new MyClass() as any)).toThrow('MyClass instance')
+    })
+
+    it('should throw when setting a nested non-serializable value', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setAnswer('field', { nested: () => {} } as any)).toThrow(TypeError)
+      expect(() => effectContext.setAnswer('field', { nested: () => {} } as any)).toThrow('Cannot set a function')
+    })
+  })
+
+  describe('setData()', () => {
+    it('should accept serializable values', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      mockContext.cacheManager = { clearCache: jest.fn() } as any
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setData('key', 'value')).not.toThrow()
+      expect(() => effectContext.setData('key', { items: [1, 2, 3] })).not.toThrow()
+    })
+
+    it('should throw when setting a function', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setData('key', (() => {}) as any)).toThrow(TypeError)
+      expect(() => effectContext.setData('key', (() => {}) as any)).toThrow('Cannot set a function')
+    })
+
+    it('should throw when setting a Date object', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setData('key', new Date() as any)).toThrow(TypeError)
+      expect(() => effectContext.setData('key', new Date() as any)).toThrow('use an ISO string instead')
+    })
+  })
+
   describe('getRequestHeader()', () => {
     it('should return a request header value', () => {
       // Arrange
@@ -171,6 +285,26 @@ describe('EffectFunctionContext', () => {
       // Assert
       expect(mockContext.response.getHeader('X-Custom-Header')).toBe('second-value')
     })
+
+    it('should throw when name is not a string', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setResponseHeader(123 as any, 'value')).toThrow(TypeError)
+      expect(() => effectContext.setResponseHeader(123 as any, 'value')).toThrow('name must be a string')
+    })
+
+    it('should throw when value is not a string', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setResponseHeader('X-Header', {} as any)).toThrow(TypeError)
+      expect(() => effectContext.setResponseHeader('X-Header', {} as any)).toThrow('value must be a string')
+    })
   })
 
   describe('getResponseHeader()', () => {
@@ -296,6 +430,26 @@ describe('EffectFunctionContext', () => {
       // Assert
       const cookie = mockContext.response.getCookie('session')
       expect(cookie).toEqual({ value: '', options: { maxAge: 0 } })
+    })
+
+    it('should throw when name is not a string', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setResponseCookie(123 as any, 'value')).toThrow(TypeError)
+      expect(() => effectContext.setResponseCookie(123 as any, 'value')).toThrow('name must be a string')
+    })
+
+    it('should throw when value is not a string', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act / Assert
+      expect(() => effectContext.setResponseCookie('session', 123 as any)).toThrow(TypeError)
+      expect(() => effectContext.setResponseCookie('session', 123 as any)).toThrow('value must be a string')
     })
   })
 

@@ -1,4 +1,4 @@
-import { assertArray, assertNumber, assertString } from '../utils/asserts'
+import { assertArray, assertNumber, assertString } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
 import { ValueExpr } from '../types/expressions.type'

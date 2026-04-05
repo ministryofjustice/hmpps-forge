@@ -1,4 +1,4 @@
-import { assertArray } from '../utils/asserts'
+import { assertArray } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 import { ConditionFunctionExpr, ValueExpr } from '../types/expressions.type'
 

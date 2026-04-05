@@ -1,6 +1,6 @@
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { assertObject } from '../utils/asserts'
+import { assertObject } from '../../shared/utils/asserts'
 import { getByPath } from '../../shared/utils/utils'
 
 const isEmpty = (value: unknown): boolean =>

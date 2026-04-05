@@ -1,6 +1,6 @@
 import { ValueExpr, ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { assertNumber } from '../utils/asserts'
+import { assertNumber } from '../../shared/utils/asserts'
 
 /**
  * Number conditions for numeric comparisons and validation

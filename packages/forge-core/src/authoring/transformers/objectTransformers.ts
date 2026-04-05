@@ -1,4 +1,4 @@
-import { assertObject } from '../utils/asserts'
+import { assertObject } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
 import { getByPath } from '../../shared/utils/utils'

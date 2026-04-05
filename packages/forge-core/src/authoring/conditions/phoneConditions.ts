@@ -1,4 +1,4 @@
-import { assertString } from '../utils/asserts'
+import { assertString } from '../../shared/utils/asserts'
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 
