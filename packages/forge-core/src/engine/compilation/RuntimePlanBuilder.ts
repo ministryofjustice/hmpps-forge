@@ -1,11 +1,7 @@
-import { CompilationDependencies } from './CompilationDependencies'
-import ThunkHandlerRegistry from './registries/ThunkHandlerRegistry'
 import ValidationTemplateAnalyzer from './analyzers/ValidationTemplateAnalyzer'
 import { NodeId } from '../types/engine.type'
 import { IterateASTNode, SubmitTransitionASTNode } from '../types/expressions.type'
-import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
-import { PseudoNodeType } from '../types/pseudoNodes.type'
-import { isASTNode } from '../typeguards/nodes'
+import { FieldBlockASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
 import ASTNodeTree from './node-tree/ASTNodeTree'
@@ -28,9 +24,6 @@ export interface StepRuntimePlan {
   domainValidationNodeIds: NodeId[]
   renderAncestorIds: NodeId[]
   renderStepId: NodeId
-  isRenderSync: boolean
-  isAnswerPrepareSync: boolean
-  isValidationSync: boolean
   hasValidatingSubmitTransition: boolean
   hasDomainValidation: boolean
 }
@@ -65,8 +58,7 @@ export interface ReachabilityStepEntry {
  * between both plan types and operates on the shared AST via ASTNodeTree.
  *
  * - Reachability plans are built during shared compilation for all steps at once.
- * - Step runtime plans are built per-step during lazy compilation, adding
- *   sync-analysis flags that require the per-step thunk handler registry.
+ * - Step runtime plans are built per-step during lazy compilation.
  */
 export default class RuntimePlanBuilder {
   private readonly allIterateNodes: IterateASTNode[]
@@ -144,11 +136,8 @@ export default class RuntimePlanBuilder {
 
   /**
    * Build a step runtime plan for a single step.
-   *
-   * Requires per-step compilation dependencies for sync-analysis flags
-   * (isRenderSync, isAnswerPrepareSync, isValidationSync).
    */
-  buildStepRuntimePlan(stepNode: StepASTNode, compilationDependencies: CompilationDependencies): StepRuntimePlan {
+  buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
     const stepId = stepNode.id
 
     const accessAncestorIds = getAncestorChain(stepId, this.metadataRegistry)
@@ -174,14 +163,6 @@ export default class RuntimePlanBuilder {
       domainValidationNodeIds,
       renderAncestorIds,
       renderStepId: stepId,
-      isRenderSync: this.computeIsRenderSync(stepNode, renderAncestorIds, compilationDependencies),
-      isAnswerPrepareSync: this.computeIsAnswerPrepareSync(fieldIteratorRootIds, compilationDependencies),
-      isValidationSync: this.computeIsValidationSync(
-        validationIterateNodeIds,
-        validationBlockIds,
-        domainValidationNodeIds,
-        compilationDependencies,
-      ),
       hasValidatingSubmitTransition: this.computeHasValidatingSubmitTransition(stepNode),
       hasDomainValidation: domainValidationNodeIds.length > 0,
     }
@@ -305,150 +286,10 @@ export default class RuntimePlanBuilder {
     )
   }
 
-  // ── Sync analysis (per-step compilation only) ──────────────────
-
-  private computeIsAnswerPrepareSync(
-    fieldIteratorRootIds: NodeId[],
-    compilationDependencies: CompilationDependencies,
-  ): boolean {
-    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
-
-    for (const rootId of fieldIteratorRootIds) {
-      const handler = handlerRegistry.get(rootId)
-
-      if (!handler || handler.isAsync) {
-        return false
-      }
-    }
-
-    const answerLocalNodes = compilationDependencies.nodeRegistry.findByType(PseudoNodeType.ANSWER_LOCAL)
-    const answerRemoteNodes = compilationDependencies.nodeRegistry.findByType(PseudoNodeType.ANSWER_REMOTE)
-
-    for (const node of [...answerLocalNodes, ...answerRemoteNodes]) {
-      const handler = handlerRegistry.get(node.id)
-
-      if (!handler || handler.isAsync) {
-        return false
-      }
-    }
-
-    return true
-  }
-
-  private computeIsRenderSync(
-    stepNode: StepASTNode,
-    renderAncestorIds: NodeId[],
-    compilationDependencies: CompilationDependencies,
-  ): boolean {
-    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
-    const stepExcludedProps = new Set(['onAccess', 'onAction', 'onSubmission', 'blocks', 'validate'])
-    const ancestorExcludedProps = new Set(['onAccess', 'children', 'steps'])
-
-    const blocks = stepNode.properties.blocks ?? []
-
-    if (!this.isValueTreeSync(blocks, handlerRegistry)) {
-      return false
-    }
-
-    if (!this.areFilteredPropertiesSync(stepNode.properties, stepExcludedProps, handlerRegistry)) {
-      return false
-    }
-
-    for (const ancestorId of renderAncestorIds) {
-      const ancestorNode = compilationDependencies.nodeRegistry.get(ancestorId) as JourneyASTNode | undefined
-
-      if (
-        ancestorNode &&
-        !this.areFilteredPropertiesSync(ancestorNode.properties, ancestorExcludedProps, handlerRegistry)
-      ) {
-        return false
-      }
-    }
-
-    return true
-  }
-
-  private areFilteredPropertiesSync(
-    properties: Record<string, unknown>,
-    excludedKeys: Set<string>,
-    handlerRegistry: ThunkHandlerRegistry,
-  ): boolean {
-    return Object.entries(properties)
-      .filter(([key]) => !excludedKeys.has(key))
-      .every(([, value]) => this.isValueTreeSync(value, handlerRegistry))
-  }
-
-  private computeIsValidationSync(
-    validationIterateNodeIds: NodeId[],
-    validationBlockIds: NodeId[],
-    domainValidationNodeIds: NodeId[],
-    compilationDependencies: CompilationDependencies,
-  ): boolean {
-    const handlerRegistry = compilationDependencies.thunkHandlerRegistry
-
-    for (const iterateNodeId of validationIterateNodeIds) {
-      const handler = handlerRegistry.get(iterateNodeId)
-
-      if (!handler || handler.isAsync) {
-        return false
-      }
-    }
-
-    for (const blockId of validationBlockIds) {
-      const block = compilationDependencies.nodeRegistry.get(blockId) as FieldBlockASTNode | undefined
-
-      if (block) {
-        if (!this.isValueTreeSync(block.properties.validate, handlerRegistry)) {
-          return false
-        }
-
-        if (!this.isValueTreeSync(block.properties.dependent, handlerRegistry)) {
-          return false
-        }
-
-        if (!this.isValueTreeSync(block.properties.code, handlerRegistry)) {
-          return false
-        }
-      }
-    }
-
-    for (const nodeId of domainValidationNodeIds) {
-      const handler = handlerRegistry.get(nodeId)
-
-      if (!handler || handler.isAsync) {
-        return false
-      }
-    }
-
-    return true
-  }
-
   private computeHasValidatingSubmitTransition(stepNode: StepASTNode): boolean {
     return (stepNode.properties.onSubmission ?? []).some(
       (transition: SubmitTransitionASTNode) => transition.properties.validate === true,
     )
-  }
-
-  private isValueTreeSync(value: unknown, handlerRegistry: ThunkHandlerRegistry): boolean {
-    if (value === null || value === undefined) {
-      return true
-    }
-
-    if (isASTNode(value)) {
-      const handler = handlerRegistry.get(value.id)
-
-      return handler !== undefined && !handler.isAsync
-    }
-
-    if (Array.isArray(value)) {
-      return value.every(element => this.isValueTreeSync(element, handlerRegistry))
-    }
-
-    if (typeof value === 'object') {
-      return Object.values(value as Record<string, unknown>).every(v => this.isValueTreeSync(v, handlerRegistry))
-    }
-
-    return true
   }
 
   private normalizePath(path: string): string {

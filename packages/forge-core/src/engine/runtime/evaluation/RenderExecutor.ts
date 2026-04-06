@@ -3,7 +3,6 @@ import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationCont
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { BlockASTNode, StepASTNode } from '../../types/structures.type'
 import { evaluatePropertyValue } from '../../utils/thunkEvaluatorsAsync'
-import { evaluatePropertyValueSync } from '../../utils/thunkEvaluatorsSync'
 import { Evaluated } from '../../../framework/rendering/types'
 
 /**
@@ -12,7 +11,6 @@ import { Evaluated } from '../../../framework/rendering/types'
  * This targets only the block content for the current step body.
  */
 export default class RenderExecutor {
-  constructor() {}
 
   async execute(
     runtimePlan: StepRuntimePlan,
@@ -22,16 +20,6 @@ export default class RenderExecutor {
     const blocks = this.getBlocks(runtimePlan, context)
 
     return (await evaluatePropertyValue(blocks, context, invoker)) as Evaluated<BlockASTNode>[]
-  }
-
-  executeSync(
-    runtimePlan: StepRuntimePlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): Evaluated<BlockASTNode>[] {
-    const blocks = this.getBlocks(runtimePlan, context)
-
-    return evaluatePropertyValueSync(blocks, context, invoker) as Evaluated<BlockASTNode>[]
   }
 
   private getBlocks(runtimePlan: StepRuntimePlan, context: ThunkEvaluationContext): BlockASTNode[] {

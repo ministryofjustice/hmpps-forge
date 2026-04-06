@@ -9,9 +9,7 @@ import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
 import RenderProjector from './RenderProjector'
 
 const mockMetadataExecutorExecute = jest.fn()
-const mockMetadataExecutorExecuteSync = jest.fn()
 const mockRenderExecutorExecute = jest.fn()
-const mockRenderExecutorExecuteSync = jest.fn()
 const mockRenderContextFactoryBuild = jest.fn().mockReturnValue({
   step: {},
   blocks: [],
@@ -23,7 +21,6 @@ jest.mock('../evaluation/MetadataExecutor', () => {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       execute: (...args: unknown[]) => mockMetadataExecutorExecute(...args),
-      executeSync: (...args: unknown[]) => mockMetadataExecutorExecuteSync(...args),
     })),
   }
 })
@@ -33,7 +30,6 @@ jest.mock('../evaluation/RenderExecutor', () => {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       execute: (...args: unknown[]) => mockRenderExecutorExecute(...args),
-      executeSync: (...args: unknown[]) => mockRenderExecutorExecuteSync(...args),
     })),
   }
 })
@@ -60,9 +56,6 @@ function createPlan(overrides: Partial<StepRuntimePlan> = {}): StepRuntimePlan {
     domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: 'compile_ast:1',
-    isRenderSync: false,
-    isAnswerPrepareSync: false,
-    isValidationSync: false,
     hasValidatingSubmitTransition: false,
     hasDomainValidation: false,
     ...overrides,
@@ -82,16 +75,12 @@ describe('RenderProjector', () => {
 
   beforeEach(() => {
     mockMetadataExecutorExecute.mockReset()
-    mockMetadataExecutorExecuteSync.mockReset()
     mockRenderExecutorExecute.mockReset()
-    mockRenderExecutorExecuteSync.mockReset()
     mockRenderContextFactoryBuild.mockReset()
     mockRenderContextFactoryBuild.mockReturnValue({ step: {}, blocks: [], ancestors: [] })
 
     mockMetadataExecutorExecute.mockResolvedValue(defaultMetadata)
-    mockMetadataExecutorExecuteSync.mockReturnValue(defaultMetadata)
     mockRenderExecutorExecute.mockResolvedValue([])
-    mockRenderExecutorExecuteSync.mockReturnValue([])
 
     projector = new RenderProjector(() => '/forms/journey', [] as JourneyMetadata[], '/journey/step-1')
 
@@ -269,18 +258,4 @@ describe('RenderProjector', () => {
     })
   })
 
-  describe('buildSync()', () => {
-    it('should evaluate metadata and blocks synchronously then build render context', () => {
-      // Arrange
-      const plan = createPlan()
-
-      // Act
-      projector.buildSync(plan, invoker, context, artifacts, {})
-
-      // Assert
-      expect(mockMetadataExecutorExecuteSync).toHaveBeenCalledWith(plan, invoker, context)
-      expect(mockRenderExecutorExecuteSync).toHaveBeenCalledWith(plan, invoker, context)
-      expect(mockRenderContextFactoryBuild).toHaveBeenCalledTimes(1)
-    })
-  })
 })

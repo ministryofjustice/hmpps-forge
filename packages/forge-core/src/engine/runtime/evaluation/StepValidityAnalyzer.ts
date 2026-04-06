@@ -10,7 +10,6 @@ import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
 import { NodeId } from '../../types/ast.type'
 import getAncestorChain from '../../utils/getAncestorChain'
 import { evaluateOperand } from '../../utils/thunkEvaluatorsAsync'
-import { evaluateOperandSync } from '../../utils/thunkEvaluatorsSync'
 import { ValidationResult } from '../../nodes/expressions/validation/ValidationHandler'
 import { isASTNode } from '../../typeguards/nodes'
 import { BlockType, ExpressionType } from '../../../authoring/types/enums'
@@ -36,23 +35,6 @@ export default class StepValidityAnalyzer {
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
     const fieldFailures = await this.collectValidationFailures(fieldBlocks, invoker, context)
     const domainFailures = await this.collectDomainValidationFailures(runtimePlan, invoker, context)
-
-    return {
-      isValid: fieldFailures.length === 0 && domainFailures.length === 0,
-      fieldFailures,
-      domainFailures,
-    }
-  }
-
-  executeSync(
-    runtimePlan: StepValidityPlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): StepValidityResult {
-    const expandedIterateNodeIds = this.expandValidationIteratorsSync(runtimePlan, invoker, context)
-    const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
-    const fieldFailures = this.collectValidationFailuresSync(fieldBlocks, invoker, context)
-    const domainFailures = this.collectDomainValidationFailuresSync(runtimePlan, invoker, context)
 
     return {
       isValid: fieldFailures.length === 0 && domainFailures.length === 0,
@@ -254,121 +236,6 @@ export default class StepValidityAnalyzer {
       .map(result => result.value as ValidationResult)
   }
 
-  private expandValidationIteratorsSync(
-    runtimePlan: StepValidityPlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): NodeId[] {
-    const pendingIterateNodeIds = [...runtimePlan.validationIterateNodeIds]
-    const expandedIterateNodeIds: NodeId[] = []
-    const seenIterateNodeIds = new Set<NodeId>()
-
-    while (pendingIterateNodeIds.length > 0) {
-      const iterateNodeId = pendingIterateNodeIds.shift()
-
-      if (iterateNodeId !== undefined && !seenIterateNodeIds.has(iterateNodeId)) {
-        seenIterateNodeIds.add(iterateNodeId)
-        expandedIterateNodeIds.push(iterateNodeId)
-
-        invoker.invokeSync(iterateNodeId, context)
-
-        const nestedIterateNodeIds = this.findNestedValidationIterateNodeIds(iterateNodeId, context)
-
-        nestedIterateNodeIds.forEach(nestedIterateNodeId => {
-          if (!seenIterateNodeIds.has(nestedIterateNodeId)) {
-            pendingIterateNodeIds.push(nestedIterateNodeId)
-          }
-        })
-      }
-    }
-
-    return expandedIterateNodeIds
-  }
-
-  private collectValidationFailuresSync(
-    fieldBlocks: FieldBlockASTNode[],
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): StepValidationFailure[] {
-    if (fieldBlocks.length === 0) {
-      return []
-    }
-
-    return fieldBlocks.flatMap(block => this.evaluateFieldBlockSync(block, invoker, context))
-  }
-
-  private evaluateFieldBlockSync(
-    block: FieldBlockASTNode,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): StepValidationFailure[] {
-    const isDependentActive = this.isDependentActiveSync(block, invoker, context)
-
-    if (!isDependentActive) {
-      return []
-    }
-
-    const validations = this.evaluateValidationNodesSync(block, invoker, context)
-
-    if (validations.length === 0) {
-      return []
-    }
-
-    const blockCode = this.evaluateBlockCodeSync(block, invoker, context)
-
-    return validations
-      .filter(validation => !validation.passed)
-      .map(validation => ({
-        ...validation,
-        blockId: block.id,
-        blockCode: validation.blockCode ?? blockCode,
-      }))
-  }
-
-  private isDependentActiveSync(
-    block: FieldBlockASTNode,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): boolean {
-    if (block.properties.dependent === undefined) {
-      return true
-    }
-
-    return Boolean(evaluateOperandSync(block.properties.dependent, context, invoker))
-  }
-
-  private evaluateBlockCodeSync(
-    block: FieldBlockASTNode,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): string | undefined {
-    const code = evaluateOperandSync(block.properties.code, context, invoker)
-
-    if (typeof code === 'string') {
-      return code
-    }
-
-    return undefined
-  }
-
-  private evaluateValidationNodesSync(
-    block: FieldBlockASTNode,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): ValidationResult[] {
-    const validationNodes = (block.properties.validate ?? [])
-      .filter((validation): validation is ValidationASTNode => isASTNode(validation))
-
-    if (validationNodes.length === 0) {
-      return []
-    }
-
-    return validationNodes
-      .map(validationNode => invoker.invokeSync(validationNode.id, context))
-      .filter(result => !result.error && result.value !== undefined)
-      .map(result => result.value as ValidationResult)
-  }
-
   private async collectDomainValidationFailures(
     runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
@@ -383,22 +250,6 @@ export default class StepValidityAnalyzer {
     )
 
     return results
-      .filter(result => !result.error && result.value !== undefined)
-      .flatMap(result => (Array.isArray(result.value) ? result.value : [result.value]))
-      .filter(this.isFailedValidation)
-  }
-
-  private collectDomainValidationFailuresSync(
-    runtimePlan: StepValidityPlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): DomainValidationFailure[] {
-    if (runtimePlan.domainValidationNodeIds.length === 0) {
-      return []
-    }
-
-    return runtimePlan.domainValidationNodeIds
-      .map(nodeId => invoker.invokeSync(nodeId, context))
       .filter(result => !result.error && result.value !== undefined)
       .flatMap(result => (Array.isArray(result.value) ? result.value : [result.value]))
       .filter(this.isFailedValidation)

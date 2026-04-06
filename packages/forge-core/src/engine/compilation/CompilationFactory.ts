@@ -110,7 +110,7 @@ export default class CompilationFactory {
     // Phase 9 - Compile thunk handlers
     NodeCompilationPipeline.compileThunks(compilationDependencies, this.journeyInstanceDependencies.functionRegistry)
 
-    const runtimePlan = planBuilder.buildStepRuntimePlan(stepNode, compilationDependencies)
+    const runtimePlan = planBuilder.buildStepRuntimePlan(stepNode)
 
     return {
       artefact: compilationDependencies,

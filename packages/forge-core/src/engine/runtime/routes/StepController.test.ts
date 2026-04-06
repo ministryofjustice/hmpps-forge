@@ -86,7 +86,6 @@ const createMockResponse = (): StepResponse => {
 jest.mock('../../compilation/thunks/ThunkEvaluator')
 
 const mockRenderProjectorBuild = jest.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-const mockRenderProjectorBuildSync = jest.fn().mockReturnValue({ step: {}, blocks: [], ancestors: [] })
 const mockStepValidityAnalyzerExecute = jest.fn().mockResolvedValue({
   isValid: true,
   fieldFailures: [],
@@ -107,7 +106,6 @@ jest.mock('../projection/RenderProjector', () => {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       build: (...args: unknown[]) => mockRenderProjectorBuild(...args),
-      buildSync: (...args: unknown[]) => mockRenderProjectorBuildSync(...args),
     })),
   }
 })
@@ -125,12 +123,10 @@ describe('StepController', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
     mockRenderProjectorBuild.mockClear()
-    mockRenderProjectorBuildSync.mockClear()
     mockStepValidityAnalyzerExecute.mockClear()
     ;(StepValidityAnalyzer as unknown as jest.Mock).mockClear()
     ;(RenderProjector as unknown as jest.Mock).mockClear()
     mockRenderProjectorBuild.mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-    mockRenderProjectorBuildSync.mockReturnValue({ step: {}, blocks: [], ancestors: [] })
     mockStepValidityAnalyzerExecute.mockResolvedValue({
       isValid: true,
       fieldFailures: [],
@@ -203,9 +199,6 @@ describe('StepController', () => {
       domainValidationNodeIds: [],
       renderAncestorIds: [],
       renderStepId: stepNode.id,
-      isRenderSync: false,
-      isAnswerPrepareSync: false,
-      isValidationSync: false,
       hasValidatingSubmitTransition: (stepNode.properties.onSubmission ?? []).some(
         (t: SubmitTransitionASTNode) => t.properties.validate === true,
       ),

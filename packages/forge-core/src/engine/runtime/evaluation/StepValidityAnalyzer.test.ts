@@ -57,9 +57,6 @@ function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {
     domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: stepId,
-    isRenderSync: false,
-    isAnswerPrepareSync: false,
-    isValidationSync: false,
     hasValidatingSubmitTransition: false,
     hasDomainValidation: false,
     ...options,
@@ -387,134 +384,6 @@ describe('StepValidityAnalyzer', () => {
     expect(result.fieldFailures[1].blockCode).toBe('static-field')
   })
 
-  describe('executeSync()', () => {
-    it('should evaluate static validation blocks synchronously', () => {
-      // Arrange
-      const step = createStep('compile_ast:30')
-      const block = createFieldBlock('compile_ast:31')
-      const validationNode = createValidationNode('compile_ast:32', 'Looks good')
-      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
-      const { context, invoker, nodes, parentByNodeId } = setup()
-
-      block.properties.code = 'field-1'
-      block.properties.validate = [validationNode]
-      nodes.set(step.id, step)
-      nodes.set(block.id, block)
-      nodes.set(validationNode.id, validationNode)
-      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
-      parentByNodeId.set(block.id, step.id)
-
-      invoker.invokeSync.mockImplementation(nodeId => {
-        if (nodeId === validationNode.id) {
-          return successResult({ passed: true, message: 'Looks good', submissionOnly: true })
-        }
-
-        return successResult(undefined)
-      })
-
-      // Act
-      const executor = new StepValidityAnalyzer()
-      const result = executor.executeSync(runtimePlan, invoker, context)
-
-      // Assert
-      expect(result).toEqual({
-        isValid: true,
-        fieldFailures: [],
-        domainFailures: [],
-      })
-      expect(invoker.invokeSync).not.toHaveBeenCalledWith(block.id, context)
-    })
-
-    it('should collect failures synchronously', () => {
-      // Arrange
-      const step = createStep('compile_ast:33')
-      const block = createFieldBlock('compile_ast:34')
-      const validationNode = createValidationNode('compile_ast:35', 'This field is required')
-      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
-      const { context, invoker, nodes, parentByNodeId } = setup()
-
-      block.properties.code = 'field-1'
-      block.properties.validate = [validationNode]
-      nodes.set(step.id, step)
-      nodes.set(block.id, block)
-      nodes.set(validationNode.id, validationNode)
-      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
-      parentByNodeId.set(block.id, step.id)
-
-      invoker.invokeSync.mockImplementation(nodeId => {
-        if (nodeId === validationNode.id) {
-          return successResult({ passed: false, message: 'This field is required', submissionOnly: true })
-        }
-
-        return successResult(undefined)
-      })
-
-      // Act
-      const executor = new StepValidityAnalyzer()
-      const result = executor.executeSync(runtimePlan, invoker, context)
-
-      // Assert
-      expect(result).toEqual({
-        isValid: false,
-        fieldFailures: [
-          {
-            blockId: block.id,
-            blockCode: 'field-1',
-            message: 'This field is required',
-            passed: false,
-            submissionOnly: true,
-          },
-        ],
-        domainFailures: [],
-      })
-    })
-
-    it('should skip validation when dependent evaluates to false synchronously', () => {
-      // Arrange
-      const step = createStep('compile_ast:36')
-      const block = createFieldBlock('compile_ast:37')
-      const dependentNode = ASTTestFactory.reference(['answers', 'businessType'])
-      const validationNode = createValidationNode('compile_ast:38', 'Should not run')
-      const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
-      const { context, invoker, nodes, parentByNodeId } = setup()
-
-      block.properties.code = 'business-hours'
-      block.properties.dependent = dependentNode
-      block.properties.validate = [validationNode]
-      nodes.set(step.id, step)
-      nodes.set(block.id, block)
-      nodes.set(dependentNode.id, dependentNode)
-      nodes.set(validationNode.id, validationNode)
-      nodes.set(validationNode.properties.when.id, validationNode.properties.when)
-      parentByNodeId.set(block.id, step.id)
-
-      invoker.invokeSync.mockImplementation(nodeId => {
-        if (nodeId === dependentNode.id) {
-          return successResult(false)
-        }
-
-        if (nodeId === validationNode.id) {
-          return successResult({ passed: false, message: 'Should not run', submissionOnly: true })
-        }
-
-        return successResult(undefined)
-      })
-
-      // Act
-      const executor = new StepValidityAnalyzer()
-      const result = executor.executeSync(runtimePlan, invoker, context)
-
-      // Assert
-      expect(result).toEqual({
-        isValid: true,
-        fieldFailures: [],
-        domainFailures: [],
-      })
-      expect(invoker.invokeSync).toHaveBeenCalledWith(dependentNode.id, context)
-      expect(invoker.invokeSync).not.toHaveBeenCalledWith(validationNode.id, context)
-    })
-  })
-
   describe('domain validation', () => {
     it('should evaluate domain validations and return failures', async () => {
       // Arrange
@@ -588,45 +457,6 @@ describe('StepValidityAnalyzer', () => {
       })
     })
 
-    it('should evaluate domain validations synchronously', () => {
-      // Arrange
-      const step = createStep('compile_ast:44')
-      const domainValidationNode = createValidationNode('compile_ast:45', 'Section not signed off')
-      const runtimePlan = createRuntimePlan(step.id, {
-        domainValidationNodeIds: [domainValidationNode.id],
-        hasDomainValidation: true,
-      })
-      const { context, invoker, nodes } = setup()
-
-      nodes.set(step.id, step)
-      nodes.set(domainValidationNode.id, domainValidationNode)
-
-      invoker.invokeSync.mockImplementation(nodeId => {
-        if (nodeId === domainValidationNode.id) {
-          return successResult({ passed: false, message: 'Section not signed off', submissionOnly: false })
-        }
-
-        return successResult(undefined)
-      })
-
-      // Act
-      const executor = new StepValidityAnalyzer()
-      const result = executor.executeSync(runtimePlan, invoker, context)
-
-      // Assert
-      expect(result).toEqual({
-        isValid: false,
-        fieldFailures: [],
-        domainFailures: [
-          {
-            passed: false,
-            message: 'Section not signed off',
-            submissionOnly: false,
-          },
-        ],
-      })
-    })
-
     it('should flatten array results from iterate-driven domain validations', async () => {
       // Arrange
       const step = createStep('compile_ast:50')
@@ -660,40 +490,6 @@ describe('StepValidityAnalyzer', () => {
       expect(result.domainFailures).toEqual([
         { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
         { passed: false, message: "Add steps to 'Goal C'", submissionOnly: false, details: { href: '#goal-3' } },
-      ])
-    })
-
-    it('should flatten array results from iterate-driven domain validations synchronously', () => {
-      // Arrange
-      const step = createStep('compile_ast:52')
-      const iterateNodeId = 'compile_ast:53' as AstNodeId
-      const runtimePlan = createRuntimePlan(step.id, {
-        domainValidationNodeIds: [iterateNodeId],
-        hasDomainValidation: true,
-      })
-      const { context, invoker, nodes } = setup()
-
-      nodes.set(step.id, step)
-
-      invoker.invokeSync.mockImplementation(nodeId => {
-        if (nodeId === iterateNodeId) {
-          return successResult([
-            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
-            { passed: true, message: "Add steps to 'Goal B'", submissionOnly: false },
-          ])
-        }
-
-        return successResult(undefined)
-      })
-
-      // Act
-      const executor = new StepValidityAnalyzer()
-      const result = executor.executeSync(runtimePlan, invoker, context)
-
-      // Assert
-      expect(result.isValid).toBe(false)
-      expect(result.domainFailures).toEqual([
-        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
       ])
     })
 

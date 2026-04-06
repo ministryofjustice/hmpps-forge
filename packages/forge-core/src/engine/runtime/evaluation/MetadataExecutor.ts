@@ -3,7 +3,6 @@ import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationCont
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { evaluatePropertyValue } from '../../utils/thunkEvaluatorsAsync'
-import { evaluatePropertyValueSync } from '../../utils/thunkEvaluatorsSync'
 import { JourneyAncestor, RenderContext } from '../../../framework/rendering/types'
 
 export interface MetadataExecutionResult {
@@ -22,7 +21,6 @@ export default class MetadataExecutor {
 
   private static readonly JOURNEY_EXCLUDED_PROPS = new Set(['onAccess', 'children', 'steps'])
 
-  constructor() {}
 
   async execute(
     runtimePlan: StepRuntimePlan,
@@ -41,26 +39,6 @@ export default class MetadataExecutor {
       step,
       ancestors,
     }
-  }
-
-  executeSync(
-    runtimePlan: StepRuntimePlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): MetadataExecutionResult {
-    const stepNode = this.getStepNode(runtimePlan.renderStepId, context)
-    const ancestorNodes = this.getAncestorNodes(runtimePlan.renderAncestorIds, context)
-
-    const stepProperties = this.filterStepProperties(stepNode)
-    const step = evaluatePropertyValueSync(stepProperties, context, invoker) as RenderContext['step']
-
-    const ancestors = ancestorNodes.map(node => {
-      const properties = this.filterJourneyProperties(node)
-
-      return evaluatePropertyValueSync(properties, context, invoker) as JourneyAncestor
-    })
-
-    return { step, ancestors }
   }
 
   private getStepNode(stepId: StepRuntimePlan['renderStepId'], context: ThunkEvaluationContext): StepASTNode {

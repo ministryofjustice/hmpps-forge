@@ -16,7 +16,6 @@ import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
  * via context.getData().
  */
 export default class ContextPreparer {
-  constructor() {}
 
   /**
    * Create an evaluation context and prepare it with merged static data.

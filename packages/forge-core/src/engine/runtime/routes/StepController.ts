@@ -83,11 +83,7 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    if (plan.isAnswerPrepareSync) {
-      this.answerPreparer.prepareSync(plan, evaluator, context)
-    } else {
-      await this.answerPreparer.prepare(plan, evaluator, context)
-    }
+    await this.answerPreparer.prepare(plan, evaluator, context)
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
@@ -97,9 +93,7 @@ export default class StepController<TRequest, TResponse> {
       return this.redirect(res, req, reachabilityRedirect)
     }
 
-    const renderContext = plan.isRenderSync
-      ? this.renderProjector.buildSync(plan, evaluator, context, artifacts, req)
-      : await this.renderProjector.build(plan, evaluator, context, artifacts, req)
+    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, req)
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
@@ -118,11 +112,7 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    if (plan.isAnswerPrepareSync) {
-      this.answerPreparer.prepareSync(plan, evaluator, context)
-    } else {
-      await this.answerPreparer.prepare(plan, evaluator, context)
-    }
+    await this.answerPreparer.prepare(plan, evaluator, context)
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
@@ -135,11 +125,7 @@ export default class StepController<TRequest, TResponse> {
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
 
     if (plan.hasValidatingSubmitTransition || plan.hasDomainValidation) {
-      if (plan.isValidationSync) {
-        this.evaluateValidationSync(artifacts, evaluator, context)
-      } else {
-        await this.evaluateValidation(artifacts, evaluator, context)
-      }
+      await this.evaluateValidation(artifacts, evaluator, context)
     }
 
     const submitResult = await this.transitionExecutor.executeSubmitTransitions(plan, evaluator, context)
@@ -154,9 +140,7 @@ export default class StepController<TRequest, TResponse> {
 
     const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
 
-    const renderContext = plan.isRenderSync
-      ? this.renderProjector.buildSync(plan, evaluator, context, artifacts, req, renderOptions)
-      : await this.renderProjector.build(plan, evaluator, context, artifacts, req, renderOptions)
+    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, req, renderOptions)
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
@@ -203,17 +187,6 @@ export default class StepController<TRequest, TResponse> {
     context: ThunkEvaluationContext,
   ): Promise<void> {
     const result = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context)
-
-    artifacts.setStepValidity(result)
-    this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)
-  }
-
-  private evaluateValidationSync(
-    artifacts: RuntimeArtifacts,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): void {
-    const result = this.validationExecutor.executeSync(this.compiledForm.runtimePlan, invoker, context)
 
     artifacts.setStepValidity(result)
     this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)

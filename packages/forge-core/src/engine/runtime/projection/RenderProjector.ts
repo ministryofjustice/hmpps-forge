@@ -17,7 +17,7 @@ export interface RenderProjectorOptions {
  * Evaluates render data (metadata + blocks) and assembles the final RenderContext.
  *
  * Owns the full render pipeline: evaluation → enrichment → assembly.
- * The controller calls build/buildSync and passes the result to the framework adapter.
+ * The controller calls build() and passes the result to the framework adapter.
  */
 export default class RenderProjector<TRequest> {
   private readonly metadataExecutor = new MetadataExecutor()
@@ -46,45 +46,6 @@ export default class RenderProjector<TRequest> {
       this.metadataExecutor.execute(plan, invoker, context),
       this.renderExecutor.execute(plan, invoker, context),
     ])
-
-    const validation = artifacts.getStepValidity()
-    const step = this.resolvedStepMetadataBuilder.build(metadata.step, req, artifacts)
-
-    return RenderContextFactory.build(
-      {
-        step,
-        ancestors: metadata.ancestors,
-        blocks,
-        answers: context.global.answers,
-        data: context.global.data,
-        fieldValidationFailures: validation?.fieldFailures ?? [],
-        domainValidationFailures: validation?.domainFailures ?? [],
-        hasNestedBlocks: blockId => {
-          if (context.astNodeTree.getNodeType(blockId) === undefined) {
-            return true
-          }
-
-          return context.astNodeTree.hasDescendantOfType(blockId, ASTNodeType.BLOCK)
-        },
-      },
-      {
-        navigationMetadata: this.navigationMetadata,
-        currentStepPath: this.currentStepPath,
-        showValidationFailures: options?.showValidationFailures,
-      },
-    )
-  }
-
-  buildSync(
-    plan: StepRuntimePlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-    artifacts: RuntimeArtifacts,
-    req: TRequest,
-    options?: RenderProjectorOptions,
-  ): RenderContext {
-    const metadata = this.metadataExecutor.executeSync(plan, invoker, context)
-    const blocks = this.renderExecutor.executeSync(plan, invoker, context)
 
     const validation = artifacts.getStepValidity()
     const step = this.resolvedStepMetadataBuilder.build(metadata.step, req, artifacts)

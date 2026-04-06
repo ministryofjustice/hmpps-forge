@@ -184,7 +184,7 @@ describe('RuntimePlanBuilder', () => {
       )
 
       // Act
-      const result = builder.buildStepRuntimePlan(step, dependencies)
+      const result = builder.buildStepRuntimePlan(step)
 
       // Assert
       expect(result).toEqual({
@@ -200,9 +200,6 @@ describe('RuntimePlanBuilder', () => {
         domainValidationNodeIds: [],
         renderAncestorIds: [journey.id],
         renderStepId: step.id,
-        isRenderSync: true,
-        isAnswerPrepareSync: false,
-        isValidationSync: false,
         hasValidatingSubmitTransition: false,
         hasDomainValidation: false,
       })

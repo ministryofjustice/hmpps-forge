@@ -45,7 +45,6 @@ describe('NavigationAnalyzer', () => {
         fieldFailures: [],
         domainFailures: [],
       } satisfies StepValidityResult),
-      executeSync: jest.fn(),
     } as unknown as jest.Mocked<StepValidityAnalyzer>
 
     context = {
