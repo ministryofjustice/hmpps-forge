@@ -1,8 +1,8 @@
-import { NodeId } from '../../types/engine.type'
+import { NodeId } from '../../types/ast.type'
 import { CompilationArtefact, CompiledStep } from '../../compilation/CompilationFactory'
 import { StepASTNode } from '../../types/structures.type'
 
-export type StepResolver = () => Promise<CompiledStep>
+export type StepResolver = () => CompiledStep
 
 export interface RouteMapEntry {
   stepId: NodeId

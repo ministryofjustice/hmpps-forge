@@ -509,4 +509,125 @@ describe('EffectFunctionContext', () => {
       expect(result.size).toBe(0)
     })
   })
+
+  describe('getFieldsToClear()', () => {
+    it('should only return field codes that have answers set', () => {
+      // Arrange
+      const mockContext = createMockContext()
+
+      mockContext.global.answers = {
+        fieldA: { current: 'value', mutations: [] },
+        fieldB: { current: 'value', mutations: [] },
+      }
+
+      mockContext.global.reachability = {
+        reachableSteps: [{ path: '/step-a' }],
+        unreachableSteps: [
+          { path: '/step-b', fieldCodes: ['fieldA', 'fieldB'] },
+          { path: '/step-c', fieldCodes: ['fieldB', 'fieldC'] },
+        ],
+      }
+
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act
+      const result = effectContext.getFieldsToClear()
+
+      // Assert
+      expect(result).toEqual(['fieldA', 'fieldB'])
+      expect(result).not.toContain('fieldC')
+    })
+
+    it('should return empty array when no reachability data', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act
+      const result = effectContext.getFieldsToClear()
+
+      // Assert
+      expect(result).toEqual([])
+    })
+
+    it('should include answer keys that match cleardown patterns', () => {
+      // Arrange
+      const mockContext = createMockContext()
+
+      mockContext.global.answers = {
+        task_1_status: { current: 'done', mutations: [] },
+        task_2_status: { current: 'pending', mutations: [] },
+        unrelated: { current: 'value', mutations: [] },
+      }
+
+      mockContext.global.reachability = {
+        reachableSteps: [],
+        unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^task_\\d+_status$'] }],
+      }
+
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act
+      const result = effectContext.getFieldsToClear()
+
+      // Assert
+      expect(result).toContain('task_1_status')
+      expect(result).toContain('task_2_status')
+      expect(result).not.toContain('unrelated')
+    })
+
+    it('should match exact field codes as patterns', () => {
+      // Arrange
+      const mockContext = createMockContext()
+
+      mockContext.global.answers = {
+        fieldA: { current: 'value', mutations: [] },
+        fieldB: { current: 'value', mutations: [] },
+      }
+
+      mockContext.global.reachability = {
+        reachableSteps: [],
+        unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^fieldA$'] }],
+      }
+
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act
+      const result = effectContext.getFieldsToClear()
+
+      // Assert
+      expect(result).toContain('fieldA')
+      expect(result).not.toContain('fieldB')
+    })
+
+    it('should combine discovered field codes and cleardown pattern matches', () => {
+      // Arrange
+      const mockContext = createMockContext()
+
+      mockContext.global.answers = {
+        staticField: { current: 'value', mutations: [] },
+        dynamic_99: { current: 'value', mutations: [] },
+      }
+
+      mockContext.global.reachability = {
+        reachableSteps: [],
+        unreachableSteps: [
+          {
+            path: '/step-a',
+            fieldCodes: ['staticField'],
+            cleardownFieldCodes: ['^dynamic_\\d+$'],
+          },
+        ],
+      }
+
+      const effectContext = new EffectFunctionContext(mockContext, 'load')
+
+      // Act
+      const result = effectContext.getFieldsToClear()
+
+      // Assert
+      expect(result).toContain('staticField')
+      expect(result).toContain('dynamic_99')
+    })
+  })
 })

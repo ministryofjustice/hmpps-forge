@@ -54,7 +54,7 @@ export default class JourneyInstance {
     return [...this.sharedCompilation.stepIndex.keys()].map(stepId => this.getOrCompileStep(stepId))
   }
 
-  async getCompiledStep(stepId: NodeId): Promise<CompiledStep> {
+  getCompiledStep(stepId: NodeId): CompiledStep {
     return this.getOrCompileStep(stepId)
   }
 
@@ -91,7 +91,11 @@ export default class JourneyInstance {
       return cachedStep
     }
 
-    const compiledStep = this.compiler.compileStep(this.sharedCompilation, stepId)
+    const partial = this.compiler.compileStep(this.sharedCompilation, stepId)
+    const reachabilityPlan = this.sharedCompilation.reachabilityPlans.get(stepId)!
+
+    const compiledStep: CompiledStep = { ...partial, reachabilityPlan }
+
     this.stepCache.set(stepId, compiledStep)
 
     return compiledStep

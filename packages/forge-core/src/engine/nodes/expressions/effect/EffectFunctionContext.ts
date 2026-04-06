@@ -2,6 +2,7 @@ import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationC
 import { AnswerHistory, TransitionType } from '../../../compilation/thunks/types'
 import type { CookieMutation, CookieOptions } from '../../../../framework/types/response.type'
 import { assertSerializable } from '../../../../shared/utils/asserts'
+import FieldsToClearResolver from '../../../runtime/resolution/FieldsToClearResolver'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {
@@ -59,6 +60,8 @@ class EffectFunctionContext<
   TSession = unknown,
   TState extends Record<string, unknown> = Record<string, unknown>,
 > {
+  private readonly fieldsToClearResolver = new FieldsToClearResolver()
+
   /** @internal */
   constructor(
     private readonly context: ThunkEvaluationContext,
@@ -335,6 +338,19 @@ class EffectFunctionContext<
    */
   getAllResponseCookies(): ReadonlyMap<string, CookieMutation> {
     return this.context.response.getAllCookies()
+  }
+
+  /**
+   * Get the field codes that should be cleared based on unreachable steps.
+   *
+   * Combines two sources:
+   * - Field codes discovered on unreachable steps (from block definitions)
+   * - Answer keys that match any `cleardownFieldCodes` patterns on unreachable steps
+   *
+   * Returns a deduplicated array of field codes.
+   */
+  getFieldsToClear(): string[] {
+    return this.fieldsToClearResolver.resolve(this.context.global.reachability, this.context.global.answers)
   }
 }
 

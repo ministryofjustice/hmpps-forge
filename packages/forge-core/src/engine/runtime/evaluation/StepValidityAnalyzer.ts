@@ -1,13 +1,13 @@
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import ValidationTemplateAnalyzer from '../../compilation/analyzers/ValidationTemplateAnalyzer'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext, {
   DomainValidationFailure,
   StepValidationFailure,
 } from '../../compilation/thunks/ThunkEvaluationContext'
 import { IterateASTNode, ValidationASTNode } from '../../types/expressions.type'
 import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
-import { NodeId } from '../../types/engine.type'
+import { NodeId } from '../../types/ast.type'
 import getAncestorChain from '../../utils/getAncestorChain'
 import { evaluateOperand } from '../../utils/thunkEvaluatorsAsync'
 import { evaluateOperandSync } from '../../utils/thunkEvaluatorsSync'
@@ -15,18 +15,23 @@ import { ValidationResult } from '../../nodes/expressions/validation/ValidationH
 import { isASTNode } from '../../typeguards/nodes'
 import { BlockType, ExpressionType } from '../../../authoring/types/enums'
 
-export interface ValidationExecutionResult {
+export type StepValidityPlan = Pick<
+  StepRuntimePlan,
+  'stepId' | 'validationIterateNodeIds' | 'validationBlockIds' | 'domainValidationNodeIds'
+>
+
+export interface StepValidityResult {
   isValid: boolean
   fieldFailures: StepValidationFailure[]
   domainFailures: DomainValidationFailure[]
 }
 
-export default class ValidationExecutor {
+export default class StepValidityAnalyzer {
   async execute(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-  ): Promise<ValidationExecutionResult> {
+  ): Promise<StepValidityResult> {
     const expandedIterateNodeIds = await this.expandValidationIterators(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
     const fieldFailures = await this.collectValidationFailures(fieldBlocks, invoker, context)
@@ -40,10 +45,10 @@ export default class ValidationExecutor {
   }
 
   executeSync(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-  ): ValidationExecutionResult {
+  ): StepValidityResult {
     const expandedIterateNodeIds = this.expandValidationIteratorsSync(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
     const fieldFailures = this.collectValidationFailuresSync(fieldBlocks, invoker, context)
@@ -57,7 +62,7 @@ export default class ValidationExecutor {
   }
 
   private async expandValidationIterators(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<NodeId[]> {
@@ -89,7 +94,7 @@ export default class ValidationExecutor {
   }
 
   private collectValidationFieldBlocks(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     expandedIterateNodeIds: NodeId[],
     context: ThunkEvaluationContext,
   ): FieldBlockASTNode[] {
@@ -124,7 +129,7 @@ export default class ValidationExecutor {
 
   private sortByDocumentOrder(
     fieldBlocks: FieldBlockASTNode[],
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     context: ThunkEvaluationContext,
   ): FieldBlockASTNode[] {
     const stepNode = context.nodeRegistry.get(runtimePlan.stepId) as StepASTNode | undefined
@@ -194,7 +199,7 @@ export default class ValidationExecutor {
     const blockCode = await this.evaluateBlockCode(block, invoker, context)
 
     return validations
-      .filter(validation => validation.passed === false)
+      .filter(validation => !validation.passed)
       .map(validation => ({
         ...validation,
         blockId: block.id,
@@ -250,7 +255,7 @@ export default class ValidationExecutor {
   }
 
   private expandValidationIteratorsSync(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): NodeId[] {
@@ -312,7 +317,7 @@ export default class ValidationExecutor {
     const blockCode = this.evaluateBlockCodeSync(block, invoker, context)
 
     return validations
-      .filter(validation => validation.passed === false)
+      .filter(validation => !validation.passed)
       .map(validation => ({
         ...validation,
         blockId: block.id,
@@ -365,7 +370,7 @@ export default class ValidationExecutor {
   }
 
   private async collectDomainValidationFailures(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<DomainValidationFailure[]> {
@@ -384,7 +389,7 @@ export default class ValidationExecutor {
   }
 
   private collectDomainValidationFailuresSync(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): DomainValidationFailure[] {
@@ -404,7 +409,7 @@ export default class ValidationExecutor {
       value !== undefined &&
       typeof value === 'object' &&
       'passed' in value &&
-      (value as ValidationResult).passed === false
+      !(value as ValidationResult).passed
   }
 
   private findNestedValidationIterateNodeIds(parentIterateNodeId: NodeId, context: ThunkEvaluationContext): NodeId[] {

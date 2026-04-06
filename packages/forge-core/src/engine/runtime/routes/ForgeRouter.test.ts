@@ -8,7 +8,7 @@ import type { JourneyDefinition } from '../../../authoring/types/structures.type
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import JourneyInstance from '../../JourneyInstance'
 import StepController from './StepController'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ForgeRouter from './ForgeRouter'
 
 jest.mock('./StepController')
@@ -141,6 +141,7 @@ describe('ForgeRouter', () => {
 
       return {
         ...compiled,
+        reachabilityPlan: { entries: [] },
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
@@ -207,7 +208,7 @@ describe('ForgeRouter', () => {
           throw new Error(`Unable to resolve compiled step for ${stepId}`)
         }
 
-        return Promise.resolve(compiledStep)
+        return compiledStep
       }),
       getStepIndex: jest.fn().mockImplementation(() => new Map(stepIndex)),
       getSharedCompilationArtefact: jest.fn().mockReturnValue(sharedArtefact),
@@ -255,7 +256,7 @@ describe('ForgeRouter', () => {
   })
 
   describe('mount()', () => {
-    it('should mount routes without eagerly resolving the full compiled form', () => {
+    it('should mount routes without eagerly compiling steps', () => {
       // Arrange
       const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
       const stepNode = createMockStepNode('compile_ast:2', '/step-one')
@@ -304,7 +305,7 @@ describe('ForgeRouter', () => {
       expect(mockFrameworkAdapter.post).toHaveBeenCalledWith(expect.anything(), '/step-one', expect.any(Function))
     })
 
-    it('should resolve compiled step at request time, not mount time', async () => {
+    it('should lazily create the controller on first request and reuse it', async () => {
       // Arrange
       const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
       const stepNode = createMockStepNode('compile_ast:2', '/step-one')
@@ -321,15 +322,24 @@ describe('ForgeRouter', () => {
       // Act
       router.mount(journeyInstance)
 
-      // Assert mount-time behaviour
+      // Assert - no controller or step compilation at mount time
+      expect(StepController).not.toHaveBeenCalled()
       expect(journeyInstance.getCompiledStep).not.toHaveBeenCalled()
 
       const getHandler = mockFrameworkAdapter.get.mock.calls[0][2] as (req: unknown, res: unknown) => Promise<void>
 
       await getHandler({}, {})
+
+      // Assert - first request triggers lazy compilation and controller creation
       expect(journeyInstance.getCompiledStep).toHaveBeenCalledTimes(1)
       expect(journeyInstance.getCompiledStep).toHaveBeenCalledWith(stepNode.id)
-      expect(mockControllerGet).toHaveBeenCalledTimes(1)
+      expect(StepController).toHaveBeenCalledTimes(1)
+
+      await getHandler({}, {})
+
+      // Assert - second request reuses the controller
+      expect(StepController).toHaveBeenCalledTimes(1)
+      expect(mockControllerGet).toHaveBeenCalledTimes(2)
     })
 
     it('should register routes with correct full paths', () => {

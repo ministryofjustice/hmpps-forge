@@ -13,14 +13,13 @@ import { AccessTransitionResult } from '../../nodes/transitions/access/AccessHan
 import { SubmitTransitionResult } from '../../nodes/transitions/submit/SubmitHandler'
 import { ActionTransitionResult } from '../../nodes/transitions/action/ActionHandler'
 import { CompiledForm } from '../../compilation/CompilationFactory'
-import { JourneyAncestor, JourneyMetadata } from '../../../framework/rendering/types'
+import { JourneyMetadata } from '../../../framework/rendering/types'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { PseudoNodeType } from '../../types/pseudoNodes.type'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
-import MetadataExecutor from '../executors/MetadataExecutor'
-import RenderExecutor from '../executors/RenderExecutor'
-import ValidationExecutor from '../executors/ValidationExecutor'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
+import RenderProjector from '../projection/RenderProjector'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
@@ -86,51 +85,30 @@ const createMockResponse = (): StepResponse => {
 
 jest.mock('../../compilation/thunks/ThunkEvaluator')
 
-const mockRenderContextFactoryBuild = jest.fn().mockReturnValue({ step: {}, blocks: [], ancestors: [] })
-const mockMetadataExecutorExecute = jest.fn().mockResolvedValue({
-  step: { path: '/step-1', title: 'Step 1' },
-  ancestors: [] as JourneyAncestor[],
-})
-const mockRenderExecutorExecute = jest.fn().mockResolvedValue([])
-const mockValidationExecutorExecute = jest.fn().mockResolvedValue({
+const mockRenderProjectorBuild = jest.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
+const mockRenderProjectorBuildSync = jest.fn().mockReturnValue({ step: {}, blocks: [], ancestors: [] })
+const mockStepValidityAnalyzerExecute = jest.fn().mockResolvedValue({
   isValid: true,
   fieldFailures: [],
   domainFailures: [],
 })
 
-jest.mock('../executors/MetadataExecutor', () => {
+jest.mock('../evaluation/StepValidityAnalyzer', () => {
   return {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockMetadataExecutorExecute(...args),
+      execute: (...args: unknown[]) => mockStepValidityAnalyzerExecute(...args),
     })),
   }
 })
 
-jest.mock('../executors/RenderExecutor', () => {
+jest.mock('../projection/RenderProjector', () => {
   return {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockRenderExecutorExecute(...args),
+      build: (...args: unknown[]) => mockRenderProjectorBuild(...args),
+      buildSync: (...args: unknown[]) => mockRenderProjectorBuildSync(...args),
     })),
-  }
-})
-
-jest.mock('../executors/ValidationExecutor', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockValidationExecutorExecute(...args),
-    })),
-  }
-})
-
-jest.mock('../rendering/RenderContextFactory', () => {
-  return {
-    __esModule: true,
-    default: {
-      build: (...args: unknown[]) => mockRenderContextFactoryBuild(...args),
-    },
   }
 })
 
@@ -146,19 +124,14 @@ describe('StepController', () => {
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    mockRenderContextFactoryBuild.mockClear()
-    mockMetadataExecutorExecute.mockClear()
-    mockRenderExecutorExecute.mockClear()
-    mockValidationExecutorExecute.mockClear()
-    ;(MetadataExecutor as unknown as jest.Mock).mockClear()
-    ;(RenderExecutor as unknown as jest.Mock).mockClear()
-    ;(ValidationExecutor as unknown as jest.Mock).mockClear()
-    mockMetadataExecutorExecute.mockResolvedValue({
-      step: { path: '/step-1', title: 'Step 1' },
-      ancestors: [],
-    })
-    mockRenderExecutorExecute.mockResolvedValue([])
-    mockValidationExecutorExecute.mockResolvedValue({
+    mockRenderProjectorBuild.mockClear()
+    mockRenderProjectorBuildSync.mockClear()
+    mockStepValidityAnalyzerExecute.mockClear()
+    ;(StepValidityAnalyzer as unknown as jest.Mock).mockClear()
+    ;(RenderProjector as unknown as jest.Mock).mockClear()
+    mockRenderProjectorBuild.mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
+    mockRenderProjectorBuildSync.mockReturnValue({ step: {}, blocks: [], ancestors: [] })
+    mockStepValidityAnalyzerExecute.mockResolvedValue({
       isValid: true,
       fieldFailures: [],
       domainFailures: [],
@@ -219,6 +192,8 @@ describe('StepController', () => {
   function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
     const runtimePlan: StepRuntimePlan = {
       stepId: stepNode.id,
+      path: stepNode.properties.path.replace(/^\//, ''),
+      code: stepNode.properties.code,
       accessAncestorIds: [stepNode.id],
       actionTransitionIds: (stepNode.properties.onAction ?? []).map(transition => transition.id),
       submitTransitionIds: (stepNode.properties.onSubmission ?? []).map(transition => transition.id),
@@ -254,10 +229,28 @@ describe('StepController', () => {
       } as any,
       currentStepId: stepNode.id,
       runtimePlan,
+      reachabilityPlan: {
+        entries: [
+          {
+            stepId: stepNode.id,
+            path: stepNode.properties.path.replace(/^\//, ''),
+            code: stepNode.properties.code,
+            isEntryPoint: true,
+            forwardOutcomeIds: [],
+            hasValidation: false,
+            cleardownFieldCodes: [],
+            fieldIteratorRootIds: [],
+            validationIterateNodeIds: [],
+            validationBlockIds: [],
+            domainValidationNodeIds: [],
+          },
+        ],
+      },
     }
   }
 
   function createStepWithTransitions(options: {
+    code?: string
     onAccess?: AccessTransitionASTNode[]
     onAction?: ActionTransitionASTNode[]
     onSubmission?: SubmitTransitionASTNode[]
@@ -267,6 +260,7 @@ describe('StepController', () => {
       id: ASTTestFactory.getId(),
       properties: {
         path: '/step-1',
+        code: options.code,
         title: 'Test Step',
         ...options,
       },
@@ -483,7 +477,7 @@ describe('StepController', () => {
     })
 
     describe('rendering', () => {
-      it('should evaluate metadata and blocks before rendering after passing access checks', async () => {
+      it('should call render projector and render after passing access checks', async () => {
         // Arrange
         const step = createStepWithTransitions({})
         mockCompiledForm = createCompiledForm(step)
@@ -501,12 +495,7 @@ describe('StepController', () => {
         await controller.get(mockReq, mockRes)
 
         // Assert
-        expect(mockMetadataExecutorExecute).toHaveBeenCalledWith(
-          mockCompiledForm.runtimePlan,
-          mockEvaluator,
-          mockContext,
-        )
-        expect(mockRenderExecutorExecute).toHaveBeenCalledWith(mockCompiledForm.runtimePlan, mockEvaluator, mockContext)
+        expect(mockRenderProjectorBuild).toHaveBeenCalledTimes(1)
         expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
     })
@@ -653,6 +642,74 @@ describe('StepController', () => {
         expect(invokedNodeIds).toContain(dynamicAnswerNode.id)
         expect(invokedNodeIds.indexOf(iterateNode.id)).toBeLessThan(invokedNodeIds.indexOf(dynamicAnswerNode.id))
       })
+
+      it('should expose journey reachability to submit transitions after answers are prepared', async () => {
+        // Arrange
+        const submitTransition = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
+        const step = createStepWithTransitions({ code: 'test-step', onSubmission: [submitTransition] })
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.reachabilityPlan = {
+          entries: [
+            {
+              stepId: step.id,
+              path: 'step-1',
+              code: 'test-step',
+              isEntryPoint: true,
+              forwardOutcomeIds: [],
+              hasValidation: false,
+              cleardownFieldCodes: [],
+              fieldIteratorRootIds: [],
+              validationIterateNodeIds: [],
+              validationBlockIds: [],
+              domainValidationNodeIds: [],
+            },
+          ],
+        }
+
+        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {
+          if (nodeId === submitTransition.id) {
+            expect(context?.global.reachability).toEqual({
+              reachableSteps: [{ path: 'step-1', code: 'test-step' }],
+              unreachableSteps: [],
+            })
+
+            const submitResult: SubmitTransitionResult = {
+              executed: true,
+              validated: false,
+              outcome: 'continue',
+            }
+
+            return {
+              value: submitResult,
+              metadata: { source: 'test', timestamp: Date.now() },
+            }
+          }
+
+          return {
+            value: { executed: false },
+            metadata: { source: 'test', timestamp: Date.now() },
+          }
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(mockContext.global.reachability).toEqual({
+          reachableSteps: [{ path: 'step-1', code: 'test-step' }],
+          unreachableSteps: [],
+        })
+      })
     })
 
     describe('action transitions', () => {
@@ -721,7 +778,7 @@ describe('StepController', () => {
     })
 
     describe('submit transitions', () => {
-      it('should run ValidationExecutor before submit transitions when a submit transition requires validation', async () => {
+      it('should run StepValidityAnalyzer before submit transitions when a submit transition requires validation', async () => {
         const submitTransition = ASTTestFactory.transition(TransitionType.SUBMIT)
           .withProperty('validate', true)
           .build() as SubmitTransitionASTNode
@@ -736,7 +793,7 @@ describe('StepController', () => {
           isValid: false,
           outcome: 'continue',
         }
-        mockValidationExecutorExecute.mockResolvedValue({
+        mockStepValidityAnalyzerExecute.mockResolvedValue({
           isValid: false,
           fieldFailures: [
             {
@@ -763,8 +820,8 @@ describe('StepController', () => {
 
         await controller.post(mockReq, mockRes)
 
-        expect(ValidationExecutor).toHaveBeenCalledTimes(1)
-        expect(mockValidationExecutorExecute).toHaveBeenCalledWith(
+        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledTimes(1)
+        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledWith(
           mockCompiledForm.runtimePlan,
           mockEvaluator,
           mockContext,
@@ -1288,4 +1345,5 @@ describe('StepController', () => {
       expect(mockEvaluator.invoke).toHaveBeenCalledTimes(3)
     })
   })
+
 })

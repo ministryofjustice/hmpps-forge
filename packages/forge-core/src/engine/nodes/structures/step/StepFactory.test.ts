@@ -128,6 +128,39 @@ describe('StepFactory', () => {
       expect(onSubmission).toHaveLength(1)
     })
 
+    it('should pass through cleardownFieldCodes', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        cleardownFieldCodes: ['fieldA', '^task_\\d+$'],
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+
+      // Assert
+      expect(result.properties.cleardownFieldCodes).toEqual(['fieldA', '^task_\\d+$'])
+    })
+
+    it('should omit cleardownFieldCodes when not specified', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+
+      // Assert
+      expect(result.properties.cleardownFieldCodes).toBeUndefined()
+    })
+
     it('should exclude type from properties', () => {
       // Arrange
       const json = {

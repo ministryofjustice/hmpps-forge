@@ -6,7 +6,7 @@ import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
 import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.type'
 import { CompilationDependencies } from './CompilationDependencies'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
-import StepRuntimePlanBuilder, { StepRuntimePlan } from './StepRuntimePlanBuilder'
+import RuntimePlanBuilder, { StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
 
 export type StepIndex = Map<NodeId, StepASTNode>
 
@@ -14,12 +14,15 @@ export interface SharedCompiledForm {
   rootNode: JourneyASTNode
   sharedDependencies: CompilationDependencies
   stepIndex: StepIndex
+  reachabilityPlans: Map<NodeId, ReachabilityRuntimePlan>
+  planBuilder: RuntimePlanBuilder
 }
 
 export interface CompiledStep {
   artefact: CompilationDependencies
   currentStepId: AstNodeId
   runtimePlan: StepRuntimePlan
+  reachabilityPlan: ReachabilityRuntimePlan
 }
 
 /**
@@ -31,15 +34,6 @@ export interface CompiledStep {
  */
 export default class CompilationFactory {
   constructor(private readonly journeyInstanceDependencies: JourneyInstanceDependencies) {}
-
-  /**
-   * Main entry point - eager compatibility wrapper for per-step artefacts
-   */
-  compile(journeyDef: JourneyDefinition) {
-    const shared = this.compileShared(journeyDef)
-
-    return [...shared.stepIndex.keys()].map(stepId => this.compileStep(shared, stepId))
-  }
 
   /**
    * Compile shared artefacts that are invariant across steps.
@@ -64,11 +58,22 @@ export default class CompilationFactory {
     walker.register(rootNode)
 
     const stepNodes = sharedDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
+    const stepIndex: StepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
+
+    const planBuilder = new RuntimePlanBuilder(
+      sharedDependencies.nodeRegistry,
+      sharedDependencies.metadataRegistry,
+      sharedDependencies.astNodeTree,
+    )
+
+    const reachabilityPlans = planBuilder.buildAllReachabilityPlans(stepIndex)
 
     return {
       rootNode,
       sharedDependencies,
-      stepIndex: new Map(stepNodes.map(stepNode => [stepNode.id, stepNode])),
+      stepIndex,
+      reachabilityPlans,
+      planBuilder,
     }
   }
 
@@ -84,13 +89,14 @@ export default class CompilationFactory {
 
     const { deps: overlayDeps } = shared.sharedDependencies.createOverlay()
 
-    return this.compileForStep(shared.rootNode, stepNode, overlayDeps)
+    return this.compileForStep(shared.planBuilder, shared.rootNode, stepNode, overlayDeps)
   }
 
   /**
    * Compile artefact for a specific step
    */
   private compileForStep(
+    planBuilder: RuntimePlanBuilder,
     rootNode: JourneyASTNode,
     stepNode: StepASTNode,
     compilationDependencies: CompilationDependencies,
@@ -104,7 +110,7 @@ export default class CompilationFactory {
     // Phase 9 - Compile thunk handlers
     NodeCompilationPipeline.compileThunks(compilationDependencies, this.journeyInstanceDependencies.functionRegistry)
 
-    const runtimePlan = new StepRuntimePlanBuilder().build(stepNode, compilationDependencies)
+    const runtimePlan = planBuilder.buildStepRuntimePlan(stepNode, compilationDependencies)
 
     return {
       artefact: compilationDependencies,
@@ -114,5 +120,5 @@ export default class CompilationFactory {
   }
 }
 
-export type CompiledForm = ReturnType<CompilationFactory['compile']>
+export type CompiledForm = CompiledStep[]
 export type CompilationArtefact = CompiledStep['artefact']

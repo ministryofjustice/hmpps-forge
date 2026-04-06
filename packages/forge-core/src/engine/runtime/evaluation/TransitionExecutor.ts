@@ -6,7 +6,7 @@ import { ActionTransitionResult } from '../../nodes/transitions/action/ActionHan
 import { SubmitTransitionResult } from '../../nodes/transitions/submit/SubmitHandler'
 import { AccessTransitionASTNode } from '../../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 
 /**
  * TransitionExecutor - Runs lifecycle transitions for form steps

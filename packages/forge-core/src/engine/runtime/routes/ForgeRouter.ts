@@ -139,20 +139,20 @@ export default class ForgeRouter<TRouter> {
 
     this.routeMap.set(fullPath, { stepId, resolveCompiledStep })
 
-    this.dependencies.frameworkAdapter.get(router, stepPath, async (req, res) => {
-      const compiledStep = await resolveCompiledStep()
-      const controller = new StepController(compiledStep, this.dependencies, this.navigationMetadata, fullPath)
+    let controller: StepController<unknown, unknown> | undefined
 
-      return controller.get(req, res)
-    })
+    const getController = () => {
+      if (!controller) {
+        controller = new StepController(resolveCompiledStep(), this.dependencies, this.navigationMetadata, fullPath)
+      }
+
+      return controller
+    }
+
+    this.dependencies.frameworkAdapter.get(router, stepPath, (req, res) => getController().get(req, res))
     this.registeredRoutes.push({ method: 'GET', path: fullPath })
 
-    this.dependencies.frameworkAdapter.post(router, stepPath, async (req, res) => {
-      const compiledStep = await resolveCompiledStep()
-      const controller = new StepController(compiledStep, this.dependencies, this.navigationMetadata, fullPath)
-
-      return controller.post(req, res)
-    })
+    this.dependencies.frameworkAdapter.post(router, stepPath, (req, res) => getController().post(req, res))
     this.registeredRoutes.push({ method: 'POST', path: fullPath })
   }
 

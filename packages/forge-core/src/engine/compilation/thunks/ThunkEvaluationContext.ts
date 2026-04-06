@@ -20,6 +20,19 @@ export interface StepValidationState {
   domainFailures: DomainValidationFailure[]
 }
 
+export interface ReachabilityStep {
+  path: string
+  code?: string
+  fieldCodes?: string[]
+  cleardownFieldCodes?: string[]
+  backPath?: string
+}
+
+export interface JourneyReachabilityState {
+  reachableSteps: ReachabilityStep[]
+  unreachableSteps: ReachabilityStep[]
+}
+
 /**
  * Global mutable state that persists across thunk evaluations
  */
@@ -27,6 +40,7 @@ export interface ThunkEvaluationGlobalState {
   data: Record<string, unknown>
   answers: Record<string, AnswerHistory>
   validation?: StepValidationState
+  reachability?: JourneyReachabilityState
 }
 
 /**

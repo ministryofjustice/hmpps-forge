@@ -8,7 +8,7 @@ import { SubmitTransitionResult } from '../../nodes/transitions/submit/SubmitHan
 import { ActionTransitionResult } from '../../nodes/transitions/action/ActionHandler'
 import { ThunkInvocationAdapter, ThunkResult } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import TransitionExecutor from './TransitionExecutor'
 
 function createStep(options: {

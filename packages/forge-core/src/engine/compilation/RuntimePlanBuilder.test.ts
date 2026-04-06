@@ -11,7 +11,7 @@ import { BasicBlockASTNode, FieldBlockASTNode, JourneyASTNode, StepASTNode } fro
 import { TemplateValue } from '../types/template.type'
 import { BlockType, ExpressionType, IteratorType, TransitionType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../../testing/ASTTestFactory'
-import StepRuntimePlanBuilder from './StepRuntimePlanBuilder'
+import RuntimePlanBuilder from './RuntimePlanBuilder'
 
 function createAccessTransition(id: AstNodeId): AccessTransitionASTNode {
   return ASTTestFactory.transition(TransitionType.ACCESS)
@@ -111,12 +111,12 @@ function createIterate(id: AstNodeId, yieldTemplate?: TemplateValue): IterateAST
     .build()
 }
 
-describe('StepRuntimePlanBuilder', () => {
+describe('RuntimePlanBuilder', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
   })
 
-  describe('build()', () => {
+  describe('buildStepRuntimePlan()', () => {
     it('should compile the step runtime topology from metadata and node registry', () => {
       // Arrange
       const dependencies = new CompilationDependencies()
@@ -163,27 +163,34 @@ describe('StepRuntimePlanBuilder', () => {
       dependencies.nodeRegistry.register(iterateB.id, iterateB)
 
       dependencies.metadataRegistry.set(step.id, 'attachedToParentNode', journey.id)
-      dependencies.metadataRegistry.set(step.id, 'isCurrentStep', true)
-      dependencies.metadataRegistry.set(step.id, 'isDescendantOfStep', true)
-      dependencies.metadataRegistry.set(journey.id, 'isAncestorOfStep', true)
       dependencies.metadataRegistry.set(block.id, 'attachedToParentNode', step.id)
-      dependencies.metadataRegistry.set(block.id, 'isDescendantOfStep', true)
       dependencies.metadataRegistry.set(staticValidatingField.id, 'attachedToParentNode', step.id)
-      dependencies.metadataRegistry.set(staticValidatingField.id, 'isDescendantOfStep', true)
       dependencies.metadataRegistry.set(iterateA.id, 'attachedToParentNode', block.id)
-      dependencies.metadataRegistry.set(iterateA.id, 'isDescendantOfStep', true)
       dependencies.metadataRegistry.set(iterateB.id, 'attachedToParentNode', block.id)
-      dependencies.metadataRegistry.set(iterateB.id, 'isDescendantOfStep', true)
       dependencies.metadataRegistry.set(externalBlock.id, 'attachedToParentNode', journey.id)
 
-      const builder = new StepRuntimePlanBuilder()
+      dependencies.astNodeTree.addNode(journey.id)
+      dependencies.astNodeTree.addNode(step.id, journey.id)
+      dependencies.astNodeTree.addNode(block.id, step.id)
+      dependencies.astNodeTree.addNode(staticValidatingField.id, step.id)
+      dependencies.astNodeTree.addNode(iterateA.id, block.id)
+      dependencies.astNodeTree.addNode(iterateB.id, block.id)
+      dependencies.astNodeTree.addNode(externalBlock.id, journey.id)
+
+      const builder = new RuntimePlanBuilder(
+        dependencies.nodeRegistry,
+        dependencies.metadataRegistry,
+        dependencies.astNodeTree,
+      )
 
       // Act
-      const result = builder.build(step, dependencies)
+      const result = builder.buildStepRuntimePlan(step, dependencies)
 
       // Assert
       expect(result).toEqual({
         stepId: step.id,
+        path: 'step',
+        code: undefined,
         accessAncestorIds: [journey.id, step.id],
         actionTransitionIds: [action.id],
         submitTransitionIds: [submit.id],

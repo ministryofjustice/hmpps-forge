@@ -4,16 +4,18 @@ import { CompiledForm } from '../../compilation/CompilationFactory'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { BlockASTNode } from '../../types/structures.type'
-import { ASTNodeType } from '../../types/enums'
-import { Evaluated, JourneyMetadata } from '../../../framework/rendering/types'
-import RenderContextFactory from '../rendering/RenderContextFactory'
-import TransitionExecutor from '../executors/TransitionExecutor'
-import ContextPreparer from '../executors/ContextPreparer'
-import ValidationExecutor from '../executors/ValidationExecutor'
-import AnswerPreparer from '../executors/AnswerPreparer'
-import MetadataExecutor, { MetadataExecutionResult } from '../executors/MetadataExecutor'
-import RenderExecutor from '../executors/RenderExecutor'
+import { JourneyMetadata } from '../../../framework/rendering/types'
+import ContextPreparer from '../preparation/ContextPreparer'
+import AnswerPreparer from '../preparation/AnswerPreparer'
+import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
+import StepFieldInventoryAnalyzer from '../analysis/StepFieldInventoryAnalyzer'
+import TransitionExecutor from '../evaluation/TransitionExecutor'
+import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
+import RedirectResolver from '../resolution/RedirectResolver'
+import ReachabilityStateProjector from '../projection/ReachabilityStateProjector'
+import ValidationStateProjector from '../projection/ValidationStateProjector'
+import RenderProjector from '../projection/RenderProjector'
+import RuntimeArtifacts from '../types/RuntimeArtifacts'
 
 /**
  * Handles the full request lifecycle for steps.
@@ -29,30 +31,46 @@ export default class StepController<TRequest, TResponse> {
 
   private readonly transitionExecutor: TransitionExecutor
 
-  private readonly validationExecutor: ValidationExecutor
+  private readonly validationExecutor: StepValidityAnalyzer
 
   private readonly answerPreparer: AnswerPreparer
 
-  private readonly metadataExecutor: MetadataExecutor
+  private readonly navigationEvaluator: NavigationAnalyzer
 
-  private readonly renderExecutor: RenderExecutor
+  private readonly stepFieldInventoryAnalyzer: StepFieldInventoryAnalyzer
+
+  private readonly redirectResolver: RedirectResolver
+
+  private readonly reachabilityStateProjector: ReachabilityStateProjector
+
+  private readonly validationStateProjector: ValidationStateProjector
+
+  private readonly renderProjector: RenderProjector<TRequest>
 
   constructor(
     private readonly compiledForm: CompiledForm[number],
     private readonly dependencies: JourneyInstanceDependencies,
-    private readonly navigationMetadata: JourneyMetadata[],
-    private readonly currentStepPath: string,
+    navigationMetadata: JourneyMetadata[],
+    currentStepPath: string,
   ) {
     this.contextPreparer = new ContextPreparer()
     this.transitionExecutor = new TransitionExecutor(this.dependencies.logger)
-    this.validationExecutor = new ValidationExecutor()
+    this.validationExecutor = new StepValidityAnalyzer()
     this.answerPreparer = new AnswerPreparer()
-    this.metadataExecutor = new MetadataExecutor()
-    this.renderExecutor = new RenderExecutor()
+    this.navigationEvaluator = new NavigationAnalyzer()
+    this.stepFieldInventoryAnalyzer = new StepFieldInventoryAnalyzer()
+    this.redirectResolver = new RedirectResolver()
+    this.reachabilityStateProjector = new ReachabilityStateProjector()
+    this.validationStateProjector = new ValidationStateProjector()
+    this.renderProjector = new RenderProjector(
+      req => this.dependencies.frameworkAdapter.getBaseUrl(req),
+      navigationMetadata,
+      currentStepPath,
+    )
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
-    const { evaluator, context } = this.prepareRequest(req, res)
+    const { evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
@@ -65,23 +83,29 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    // TODO: Add 'reachability' check
-
     if (plan.isAnswerPrepareSync) {
       this.answerPreparer.prepareSync(plan, evaluator, context)
     } else {
       await this.answerPreparer.prepare(plan, evaluator, context)
     }
 
-    if (plan.isRenderSync) {
-      return this.renderSync(res, req, evaluator, context)
+    await this.evaluateNavigation(artifacts, evaluator, context)
+    const navigationEvaluation = artifacts.requireNavigation()
+    const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
+
+    if (reachabilityRedirect) {
+      return this.redirect(res, req, reachabilityRedirect)
     }
 
-    return this.render(res, req, evaluator, context)
+    const renderContext = plan.isRenderSync
+      ? this.renderProjector.buildSync(plan, evaluator, context, artifacts, req)
+      : await this.renderProjector.build(plan, evaluator, context, artifacts, req)
+
+    return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
-    const { evaluator, context } = this.prepareRequest(req, res)
+    const { evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
@@ -94,21 +118,27 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    // TODO: Add 'reachability' check
-
     if (plan.isAnswerPrepareSync) {
       this.answerPreparer.prepareSync(plan, evaluator, context)
     } else {
       await this.answerPreparer.prepare(plan, evaluator, context)
+    }
+
+    await this.evaluateNavigation(artifacts, evaluator, context)
+    const navigationEvaluation = artifacts.requireNavigation()
+    const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
+
+    if (reachabilityRedirect) {
+      return this.redirect(res, req, reachabilityRedirect)
     }
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
 
     if (plan.hasValidatingSubmitTransition || plan.hasDomainValidation) {
       if (plan.isValidationSync) {
-        this.evaluateValidationSync(evaluator, context)
+        this.evaluateValidationSync(artifacts, evaluator, context)
       } else {
-        await this.evaluateValidation(evaluator, context)
+        await this.evaluateValidation(artifacts, evaluator, context)
       }
     }
 
@@ -124,11 +154,11 @@ export default class StepController<TRequest, TResponse> {
 
     const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
 
-    if (plan.isRenderSync) {
-      return this.renderSync(res, req, evaluator, context, renderOptions)
-    }
+    const renderContext = plan.isRenderSync
+      ? this.renderProjector.buildSync(plan, evaluator, context, artifacts, req, renderOptions)
+      : await this.renderProjector.build(plan, evaluator, context, artifacts, req, renderOptions)
 
-    return this.render(res, req, evaluator, context, renderOptions)
+    return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   private prepareRequest(req: TRequest, res: TResponse) {
@@ -136,8 +166,9 @@ export default class StepController<TRequest, TResponse> {
     const response = this.dependencies.frameworkAdapter.toStepResponse(res)
     const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
     const context = this.contextPreparer.prepare(this.compiledForm.runtimePlan, evaluator, request, response)
+    const artifacts = new RuntimeArtifacts()
 
-    return { evaluator, context }
+    return { evaluator, context, artifacts }
   }
 
   private redirect(res: TResponse, req: TRequest, redirect: string): void {
@@ -145,9 +176,13 @@ export default class StepController<TRequest, TResponse> {
       return this.dependencies.frameworkAdapter.redirect(res, redirect)
     }
 
+    return this.dependencies.frameworkAdapter.redirect(res, this.resolveJourneyRelativePath(req, redirect))
+  }
+
+  private resolveJourneyRelativePath(req: TRequest, relativePath: string): string {
     const baseUrl = this.dependencies.frameworkAdapter.getBaseUrl(req)
 
-    return this.dependencies.frameworkAdapter.redirect(res, `${baseUrl}/${redirect}`)
+    return `${baseUrl}/${relativePath}`
   }
 
   private getRedirectTarget(redirect: string | undefined): string {
@@ -162,115 +197,47 @@ export default class StepController<TRequest, TResponse> {
     return status ?? 500
   }
 
-  private async render(
-    res: TResponse,
-    req: TRequest,
-    evaluator: ThunkEvaluator,
+  private async evaluateValidation(
+    artifacts: RuntimeArtifacts,
+    invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-    options: { showValidationFailures?: boolean } = {},
   ): Promise<void> {
-    const plan = this.compiledForm.runtimePlan
+    const result = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context)
 
-    const [metadata, blocks] = await Promise.all([
-      this.metadataExecutor.execute(plan, evaluator, context),
-      this.renderExecutor.execute(plan, evaluator, context),
-    ])
-
-    this.buildAndRender(res, req, metadata, blocks, context, options)
+    artifacts.setStepValidity(result)
+    this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)
   }
 
-  private renderSync(
-    res: TResponse,
-    req: TRequest,
-    evaluator: ThunkEvaluator,
+  private evaluateValidationSync(
+    artifacts: RuntimeArtifacts,
+    invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-    options: { showValidationFailures?: boolean } = {},
   ): void {
-    const plan = this.compiledForm.runtimePlan
-    const metadata = this.metadataExecutor.executeSync(plan, evaluator, context)
-    const blocks = this.renderExecutor.executeSync(plan, evaluator, context)
+    const result = this.validationExecutor.executeSync(this.compiledForm.runtimePlan, invoker, context)
 
-    this.buildAndRender(res, req, metadata, blocks, context, options)
+    artifacts.setStepValidity(result)
+    this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)
   }
 
-  private buildAndRender(
-    res: TResponse,
-    req: TRequest,
-    metadata: MetadataExecutionResult,
-    blocks: Evaluated<BlockASTNode>[],
+  private async evaluateNavigation(
+    artifacts: RuntimeArtifacts,
+    invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-    options: { showValidationFailures?: boolean } = {},
-  ): void {
-    const { astNodeTree } = context
-
-    const renderContext = RenderContextFactory.build(
-      {
-        step: metadata.step,
-        ancestors: metadata.ancestors,
-        blocks,
-        answers: context.global.answers,
-        data: context.global.data,
-        fieldValidationFailures: this.getStepFieldValidationFailures(context),
-        domainValidationFailures: this.getStepDomainValidationFailures(context),
-        hasNestedBlocks: blockId => {
-          if (astNodeTree.getNodeType(blockId) === undefined) {
-            return true
-          }
-
-          return astNodeTree.hasDescendantOfType(blockId, ASTNodeType.BLOCK)
-        },
-      },
-      {
-        navigationMetadata: this.navigationMetadata,
-        currentStepPath: this.currentStepPath,
-        showValidationFailures: options.showValidationFailures,
-      },
+  ): Promise<void> {
+    artifacts.setStepFieldInventory(
+      await this.stepFieldInventoryAnalyzer.analyze(this.compiledForm.reachabilityPlan, invoker, context),
     )
 
-    this.dependencies.frameworkAdapter.render(renderContext, req, res)
-  }
+    artifacts.setNavigation(
+      await this.navigationEvaluator.evaluate(
+        this.compiledForm.reachabilityPlan,
+        this.compiledForm.runtimePlan.stepId,
+        invoker,
+        context,
+        this.validationExecutor,
+      ),
+    )
 
-  private getStepFieldValidationFailures(context: ThunkEvaluationContext) {
-    const validation = context.global.validation
-
-    if (validation?.stepId === this.compiledForm.runtimePlan.stepId) {
-      return validation.fieldFailures
-    }
-
-    return []
-  }
-
-  private getStepDomainValidationFailures(context: ThunkEvaluationContext) {
-    const validation = context.global.validation
-
-    if (validation?.stepId === this.compiledForm.runtimePlan.stepId) {
-      return validation.domainFailures
-    }
-
-    return []
-  }
-
-  private async evaluateValidation(invoker: ThunkInvocationAdapter, context: ThunkEvaluationContext): Promise<void> {
-    const validation = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context)
-
-    context.global.validation = {
-      stepId: this.compiledForm.runtimePlan.stepId,
-      validated: true,
-      isValid: validation.isValid,
-      fieldFailures: validation.fieldFailures,
-      domainFailures: validation.domainFailures,
-    }
-  }
-
-  private evaluateValidationSync(invoker: ThunkInvocationAdapter, context: ThunkEvaluationContext): void {
-    const validation = this.validationExecutor.executeSync(this.compiledForm.runtimePlan, invoker, context)
-
-    context.global.validation = {
-      stepId: this.compiledForm.runtimePlan.stepId,
-      validated: true,
-      isValid: validation.isValid,
-      fieldFailures: validation.fieldFailures,
-      domainFailures: validation.domainFailures,
-    }
+    this.reachabilityStateProjector.projectToContext(artifacts, context)
   }
 }

@@ -3,7 +3,7 @@ import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { StepRequest } from '../../../framework/types/request.type'
 import { StepResponse } from '../../../framework/types/response.type'
 import { JourneyASTNode } from '../../types/structures.type'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 
 /**
  * ContextPreparer - Creates and prepares the evaluation context before transitions run

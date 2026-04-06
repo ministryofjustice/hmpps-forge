@@ -1,6 +1,6 @@
 import { ThunkInvocationAdapter, ThunkResult } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import { AstNodeId, NodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
 import { IterateASTNode, ValidationASTNode } from '../../types/expressions.type'
@@ -8,7 +8,7 @@ import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
 import { TemplateValue } from '../../types/template.type'
 import { BlockType, ExpressionType, IteratorType, PredicateType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
-import ValidationExecutor from './ValidationExecutor'
+import StepValidityAnalyzer from './StepValidityAnalyzer'
 
 function createStep(id: AstNodeId): StepASTNode {
   return ASTTestFactory.step()
@@ -70,7 +70,7 @@ function successResult<T>(value: T): ThunkResult<T> {
   return { value, metadata: { source: 'test', timestamp: Date.now() } }
 }
 
-describe('ValidationExecutor', () => {
+describe('StepValidityAnalyzer', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
   })
@@ -151,7 +151,7 @@ describe('ValidationExecutor', () => {
     })
 
     // Act
-    const executor = new ValidationExecutor()
+    const executor = new StepValidityAnalyzer()
     const result = await executor.execute(runtimePlan, invoker, context)
 
     // Assert
@@ -206,7 +206,7 @@ describe('ValidationExecutor', () => {
     })
 
     // Act
-    const executor = new ValidationExecutor()
+    const executor = new StepValidityAnalyzer()
     const result = await executor.execute(runtimePlan, invoker, context)
 
     // Assert
@@ -299,7 +299,7 @@ describe('ValidationExecutor', () => {
     })
 
     // Act
-    const executor = new ValidationExecutor()
+    const executor = new StepValidityAnalyzer()
     const result = await executor.execute(runtimePlan, invoker, context)
 
     // Assert
@@ -377,7 +377,7 @@ describe('ValidationExecutor', () => {
     })
 
     // Act
-    const executor = new ValidationExecutor()
+    const executor = new StepValidityAnalyzer()
     const result = await executor.execute(runtimePlan, invoker, context)
 
     // Assert
@@ -413,7 +413,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = executor.executeSync(runtimePlan, invoker, context)
 
       // Assert
@@ -450,7 +450,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = executor.executeSync(runtimePlan, invoker, context)
 
       // Assert
@@ -501,7 +501,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = executor.executeSync(runtimePlan, invoker, context)
 
       // Assert
@@ -538,7 +538,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = await executor.execute(runtimePlan, invoker, context)
 
       // Assert
@@ -577,7 +577,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = await executor.execute(runtimePlan, invoker, context)
 
       // Assert
@@ -610,7 +610,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = executor.executeSync(runtimePlan, invoker, context)
 
       // Assert
@@ -652,7 +652,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = await executor.execute(runtimePlan, invoker, context)
 
       // Assert
@@ -687,7 +687,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = executor.executeSync(runtimePlan, invoker, context)
 
       // Assert
@@ -726,7 +726,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = await executor.execute(runtimePlan, invoker, context)
 
       // Assert
@@ -771,7 +771,7 @@ describe('ValidationExecutor', () => {
       })
 
       // Act
-      const executor = new ValidationExecutor()
+      const executor = new StepValidityAnalyzer()
       const result = await executor.execute(runtimePlan, invoker, context)
 
       // Assert
@@ -815,7 +815,7 @@ describe('ValidationExecutor', () => {
     })
 
     // Act
-    const executor = new ValidationExecutor()
+    const executor = new StepValidityAnalyzer()
     const result = await executor.execute(runtimePlan, invoker, context)
 
     // Assert

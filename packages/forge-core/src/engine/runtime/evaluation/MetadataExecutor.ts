@@ -1,4 +1,4 @@
-import { StepRuntimePlan } from '../../compilation/StepRuntimePlanBuilder'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
