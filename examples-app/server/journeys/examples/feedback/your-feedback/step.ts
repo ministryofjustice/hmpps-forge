@@ -3,9 +3,9 @@ import { ExampleJourneysEffects } from '../../effects'
 import { feedbackField, continueButton } from './blocks'
 
 export const feedbackStep = step({
+  code: 'your-feedback',
   path: '/your-feedback',
   title: 'Your feedback',
-  backlink: 'name',
   blocks: [feedbackField, continueButton],
   onSubmission: [
     submitTransition({

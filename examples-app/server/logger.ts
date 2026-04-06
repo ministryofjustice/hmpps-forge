@@ -3,7 +3,7 @@ import config from './config'
 
 const logger = pino({
   name: 'HMPPS Forge Examples App',
-  level: 'debug',
+  level: config.logLevel,
   transport: config.production
     ? undefined
     : {

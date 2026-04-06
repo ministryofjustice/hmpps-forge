@@ -8,9 +8,9 @@ import {
 } from './blocks'
 
 export const dateStep = step({
+  code: 'choose-date',
   path: '/choose-date',
   title: 'Appointment date',
-  backlink: 'your-details',
   blocks: [appointmentDateField, weekdayWarning, appointmentTypeInset, continueButton],
   onSubmission: [
     submitTransition({

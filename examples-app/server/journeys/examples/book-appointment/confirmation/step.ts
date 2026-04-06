@@ -9,6 +9,7 @@ import {
 } from './blocks'
 
 export const confirmationStep = step({
+  code: 'booking-confirmation',
   path: '/confirmation',
   title: 'Appointment booked',
   blocks: [

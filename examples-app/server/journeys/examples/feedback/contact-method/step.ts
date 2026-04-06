@@ -3,9 +3,9 @@ import { ExampleJourneysEffects } from '../../effects'
 import { contactMethodField, continueButton } from './blocks'
 
 export const contactMethodStep = step({
+  code: 'contact-method',
   path: '/contact-method',
   title: 'How should we contact you?',
-  backlink: 'your-feedback',
   blocks: [contactMethodField, continueButton],
   onSubmission: [
     submitTransition({

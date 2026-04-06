@@ -3,9 +3,9 @@ import { ExampleJourneysEffects } from '../../effects'
 import { additionalInfoField, continueButton, heading, whatToExpectDetails } from './blocks'
 
 export const additionalInfoStep = step({
+  code: 'additional-info',
   path: '/additional-info',
   title: 'Additional information',
-  backlink: 'choose-time',
   blocks: [heading, whatToExpectDetails, additionalInfoField, continueButton],
   onSubmission: [
     submitTransition({

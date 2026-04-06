@@ -9,6 +9,7 @@ import {
 } from './blocks'
 
 export const confirmationStep = step({
+  code: 'feedback-confirmation',
   path: '/confirmation',
   title: 'Feedback sent',
   blocks: [

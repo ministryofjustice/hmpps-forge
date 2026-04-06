@@ -12,9 +12,9 @@ import { appointmentTimeField, continueButton } from './blocks'
 // the appointment API, and stores the results via context.setData('availableSlots').
 // The select field then reads Data('availableSlots') to build its dropdown items dynamically.
 export const timeStep = step({
+  code: 'choose-time',
   path: '/choose-time',
   title: 'Choose a time',
-  backlink: 'choose-date',
   onAccess: [
     accessTransition({
       effects: [ExampleJourneysEffects.LoadAppointmentSlots()],

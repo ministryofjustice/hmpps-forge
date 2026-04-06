@@ -3,9 +3,9 @@ import { ExampleJourneysEffects } from '../../effects'
 import { locationField, continueButton } from './blocks'
 
 export const locationStep = step({
+  code: 'location',
   path: '/location',
   title: 'Which office would you like to visit?',
-  backlink: 'your-details',
   blocks: [locationField, continueButton],
   onSubmission: [
     submitTransition({

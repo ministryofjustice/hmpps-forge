@@ -4,7 +4,8 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { ExampleJourneyContext, ExampleJourneyDeps } from '../context.type'
 
-// FORGE-EXAMPLE: This effect loads data from an external API and stores it in the form context
+// FORGE-EXAMPLE:
+// This effect loads data from an external API and stores it in the form context
 // via context.setData(). The data is then accessible in the form definition using Data('key')
 // references, enabling data-driven components like dynamic select dropdowns.
 export interface AppointmentEffectShape {
@@ -14,7 +15,7 @@ export interface AppointmentEffectShape {
 
 export const { effects: AppointmentEffects, implementations: AppointmentEffectsImplementations } =
   defineEffectFunctions<AppointmentEffectShape, ExampleJourneyDeps>({
-    LoadAppointmentSlots: deps => async (context: ExampleJourneyContext) => {
+    LoadAppointmentSlots: (deps: ExampleJourneyDeps) => async (context: ExampleJourneyContext) => {
       const date = context.getAnswer('appointmentDate') as string | undefined
       const type = context.getAnswer('appointmentType') as string | undefined
 

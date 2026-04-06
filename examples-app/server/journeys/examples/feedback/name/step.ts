@@ -3,6 +3,7 @@ import { ExampleJourneysEffects } from '../../effects'
 import { fullNameField, continueButton } from './blocks'
 
 export const nameStep = step({
+  code: 'name',
   path: '/name',
   title: 'What is your name?',
   isEntryPoint: true,

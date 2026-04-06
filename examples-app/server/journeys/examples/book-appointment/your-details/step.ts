@@ -9,9 +9,9 @@ import { ExampleJourneysEffects } from '../../effects'
 import { heading, fullNameField, emailField, phoneNumberField, continueButton } from './blocks'
 
 export const detailsStep = step({
+  code: 'your-details',
   path: '/your-details',
   title: 'Your details',
-  backlink: 'type',
   blocks: [heading, fullNameField, emailField, phoneNumberField, continueButton],
   // FORGE-EXAMPLE: Conditional routing — the next step depends on the appointment type.
   // When multiple redirects are listed, the first one whose `when` predicate matches is used.
