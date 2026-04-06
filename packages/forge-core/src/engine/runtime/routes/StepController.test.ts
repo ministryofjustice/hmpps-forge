@@ -48,6 +48,7 @@ const createMockRequest = (
   return {
     method: overrides.method ?? 'GET',
     url: overrides.url ?? 'http://localhost/journey/step-1',
+    baseUrl: '/forms/journey',
 
     getHeader: (name: string) => headers[name.toLowerCase()],
     getAllHeaders: () => headers,
@@ -146,7 +147,6 @@ describe('StepController', () => {
       frameworkAdapter: {
         redirect: jest.fn(),
         render: jest.fn().mockResolvedValue(undefined),
-        getBaseUrl: jest.fn().mockReturnValue('/forms/journey'),
         toStepRequest: jest.fn().mockImplementation(() => createMockRequest()),
         toStepResponse: jest.fn().mockImplementation(createMockResponse),
       },
@@ -1053,7 +1053,6 @@ describe('StepController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.getBaseUrl).toHaveBeenCalledWith(mockReq)
       expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/relative-path')
     })
 

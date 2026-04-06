@@ -12,6 +12,7 @@ export type HttpMethod = 'GET' | 'POST'
 export interface StepRequest {
   readonly method: HttpMethod
   readonly url: string
+  readonly baseUrl: string
 
   getHeader(name: string): string | string[] | undefined
   getAllHeaders(): Record<string, string | string[] | undefined>

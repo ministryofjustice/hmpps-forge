@@ -44,7 +44,6 @@ describe('ForgeRouter', () => {
       get: jest.fn(),
       post: jest.fn(),
       toStepRequest: jest.fn(),
-      getBaseUrl: jest.fn(),
       redirect: jest.fn(),
       registerRedirect: jest.fn(),
       forwardError: jest.fn(),

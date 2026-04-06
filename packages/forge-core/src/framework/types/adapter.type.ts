@@ -43,7 +43,6 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   post(router: TRouter, path: string, handler: StepHandler<TRequest, TResponse>): void
   toStepRequest(req: TRequest): StepRequest
   toStepResponse(res: TResponse): StepResponse
-  getBaseUrl(req: TRequest): string
   redirect(res: TResponse, url: string): void
   registerRedirect(router: TRouter, fromPath: string, toPath: string): void
   forwardError(res: TResponse, error: unknown, next?: (error?: unknown) => void): void

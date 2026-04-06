@@ -118,6 +118,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     return {
       method: req.method as 'GET' | 'POST',
       url: `${req.protocol}://${req.host}${req.originalUrl}`,
+      baseUrl: this.getBaseUrl(req),
 
       getHeader: (name: string) => headers[name.toLowerCase()],
       getAllHeaders: () => headers,
@@ -269,7 +270,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
    * We need the actual URL with substituted values (e.g., '/goal/89e9a810-...').
    * Calculate this by stripping req.path from req.originalUrl.
    */
-  getBaseUrl(req: express.Request): string {
+  private getBaseUrl(req: express.Request): string {
     const originalUrl = req.originalUrl
     const path = req.path
 

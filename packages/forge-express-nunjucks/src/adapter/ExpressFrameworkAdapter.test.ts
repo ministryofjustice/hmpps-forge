@@ -416,65 +416,93 @@ describe('ExpressFrameworkAdapter', () => {
     })
   })
 
-  describe('getBaseUrl()', () => {
+  describe('toStepRequest() baseUrl', () => {
     it('should strip path from originalUrl to get resolved base URL', () => {
       // Arrange
       const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        headers: {},
+        protocol: 'https',
+        host: 'example.com',
         originalUrl: '/forms/sentence-plan/v1.0/oasys/goal/89e9a810-8bc6-4e42-831f-f0d3be29cac2/create-goal',
         path: '/create-goal',
         baseUrl: '/forms/sentence-plan/v1.0/oasys/goal/:uuid',
-      } as express.Request
+      } as unknown as express.Request
 
       // Act
-      const result = adapter.getBaseUrl(mockReq)
+      const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result).toBe('/forms/sentence-plan/v1.0/oasys/goal/89e9a810-8bc6-4e42-831f-f0d3be29cac2')
+      expect(result.baseUrl).toBe('/forms/sentence-plan/v1.0/oasys/goal/89e9a810-8bc6-4e42-831f-f0d3be29cac2')
     })
 
     it('should handle simple paths without route params', () => {
       // Arrange
       const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        headers: {},
+        protocol: 'http',
+        host: 'localhost',
         originalUrl: '/forms/my-journey/step-one',
         path: '/step-one',
         baseUrl: '/forms/my-journey',
-      } as express.Request
+      } as unknown as express.Request
 
       // Act
-      const result = adapter.getBaseUrl(mockReq)
+      const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result).toBe('/forms/my-journey')
+      expect(result.baseUrl).toBe('/forms/my-journey')
     })
 
     it('should fall back to baseUrl when path does not match originalUrl suffix', () => {
       // Arrange
       const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        headers: {},
+        protocol: 'http',
+        host: 'localhost',
         originalUrl: '/forms/my-journey',
         path: '/different-path',
         baseUrl: '/forms/my-journey',
-      } as express.Request
+      } as unknown as express.Request
 
       // Act
-      const result = adapter.getBaseUrl(mockReq)
+      const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result).toBe('/forms/my-journey')
+      expect(result.baseUrl).toBe('/forms/my-journey')
     })
 
     it('should fall back to baseUrl when path is empty', () => {
       // Arrange
       const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        headers: {},
+        protocol: 'http',
+        host: 'localhost',
         originalUrl: '/forms/my-journey',
         path: '',
         baseUrl: '/forms/my-journey',
-      } as express.Request
+      } as unknown as express.Request
 
       // Act
-      const result = adapter.getBaseUrl(mockReq)
+      const result = adapter.toStepRequest(mockReq)
 
       // Assert
-      expect(result).toBe('/forms/my-journey')
+      expect(result.baseUrl).toBe('/forms/my-journey')
     })
   })
 

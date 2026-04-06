@@ -2,6 +2,7 @@ import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { ASTNodeType } from '../../types/enums'
+import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
 import MetadataExecutor from '../evaluation/MetadataExecutor'
 import RenderExecutor from '../evaluation/RenderExecutor'
@@ -19,27 +20,24 @@ export interface RenderProjectorOptions {
  * Owns the full render pipeline: evaluation → enrichment → assembly.
  * The controller calls build() and passes the result to the framework adapter.
  */
-export default class RenderProjector<TRequest> {
+export default class RenderProjector {
   private readonly metadataExecutor = new MetadataExecutor()
 
   private readonly renderExecutor = new RenderExecutor()
 
-  private readonly resolvedStepMetadataBuilder: ResolvedStepMetadataBuilder<TRequest>
+  private readonly resolvedStepMetadataBuilder = new ResolvedStepMetadataBuilder()
 
   constructor(
-    getBaseUrl: (req: TRequest) => string,
     private readonly navigationMetadata: JourneyMetadata[],
     private readonly currentStepPath: string,
-  ) {
-    this.resolvedStepMetadataBuilder = new ResolvedStepMetadataBuilder(getBaseUrl)
-  }
+  ) {}
 
   async build(
     plan: StepRuntimePlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
     artifacts: RuntimeArtifacts,
-    req: TRequest,
+    req: StepRequest,
     options?: RenderProjectorOptions,
   ): Promise<RenderContext> {
     const [metadata, blocks] = await Promise.all([

@@ -42,7 +42,6 @@ describe('Forge', () => {
       get: jest.fn(),
       post: jest.fn(),
       toStepRequest: jest.fn(),
-      getBaseUrl: jest.fn(),
       redirect: jest.fn(),
       forwardError: jest.fn(),
       render: jest.fn().mockResolvedValue(undefined),

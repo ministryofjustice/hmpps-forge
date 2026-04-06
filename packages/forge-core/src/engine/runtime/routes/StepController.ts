@@ -4,6 +4,7 @@ import { CompiledForm } from '../../compilation/CompilationFactory'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
+import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata } from '../../../framework/rendering/types'
 import ContextPreparer from '../preparation/ContextPreparer'
 import AnswerPreparer from '../preparation/AnswerPreparer'
@@ -45,7 +46,7 @@ export default class StepController<TRequest, TResponse> {
 
   private readonly validationStateProjector: ValidationStateProjector
 
-  private readonly renderProjector: RenderProjector<TRequest>
+  private readonly renderProjector: RenderProjector
 
   constructor(
     private readonly compiledForm: CompiledForm[number],
@@ -62,21 +63,17 @@ export default class StepController<TRequest, TResponse> {
     this.redirectResolver = new RedirectResolver()
     this.reachabilityStateProjector = new ReachabilityStateProjector()
     this.validationStateProjector = new ValidationStateProjector()
-    this.renderProjector = new RenderProjector(
-      req => this.dependencies.frameworkAdapter.getBaseUrl(req),
-      navigationMetadata,
-      currentStepPath,
-    )
+    this.renderProjector = new RenderProjector(navigationMetadata, currentStepPath)
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
-    const { evaluator, context, artifacts } = this.prepareRequest(req, res)
+    const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
-      return this.redirect(res, req, this.getRedirectTarget(accessResult.redirect))
+      return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
     }
 
     if (accessResult.outcome === 'error') {
@@ -90,22 +87,22 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirect(res, req, reachabilityRedirect)
+      return this.redirect(res, request, reachabilityRedirect)
     }
 
-    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, req)
+    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, request)
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
-    const { evaluator, context, artifacts } = this.prepareRequest(req, res)
+    const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
     const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
-      return this.redirect(res, req, this.getRedirectTarget(accessResult.redirect))
+      return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
     }
 
     if (accessResult.outcome === 'error') {
@@ -119,7 +116,7 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirect(res, req, reachabilityRedirect)
+      return this.redirect(res, request, reachabilityRedirect)
     }
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
@@ -135,12 +132,12 @@ export default class StepController<TRequest, TResponse> {
     }
 
     if (submitResult.outcome === 'redirect') {
-      return this.redirect(res, req, this.getRedirectTarget(submitResult.redirect))
+      return this.redirect(res, request, this.getRedirectTarget(submitResult.redirect))
     }
 
     const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
 
-    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, req, renderOptions)
+    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, request, renderOptions)
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
@@ -152,21 +149,15 @@ export default class StepController<TRequest, TResponse> {
     const context = this.contextPreparer.prepare(this.compiledForm.runtimePlan, evaluator, request, response)
     const artifacts = new RuntimeArtifacts()
 
-    return { evaluator, context, artifacts }
+    return { request, evaluator, context, artifacts }
   }
 
-  private redirect(res: TResponse, req: TRequest, redirect: string): void {
+  private redirect(res: TResponse, request: StepRequest, redirect: string): void {
     if (redirect.includes('://') || redirect.startsWith('/')) {
       return this.dependencies.frameworkAdapter.redirect(res, redirect)
     }
 
-    return this.dependencies.frameworkAdapter.redirect(res, this.resolveJourneyRelativePath(req, redirect))
-  }
-
-  private resolveJourneyRelativePath(req: TRequest, relativePath: string): string {
-    const baseUrl = this.dependencies.frameworkAdapter.getBaseUrl(req)
-
-    return `${baseUrl}/${relativePath}`
+    return this.dependencies.frameworkAdapter.redirect(res, `${request.baseUrl}/${redirect}`)
   }
 
   private getRedirectTarget(redirect: string | undefined): string {

@@ -121,6 +121,7 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
   const request: StepRequest = {
     method: options.mockRequest?.method ?? 'GET',
     url: options.mockRequest?.url ?? 'http://localhost/mock-path',
+    baseUrl: '/mock-base',
 
     getHeader: (name: string) => headers[name.toLowerCase()],
     getAllHeaders: () => headers,

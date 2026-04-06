@@ -2,6 +2,7 @@ import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationCont
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import { JourneyAncestor, JourneyMetadata } from '../../../framework/rendering/types'
+import { StepRequest } from '../../../framework/types/request.type'
 import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
 import { MetadataExecutionResult } from '../evaluation/MetadataExecutor'
 import RuntimeArtifacts from '../RuntimeArtifacts'
@@ -67,8 +68,10 @@ const defaultMetadata: MetadataExecutionResult = {
   ancestors: [] as JourneyAncestor[],
 }
 
+const mockRequest = { baseUrl: '/forms/journey' } as StepRequest
+
 describe('RenderProjector', () => {
-  let projector: RenderProjector<unknown>
+  let projector: RenderProjector
   let invoker: jest.Mocked<ThunkInvocationAdapter>
   let context: jest.Mocked<ThunkEvaluationContext>
   let artifacts: RuntimeArtifacts
@@ -82,7 +85,7 @@ describe('RenderProjector', () => {
     mockMetadataExecutorExecute.mockResolvedValue(defaultMetadata)
     mockRenderExecutorExecute.mockResolvedValue([])
 
-    projector = new RenderProjector(() => '/forms/journey', [] as JourneyMetadata[], '/journey/step-1')
+    projector = new RenderProjector([] as JourneyMetadata[], '/journey/step-1')
 
     invoker = {
       invoke: jest.fn(),
@@ -119,7 +122,7 @@ describe('RenderProjector', () => {
       const plan = createPlan()
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {})
+      await projector.build(plan, invoker, context, artifacts, mockRequest)
 
       // Assert
       expect(mockMetadataExecutorExecute).toHaveBeenCalledWith(plan, invoker, context)
@@ -141,7 +144,7 @@ describe('RenderProjector', () => {
       } satisfies StepValidityResult)
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {})
+      await projector.build(plan, invoker, context, artifacts, mockRequest)
 
       // Assert
       expect(mockRenderContextFactoryBuild).toHaveBeenCalledWith(
@@ -158,7 +161,7 @@ describe('RenderProjector', () => {
       const plan = createPlan()
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {})
+      await projector.build(plan, invoker, context, artifacts, mockRequest)
 
       // Assert
       expect(mockRenderContextFactoryBuild).toHaveBeenCalledWith(
@@ -175,7 +178,7 @@ describe('RenderProjector', () => {
       const plan = createPlan()
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {}, { showValidationFailures: true })
+      await projector.build(plan, invoker, context, artifacts, mockRequest, { showValidationFailures: true })
 
       // Assert
       expect(mockRenderContextFactoryBuild).toHaveBeenCalledWith(
@@ -211,7 +214,7 @@ describe('RenderProjector', () => {
       } satisfies NavigationEvaluation)
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {})
+      await projector.build(plan, invoker, context, artifacts, mockRequest)
 
       // Assert
       expect(mockRenderContextFactoryBuild).toHaveBeenCalledWith(
@@ -246,7 +249,7 @@ describe('RenderProjector', () => {
       } satisfies NavigationEvaluation)
 
       // Act
-      await projector.build(plan, invoker, context, artifacts, {})
+      await projector.build(plan, invoker, context, artifacts, mockRequest)
 
       // Assert
       expect(mockRenderContextFactoryBuild).toHaveBeenCalledWith(
