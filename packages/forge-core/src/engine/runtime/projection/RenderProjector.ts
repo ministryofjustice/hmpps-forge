@@ -5,7 +5,7 @@ import { ASTNodeType } from '../../types/enums'
 import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
 import MetadataExecutor from '../evaluation/MetadataExecutor'
 import RenderExecutor from '../evaluation/RenderExecutor'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 import ResolvedStepMetadataBuilder from './ResolvedStepMetadataBuilder'
 import RenderContextFactory from './RenderContextFactory'
 

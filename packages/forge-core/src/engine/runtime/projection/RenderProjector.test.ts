@@ -4,7 +4,7 @@ import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import { JourneyAncestor, JourneyMetadata } from '../../../framework/rendering/types'
 import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
 import { MetadataExecutionResult } from '../evaluation/MetadataExecutor'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
 import RenderProjector from './RenderProjector'
 

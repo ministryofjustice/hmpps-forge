@@ -1,6 +1,6 @@
 import ReachabilityStateProjector from './ReachabilityStateProjector'
 import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 import { StepFieldInventory } from '../types/StepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {

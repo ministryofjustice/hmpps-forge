@@ -4,7 +4,7 @@ import ThunkEvaluationContext, {
 } from '../../compilation/thunks/ThunkEvaluationContext'
 import BacklinkResolver from '../resolution/BacklinkResolver'
 import { NavigationStepState } from '../types/NavigationEvaluation.type'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 import { StepFieldInventory } from '../types/StepFieldInventory.type'
 
 export default class ReachabilityStateProjector {

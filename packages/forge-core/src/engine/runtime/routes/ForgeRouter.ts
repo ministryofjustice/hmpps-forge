@@ -9,7 +9,7 @@ import getAncestorChain from '../../utils/getAncestorChain'
 import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type JourneyInstance from '../../JourneyInstance'
-import { RouteMapEntry, StepMountContext } from './types'
+import { RouteMapEntry, StepMountContext } from '../types/routes.type'
 
 /**
  * Unified routing and navigation service for forge.

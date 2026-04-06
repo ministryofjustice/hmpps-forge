@@ -15,7 +15,7 @@ import RedirectResolver from '../resolution/RedirectResolver'
 import ReachabilityStateProjector from '../projection/ReachabilityStateProjector'
 import ValidationStateProjector from '../projection/ValidationStateProjector'
 import RenderProjector from '../projection/RenderProjector'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 
 /**
  * Handles the full request lifecycle for steps.

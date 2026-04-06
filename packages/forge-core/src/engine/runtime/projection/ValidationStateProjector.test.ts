@@ -1,6 +1,6 @@
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 import ValidationStateProjector from './ValidationStateProjector'
 
 describe('ValidationStateProjector', () => {

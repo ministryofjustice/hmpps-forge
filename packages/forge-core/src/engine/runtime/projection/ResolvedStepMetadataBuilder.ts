@@ -1,6 +1,6 @@
 import { RenderContext } from '../../../framework/rendering/types'
 import BacklinkResolver from '../resolution/BacklinkResolver'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 
 export default class ResolvedStepMetadataBuilder<TRequest> {
   private readonly backlinkResolver = new BacklinkResolver()

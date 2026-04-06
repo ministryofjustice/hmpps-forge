@@ -1,6 +1,6 @@
-import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
-import { NavigationEvaluation } from './NavigationEvaluation.type'
-import { StepFieldInventory } from './StepFieldInventory.type'
+import { StepValidityResult } from './evaluation/StepValidityAnalyzer'
+import { NavigationEvaluation } from './types/NavigationEvaluation.type'
+import { StepFieldInventory } from './types/StepFieldInventory.type'
 
 export default class RuntimeArtifacts {
   private navigation?: NavigationEvaluation

@@ -1,6 +1,6 @@
 import { NodeId } from '../../types/ast.type'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import RuntimeArtifacts from '../types/RuntimeArtifacts'
+import RuntimeArtifacts from '../RuntimeArtifacts'
 
 /**
  * Projects step validation results onto context.global.validation.

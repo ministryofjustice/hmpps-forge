@@ -3,7 +3,6 @@ import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { NodeId, AstNodeId } from '../../types/engine.type'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import { StepRequest, StepResponse } from '../routes/types'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ContextPreparer from './ContextPreparer'
 
