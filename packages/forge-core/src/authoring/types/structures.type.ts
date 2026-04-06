@@ -72,4 +72,5 @@ export interface StepDefinition {
   }
   data?: Record<string, unknown>
   validate?: (ValidationExpr | unknown)[]
+  cleardownFieldCodes?: string[]
 }

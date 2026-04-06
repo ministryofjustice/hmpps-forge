@@ -50,6 +50,7 @@ export interface StepASTNode extends ASTNode {
     metadata?: Record<string, any>
     data?: Record<string, unknown>
     validate?: ASTNode[]
+    cleardownFieldCodes?: string[]
   }
 }
 

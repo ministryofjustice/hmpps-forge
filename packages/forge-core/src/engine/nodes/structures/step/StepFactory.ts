@@ -91,6 +91,10 @@ export default class StepFactory {
       properties.validate = this.nodeFactory.transformValue(dataProperties.validate)
     }
 
+    if (dataProperties.cleardownFieldCodes !== undefined) {
+      properties.cleardownFieldCodes = dataProperties.cleardownFieldCodes
+    }
+
     return {
       id: this.nodeIDGenerator.next(this.category),
       type: ASTNodeType.STEP,
