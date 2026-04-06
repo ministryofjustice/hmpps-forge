@@ -45,7 +45,7 @@ export default class TransitionExecutor {
       .map(nodeId => context.nodeRegistry.get(nodeId) as JourneyASTNode)
 
     for (const ancestor of ancestors) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await this.executeAccessTransitions(ancestor, invoker, context)
 
       if (result.outcome === 'redirect' || result.outcome === 'error') {
@@ -73,17 +73,17 @@ export default class TransitionExecutor {
     const transitions: AccessTransitionASTNode[] = ancestor.properties.onAccess ?? []
 
     for (const transition of transitions) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke<AccessTransitionResult>(transition.id, context)
 
       if (result.error) {
         this.logger.warn(`Access transition error: ${result.error.message}`)
-        // eslint-disable-next-line no-continue
+
         continue
       }
 
       if (!result.value?.executed) {
-        // eslint-disable-next-line no-continue
+
         continue
       }
 
@@ -104,7 +104,7 @@ export default class TransitionExecutor {
     context: ThunkEvaluationContext,
   ): Promise<ActionTransitionResult> {
     for (const transitionId of runtimePlan.actionTransitionIds) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke<ActionTransitionResult>(transitionId, context)
 
       if (!result.error && result.value?.executed) {
@@ -124,7 +124,7 @@ export default class TransitionExecutor {
     context: ThunkEvaluationContext,
   ): Promise<SubmitTransitionResult> {
     for (const transitionId of runtimePlan.submitTransitionIds) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke<SubmitTransitionResult>(transitionId, context)
 
       if (!result.error && result.value?.executed) {

@@ -31,7 +31,7 @@ export default class AnswerPreparer {
     }
 
     for (const iteratorRootId of fieldIteratorRootIds) {
-      // eslint-disable-next-line no-await-in-loop
+
       await invoker.invoke(iteratorRootId, context)
     }
   }
@@ -45,7 +45,7 @@ export default class AnswerPreparer {
     const answerNodes = [...localAnswerNodes, ...remoteAnswerNodes]
 
     for (const node of answerNodes) {
-      // eslint-disable-next-line no-await-in-loop
+
       await invoker.invoke(node.id, context)
     }
   }

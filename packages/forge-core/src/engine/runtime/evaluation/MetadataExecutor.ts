@@ -21,7 +21,6 @@ export default class MetadataExecutor {
 
   private static readonly JOURNEY_EXCLUDED_PROPS = new Set(['onAccess', 'children', 'steps'])
 
-
   async execute(
     runtimePlan: StepRuntimePlan,
     invoker: ThunkInvocationAdapter,

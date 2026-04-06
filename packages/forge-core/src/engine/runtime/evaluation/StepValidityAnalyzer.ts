@@ -59,7 +59,6 @@ export default class StepValidityAnalyzer {
         seenIterateNodeIds.add(iterateNodeId)
         expandedIterateNodeIds.push(iterateNodeId)
 
-        // eslint-disable-next-line no-await-in-loop
         await invoker.invoke(iterateNodeId, context)
 
         const nestedIterateNodeIds = this.findNestedValidationIterateNodeIds(iterateNodeId, context)

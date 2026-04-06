@@ -275,7 +275,7 @@ export default class AccessHandler implements ThunkHandler {
 
     // Execute effects sequentially (order matters)
     for (const effect of effects.filter(isASTNode)) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke(effect.id, context)
 
       if (result.error) {

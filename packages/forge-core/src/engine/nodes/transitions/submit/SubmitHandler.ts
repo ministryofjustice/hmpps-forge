@@ -481,7 +481,7 @@ export default class SubmitHandler implements ThunkHandler {
 
     // Execute effects sequentially (order matters)
     for (const effectNode of effectNodes) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke(effectNode.id, context)
 
       if (result.error) {

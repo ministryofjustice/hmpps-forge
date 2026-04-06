@@ -141,7 +141,7 @@ export default class PipelineHandler implements ThunkHandler {
       const step = steps[i]
 
       // Tag as 'pipeline' so ScopeReferenceHandler skips it when resolving Item() levels
-      // eslint-disable-next-line no-await-in-loop
+
       const stepResult = await evaluateWithScope({ '@value': currentValue, '@type': 'pipeline' }, context, () =>
         evaluateOperandWithErrorTracking(step, context, invoker),
       )

@@ -84,11 +84,11 @@ export default class MatchHandler implements ThunkHandler {
 
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     for (const branch of this.node.properties.branches) {
-      // eslint-disable-next-line no-await-in-loop -- branches must be evaluated sequentially (first-match semantics)
+
       const predicateResult = await invoker.invoke(branch.predicate.id, context)
 
       if (!predicateResult.error && predicateResult.value) {
-        // eslint-disable-next-line no-await-in-loop -- only the matched branch's value is evaluated
+
         const value = await evaluatePropertyValue(branch.value, context, invoker)
 
         return { value }

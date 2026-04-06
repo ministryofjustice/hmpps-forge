@@ -211,7 +211,7 @@ export function evaluateNextOutcomesSync(
     const result = invoker.invokeSync(outcome.id, context)
 
     if (result.error) {
-      // eslint-disable-next-line no-continue
+
       continue
     }
 

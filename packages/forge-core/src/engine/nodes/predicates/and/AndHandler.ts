@@ -88,7 +88,7 @@ export default class AndHandler implements ThunkHandler {
 
     // Evaluate all operands with short-circuit evaluation
     for (const operand of operands) {
-      // eslint-disable-next-line no-await-in-loop
+
       const operandValue = await evaluateOperand(operand, context, invoker)
 
       // If operand evaluation failed, return false

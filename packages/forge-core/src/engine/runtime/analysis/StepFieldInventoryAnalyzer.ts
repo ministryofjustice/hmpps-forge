@@ -30,7 +30,7 @@ export default class StepFieldInventoryAnalyzer {
   ): Promise<void> {
     for (const entry of plan.entries) {
       for (const rootId of entry.fieldIteratorRootIds) {
-        // eslint-disable-next-line no-await-in-loop
+
         await invoker.invoke(rootId, context)
       }
     }

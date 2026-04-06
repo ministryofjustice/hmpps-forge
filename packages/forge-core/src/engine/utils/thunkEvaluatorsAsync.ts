@@ -201,7 +201,7 @@ export async function evaluateUntilFirstMatch(
   isMatch: (value: unknown) => boolean = value => value !== undefined,
 ): Promise<unknown> {
   for (const nodeId of nodeIds) {
-    // eslint-disable-next-line no-await-in-loop
+
     const result = await invoker.invoke(nodeId, context)
 
     if (!result.error && isMatch(result.value)) {
@@ -243,11 +243,11 @@ export async function evaluateNextOutcomes(
   invoker: ThunkInvocationAdapter,
 ): Promise<OutcomeEvaluationResult> {
   for (const outcome of nextExpressions.filter(isASTNode)) {
-    // eslint-disable-next-line no-await-in-loop
+
     const result = await invoker.invoke(outcome.id, context)
 
     if (result.error) {
-      // eslint-disable-next-line no-continue
+
       continue
     }
 

@@ -282,7 +282,6 @@ export default class IterateHandler implements ThunkHandler {
     for (const { item, index } of validItems) {
       const itemScope = this.createItemScope(item, index)
 
-      // eslint-disable-next-line no-await-in-loop
       const passesFilter = await evaluateWithScope(itemScope, context, async () => {
         // Transform and register the predicate for this item
         const predicateNode = hooks.instantiateTemplateValue(predicate)
@@ -373,7 +372,6 @@ export default class IterateHandler implements ThunkHandler {
     for (const { item, index } of validItems) {
       const itemScope = this.createItemScope(item, index)
 
-      // eslint-disable-next-line no-await-in-loop
       const matchesPredicate = await evaluateWithScope(itemScope, context, async () => {
         const predicateNode = hooks.instantiateTemplateValue(predicate)
 
@@ -536,7 +534,7 @@ export default class IterateHandler implements ThunkHandler {
     // Phase 3: Evaluate each with its scope
     for (const { node, itemScope } of nodesToEvaluate) {
       if (this.isTemplateAsync) {
-        // eslint-disable-next-line no-await-in-loop
+
         await evaluateWithScope(itemScope, context, async () => {
           if (isASTNode(node)) {
             const result = await invoker.invoke(node.id, context)
@@ -681,7 +679,7 @@ export default class IterateHandler implements ThunkHandler {
       const result: Record<string, unknown> = {}
 
       for (const [key, val] of Object.entries(value)) {
-        // eslint-disable-next-line no-await-in-loop
+
         result[key] = await this.evaluateNestedNodes(val, invoker, context)
       }
 

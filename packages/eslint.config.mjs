@@ -13,6 +13,8 @@ export default [
       'import/prefer-default-export': 'off',
       'import/no-cycle': 'off',
       'no-plusplus': 'off',
+      'no-await-in-loop': 'off',
+      'no-continue': 'off',
     },
     settings: {
       'import/resolver': {

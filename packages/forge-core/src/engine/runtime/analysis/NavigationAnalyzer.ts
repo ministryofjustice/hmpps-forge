@@ -45,7 +45,7 @@ export default class NavigationAnalyzer {
     context: ThunkEvaluationContext,
   ): Promise<string | undefined> {
     for (const outcomeId of outcomeIds) {
-      // eslint-disable-next-line no-await-in-loop
+
       const result = await invoker.invoke(outcomeId, context)
 
       if (!result.error && result.value !== undefined) {
@@ -104,13 +104,13 @@ export default class NavigationAnalyzer {
             const isCurrentTargetStep = current.stepId === currentStepId
 
             if (!isCurrentTargetStep && !evaluatedValidityStepIds.has(current.stepId)) {
-              // eslint-disable-next-line no-await-in-loop
+
               current.isValid = (await stepValidityAnalyzer.execute(entry, invoker, context)).isValid
               evaluatedValidityStepIds.add(current.stepId)
             }
 
             if (!isCurrentTargetStep && !evaluatedForwardPathStepIds.has(current.stepId)) {
-              // eslint-disable-next-line no-await-in-loop
+
               current.forwardPath = await this.resolveForwardPath(entry.forwardOutcomeIds, invoker, context)
               evaluatedForwardPathStepIds.add(current.stepId)
             }

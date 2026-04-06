@@ -166,7 +166,7 @@ describe('ThrowErrorOutcomeHandler', () => {
         const mockInvoker = createMockInvoker()
 
         // Act
-        // eslint-disable-next-line no-await-in-loop
+
         const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert

@@ -198,7 +198,7 @@ export default class AnswerLocalHandler implements ThunkHandler {
           context.scope.push({ '@value': resolvedValue, '@type': 'formatter' })
 
           try {
-            // eslint-disable-next-line no-await-in-loop
+
             const formatterResult = await invoker.invoke(formatter.id, context)
 
             if (!formatterResult.error && formatterResult.value !== undefined) {
