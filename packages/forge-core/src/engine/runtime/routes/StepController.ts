@@ -121,7 +121,7 @@ export default class StepController<TRequest, TResponse> {
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
 
-    if (plan.hasValidatingSubmitTransition || plan.hasDomainValidation) {
+    if (plan.hasValidatingSubmitTransition) {
       await this.evaluateValidation(artifacts, evaluator, context)
     }
 
