@@ -76,6 +76,12 @@ export interface DateConditionGroup {
   IsFutureDate: () => ConditionFunctionExpr
 
   /**
+   * Checks if an ISO date string is in the past (before today)
+   * @returns true if value is before today
+   */
+  IsPastDate: () => ConditionFunctionExpr
+
+  /**
    * Checks if an ISO date string is today
    * @returns true if value is today's date
    */
@@ -196,6 +202,21 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
       const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
 
       return valueDate > todayUTC
+    },
+
+    IsPastDate: () => (value: unknown) => {
+      assertString(value, 'Condition.Date.IsPastDate')
+
+      const parsed = parseISODate(value)
+      if (!parsed) {
+        throw new Error(`Condition.Date.IsPastDate: Invalid date string "${value}"`)
+      }
+
+      const valueDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day))
+      const today = new Date()
+      const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+
+      return valueDate < todayUTC
     },
 
     IsToday: () => (value: unknown) => {
