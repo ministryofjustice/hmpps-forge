@@ -34,26 +34,31 @@ export default class NavigationAnalyzer {
       isEntryPoint: entry.isEntryPoint,
       isReachable: false,
       isValid: true,
-      forwardPath: undefined,
+      forwardPaths: [],
       predecessorPaths: [],
     }
   }
 
-  private async resolveForwardPath(
+  private async resolveForwardPaths(
     outcomeIds: NodeId[],
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
-  ): Promise<string | undefined> {
-    for (const outcomeId of outcomeIds) {
+  ): Promise<string[]> {
+    const paths: string[] = []
 
+    for (const outcomeId of outcomeIds) {
       const result = await invoker.invoke(outcomeId, context)
 
       if (!result.error && result.value !== undefined) {
-        return this.normalizePath(String(result.value))
+        const path = this.normalizePath(String(result.value))
+
+        if (!paths.includes(path)) {
+          paths.push(path)
+        }
       }
     }
 
-    return undefined
+    return paths
   }
 
   private async computeReachability(
@@ -111,24 +116,28 @@ export default class NavigationAnalyzer {
 
             if (!isCurrentTargetStep && !evaluatedForwardPathStepIds.has(current.stepId)) {
 
-              current.forwardPath = await this.resolveForwardPath(entry.forwardOutcomeIds, invoker, context)
+              current.forwardPaths = await this.resolveForwardPaths(entry.forwardOutcomeIds, invoker, context)
               evaluatedForwardPathStepIds.add(current.stepId)
             }
 
-            const next = current.forwardPath ? stateByPath.get(current.forwardPath) : undefined
+            if (current.isValid) {
+              current.forwardPaths.forEach(forwardPath => {
+                const next = stateByPath.get(forwardPath)
 
-            if (current.isValid && next) {
-              if (!next.predecessorPaths.includes(current.path)) {
-                next.predecessorPaths.push(current.path)
-              }
+                if (next) {
+                  if (!next.predecessorPaths.includes(current.path)) {
+                    next.predecessorPaths.push(current.path)
+                  }
 
-              if (!next.isReachable) {
-                next.isReachable = true
-              }
+                  if (!next.isReachable) {
+                    next.isReachable = true
+                  }
 
-              if (!visited.has(next.path)) {
-                queue.push(next.path)
-              }
+                  if (!visited.has(next.path)) {
+                    queue.push(next.path)
+                  }
+                }
+              })
             }
           }
         }

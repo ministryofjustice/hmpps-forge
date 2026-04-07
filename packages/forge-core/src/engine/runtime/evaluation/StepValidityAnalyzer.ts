@@ -30,12 +30,12 @@ export default class StepValidityAnalyzer {
     runtimePlan: StepValidityPlan,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
+    isSubmission = false,
   ): Promise<StepValidityResult> {
     const expandedIterateNodeIds = await this.expandValidationIterators(runtimePlan, invoker, context)
     const fieldBlocks = this.collectValidationFieldBlocks(runtimePlan, expandedIterateNodeIds, context)
-    const fieldFailures = await this.collectValidationFailures(fieldBlocks, invoker, context)
+    const fieldFailures = await this.collectValidationFailures(fieldBlocks, isSubmission, invoker, context)
     const domainFailures = await this.collectDomainValidationFailures(runtimePlan, invoker, context)
-
     return {
       isValid: fieldFailures.length === 0 && domainFailures.length === 0,
       fieldFailures,
@@ -148,6 +148,7 @@ export default class StepValidityAnalyzer {
 
   private async collectValidationFailures(
     fieldBlocks: FieldBlockASTNode[],
+    isSubmission: boolean,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<StepValidationFailure[]> {
@@ -155,13 +156,16 @@ export default class StepValidityAnalyzer {
       return []
     }
 
-    const blockFailures = await Promise.all(fieldBlocks.map(block => this.evaluateFieldBlock(block, invoker, context)))
+    const blockFailures = await Promise.all(
+      fieldBlocks.map(block => this.evaluateFieldBlock(block, isSubmission, invoker, context)),
+    )
 
     return blockFailures.flat()
   }
 
   private async evaluateFieldBlock(
     block: FieldBlockASTNode,
+    isSubmission: boolean,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<StepValidationFailure[]> {
@@ -171,7 +175,7 @@ export default class StepValidityAnalyzer {
       return []
     }
 
-    const validations = await this.evaluateValidationNodes(block, invoker, context)
+    const validations = await this.evaluateValidationNodes(block, isSubmission, invoker, context)
 
     if (validations.length === 0) {
       return []
@@ -216,11 +220,13 @@ export default class StepValidityAnalyzer {
 
   private async evaluateValidationNodes(
     block: FieldBlockASTNode,
+    isSubmission: boolean,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<ValidationResult[]> {
     const validationNodes = (block.properties.validate ?? [])
       .filter((validation): validation is ValidationASTNode => isASTNode(validation))
+      .filter(validation => isSubmission || !validation.properties.submissionOnly)
 
     if (validationNodes.length === 0) {
       return []

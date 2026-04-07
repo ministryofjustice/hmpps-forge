@@ -7,7 +7,7 @@ export interface NavigationStepState {
   isEntryPoint: boolean
   isReachable: boolean
   isValid: boolean
-  forwardPath?: string
+  forwardPaths: string[]
   predecessorPaths: string[]
 }
 

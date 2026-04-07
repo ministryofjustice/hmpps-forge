@@ -177,7 +177,7 @@ export default class StepController<TRequest, TResponse> {
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<void> {
-    const result = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context)
+    const result = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context, true)
 
     artifacts.setStepValidity(result)
     this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)
