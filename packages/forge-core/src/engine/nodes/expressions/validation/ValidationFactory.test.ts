@@ -28,7 +28,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Field is required',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           negate: false,
@@ -49,9 +49,9 @@ describe('ValidationFactory', () => {
       expect(result.properties.message).toBe('Field is required')
     })
 
-    it('should create a Validation expression with when condition', () => {
+    it('should create a Validation expression with condition predicate', () => {
       // Arrange
-      const whenCondition = {
+      const conditionPredicate = {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
         negate: false,
@@ -64,18 +64,18 @@ describe('ValidationFactory', () => {
 
       const json = {
         type: ExpressionType.VALIDATION,
-        when: whenCondition,
+        condition: conditionPredicate,
         message: 'Invalid value',
       } satisfies ValidationExpr
 
       // Act
       const result = validationFactory.create(json)
-      const when = result.properties.when
+      const condition = result.properties.condition
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(when.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.properties.when !== undefined).toBe(true)
+      expect(condition.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.condition !== undefined).toBe(true)
     })
 
     it('should set submissionOnly flag when provided', () => {
@@ -83,7 +83,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Error',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -109,7 +109,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Error',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -135,7 +135,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Error',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -159,7 +159,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Error',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -188,7 +188,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: 'Error',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -212,7 +212,7 @@ describe('ValidationFactory', () => {
       const json = {
         type: ExpressionType.VALIDATION,
         message: '',
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
@@ -235,7 +235,7 @@ describe('ValidationFactory', () => {
       // Arrange
       const json = {
         type: ExpressionType.VALIDATION,
-        when: {
+        condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
@@ -254,7 +254,7 @@ describe('ValidationFactory', () => {
       const result = validationFactory.create(json)
 
       // Assert
-      expect(result.properties.when !== undefined).toBe(true)
+      expect(result.properties.condition !== undefined).toBe(true)
       expect(result.properties.message !== undefined).toBe(true)
       expect(result.properties.submissionOnly !== undefined).toBe(true)
       expect(result.properties.details !== undefined).toBe(true)

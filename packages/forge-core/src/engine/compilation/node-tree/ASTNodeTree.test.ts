@@ -48,12 +48,12 @@ describe('ASTNodeTree', () => {
       // Act
       tree.addNode('child1' as NodeId, 'parent' as NodeId, 'items', 'AstNode.Block')
       tree.addNode('child2' as NodeId, 'parent' as NodeId, 'items', 'AstNode.Block')
-      tree.addNode('child3' as NodeId, 'parent' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('child3' as NodeId, 'parent' as NodeId, 'visibleWhen', 'AstNode.Expression')
 
       // Assert
-      expect(tree.getActivePropertyKeys('parent' as NodeId)).toEqual(['items', 'hidden'])
+      expect(tree.getActivePropertyKeys('parent' as NodeId)).toEqual(['items', 'visibleWhen'])
       expect(tree.getChildrenInProperty('parent' as NodeId, 'items')).toEqual(['child1', 'child2'])
-      expect(tree.getChildrenInProperty('parent' as NodeId, 'hidden')).toEqual(['child3'])
+      expect(tree.getChildrenInProperty('parent' as NodeId, 'visibleWhen')).toEqual(['child3'])
     })
   })
 
@@ -270,7 +270,7 @@ describe('ASTNodeTree', () => {
       const tree = new ASTNodeTree()
       tree.addNode('parent' as NodeId)
       tree.addNode('child1' as NodeId, 'parent' as NodeId, 'items', 'AstNode.Block')
-      tree.addNode('child2' as NodeId, 'parent' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('child2' as NodeId, 'parent' as NodeId, 'visibleWhen', 'AstNode.Expression')
 
       // Act & Assert
       expect(tree.hasChildOfType('parent' as NodeId, 'AstNode.Block')).toBe(true)
@@ -281,7 +281,7 @@ describe('ASTNodeTree', () => {
       // Arrange
       const tree = new ASTNodeTree()
       tree.addNode('parent' as NodeId)
-      tree.addNode('child1' as NodeId, 'parent' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('child1' as NodeId, 'parent' as NodeId, 'visibleWhen', 'AstNode.Expression')
 
       // Act & Assert
       expect(tree.hasChildOfType('parent' as NodeId, 'AstNode.Block')).toBe(false)
@@ -323,7 +323,7 @@ describe('ASTNodeTree', () => {
       // Arrange
       const tree = new ASTNodeTree()
       tree.addNode('block' as NodeId, undefined, undefined, 'AstNode.Block')
-      tree.addNode('expr1' as NodeId, 'block' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('expr1' as NodeId, 'block' as NodeId, 'visibleWhen', 'AstNode.Expression')
       tree.addNode('expr2' as NodeId, 'block' as NodeId, 'label', 'AstNode.Expression')
 
       // Act & Assert
@@ -358,7 +358,7 @@ describe('ASTNodeTree', () => {
       tree.addNode('parent' as NodeId)
       tree.addNode('block1' as NodeId, 'parent' as NodeId, 'items', 'AstNode.Block')
       tree.addNode('block2' as NodeId, 'parent' as NodeId, 'footer', 'AstNode.Block')
-      tree.addNode('expr1' as NodeId, 'parent' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('expr1' as NodeId, 'parent' as NodeId, 'visibleWhen', 'AstNode.Expression')
 
       // Act
       const blockKeys = tree.getPropertyKeysWithChildType('parent' as NodeId, 'AstNode.Block')
@@ -371,7 +371,7 @@ describe('ASTNodeTree', () => {
       // Arrange
       const tree = new ASTNodeTree()
       tree.addNode('parent' as NodeId)
-      tree.addNode('expr1' as NodeId, 'parent' as NodeId, 'hidden', 'AstNode.Expression')
+      tree.addNode('expr1' as NodeId, 'parent' as NodeId, 'visibleWhen', 'AstNode.Expression')
 
       // Act
       const result = tree.getPropertyKeysWithChildType('parent' as NodeId, 'AstNode.Block')

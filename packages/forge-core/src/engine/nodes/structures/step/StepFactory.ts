@@ -87,8 +87,8 @@ export default class StepFactory {
       properties.data = dataProperties.data
     }
 
-    if (dataProperties.validate !== undefined) {
-      properties.validate = this.nodeFactory.transformValue(dataProperties.validate)
+    if (dataProperties.validWhen !== undefined) {
+      properties.validWhen = this.nodeFactory.transformValue(dataProperties.validWhen)
     }
 
     if (dataProperties.cleardownFieldCodes !== undefined) {

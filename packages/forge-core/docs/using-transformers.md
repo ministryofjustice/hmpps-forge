@@ -34,9 +34,9 @@ GovUKTextInput({
     Transformer.String.Trim(),        // "  tom@example.com  " → "tom@example.com"
     Transformer.String.ToLowerCase(), // "Tom@Example.COM" → "tom@example.com"
   ],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],

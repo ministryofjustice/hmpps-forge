@@ -49,7 +49,7 @@ export interface StepASTNode extends ASTNode {
     backlink?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>
-    validate?: ASTNode[]
+    validWhen?: ASTNode[]
     cleardownFieldCodes?: string[]
   }
 }
@@ -62,7 +62,7 @@ export interface BasicBlockASTNode extends ASTNode {
   variant: string
   blockType: BlockType.BASIC
   properties: {
-    hidden?: ASTNode // Conditional visibility
+    visibleWhen?: ASTNode // Conditional visibility
     metadata?: Record<string, any>
     // Component-specific arbitrary parameters
     [key: string]: any
@@ -81,9 +81,9 @@ export interface FieldBlockASTNode extends ASTNode {
     code?: string | ASTNode // Optional because it might not be set initially
     defaultValue?: ASTNode | any
     formatters?: ASTNode[] // Array of transformer function AST nodes
-    hidden?: ASTNode
-    validate?: ValidationASTNode[]
-    dependent?: ASTNode
+    visibleWhen?: ASTNode
+    validWhen?: ValidationASTNode[]
+    dependentWhen?: ASTNode
     value?: ASTNode // Added by normalizer (Self reference)
     metadata?: Record<string, any>
     multiple?: boolean

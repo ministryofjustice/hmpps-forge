@@ -152,9 +152,9 @@ and(
 
 // Validation: required only when another field has value
 validation({
-  when: and(
-    Answer('hasEmail').match(Condition.Equals('yes')),
-    Self().not.match(Condition.IsRequired())
+  condition: or(
+    Answer('hasEmail').not.match(Condition.Equals('yes')),
+    Self().match(Condition.IsRequired())
   ),
   message: 'Enter your email address',
 })
@@ -187,10 +187,10 @@ xor(
 
 // Validation: exactly one contact method
 validation({
-  when: xor(
+  condition: xor(
     Answer('email').match(Condition.IsRequired()),
     Answer('phone').match(Condition.IsRequired())
-  ).not,
+  ),
   message: 'Provide either email or phone, but not both',
 })
 ```
@@ -404,9 +404,9 @@ Different expression types are valid in different contexts:
 |----------|-------------------|---------|
 | `content` | Format, Conditional, references | `Format('<p>%1</p>', Answer('name'))` |
 | `label`, `hint` | Format, Conditional, references | `when(...).then('A').else('B')` |
-| `hidden` | Predicates | `Answer('type').not.match(Condition.Equals('other'))` |
-| `dependent` | Predicates | `Answer('type').match(Condition.Equals('other'))` |
-| `validate.when` | Predicates | `Self().not.match(Condition.IsRequired())` |
+| `visibleWhen` | Predicates | `Answer('type').match(Condition.Equals('other'))` |
+| `dependentWhen` | Predicates | `Answer('type').match(Condition.Equals('other'))` |
+| `validWhen.condition` | Predicates | `Self().match(Condition.IsRequired())` |
 | `defaultValue` | Conditional, references, Format | `Data('user.name')` |
 | `items` | Iterator expressions | `Data('options').each(Iterator.Map({ value: Item().path('id'), text: Item().path('name') }))` |
 
@@ -446,20 +446,20 @@ when(
 | Invert a compound predicate | `not(and(...))` or `not(or(...))` |
 | Invert a single condition | `.not.match()` |
 
-### Use `.not` for Validation Conditions
+### Use Positive Matching for Validation Conditions
 
-Validation `when` should express "show error when NOT valid":
+Validation `condition` should express "field is valid when condition is true":
 
 ```typescript
-// DO: "Show error when NOT valid"
+// DO: "Field is valid when value IS valid"
 validation({
-  when: Self().not.match(Condition.IsRequired()),
+  condition: Self().match(Condition.IsRequired()),
   message: 'Enter your email address',
 })
 
-// DON'T: "Show error when valid" (confusing!)
+// DON'T: "Field is valid when value is NOT required" (confusing!)
 validation({
-  when: Self().match(Condition.IsRequired()),
+  condition: Self().not.match(Condition.IsRequired()),
   message: 'Enter your email address',
 })
 ```
@@ -470,9 +470,9 @@ validation({
 // DO: Self() for current field
 GovUKTextInput({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -481,9 +481,9 @@ GovUKTextInput({
 // DON'T: Answer() to reference same field
 GovUKTextInput({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Answer('email').not.match(Condition.IsRequired()),
+      condition: Answer('email').match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -499,9 +499,9 @@ GovUKTextInput({
 ```typescript
 // Required only when another field has specific value
 validation({
-  when: and(
-    Answer('contactPreference').match(Condition.Equals('email')),
-    Self().not.match(Condition.IsRequired())
+  condition: or(
+    Answer('contactPreference').not.match(Condition.Equals('email')),
+    Self().match(Condition.IsRequired())
   ),
   message: 'Enter your email address',
 })
@@ -512,9 +512,9 @@ validation({
 ```typescript
 // End date must be after start date
 validation({
-  when: and(
-    Answer('startDate').match(Condition.IsRequired()),
-    Self().not.match(Condition.Date.IsAfter(Answer('startDate')))
+  condition: or(
+    Answer('startDate').not.match(Condition.IsRequired()),
+    Self().match(Condition.Date.IsAfter(Answer('startDate')))
   ),
   message: 'End date must be after start date',
 })
@@ -525,12 +525,10 @@ validation({
 ```typescript
 // Provide at least one contact method
 validation({
-  when: not(
-    or(
-      Answer('email').match(Condition.IsRequired()),
-      Answer('phone').match(Condition.IsRequired()),
-      Answer('address').match(Condition.IsRequired())
-    )
+  condition: or(
+    Answer('email').match(Condition.IsRequired()),
+    Answer('phone').match(Condition.IsRequired()),
+    Answer('address').match(Condition.IsRequired())
   ),
   message: 'Provide at least one contact method',
 })
@@ -559,7 +557,7 @@ GovUKTextInput({
 GovUKTextInput({
   code: 'otherContactMethod',
   label: 'Please specify',
-  hidden: Answer('contactMethod').not.match(Condition.Equals('other')),
-  dependent: Answer('contactMethod').match(Condition.Equals('other')),
+  visibleWhen: Answer('contactMethod').match(Condition.Equals('other')),
+  dependentWhen: Answer('contactMethod').match(Condition.Equals('other')),
 })
 ```

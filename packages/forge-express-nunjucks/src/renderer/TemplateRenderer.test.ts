@@ -128,7 +128,7 @@ describe('TemplateRenderer', () => {
       expect(templateContext.applicationName).toBe('My App')
     })
 
-    it('should filter out hidden blocks', () => {
+    it('should filter out blocks where visibleWhen is false', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
@@ -138,7 +138,7 @@ describe('TemplateRenderer', () => {
       const visibleBlock = createMockBlock({ id: 'compile_ast:1' })
       const hiddenBlock = createMockBlock({
         id: 'compile_ast:2',
-        properties: { hidden: true },
+        properties: { visibleWhen: false },
       })
 
       const context = createRenderContext({
@@ -391,7 +391,7 @@ describe('TemplateRenderer', () => {
         blocks: [
           createMockBlock({
             properties: {
-              validate: [
+              validWhen: [
                 { passed: false, message: 'Email is required', details: { field: 'email' } },
                 { passed: true, message: 'Email is valid' },
                 { passed: false, message: 'Email format is invalid' },
@@ -429,7 +429,7 @@ describe('TemplateRenderer', () => {
         blocks: [
           createMockBlock({
             properties: {
-              validate: [{ passed: false, message: 'Email is required' }],
+              validWhen: [{ passed: false, message: 'Email is required' }],
             },
           }),
         ],
@@ -447,7 +447,7 @@ describe('TemplateRenderer', () => {
       )
     })
 
-    it('should handle validate property that is not an array', () => {
+    it('should handle validWhen property that is not an array', () => {
       // Arrange
       const mockRender = jest.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
@@ -459,7 +459,7 @@ describe('TemplateRenderer', () => {
         showValidationFailures: true,
         blocks: [
           createMockBlock({
-            properties: { validate: 'not-an-array' },
+            properties: { validWhen: 'not-an-array' },
           }),
         ],
       })
@@ -561,7 +561,7 @@ describe('TemplateRenderer', () => {
       expect(parentCallArgs.items[0].html).toBe('<div>Block</div>')
     })
 
-    it('should filter out hidden nested blocks from arrays', () => {
+    it('should filter out non-visible nested blocks from arrays', () => {
       // Arrange
       const mockRender = jest.fn().mockReturnValue('<div>Block</div>')
       mockComponentRegistry.get.mockReturnValue({
@@ -582,7 +582,7 @@ describe('TemplateRenderer', () => {
         type: ASTNodeType.BLOCK,
         variant: 'html',
         blockType: BlockType.BASIC,
-        properties: { hidden: true },
+        properties: { visibleWhen: false },
       }
 
       const context = createRenderContext({

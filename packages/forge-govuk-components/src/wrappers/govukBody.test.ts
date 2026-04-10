@@ -40,12 +40,12 @@ describe('GovUKBody', () => {
       expect(result.variant).toBe('html')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange & Act
-      const result = GovUKBody({ text: 'Text', hidden: true })
+      const result = GovUKBody({ text: 'Text', visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
 
     it('should append custom classes to the paragraph', () => {

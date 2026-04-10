@@ -21,7 +21,7 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * - `implementations`: Passed to `createFunctionsRegistry` at runtime with real dependencies
  *
  * Unlike conditions, transformers, and effects, generators do not receive a runtime
- * `value` or `context` parameter — their evaluators are called directly with just
+ * `value` or `context` parameter - their evaluators are called directly with just
  * the configuration arguments. The returned builders create `GeneratorBuilder` instances
  * that support chaining via `.pipe()`.
  *

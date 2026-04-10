@@ -78,19 +78,19 @@ function createBlock(id: AstNodeId): BasicBlockASTNode {
     .build() as BasicBlockASTNode
 }
 
-function createFieldBlock(id: AstNodeId, validate = false): FieldBlockASTNode {
+function createFieldBlock(id: AstNodeId, hasValidation = false): FieldBlockASTNode {
   return ASTTestFactory.block('text-input', BlockType.FIELD)
     .withId(id)
     .withProperty(
-      'validate',
-      validate
+      'validWhen',
+      hasValidation
         ? [
             {
               id: `${id}:validation` as AstNodeId,
               type: ASTNodeType.EXPRESSION,
               expressionType: ExpressionType.VALIDATION,
               properties: {
-                when: { id: `${id}:when` as AstNodeId, type: ASTNodeType.EXPRESSION } as ASTNode,
+                condition: { id: `${id}:condition` as AstNodeId, type: ASTNodeType.EXPRESSION } as ASTNode,
                 message: 'Required',
               },
             },
@@ -140,7 +140,7 @@ describe('RuntimePlanBuilder', () => {
           id: 'template:1',
           blockType: BlockType.FIELD,
           properties: {
-            validate: ['required'],
+            validWhen: ['required'],
           },
         },
       })

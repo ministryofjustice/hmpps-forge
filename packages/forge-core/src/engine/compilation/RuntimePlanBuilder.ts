@@ -203,12 +203,12 @@ export default class RuntimePlanBuilder {
   private findValidationBlockIds(stepId: NodeId): NodeId[] {
     return this.allFieldBlocks
       .filter(block => this.isDescendantOf(block.id, stepId))
-      .filter(block => Array.isArray(block.properties.validate) && block.properties.validate.length > 0)
+      .filter(block => Array.isArray(block.properties.validWhen) && block.properties.validWhen.length > 0)
       .map(block => block.id)
   }
 
   private findDomainValidationNodeIds(stepNode: StepASTNode): NodeId[] {
-    return (stepNode.properties.validate ?? []).map(node => node.id)
+    return (stepNode.properties.validWhen ?? []).map(node => node.id)
   }
 
   private isDescendantOf(nodeId: NodeId, ancestorId: NodeId): boolean {

@@ -48,12 +48,12 @@ describe('GovUKSectionBreak', () => {
       expect(result.variant).toBe('html')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange & Act
-      const result = GovUKSectionBreak({ hidden: true })
+      const result = GovUKSectionBreak({ visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
 
     it('should append custom classes to the section break', () => {

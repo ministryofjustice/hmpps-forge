@@ -15,7 +15,7 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
  *
  * Evaluates block properties for rendering/data use.
  * Validation properties are skipped because validation runs via ValidationExecutor.
- * Dependent properties are skipped because answer processing and validation own that logic.
+ * dependentWhen properties are skipped because answer processing and validation own that logic.
  * Formatters are also skipped here because they are applied during submission.
  *
  * Synchronous when all nested AST nodes in properties are sync.
@@ -31,7 +31,7 @@ export default class BlockHandler implements ThunkHandler {
     private readonly node: BlockASTNode,
   ) {}
 
-  private static readonly SKIP_PROPS = new Set(['formatters', 'validate', 'dependent'])
+  private static readonly SKIP_PROPS = new Set(['formatters', 'validWhen', 'dependentWhen'])
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
     const propertiesWithNodes = new Set<string>()
@@ -93,7 +93,7 @@ export default class BlockHandler implements ThunkHandler {
 
   private getPropertiesToEvaluate(): Record<string, unknown> {
     return Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => key !== 'validate' && key !== 'dependent'),
+      Object.entries(this.node.properties).filter(([key]) => key !== 'validWhen' && key !== 'dependentWhen'),
     )
   }
 

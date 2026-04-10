@@ -109,9 +109,9 @@ MOJDatePicker({
   label: { text: 'Select appointment date' },
   hint: { text: 'Choose a date in the future' },
   minDate: Generator.Date.Today(),
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Select an appointment date',
     }),
   ],
@@ -147,7 +147,7 @@ GovUKTextInput({
     Transformer.Date.ToISOString()
   ),
   // Hidden from user, captured automatically
-  hidden: true,
+  visibleWhen: false,
 })
 ```
 

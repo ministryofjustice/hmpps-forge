@@ -5,7 +5,7 @@ import type { FunctionImplementations, FunctionShapeMap } from './defineFunction
  * Builds expression-creating functions from a set of factory implementations.
  *
  * Each returned function creates a serialisable expression object `{ type, name, arguments }`
- * that the engine evaluates at runtime. The factories themselves are not called here — only
+ * that the engine evaluates at runtime. The factories themselves are not called here - only
  * their keys are used to generate the corresponding builder functions.
  *
  * This is the shared implementation behind `defineConditionFunctions`,

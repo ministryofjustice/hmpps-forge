@@ -116,15 +116,15 @@ describe('GovUKGridRow', () => {
       expect(result.variant).toBe('templateWrapper')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange
       const block = HtmlBlock({ content: 'A' })
 
       // Act
-      const result = GovUKGridRow({ columns: [{ width: 'full', blocks: [block] }], hidden: true })
+      const result = GovUKGridRow({ columns: [{ width: 'full', blocks: [block] }], visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
   })
 })

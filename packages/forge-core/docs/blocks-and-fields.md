@@ -49,9 +49,9 @@ import { GovUKTextInput } from '@ministryofjustice/hmpps-forge/govuk-components'
 GovUKTextInput({
   code: 'email',
   label: 'Email address',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -99,12 +99,12 @@ step({
 
 ## Block Properties
 
-### `hidden` (Optional)
+### `visibleWhen` (Optional)
 
-When true, no HTML is rendered, as rendering for this block is skipped:
+Controls rendering. When false, the block is not rendered. Defaults to true (always visible):
 
 ```typescript
-hidden: Answer('country').not.match(Condition.Equals('UK'))
+visibleWhen: Answer('country').match(Condition.Equals('UK'))
 ```
 
 ### `metadata` (Optional)
@@ -143,18 +143,18 @@ defaultValue: Answer('contactEmail')
 defaultValue: Data('user.email')
 ```
 
-### `validate` (Optional)
+### `validWhen` (Optional)
 
 Array of validation rules:
 
 ```typescript
-validate: [
+validWhen: [
   validation({
-    when: Self().not.match(Condition.IsRequired()),
+    condition: Self().match(Condition.IsRequired()),
     message: 'Enter your email address',
   }),
   validation({
-    when: Self().not.match(Condition.Email.IsValidEmail()),
+    condition: Self().match(Condition.Email.IsValidEmail()),
     message: 'Enter a valid email address',
   }),
 ]
@@ -171,22 +171,22 @@ formatters: [
 ]
 ```
 
-### `hidden` (Optional)
+### `visibleWhen` (Optional)
 
-When true, no HTML is rendered, as rendering for this block is skipped:
+Controls rendering. When false, the block is not rendered. Defaults to true (always visible):
 
 ```typescript
-hidden: Answer('contactMethod').not.match(Condition.Equals('other'))
+visibleWhen: Answer('contactMethod').match(Condition.Equals('other'))
 ```
 
-> **Note:** Hidden fields still participate in validation. Use `dependent` to exclude from validation.
+> **Note:** Visibility alone does not affect validation. Use `dependentWhen` to control validation and value clearing.
 
-### `dependent` (Optional)
+### `dependentWhen` (Optional)
 
 Marks field as depending on another field's value. When condition is false, field is excluded from validation and value is cleared:
 
 ```typescript
-dependent: Answer('contactMethod').match(Condition.Equals('other'))
+dependentWhen: Answer('contactMethod').match(Condition.Equals('other'))
 ```
 
 ### `multiple` (Optional)
@@ -269,21 +269,21 @@ code: 'emailAddress'
 code: 'DOB'
 ```
 
-### Pair `hidden` with `dependent`
+### Pair `visibleWhen` with `dependentWhen`
 
-When a field is conditionally shown (without being a conditional nested in a component that supports it) and has validation:
+When a field is conditionally shown (without being a conditional nested in a component that supports it) and has validWhen rules:
 
 ```typescript
 GovUKTextInput({
   code: 'otherMethod',
   label: 'Describe your preferred method',
-  // Hide when not "other"
-  hidden: Answer('contactMethod').not.match(Condition.Equals('other')),
-  // Exclude from validation when not "other"
-  dependent: Answer('contactMethod').match(Condition.Equals('other')),
-  validate: [
+  // Show when "other" is selected
+  visibleWhen: Answer('contactMethod').match(Condition.Equals('other')),
+  // Only validate and keep value when "other" is selected
+  dependentWhen: Answer('contactMethod').match(Condition.Equals('other')),
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your preferred method',
     }),
   ],
@@ -295,20 +295,20 @@ GovUKTextInput({
 Required → Format → Business rules:
 
 ```typescript
-validate: [
+validWhen: [
   // 1. Required check
   validation({
-    when: Self().not.match(Condition.IsRequired()),
+    condition: Self().match(Condition.IsRequired()),
     message: 'Enter your age',
   }),
   // 2. Format check
   validation({
-    when: Self().not.match(Condition.Number.IsInteger()),
+    condition: Self().match(Condition.Number.IsInteger()),
     message: 'Age must be a whole number',
   }),
   // 3. Business rule
   validation({
-    when: Self().not.match(Condition.Number.Between(18, 120)),
+    condition: Self().match(Condition.Number.Between(18, 120)),
     message: 'You must be between 18 and 120 years old',
   }),
 ]

@@ -16,7 +16,7 @@ import { isASTNode } from '../../../typeguards/nodes'
  */
 export interface ValidationResult {
   /**
-   * Whether the validation passed (when predicate is truthy)
+   * Whether the validation passed (condition is truthy = passes)
    */
   passed: boolean
 
@@ -45,14 +45,14 @@ export interface ValidationResult {
  * Handler for Validation expression nodes
  *
  * Evaluates a validation expression by:
- * 1. Evaluating the 'when' predicate to determine if validation passes
+ * 1. Evaluating the 'condition' predicate to determine if validation passes
  * 2. Evaluating the message (if it's an AST node)
  * 3. Evaluating the resolved block code (if it's an AST node)
  *
- * Returns a ValidationResult object with isValid, message, and metadata
+ * Returns a ValidationResult object with passed, message, and metadata
  *
- * Synchronous when when predicate and message are sync.
- * Asynchronous when when predicate or message is async.
+ * Synchronous when condition predicate and message are sync.
+ * Asynchronous when condition predicate or message is async.
  */
 export default class ValidationHandler implements ThunkHandler {
   isAsync = false
@@ -63,9 +63,9 @@ export default class ValidationHandler implements ThunkHandler {
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
-    // Check when predicate
-    const whenHandler = deps.thunkHandlerRegistry.get(this.node.properties.when.id)
-    const whenIsAsync = whenHandler?.isAsync ?? true
+    // Check condition predicate
+    const conditionHandler = deps.thunkHandlerRegistry.get(this.node.properties.condition.id)
+    const conditionIsAsync = conditionHandler?.isAsync ?? true
 
     // Check message
     let messageIsAsync = false
@@ -83,8 +83,8 @@ export default class ValidationHandler implements ThunkHandler {
       detailsIsAsync = this.checkDetailsIsAsync(this.node.properties.details, deps)
     }
 
-    // Async if when, message, or details is async
-    this.isAsync = whenIsAsync || messageIsAsync || detailsIsAsync
+    // Async if condition, message, or details is async
+    this.isAsync = conditionIsAsync || messageIsAsync || detailsIsAsync
   }
 
   private checkDetailsIsAsync(details: Record<string, any>, deps: MetadataComputationDependencies): boolean {
@@ -124,8 +124,8 @@ export default class ValidationHandler implements ThunkHandler {
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ValidationResult> {
-    // Evaluate the 'when' predicate
-    const predicateResult = invoker.invokeSync(this.node.properties.when.id, context)
+    // Evaluate the 'condition' predicate
+    const predicateResult = invoker.invokeSync(this.node.properties.condition.id, context)
 
     // Evaluate the message (needed for both success and error cases)
     const message = evaluateOperandSync(this.node.properties.message, context, invoker)
@@ -149,7 +149,7 @@ export default class ValidationHandler implements ThunkHandler {
 
     return {
       value: {
-        passed: !predicateResult.value,
+        passed: Boolean(predicateResult.value),
         message: String(message ?? ''),
         submissionOnly: this.node.properties.submissionOnly ?? false,
         details: evaluatedDetails,
@@ -161,8 +161,8 @@ export default class ValidationHandler implements ThunkHandler {
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
   ): Promise<HandlerResult<ValidationResult>> {
-    // Evaluate the 'when' predicate
-    const predicateResult = await invoker.invoke(this.node.properties.when.id, context)
+    // Evaluate the 'condition' predicate
+    const predicateResult = await invoker.invoke(this.node.properties.condition.id, context)
 
     // Evaluate the message (needed for both success and error cases)
     const message = await evaluateOperand(this.node.properties.message, context, invoker)
@@ -186,7 +186,7 @@ export default class ValidationHandler implements ThunkHandler {
 
     return {
       value: {
-        passed: !predicateResult.value,
+        passed: Boolean(predicateResult.value),
         message: String(message ?? ''),
         submissionOnly: this.node.properties.submissionOnly ?? false,
         details: evaluatedDetails,

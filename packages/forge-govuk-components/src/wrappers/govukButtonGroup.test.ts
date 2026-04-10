@@ -58,15 +58,15 @@ describe('GovUKButtonGroup', () => {
       expect(result.variant).toBe('templateWrapper')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange
       const button = HtmlBlock({ content: 'A' })
 
       // Act
-      const result = GovUKButtonGroup({ buttons: [button], hidden: true })
+      const result = GovUKButtonGroup({ buttons: [button], visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
 
     it('should append custom classes to the button group', () => {

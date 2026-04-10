@@ -3,11 +3,11 @@ import { TemplateNode, TemplateValue } from '../../types/template.type'
 import { BlockType, ExpressionType } from '../../../authoring/types/enums'
 import ValidationTemplateAnalyzer from './ValidationTemplateAnalyzer'
 
-function createFieldTemplate(options: { validate?: TemplateValue[] } = {}): TemplateNode {
+function createFieldTemplate(options: { validWhen?: TemplateValue[] } = {}): TemplateNode {
   const properties: Record<string, TemplateValue> = {}
 
-  if (options.validate !== undefined) {
-    properties.validate = options.validate
+  if (options.validWhen !== undefined) {
+    properties.validWhen = options.validWhen
   }
 
   return {
@@ -60,7 +60,7 @@ describe('ValidationTemplateAnalyzer', () => {
 
   describe('mayYieldValidatingFields()', () => {
     it('should return true for a field template with validations', () => {
-      const template = createFieldTemplate({ validate: ['rule'] })
+      const template = createFieldTemplate({ validWhen: ['rule'] })
 
       expect(ValidationTemplateAnalyzer.mayYieldValidatingFields(template)).toBe(true)
     })
@@ -73,14 +73,14 @@ describe('ValidationTemplateAnalyzer', () => {
 
     it('should return true for an iterator whose yield template contains a validating field', () => {
       const template = createIterateTemplate({
-        field: createFieldTemplate({ validate: ['rule'] }),
+        field: createFieldTemplate({ validWhen: ['rule'] }),
       })
 
       expect(ValidationTemplateAnalyzer.mayYieldValidatingFields(template)).toBe(true)
     })
 
     it('should return true for an iterator whose nested iterate yields a validating field', () => {
-      const nestedIterate = createIterateTemplate(createFieldTemplate({ validate: ['rule'] }))
+      const nestedIterate = createIterateTemplate(createFieldTemplate({ validWhen: ['rule'] }))
       const template = createIterateTemplate({
         rows: [nestedIterate],
       })
@@ -89,7 +89,7 @@ describe('ValidationTemplateAnalyzer', () => {
     })
 
     it('should return false for an iterator with only a predicate template', () => {
-      const template = createIterateTemplate(undefined, createFieldTemplate({ validate: ['rule'] }))
+      const template = createIterateTemplate(undefined, createFieldTemplate({ validWhen: ['rule'] }))
 
       expect(ValidationTemplateAnalyzer.mayYieldValidatingFields(template)).toBe(false)
     })

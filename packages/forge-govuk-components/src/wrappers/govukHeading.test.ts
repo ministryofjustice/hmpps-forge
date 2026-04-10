@@ -82,12 +82,12 @@ describe('GovUKHeading', () => {
       expect(result.variant).toBe('html')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange & Act
-      const result = GovUKHeading({ text: 'Title', hidden: true })
+      const result = GovUKHeading({ text: 'Title', visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
 
     it('should append custom classes to the heading', () => {

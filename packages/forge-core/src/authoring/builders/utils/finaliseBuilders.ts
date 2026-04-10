@@ -42,7 +42,7 @@ export const finaliseBuilders = <T>(input: T, cache: WeakMap<object, unknown> = 
     // Known limitation: if a builder's build() output circularly references the builder
     // itself, the circular encounter will receive the un-finalised build output. This
     // cannot happen in forge because builders (e.g. Data(), Format(), field())
-    // always produce plain JSON — they never reference the builder that created them.
+    // always produce plain JSON - they never reference the builder that created them.
     const built = input.build();
     cache.set(input, built)
     const result = finaliseBuilders(built, cache)

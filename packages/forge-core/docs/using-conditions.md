@@ -39,19 +39,19 @@ Self().not.match(Condition.IsRequired())  // Field is empty
 
 ### In Validation Rules
 
-Validation `when` conditions use **negative matching** - show the error when the value is NOT valid:
+Validation `condition` uses **positive matching** - the field is valid when the condition is true:
 
 ```typescript
 GovUKTextInput({
   code: 'email',
   label: 'Email address',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
     validation({
-      when: Self().not.match(Condition.Email.IsValidEmail()),
+      condition: Self().match(Condition.Email.IsValidEmail()),
       message: 'Enter a valid email address',
     }),
   ],
@@ -63,11 +63,11 @@ GovUKTextInput({
 Use conditions to control field visibility or transitions:
 
 ```typescript
-// Hide field when condition is NOT met
-hidden: Answer('country').not.match(Condition.Equals('UK'))
+// Show field when condition is met
+visibleWhen: Answer('country').match(Condition.Equals('UK'))
 
-// Show field when condition IS met (for dependent validation)
-dependent: Answer('country').match(Condition.Equals('UK'))
+// Only validate and keep value when condition is met
+dependentWhen: Answer('country').match(Condition.Equals('UK'))
 
 // Conditional navigation
 redirect({
@@ -175,13 +175,13 @@ This enables:
 ### Required Field with Format Validation
 
 ```typescript
-validate: [
+validWhen: [
   validation({
-    when: Self().not.match(Condition.IsRequired()),
+    condition: Self().match(Condition.IsRequired()),
     message: 'Enter your email address',
   }),
   validation({
-    when: Self().not.match(Condition.Email.IsValidEmail()),
+    condition: Self().match(Condition.Email.IsValidEmail()),
     message: 'Enter a valid email address',
   }),
 ]
@@ -192,13 +192,13 @@ validate: [
 ```typescript
 // Confirm email matches email
 validation({
-  when: Self().not.match(Condition.Equals(Answer('email'))),
+  condition: Self().match(Condition.Equals(Answer('email'))),
   message: 'Email addresses do not match',
 })
 
 // End date after start date
 validation({
-  when: Self().not.match(Condition.Date.IsAfter(Answer('startDate'))),
+  condition: Self().match(Condition.Date.IsAfter(Answer('startDate'))),
   message: 'End date must be after the start date',
 })
 ```
@@ -208,9 +208,9 @@ validation({
 ```typescript
 // Only validate format if a value is provided
 validation({
-  when: and(
-    Self().match(Condition.IsRequired()),
-    Self().not.match(Condition.Phone.IsValidPhoneNumber())
+  condition: or(
+    Self().not.match(Condition.IsRequired()),
+    Self().match(Condition.Phone.IsValidPhoneNumber())
   ),
   message: 'Enter a valid phone number',
 })
@@ -222,13 +222,13 @@ validation({
 GovUKCheckboxInput({
   code: 'interests',
   multiple: true,
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Select at least one interest',
     }),
     validation({
-      when: Self().not.match(Condition.Array.Contains('terms')),
+      condition: Self().match(Condition.Array.Contains('terms')),
       message: 'You must accept the terms and conditions',
     }),
   ],

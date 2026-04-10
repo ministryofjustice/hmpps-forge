@@ -88,7 +88,7 @@ describe('RenderContextFactory', () => {
     it('should attach stored validation failures to matching field blocks when enabled', () => {
       // Arrange
       const block = createMockBlock('compile_ast:2', {
-        validate: [{ passed: false, message: 'Old cached error', submissionOnly: true }],
+        validWhen: [{ passed: false, message: 'Old cached error', submissionOnly: true }],
       })
       const failures: StepValidationFailure[] = [
         {
@@ -118,7 +118,7 @@ describe('RenderContextFactory', () => {
           details: { code: 'required' },
         },
       ])
-      expect(result.blocks[0].properties.validate).toEqual([
+      expect(result.blocks[0].properties.validWhen).toEqual([
         {
           blockCode: 'email',
           passed: false,
@@ -132,7 +132,7 @@ describe('RenderContextFactory', () => {
     it('should preserve existing block validation state when failures are not supplied', () => {
       // Arrange
       const block = createMockBlock('compile_ast:3', {
-        validate: [{ passed: false, message: 'Existing error', submissionOnly: true }],
+        validWhen: [{ passed: false, message: 'Existing error', submissionOnly: true }],
       })
       const input = createRenderInput({
         blocks: [block],
@@ -143,7 +143,7 @@ describe('RenderContextFactory', () => {
 
       // Assert
       expect(result.fieldValidationErrors).toEqual([])
-      expect(result.blocks[0].properties.validate).toEqual([
+      expect(result.blocks[0].properties.validWhen).toEqual([
         { passed: false, message: 'Existing error', submissionOnly: true },
       ])
     })
@@ -181,7 +181,7 @@ describe('RenderContextFactory', () => {
       // Assert
       const renderedNestedBlock = (result.blocks[0].properties.content as { child: Evaluated<BlockASTNode> }).child
 
-      expect(renderedNestedBlock.properties.validate).toEqual([
+      expect(renderedNestedBlock.properties.validWhen).toEqual([
         {
           blockCode: 'nested',
           passed: false,

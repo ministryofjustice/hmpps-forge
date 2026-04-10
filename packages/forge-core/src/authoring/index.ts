@@ -13,7 +13,13 @@ export { EffectFunctionContext } from '../engine/nodes/expressions/effect/Effect
 
 export { StructureType, BlockType } from './types/enums'
 
-export type { JourneyDefinition, StepDefinition, ValidationExpr, ViewConfig } from './types/structures.type'
+export type {
+  JourneyDefinition,
+  StepDefinition,
+  ValidationExpr,
+  ValidationProps,
+  ViewConfig,
+} from './types/structures.type'
 export type {
   ConditionFunctionExpr,
   EffectFunctionExpr,

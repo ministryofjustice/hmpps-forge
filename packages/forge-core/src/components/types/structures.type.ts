@@ -21,15 +21,15 @@ import type { ValidationExpr } from '../../authoring/types/structures.type'
  */
 export interface BasicBlockProps {
   /**
-   * Conditional visibility - the block is not rendered when this evaluates to truthy.
-   * Hidden fields retain their values and still participate in validation.
+   * Conditional visibility - the block is rendered when this evaluates to truthy.
+   * Defaults to true (always visible).
    *
-   * To also skip validation and clear the value, use `dependent` on field blocks.
+   * To also skip validation and clear the value, use `dependentWhen` on field blocks.
    *
-   * @example true // Always hidden
-   * @example Answer('contactMethod').not.match(Condition.Equals('email')) // Hide unless email selected
+   * @example false // Always hidden
+   * @example Answer('contactMethod').match(Condition.Equals('email')) // Visible when email selected
    */
-  hidden?: boolean | PredicateExpr | PredicateTestExprBuilder
+  visibleWhen?: boolean | PredicateExpr | PredicateTestExprBuilder
 
   /**
    * Optional metadata for the field.
@@ -91,27 +91,35 @@ export interface FieldBlockProps extends BasicBlockProps {
   formatters?: TransformerFunctionExpr[]
 
   /**
-   * Array of validation rules to apply to the field value.
-   * Validations run in order; first failure shows its error message.
+   * Array of validation rules for this field.
+   * The field is valid when all conditions pass.
+   *
+   * @example
+   * validWhen: [
+   *   validation({
+   *     condition: Self().match(Condition.IsRequired()),
+   *     message: 'Enter your full name',
+   *   }),
+   *   validation({
+   *     condition: Self().match(Condition.String.HasMaxLength(200)),
+   *     message: 'Full name must be 200 characters or less',
+   *   }),
+   * ]
    */
-  validate?: ValidationExpr[]
+  validWhen?: ValidationExpr[]
 
   /**
    * Marks field as dependent on other fields.
    * When the predicate evaluates to false, validation is skipped and the answer is cleared.
    *
    * **Note:** This does not affect rendering — the field is still visible.
-   * To visually hide a conditional field, use `hidden` alongside `dependent`.
-   * They are typically logical opposites: `hidden` controls visibility,
-   * `dependent` controls validation and value retention.
+   * To also control visibility, use `visibleWhen`.
    *
    * @example
    * // Only validate and keep this field's value when appointmentType is 'phone'
-   * dependent: Answer('appointmentType').match(Condition.Equals('phone'))
-   * // Pair with hidden to also control visibility:
-   * hidden: Answer('appointmentType').not.match(Condition.Equals('phone'))
+   * dependentWhen: Answer('appointmentType').match(Condition.Equals('phone'))
    */
-  dependent?: PredicateExpr
+  dependentWhen?: PredicateExpr
 
   /**
    * Whether to keep all values when an array is returned (e.g., checkboxes).

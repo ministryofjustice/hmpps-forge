@@ -18,7 +18,7 @@ import type {
  *
  * Each effect factory receives dependencies and returns an evaluator function.
  * The evaluator's first parameter (`context: EffectFunctionContext`) is injected
- * by the engine at runtime — the returned `effects` builders only expose the
+ * by the engine at runtime - the returned `effects` builders only expose the
  * remaining configuration arguments.
  *
  * @param factories - Effect factories keyed by function name

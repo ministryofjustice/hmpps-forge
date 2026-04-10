@@ -818,6 +818,7 @@ describe('StepController', () => {
           mockCompiledForm.runtimePlan,
           mockEvaluator,
           mockContext,
+          true,
         )
         expect(mockContext.global.validation).toEqual({
           stepId: mockCompiledForm.runtimePlan.stepId,

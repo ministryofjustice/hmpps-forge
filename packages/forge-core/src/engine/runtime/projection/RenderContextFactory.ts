@@ -134,7 +134,7 @@ function attachValidationToBlock(
 
   const fieldProperties = {
     ...properties,
-    validate: failuresByBlockId.get(block.id) ?? [],
+    validWhen: failuresByBlockId.get(block.id) ?? [],
   }
 
   return {

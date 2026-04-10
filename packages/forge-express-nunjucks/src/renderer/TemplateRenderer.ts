@@ -157,13 +157,13 @@ export default class TemplateRenderer {
     }
   }
 
-  /** Render all visible blocks to HTML strings (filters out hidden blocks) */
+  /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
   private renderBlocks(
     blocks: Evaluated<BlockASTNode>[],
     showValidationFailures: boolean,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): string[] {
-    const visibleBlocks = blocks.filter(block => block.properties.hidden !== true)
+    const visibleBlocks = blocks.filter(block => block.properties.visibleWhen !== false)
 
     return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures, hasNestedBlocks))
   }
@@ -207,7 +207,7 @@ export default class TemplateRenderer {
 
   /** Convert Evaluated<BlockASTNode> to EvaluatedBlock for component */
   private toEvaluatedBlock(block: Evaluated<BlockASTNode>, showErrors: boolean): EvaluatedBlock<BlockDefinition> {
-    const errors = showErrors ? this.extractErrorsFromValidations(block.properties.validate) : []
+    const errors = showErrors ? this.extractErrorsFromValidations(block.properties.validWhen) : []
 
     return {
       type: StructureType.BLOCK,
@@ -263,7 +263,7 @@ export default class TemplateRenderer {
     if (Array.isArray(value)) {
       const transformed = value.map(element => this.transformValue(element, showValidationFailures, hasNestedBlocks))
 
-      // Filter out null values (hidden nested blocks)
+      // Filter out null values (non-visible nested blocks)
       return transformed.filter(item => item !== null)
     }
 
@@ -284,10 +284,10 @@ export default class TemplateRenderer {
     showValidationFailures: boolean,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): RenderedBlock | null {
-    const { hidden, ...properties } = block.properties
+    const { visibleWhen, ...properties } = block.properties
 
-    // Skip hidden nested blocks
-    if (block.properties.hidden === true) {
+    // Skip blocks where visibleWhen is false
+    if (block.properties.visibleWhen === false) {
       return null
     }
 

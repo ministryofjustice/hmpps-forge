@@ -156,7 +156,7 @@ export interface FunctionASTNode extends ExpressionASTNode {
 export interface ValidationASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.VALIDATION
   properties: {
-    when: ASTNode // Required: the predicate that determines if validation passes
+    condition: ASTNode // Required: the predicate — truthy means validation passes
     message: ASTNode | string // Can be a plain string or a ConditionalString expression
     submissionOnly?: boolean
     details?: Record<string, any>

@@ -49,12 +49,12 @@ describe('GovUKList', () => {
       expect(result.variant).toBe('html')
     })
 
-    it('should pass through hidden prop', () => {
+    it('should pass through visibleWhen prop', () => {
       // Arrange & Act
-      const result = GovUKList({ items: Data('items'), hidden: true })
+      const result = GovUKList({ items: Data('items'), visibleWhen: false })
 
       // Assert
-      expect(result.hidden).toBe(true)
+      expect(result.visibleWhen).toBe(false)
     })
 
     it('should append custom classes to the list', () => {

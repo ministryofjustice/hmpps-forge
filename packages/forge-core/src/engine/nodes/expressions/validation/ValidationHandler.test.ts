@@ -12,11 +12,11 @@ describe('ValidationHandler', () => {
   })
 
   describe('evaluate', () => {
-    it('should return passed false when predicate is truthy', async () => {
+    it('should return passed true when condition is truthy', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -27,15 +27,15 @@ describe('ValidationHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.passed).toBe(false)
+      expect(result.value?.passed).toBe(true)
       expect(result.value?.message).toBe('Field is required')
     })
 
-    it('should return passed true when predicate is falsy', async () => {
+    it('should return passed false when condition is falsy', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -46,7 +46,7 @@ describe('ValidationHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.passed).toBe(true)
+      expect(result.value?.passed).toBe(false)
       expect(result.value?.message).toBe('Field is required')
     })
 
@@ -55,7 +55,7 @@ describe('ValidationHandler', () => {
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const messageNode = ASTTestFactory.reference(['data', 'errorMessage'])
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', messageNode)
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -77,7 +77,7 @@ describe('ValidationHandler', () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .withProperty('submissionOnly', true)
         .build() as ValidationASTNode
@@ -96,7 +96,7 @@ describe('ValidationHandler', () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -115,7 +115,7 @@ describe('ValidationHandler', () => {
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const details = { minLength: 5, maxLength: 100 }
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .withProperty('details', details)
         .build() as ValidationASTNode
@@ -134,7 +134,7 @@ describe('ValidationHandler', () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -154,7 +154,7 @@ describe('ValidationHandler', () => {
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const messageNode = ASTTestFactory.reference(['data', 'missing'])
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', messageNode)
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -191,11 +191,11 @@ describe('ValidationHandler', () => {
       expect(result.value?.message).toBe('')
     })
 
-    it('should handle null as falsy predicate value', async () => {
+    it('should handle null as falsy condition value', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -206,14 +206,14 @@ describe('ValidationHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.passed).toBe(true)
+      expect(result.value?.passed).toBe(false)
     })
 
-    it('should handle empty string as falsy predicate value', async () => {
+    it('should handle empty string as falsy condition value', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -224,14 +224,14 @@ describe('ValidationHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.passed).toBe(true)
+      expect(result.value?.passed).toBe(false)
     })
 
-    it('should handle numeric truthy predicate value', async () => {
+    it('should handle numeric truthy condition value', async () => {
       // Arrange
       const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
       const validation = ASTTestFactory.expression(ExpressionType.VALIDATION)
-        .withProperty('when', predicateNode)
+        .withProperty('condition', predicateNode)
         .withProperty('message', 'Field is required')
         .build() as ValidationASTNode
       const handler = new ValidationHandler(validation.id, validation)
@@ -242,7 +242,7 @@ describe('ValidationHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(result.value?.passed).toBe(false)
+      expect(result.value?.passed).toBe(true)
     })
   })
 })

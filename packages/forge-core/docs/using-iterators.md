@@ -150,7 +150,7 @@ label: Data('categories')
   .pipe(Transformer.Object.Get('name'))
 
 // Use in conditional logic
-dependent: when(
+dependentWhen: when(
   Data('users')
     .each(Iterator.Find(
       Item().path('id').match(Condition.Equals(Params('userId')))

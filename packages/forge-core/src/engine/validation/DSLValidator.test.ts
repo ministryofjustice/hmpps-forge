@@ -428,11 +428,11 @@ describe('FormValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                validate: [
+                validWhen: [
                   {
                     type: ExpressionType.VALIDATION,
                     message: 'Required',
-                    when: {
+                    condition: {
                       type: PredicateType.TEST,
                       subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,

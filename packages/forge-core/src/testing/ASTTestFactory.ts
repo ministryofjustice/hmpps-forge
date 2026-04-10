@@ -478,7 +478,7 @@ export class BlockBuilder {
   }
 
   withValidation(validation: ExpressionASTNode): this {
-    this.properties.validate = validation
+    this.properties.validWhen = validation
     return this
   }
 

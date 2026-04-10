@@ -17,7 +17,7 @@ import type {
  * - `implementations`: Passed to `createFunctionsRegistry` at runtime with real dependencies
  *
  * Each transformer factory receives dependencies and returns an evaluator function.
- * The evaluator's first parameter (`value`) is injected by the engine at runtime —
+ * The evaluator's first parameter (`value`) is injected by the engine at runtime -
  * the returned `transformers` builders only expose the remaining configuration arguments.
  *
  * @param factories - Transformer factories keyed by function name

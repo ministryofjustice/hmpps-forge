@@ -24,12 +24,12 @@ export default class ValidationFactory {
    */
   create(json: ValidationExpr): ValidationASTNode {
     const properties: {
-      when: ASTNode
+      condition: ASTNode
       message: ASTNode | string
       submissionOnly?: boolean
       details?: Record<string, any>
     } = {
-      when: this.nodeFactory.createNode(json.when),
+      condition: this.nodeFactory.createNode(json.condition),
       message: this.nodeFactory.transformValue(json.message || ''),
       submissionOnly: false,
     }

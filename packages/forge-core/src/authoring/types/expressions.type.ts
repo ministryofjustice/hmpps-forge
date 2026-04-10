@@ -514,7 +514,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * }
  *
  * @example
- * // Conditional field visibility (dependent)
+ * // Conditional field visibility (dependentWhen)
  * {
  *   type: 'LogicType.Conditional',
  *   predicate: {

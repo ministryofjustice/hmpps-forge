@@ -100,7 +100,7 @@ export default class StepValidityAnalyzer {
 
         return ancestors.some(ancestorId => expandedIterateNodeIdSet.has(ancestorId))
       })
-      .filter(block => Array.isArray(block.properties.validate) && block.properties.validate.length > 0)
+      .filter(block => Array.isArray(block.properties.validWhen) && block.properties.validWhen.length > 0)
       .forEach(block => {
         blockById.set(block.id, block)
       })
@@ -197,11 +197,11 @@ export default class StepValidityAnalyzer {
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<boolean> {
-    if (block.properties.dependent === undefined) {
+    if (block.properties.dependentWhen === undefined) {
       return true
     }
 
-    return Boolean(await evaluateOperand(block.properties.dependent, context, invoker))
+    return Boolean(await evaluateOperand(block.properties.dependentWhen, context, invoker))
   }
 
   private async evaluateBlockCode(
@@ -224,7 +224,7 @@ export default class StepValidityAnalyzer {
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<ValidationResult[]> {
-    const validationNodes = (block.properties.validate ?? [])
+    const validationNodes = (block.properties.validWhen ?? [])
       .filter((validation): validation is ValidationASTNode => isASTNode(validation))
       .filter(validation => isSubmission || !validation.properties.submissionOnly)
 

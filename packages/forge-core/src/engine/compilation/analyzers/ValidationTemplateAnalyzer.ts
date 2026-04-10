@@ -18,7 +18,7 @@ export default class ValidationTemplateAnalyzer {
         return false
       }
 
-      const validations = node.properties?.validate
+      const validations = node.properties?.validWhen
 
       return Array.isArray(validations) && validations.length > 0
     })

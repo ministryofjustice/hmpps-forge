@@ -29,7 +29,7 @@ function createValidationNode(id: AstNodeId, message: string): ValidationASTNode
 
   return ASTTestFactory.expression<ValidationASTNode>(ExpressionType.VALIDATION)
     .withId(id)
-    .withProperty('when', predicateNode)
+    .withProperty('condition', predicateNode)
     .withProperty('message', message)
     .build()
 }
@@ -132,11 +132,11 @@ describe('StepValidityAnalyzer', () => {
     const { context, invoker, nodes, parentByNodeId } = setup()
 
     block.properties.code = 'field-1'
-    block.properties.validate = [validationNode]
+    block.properties.validWhen = [validationNode]
     nodes.set(step.id, step)
     nodes.set(block.id, block)
     nodes.set(validationNode.id, validationNode)
-    nodes.set(validationNode.properties.when.id, validationNode.properties.when)
+    nodes.set(validationNode.properties.condition.id, validationNode.properties.condition)
     parentByNodeId.set(block.id, step.id)
 
     invoker.invoke.mockImplementation(async nodeId => {
@@ -170,7 +170,7 @@ describe('StepValidityAnalyzer', () => {
         id: 'template:1',
         blockType: BlockType.FIELD,
         properties: {
-          validate: ['required'],
+          validWhen: ['required'],
         },
       },
     })
@@ -180,11 +180,11 @@ describe('StepValidityAnalyzer', () => {
     const { context, invoker, nodes, parentByNodeId } = setup()
 
     runtimeBlock.properties.code = 'runtime-field'
-    runtimeBlock.properties.validate = [runtimeValidationNode]
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
     nodes.set(step.id, step)
     nodes.set(iterate.id, iterate)
     nodes.set(runtimeValidationNode.id, runtimeValidationNode)
-    nodes.set(runtimeValidationNode.properties.when.id, runtimeValidationNode.properties.when)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
     parentByNodeId.set(iterate.id, step.id)
 
     invoker.invoke.mockImplementation(async nodeId => {
@@ -241,7 +241,7 @@ describe('StepValidityAnalyzer', () => {
                 id: 'template:3',
                 blockType: BlockType.FIELD,
                 properties: {
-                  validate: ['required'],
+                  validWhen: ['required'],
                 },
               },
             },
@@ -256,7 +256,7 @@ describe('StepValidityAnalyzer', () => {
         id: 'template:4',
         blockType: BlockType.FIELD,
         properties: {
-          validate: ['required'],
+          validWhen: ['required'],
         },
       },
     })
@@ -266,11 +266,11 @@ describe('StepValidityAnalyzer', () => {
     const { context, invoker, nodes, parentByNodeId } = setup()
 
     runtimeBlock.properties.code = 'nested-field'
-    runtimeBlock.properties.validate = [runtimeValidationNode]
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
     nodes.set(step.id, step)
     nodes.set(outerIterate.id, outerIterate)
     nodes.set(runtimeValidationNode.id, runtimeValidationNode)
-    nodes.set(runtimeValidationNode.properties.when.id, runtimeValidationNode.properties.when)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
     parentByNodeId.set(outerIterate.id, step.id)
 
     invoker.invoke.mockImplementation(async nodeId => {
@@ -319,7 +319,7 @@ describe('StepValidityAnalyzer', () => {
         id: 'template:10',
         blockType: BlockType.FIELD,
         properties: {
-          validate: ['required'],
+          validWhen: ['required'],
         },
       },
     })
@@ -337,18 +337,18 @@ describe('StepValidityAnalyzer', () => {
     const { context, invoker, nodes, parentByNodeId } = setup()
 
     staticBlock.properties.code = 'static-field'
-    staticBlock.properties.validate = [staticValidationNode]
+    staticBlock.properties.validWhen = [staticValidationNode]
     runtimeBlock.properties.code = 'dynamic-field'
-    runtimeBlock.properties.validate = [runtimeValidationNode]
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
 
     nodes.set(step.id, step)
     nodes.set(wrapperBlock.id, wrapperBlock)
     nodes.set(iterate.id, iterate)
     nodes.set(staticBlock.id, staticBlock)
     nodes.set(staticValidationNode.id, staticValidationNode)
-    nodes.set(staticValidationNode.properties.when.id, staticValidationNode.properties.when)
+    nodes.set(staticValidationNode.properties.condition.id, staticValidationNode.properties.condition)
     nodes.set(runtimeValidationNode.id, runtimeValidationNode)
-    nodes.set(runtimeValidationNode.properties.when.id, runtimeValidationNode.properties.when)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
 
     parentByNodeId.set(wrapperBlock.id, step.id)
     parentByNodeId.set(iterate.id, wrapperBlock.id)
@@ -546,11 +546,11 @@ describe('StepValidityAnalyzer', () => {
       const { context, invoker, nodes, parentByNodeId } = setup()
 
       block.properties.code = 'field-1'
-      block.properties.validate = [fieldValidationNode]
+      block.properties.validWhen = [fieldValidationNode]
       nodes.set(step.id, step)
       nodes.set(block.id, block)
       nodes.set(fieldValidationNode.id, fieldValidationNode)
-      nodes.set(fieldValidationNode.properties.when.id, fieldValidationNode.properties.when)
+      nodes.set(fieldValidationNode.properties.condition.id, fieldValidationNode.properties.condition)
       nodes.set(domainValidationNode.id, domainValidationNode)
       parentByNodeId.set(block.id, step.id)
 
@@ -579,7 +579,7 @@ describe('StepValidityAnalyzer', () => {
     })
   })
 
-  it('should skip validation nodes when dependent evaluates to false', async () => {
+  it('should skip validation nodes when dependentWhen evaluates to false', async () => {
     // Arrange
     const step = createStep('compile_ast:9')
     const block = createFieldBlock('compile_ast:10')
@@ -589,13 +589,13 @@ describe('StepValidityAnalyzer', () => {
     const { context, invoker, nodes, parentByNodeId } = setup()
 
     block.properties.code = 'business-hours'
-    block.properties.dependent = dependentNode
-    block.properties.validate = [validationNode]
+    block.properties.dependentWhen = dependentNode
+    block.properties.validWhen = [validationNode]
     nodes.set(step.id, step)
     nodes.set(block.id, block)
     nodes.set(dependentNode.id, dependentNode)
     nodes.set(validationNode.id, validationNode)
-    nodes.set(validationNode.properties.when.id, validationNode.properties.when)
+    nodes.set(validationNode.properties.condition.id, validationNode.properties.condition)
     parentByNodeId.set(block.id, step.id)
 
     invoker.invoke.mockImplementation(async nodeId => {

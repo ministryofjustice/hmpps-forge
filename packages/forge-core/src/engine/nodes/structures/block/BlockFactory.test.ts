@@ -126,10 +126,10 @@ describe('BlockFactory', () => {
         blockType: BlockType.FIELD,
         variant: 'TextInput',
         code: 'email',
-        validate: [
+        validWhen: [
           {
             type: ExpressionType.VALIDATION,
-            when: {
+            condition: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
@@ -142,22 +142,22 @@ describe('BlockFactory', () => {
 
       // Act
       const result = blockFactory.create(json)
-      const validate = result.properties.validate
+      const validWhen = result.properties.validWhen
 
       // Assert
-      expect(Array.isArray(validate)).toBe(true)
-      expect(validate).toHaveLength(1)
-      expect(validate[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(Array.isArray(validWhen)).toBe(true)
+      expect(validWhen).toHaveLength(1)
+      expect(validWhen[0].type).toBe(ASTNodeType.EXPRESSION)
     })
 
-    it('should handle field block with dependent property', () => {
+    it('should handle field block with dependentWhen property', () => {
       // Arrange
       const json = {
         type: StructureType.BLOCK,
         blockType: BlockType.FIELD,
         variant: 'TextInput',
         code: 'details',
-        dependent: {
+        dependentWhen: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
           negate: false,
@@ -167,10 +167,10 @@ describe('BlockFactory', () => {
 
       // Act
       const result = blockFactory.create(json)
-      const dependent = result.properties.dependent
+      const dependentWhen = result.properties.dependentWhen
 
       // Assert
-      expect(dependent.type).toBe(ASTNodeType.PREDICATE)
+      expect(dependentWhen.type).toBe(ASTNodeType.PREDICATE)
     })
 
     it('should handle field block with custom properties', () => {
@@ -199,16 +199,16 @@ describe('BlockFactory', () => {
         blockType: BlockType.FIELD,
         variant: 'TextInput',
         code: 'email',
-        dependent: {
+        dependentWhen: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         } satisfies PredicateTestExpr,
-        validate: [
+        validWhen: [
           {
             type: ExpressionType.VALIDATION,
-            when: {
+            condition: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
@@ -225,8 +225,8 @@ describe('BlockFactory', () => {
       // Assert
       expect(result.blockType).toBe(BlockType.FIELD)
       expect('code' in result.properties).toBe(true)
-      expect('dependent' in result.properties).toBe(true)
-      expect('validate' in result.properties).toBe(true)
+      expect('dependentWhen' in result.properties).toBe(true)
+      expect('validWhen' in result.properties).toBe(true)
     })
   })
 })

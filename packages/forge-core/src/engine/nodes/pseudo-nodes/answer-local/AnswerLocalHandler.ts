@@ -26,7 +26,7 @@ import ThunkLookupError from '../../../errors/ThunkLookupError'
  * 2. Invoke POST pseudo node → get raw value
  * 3. Record raw POST data → source: 'post'
  * 4. Execute formatters inline on value → source: 'processed'
- * 5. If dependent condition exists and is false → clear value, source: 'dependent'
+ * 5. If dependentWhen condition exists and is false → clear value, source: 'dependentWhen'
  *
  * GET request (page load)
  * 1. Try existing answer (from previous submissions or onLoad effects)
@@ -37,15 +37,15 @@ import ThunkLookupError from '../../../errors/ThunkLookupError'
  * submission - they cleared it. On GET, we show existing answers and defaults
  * so users can see their previous submissions or pre-populated values.
  *
- * Dependent fields: If a field has a `dependent` expression, it represents a
- * condition that must be true for the field's value to be kept. If the dependent
- * evaluates to false on POST, the answer is cleared with source 'dependent'.
+ * Dependent fields: If a field has a `dependentWhen` expression, it represents a
+ * condition that must be true for the field's value to be kept. If dependentWhen
+ * evaluates to false on POST, the answer is cleared with source 'dependentWhen'.
  *
  * XSS Prevention: HTML escaping is handled at the rendering layer (components
  * and templates), not at input time. This preserves raw data and avoids
  * double-encoding issues.
  *
- * Synchronous when formatters, dependent, and defaultValue are all sync (or absent).
+ * Synchronous when formatters, dependentWhen, and defaultValue are all sync (or absent).
  * Asynchronous when any of these expressions is async.
  */
 export default class AnswerLocalHandler implements ThunkHandler {
@@ -68,9 +68,9 @@ export default class AnswerLocalHandler implements ThunkHandler {
       return
     }
 
-    // Check if formatters, dependent, or defaultValue are async
+    // Check if formatters, dependentWhen, or defaultValue are async
     const formatters = fieldNode.properties.formatters
-    const dependent = fieldNode.properties.dependent
+    const dependentWhen = fieldNode.properties.dependentWhen
     const defaultValue = fieldNode.properties.defaultValue
 
     // Helper: Check if an AST node's handler is async
@@ -87,7 +87,7 @@ export default class AnswerLocalHandler implements ThunkHandler {
     const anyFormatterAsync = Array.isArray(formatters) && formatters.some(isNodeAsync)
 
     // AnswerLocalHandler is sync ONLY if all dependencies are sync
-    this.isAsync = anyFormatterAsync || isNodeAsync(dependent) || isNodeAsync(defaultValue)
+    this.isAsync = anyFormatterAsync || isNodeAsync(dependentWhen) || isNodeAsync(defaultValue)
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<unknown> {
@@ -163,7 +163,7 @@ export default class AnswerLocalHandler implements ThunkHandler {
    * Flow:
    * 1. Get raw value from POST pseudo node
    * 2. Execute formatters inline on value
-   * 3. Check dependent condition
+   * 3. Check dependentWhen condition
    */
   private async resolveFromPost(
     context: ThunkEvaluationContext,
@@ -216,14 +216,14 @@ export default class AnswerLocalHandler implements ThunkHandler {
       }
     }
 
-    // 3. Check dependent condition - if false, clear the answer
-    const dependent = fieldNode.properties.dependent
+    // 3. Check dependentWhen condition - if false, clear the answer
+    const dependentWhen = fieldNode.properties.dependentWhen
 
-    if (dependent && isASTNode(dependent)) {
-      const dependentResult = await invoker.invoke(dependent.id, context)
+    if (dependentWhen && isASTNode(dependentWhen)) {
+      const dependentResult = await invoker.invoke(dependentWhen.id, context)
 
       if (!dependentResult.error && !dependentResult.value) {
-        this.pushMutation(context, baseFieldCode, undefined, 'dependent')
+        this.pushMutation(context, baseFieldCode, undefined, 'dependentWhen')
 
         return { value: undefined }
       }
@@ -286,7 +286,7 @@ export default class AnswerLocalHandler implements ThunkHandler {
    * Flow:
    * 1. Get raw value from POST pseudo node
    * 2. Execute formatters inline on value
-   * 3. Check dependent condition
+   * 3. Check dependentWhen condition
    */
   private resolveFromPostSync(
     context: ThunkEvaluationContext,
@@ -338,14 +338,14 @@ export default class AnswerLocalHandler implements ThunkHandler {
       }
     }
 
-    // 3. Check dependent condition - if false, clear the answer
-    const dependent = fieldNode.properties.dependent
+    // 3. Check dependentWhen condition - if false, clear the answer
+    const dependentWhen = fieldNode.properties.dependentWhen
 
-    if (dependent && isASTNode(dependent)) {
-      const dependentResult = invoker.invokeSync(dependent.id, context)
+    if (dependentWhen && isASTNode(dependentWhen)) {
+      const dependentResult = invoker.invokeSync(dependentWhen.id, context)
 
       if (!dependentResult.error && !dependentResult.value) {
-        this.pushMutation(context, baseFieldCode, undefined, 'dependent')
+        this.pushMutation(context, baseFieldCode, undefined, 'dependentWhen')
 
         return { value: undefined }
       }

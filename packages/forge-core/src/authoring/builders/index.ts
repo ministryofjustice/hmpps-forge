@@ -5,7 +5,7 @@ import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
 import { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { BlockDefinition, ConditionalString, FieldBlockDefinition } from '../../components/types/structures.type'
-import { JourneyDefinition, StepDefinition, ValidationExpr } from '../types/structures.type'
+import { JourneyDefinition, StepDefinition, ValidationExpr, ValidationProps } from '../types/structures.type'
 import {
   AccessTransition,
   ActionTransition,
@@ -39,6 +39,10 @@ export { when, Conditional } from './ConditionalExprBuilder'
 // Re-export match builder
 export { match } from './MatchExprBuilder'
 
+/**
+ * Creates a presentational (non-field) block for a step.
+ * Use for headings, paragraphs, inset text, and other non-interactive content.
+ */
 export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
   return finaliseBuilders({
     ...definition,
@@ -47,6 +51,11 @@ export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'b
   }) as D
 }
 
+/**
+ * Creates a field block that captures user input.
+ * Fields have a `code` for storing answers and support `validWhen`, `dependentWhen`,
+ * `defaultValue`, and `formatters`.
+ */
 export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
   return finaliseBuilders({
     ...definition,
@@ -55,6 +64,10 @@ export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type'
   }) as D
 }
 
+/**
+ * Creates a step (page) within a journey.
+ * Steps contain blocks and define lifecycle hooks for access, submission, and actions.
+ */
 export function step<D extends StepDefinition>(definition: Omit<D, 'type'>): D {
   return finaliseBuilders({
     ...definition,
@@ -62,6 +75,9 @@ export function step<D extends StepDefinition>(definition: Omit<D, 'type'>): D {
   }) as D
 }
 
+/**
+ * Creates a journey definition - a complete form flow containing steps.
+ */
 export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>): D {
   return finaliseBuilders({
     ...definition,
@@ -121,7 +137,11 @@ export function actionTransition(definition: Omit<ActionTransition, 'type'>): Ac
   return finaliseBuilders({ ...definition, type: TransitionType.ACTION }) as ActionTransition
 }
 
-export function validation(definition: Omit<ValidationExpr, 'type'>): ValidationExpr {
+/**
+ * Creates a validation rule for a field or step.
+ * Add to the `validWhen` array - rules are checked in order.
+ */
+export function validation(definition: ValidationProps): ValidationExpr {
   return finaliseBuilders({
     ...definition,
     type: ExpressionType.VALIDATION,

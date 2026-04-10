@@ -109,9 +109,9 @@ GovUKTextInput({
 ```typescript
 GovUKDateInputFull({
   code: 'endDate',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.Date.IsAfter(Answer('startDate'))),
+      condition: Self().match(Condition.Date.IsAfter(Answer('startDate'))),
       message: 'End date must be after the start date',
     }),
   ],
@@ -120,7 +120,7 @@ GovUKDateInputFull({
 
 **Conditional visibility with dependent fields:**
 
-When a field should only appear based on another field's value, use `hidden` to control visibility and `dependent` to control whether validation runs:
+When a field should only appear based on another field's value, use `visibleWhen` to control visibility and `dependentWhen` to control whether validation runs:
 
 ```typescript
 // The trigger field
@@ -139,28 +139,22 @@ GovUKTextInput({
   code: 'contactMethodOther',
   label: 'Please specify your preferred contact method',
 
-  // hidden: when should this field be HIDDEN?
-  // -> Hide when contactMethod is NOT 'other'
-  hidden: Answer('contactMethod').not.match(Condition.Equals('other')),
+  // visibleWhen: when should this field be VISIBLE?
+  visibleWhen: Answer('contactMethod').match(Condition.Equals('other')),
 
-  // dependent: when should validation RUN?
-  // -> Only validate when contactMethod IS 'other'
-  dependent: Answer('contactMethod').match(Condition.Equals('other')),
+  // dependentWhen: when should validation RUN and value be kept?
+  dependentWhen: Answer('contactMethod').match(Condition.Equals('other')),
 
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your preferred contact method',
     }),
   ],
 })
 ```
 
-The `hidden` and `dependent` properties are typically opposites:
-- `hidden`: "Hide this field when the condition is true"
-- `dependent`: "Only validate this field when the condition is true"
-
-This ensures that when a field is hidden, its validation is skipped.
+Both properties use positive polarity — describe when the field *should* be active.
 
 ---
 
@@ -250,7 +244,7 @@ HtmlBlock({
 
 // Branch on request method
 HtmlBlock({
-  hidden: Request.Method().not.match(Condition.Equals('POST')),
+  visibleWhen: Request.Method().match(Condition.Equals('POST')),
   content: '<p class="govuk-body">Thanks for submitting.</p>',
 })
 
@@ -291,7 +285,7 @@ HtmlBlock({
 
 // Branch based on session permissions
 HtmlBlock({
-  hidden: Session('permissions.canEdit').not.match(Condition.Equals(true)),
+  visibleWhen: Session('permissions.canEdit').match(Condition.Equals(true)),
   content: '<p class="govuk-body">Editing is enabled for this account.</p>',
 })
 ```
@@ -319,7 +313,7 @@ GovUKRadioInput({
 **Conditional display:**
 ```typescript
 HtmlBlock({
-  hidden: Data('user.tier').not.match(Condition.Equals('premium')),
+  visibleWhen: Data('user.tier').match(Condition.Equals('premium')),
   content: '<p>Premium feature content here...</p>',
 })
 ```
@@ -355,9 +349,9 @@ When forge compiles your form definition, it transforms `Self()` into an `Answer
 // You write:
 field({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -366,9 +360,9 @@ field({
 // Forge transforms it to:
 field({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Answer('email').not.match(Condition.IsRequired()),
+      condition: Answer('email').match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -388,20 +382,20 @@ field({
 GovUKTextInput({
   code: 'fullName',
   label: 'Full name',
-  validate: [
+  validWhen: [
     // 1. Required check
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your full name',
     }),
     // 2. Format check
     validation({
-      when: Self().not.match(Condition.String.HasMinLength(2)),
+      condition: Self().match(Condition.String.HasMinLength(2)),
       message: 'Full name must be at least 2 characters',
     }),
     // 3. Business rule
     validation({
-      when: Self().not.match(Condition.String.LettersWithSpaceDashApostrophe()),
+      condition: Self().match(Condition.String.LettersWithSpaceDashApostrophe()),
       message: 'Full name must only contain letters, spaces, hyphens and apostrophes',
     }),
   ],
@@ -413,9 +407,9 @@ GovUKTextInput({
 `Self()` can only be used inside a field block. Using it elsewhere will throw a compilation error.
 
 **Valid locations:**
-- `validate` array
-- `hidden` condition
-- `dependent` condition
+- `validWhen` array
+- `visibleWhen` condition
+- `dependentWhen` condition
 - Any expression within the field definition
 
 **Invalid locations:**
@@ -622,7 +616,7 @@ GovUKTextInput({
 
 // Show content based on query param
 HtmlBlock({
-  hidden: Query('showHelp').not.match(Condition.Equals('true')),
+  visibleWhen: Query('showHelp').match(Condition.Equals('true')),
   content: '<p>Help content here...</p>',
 })
 ```
@@ -705,14 +699,14 @@ Self().not.match(Condition.IsRequired())
 
 // Use in validation
 validation({
-  when: Self().not.match(Condition.IsRequired()),
+  condition: Self().match(Condition.IsRequired()),
   message: 'Enter your full name',
 })
 
-// Use in hidden condition
+// Use in visibleWhen condition
 field({
   code: 'ukDetails',
-  hidden: Answer('country').not.match(Condition.Equals('UK')),
+  visibleWhen: Answer('country').match(Condition.Equals('UK')),
 })
 ```
 
@@ -721,10 +715,10 @@ field({
 Use `.not` before `.match()` to invert the condition:
 
 ```typescript
-// "Show error when value is NOT a valid email"
+// "Value is NOT a valid email"
 Self().not.match(Condition.Email.IsValidEmail())
 
-// "Show error when value is NOT at least 8 characters"
+// "Value is NOT at least 8 characters"
 Self().not.match(Condition.String.HasMinLength(8))
 
 // "Hide field when user has NOT selected 'other'"
@@ -828,9 +822,9 @@ For iterating over arrays, see [Using Iterators](./using-iterators.md).
 // DO: Use Self() for current field
 GovUKTextInput({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
@@ -839,29 +833,29 @@ GovUKTextInput({
 // DON'T: Use Answer() to reference the same field
 GovUKTextInput({
   code: 'email',
-  validate: [
+  validWhen: [
     validation({
-      when: Answer('email').not.match(Condition.IsRequired()),
+      condition: Answer('email').match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
   ],
 })
 ```
 
-### Use `.not` for Validation Conditions
+### Use Positive Matching for Validation Conditions
 
-Validation `when` should express "show error when NOT valid":
+Validation `condition` should express "field is valid when condition is true":
 
 ```typescript
-// DO: Negative match (shows error when invalid)
+// DO: Positive match (field is valid when value IS valid)
 validation({
-  when: Self().not.match(Condition.IsRequired()),
+  condition: Self().match(Condition.IsRequired()),
   message: 'Enter your email',
 })
 
-// DON'T: Positive match (shows error when valid!)
+// DON'T: Negative match (field is valid when value is NOT required - confusing!)
 validation({
-  when: Self().match(Condition.IsRequired()),
+  condition: Self().not.match(Condition.IsRequired()),
   message: 'Enter your email',
 })
 ```
@@ -902,7 +896,7 @@ In most cases, you want the formatted/cleaned value:
 ```typescript
 // DO: Use Answer() for validation and display
 validation({
-  when: Answer('email').not.match(Condition.Email.IsValidEmail()),
+  condition: Answer('email').match(Condition.Email.IsValidEmail()),
   message: 'Enter a valid email address',
 })
 
