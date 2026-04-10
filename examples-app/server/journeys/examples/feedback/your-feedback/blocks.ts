@@ -19,13 +19,13 @@ export const feedbackField = GovUKTextareaInput({
   },
   hint: { text: 'Do not include personal or financial information' },
   formatters: [Transformer.String.Trim()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your feedback',
     }),
     validation({
-      when: Self().not.match(Condition.String.HasMaxLength(1200)),
+      condition: Self().match(Condition.String.HasMaxLength(1200)),
       message: 'Feedback must be 1200 characters or less',
     }),
   ],

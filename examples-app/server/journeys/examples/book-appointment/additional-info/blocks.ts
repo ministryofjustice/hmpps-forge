@@ -47,9 +47,9 @@ export const additionalInfoField = GovUKTextareaInput({
     text: 'Tell us about any accessibility requirements or other needs we should be aware of',
   },
   formatters: [Transformer.String.Trim()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.String.HasMaxLength(500)),
+      condition: Self().match(Condition.String.HasMaxLength(500)),
       message: 'Additional information must be 500 characters or less',
     }),
   ],

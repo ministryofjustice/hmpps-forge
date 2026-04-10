@@ -5,24 +5,24 @@ import {
   GovukUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
-export const locationField = GovUKRadioInput({
-  code: 'location',
+export const hasTravelledField = GovUKRadioInput({
+  code: 'hasTravelled',
   fieldset: {
     legend: {
-      text: 'Which office would you like to visit?',
+      text: 'Have you travelled outside the UK in the last 5 years?',
       classes: GovukUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },
+  hint: { text: 'Include any trips for work, holidays, visiting family, or any other reason.' },
   items: [
-    { value: 'london', text: 'London' },
-    { value: 'leeds', text: 'Leeds' },
-    { value: 'bristol', text: 'Bristol' },
+    { value: 'yes', text: 'Yes' },
+    { value: 'no', text: 'No' },
   ],
   validWhen: [
     validation({
       condition: Self().match(Condition.IsRequired()),
-      message: 'Select an office location',
+      message: 'Select yes if you have travelled outside the UK in the last 5 years',
     }),
   ],
 })

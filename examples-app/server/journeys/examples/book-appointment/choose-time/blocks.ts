@@ -29,9 +29,9 @@ export const appointmentTimeField = GovUKSelectInput({
       text: Item().path('time'),
     }),
   ),
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Select an appointment time',
     }),
   ],

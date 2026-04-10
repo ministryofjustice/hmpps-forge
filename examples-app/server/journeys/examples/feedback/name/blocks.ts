@@ -20,17 +20,17 @@ export const fullNameField = GovUKTextInput({
   classes: GovukUtilityClasses.Input.Width20,
   autocomplete: 'name',
   formatters: [Transformer.String.Trim()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your full name',
     }),
     validation({
-      when: Self().not.match(Condition.String.HasMaxLength(200)),
+      condition: Self().match(Condition.String.HasMaxLength(200)),
       message: 'Full name must be 200 characters or less',
     }),
     validation({
-      when: Self().not.match(Condition.String.LettersWithSpaceDashApostrophe()),
+      condition: Self().match(Condition.String.LettersWithSpaceDashApostrophe()),
       message: 'Full name must only include letters, spaces, hyphens and apostrophes',
     }),
   ],

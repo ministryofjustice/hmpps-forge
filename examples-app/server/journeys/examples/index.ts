@@ -2,6 +2,7 @@ import { journey, createForgePackage } from '@ministryofjustice/hmpps-forge/core
 import { hubStep } from './hub/step'
 import { feedbackJourney } from './feedback/journey'
 import { bookAppointmentJourney } from './book-appointment/journey'
+import { travelDeclarationJourney } from './travel-declaration/journey'
 import { ExampleJourneyDeps, ExampleJourneyEffectsImplementations } from './effects'
 
 // FORGE-EXAMPLE: createForgePackage bundles a journey tree with its function implementations.
@@ -15,7 +16,7 @@ export default createForgePackage<ExampleJourneyDeps>({
       template: 'partials/form-step',
     },
     steps: [hubStep],
-    children: [feedbackJourney, bookAppointmentJourney],
+    children: [feedbackJourney, bookAppointmentJourney, travelDeclarationJourney],
   }),
   functions: {
     ...ExampleJourneyEffectsImplementations,

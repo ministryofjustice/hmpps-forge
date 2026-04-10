@@ -23,17 +23,17 @@ export const fullNameField = GovUKTextInput({
   classes: GovukUtilityClasses.Input.Width20,
   autocomplete: 'name',
   formatters: [Transformer.String.Trim()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your full name',
     }),
     validation({
-      when: Self().not.match(Condition.String.HasMaxLength(200)),
+      condition: Self().match(Condition.String.HasMaxLength(200)),
       message: 'Full name must be 200 characters or less',
     }),
     validation({
-      when: Self().not.match(Condition.String.LettersWithSpaceDashApostrophe()),
+      condition: Self().match(Condition.String.LettersWithSpaceDashApostrophe()),
       message: 'Full name must only include letters, spaces, hyphens and apostrophes',
     }),
   ],
@@ -50,24 +50,23 @@ export const emailField = GovUKTextInput({
   inputType: 'email',
   autocomplete: 'email',
   formatters: [Transformer.String.Trim(), Transformer.String.ToLowerCase()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your email address',
     }),
     validation({
-      when: Self().not.match(Condition.Email.IsValidEmail()),
+      condition: Self().match(Condition.Email.IsValidEmail()),
       message: 'Enter a valid email address',
     }),
   ],
 })
 
 // FORGE-EXAMPLE:
-// `hidden` and `dependent` work together for conditional fields.
-// `hidden` controls visibility - the field is not rendered when the predicate is true.
-// `dependent` controls validation and value - when false, validation is skipped and
+// `visibleWhen` and `dependentWhen` control conditional fields.
+// `visibleWhen` controls rendering - the field is shown when the predicate is true.
+// `dependentWhen` controls validation and value - when false, validation is skipped and
 // the answer is cleared, preventing stale data when the user changes their selection.
-// They are typically logical opposites of each other.
 export const phoneNumberField = GovUKTextInput({
   code: 'phoneNumber',
   label: {
@@ -75,19 +74,19 @@ export const phoneNumberField = GovUKTextInput({
     classes: GovukUtilityClasses.Label.Medium,
   },
   hint: { text: 'We will call you on this number for your appointment' },
-  dependent: Answer('appointmentType').match(Condition.Equals('phone')),
-  hidden: Answer('appointmentType').not.match(Condition.Equals('phone')),
   classes: GovukUtilityClasses.Input.Width20,
   inputType: 'tel',
   autocomplete: 'tel',
   formatters: [Transformer.String.Trim()],
-  validate: [
+  dependentWhen: Answer('appointmentType').match(Condition.Equals('phone')),
+  visibleWhen: Answer('appointmentType').match(Condition.Equals('phone')),
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter your phone number',
     }),
     validation({
-      when: Self().not.match(Condition.Phone.IsValidPhoneNumber()),
+      condition: Self().match(Condition.Phone.IsValidPhoneNumber()),
       message: 'Enter a valid phone number',
     }),
   ],

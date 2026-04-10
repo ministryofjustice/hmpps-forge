@@ -19,6 +19,12 @@ export const journeyCards = MOJCardGroup({
       description:
         'A more advanced journey with date pickers, conditional routing, data-driven selects loaded from an API, and dynamic content using match expressions.',
     },
+    {
+      heading: 'Declare your overseas travel',
+      href: '/example-journeys/travel-declaration/travel-overview',
+      description:
+        'An "add another" pattern using iterators, CollectionBlock, summary cards, action transitions, and static step data for a country list.',
+    },
   ],
-  columns: 2,
+  columns: 3,
 })

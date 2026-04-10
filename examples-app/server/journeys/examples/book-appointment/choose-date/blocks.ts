@@ -5,7 +5,7 @@ import {
   Transformer,
   Generator,
   match,
-  and,
+  or,
   validation,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
@@ -38,19 +38,19 @@ export const appointmentDateField = MOJDatePicker({
   // ToISODate() converts the DD/MM/YYYY input to ISO format (YYYY-MM-DD)
   // before validation runs, so the date conditions (IsValid, IsFutureDate, etc.) work correctly.
   formatters: [Transformer.String.ToISODate()],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Enter an appointment date',
     }),
     validation({
-      when: Self().not.match(Condition.Date.IsValid()),
+      condition: Self().match(Condition.Date.IsValid()),
       message: 'Enter a valid date',
     }),
     validation({
-      when: and(
-        Self().not.match(Condition.Date.IsToday()),
-        Self().not.match(Condition.Date.IsFutureDate()),
+      condition: or(
+        Self().match(Condition.Date.IsToday()),
+        Self().match(Condition.Date.IsFutureDate()),
       ),
       message: 'Appointment date must be today or in the future',
     }),

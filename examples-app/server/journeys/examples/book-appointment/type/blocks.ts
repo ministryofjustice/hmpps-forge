@@ -19,9 +19,9 @@ export const appointmentTypeField = GovUKRadioInput({
     { value: 'phone', text: 'Phone call' },
     { value: 'video', text: 'Video call' },
   ],
-  validate: [
+  validWhen: [
     validation({
-      when: Self().not.match(Condition.IsRequired()),
+      condition: Self().match(Condition.IsRequired()),
       message: 'Select an appointment type',
     }),
   ],

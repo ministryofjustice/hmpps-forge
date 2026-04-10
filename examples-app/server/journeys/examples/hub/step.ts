@@ -6,5 +6,10 @@ export const hubStep = step({
   path: '/',
   title: 'Example journeys',
   isEntryPoint: true,
+  view: {
+    locals: {
+      contentClasses: 'govuk-grid-column-full',
+    },
+  },
   blocks: [heading, journeyCards],
 })
