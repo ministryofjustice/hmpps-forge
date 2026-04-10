@@ -9,9 +9,12 @@ import {
 } from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
 import FunctionRegistry from '../FunctionRegistry'
+import ComponentRegistry from '../../components/ComponentRegistry'
+import { buildComponent } from '../../components/utils/buildComponent'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
 import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
+import UnregisteredComponentError from '../errors/UnregisteredComponentError'
 import { DSLValidator } from './DSLValidator'
 
 describe('FormValidator', () => {
@@ -624,6 +627,235 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const err = error.errors[0] as UnregisteredFunctionError
           expect(err.path.join('.')).toContain('effects')
+          expect(err.path.join('.')).toContain('0')
+        }
+      }
+    })
+  })
+
+  describe('validateComponents()', () => {
+    const createRegistry = (...variants: string[]): ComponentRegistry => {
+      const registry = new ComponentRegistry()
+
+      if (variants.length > 0) {
+        registry.registerMany(variants.map(variant => buildComponent(variant, () => `<${variant} />`)))
+      }
+
+      return registry
+    }
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should not throw when journey has no blocks', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      // Act / Assert
+      expect(() => DSLValidator.validateComponents(baseJourney, registry)).not.toThrow()
+    })
+
+    it('should not throw when all block variants are registered', () => {
+      // Arrange
+      const registry = createRegistry('text', 'radio')
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+              },
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'radio',
+                code: 'field2',
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateComponents(journey, registry)).not.toThrow()
+    })
+
+    it('should throw when a block variant is not registered', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'nonExistentComponent',
+                code: 'field1',
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateComponents(journey, registry)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateComponents(journey, registry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          expect(error.errors[0]).toBeInstanceOf(UnregisteredComponentError)
+          expect(error.errors[0].variant).toBe('nonExistentComponent')
+        }
+      }
+    })
+
+    it('should collect multiple unregistered component errors', () => {
+      // Arrange
+      const registry = createRegistry('text')
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+              },
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'missingRadio',
+                code: 'field2',
+              },
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'missingCheckbox',
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateComponents(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(2)
+
+          const variants = error.errors.map((e: UnregisteredComponentError) => e.variant)
+          expect(variants).toContain('missingRadio')
+          expect(variants).toContain('missingCheckbox')
+        }
+      }
+    })
+
+    it('should find unregistered components in nested child journeys', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child',
+            title: 'Child',
+            steps: [
+              {
+                type: StructureType.STEP,
+                path: '/nested-step',
+                title: 'Nested',
+                blocks: [
+                  {
+                    type: StructureType.BLOCK,
+                    blockType: BlockType.FIELD,
+                    variant: 'deeplyNestedComponent',
+                    code: 'field1',
+                  },
+                ],
+              } as StepDefinition,
+            ],
+          },
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateComponents(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          expect(error.errors[0].variant).toBe('deeplyNestedComponent')
+        }
+      }
+    })
+
+    it('should include the path to the unregistered component in the error', () => {
+      // Arrange
+      const registry = createRegistry()
+
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'missingComponent',
+                code: 'field1',
+              },
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        DSLValidator.validateComponents(journey, registry)
+        fail('Expected AggregateError')
+      } catch (error) {
+        if (error instanceof AggregateError) {
+          const err = error.errors[0] as UnregisteredComponentError
+          expect(err.path.join('.')).toContain('blocks')
           expect(err.path.join('.')).toContain('0')
         }
       }

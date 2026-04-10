@@ -1,9 +1,11 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import { FunctionType } from '../../authoring/types/enums'
+import { FunctionType, StructureType } from '../../authoring/types/enums'
 import type FunctionRegistry from '../FunctionRegistry'
+import type ComponentRegistry from '../../components/ComponentRegistry'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
 import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
+import UnregisteredComponentError from '../errors/UnregisteredComponentError'
 import { JourneySchema } from './schemas/structures.schema'
 
 const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionType))
@@ -82,6 +84,55 @@ export class DSLValidator {
         'Function validation failed: unregistered functions found in journey configuration',
       )
     }
+  }
+
+  /**
+   * Validate that all component variants referenced in the journey configuration are registered
+   */
+  static validateComponents(input: JourneyDefinition, componentRegistry: ComponentRegistry): void {
+    const errors: UnregisteredComponentError[] = []
+
+    this.walkForBlockReferences(input, [], (path, variant) => {
+      if (!componentRegistry.has(variant)) {
+        errors.push(new UnregisteredComponentError({ path, variant }))
+      }
+    })
+
+    if (errors.length > 0) {
+      throw new AggregateError(
+        errors,
+        'Component validation failed: unregistered component variants found in journey configuration',
+      )
+    }
+  }
+
+  /**
+   * Recursively walk an object tree, invoking the callback for each block reference found
+   */
+  private static walkForBlockReferences(
+    obj: unknown,
+    path: (string | number)[],
+    onBlock: (path: (string | number)[], variant: string) => void,
+  ): void {
+    if (!obj || typeof obj !== 'object') {
+      return
+    }
+
+    if (Array.isArray(obj)) {
+      obj.forEach((item, i) => this.walkForBlockReferences(item, [...path, i], onBlock))
+
+      return
+    }
+
+    const record = obj as Record<string, unknown>
+
+    if (record.type === StructureType.BLOCK && typeof record.variant === 'string') {
+      onBlock(path, record.variant)
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      this.walkForBlockReferences(value, [...path, key], onBlock)
+    })
   }
 
   /**
