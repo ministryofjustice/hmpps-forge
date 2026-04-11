@@ -44,7 +44,7 @@ export default class RequestHandler implements ThunkHandler {
         return { value: context.request.url }
 
       case 'path':
-        return { value: this.getPath(context.request.url) }
+        return { value: context.request.location.pathname }
 
       case 'method':
         return { value: context.request.method }
@@ -60,17 +60,6 @@ export default class RequestHandler implements ThunkHandler {
 
       default:
         return { value: undefined }
-    }
-  }
-
-  private getPath(url: string): string {
-    try {
-      return new URL(url).pathname
-    } catch {
-      const [withoutHash] = url.split('#', 1)
-      const [path] = withoutHash.split('?', 1)
-
-      return path
     }
   }
 

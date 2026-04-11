@@ -10,6 +10,7 @@ import {
   ThunkResult,
   ThunkRuntimeHooks,
 } from '../engine/compilation/thunks/types'
+import { extractPathname } from '../framework/path/routePath'
 import type { StepRequest } from '../framework/types/request.type'
 import type { StepResponse, CookieMutation, CookieOptions } from '../framework/types/response.type'
 
@@ -117,11 +118,18 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
   const post = options.mockRequest?.post ?? {}
   const session = options.mockRequest?.session
   const state = options.mockRequest?.state ?? {}
+  const url = options.mockRequest?.url ?? 'http://localhost/mock-path'
 
   const request: StepRequest = {
     method: options.mockRequest?.method ?? 'GET',
-    url: options.mockRequest?.url ?? 'http://localhost/mock-path',
+    url,
     baseUrl: '/mock-base',
+    location: {
+      origin: 'http://localhost',
+      href: url,
+      pathname: extractPathname(url),
+      basePath: '/mock-base',
+    },
 
     getHeader: (name: string) => headers[name.toLowerCase()],
     getAllHeaders: () => headers,

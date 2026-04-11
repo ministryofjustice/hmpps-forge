@@ -5,7 +5,7 @@ export type {
   Logger,
   StepHandler,
 } from './types/adapter.type'
-export type { StepRequest } from './types/request.type'
+export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions, StepResponse } from './types/response.type'
 export type {
   Evaluated,
@@ -24,3 +24,11 @@ export type { HttpMethod } from './types/request.type'
 export { ASTNodeType } from '../engine/types/enums'
 export { isBlockStructNode } from '../engine/typeguards/structure-nodes'
 export type { ValidationResult } from '../engine/nodes/expressions/validation/ValidationHandler'
+export {
+  extractPathname,
+  joinPaths,
+  normalizeBasePath,
+  normalizeRelativePath,
+  resolveMountedPath,
+  resolvePathParams,
+} from './path/routePath'

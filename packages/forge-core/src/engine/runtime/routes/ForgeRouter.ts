@@ -1,16 +1,16 @@
 import { CompilationArtefact } from '../../compilation/CompilationFactory'
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
-import { JourneyASTNode } from '../../types/structures.type'
+import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
+import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
 import { JourneyMetadata, StepMetadata } from '../../../framework/rendering/types'
 import StepController from './StepController'
 import getAncestorChain from '../../utils/getAncestorChain'
-import joinPaths from '../../utils/joinPaths'
 import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type JourneyInstance from '../../JourneyInstance'
-import { RouteMapEntry, StepMountContext } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog, RouteMapEntry, StepMountContext } from '../types/routes.type'
 
 /**
  * Unified routing and navigation service for forge.
@@ -41,31 +41,7 @@ export default class ForgeRouter<TRouter> {
     options: ForgeOptions,
   ) {
     this.router = dependencies.frameworkAdapter.createRouter()
-    this.basePath = this.normalizeBasePath(options.basePath)
-  }
-
-  /**
-   * Normalize basePath to ensure consistent format.
-   * - Empty string if not provided
-   * - Ensure leading slash
-   * - Remove trailing slash
-   */
-  private normalizeBasePath(basePath?: string): string {
-    if (!basePath) {
-      return ''
-    }
-
-    let normalized = basePath
-
-    if (!normalized.startsWith('/')) {
-      normalized = `/${normalized}`
-    }
-
-    if (normalized.endsWith('/')) {
-      normalized = normalized.slice(0, -1)
-    }
-
-    return normalized
+    this.basePath = normalizeBasePath(options.basePath)
   }
 
   /**
@@ -80,13 +56,22 @@ export default class ForgeRouter<TRouter> {
     const stepIndex = journeyInstance.getStepIndex()
     const sharedArtefact = journeyInstance.getSharedCompilationArtefact()
     const config = journeyInstance.getConfiguration()
+    const routeTemplateContexts = this.buildRouteTemplateContexts(stepIndex, sharedArtefact)
 
     stepIndex.forEach((stepNode, stepId) => {
+      const routeTemplateContext = routeTemplateContexts.get(stepId)
+
+      if (!routeTemplateContext) {
+        throw new Error(`Unable to resolve route template context for step ${stepId}`)
+      }
+
       this.mountStep(this.router, {
         stepId,
         stepNode,
         sharedArtefact,
         resolveCompiledStep: () => journeyInstance.getCompiledStep(stepId),
+        routeTemplatePath: routeTemplateContext.routeTemplatePath,
+        routeTemplateCatalog: routeTemplateContext.routeTemplateCatalog,
       })
     })
 
@@ -119,7 +104,8 @@ export default class ForgeRouter<TRouter> {
    * Mount a single step as GET and POST routes
    */
   private mountStep(rootRouter: TRouter, stepMountContext: StepMountContext): void {
-    const { stepId, stepNode, sharedArtefact, resolveCompiledStep } = stepMountContext
+    const { stepId, stepNode, sharedArtefact, resolveCompiledStep, routeTemplateCatalog, routeTemplatePath } =
+      stepMountContext
     const journeyAncestry = this.getJourneyAncestry(stepId, sharedArtefact)
     const { router, basePath } = this.getOrCreateJourneyRouter(rootRouter, journeyAncestry)
 
@@ -136,7 +122,13 @@ export default class ForgeRouter<TRouter> {
 
     const getController = () => {
       if (!controller) {
-        controller = new StepController(resolveCompiledStep(), this.dependencies, this.navigationMetadata, fullPath)
+        controller = new StepController(
+          resolveCompiledStep(),
+          this.dependencies,
+          this.navigationMetadata,
+          routeTemplatePath,
+          routeTemplateCatalog,
+        )
       }
 
       return controller
@@ -161,6 +153,38 @@ export default class ForgeRouter<TRouter> {
       .filter(isJourneyStructNode)
   }
 
+  private buildRouteTemplateContexts(
+    stepIndex: Map<NodeId, StepASTNode>,
+    artefact: CompilationArtefact,
+  ): Map<NodeId, { routeTemplatePath: string; routeTemplateCatalog: JourneyRouteTemplateCatalog }> {
+    const catalogsByJourneyBasePath = new Map<string, JourneyRouteTemplateCatalog>()
+    const contextsByStepId = new Map<
+      NodeId,
+      { routeTemplatePath: string; routeTemplateCatalog: JourneyRouteTemplateCatalog }
+    >()
+
+    stepIndex.forEach((stepNode, stepId) => {
+      const journeyAncestry = this.getJourneyAncestry(stepId, artefact)
+      const journeyBasePath = this.getJourneyBasePath(journeyAncestry)
+      const routeTemplatePath = joinPaths(journeyBasePath, stepNode.properties.path)
+      const routeTemplateCatalog = catalogsByJourneyBasePath.get(journeyBasePath) ?? {
+        routeTemplatePathByStepId: new Map<NodeId, string>(),
+        stepIdByRouteTemplatePath: new Map<string, NodeId>(),
+      }
+
+      routeTemplateCatalog.routeTemplatePathByStepId.set(stepId, routeTemplatePath)
+      routeTemplateCatalog.stepIdByRouteTemplatePath.set(routeTemplatePath, stepId)
+      catalogsByJourneyBasePath.set(journeyBasePath, routeTemplateCatalog)
+      contextsByStepId.set(stepId, { routeTemplatePath, routeTemplateCatalog })
+    })
+
+    return contextsByStepId
+  }
+
+  private getJourneyBasePath(journeyAncestry: JourneyASTNode[]): string {
+    return journeyAncestry.reduce((path, journey) => joinPaths(path, journey.properties.path), this.basePath)
+  }
+
   /**
    * Get or create nested routers for a journey ancestry chain
    */
@@ -179,7 +203,9 @@ export default class ForgeRouter<TRouter> {
         const newRouter = this.dependencies.frameworkAdapter.createRouter()
 
         // First level mounts at basePath + journeyPath, nested levels just use journeyPath
-        const mountPath = currentRouter === rootRouter ? this.basePath + journeyPath : journeyPath
+        const mountPath =
+          currentRouter === rootRouter ? joinPaths(this.basePath, journeyPath) : joinPaths('', journeyPath)
+
         this.dependencies.frameworkAdapter.mountRouter(currentRouter, mountPath, newRouter)
         this.journeyRouters.set(basePath, newRouter)
 

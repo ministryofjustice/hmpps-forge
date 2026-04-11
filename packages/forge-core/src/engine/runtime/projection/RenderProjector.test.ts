@@ -6,7 +6,7 @@ import { StepRequest } from '../../../framework/types/request.type'
 import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
 import { MetadataExecutionResult } from '../evaluation/MetadataExecutor'
 import RuntimeArtifacts from '../RuntimeArtifacts'
-import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
+import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 import RenderProjector from './RenderProjector'
 
 const mockMetadataExecutorExecute = jest.fn()
@@ -68,7 +68,29 @@ const defaultMetadata: MetadataExecutionResult = {
   ancestors: [] as JourneyAncestor[],
 }
 
-const mockRequest = { baseUrl: '/forms/journey' } as StepRequest
+const mockRequest = {
+  baseUrl: '/forms/journey',
+  location: {
+    origin: 'https://service.test',
+    href: 'https://service.test/forms/journey/step-1',
+    pathname: '/forms/journey/step-1',
+    basePath: '/forms/journey',
+  },
+  getParams: () => ({}),
+} as unknown as StepRequest
+
+function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
+  return {
+    stepId: 'compile_ast:1',
+    routeTemplatePath: '/forms/journey/step-1',
+    isEntryPoint: false,
+    isReachable: true,
+    isValid: true,
+    forwardRouteTemplatePaths: [],
+    predecessorRouteTemplatePaths: [],
+    ...overrides,
+  }
+}
 
 describe('RenderProjector', () => {
   let projector: RenderProjector
@@ -104,14 +126,9 @@ describe('RenderProjector', () => {
     artifacts.setNavigation({
       currentStepId: 'compile_ast:1',
       steps: [
-        {
-          stepId: 'compile_ast:1',
-          path: 'step-1',
+        createNavigationStep({
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     })
   })
@@ -194,22 +211,14 @@ describe('RenderProjector', () => {
       artifacts.setNavigation({
         currentStepId: 'compile_ast:1',
         steps: [
-          {
+          createNavigationStep({
             stepId: 'compile_ast:2',
-            path: 'step-0',
+            routeTemplatePath: '/forms/journey/step-0',
             isEntryPoint: true,
-            isReachable: true,
-            isValid: true,
-            predecessorPaths: [],
-          },
-          {
-            stepId: 'compile_ast:1',
-            path: 'step-1',
-            isEntryPoint: false,
-            isReachable: true,
-            isValid: true,
-            predecessorPaths: ['step-0'],
-          },
+          }),
+          createNavigationStep({
+            predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
+          }),
         ],
       } satisfies NavigationEvaluation)
 
@@ -237,14 +246,9 @@ describe('RenderProjector', () => {
       artifacts.setNavigation({
         currentStepId: 'compile_ast:1',
         steps: [
-          {
-            stepId: 'compile_ast:1',
-            path: 'step-1',
-            isEntryPoint: false,
-            isReachable: true,
-            isValid: true,
-            predecessorPaths: ['step-0'],
-          },
+          createNavigationStep({
+            predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
+          }),
         ],
       } satisfies NavigationEvaluation)
 

@@ -1,4 +1,5 @@
 import { RenderContext } from '../../../framework/rendering/types'
+import { resolvePathParams } from '../../../framework/path/routePath'
 import { StepRequest } from '../../../framework/types/request.type'
 import BacklinkResolver from '../resolution/BacklinkResolver'
 import RuntimeArtifacts from '../RuntimeArtifacts'
@@ -19,7 +20,7 @@ export default class ResolvedStepMetadataBuilder {
 
     return {
       ...step,
-      backlink: `${req.baseUrl}/${backPath}`,
+      backlink: resolvePathParams(backPath, req.getParams()),
     }
   }
 }

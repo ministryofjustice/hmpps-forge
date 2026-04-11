@@ -1,4 +1,5 @@
 import ValidationTemplateAnalyzer from './analyzers/ValidationTemplateAnalyzer'
+import { normalizeRelativePath } from '../../framework/path/routePath'
 import { NodeId } from '../types/engine.type'
 import { IterateASTNode, SubmitTransitionASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, StepASTNode } from '../types/structures.type'
@@ -121,7 +122,7 @@ export default class RuntimePlanBuilder {
 
     return {
       stepId,
-      path: this.normalizePath(stepNode.properties.path),
+      path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
       isEntryPoint: stepNode.properties.isEntryPoint === true,
       forwardOutcomeIds,
@@ -152,7 +153,7 @@ export default class RuntimePlanBuilder {
 
     return {
       stepId,
-      path: this.normalizePath(stepNode.properties.path),
+      path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
       accessAncestorIds,
       actionTransitionIds,
@@ -290,11 +291,5 @@ export default class RuntimePlanBuilder {
     return (stepNode.properties.onSubmission ?? []).some(
       (transition: SubmitTransitionASTNode) => transition.properties.validate === true,
     )
-  }
-
-  private normalizePath(path: string): string {
-    const normalizedPath = path.startsWith('/') ? path.slice(1) : path
-
-    return normalizedPath.split(/[?#]/)[0] ?? normalizedPath
   }
 }

@@ -1,4 +1,4 @@
-import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
+import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 import RedirectResolver from './RedirectResolver'
 
 function createEvaluation(overrides: Partial<NavigationEvaluation> = {}): NavigationEvaluation {
@@ -12,18 +12,26 @@ function createEvaluation(overrides: Partial<NavigationEvaluation> = {}): Naviga
 describe('RedirectResolver', () => {
   const resolver = new RedirectResolver()
 
+  function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
+    return {
+      stepId: 'compile_ast:3',
+      routeTemplatePath: '/journey/current',
+      isEntryPoint: false,
+      isReachable: true,
+      isValid: true,
+      forwardRouteTemplatePaths: [],
+      predecessorRouteTemplatePaths: [],
+      ...overrides,
+    }
+  }
+
   it('should return undefined when the current step is reachable', () => {
     // Arrange
     const evaluation = createEvaluation({
       steps: [
-        {
-          stepId: 'compile_ast:3',
-          path: 'current',
+        createNavigationStep({
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     })
 
@@ -39,30 +47,22 @@ describe('RedirectResolver', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:11',
       steps: [
-        {
+        createNavigationStep({
           stepId: 'compile_ast:7',
-          path: 'one',
+          routeTemplatePath: '/journey/one',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
-        {
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:9',
-          path: 'two',
-          isEntryPoint: false,
-          isReachable: true,
+          routeTemplatePath: '/journey/two',
           isValid: false,
-          predecessorPaths: ['one'],
-        },
-        {
+          predecessorRouteTemplatePaths: ['/journey/one'],
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:11',
-          path: 'three',
-          isEntryPoint: false,
+          routeTemplatePath: '/journey/three',
           isReachable: false,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     })
 
@@ -70,7 +70,7 @@ describe('RedirectResolver', () => {
     const result = resolver.resolve(evaluation)
 
     // Assert
-    expect(result).toBe('two')
+    expect(result).toBe('/journey/two')
   })
 
   it('should fall back to the first reachable entry point when multiple blockers exist', () => {
@@ -78,46 +78,33 @@ describe('RedirectResolver', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:20',
       steps: [
-        {
+        createNavigationStep({
           stepId: 'compile_ast:12',
-          path: 'entry-a',
+          routeTemplatePath: '/journey/entry-a',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
-        {
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:14',
-          path: 'entry-b',
+          routeTemplatePath: '/journey/entry-b',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
-        {
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:16',
-          path: 'middle-a',
-          isEntryPoint: false,
-          isReachable: true,
+          routeTemplatePath: '/journey/middle-a',
           isValid: false,
-          predecessorPaths: ['entry-a'],
-        },
-        {
+          predecessorRouteTemplatePaths: ['/journey/entry-a'],
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:18',
-          path: 'middle-b',
-          isEntryPoint: false,
-          isReachable: true,
+          routeTemplatePath: '/journey/middle-b',
           isValid: false,
-          predecessorPaths: ['entry-b'],
-        },
-        {
+          predecessorRouteTemplatePaths: ['/journey/entry-b'],
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:20',
-          path: 'target',
-          isEntryPoint: false,
+          routeTemplatePath: '/journey/target',
           isReachable: false,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     })
 
@@ -125,6 +112,6 @@ describe('RedirectResolver', () => {
     const result = resolver.resolve(evaluation)
 
     // Assert
-    expect(result).toBe('entry-a')
+    expect(result).toBe('/journey/entry-a')
   })
 })

@@ -69,6 +69,7 @@ export default class RenderProjector {
         navigationMetadata: this.navigationMetadata,
         currentStepPath: this.currentStepPath,
         showValidationFailures: options?.showValidationFailures,
+        params: req.getParams(),
       },
     )
   }

@@ -461,6 +461,28 @@ describe('ExpressFrameworkAdapter', () => {
       expect(result.baseUrl).toBe('/forms/my-journey')
     })
 
+    it('should strip query strings before resolving the base URL', () => {
+      // Arrange
+      const mockReq = {
+        method: 'GET',
+        body: {},
+        query: { from: 'summary' },
+        params: {},
+        headers: {},
+        protocol: 'http',
+        host: 'localhost',
+        originalUrl: '/forms/my-journey/step-one?from=summary',
+        path: '/step-one',
+        baseUrl: '/forms/my-journey',
+      } as unknown as express.Request
+
+      // Act
+      const result = adapter.toStepRequest(mockReq)
+
+      // Assert
+      expect(result.baseUrl).toBe('/forms/my-journey')
+    })
+
     it('should fall back to baseUrl when path does not match originalUrl suffix', () => {
       // Arrange
       const mockReq = {

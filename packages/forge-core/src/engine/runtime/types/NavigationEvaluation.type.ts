@@ -2,13 +2,13 @@ import { NodeId } from '../../types/ast.type'
 
 export interface NavigationStepState {
   stepId: NodeId
-  path: string
+  routeTemplatePath: string
   code?: string
   isEntryPoint: boolean
   isReachable: boolean
   isValid: boolean
-  forwardPaths: string[]
-  predecessorPaths: string[]
+  forwardRouteTemplatePaths: string[]
+  predecessorRouteTemplatePaths: string[]
 }
 
 export interface NavigationEvaluation {

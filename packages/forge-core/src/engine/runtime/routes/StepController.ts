@@ -1,11 +1,13 @@
 import createHttpError from 'http-errors'
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata } from '../../../framework/rendering/types'
+import { resolvePathParams } from '../../../framework/path/routePath'
+import { resolveRedirectTarget } from '../resolution/redirectTarget'
 import ContextPreparer from '../preparation/ContextPreparer'
 import AnswerPreparer from '../preparation/AnswerPreparer'
 import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
@@ -17,6 +19,7 @@ import ReachabilityStateProjector from '../projection/ReachabilityStateProjector
 import ValidationStateProjector from '../projection/ValidationStateProjector'
 import RenderProjector from '../projection/RenderProjector'
 import RuntimeArtifacts from '../RuntimeArtifacts'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 
 /**
  * Handles the full request lifecycle for steps.
@@ -48,12 +51,16 @@ export default class StepController<TRequest, TResponse> {
 
   private readonly renderProjector: RenderProjector
 
+  private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
+
   constructor(
     private readonly compiledForm: CompiledForm[number],
     private readonly dependencies: JourneyInstanceDependencies,
     navigationMetadata: JourneyMetadata[],
-    currentStepPath: string,
+    currentRouteTemplatePath: string,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ) {
+    this.routeTemplateCatalog = routeTemplateCatalog
     this.contextPreparer = new ContextPreparer()
     this.transitionExecutor = new TransitionExecutor(this.dependencies.logger)
     this.validationExecutor = new StepValidityAnalyzer()
@@ -63,7 +70,7 @@ export default class StepController<TRequest, TResponse> {
     this.redirectResolver = new RedirectResolver()
     this.reachabilityStateProjector = new ReachabilityStateProjector()
     this.validationStateProjector = new ValidationStateProjector()
-    this.renderProjector = new RenderProjector(navigationMetadata, currentStepPath)
+    this.renderProjector = new RenderProjector(navigationMetadata, currentRouteTemplatePath)
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
@@ -87,7 +94,7 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirect(res, request, reachabilityRedirect)
+      return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
     const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, request)
@@ -116,7 +123,7 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirect(res, request, reachabilityRedirect)
+      return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
     await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
@@ -153,11 +160,13 @@ export default class StepController<TRequest, TResponse> {
   }
 
   private redirect(res: TResponse, request: StepRequest, redirect: string): void {
-    if (redirect.includes('://') || redirect.startsWith('/')) {
-      return this.dependencies.frameworkAdapter.redirect(res, redirect)
-    }
+    const resolvedTarget = resolveRedirectTarget(redirect, request.location)
 
-    return this.dependencies.frameworkAdapter.redirect(res, `${request.baseUrl}/${redirect}`)
+    return this.dependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
+  }
+
+  private redirectToRouteTemplatePath(res: TResponse, request: StepRequest, routeTemplatePath: string): void {
+    return this.dependencies.frameworkAdapter.redirect(res, resolvePathParams(routeTemplatePath, request.getParams()))
   }
 
   private getRedirectTarget(redirect: string | undefined): string {
@@ -196,6 +205,7 @@ export default class StepController<TRequest, TResponse> {
       await this.navigationEvaluator.evaluate(
         this.compiledForm.reachabilityPlan,
         this.compiledForm.runtimePlan.stepId,
+        this.routeTemplateCatalog,
         invoker,
         context,
         this.validationExecutor,

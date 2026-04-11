@@ -1,9 +1,11 @@
 import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
+import { resolveRedirectTarget } from '../resolution/redirectTarget'
 import { NodeId } from '../../types/ast.type'
 import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 
 /**
  * Evaluates navigation facts for the current journey in one shared pass.
@@ -12,13 +14,22 @@ export default class NavigationAnalyzer {
   async evaluate(
     plan: ReachabilityRuntimePlan,
     currentStepId: NodeId,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
     stepValidityAnalyzer: StepValidityAnalyzer,
   ): Promise<NavigationEvaluation> {
-    const steps = plan.entries.map(entry => this.createStepState(entry))
+    const steps = plan.entries.map(entry => this.createStepState(entry, routeTemplateCatalog))
 
-    await this.computeReachability(steps, plan, invoker, context, currentStepId, stepValidityAnalyzer)
+    await this.computeReachability(
+      steps,
+      plan,
+      routeTemplateCatalog,
+      invoker,
+      context,
+      currentStepId,
+      stepValidityAnalyzer,
+    )
 
     return {
       currentStepId,
@@ -26,44 +37,62 @@ export default class NavigationAnalyzer {
     }
   }
 
-  private createStepState(entry: ReachabilityStepEntry): NavigationStepState {
+  private createStepState(
+    entry: ReachabilityStepEntry,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
+  ): NavigationStepState {
+    const routeTemplatePath = routeTemplateCatalog.routeTemplatePathByStepId.get(entry.stepId)
+
+    if (!routeTemplatePath) {
+      throw new Error(`Route template path missing for step ${entry.stepId}`)
+    }
+
     return {
       stepId: entry.stepId,
-      path: entry.path,
+      routeTemplatePath,
       code: entry.code,
       isEntryPoint: entry.isEntryPoint,
       isReachable: false,
       isValid: true,
-      forwardPaths: [],
-      predecessorPaths: [],
+      forwardRouteTemplatePaths: [],
+      predecessorRouteTemplatePaths: [],
     }
   }
 
-  private async resolveForwardPaths(
+  private async resolveForwardRouteTemplatePaths(
+    currentRouteTemplatePath: string,
     outcomeIds: NodeId[],
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<string[]> {
-    const paths: string[] = []
+    const routeTemplatePaths: string[] = []
 
     for (const outcomeId of outcomeIds) {
       const result = await invoker.invoke(outcomeId, context)
 
       if (!result.error && result.value !== undefined) {
-        const path = this.normalizePath(String(result.value))
+        const resolvedTarget = resolveRedirectTarget(String(result.value), {
+          origin: 'https://forge.local',
+          pathname: currentRouteTemplatePath,
+        })
 
-        if (!paths.includes(path)) {
-          paths.push(path)
+        if (
+          routeTemplateCatalog.stepIdByRouteTemplatePath.has(resolvedTarget.pathname) &&
+          !routeTemplatePaths.includes(resolvedTarget.pathname)
+        ) {
+          routeTemplatePaths.push(resolvedTarget.pathname)
         }
       }
     }
 
-    return paths
+    return routeTemplatePaths
   }
 
   private async computeReachability(
     steps: NavigationStepState[],
     plan: ReachabilityRuntimePlan,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
     currentStepId: NodeId,
@@ -74,7 +103,7 @@ export default class NavigationAnalyzer {
     }
 
     const entryByStepId = new Map(plan.entries.map(entry => [entry.stepId, entry]))
-    const stateByPath = new Map(steps.map(step => [step.path, step]))
+    const stateByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
     const entrySteps = plan.entries
       .map((entry, index) => ({ entry, state: steps[index] }))
       .filter(({ entry }) => entry.isEntryPoint)
@@ -92,7 +121,7 @@ export default class NavigationAnalyzer {
     }
 
     const visited = new Set<string>()
-    const queue = seededEntrySteps.map(step => step.path)
+    const queue = seededEntrySteps.map(step => step.routeTemplatePath)
 
     while (queue.length > 0) {
       const currentPath = queue.shift()
@@ -100,7 +129,7 @@ export default class NavigationAnalyzer {
       if (currentPath !== undefined && !visited.has(currentPath)) {
         visited.add(currentPath)
 
-        const current = stateByPath.get(currentPath)
+        const current = stateByRouteTemplatePath.get(currentPath)
 
         if (current) {
           const entry = entryByStepId.get(current.stepId)
@@ -116,25 +145,31 @@ export default class NavigationAnalyzer {
 
             if (!isCurrentTargetStep && !evaluatedForwardPathStepIds.has(current.stepId)) {
 
-              current.forwardPaths = await this.resolveForwardPaths(entry.forwardOutcomeIds, invoker, context)
+              current.forwardRouteTemplatePaths = await this.resolveForwardRouteTemplatePaths(
+                current.routeTemplatePath,
+                entry.forwardOutcomeIds,
+                routeTemplateCatalog,
+                invoker,
+                context,
+              )
               evaluatedForwardPathStepIds.add(current.stepId)
             }
 
             if (current.isValid) {
-              current.forwardPaths.forEach(forwardPath => {
-                const next = stateByPath.get(forwardPath)
+              current.forwardRouteTemplatePaths.forEach(forwardRouteTemplatePath => {
+                const next = stateByRouteTemplatePath.get(forwardRouteTemplatePath)
 
                 if (next) {
-                  if (!next.predecessorPaths.includes(current.path)) {
-                    next.predecessorPaths.push(current.path)
+                  if (!next.predecessorRouteTemplatePaths.includes(current.routeTemplatePath)) {
+                    next.predecessorRouteTemplatePaths.push(current.routeTemplatePath)
                   }
 
                   if (!next.isReachable) {
                     next.isReachable = true
                   }
 
-                  if (!visited.has(next.path)) {
-                    queue.push(next.path)
+                  if (!visited.has(next.routeTemplatePath)) {
+                    queue.push(next.routeTemplatePath)
                   }
                 }
               })
@@ -143,11 +178,5 @@ export default class NavigationAnalyzer {
         }
       }
     }
-  }
-
-  private normalizePath(path: string): string {
-    const normalizedPath = path.startsWith('/') ? path.slice(1) : path
-
-    return normalizedPath.split(/[?#]/)[0] ?? normalizedPath
   }
 }

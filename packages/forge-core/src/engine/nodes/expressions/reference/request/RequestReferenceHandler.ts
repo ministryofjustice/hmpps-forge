@@ -1,4 +1,4 @@
-import { NodeId } from '../../../../types/engine.type'
+import { NodeId } from '../../../../types/ast.type'
 import { ReferenceASTNode } from '../../../../types/expressions.type'
 import {
   ThunkHandler,
@@ -72,7 +72,7 @@ export default class RequestReferenceHandler implements ThunkHandler {
         return context.request.url
 
       case 'path':
-        return this.getPath(context.request.url)
+        return context.request.location.pathname
 
       case 'method':
         return context.request.method
@@ -112,16 +112,5 @@ export default class RequestReferenceHandler implements ThunkHandler {
     }
 
     return undefined
-  }
-
-  private getPath(url: string): string {
-    try {
-      return new URL(url).pathname
-    } catch {
-      const [withoutHash] = url.split('#', 1)
-      const [path] = withoutHash.split('?', 1)
-
-      return path
-    }
   }
 }

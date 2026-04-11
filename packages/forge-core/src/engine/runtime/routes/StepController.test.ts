@@ -23,6 +23,7 @@ import RenderProjector from '../projection/RenderProjector'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 
 const createMockRequest = (
   overrides: Partial<{
@@ -44,11 +45,19 @@ const createMockRequest = (
   const post = overrides.post ?? {}
   const session = overrides.session
   const state = overrides.state ?? {}
+  const url = overrides.url ?? 'http://localhost/forms/journey/step-1'
+  const parsedUrl = new URL(url, 'http://localhost')
 
   return {
     method: overrides.method ?? 'GET',
-    url: overrides.url ?? 'http://localhost/journey/step-1',
+    url,
     baseUrl: '/forms/journey',
+    location: {
+      origin: parsedUrl.origin,
+      href: parsedUrl.href,
+      pathname: parsedUrl.pathname,
+      basePath: '/forms/journey',
+    },
 
     getHeader: (name: string) => headers[name.toLowerCase()],
     getAllHeaders: () => headers,
@@ -116,6 +125,7 @@ describe('StepController', () => {
   let mockDependencies: jest.Mocked<JourneyInstanceDependencies>
   let mockNavigationMetadata: JourneyMetadata[]
   let mockCurrentStepPath: string
+  let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
   let mockRes: unknown
   let mockEvaluator: jest.Mocked<ThunkEvaluator>
@@ -136,6 +146,10 @@ describe('StepController', () => {
 
     mockCurrentStepPath = '/journey/step-1'
     mockNavigationMetadata = []
+    mockRouteTemplateCatalog = {
+      routeTemplatePathByStepId: new Map(),
+      stepIdByRouteTemplatePath: new Map(),
+    }
 
     mockDependencies = {
       logger: {
@@ -158,6 +172,9 @@ describe('StepController', () => {
     mockRes = {}
 
     mockContext = {
+      request: {
+        getParams: jest.fn().mockReturnValue({}),
+      },
       metadataRegistry: {
         get: jest.fn(),
         findNodesWhere: jest.fn().mockReturnValue([]),
@@ -203,6 +220,13 @@ describe('StepController', () => {
         (t: SubmitTransitionASTNode) => t.properties.validate === true,
       ),
       hasDomainValidation: false,
+    }
+
+    const routeTemplatePath = `/journey/${stepNode.properties.path.replace(/^\//, '')}`
+
+    mockRouteTemplateCatalog = {
+      routeTemplatePathByStepId: new Map([[stepNode.id, routeTemplatePath]]),
+      stepIdByRouteTemplatePath: new Map([[routeTemplatePath, stepNode.id]]),
     }
 
     return {
@@ -319,6 +343,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -348,6 +373,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act & Assert
@@ -373,6 +399,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -414,6 +441,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -458,6 +486,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -482,6 +511,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -523,6 +553,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -550,6 +581,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act & Assert
@@ -623,6 +655,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -665,7 +698,7 @@ describe('StepController', () => {
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {
           if (nodeId === submitTransition.id) {
             expect(context?.global.reachability).toEqual({
-              reachableSteps: [{ path: 'step-1', code: 'test-step' }],
+              reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
               unreachableSteps: [],
             })
 
@@ -692,6 +725,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -699,7 +733,7 @@ describe('StepController', () => {
 
         // Assert
         expect(mockContext.global.reachability).toEqual({
-          reachableSteps: [{ path: 'step-1', code: 'test-step' }],
+          reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
           unreachableSteps: [],
         })
       })
@@ -725,6 +759,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -759,6 +794,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -809,6 +845,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         await controller.post(mockReq, mockRes)
@@ -856,6 +893,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -889,6 +927,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -923,6 +962,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -956,6 +996,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -989,6 +1030,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -1018,6 +1060,7 @@ describe('StepController', () => {
           mockDependencies,
           mockNavigationMetadata,
           mockCurrentStepPath,
+          mockRouteTemplateCatalog,
         )
 
         // Act
@@ -1048,6 +1091,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1075,6 +1119,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1102,6 +1147,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1137,6 +1183,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1174,6 +1221,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1206,6 +1254,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1243,6 +1292,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1266,6 +1316,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1294,6 +1345,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act
@@ -1329,6 +1381,7 @@ describe('StepController', () => {
         mockDependencies,
         mockNavigationMetadata,
         mockCurrentStepPath,
+        mockRouteTemplateCatalog,
       )
 
       // Act

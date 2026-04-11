@@ -34,6 +34,12 @@ function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderC
   }
 }
 
+const defaultOptions: RenderContextOptions = {
+  navigationMetadata: [],
+  currentStepPath: '',
+  params: {},
+}
+
 function createStoredStep(path: string, title?: string): StepMetadata {
   return {
     path,
@@ -69,7 +75,7 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input)
+      const result = RenderContextFactory.build(input, defaultOptions)
 
       // Assert
       expect(result.step).toEqual({
@@ -106,7 +112,7 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+      const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
       expect(result.fieldValidationErrors).toEqual([
@@ -139,7 +145,7 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+      const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
       expect(result.fieldValidationErrors).toEqual([])
@@ -176,7 +182,7 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+      const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
       const renderedNestedBlock = (result.blocks[0].properties.content as { child: Evaluated<BlockASTNode> }).child
@@ -204,7 +210,7 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input, { showValidationFailures: true })
+      const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
       expect(result.domainValidationErrors).toEqual([
@@ -229,10 +235,84 @@ describe('RenderContextFactory', () => {
       })
 
       // Act
-      const result = RenderContextFactory.build(input)
+      const result = RenderContextFactory.build(input, defaultOptions)
 
       // Assert
       expect(result.domainValidationErrors).toEqual([])
+    })
+
+    it('should resolve param placeholders in navigation paths', () => {
+      // Arrange
+      const input = createRenderInput()
+      const options: RenderContextOptions = {
+        navigationMetadata: [
+          createStoredJourney(
+            '/user/:userId',
+            [
+              createStoredStep('/user/:userId/profile', 'Profile'),
+              createStoredStep('/user/:userId/settings', 'Settings'),
+            ],
+            { title: 'User' },
+          ),
+        ],
+        currentStepPath: '/user/:userId/profile',
+        params: { userId: 'abc-123' },
+      }
+
+      // Act
+      const result = RenderContextFactory.build(input, options)
+
+      // Assert
+      expect(result.navigation[0].path).toBe('/user/abc-123')
+      expect(result.navigation[0].children[0].path).toBe('/user/abc-123/profile')
+      expect(result.navigation[0].children[1].path).toBe('/user/abc-123/settings')
+    })
+
+    it('should preserve active state when resolving param placeholders', () => {
+      // Arrange
+      const input = createRenderInput()
+      const options: RenderContextOptions = {
+        navigationMetadata: [
+          createStoredJourney(
+            '/user/:userId',
+            [
+              createStoredStep('/user/:userId/profile', 'Profile'),
+              createStoredStep('/user/:userId/settings', 'Settings'),
+            ],
+            { title: 'User' },
+          ),
+        ],
+        currentStepPath: '/user/:userId/profile',
+        params: { userId: 'abc-123' },
+      }
+
+      // Act
+      const result = RenderContextFactory.build(input, options)
+
+      // Assert
+      expect(result.navigation[0].active).toBe(true)
+      expect(result.navigation[0].children[0].active).toBe(true)
+      expect(result.navigation[0].children[1].active).toBe(false)
+    })
+
+    it('should leave unmatched param placeholders unchanged', () => {
+      // Arrange
+      const input = createRenderInput()
+      const options: RenderContextOptions = {
+        navigationMetadata: [
+          createStoredJourney('/user/:userId', [createStoredStep('/user/:userId/item/:itemId', 'Item')], {
+            title: 'User',
+          }),
+        ],
+        currentStepPath: '/user/:userId/item/:itemId',
+        params: { userId: 'abc-123' },
+      }
+
+      // Act
+      const result = RenderContextFactory.build(input, options)
+
+      // Assert
+      expect(result.navigation[0].children[0].path).toBe('/user/abc-123/item/:itemId')
     })
 
     it('should build navigation tree with active state from metadata', () => {

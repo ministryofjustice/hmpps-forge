@@ -16,16 +16,20 @@ import {
   Evaluated,
   HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
+import { resolvePathParams } from '../../../framework/path/routePath'
 
 export interface RenderContextOptions {
   /** Show validation errors on blocks. Set to true after form submission. Defaults to false. */
   showValidationFailures?: boolean
 
   /** Raw navigation metadata from the router, hydrated with active state. */
-  navigationMetadata?: JourneyMetadata[]
+  navigationMetadata: JourneyMetadata[]
 
   /** Full path of the current step, used to determine active state in navigation. */
-  currentStepPath?: string
+  currentStepPath: string
+
+  /** Route params from the current request, used to resolve :param placeholders in navigation paths. */
+  params: Record<string, string>
 }
 
 export interface RenderContextInput {
@@ -41,7 +45,7 @@ export interface RenderContextInput {
 
 /** Builds RenderContext from explicit evaluated render inputs. */
 export default class RenderContextFactory {
-  static build(input: RenderContextInput, options: RenderContextOptions = {}): RenderContext {
+  static build(input: RenderContextInput, options: RenderContextOptions): RenderContext {
     const showValidationFailures = options.showValidationFailures ?? false
     const fieldValidationFailures = showValidationFailures ? (input.fieldValidationFailures ?? []) : []
     const domainValidationFailures = showValidationFailures ? (input.domainValidationFailures ?? []) : []
@@ -49,9 +53,14 @@ export default class RenderContextFactory {
       fieldValidationFailures.length > 0
         ? attachValidationToBlocks(input.blocks, fieldValidationFailures)
         : input.blocks
+    const navigation = buildNavigationTree(
+        options.navigationMetadata,
+        options.currentStepPath,
+        options.params,
+      )
 
     return {
-      navigation: buildNavigationTree(options.navigationMetadata ?? [], options.currentStepPath ?? ''),
+      navigation,
       step: input.step,
       ancestors: input.ancestors,
       blocks,
@@ -65,35 +74,47 @@ export default class RenderContextFactory {
   }
 }
 
-function buildNavigationTree(metadata: JourneyMetadata[], currentStepPath: string): NavigationTree {
-  return metadata.map(journey => toNavigationJourney(journey, currentStepPath))
+function buildNavigationTree(
+  metadata: JourneyMetadata[],
+  currentStepPath: string,
+  params: Record<string, string>,
+): NavigationTree {
+  return metadata.map(journey => toNavigationJourney(journey, currentStepPath, params))
 }
 
-function toNavigationJourney(stored: JourneyMetadata, currentStepPath: string): NavigationJourney {
+function toNavigationJourney(
+  stored: JourneyMetadata,
+  currentStepPath: string,
+  params: Record<string, string>,
+): NavigationJourney {
   const children = stored.children.map(child => {
     if ('children' in child) {
-      return toNavigationJourney(child, currentStepPath)
+      return toNavigationJourney(child, currentStepPath, params)
     }
 
-    return toNavigationStep(child, currentStepPath)
+    return toNavigationStep(child, currentStepPath, params)
   })
 
   return {
     type: 'journey',
     title: stored.title,
     description: stored.description,
-    path: stored.path,
+    path: resolvePathParams(stored.path, params),
     active: children.some(child => child.active),
     hiddenFromNavigation: stored.hiddenFromNavigation,
     children,
   }
 }
 
-function toNavigationStep(stored: StepMetadata, currentStepPath: string): NavigationStep {
+function toNavigationStep(
+  stored: StepMetadata,
+  currentStepPath: string,
+  params: Record<string, string>,
+): NavigationStep {
   return {
     type: 'step',
     title: stored.title,
-    path: stored.path,
+    path: resolvePathParams(stored.path, params),
     active: stored.path === currentStepPath,
     hiddenFromNavigation: stored.hiddenFromNavigation,
   }

@@ -4,6 +4,11 @@ import { StepASTNode } from '../../types/structures.type'
 
 export type StepResolver = () => CompiledStep
 
+export interface JourneyRouteTemplateCatalog {
+  routeTemplatePathByStepId: Map<NodeId, string>
+  stepIdByRouteTemplatePath: Map<string, NodeId>
+}
+
 export interface RouteMapEntry {
   stepId: NodeId
   resolveCompiledStep: StepResolver
@@ -14,4 +19,6 @@ export interface StepMountContext {
   stepNode: StepASTNode
   sharedArtefact: CompilationArtefact
   resolveCompiledStep: StepResolver
+  routeTemplatePath: string
+  routeTemplateCatalog: JourneyRouteTemplateCatalog
 }

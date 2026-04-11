@@ -2,6 +2,7 @@ import ThunkEvaluationContext, {
   JourneyReachabilityState,
   ReachabilityStep,
 } from '../../compilation/thunks/ThunkEvaluationContext'
+import { resolvePathParams } from '../../../framework/path/routePath'
 import BacklinkResolver from '../resolution/BacklinkResolver'
 import { NavigationStepState } from '../types/NavigationEvaluation.type'
 import RuntimeArtifacts from '../RuntimeArtifacts'
@@ -11,10 +12,10 @@ export default class ReachabilityStateProjector {
   private readonly backlinkResolver = new BacklinkResolver()
 
   projectToContext(artifacts: RuntimeArtifacts, context: ThunkEvaluationContext): void {
-    context.global.reachability = this.project(artifacts)
+    context.global.reachability = this.project(artifacts, context.request.getParams())
   }
 
-  project(artifacts: RuntimeArtifacts): JourneyReachabilityState {
+  project(artifacts: RuntimeArtifacts, params: Record<string, string>): JourneyReachabilityState {
     const evaluation = artifacts.requireNavigation()
     const fieldInventory = artifacts.requireStepFieldInventory()
 
@@ -24,7 +25,7 @@ export default class ReachabilityStateProjector {
 
     evaluation.steps.forEach(step => {
       const inventory = inventoryByStepId.get(step.stepId)
-      const projectedStep = this.projectStep(step, inventory)
+      const projectedStep = this.projectStep(step, inventory, params)
 
       if (step.isReachable) {
         reachableSteps.push(projectedStep)
@@ -39,8 +40,12 @@ export default class ReachabilityStateProjector {
     }
   }
 
-  private projectStep(step: NavigationStepState, inventory: StepFieldInventory | undefined): ReachabilityStep {
-    const projectedStep: ReachabilityStep = { path: step.path }
+  private projectStep(
+    step: NavigationStepState,
+    inventory: StepFieldInventory | undefined,
+    params: Record<string, string>,
+  ): ReachabilityStep {
+    const projectedStep: ReachabilityStep = { path: resolvePathParams(step.routeTemplatePath, params) }
 
     if (step.code) {
       projectedStep.code = step.code
@@ -60,7 +65,7 @@ export default class ReachabilityStateProjector {
     const backPath = this.backlinkResolver.resolveForStep(step)
 
     if (backPath) {
-      projectedStep.backPath = backPath
+      projectedStep.backPath = resolvePathParams(backPath, params)
     }
 
     return projectedStep

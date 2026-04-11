@@ -10,7 +10,7 @@ export default class RedirectResolver {
 
     const blockerPaths = evaluation.steps
       .filter(step => step.isReachable && !step.isValid)
-      .map(step => step.path)
+      .map(step => step.routeTemplatePath)
 
     if (blockerPaths.length === 1) {
       return blockerPaths[0]
@@ -18,6 +18,6 @@ export default class RedirectResolver {
 
     const reachableEntryPoint = evaluation.steps.find(step => step.isEntryPoint && step.isReachable)
 
-    return reachableEntryPoint?.path ?? evaluation.steps[0]?.path
+    return reachableEntryPoint?.routeTemplatePath ?? evaluation.steps[0]?.routeTemplatePath
   }
 }

@@ -1,8 +1,8 @@
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
+import { joinPaths } from '../../../framework/path/routePath'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import joinPaths from '../../utils/joinPaths'
 import { evaluatePropertyValue } from '../../utils/thunkEvaluatorsAsync'
 import { JourneyAncestor, RenderContext } from '../../../framework/rendering/types'
 

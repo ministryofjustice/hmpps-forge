@@ -12,10 +12,10 @@ export default class BacklinkResolver {
       return undefined
     }
 
-    if (step.predecessorPaths.length !== 1) {
+    if (step.predecessorRouteTemplatePaths.length !== 1) {
       return undefined
     }
 
-    return step.predecessorPaths[0]
+    return step.predecessorRouteTemplatePaths[0]
   }
 }

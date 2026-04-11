@@ -1,25 +1,33 @@
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
+import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 import RuntimeArtifacts from '../RuntimeArtifacts'
 import { StepFieldInventory } from '../types/StepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {
   const projector = new ReachabilityStateProjector()
 
+  function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
+    return {
+      stepId: 'compile_ast:40',
+      routeTemplatePath: '/journey/step-a',
+      isEntryPoint: false,
+      isReachable: true,
+      isValid: true,
+      forwardRouteTemplatePaths: [],
+      predecessorRouteTemplatePaths: [],
+      ...overrides,
+    }
+  }
+
   it('should omit fieldCodes when no field blocks exist', () => {
     // Arrange
     const evaluation: NavigationEvaluation = {
       currentStepId: 'compile_ast:40',
       steps: [
-        {
-          stepId: 'compile_ast:40',
-          path: 'step-a',
+        createNavigationStep({
           code: 'step-a',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     }
 
@@ -30,7 +38,7 @@ describe('ReachabilityStateProjector', () => {
     artifacts.setStepFieldInventory(fieldInventory)
 
     // Act
-    const result = projector.project(artifacts)
+    const result = projector.project(artifacts, {})
 
     // Assert
     expect(result.reachableSteps[0].fieldCodes).toBeUndefined()
@@ -41,23 +49,16 @@ describe('ReachabilityStateProjector', () => {
     const evaluation: NavigationEvaluation = {
       currentStepId: 'compile_ast:42',
       steps: [
-        {
+        createNavigationStep({
           stepId: 'compile_ast:42',
-          path: 'step-a',
           code: 'step-a',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
-        {
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:43',
-          path: 'step-b',
-          isEntryPoint: false,
+          routeTemplatePath: '/journey/step-b',
           isReachable: false,
-          isValid: true,
-          predecessorPaths: [],
-        },
+        }),
       ],
     }
 
@@ -71,7 +72,7 @@ describe('ReachabilityStateProjector', () => {
     artifacts.setStepFieldInventory(fieldInventory)
 
     // Act
-    const result = projector.project(artifacts)
+    const result = projector.project(artifacts, {})
 
     // Assert
     expect(result.reachableSteps[0].cleardownFieldCodes).toEqual(['fieldA', '^task_\\d+$'])
@@ -83,30 +84,21 @@ describe('ReachabilityStateProjector', () => {
     const evaluation: NavigationEvaluation = {
       currentStepId: 'compile_ast:54',
       steps: [
-        {
+        createNavigationStep({
           stepId: 'compile_ast:50',
-          path: 'first',
+          routeTemplatePath: '/journey/first',
           isEntryPoint: true,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: [],
-        },
-        {
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:52',
-          path: 'second',
-          isEntryPoint: false,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: ['first'],
-        },
-        {
+          routeTemplatePath: '/journey/second',
+          predecessorRouteTemplatePaths: ['/journey/first'],
+        }),
+        createNavigationStep({
           stepId: 'compile_ast:54',
-          path: 'third',
-          isEntryPoint: false,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: ['second'],
-        },
+          routeTemplatePath: '/journey/third',
+          predecessorRouteTemplatePaths: ['/journey/second'],
+        }),
       ],
     }
 
@@ -121,16 +113,16 @@ describe('ReachabilityStateProjector', () => {
     artifacts.setStepFieldInventory(fieldInventory)
 
     // Act
-    const result = projector.project(artifacts)
+    const result = projector.project(artifacts, {})
 
     // Assert
-    const first = result.reachableSteps.find(step => step.path === 'first')
-    const second = result.reachableSteps.find(step => step.path === 'second')
-    const third = result.reachableSteps.find(step => step.path === 'third')
+    const first = result.reachableSteps.find(step => step.path === '/journey/first')
+    const second = result.reachableSteps.find(step => step.path === '/journey/second')
+    const third = result.reachableSteps.find(step => step.path === '/journey/third')
 
     expect(first?.backPath).toBeUndefined()
-    expect(second?.backPath).toBe('first')
-    expect(third?.backPath).toBe('second')
+    expect(second?.backPath).toBe('/journey/first')
+    expect(third?.backPath).toBe('/journey/second')
   })
 
   it('should omit back path when a step has multiple predecessors', () => {
@@ -138,14 +130,11 @@ describe('ReachabilityStateProjector', () => {
     const evaluation: NavigationEvaluation = {
       currentStepId: 'compile_ast:59',
       steps: [
-        {
+        createNavigationStep({
           stepId: 'compile_ast:59',
-          path: 'converge',
-          isEntryPoint: false,
-          isReachable: true,
-          isValid: true,
-          predecessorPaths: ['branch-a', 'branch-b'],
-        },
+          routeTemplatePath: '/journey/converge',
+          predecessorRouteTemplatePaths: ['/journey/branch-a', '/journey/branch-b'],
+        }),
       ],
     }
 
@@ -156,7 +145,7 @@ describe('ReachabilityStateProjector', () => {
     artifacts.setStepFieldInventory(fieldInventory)
 
     // Act
-    const result = projector.project(artifacts)
+    const result = projector.project(artifacts, {})
 
     // Assert
     expect(result.reachableSteps[0].backPath).toBeUndefined()

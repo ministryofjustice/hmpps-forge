@@ -4,6 +4,7 @@ import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/component
 import {
   CookieMutation,
   CookieOptions,
+  extractPathname,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
@@ -114,11 +115,21 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     const query = (req.query as Record<string, string | string[]>) ?? {}
     const post = (req.body as Record<string, string | string[]>) ?? {}
     const state = req.state ?? {}
+    const origin = `${req.protocol}://${req.host}`
+    const href = `${origin}${req.originalUrl}`
+    const pathname = extractPathname(req.originalUrl)
+    const basePath = this.getBaseUrl(req)
 
     return {
       method: req.method as 'GET' | 'POST',
-      url: `${req.protocol}://${req.host}${req.originalUrl}`,
-      baseUrl: this.getBaseUrl(req),
+      url: href,
+      baseUrl: basePath,
+      location: {
+        origin,
+        href,
+        pathname,
+        basePath,
+      },
 
       getHeader: (name: string) => headers[name.toLowerCase()],
       getAllHeaders: () => headers,
@@ -271,11 +282,11 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
    * Calculate this by stripping req.path from req.originalUrl.
    */
   private getBaseUrl(req: express.Request): string {
-    const originalUrl = req.originalUrl
+    const originalUrlPath = extractPathname(req.originalUrl)
     const path = req.path
 
-    if (path && originalUrl.endsWith(path)) {
-      return originalUrl.slice(0, -path.length)
+    if (path && originalUrlPath.endsWith(path)) {
+      return originalUrlPath.slice(0, -path.length)
     }
 
     return req.baseUrl
