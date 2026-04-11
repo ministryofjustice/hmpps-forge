@@ -6,6 +6,7 @@ import type { JourneyDefinition, StepDefinition } from '../../../authoring/types
 import { JourneyMetadata, StepMetadata } from '../../../framework/rendering/types'
 import StepController from './StepController'
 import getAncestorChain from '../../utils/getAncestorChain'
+import joinPaths from '../../utils/joinPaths'
 import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type JourneyInstance from '../../JourneyInstance'
@@ -41,14 +42,6 @@ export default class ForgeRouter<TRouter> {
   ) {
     this.router = dependencies.frameworkAdapter.createRouter()
     this.basePath = this.normalizeBasePath(options.basePath)
-  }
-
-  /**
-   * Join path segments, collapsing consecutive slashes.
-   * e.g. joinPaths('/', '/') → '/', joinPaths('/feedback', '/name') → '/feedback/name'
-   */
-  private joinPaths(...segments: string[]): string {
-    return `/${segments.join('/').split('/').filter(Boolean).join('/')}`
   }
 
   /**
@@ -131,7 +124,7 @@ export default class ForgeRouter<TRouter> {
     const { router, basePath } = this.getOrCreateJourneyRouter(rootRouter, journeyAncestry)
 
     const stepPath = stepNode.properties.path
-    const fullPath = this.joinPaths(basePath, stepPath)
+    const fullPath = joinPaths(basePath, stepPath)
 
     if (this.routeMap.has(fullPath)) {
       throw new DuplicateRouteError({ path: fullPath })
@@ -180,7 +173,7 @@ export default class ForgeRouter<TRouter> {
 
     journeyAncestry.forEach(journey => {
       const journeyPath = journey.properties.path
-      basePath = this.joinPaths(basePath, journeyPath)
+      basePath = joinPaths(basePath, journeyPath)
 
       if (!this.journeyRouters.has(basePath)) {
         const newRouter = this.dependencies.frameworkAdapter.createRouter()
@@ -216,13 +209,13 @@ export default class ForgeRouter<TRouter> {
    */
   private resolveJourneyEntryPath(basePath: string, journey: JourneyASTNode): string | null {
     if (journey.properties.entryPath) {
-      return this.joinPaths(basePath, journey.properties.entryPath)
+      return joinPaths(basePath, journey.properties.entryPath)
     }
 
     const entryPointStep = journey.properties.steps?.find(step => step.properties.isEntryPoint)
 
     if (entryPointStep) {
-      return this.joinPaths(basePath, entryPointStep.properties.path)
+      return joinPaths(basePath, entryPointStep.properties.path)
     }
 
     return null
@@ -241,7 +234,7 @@ export default class ForgeRouter<TRouter> {
    * Extract navigation metadata from a journey definition recursively
    */
   private extractJourneyMetadata(journey: JourneyDefinition, parentPath: string): JourneyMetadata {
-    const journeyPath = this.joinPaths(parentPath, journey.path)
+    const journeyPath = joinPaths(parentPath, journey.path)
     const children: Array<JourneyMetadata | StepMetadata> = []
 
     journey.steps?.forEach(step => {
@@ -257,6 +250,7 @@ export default class ForgeRouter<TRouter> {
       description: journey.description,
       path: journeyPath,
       hiddenFromNavigation: journey.view?.hiddenFromNavigation,
+      metadata: journey.metadata,
       children,
     }
   }
@@ -267,8 +261,9 @@ export default class ForgeRouter<TRouter> {
   private extractStepMetadata(step: StepDefinition, parentPath: string): StepMetadata {
     return {
       title: step.title,
-      path: this.joinPaths(parentPath, step.path),
+      path: joinPaths(parentPath, step.path),
       hiddenFromNavigation: step.view?.hiddenFromNavigation,
+      metadata: step.metadata,
     }
   }
 }

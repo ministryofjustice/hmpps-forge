@@ -2,6 +2,7 @@ import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
+import joinPaths from '../../utils/joinPaths'
 import { evaluatePropertyValue } from '../../utils/thunkEvaluatorsAsync'
 import { JourneyAncestor, RenderContext } from '../../../framework/rendering/types'
 
@@ -29,10 +30,12 @@ export default class MetadataExecutor {
     const stepNode = this.getStepNode(runtimePlan.renderStepId, context)
     const ancestorNodes = this.getAncestorNodes(runtimePlan.renderAncestorIds, context)
 
-    const [step, ancestors] = await Promise.all([
+    const [step, rawAncestors] = await Promise.all([
       this.evaluateStepMetadata(stepNode, invoker, context),
       Promise.all(ancestorNodes.map(node => this.evaluateJourneyMetadata(node, invoker, context))),
     ])
+
+    const ancestors = this.composeAncestorPaths(rawAncestors)
 
     return {
       step,
@@ -75,6 +78,16 @@ export default class MetadataExecutor {
     return Object.fromEntries(
       Object.entries(journeyNode.properties).filter(([key]) => !MetadataExecutor.JOURNEY_EXCLUDED_PROPS.has(key)),
     )
+  }
+
+  private composeAncestorPaths(ancestors: JourneyAncestor[]): JourneyAncestor[] {
+    let composedPath = ''
+
+    return ancestors.map(ancestor => {
+      composedPath = joinPaths(composedPath, ancestor.path)
+
+      return { ...ancestor, path: composedPath }
+    })
   }
 
   private async evaluateStepMetadata(

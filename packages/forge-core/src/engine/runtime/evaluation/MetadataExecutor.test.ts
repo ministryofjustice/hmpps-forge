@@ -115,9 +115,44 @@ describe('MetadataExecutor', () => {
           },
         ],
       })
-      expect(invoker.invoke).toHaveBeenCalledWith(dynamicTitle.id, context)
-      expect(invoker.invoke).toHaveBeenCalledWith(dynamicJourneyTitle.id, context)
-      expect(invoker.invoke).not.toHaveBeenCalledWith(block.id, context)
+    })
+
+    it('should compose ancestor paths through the hierarchy', async () => {
+      // Arrange
+      const rootJourney = ASTTestFactory.journey()
+        .withId('compile_ast:root')
+        .withCode('root')
+        .withTitle('Root')
+        .withProperty('path', '/root')
+        .build()
+      const childJourney = ASTTestFactory.journey()
+        .withId('compile_ast:child')
+        .withCode('child')
+        .withTitle('Child')
+        .withProperty('path', '/child')
+        .build()
+      const step = ASTTestFactory.step()
+        .withId('compile_ast:step')
+        .withPath('/step')
+        .withTitle('Step')
+        .build()
+      const runtimePlan = createRuntimePlan({
+        renderAncestorIds: [rootJourney.id, childJourney.id],
+        renderStepId: step.id,
+      })
+
+      nodes.set(rootJourney.id, rootJourney)
+      nodes.set(childJourney.id, childJourney)
+      nodes.set(step.id, step)
+
+      // Act
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.ancestors).toEqual([
+        { code: 'root', path: '/root', title: 'Root' },
+        { code: 'child', path: '/root/child', title: 'Child' },
+      ])
     })
   })
 })

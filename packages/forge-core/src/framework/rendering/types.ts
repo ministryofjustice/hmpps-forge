@@ -33,6 +33,7 @@ export interface StepMetadata {
   title?: string
   path: string
   hiddenFromNavigation?: boolean
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -43,6 +44,7 @@ export interface JourneyMetadata {
   description?: string
   path: string
   hiddenFromNavigation?: boolean
+  metadata?: Record<string, unknown>
   children: (JourneyMetadata | StepMetadata)[]
 }
 
