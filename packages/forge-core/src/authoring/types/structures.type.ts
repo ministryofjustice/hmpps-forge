@@ -13,9 +13,6 @@ export interface ViewConfig {
 
   /** Arbitrary properties to pass to the template as locals */
   locals?: Record<string, unknown>
-
-  /** If true, this step/journey will be marked as hidden in the navigation tree */
-  hiddenFromNavigation?: boolean
 }
 
 /**

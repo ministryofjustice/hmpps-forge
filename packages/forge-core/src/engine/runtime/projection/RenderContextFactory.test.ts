@@ -348,14 +348,14 @@ describe('RenderContextFactory', () => {
           description: 'Journey Description',
           path: '/journey',
           active: true,
-          hiddenFromNavigation: undefined,
+          metadata: undefined,
           children: [
             {
               type: 'step',
               title: 'Step 1',
               path: '/journey/step-1',
               active: false,
-              hiddenFromNavigation: undefined,
+              metadata: undefined,
             },
             {
               type: 'journey',
@@ -363,14 +363,14 @@ describe('RenderContextFactory', () => {
               description: undefined,
               path: '/journey/child',
               active: true,
-              hiddenFromNavigation: undefined,
+              metadata: undefined,
               children: [
                 {
                   type: 'step',
                   title: 'Child Step',
                   path: '/journey/child/step',
                   active: true,
-                  hiddenFromNavigation: undefined,
+                  metadata: undefined,
                 },
               ],
             },

@@ -101,7 +101,7 @@ function toNavigationJourney(
     description: stored.description,
     path: resolvePathParams(stored.path, params),
     active: children.some(child => child.active),
-    hiddenFromNavigation: stored.hiddenFromNavigation,
+    metadata: stored.metadata,
     children,
   }
 }
@@ -116,7 +116,7 @@ function toNavigationStep(
     title: stored.title,
     path: resolvePathParams(stored.path, params),
     active: stored.path === currentStepPath,
-    hiddenFromNavigation: stored.hiddenFromNavigation,
+    metadata: stored.metadata,
   }
 }
 

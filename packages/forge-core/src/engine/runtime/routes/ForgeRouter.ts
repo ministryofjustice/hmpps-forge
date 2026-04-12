@@ -275,7 +275,6 @@ export default class ForgeRouter<TRouter> {
       title: journey.title,
       description: journey.description,
       path: journeyPath,
-      hiddenFromNavigation: journey.view?.hiddenFromNavigation,
       metadata: journey.metadata,
       children,
     }
@@ -288,7 +287,6 @@ export default class ForgeRouter<TRouter> {
     return {
       title: step.title,
       path: joinPaths(parentPath, step.path),
-      hiddenFromNavigation: step.view?.hiddenFromNavigation,
       metadata: step.metadata,
     }
   }

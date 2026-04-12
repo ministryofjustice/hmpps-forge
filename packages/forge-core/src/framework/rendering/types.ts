@@ -32,7 +32,6 @@ type EvaluatedProperties<P> = {
 export interface StepMetadata {
   title?: string
   path: string
-  hiddenFromNavigation?: boolean
   metadata?: Record<string, unknown>
 }
 
@@ -43,7 +42,6 @@ export interface JourneyMetadata {
   title?: string
   description?: string
   path: string
-  hiddenFromNavigation?: boolean
   metadata?: Record<string, unknown>
   children: (JourneyMetadata | StepMetadata)[]
 }

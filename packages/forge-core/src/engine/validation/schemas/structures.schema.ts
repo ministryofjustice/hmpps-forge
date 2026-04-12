@@ -15,7 +15,6 @@ import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSc
 export const ViewConfigSchema = z.object({
   template: z.string().optional(),
   locals: z.record(z.string(), z.unknown()).optional(),
-  hiddenFromNavigation: z.boolean().optional(),
 })
 
 // TODO: Maybe add other Conditional like ConditionalBoolean etc.
