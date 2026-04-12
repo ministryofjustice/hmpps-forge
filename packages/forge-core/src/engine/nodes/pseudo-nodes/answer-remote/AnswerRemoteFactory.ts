@@ -5,7 +5,7 @@ import { AnswerRemotePseudoNode, PseudoNodeType } from '../../../types/pseudoNod
  * AnswerRemoteFactory: Creates ANSWER_REMOTE pseudo nodes
  *
  * ANSWER_REMOTE pseudo nodes represent field answers for fields on a different step.
- * They only have dependencies on onLoad transitions (value is read from context.answers).
+ * They only have dependencies on onAccess hooks (value is read from context.answers).
  */
 export default class AnswerRemoteFactory {
   constructor(

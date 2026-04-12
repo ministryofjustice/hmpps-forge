@@ -68,15 +68,15 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
   const runtimePlan: StepRuntimePlan = {
     stepId: ancestors.at(-1)!.id,
     accessAncestorIds,
-    actionTransitionIds: [],
-    submitTransitionIds: [],
+    actionHookIds: [],
+    submitHookIds: [],
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
     domainValidationNodeIds: [],
     renderAncestorIds: accessAncestorIds.slice(0, -1),
     renderStepId: ancestors.at(-1)!.id,
-    hasValidatingSubmitTransition: false,
+    hasValidatingSubmitHook: false,
     hasDomainValidation: false,
   }
 

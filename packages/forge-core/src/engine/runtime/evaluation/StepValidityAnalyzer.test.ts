@@ -49,15 +49,15 @@ function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {
   return {
     stepId,
     accessAncestorIds: [stepId],
-    actionTransitionIds: [],
-    submitTransitionIds: [],
+    actionHookIds: [],
+    submitHookIds: [],
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
     domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: stepId,
-    hasValidatingSubmitTransition: false,
+    hasValidatingSubmitHook: false,
     hasDomainValidation: false,
     ...options,
   }

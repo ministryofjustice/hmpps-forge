@@ -6,13 +6,13 @@ import { JourneyASTNode } from '../../types/structures.type'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 
 /**
- * ContextPreparer - Creates and prepares the evaluation context before transitions run
+ * ContextPreparer - Creates and prepares the evaluation context before hooks run
  *
  * Creates the ThunkEvaluationContext via the evaluator, then resolves the ancestor
  * chain for a step and merges all ancestors' static data into context.global.data
  * (outermost first, so inner ancestors override outer).
  *
- * This must run before access transitions so that effects can read static data
+ * This must run before access hooks so that effects can read static data
  * via context.getData().
  */
 export default class ContextPreparer {
@@ -20,7 +20,7 @@ export default class ContextPreparer {
   /**
    * Create an evaluation context and prepare it with merged static data.
    *
-   * @returns A context ready for transition execution and evaluation
+   * @returns A context ready for hook execution and evaluation
    */
   prepare(
     runtimePlan: StepRuntimePlan,

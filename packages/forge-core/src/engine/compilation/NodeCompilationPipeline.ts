@@ -101,7 +101,7 @@ export class NodeCompilationPipeline {
    * - PARAMS: URL path parameters
    * - REQUEST: Request metadata exposed via Request.*
    * - SESSION: Session data exposed via Session()
-   * - DATA: External data loaded via onLoad
+   * - DATA: External data loaded via onAccess
    *
    * Pseudo nodes are automatically registered in the node registry.
    *

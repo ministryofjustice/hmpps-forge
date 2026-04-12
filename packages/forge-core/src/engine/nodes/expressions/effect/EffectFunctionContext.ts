@@ -1,5 +1,5 @@
 import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationContext'
-import { AnswerHistory, TransitionType } from '../../../compilation/thunks/types'
+import { AnswerHistory, HookType } from '../../../compilation/thunks/types'
 import type { CookieMutation, CookieOptions } from '../../../../framework/types/response.type'
 import { assertSerializable } from '../../../../shared/utils/asserts'
 import FieldsToClearResolver from '../../../runtime/resolution/FieldsToClearResolver'
@@ -20,7 +20,7 @@ function assertStringParam(value: unknown, method: string, param: string): void 
  * - Request data (params, query, post, session, state)
  * - Response mutations (headers, cookies)
  *
- * The transitionType parameter determines the source recorded when setting answers.
+ * The hookType parameter determines the source recorded when setting answers.
  * This enables precedence logic: action-set answers are protected from POST override.
  *
  * @typeParam TData - Type for stored data (accessed via getData/setData)
@@ -65,7 +65,7 @@ class EffectFunctionContext<
   /** @internal */
   constructor(
     private readonly context: ThunkEvaluationContext,
-    private readonly transitionType: TransitionType,
+    private readonly hookType: HookType,
   ) {}
 
   /**
@@ -78,7 +78,7 @@ class EffectFunctionContext<
   /**
    * Set a specific answer value
    *
-   * Pushes a mutation to the answer's history with the current transitionType as source.
+   * Pushes a mutation to the answer's history with the current hookType as source.
    * This enables precedence logic and delta tracking via mutation history.
    *
    * Clears the evaluation cache so subsequent phases (validation, render) re-evaluate
@@ -89,7 +89,7 @@ class EffectFunctionContext<
 
     const history = this.context.global.answers[key] ?? { current: undefined, mutations: [] }
 
-    history.mutations.push({ value, source: this.transitionType })
+    history.mutations.push({ value, source: this.hookType })
     history.current = value
     this.context.global.answers[key] = history
 

@@ -1,5 +1,5 @@
-import { SubmitTransitionASTNode } from '../../../types/expressions.type'
-import { TransitionType, ExpressionType, FunctionType } from '../../../../authoring/types/enums'
+import { SubmitHookASTNode } from '../../../types/expressions.type'
+import { HookType, ExpressionType, FunctionType } from '../../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
 import { createMockInvoker } from '../../../../testing/thunkTestHelpers'
 import SubmitHandler from './SubmitHandler'
@@ -46,12 +46,12 @@ describe('SubmitHandler', () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('when', whenPredicate)
         .withProperty('validate', false)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({ defaultValue: false })
@@ -68,12 +68,12 @@ describe('SubmitHandler', () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('when', whenPredicate)
         .withProperty('validate', false)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({ defaultValue: true })
@@ -87,11 +87,11 @@ describe('SubmitHandler', () => {
 
     it('should execute when when-predicate is not present', async () => {
       // Arrange
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker()
@@ -107,12 +107,12 @@ describe('SubmitHandler', () => {
       // Arrange
       const guardsPredicate = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('guards', guardsPredicate)
         .withProperty('validate', false)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({ defaultValue: false })
@@ -128,12 +128,12 @@ describe('SubmitHandler', () => {
       // Arrange
       const guardsPredicate = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('guards', guardsPredicate)
         .withProperty('validate', false)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({ defaultValue: true })
@@ -145,18 +145,18 @@ describe('SubmitHandler', () => {
       expect(result.value?.executed).toBe(true)
     })
 
-    it('should execute onAlways effects for skip-validation transition', async () => {
+    it('should execute onAlways effects for skip-validation hook', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logSubmission')
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           effects: [effect],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
 
@@ -186,18 +186,18 @@ describe('SubmitHandler', () => {
       expect(result.value?.validated).toBe(false)
     })
 
-    it('should evaluate next expressions and return navigation target for skip-validation transition', async () => {
+    it('should evaluate next expressions and return navigation target for skip-validation hook', async () => {
       // Arrange
       const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/success' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           next: [redirectOutcome],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
@@ -217,20 +217,20 @@ describe('SubmitHandler', () => {
       expect(result.value?.redirect).toBe('/success')
     })
 
-    it('should execute effects and evaluate next expressions for skip-validation transition', async () => {
+    it('should execute effects and evaluate next expressions for skip-validation hook', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'saveData')
       const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/next' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           effects: [effect],
           next: [redirectOutcome],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const effectsExecuted: string[] = []
@@ -269,7 +269,7 @@ describe('SubmitHandler', () => {
       const alwaysEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'logAttempt')
       const validEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'saveData')
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
         .withProperty('onAlways', {
           effects: [alwaysEffect],
@@ -277,9 +277,9 @@ describe('SubmitHandler', () => {
         .withProperty('onValid', {
           effects: [validEffect],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const effectsExecuted: string[] = []
       const mockInvoker = createMockInvoker({
@@ -341,14 +341,14 @@ describe('SubmitHandler', () => {
       // Arrange
       const validRedirect = ASTTestFactory.redirectOutcome({ goto: '/success' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
         .withProperty('onValid', {
           next: [validRedirect],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
@@ -397,14 +397,14 @@ describe('SubmitHandler', () => {
       // Arrange
       const invalidRedirect = ASTTestFactory.redirectOutcome({ goto: '/error' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
         .withProperty('onInvalid', {
           next: [invalidRedirect],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockInvoker = createMockInvoker({
         invokeImpl: async (nodeId: string) => {
@@ -451,11 +451,11 @@ describe('SubmitHandler', () => {
     })
 
     it('should error when validation is enabled but validation state is missing', async () => {
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker()
 
@@ -469,14 +469,14 @@ describe('SubmitHandler', () => {
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
       const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2')
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           effects: [effect1, effect2],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const effectsExecuted: string[] = []
@@ -519,14 +519,14 @@ describe('SubmitHandler', () => {
       const redirect1 = ASTTestFactory.redirectOutcome({ goto: '/first' })
       const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/second' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           next: [redirect1, redirect2],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
@@ -554,14 +554,14 @@ describe('SubmitHandler', () => {
       // Arrange
       const redirect = ASTTestFactory.redirectOutcome({ goto: '/path' })
 
-      const transition = ASTTestFactory.transition(TransitionType.SUBMIT)
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)
         .withProperty('onAlways', {
           next: [redirect],
         })
-        .build() as SubmitTransitionASTNode
+        .build() as SubmitHookASTNode
 
-      const handler = new SubmitHandler(transition.id, transition)
+      const handler = new SubmitHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({

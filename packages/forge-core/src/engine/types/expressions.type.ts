@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, IteratorType, TransitionType, OutcomeType } from '../../authoring/types/enums'
+import { ExpressionType, FunctionType, IteratorType, HookType, OutcomeType } from '../../authoring/types/enums'
 import { ASTNodeType } from './enums'
 import { ASTNode } from './ast.type'
 import { TemplateValue } from './template.type'
@@ -39,7 +39,7 @@ export interface NextASTNode extends ExpressionASTNode {
 }
 
 /**
- * Outcome AST node - represents transition outcomes (redirects and errors)
+ * Outcome AST node - represents hook outcomes (redirects and errors)
  */
 export interface OutcomeASTNode extends ASTNode {
   type: ASTNodeType.OUTCOME
@@ -165,18 +165,18 @@ export interface ValidationASTNode extends ExpressionASTNode {
 }
 
 /**
- * Transition AST node - represents lifecycle transitions
+ * Hook AST node - represents lifecycle hooks
  */
-export interface TransitionASTNode extends ASTNode {
-  type: ASTNodeType.TRANSITION
-  transitionType: TransitionType
+export interface HookASTNode extends ASTNode {
+  type: ASTNodeType.HOOK
+  hookType: HookType
 }
 
 /**
- * Access Transition AST node
+ * Access Hook AST node
  */
-export interface AccessTransitionASTNode extends TransitionASTNode {
-  transitionType: TransitionType.ACCESS
+export interface AccessHookASTNode extends HookASTNode {
+  hookType: HookType.ACCESS
   properties: {
     when?: ASTNode
     effects?: ASTNode[]
@@ -185,10 +185,10 @@ export interface AccessTransitionASTNode extends TransitionASTNode {
 }
 
 /**
- * Action Transition AST node
+ * Action Hook AST node
  */
-export interface ActionTransitionASTNode extends TransitionASTNode {
-  transitionType: TransitionType.ACTION
+export interface ActionHookASTNode extends HookASTNode {
+  hookType: HookType.ACTION
   properties: {
     when: ASTNode
     effects: ASTNode[]
@@ -196,10 +196,10 @@ export interface ActionTransitionASTNode extends TransitionASTNode {
 }
 
 /**
- * Submit Transition AST node
+ * Submit Hook AST node
  */
-export interface SubmitTransitionASTNode extends TransitionASTNode {
-  transitionType: TransitionType.SUBMIT
+export interface SubmitHookASTNode extends HookASTNode {
+  hookType: HookType.SUBMIT
   properties: {
     when?: ASTNode
     guards?: ASTNode

@@ -9,7 +9,7 @@ import ThunkEvaluationError from '../../../errors/ThunkEvaluationError'
  * Handler for ANSWER_REMOTE pseudo nodes
  *
  * Returns resolved field answers from other steps (not the current step).
- * The answer has already been resolved and stored in context.answers by a previous OnLoad transition.
+ * The answer has already been resolved and stored in context.answers by a previous OnAccess hook.
  */
 export default class AnswerRemoteHandler implements ThunkHandler {
   isAsync = false

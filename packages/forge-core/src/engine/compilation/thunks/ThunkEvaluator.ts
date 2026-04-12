@@ -152,7 +152,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
   /**
    * Create an evaluation context from request and response.
    *
-   * Use this to create a context before running lifecycle transitions,
+   * Use this to create a context before running lifecycle hooks,
    * then pass the same context to evaluate().
    *
    * @param request - HTTP request data (url, post, query, params, etc.)

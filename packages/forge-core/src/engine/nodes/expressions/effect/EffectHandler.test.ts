@@ -24,8 +24,8 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['save', mockEffectFn]]),
       })
 
-      // Push transition type to scope (as transition handlers do)
-      mockContext.scope.push({ '@transitionType': 'load' })
+      // Push hook type to scope (as hook handlers do)
+      mockContext.scope.push({ '@hookType': 'access' })
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -55,7 +55,7 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['saveAnswer', mockEffectFn]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'action' })
+      mockContext.scope.push({ '@hookType': 'action' })
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -66,7 +66,7 @@ describe('EffectHandler', () => {
       // Assert
       expect(result.value).toBeUndefined()
       expect(mockEffectFn.evaluate).toHaveBeenCalledWith(
-        expect.objectContaining({ context: mockContext, transitionType: 'action' }),
+        expect.objectContaining({ context: mockContext, hookType: 'action' }),
         'email',
         'test@example.com',
       )
@@ -88,7 +88,7 @@ describe('EffectHandler', () => {
         mockNodes: new Map([[refNode.id, refNode]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'submit' })
+      mockContext.scope.push({ '@hookType': 'submit' })
 
       const mockInvoker = createMockInvoker({ defaultValue: 'captured@example.com' })
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -100,7 +100,7 @@ describe('EffectHandler', () => {
       expect(mockInvoker.invoke).toHaveBeenCalledWith(refNode.id, mockContext)
       expect(result.value).toBeUndefined()
       expect(mockEffectFn.evaluate).toHaveBeenCalledWith(
-        expect.objectContaining({ transitionType: 'submit' }),
+        expect.objectContaining({ hookType: 'submit' }),
         'captured@example.com',
       )
     })
@@ -121,7 +121,7 @@ describe('EffectHandler', () => {
         mockNodes: new Map([[refNode.id, refNode]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'load' })
+      mockContext.scope.push({ '@hookType': 'access' })
 
       const mockInvoker = createMockInvoker({ defaultValue: 42 })
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -132,7 +132,7 @@ describe('EffectHandler', () => {
       // Assert
       expect(result.value).toBeUndefined()
       expect(mockEffectFn.evaluate).toHaveBeenCalledWith(
-        expect.objectContaining({ transitionType: 'load' }),
+        expect.objectContaining({ hookType: 'access' }),
         'itemCount',
         42,
         true,
@@ -154,7 +154,7 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['logValue', mockEffectFn]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'load' })
+      mockContext.scope.push({ '@hookType': 'access' })
 
       const mockInvoker = createMockInvokerWithError({
         nodeId: refNode.id,
@@ -179,7 +179,7 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map(), // Empty - no effects registered
       })
 
-      mockContext.scope.push({ '@transitionType': 'load' })
+      mockContext.scope.push({ '@hookType': 'access' })
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -212,7 +212,7 @@ describe('EffectHandler', () => {
         ]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'action' })
+      mockContext.scope.push({ '@hookType': 'action' })
 
       const mockInvoker = createMockInvoker({
         returnValueMap: new Map([
@@ -249,7 +249,7 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['addToCollection', mockEffectFn]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'submit' })
+      mockContext.scope.push({ '@hookType': 'submit' })
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -292,7 +292,7 @@ describe('EffectHandler', () => {
         mockNodes: new Map([[formatNode.id, formatNode]]),
       })
 
-      mockContext.scope.push({ '@transitionType': 'submit' })
+      mockContext.scope.push({ '@hookType': 'submit' })
 
       const mockInvoker = createMockInvoker({
         returnValueMap: new Map([[formatNode.id, 'You added a goal to John plan']]),
@@ -314,7 +314,7 @@ describe('EffectHandler', () => {
       })
     })
 
-    it('should default to load transition type when scope is empty', async () => {
+    it('should default to load hook type when scope is empty', async () => {
       // Arrange
       const effectNode = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'track')
 
@@ -328,7 +328,7 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['track', mockEffectFn]]),
       })
 
-      // Don't push anything to scope - should default to 'load'
+      // Don't push anything to scope - should default to 'access'
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -337,10 +337,10 @@ describe('EffectHandler', () => {
       await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.objectContaining({ transitionType: 'load' }))
+      expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.objectContaining({ hookType: 'access' }))
     })
 
-    it('should read @transitionType from scope', async () => {
+    it('should read @hookType scope key from scope', async () => {
       // Arrange
       const effectNode = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'track')
 
@@ -354,8 +354,8 @@ describe('EffectHandler', () => {
         mockRegisteredFunctions: new Map([['track', mockEffectFn]]),
       })
 
-      // Push access transition type to scope
-      mockContext.scope.push({ '@transitionType': 'access' })
+      // Push access hook type to scope
+      mockContext.scope.push({ '@hookType': 'access' })
 
       const mockInvoker = createMockInvoker()
       const handler = new EffectHandler(effectNode.id, effectNode)
@@ -364,7 +364,7 @@ describe('EffectHandler', () => {
       await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.objectContaining({ transitionType: 'access' }))
+      expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.objectContaining({ hookType: 'access' }))
     })
   })
 })

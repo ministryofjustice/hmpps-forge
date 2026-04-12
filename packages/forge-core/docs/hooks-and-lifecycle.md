@@ -1,6 +1,6 @@
-# Transitions and Lifecycle
+# Hooks and Lifecycle
 
-Forge uses a lifecycle system to control access control, data loading, in-page actions, and form submission. Transitions define what happens at each stage of the request lifecycle.
+Forge uses a lifecycle system to control access control, data loading, in-page actions, and form submission. Hooks define what happens at each stage of the request lifecycle.
 
 This enables:
 - Controlling access to steps based on conditions
@@ -9,22 +9,22 @@ This enables:
 - Validating, saving, and navigating on form submission
 - Conditional navigation based on user answers
 
-## Transition Types
+## Hook Types
 
-| Transition | Builder | Where Used | Purpose |
-|------------|---------|------------|---------|
-| **Access** | `accessTransition()` | journey, step | Load data, check permissions, redirect or error |
-| **Action** | `actionTransition()` | step only | Handle in-page actions (lookups, fetches) |
-| **Submit** | `submitTransition()` | step only | Validate, save, and navigate |
+| Hook | Builder | Where Used | Purpose |
+|------|---------|------------|---------|
+| **Access** | `access()` | journey, step | Load data, check permissions, redirect or error |
+| **Action** | `action()` | step only | Handle in-page actions (lookups, fetches) |
+| **Submit** | `submit()` | step only | Validate, save, and navigate |
 
 ### Import
 
 ```typescript
 import {
-  // Transition builders
-  accessTransition,
-  actionTransition,
-  submitTransition,
+  // Hook builders
+  access,
+  action,
+  submit,
   // Outcome builders
   redirect,
   throwError,
@@ -66,14 +66,14 @@ Different lifecycle hooks execute differently:
 
 ---
 
-## `accessTransition()` - Access Control and Data Loading
+## `access()` - Access Control and Data Loading
 
-Controls access to journeys and steps, and loads data needed for rendering. The `when` condition determines whether this transition executes.
+Controls access to journeys and steps, and loads data needed for rendering. The `when` condition determines whether this hook executes.
 
 ### Signature
 
 ```typescript
-accessTransition({
+access({
   when?: PredicateExpr,           // Execution condition
   effects?: EffectFunctionExpr[], // Effects to run
   next?: [                        // Outcomes (first match wins)
@@ -85,38 +85,38 @@ accessTransition({
 
 ### Properties
 
-- `when` (Optional): Execution condition. When **true**, this transition **executes**. When omitted, always executes.
-- `effects` (Optional): Effects to run when this transition executes
+- `when` (Optional): Execution condition. When **true**, this hook **executes**. When omitted, always executes.
+- `effects` (Optional): Effects to run when this hook executes
 - `next` (Optional): Array of outcomes. First matching outcome wins. Can contain:
   - `redirect({ when?, goto })` - Navigate to a path
   - `throwError({ when?, status, message })` - Return an HTTP error
 
 ### Execution Semantics
 
-Access transitions execute sequentially in order:
+Access hooks execute sequentially in order:
 
-1. If `when` is present and evaluates to **false**, skip to next transition
-2. If `when` is absent or evaluates to **true**, execute this transition:
+1. If `when` is present and evaluates to **false**, skip to next hook
+2. If `when` is absent or evaluates to **true**, execute this hook:
    - Run all `effects`
    - Evaluate `next` outcomes in order (first match wins)
    - If a redirect or error outcome matches, stop processing
-   - Otherwise, continue to next transition
-3. After all transitions, render the page
+   - Otherwise, continue to next hook
+3. After all hooks, render the page
 
 ```typescript
 // Effects-only: always runs, then continues
-accessTransition({
+access({
   effects: [MyEffects.loadUserProfile()],
 })
 
 // Conditional redirect: when true, redirect
-accessTransition({
+access({
   when: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
   next: [redirect({ goto: '/login' })],
 })
 
 // Error response: when true, return error
-accessTransition({
+access({
   when: Data('itemNotFound').match(Condition.Equals(true)),
   next: [
     throwError({
@@ -127,7 +127,7 @@ accessTransition({
 })
 
 // Permission denied
-accessTransition({
+access({
   when: Data('item.canEdit').not.match(Condition.Equals(true)),
   next: [
     throwError({
@@ -140,17 +140,17 @@ accessTransition({
 
 ### Data Loading Pattern
 
-Use effects-only transitions (no `next`) to load data:
+Use effects-only hooks (no `next`) to load data:
 
 ```typescript
 onAccess: [
   // Load data first - always executes
-  accessTransition({
+  access({
     effects: [MyEffects.loadItem(Params('itemId'))],
   }),
 
   // Then check access based on loaded data
-  accessTransition({
+  access({
     when: Data('itemNotFound').match(Condition.Equals(true)),
     next: [throwError({ status: 404, message: 'Item not found' })],
   }),
@@ -167,14 +167,14 @@ onAccess: [
 
 ---
 
-## `actionTransition()` - In-Page Actions
+## `action()` - In-Page Actions
 
 Handles in-page actions like address lookups and data fetches. Runs **before** blocks render, so effect-set values appear immediately.
 
 ### Signature
 
 ```typescript
-actionTransition({
+action({
   when: PredicateExpr,            // Required: trigger condition
   effects: EffectFunctionExpr[],  // Required: effects to execute
 })
@@ -229,14 +229,14 @@ step({
   ],
 
   onAction: [
-    actionTransition({
+    action({
       when: Post('action').match(Condition.Equals('lookup')),
       effects: [MyEffects.lookupPostcode(Post('postcode'))],
     }),
   ],
 
   onSubmission: [
-    submitTransition({
+    submit({
       when: Post('action').match(Condition.Equals('continue')),
       validate: true,
       onValid: {
@@ -251,20 +251,20 @@ step({
 ### Key Characteristics
 
 - **Step-level only**: Not available on journeys
-- **First-match**: Only the first matching `actionTransition` runs
+- **First-match**: Only the first matching `action()` runs
 - **Before render**: Effects execute before blocks render
 - **No navigation**: Actions always stay on the current page
 
 ---
 
-## `submitTransition()` - Form Submission
+## `submit()` - Form Submission
 
-Handles form submission, validation, and navigation. The most complex transition type with multiple execution paths.
+Handles form submission, validation, and navigation. The most complex hook type with multiple execution paths.
 
 ### Signature
 
 ```typescript
-submitTransition({
+submit({
   when?: PredicateExpr,     // Which button triggered
   guards?: PredicateExpr,   // Permission check (true = proceed)
   validate?: boolean,       // Show validation errors?
@@ -285,8 +285,8 @@ submitTransition({
 
 ### Properties
 
-- `when` (Optional): Condition to match this transition. If omitted, always matches (use as fallback)
-- `guards` (Optional): Permission check. When **true**, transition proceeds
+- `when` (Optional): Condition to match this hook. If omitted, always matches (use as fallback)
+- `guards` (Optional): Permission check. When **true**, hook proceeds
 - `validate` (Optional): Whether to show validation errors. Defaults to `false`
 - `onAlways` (Optional): Runs regardless of validation result
 - `onValid` (Optional): Runs only if validation passes
@@ -305,7 +305,7 @@ Validation always runs internally. The `validate` property controls whether erro
 
 **Validate and continue:**
 ```typescript
-submitTransition({
+submit({
   validate: true,
   onValid: {
     effects: [MyEffects.saveAnswers()],
@@ -316,7 +316,7 @@ submitTransition({
 
 **Save draft without validation:**
 ```typescript
-submitTransition({
+submit({
   when: Post('action').match(Condition.Equals('saveDraft')),
   validate: false,
   onAlways: {
@@ -328,7 +328,7 @@ submitTransition({
 
 **Stay on step when invalid:**
 ```typescript
-submitTransition({
+submit({
   validate: true,
   onValid: {
     effects: [MyEffects.saveAnswers()],
@@ -346,7 +346,7 @@ submitTransition({
 ```typescript
 onSubmission: [
   // Save and add another
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('saveAndAdd')),
     validate: true,
     onValid: {
@@ -356,7 +356,7 @@ onSubmission: [
   }),
 
   // Save and return to list
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('save')),
     validate: true,
     onValid: {
@@ -366,7 +366,7 @@ onSubmission: [
   }),
 
   // Fallback (no 'when' - catches everything else)
-  submitTransition({
+  submit({
     validate: true,
     onValid: {
       next: [redirect({ goto: '/items' })],
@@ -379,7 +379,7 @@ onSubmission: [
 
 ## `redirect()` - Navigation Outcome
 
-Defines navigation destinations. Used in `next` arrays within access transitions and submit transitions (`onValid`/`onInvalid`/`onAlways`).
+Defines navigation destinations. Used in `next` arrays within access hooks and submit hooks (`onValid`/`onInvalid`/`onAlways`).
 
 ### Signature
 
@@ -498,12 +498,12 @@ throwError({
 })
 ```
 
-### Error Handling in Submit Transitions
+### Error Handling in Submit Hooks
 
-Submit transitions can return errors for save failures or business rule violations:
+Submit hooks can return errors for save failures or business rule violations:
 
 ```typescript
-submitTransition({
+submit({
   validate: true,
   onValid: {
     effects: [MyEffects.saveGoal()],
@@ -529,9 +529,9 @@ submitTransition({
 
 ---
 
-## Journey-Level Transitions
+## Journey-Level Hooks
 
-Journey-level transitions run for **every step** in the journey.
+Journey-level hooks run for **every step** in the journey.
 
 ```typescript
 journey({
@@ -540,12 +540,12 @@ journey({
   // Runs before every step: load data, then check access
   onAccess: [
     // Load shared data first
-    accessTransition({
+    access({
       effects: [MyEffects.loadSharedData()],
     }),
 
     // Then check authentication
-    accessTransition({
+    access({
       when: Data('user.isAuthenticated').not.match(Condition.Equals(true)),
       next: [redirect({ goto: '/login' })],
     }),
@@ -568,7 +568,7 @@ journey({
 
 ## Common Patterns
 
-### Complete Step with All Transition Types
+### Complete Step with All Hook Types
 
 ```typescript
 export const businessDetailsStep = step({
@@ -598,12 +598,12 @@ export const businessDetailsStep = step({
   // 1. Load data and check access
   onAccess: [
     // Load step-specific data
-    accessTransition({
+    access({
       effects: [MyEffects.loadSavedAddress()],
     }),
 
     // Ensure prerequisite is complete
-    accessTransition({
+    access({
       when: Data('businessType').not.match(Condition.IsRequired()),
       next: [redirect({ goto: '/business-type' })],
     }),
@@ -611,7 +611,7 @@ export const businessDetailsStep = step({
 
   // 2. Handle lookup button
   onAction: [
-    actionTransition({
+    action({
       when: Post('action').match(Condition.Equals('lookup')),
       effects: [MyEffects.lookupPostcode(Post('postcode'))],
     }),
@@ -619,7 +619,7 @@ export const businessDetailsStep = step({
 
   // 3. Handle form submission
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [MyEffects.saveStepAnswers()],
@@ -639,12 +639,12 @@ step({
 
   onAccess: [
     // Load item data first
-    accessTransition({
+    access({
       effects: [MyEffects.loadItem(Params('itemId'))],
     }),
 
     // 404: Item not found
-    accessTransition({
+    access({
       when: Data('itemNotFound').match(Condition.Equals(true)),
       next: [
         throwError({
@@ -655,7 +655,7 @@ step({
     }),
 
     // 403: No edit permission
-    accessTransition({
+    access({
       when: Data('item.canEdit').not.match(Condition.Equals(true)),
       next: [
         throwError({
@@ -669,7 +669,7 @@ step({
   blocks: [/* ... */],
 
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [MyEffects.updateItem(Params('itemId'))],
@@ -684,7 +684,7 @@ step({
 
 ```typescript
 onSubmission: [
-  submitTransition({
+  submit({
     validate: true,
     onValid: {
       effects: [MyEffects.saveAnswers()],
@@ -708,17 +708,17 @@ onSubmission: [
 
 ## Best Practices
 
-### Always Include Fallback Transitions
+### Always Include Fallback Hooks
 
 ```typescript
 // DO: Include a fallback
 onSubmission: [
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('save')),
     validate: true,
     onValid: { next: [redirect({ goto: '/saved' })] },
   }),
-  submitTransition({
+  submit({
     // No 'when' - catches everything else
     validate: true,
     onValid: { next: [redirect({ goto: '/default' })] },
@@ -727,7 +727,7 @@ onSubmission: [
 
 // DON'T: Risk unhandled submissions
 onSubmission: [
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('save')),
     validate: true,
     onValid: { next: [redirect({ goto: '/saved' })] },
@@ -736,22 +736,22 @@ onSubmission: [
 ]
 ```
 
-### Order Transitions Correctly
+### Order Hooks Correctly
 
 Specific conditions first, fallbacks last:
 
 ```typescript
 // DO: Specific first, fallback last
 onSubmission: [
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('save')),
     // ...
   }),
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('delete')),
     // ...
   }),
-  submitTransition({
+  submit({
     // Fallback last
     validate: true,
     onValid: { next: [redirect({ goto: '/default' })] },
@@ -760,12 +760,12 @@ onSubmission: [
 
 // DON'T: Fallback first catches everything
 onSubmission: [
-  submitTransition({
+  submit({
     // No 'when' - matches immediately!
     validate: true,
     onValid: { next: [redirect({ goto: '/default' })] },
   }),
-  submitTransition({
+  submit({
     when: Post('action').match(Condition.Equals('save')),
     // Never reached!
   }),
@@ -794,10 +794,10 @@ GovUKButton({
 ```typescript
 // DO: Load data, then check conditions based on loaded data
 onAccess: [
-  accessTransition({
+  access({
     effects: [MyEffects.loadItem(Params('itemId'))],
   }),
-  accessTransition({
+  access({
     when: Data('itemNotFound').match(Condition.Equals(true)),
     next: [throwError({ status: 404, message: 'Item not found' })],
   }),
@@ -805,7 +805,7 @@ onAccess: [
 
 // DON'T: Try to check data that hasn't been loaded yet
 onAccess: [
-  accessTransition({
+  access({
     when: Data('itemNotFound').match(Condition.Equals(true)),  // Data doesn't exist yet!
     next: [throwError({ status: 404, message: 'Item not found' })],
   }),

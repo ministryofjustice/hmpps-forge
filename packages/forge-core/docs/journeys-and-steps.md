@@ -155,7 +155,7 @@ metadata: {
 
 ### `data` (Optional)
 
-Static data available to this journey and all its steps via `Data()` references. This data is merged into the evaluation context before any lifecycle transitions run:
+Static data available to this journey and all its steps via `Data()` references. This data is merged into the evaluation context before any lifecycle hooks run:
 
 ```typescript
 data: {
@@ -184,7 +184,7 @@ Effect(: async (context) => {
 
 ### `onAccess` (Optional)
 
-Journeys can define `onAccess` transitions that run for every step. See [Transitions](./transitions.md).
+Journeys can define `onAccess` hooks that run for every step. See [Hooks and Lifecycle](./hooks-and-lifecycle.md).
 
 ---
 
@@ -283,7 +283,7 @@ See the journey `data` property for usage examples.
 
 ### `onAccess`, `onAction`, `onSubmission` (Optional)
 
-Steps can define these lifecycle transitions. See [Transitions](./transitions.md).
+Steps can define these lifecycle hooks. See [Hooks and Lifecycle](./hooks-and-lifecycle.md).
 
 ---
 

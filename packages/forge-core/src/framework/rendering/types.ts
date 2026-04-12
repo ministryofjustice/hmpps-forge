@@ -7,7 +7,7 @@ import type { ViewConfig } from '../../authoring/types/structures.type'
 /**
  * Recursively evaluates AST node types.
  * - Structure nodes (Journey, Step, Block) keep their shape with evaluated properties
- * - Expression/Transition nodes resolve to `unknown` (their runtime value)
+ * - Expression/Hook nodes resolve to `unknown` (their runtime value)
  * - Arrays recurse on elements
  * - Primitives pass through unchanged
  */
@@ -82,7 +82,7 @@ export interface RenderContext {
   navigation: NavigationTree
 
   /**
-   * Current step properties (excluding transitions and blocks).
+   * Current step properties (excluding hooks and blocks).
    * Contains all step properties like path, title, view, backlink, metadata,
    * plus any custom properties defined on the step.
    */

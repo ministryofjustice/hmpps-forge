@@ -16,7 +16,7 @@ import type { StepResponse, CookieMutation, CookieOptions } from '../framework/t
 
 /**
  * Mock answer input - can be a simple value or a full AnswerHistory
- * Simple values are converted to AnswerHistory with source 'load'
+ * Simple values are converted to AnswerHistory with source 'access'
  */
 export type MockAnswerInput = unknown | AnswerHistory
 
@@ -33,9 +33,9 @@ function isAnswerHistory(input: unknown): input is AnswerHistory {
 
 /**
  * Convert mock answer input to AnswerHistory
- * If already an AnswerHistory, return as-is. Otherwise wrap with default source 'load'.
+ * If already an AnswerHistory, return as-is. Otherwise wrap with default source 'access'.
  */
-function toAnswerHistory(input: MockAnswerInput, defaultSource: AnswerSource = 'load'): AnswerHistory {
+function toAnswerHistory(input: MockAnswerInput, defaultSource: AnswerSource = 'access'): AnswerHistory {
   if (isAnswerHistory(input)) {
     return input
   }
@@ -66,10 +66,10 @@ export interface MockContextOptions {
   mockData?: Record<string, unknown>
   /**
    * Mock answers - can be simple values or full AnswerHistory objects.
-   * Simple values are converted to AnswerHistory with source 'load'.
+   * Simple values are converted to AnswerHistory with source 'access'.
    *
    * @example
-   * // Simple value (source defaults to 'load')
+   * // Simple value (source defaults to 'access')
    * mockAnswers: { email: 'test@example.com' }
    *
    * // Full AnswerHistory (explicit mutations)

@@ -7,16 +7,16 @@ import { finaliseBuilders } from './utils/finaliseBuilders'
 import { BlockDefinition, ConditionalString, FieldBlockDefinition } from '../../components/types/structures.type'
 import { JourneyDefinition, StepDefinition, ValidationExpr, ValidationProps } from '../types/structures.type'
 import {
-  AccessTransition,
-  ActionTransition,
+  AccessHook,
+  ActionHook,
   FormatExpr,
   RedirectOutcome,
-  SubmitTransition,
+  SubmitHook,
   ThrowErrorOutcome,
   ValueExpr,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { BlockType, ExpressionType, OutcomeType, StructureType, TransitionType } from '../types/enums'
+import { BlockType, ExpressionType, OutcomeType, StructureType, HookType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -113,28 +113,28 @@ export function createForgePackage<TDeps = Record<string, never>>(pkg: ForgePack
 }
 
 /**
- * Creates a submission transition for handling form submissions.
+ * Creates a submission hook for handling form submissions.
  * Use this in the onSubmission array of steps.
  */
-export function submitTransition(definition: Omit<SubmitTransition, 'type'>): SubmitTransition {
-  return finaliseBuilders({ ...definition, type: TransitionType.SUBMIT }) as SubmitTransition
+export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
+  return finaliseBuilders({ ...definition, type: HookType.SUBMIT }) as SubmitHook
 }
 
 /**
- * Creates an access transition for access control, data loading, and analytics.
- * Use this in the onAccess lifecycle hook.
+ * Creates an access hook for access control, data loading, and analytics.
+ * Use this in the onAccess array of journeys or steps.
  */
-export function accessTransition(definition: Omit<AccessTransition, 'type'>): AccessTransition {
-  return finaliseBuilders({ ...definition, type: TransitionType.ACCESS }) as AccessTransition
+export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
+  return finaliseBuilders({ ...definition, type: HookType.ACCESS }) as AccessHook
 }
 
 /**
- * Creates an action transition for in-page actions.
- * Use this in the onAction lifecycle hook for buttons that trigger effects
+ * Creates an action hook for in-page actions.
+ * Use this in the onAction array for buttons that trigger effects
  * without navigating away (e.g., "Find address", "Add item").
  */
-export function actionTransition(definition: Omit<ActionTransition, 'type'>): ActionTransition {
-  return finaliseBuilders({ ...definition, type: TransitionType.ACTION }) as ActionTransition
+export function action(definition: Omit<ActionHook, 'type'>): ActionHook {
+  return finaliseBuilders({ ...definition, type: HookType.ACTION }) as ActionHook
 }
 
 /**
@@ -149,8 +149,8 @@ export function validation(definition: ValidationProps): ValidationExpr {
 }
 
 /**
- * Creates a redirect outcome for transitions.
- * When matched, halts transition processing and redirects to the specified path.
+ * Creates a redirect outcome for hooks.
+ * When matched, halts hook processing and redirects to the specified path.
  *
  * @example
  * // Unconditional redirect
@@ -171,8 +171,8 @@ export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOut
 }
 
 /**
- * Creates an error outcome for transitions.
- * When matched, halts transition processing and throws an HTTP error.
+ * Creates an error outcome for hooks.
+ * When matched, halts hook processing and throws an HTTP error.
  *
  * @example
  * // Not found error

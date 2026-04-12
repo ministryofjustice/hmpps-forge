@@ -1,5 +1,5 @@
-import { AccessTransitionASTNode } from '../../../types/expressions.type'
-import { TransitionType, PredicateType, FunctionType, ExpressionType } from '../../../../authoring/types/enums'
+import { AccessHookASTNode } from '../../../types/expressions.type'
+import { HookType, PredicateType, FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
 import { createMockContext, createMockInvoker } from '../../../../testing/thunkTestHelpers'
 import AccessHandler from './AccessHandler'
@@ -13,10 +13,10 @@ describe('AccessHandler', () => {
     describe('when condition evaluation', () => {
       it('should return executed: true, outcome: continue when no when condition is defined', async () => {
         // Arrange
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
-          .build() as AccessTransitionASTNode
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker()
@@ -39,11 +39,11 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({ defaultValue: true })
@@ -67,11 +67,11 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({ defaultValue: false })
@@ -93,11 +93,11 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker()
@@ -127,12 +127,12 @@ describe('AccessHandler', () => {
 
         const redirectOutcome = ASTTestFactory.redirectOutcome({ goto: '/login' })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [redirectOutcome])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({
@@ -174,12 +174,12 @@ describe('AccessHandler', () => {
 
         const redirect2 = ASTTestFactory.redirectOutcome({ goto: '/fallback' })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [redirect1, redirect2])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({
@@ -217,11 +217,11 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({ defaultValue: true })
@@ -251,12 +251,12 @@ describe('AccessHandler', () => {
           message: 'Item not found',
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [errorOutcome])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({
@@ -306,12 +306,12 @@ describe('AccessHandler', () => {
           message: messageExpr,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [errorOutcome])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({
@@ -356,12 +356,12 @@ describe('AccessHandler', () => {
           message: 'Item not found',
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [errorOutcome])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({ defaultValue: false })
@@ -395,12 +395,12 @@ describe('AccessHandler', () => {
           message: messageExpr,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('when', whenPredicate)
           .withProperty('next', [errorOutcome])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker({
@@ -442,12 +442,12 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('effects', [effect])
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
 
@@ -491,12 +491,12 @@ describe('AccessHandler', () => {
           negate: false,
         })
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('effects', [effect])
           .withProperty('when', whenPredicate)
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
 
@@ -523,11 +523,11 @@ describe('AccessHandler', () => {
         const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1', [])
         const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2', [])
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('effects', [effect1, effect2])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
 
@@ -551,11 +551,11 @@ describe('AccessHandler', () => {
         // Arrange
         const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'failingEffect', [])
 
-        const transition = ASTTestFactory.transition(TransitionType.ACCESS)
+        const hook = ASTTestFactory.hook(HookType.ACCESS)
           .withProperty('effects', [effect])
-          .build() as AccessTransitionASTNode
+          .build() as AccessHookASTNode
 
-        const handler = new AccessHandler(transition.id, transition)
+        const handler = new AccessHandler(hook.id, hook)
 
         const mockContext = createMockContext()
         const invoker = createMockInvoker()

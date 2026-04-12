@@ -1,13 +1,7 @@
 import { ASTNodeType } from '../../../types/enums'
-import {
-  ExpressionType,
-  FunctionType,
-  OutcomeType,
-  PredicateType,
-  TransitionType,
-} from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../../../../authoring/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
-import { RedirectOutcome, SubmitTransition, ValueExpr } from '../../../../authoring/types/expressions.type'
+import { RedirectOutcome, SubmitHook, ValueExpr } from '../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import SubmitFactory from './SubmitFactory'
 
@@ -23,10 +17,10 @@ describe('SubmitFactory', () => {
   })
 
   describe('create()', () => {
-    it('should create a Submit transition with when condition', () => {
+    it('should create a Submit hook with when condition', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         when: {
           type: PredicateType.TEST,
@@ -34,25 +28,25 @@ describe('SubmitFactory', () => {
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.TRANSITION)
-      expect(result.transitionType).toBe(TransitionType.SUBMIT)
+      expect(result.type).toBe(ASTNodeType.HOOK)
+      expect(result.hookType).toBe(HookType.SUBMIT)
       expect(result.properties.when).toBeDefined()
 
       const whenNode = result.properties.when
       expect(whenNode!.type).toBe(ASTNodeType.PREDICATE)
     })
 
-    it('should create a Submit transition with guards', () => {
+    it('should create a Submit hook with guards', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         guards: {
           type: PredicateType.TEST,
@@ -60,7 +54,7 @@ describe('SubmitFactory', () => {
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -75,9 +69,9 @@ describe('SubmitFactory', () => {
     it('should set validate to true when explicitly true', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -89,9 +83,9 @@ describe('SubmitFactory', () => {
     it('should set validate to false when explicitly false', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: false,
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -103,7 +97,7 @@ describe('SubmitFactory', () => {
     it('should set validate property correctly', () => {
       // Act
       const result1 = submitFactory.create({
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onValid: {
           next: [{ type: OutcomeType.REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
@@ -111,34 +105,34 @@ describe('SubmitFactory', () => {
         onInvalid: {
           next: [{ type: OutcomeType.REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition)
+      } satisfies SubmitHook)
 
       // Assert
       expect(result1.properties.validate).toBe(true)
 
       // Act
       const result2 = submitFactory.create({
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: false,
         onAlways: {
           next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition)
+      } satisfies SubmitHook)
 
       // Assert
       expect(result2.properties.validate).toBe(false)
     })
 
-    it('should create a Submit transition with onAlways branch', () => {
+    it('should create a Submit hook with onAlways branch', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onAlways: {
           effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -155,16 +149,16 @@ describe('SubmitFactory', () => {
       expect(onAlways.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
-    it('should create a Submit transition with onValid branch', () => {
+    it('should create a Submit hook with onValid branch', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onValid: {
           effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ValueExpr[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/success' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -179,16 +173,16 @@ describe('SubmitFactory', () => {
       expect(onValid.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
-    it('should create a Submit transition with onInvalid branch', () => {
+    it('should create a Submit hook with onInvalid branch', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onInvalid: {
           effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ValueExpr[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -203,10 +197,10 @@ describe('SubmitFactory', () => {
       expect(onInvalid.next![0].type).toBe(ASTNodeType.OUTCOME)
     })
 
-    it('should create a Submit transition with all branches', () => {
+    it('should create a Submit hook with all branches', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onAlways: {
           effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ValueExpr[] }],
@@ -218,7 +212,7 @@ describe('SubmitFactory', () => {
           effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ValueExpr[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -237,12 +231,12 @@ describe('SubmitFactory', () => {
     it('should handle branch with only effects', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onAlways: {
           effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -256,12 +250,12 @@ describe('SubmitFactory', () => {
     it('should handle branch with only next', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onValid: {
           next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -275,9 +269,9 @@ describe('SubmitFactory', () => {
     it('should return undefined for branch when branch is undefined', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)
@@ -291,7 +285,7 @@ describe('SubmitFactory', () => {
     it('should not set branch effects if not an array', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onAlways: {
           effects: 'not-an-array',
@@ -309,7 +303,7 @@ describe('SubmitFactory', () => {
     it('should not set branch next if not an array', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
         onValid: {
           next: 'not-an-array',
@@ -327,9 +321,9 @@ describe('SubmitFactory', () => {
     it('should generate unique node IDs from the ID generator', () => {
       // Arrange
       const json = {
-        type: TransitionType.SUBMIT,
+        type: HookType.SUBMIT,
         validate: true,
-      } satisfies SubmitTransition
+      } satisfies SubmitHook
 
       // Act
       const result = submitFactory.create(json)

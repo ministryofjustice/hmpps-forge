@@ -26,12 +26,12 @@ import { defineEffectFunctions, EffectFunctionContext } from '@ministryofjustice
 
 ## Basic Usage
 
-### Effects in Transitions
+### Effects in Hooks
 
-Effects are used inside transitions. They run at specific lifecycle points:
+Effects are used inside hooks. They run at specific lifecycle points:
 
 ```typescript
-import { accessTransition, submitTransition, next } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { access, submit, next } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { MyEffects } from './effects'
 
 step({
@@ -40,7 +40,7 @@ step({
 
   // Access effects run when the step is accessed
   onAccess: [
-    accessTransition({
+    access({
       effects: [
         MyEffects.loadUserProfile(),
         MyEffects.loadReferenceData(),
@@ -50,7 +50,7 @@ step({
 
   // Submit effects run when the form is submitted
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [MyEffects.saveAnswers()],
@@ -161,13 +161,13 @@ GovUKRadioInput({
 
 ## Where Effects Run
 
-Effects are used in different transition types depending on when you need them to run:
+Effects are used in different hook types depending on when you need them to run:
 
-| Transition | When Effects Run | Common Uses |
-|------------|-----------------|-------------|
-| `accessTransition` | Before evaluating conditions and redirects | Load data from APIs, populate dropdowns |
-| `actionTransition` | During POST, before render | Postcode lookup, address fetch |
-| `submitTransition` | After validation (onValid/onInvalid/onAlways) | Save answers, send notifications |
+| Hook | When Effects Run | Common Uses |
+|------|-----------------|-------------|
+| `access` | Before evaluating conditions and redirects | Load data from APIs, populate dropdowns |
+| `action` | During POST, before render | Postcode lookup, address fetch |
+| `submit` | After validation (onValid/onInvalid/onAlways) | Save answers, send notifications |
 
 ---
 
@@ -181,7 +181,7 @@ step({
   title: 'Personal Details',
 
   onAccess: [
-    accessTransition({
+    access({
       effects: [
         MyEffects.loadUserProfile(Params('userId')),
         MyEffects.loadTitleOptions(),
@@ -190,7 +190,7 @@ step({
   ],
 
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [
@@ -227,14 +227,14 @@ step({
   ],
 
   onAction: [
-    actionTransition({
+    action({
       when: Post('action').match(Condition.Equals('lookup')),
       effects: [MyEffects.lookupPostcode(Post('postcode'))],
     }),
   ],
 
   onSubmission: [
-    submitTransition({
+    submit({
       when: Post('action').match(Condition.Equals('continue')),
       validate: true,
       onValid: {
@@ -253,7 +253,7 @@ Use `onAccess` to load and pre-populate form fields before the step is rendered:
 ```typescript
 // In your step definition
 onAccess: [
-  accessTransition({
+  access({
     effects: [MyEffects.loadAssessment(Params('assessmentId'))],
   }),
 ],

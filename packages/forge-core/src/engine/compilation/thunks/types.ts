@@ -9,26 +9,25 @@ import ASTNodeTree from '../node-tree/ASTNodeTree'
 import ThunkRuntimeHooksFactory from './ThunkRuntimeHooksFactory'
 
 /**
- * Transition types that can set answers
+ * Hook types that can set answers
  *
  * Used to track where an answer value originated from:
- * - load: Set during onLoad transitions (e.g., loading from API)
- * - access: Set during onAccess transitions
- * - action: Set during onAction transitions (e.g., postcode lookup)
- * - submit: Set during onSubmission transitions
+ * - access: Set during onAccess hooks (e.g., loading from API)
+ * - action: Set during onAction hooks (e.g., postcode lookup)
+ * - submit: Set during onSubmission hooks
  */
-export type TransitionType = 'load' | 'access' | 'action' | 'submit'
+export type HookType = 'access' | 'action' | 'submit'
 
 /**
  * Sources that can provide answer values
  *
- * Extends TransitionType with non-transition sources:
+ * Extends HookType with non-hook sources:
  * - post: Raw value from POST form data
  * - processed: Value after running through formatter pipeline
  * - default: Value from field's defaultValue
  * - dependentWhen: Value cleared because field's dependentWhen condition was false
  */
-export type AnswerSource = TransitionType | 'post' | 'processed' | 'default' | 'dependentWhen'
+export type AnswerSource = HookType | 'post' | 'processed' | 'default' | 'dependentWhen'
 
 /**
  * A single mutation to an answer value
@@ -44,7 +43,7 @@ export interface AnswerMutation {
  * History of mutations to an answer over the request lifecycle
  *
  * Tracks how an answer evolved through different phases:
- * - load: API/session data loaded during onLoad
+ * - load: API/session data loaded during onAccess
  * - action: In-page actions like postcode lookup
  * - post: Raw POST form data
  * - processed: POST data after formatter pipeline

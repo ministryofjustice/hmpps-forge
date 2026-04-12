@@ -1,12 +1,8 @@
 import { ASTNodeType } from '../../../types/enums'
-import { BlockType, StructureType, TransitionType } from '../../../../authoring/types/enums'
+import { BlockType, HookType, StructureType } from '../../../../authoring/types/enums'
 import type { StepDefinition } from '../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type {
-  AccessTransition,
-  SubmitTransition,
-  TransitionOutcome,
-} from '../../../../authoring/types/expressions.type'
+import type { AccessHook, SubmitHook, HookOutcome } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '../../../types/structures.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -77,7 +73,7 @@ describe('StepFactory', () => {
       })
     })
 
-    it('should transform onAccess transitions', () => {
+    it('should transform onAccess hooks', () => {
       // Arrange
       const json = {
         type: StructureType.STEP,
@@ -86,9 +82,9 @@ describe('StepFactory', () => {
         blocks: [] as BlockDefinition[],
         onAccess: [
           {
-            type: TransitionType.ACCESS,
-            next: [] as TransitionOutcome[],
-          } satisfies AccessTransition,
+            type: HookType.ACCESS,
+            next: [] as HookOutcome[],
+          } satisfies AccessHook,
         ],
       } satisfies StepDefinition
 
@@ -101,7 +97,7 @@ describe('StepFactory', () => {
       expect(onAccess).toHaveLength(1)
     })
 
-    it('should transform onSubmission transitions', () => {
+    it('should transform onSubmission hooks', () => {
       // Arrange
       const json = {
         type: StructureType.STEP,
@@ -110,12 +106,12 @@ describe('StepFactory', () => {
         blocks: [] as BlockDefinition[],
         onSubmission: [
           {
-            type: TransitionType.SUBMIT,
+            type: HookType.SUBMIT,
             validate: false,
             onAlways: {
-              next: [] as TransitionOutcome[],
+              next: [] as HookOutcome[],
             },
-          } satisfies SubmitTransition,
+          } satisfies SubmitHook,
         ],
       } satisfies StepDefinition
 

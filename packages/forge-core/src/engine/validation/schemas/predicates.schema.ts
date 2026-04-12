@@ -110,6 +110,6 @@ export const ThrowErrorOutcomeSchema = z.object({
 })
 
 /**
- * @see {@link TransitionOutcome}
+ * @see {@link HookOutcome}
  */
-export const TransitionOutcomeSchema = z.discriminatedUnion('type', [RedirectOutcomeSchema, ThrowErrorOutcomeSchema])
+export const HookOutcomeSchema = z.discriminatedUnion('type', [RedirectOutcomeSchema, ThrowErrorOutcomeSchema])

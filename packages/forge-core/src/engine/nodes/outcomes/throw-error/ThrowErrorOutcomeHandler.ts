@@ -36,7 +36,7 @@ export type ThrowErrorOutcomeResult = ThrowErrorOutcomeData | undefined
  * - A string (returned as-is)
  * - An AST node (evaluated dynamically, e.g., Format expression)
  *
- * Used in transition `next` arrays with first-match semantics.
+ * Used in hook `next` arrays with first-match semantics.
  */
 export default class ThrowErrorOutcomeHandler implements ThunkHandler {
   isAsync = false

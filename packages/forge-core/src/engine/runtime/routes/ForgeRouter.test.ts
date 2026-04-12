@@ -144,15 +144,15 @@ describe('ForgeRouter', () => {
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
-          actionTransitionIds: [],
-          submitTransitionIds: [],
+          actionHookIds: [],
+          submitHookIds: [],
           fieldIteratorRootIds: [],
           validationIterateNodeIds: [],
           validationBlockIds: [],
           domainValidationNodeIds: [],
           renderAncestorIds: [],
           renderStepId: compiled.currentStepId,
-          hasValidatingSubmitTransition: false,
+          hasValidatingSubmitHook: false,
           hasDomainValidation: false,
         },
       }

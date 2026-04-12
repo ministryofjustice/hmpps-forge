@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors'
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import { JourneyInstanceDependencies } from '../../types/engine.type'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
@@ -12,7 +12,7 @@ import ContextPreparer from '../preparation/ContextPreparer'
 import AnswerPreparer from '../preparation/AnswerPreparer'
 import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
 import StepFieldInventoryAnalyzer from '../analysis/StepFieldInventoryAnalyzer'
-import TransitionExecutor from '../evaluation/TransitionExecutor'
+import HookExecutor from '../evaluation/HookExecutor'
 import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
 import RedirectResolver from '../resolution/RedirectResolver'
 import ReachabilityStateProjector from '../projection/ReachabilityStateProjector'
@@ -25,15 +25,15 @@ import { JourneyRouteTemplateCatalog } from '../types/routes.type'
  * Handles the full request lifecycle for steps.
  *
  * GET: access lifecycle → evaluate → render
- * POST: access lifecycle → action transitions → validation → submit transitions → render/redirect
+ * POST: access lifecycle → action hooks → validation → submit hooks → render/redirect
  *
- * Access lifecycle runs onAccess transitions for each ancestor (outer → inner).
- * Any transition can halt with a redirect or error.
+ * Access lifecycle runs onAccess hooks for each ancestor (outer → inner).
+ * Any hook can halt with a redirect or error.
  */
 export default class StepController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
 
-  private readonly transitionExecutor: TransitionExecutor
+  private readonly hookExecutor: HookExecutor
 
   private readonly validationExecutor: StepValidityAnalyzer
 
@@ -62,7 +62,7 @@ export default class StepController<TRequest, TResponse> {
   ) {
     this.routeTemplateCatalog = routeTemplateCatalog
     this.contextPreparer = new ContextPreparer()
-    this.transitionExecutor = new TransitionExecutor(this.dependencies.logger)
+    this.hookExecutor = new HookExecutor(this.dependencies.logger)
     this.validationExecutor = new StepValidityAnalyzer()
     this.answerPreparer = new AnswerPreparer()
     this.navigationEvaluator = new NavigationAnalyzer()
@@ -77,7 +77,7 @@ export default class StepController<TRequest, TResponse> {
     const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
-    const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
+    const accessResult = await this.hookExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
       return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
@@ -106,7 +106,7 @@ export default class StepController<TRequest, TResponse> {
     const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
-    const accessResult = await this.transitionExecutor.executeAccessLifecycle(plan, evaluator, context)
+    const accessResult = await this.hookExecutor.executeAccessLifecycle(plan, evaluator, context)
 
     if (accessResult.outcome === 'redirect') {
       return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
@@ -126,13 +126,13 @@ export default class StepController<TRequest, TResponse> {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
-    await this.transitionExecutor.executeActionTransitions(plan, evaluator, context)
+    await this.hookExecutor.executeActionHooks(plan, evaluator, context)
 
-    if (plan.hasValidatingSubmitTransition) {
+    if (plan.hasValidatingSubmitHook) {
       await this.evaluateValidation(artifacts, evaluator, context)
     }
 
-    const submitResult = await this.transitionExecutor.executeSubmitTransitions(plan, evaluator, context)
+    const submitResult = await this.hookExecutor.executeSubmitHooks(plan, evaluator, context)
 
     if (submitResult.outcome === 'error') {
       throw createHttpError(this.getErrorStatus(submitResult.status), submitResult.message || 'Submission error')
@@ -171,7 +171,7 @@ export default class StepController<TRequest, TResponse> {
 
   private getRedirectTarget(redirect: string | undefined): string {
     if (redirect === undefined) {
-      throw createHttpError(500, 'Transition redirect target is missing')
+      throw createHttpError(500, 'Hook redirect target is missing')
     }
 
     return redirect

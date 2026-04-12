@@ -1,12 +1,7 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ASTNode } from './ast.type'
-import {
-  AccessTransitionASTNode,
-  ActionTransitionASTNode,
-  SubmitTransitionASTNode,
-  ValidationASTNode,
-} from './expressions.type'
+import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode, ValidationASTNode } from './expressions.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
 /**
@@ -17,7 +12,7 @@ export interface JourneyASTNode extends ASTNode {
   properties: {
     path: string
     code: string
-    onAccess?: AccessTransitionASTNode[]
+    onAccess?: AccessHookASTNode[]
     steps?: StepASTNode[]
     children?: JourneyASTNode[]
     title: string
@@ -38,9 +33,9 @@ export interface StepASTNode extends ASTNode {
   properties: {
     path: string
     code?: string
-    onAccess?: AccessTransitionASTNode[]
-    onAction?: ActionTransitionASTNode[]
-    onSubmission?: SubmitTransitionASTNode[]
+    onAccess?: AccessHookASTNode[]
+    onAction?: ActionHookASTNode[]
+    onSubmission?: SubmitHookASTNode[]
     blocks?: BlockASTNode[]
     title: string
     description?: string

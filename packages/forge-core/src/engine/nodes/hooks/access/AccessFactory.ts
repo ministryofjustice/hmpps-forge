@@ -1,12 +1,12 @@
 import { ASTNodeType } from '../../../types/enums'
-import { TransitionType } from '../../../../authoring/types/enums'
-import { AccessTransitionASTNode } from '../../../types/expressions.type'
+import { HookType } from '../../../../authoring/types/enums'
+import { AccessHookASTNode } from '../../../types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import { AccessTransition } from '../../../../authoring/types/expressions.type'
+import { AccessHook } from '../../../../authoring/types/expressions.type'
 
 /**
- * AccessFactory: Creates Access transition nodes
+ * AccessFactory: Creates Access hook nodes
  *
  * Handles access control, data loading, and outcomes through:
  * - `when` conditions for conditional execution
@@ -21,10 +21,10 @@ export default class AccessFactory {
   ) {}
 
   /**
-   * Transform Access transition definition into AST node
+   * Transform Access hook definition into AST node
    */
-  create(json: AccessTransition): AccessTransitionASTNode {
-    const properties: AccessTransitionASTNode['properties'] = {}
+  create(json: AccessHook): AccessHookASTNode {
+    const properties: AccessHookASTNode['properties'] = {}
 
     if (json.when) {
       properties.when = this.nodeFactory.createNode(json.when)
@@ -40,8 +40,8 @@ export default class AccessFactory {
 
     return {
       id: this.nodeIDGenerator.next(this.category),
-      type: ASTNodeType.TRANSITION,
-      transitionType: TransitionType.ACCESS,
+      type: ASTNodeType.HOOK,
+      hookType: HookType.ACCESS,
       properties,
       raw: json,
     }

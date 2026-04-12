@@ -222,8 +222,8 @@ describe('JourneyHandler', () => {
 
     it('should evaluate arrays of objects with AST nodes in deeply nested structures', async () => {
       // Arrange
-      const ref1 = ASTTestFactory.reference(['data', 'transition1'])
-      const ref2 = ASTTestFactory.reference(['data', 'transition2'])
+      const ref1 = ASTTestFactory.reference(['data', 'hook1'])
+      const ref2 = ASTTestFactory.reference(['data', 'hook2'])
       const journey = ASTTestFactory.journey()
         .withProperty('path', '/food-business')
         .withCode('food-business-registration')
@@ -241,13 +241,13 @@ describe('JourneyHandler', () => {
           [ref2.id, ref2],
         ]),
       })
-      const mockInvoker = createSequentialMockInvoker(['transition-1', 'transition-2'])
+      const mockInvoker = createSequentialMockInvoker(['hook-1', 'hook-2'])
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      // Note: onLoad/onAccess are transition properties handled by StepController,
+      // Note: onAccess are hook properties handled by StepController,
       // so we test with a custom property instead
       expect(result.value).toEqual({
         id: journey.id,
@@ -257,8 +257,8 @@ describe('JourneyHandler', () => {
           code: 'food-business-registration',
           title: 'Food Business Registration',
           customActions: [
-            { action: 'transition-1', priority: 1 },
-            { action: 'transition-2', priority: 2 },
+            { action: 'hook-1', priority: 1 },
+            { action: 'hook-2', priority: 2 },
             { action: 'static-action', priority: 3 },
           ],
         },

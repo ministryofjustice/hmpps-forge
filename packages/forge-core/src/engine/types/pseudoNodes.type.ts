@@ -59,7 +59,7 @@ export interface PostPseudoNode extends BasePseudoNode {
 }
 
 /**
- * DATA pseudo node - represents external data loaded via onLoad transitions
+ * DATA pseudo node - represents external data loaded via onAccess hooks
  *
  * Stores only the base property name.
  * Nested property access (e.g., 'userData.name') is handled by the expression evaluator.
@@ -107,7 +107,7 @@ export interface SessionPseudoNode extends BasePseudoNode {
 
 /**
  * ANSWER_LOCAL pseudo node - represents resolved field answer for a field on the current step
- * Has dependencies on POST, formatters, defaultValue, and onLoad transitions
+ * Has dependencies on POST, formatters, defaultValue, and onAccess hooks
  *
  * Stores only the base field code.
  * Nested property access (e.g., 'business-type.0.title') is handled by the expression evaluator.
@@ -122,7 +122,7 @@ export interface AnswerLocalPseudoNode extends BasePseudoNode {
 
 /**
  * ANSWER_REMOTE pseudo node - represents resolved field answer for a field on a different step
- * Only has dependencies on onLoad transitions (value is read from context.answers)
+ * Only has dependencies on onAccess hooks (value is read from context.answers)
  *
  * Stores only the base field code.
  * Nested property access (e.g., 'business-type.0.title') is handled by the expression evaluator.

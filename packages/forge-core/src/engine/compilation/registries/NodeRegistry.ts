@@ -1,6 +1,6 @@
 import { ASTNode, NodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
-import { BlockType, ExpressionType, FunctionType, PredicateType, TransitionType } from '../../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionType, HookType, PredicateType } from '../../../authoring/types/enums'
 import { PseudoNode, PseudoNodeType } from '../../types/pseudoNodes.type'
 import { ExpressionASTNode } from '../../types/expressions.type'
 import { PredicateASTNode } from '../../types/predicates.type'
@@ -16,7 +16,7 @@ export type IndexableNodeType =
   | ExpressionType
   | FunctionType
   | PredicateType
-  | TransitionType
+  | HookType
   | BlockType
 
 /**
@@ -91,8 +91,8 @@ export default class NodeRegistry {
       return (node as PredicateASTNode).predicateType
     }
 
-    if ('transitionType' in node) {
-      return (node as { transitionType: TransitionType }).transitionType
+    if ('hookType' in node) {
+      return (node as { hookType: HookType }).hookType
     }
 
     if ('blockType' in node) {

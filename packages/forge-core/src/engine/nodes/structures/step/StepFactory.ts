@@ -8,7 +8,7 @@ import type { StepDefinition } from '../../../../authoring/types/structures.type
 /**
  * StepFactory: Creates Step AST nodes
  *
- * Step represents a single page within a journey, containing blocks and transitions.
+ * Step represents a single page within a journey, containing blocks and hooks.
  */
 export default class StepFactory {
   constructor(
@@ -19,7 +19,7 @@ export default class StepFactory {
 
   /**
    * Transform Step node: Single page within a journey
-   * Contains blocks and transitions for user interaction
+   * Contains blocks and hooks for user interaction
    */
   create(json: StepDefinition): StepASTNode {
     const { type, ...dataProperties } = json

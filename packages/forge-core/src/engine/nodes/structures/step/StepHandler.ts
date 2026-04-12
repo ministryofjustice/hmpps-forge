@@ -16,7 +16,7 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
  * Evaluates properties in the step based on whether it's the current step:
  *
  * For CURRENT STEP (isCurrentStep = true) or ANCESTOR steps (isAncestorOfStep = true):
- * - All properties except transitions (handled by StepController)
+ * - All properties except hooks (handled by StepController)
  *
  * For OTHER STEPS:
  * - Only navigation/validation properties: path, code, title, description, isEntryPoint, blocks, metadata
@@ -33,10 +33,10 @@ export default class StepHandler implements ThunkHandler {
 
   private propertiesWithNodes: ReadonlySet<string> | undefined
 
-  // Transition properties are handled separately by StepController
-  private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess', 'onAction', 'onSubmission']
+  // Hook properties are handled separately by StepController
+  private static readonly HOOK_PROPS = ['onAccess', 'onAction', 'onSubmission']
 
-  private static readonly TRANSITION_PROPS_SET = new Set(StepHandler.TRANSITION_PROPS)
+  private static readonly HOOK_PROPS_SET = new Set(StepHandler.HOOK_PROPS)
 
   // Properties needed for navigation/validation on non-current steps
   private static readonly NAVIGATION_PROPS = [
@@ -77,7 +77,7 @@ export default class StepHandler implements ThunkHandler {
       }
 
       const isRelevant = isCurrentOrAncestor
-        ? !StepHandler.TRANSITION_PROPS_SET.has(property)
+        ? !StepHandler.HOOK_PROPS_SET.has(property)
         : StepHandler.NAVIGATION_PROPS_SET.has(property)
 
       if (!isRelevant) {
@@ -164,25 +164,25 @@ export default class StepHandler implements ThunkHandler {
   /**
    * Determine which properties to evaluate based on step context
    *
-   * Current/ancestor steps: all properties except transitions
+   * Current/ancestor steps: all properties except hooks
    * Other steps: only navigation/validation properties
    */
   private getPropertiesToEvaluate(context: ThunkEvaluationContext): Record<string, unknown> {
     const isCurrentStep = context.metadataRegistry.get(this.nodeId, 'isCurrentStep', false)
     const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
 
-    // Always exclude transition properties - they're handled by StepController
-    const excludeTransitions = ([key]: [string, unknown]) => !StepHandler.TRANSITION_PROPS.includes(key)
+    // Always exclude hook properties - they're handled by StepController
+    const excludeHooks = ([key]: [string, unknown]) => !StepHandler.HOOK_PROPS.includes(key)
 
     if (isCurrentStep || isAncestorOfStep) {
-      // Current or ancestor step: all non-transition properties
-      return Object.fromEntries(Object.entries(this.node.properties).filter(excludeTransitions))
+      // Current or ancestor step: all non-hook properties
+      return Object.fromEntries(Object.entries(this.node.properties).filter(excludeHooks))
     }
 
     // Other steps: only navigation/validation properties
     return Object.fromEntries(
       Object.entries(this.node.properties).filter(
-        ([key]) => StepHandler.NAVIGATION_PROPS.includes(key) && !StepHandler.TRANSITION_PROPS.includes(key),
+        ([key]) => StepHandler.NAVIGATION_PROPS.includes(key) && !StepHandler.HOOK_PROPS.includes(key),
       ),
     )
   }

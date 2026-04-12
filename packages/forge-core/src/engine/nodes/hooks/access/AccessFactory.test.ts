@@ -1,20 +1,14 @@
 import { ASTNodeType } from '../../../types/enums'
-import {
-  ExpressionType,
-  FunctionType,
-  OutcomeType,
-  PredicateType,
-  TransitionType,
-} from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../../../../authoring/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import {
-  AccessTransitionASTNode,
+  AccessHookASTNode,
   FunctionASTNode,
   RedirectOutcomeASTNode,
   ThrowErrorOutcomeASTNode,
 } from '../../../types/expressions.type'
 import {
-  AccessTransition,
+  AccessHook,
   EffectFunctionExpr,
   PredicateTestExpr,
   RedirectOutcome,
@@ -37,42 +31,42 @@ describe('AccessFactory', () => {
   })
 
   describe('create()', () => {
-    it('should create an Access transition with when', () => {
+    it('should create an Access hook with when', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
           condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
         },
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.TRANSITION)
-      expect(result.transitionType).toBe(TransitionType.ACCESS)
+      expect(result.type).toBe(ASTNodeType.HOOK)
+      expect(result.hookType).toBe(HookType.ACCESS)
       expect(result.properties.when).toBeDefined()
       expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
       expect(result.raw).toBe(json)
     })
 
-    it('should create an Access transition with effects', () => {
+    it('should create an Access hook with effects', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         effects: [
           { type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] },
           { type: FunctionType.EFFECT, name: 'logAccess', arguments: [] as ValueExpr[] },
         ],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.effects).toBeDefined()
@@ -101,12 +95,12 @@ describe('AccessFactory', () => {
       } satisfies EffectFunctionExpr
 
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         effects: [effect1, effect2],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       const effects = result.properties.effects as FunctionASTNode[]
@@ -121,10 +115,10 @@ describe('AccessFactory', () => {
       expect(effects[1].properties.name).toBe('effect2')
     })
 
-    it('should create an Access transition with redirect outcome', () => {
+    it('should create an Access hook with redirect outcome', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         next: [
           {
             type: OutcomeType.REDIRECT,
@@ -137,10 +131,10 @@ describe('AccessFactory', () => {
             goto: '/step1',
           } satisfies RedirectOutcome,
         ],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.next).toBeDefined()
@@ -149,10 +143,10 @@ describe('AccessFactory', () => {
       expect((result.properties.next![0] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
     })
 
-    it('should create an Access transition with throwError outcome', () => {
+    it('should create an Access hook with throwError outcome', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         next: [
           {
             type: OutcomeType.THROW_ERROR,
@@ -166,10 +160,10 @@ describe('AccessFactory', () => {
             message: 'Item not found',
           } satisfies ThrowErrorOutcome,
         ],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.next).toBeDefined()
@@ -178,10 +172,10 @@ describe('AccessFactory', () => {
       expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(OutcomeType.THROW_ERROR)
     })
 
-    it('should create an Access transition with multiple outcomes', () => {
+    it('should create an Access hook with multiple outcomes', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         next: [
           {
             type: OutcomeType.THROW_ERROR,
@@ -199,10 +193,10 @@ describe('AccessFactory', () => {
             goto: '/overview',
           } satisfies RedirectOutcome,
         ],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.next).toBeDefined()
@@ -211,10 +205,10 @@ describe('AccessFactory', () => {
       expect((result.properties.next![1] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
     })
 
-    it('should create an Access transition with all properties', () => {
+    it('should create an Access hook with all properties', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
@@ -234,10 +228,10 @@ describe('AccessFactory', () => {
             goto: '/step1',
           } satisfies RedirectOutcome,
         ],
-      } satisfies AccessTransition
+      } satisfies AccessHook
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.when).toBeDefined()
@@ -252,12 +246,12 @@ describe('AccessFactory', () => {
     it('should not set effects if not an array', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         effects: 'not-an-array',
       } as any
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.effects).toBeUndefined()
@@ -266,12 +260,12 @@ describe('AccessFactory', () => {
     it('should not set next if not an array', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
+        type: HookType.ACCESS,
         next: 'not-an-array',
       } as any
 
       // Act
-      const result = accessFactory.create(json) as AccessTransitionASTNode
+      const result = accessFactory.create(json) as AccessHookASTNode
 
       // Assert
       expect(result.properties.next).toBeUndefined()
@@ -280,8 +274,8 @@ describe('AccessFactory', () => {
     it('should generate unique node IDs from the ID generator', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACCESS,
-      } as AccessTransition
+        type: HookType.ACCESS,
+      } as AccessHook
 
       // Act
       const result = accessFactory.create(json)

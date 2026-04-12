@@ -1,4 +1,4 @@
-import { SubmitTransition, AccessTransition, ActionTransition, PredicateExpr } from './expressions.type'
+import { SubmitHook, AccessHook, ActionHook, PredicateExpr } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { BlockDefinition, ConditionalString } from '../../components/types/structures.type'
@@ -41,7 +41,7 @@ export interface JourneyDefinition {
   type: StructureType.JOURNEY
   path: string
   code: string
-  onAccess?: AccessTransition[]
+  onAccess?: AccessHook[]
   steps?: StepDefinition[]
   children?: JourneyDefinition[]
   title: string
@@ -56,16 +56,16 @@ export interface JourneyDefinition {
 
 /**
  * Definition for a single step within a journey.
- * Steps contain blocks and define navigation/transition logic.
+ * Steps contain blocks and define navigation/hook logic.
  */
 export interface StepDefinition {
   type: StructureType.STEP
   path: string
   code?: string
   blocks?: BlockDefinition[]
-  onAccess?: AccessTransition[]
-  onAction?: ActionTransition[]
-  onSubmission?: SubmitTransition[]
+  onAccess?: AccessHook[]
+  onAction?: ActionHook[]
+  onSubmission?: SubmitHook[]
   title: string
   view?: ViewConfig
   isEntryPoint?: boolean

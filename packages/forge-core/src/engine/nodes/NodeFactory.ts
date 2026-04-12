@@ -10,7 +10,7 @@ import {
   isValidationExpr,
   isRedirectOutcome,
   isThrowErrorOutcome,
-  isTransitionOutcome,
+  isHookOutcome,
 } from '../../authoring/typeguards/expressions'
 import { isFunctionExpr } from '../../authoring/typeguards/functions'
 import {
@@ -20,7 +20,7 @@ import {
   isPredicateOrExpr,
   isPredicateXorExpr,
 } from '../../authoring/typeguards/predicates'
-import { isAccessTransition, isActionTransition, isSubmitTransition } from '../../authoring/typeguards/transitions'
+import { isAccessHook, isActionHook, isSubmitHook } from '../../authoring/typeguards/hooks'
 import UnknownNodeTypeError from '../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../errors/InvalidNodeError'
 import { ASTNode } from '../types/engine.type'
@@ -28,9 +28,9 @@ import { NodeIDGenerator, NodeIDCategory } from '../compilation/id-generators/No
 import JourneyFactory from './structures/journey/JourneyFactory'
 import StepFactory from './structures/step/StepFactory'
 import BlockFactory from './structures/block/BlockFactory'
-import AccessFactory from './transitions/access/AccessFactory'
-import ActionFactory from './transitions/action/ActionFactory'
-import SubmitFactory from './transitions/submit/SubmitFactory'
+import AccessFactory from './hooks/access/AccessFactory'
+import ActionFactory from './hooks/action/ActionFactory'
+import SubmitFactory from './hooks/submit/SubmitFactory'
 import ConditionalFactory from './expressions/conditional/ConditionalFactory'
 import MatchFactory from './expressions/match/MatchFactory'
 import TestFactory from './predicates/test/TestFactory'
@@ -213,16 +213,16 @@ export class NodeFactory {
       return this.throwErrorOutcomeFactory.create(json)
     }
 
-    // Transition nodes: Access, Action, Submit
-    if (isAccessTransition(json)) {
+    // Hook nodes: Access, Action, Submit
+    if (isAccessHook(json)) {
       return this.accessFactory.create(json)
     }
 
-    if (isActionTransition(json)) {
+    if (isActionHook(json)) {
       return this.actionFactory.create(json)
     }
 
-    if (isSubmitTransition(json)) {
+    if (isSubmitHook(json)) {
       return this.submitFactory.create(json)
     }
 
@@ -297,9 +297,9 @@ export class NodeFactory {
       isStepDefinition(value) ||
       isBlockDefinition(value) ||
       isExpression(value) ||
-      isTransitionOutcome(value) ||
-      isAccessTransition(value) ||
-      isActionTransition(value) ||
-      isSubmitTransition(value)
+      isHookOutcome(value) ||
+      isAccessHook(value) ||
+      isActionHook(value) ||
+      isSubmitHook(value)
   }
 }

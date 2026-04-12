@@ -4,7 +4,7 @@ export enum ASTNodeType {
   BLOCK = 'AstNode.Block',
   EXPRESSION = 'AstNode.Expression',
   PREDICATE = 'AstNode.Predicate',
-  TRANSITION = 'AstNode.Transition',
+  HOOK = 'AstNode.Hook',
   OUTCOME = 'AstNode.Outcome',
   TEMPLATE = 'AstNode.Template',
 }

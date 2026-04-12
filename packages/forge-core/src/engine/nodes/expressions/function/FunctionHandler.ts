@@ -28,7 +28,7 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
  * - CONDITION: Returns boolean (used in predicates)
  * - TRANSFORMER: Transforms input value (used in pipelines)
  * - GENERATOR: Generates values (used in defaults)
- * - EFFECT: Side-effecting functions (used in transitions)
+ * - EFFECT: Side-effecting functions (used in hooks)
  *
  * ## Wiring Pattern
  * Arguments are wired as DATA_FLOW dependencies:
@@ -161,9 +161,9 @@ export default class FunctionHandler implements ThunkHandler {
    *
    * Functions expect their first parameter to come from the evaluation context:
    * - Conditions/Transformers: The value being tested/transformed (@value in scope)
-   * - Effects: The FormEffectContext for the current transition (@value in scope)
+   * - Effects: The FormEffectContext for the current hook (@value in scope)
    *
-   * The calling handler (TestPredicateHandler, PipelineHandler, TransitionHandler, etc.)
+   * The calling handler (TestPredicateHandler, PipelineHandler, HookHandler, etc.)
    * is responsible for pushing the appropriate @value onto the scope stack before
    * invoking the function.
    *

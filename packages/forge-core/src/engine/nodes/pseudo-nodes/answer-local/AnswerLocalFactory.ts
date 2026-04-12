@@ -6,7 +6,7 @@ import { NodeId } from '../../../types/engine.type'
  * AnswerLocalFactory: Creates ANSWER_LOCAL pseudo nodes
  *
  * ANSWER_LOCAL pseudo nodes represent field answers for fields on the current step.
- * They have dependencies on POST, formatters, defaultValue, and onLoad transitions.
+ * They have dependencies on POST, formatters, defaultValue, and onAccess hooks.
  */
 export default class AnswerLocalFactory {
   constructor(

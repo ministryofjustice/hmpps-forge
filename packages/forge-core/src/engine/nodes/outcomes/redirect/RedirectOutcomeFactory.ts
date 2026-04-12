@@ -9,7 +9,7 @@ import { NodeFactory } from '../../NodeFactory'
 /**
  * RedirectOutcomeFactory: Creates Redirect outcome AST nodes
  *
- * Redirect outcomes define navigation targets within transitions.
+ * Redirect outcomes define navigation targets within hooks.
  * Contains optional condition and destination path.
  */
 export default class RedirectOutcomeFactory {

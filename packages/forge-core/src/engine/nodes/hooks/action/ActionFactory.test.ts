@@ -1,9 +1,9 @@
 import { ASTNodeType } from '../../../types/enums'
-import { ExpressionType, FunctionType, PredicateType, TransitionType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionType, PredicateType, HookType } from '../../../../authoring/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
-import { ActionTransitionASTNode, FunctionASTNode } from '../../../types/expressions.type'
+import { ActionHookASTNode, FunctionASTNode } from '../../../types/expressions.type'
 import {
-  ActionTransition,
+  ActionHook,
   EffectFunctionExpr,
   PredicateTestExpr,
   ReferenceExpr,
@@ -24,10 +24,10 @@ describe('ActionFactory', () => {
   })
 
   describe('create()', () => {
-    it('should create an Action transition with when and effects', () => {
+    it('should create an Action hook with when and effects', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACTION,
+        type: HookType.ACTION,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['post', 'action'] } satisfies ReferenceExpr,
@@ -38,15 +38,15 @@ describe('ActionFactory', () => {
           { type: FunctionType.EFFECT, name: 'lookupAddress', arguments: [] as ValueExpr[] },
           { type: FunctionType.EFFECT, name: 'setAddressFields', arguments: [] as ValueExpr[] },
         ],
-      } satisfies ActionTransition
+      } satisfies ActionHook
 
       // Act
-      const result = actionFactory.create(json) as ActionTransitionASTNode
+      const result = actionFactory.create(json) as ActionHookASTNode
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.TRANSITION)
-      expect(result.transitionType).toBe(TransitionType.ACTION)
+      expect(result.type).toBe(ASTNodeType.HOOK)
+      expect(result.hookType).toBe(HookType.ACTION)
       expect(result.raw).toBe(json)
 
       expect(result.properties.when).toBeDefined()
@@ -66,7 +66,7 @@ describe('ActionFactory', () => {
     it('should transform when predicate into an AST node', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACTION,
+        type: HookType.ACTION,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['post', 'button'] } satisfies ReferenceExpr,
@@ -74,10 +74,10 @@ describe('ActionFactory', () => {
           condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['find-address'] as ValueExpr[] },
         } satisfies PredicateTestExpr,
         effects: [] as EffectFunctionExpr[],
-      } satisfies ActionTransition
+      } satisfies ActionHook
 
       // Act
-      const result = actionFactory.create(json) as ActionTransitionASTNode
+      const result = actionFactory.create(json) as ActionHookASTNode
 
       // Assert
       const whenNode = result.properties.when
@@ -99,7 +99,7 @@ describe('ActionFactory', () => {
       } satisfies EffectFunctionExpr
 
       const json = {
-        type: TransitionType.ACTION,
+        type: HookType.ACTION,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['post', 'action'] } satisfies ReferenceExpr,
@@ -107,10 +107,10 @@ describe('ActionFactory', () => {
           condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['lookup'] as ValueExpr[] },
         } satisfies PredicateTestExpr,
         effects: [effect1, effect2],
-      } satisfies ActionTransition
+      } satisfies ActionHook
 
       // Act
-      const result = actionFactory.create(json) as ActionTransitionASTNode
+      const result = actionFactory.create(json) as ActionHookASTNode
 
       // Assert
       const effects = result.properties.effects as FunctionASTNode[]
@@ -128,7 +128,7 @@ describe('ActionFactory', () => {
     it('should handle empty effects array', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACTION,
+        type: HookType.ACTION,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['post', 'action'] } satisfies ReferenceExpr,
@@ -136,10 +136,10 @@ describe('ActionFactory', () => {
           condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['noop'] as ValueExpr[] },
         } satisfies PredicateTestExpr,
         effects: [] as EffectFunctionExpr[],
-      } satisfies ActionTransition
+      } satisfies ActionHook
 
       // Act
-      const result = actionFactory.create(json) as ActionTransitionASTNode
+      const result = actionFactory.create(json) as ActionHookASTNode
 
       // Assert
       expect(result.properties.effects).toHaveLength(0)
@@ -148,7 +148,7 @@ describe('ActionFactory', () => {
     it('should generate unique node IDs from the ID generator', () => {
       // Arrange
       const json = {
-        type: TransitionType.ACTION,
+        type: HookType.ACTION,
         when: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['post', 'action'] } satisfies ReferenceExpr,
@@ -156,7 +156,7 @@ describe('ActionFactory', () => {
           condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['test'] as ValueExpr[] },
         } satisfies PredicateTestExpr,
         effects: [] as EffectFunctionExpr[],
-      } satisfies ActionTransition
+      } satisfies ActionHook
 
       // Act
       const result = actionFactory.create(json)

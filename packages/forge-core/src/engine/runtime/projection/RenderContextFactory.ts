@@ -53,11 +53,7 @@ export default class RenderContextFactory {
       fieldValidationFailures.length > 0
         ? attachValidationToBlocks(input.blocks, fieldValidationFailures)
         : input.blocks
-    const navigation = buildNavigationTree(
-        options.navigationMetadata,
-        options.currentStepPath,
-        options.params,
-      )
+    const navigation = buildNavigationTree(options.navigationMetadata, options.currentStepPath, options.params)
 
     return {
       navigation,

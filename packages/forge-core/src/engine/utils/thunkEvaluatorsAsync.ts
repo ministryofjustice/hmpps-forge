@@ -213,7 +213,7 @@ export async function evaluateUntilFirstMatch(
 }
 
 /**
- * Result type for outcome evaluation in transitions
+ * Result type for outcome evaluation in hooks
  *
  * Used by AccessHandler and SubmitHandler to represent the result
  * of evaluating a `next` array of redirect/throwError outcomes.
@@ -224,7 +224,7 @@ export type OutcomeEvaluationResult =
   | { type: 'none' }
 
 /**
- * Evaluate next outcomes to determine transition result
+ * Evaluate next outcomes to determine hook result
  *
  * Evaluates outcomes in order with first-match semantics:
  * - RedirectOutcome: Returns redirect path when `when` matches

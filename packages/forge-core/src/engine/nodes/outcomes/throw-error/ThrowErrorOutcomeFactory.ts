@@ -9,7 +9,7 @@ import { NodeFactory } from '../../NodeFactory'
 /**
  * ThrowErrorOutcomeFactory: Creates ThrowError outcome AST nodes
  *
- * ThrowError outcomes define HTTP error responses within transitions.
+ * ThrowError outcomes define HTTP error responses within hooks.
  * Contains optional condition, required status code, and message.
  */
 export default class ThrowErrorOutcomeFactory {

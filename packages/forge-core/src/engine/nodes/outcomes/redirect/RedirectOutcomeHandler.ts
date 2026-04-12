@@ -31,7 +31,7 @@ export type RedirectOutcomeResult = string | undefined
  * - A string path (returned as-is)
  * - An AST node (evaluated dynamically, e.g., Format expression)
  *
- * Used in transition `next` arrays with first-match semantics.
+ * Used in hook `next` arrays with first-match semantics.
  */
 export default class RedirectOutcomeHandler implements ThunkHandler {
   isAsync = false

@@ -9,15 +9,15 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
   return {
     stepId: 'compile_ast:1',
     accessAncestorIds: ['compile_ast:1'],
-    actionTransitionIds: [],
-    submitTransitionIds: [],
+    actionHookIds: [],
+    submitHookIds: [],
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
     domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: 'compile_ast:1',
-    hasValidatingSubmitTransition: false,
+    hasValidatingSubmitHook: false,
     hasDomainValidation: false,
     ...options,
   }

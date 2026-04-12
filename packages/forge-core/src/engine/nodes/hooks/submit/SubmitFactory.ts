@@ -1,12 +1,12 @@
 import { ASTNodeType } from '../../../types/enums'
-import { TransitionType } from '../../../../authoring/types/enums'
-import { SubmitTransitionASTNode } from '../../../types/expressions.type'
+import { HookType } from '../../../../authoring/types/enums'
+import { SubmitHookASTNode } from '../../../types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
-import { SubmitTransition } from '../../../../authoring/types/expressions.type'
+import { SubmitHook } from '../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 
 /**
- * SubmitFactory: Creates Submit transition nodes
+ * SubmitFactory: Creates Submit hook nodes
  * Handles form submission lifecycle including validation, effects, and navigation
  */
 export default class SubmitFactory {
@@ -17,11 +17,11 @@ export default class SubmitFactory {
   ) {}
 
   /**
-   * Transform Submit transition: Form submission handling
+   * Transform Submit hook: Form submission handling
    * Manages validation, effects, and navigation on submit
    */
-  create(json: SubmitTransition): SubmitTransitionASTNode {
-    const properties: SubmitTransitionASTNode['properties'] = {
+  create(json: SubmitHook): SubmitHookASTNode {
+    const properties: SubmitHookASTNode['properties'] = {
       // Default to validation disabled unless explicitly true
       validate: json.validate === true,
     }
@@ -67,8 +67,8 @@ export default class SubmitFactory {
 
     return {
       id: this.nodeIDGenerator.next(this.category),
-      type: ASTNodeType.TRANSITION,
-      transitionType: TransitionType.SUBMIT,
+      type: ASTNodeType.HOOK,
+      hookType: HookType.SUBMIT,
       properties,
       raw: json,
     }

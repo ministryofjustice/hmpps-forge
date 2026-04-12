@@ -1,5 +1,5 @@
 import { NodeId } from '../../../types/engine.type'
-import { AccessTransitionASTNode, FunctionASTNode } from '../../../types/expressions.type'
+import { AccessHookASTNode, FunctionASTNode } from '../../../types/expressions.type'
 import {
   ThunkHandler,
   ThunkInvocationAdapter,
@@ -13,17 +13,17 @@ import { evaluateNextOutcomes, OutcomeEvaluationResult } from '../../../utils/th
 import { evaluateNextOutcomesSync } from '../../../utils/thunkEvaluatorsSync'
 
 /**
- * Result of an access transition evaluation
+ * Result of an access hook evaluation
  */
-export interface AccessTransitionResult {
+export interface AccessHookResult {
   /**
-   * Whether the transition executed (when condition was true or absent)
+   * Whether the hook executed (when condition was true or absent)
    */
   executed: boolean
 
   /**
-   * The outcome of the transition:
-   * - 'continue': Transition completed, proceed to next transition
+   * The outcome of the hook:
+   * - 'continue': Hook completed, proceed to next hook
    * - 'redirect': Halt and redirect to another page
    * - 'error': Halt and return HTTP error response
    */
@@ -46,11 +46,11 @@ export interface AccessTransitionResult {
 }
 
 /**
- * Handler for Access Transition nodes
+ * Handler for Access Hook nodes
  *
- * Evaluates onAccess transitions by:
+ * Evaluates onAccess hooks by:
  * 1. Evaluating `when` condition (if present)
- * 2. If `when` is false → skip transition (continue to next)
+ * 2. If `when` is false → skip hook (continue to next)
  * 3. If `when` is true (or absent) → execute effects
  * 4. Evaluate next outcomes (redirect/throwError) with first-match semantics
  * 5. Return appropriate result based on first matching outcome
@@ -58,23 +58,23 @@ export interface AccessTransitionResult {
  * ## Outcome Evaluation
  * The `next` array contains redirect and throwError outcomes.
  * Outcomes are evaluated in order until one matches (when condition is true or absent).
- * First match wins and determines the transition result.
+ * First match wins and determines the hook result.
  *
  * ## Lifecycle Position
- * Access transitions run at each hierarchy level:
+ * Access hooks run at each hierarchy level:
  * OUTER onAccess → INNER onAccess → Step onAccess
  *
  * ## Effects
  * Effects are executed AFTER the `when` condition is evaluated (only if when is true).
- * The @transitionType scope variable enables EffectHandler to create
- * EffectFunctionContext with the correct transition type for answer source tracking.
+ * The @hookType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct hook type for answer source tracking.
  */
 export default class AccessHandler implements ThunkHandler {
   isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
-    private readonly node: AccessTransitionASTNode,
+    private readonly node: AccessHookASTNode,
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
@@ -116,15 +116,12 @@ export default class AccessHandler implements ThunkHandler {
     this.isAsync = false
   }
 
-  evaluateSync(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): HandlerResult<AccessTransitionResult> {
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<AccessHookResult> {
     // Step 1: Evaluate `when` condition
     const shouldExecute = this.evaluateWhenConditionSync(context, invoker)
 
     if (!shouldExecute) {
-      // Transition skipped - continue to next transition
+      // Hook skipped - continue to next hook
       return {
         value: {
           executed: false,
@@ -133,8 +130,8 @@ export default class AccessHandler implements ThunkHandler {
       }
     }
 
-    // Step 2: Push transition type onto scope and execute effects
-    context.scope.push({ '@transitionType': 'access' })
+    // Step 2: Push hook type onto scope and execute effects
+    context.scope.push({ '@hookType': 'access' })
     const effectError = this.executeEffectsSync(context, invoker)
     context.scope.pop()
 
@@ -166,7 +163,7 @@ export default class AccessHandler implements ThunkHandler {
       }
     }
 
-    // Step 4: No outcome matched - continue to next transition
+    // Step 4: No outcome matched - continue to next hook
     return {
       value: {
         executed: true,
@@ -178,12 +175,12 @@ export default class AccessHandler implements ThunkHandler {
   async evaluate(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<HandlerResult<AccessTransitionResult>> {
+  ): Promise<HandlerResult<AccessHookResult>> {
     // Step 1: Evaluate `when` condition
     const shouldExecute = await this.evaluateWhenCondition(context, invoker)
 
     if (!shouldExecute) {
-      // Transition skipped - continue to next transition
+      // Hook skipped - continue to next hook
       return {
         value: {
           executed: false,
@@ -192,8 +189,8 @@ export default class AccessHandler implements ThunkHandler {
       }
     }
 
-    // Step 2: Push transition type onto scope and execute effects
-    context.scope.push({ '@transitionType': 'access' })
+    // Step 2: Push hook type onto scope and execute effects
+    context.scope.push({ '@hookType': 'access' })
     const effectError = await this.executeEffects(context, invoker)
     context.scope.pop()
 
@@ -225,7 +222,7 @@ export default class AccessHandler implements ThunkHandler {
       }
     }
 
-    // Step 4: No outcome matched - continue to next transition
+    // Step 4: No outcome matched - continue to next hook
     return {
       value: {
         executed: true,
@@ -251,7 +248,7 @@ export default class AccessHandler implements ThunkHandler {
 
     const result = await invoker.invoke(when.id, context)
 
-    // On error, skip this transition (fail safe)
+    // On error, skip this hook (fail safe)
     if (result.error) {
       return false
     }
@@ -287,7 +284,7 @@ export default class AccessHandler implements ThunkHandler {
   }
 
   /**
-   * Evaluate next outcomes to determine transition result
+   * Evaluate next outcomes to determine hook result
    * Returns the first matching outcome (redirect or error), or 'none' if no match
    */
   private async evaluateOutcomes(
@@ -315,7 +312,7 @@ export default class AccessHandler implements ThunkHandler {
 
     const result = invoker.invokeSync(when.id, context)
 
-    // On error, skip this transition (fail safe)
+    // On error, skip this hook (fail safe)
     if (result.error) {
       return false
     }

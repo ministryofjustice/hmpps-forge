@@ -12,11 +12,7 @@ import {
   isConditionalExprNode,
   isMatchExprNode,
 } from '../../typeguards/expression-nodes'
-import {
-  isAccessTransitionNode,
-  isActionTransitionNode,
-  isSubmitTransitionNode,
-} from '../../typeguards/transition-nodes'
+import { isAccessHookNode, isActionHookNode, isSubmitHookNode } from '../../typeguards/hook-nodes'
 import { ThunkHandler, MetadataComputationDependencies } from './types'
 import FunctionRegistry from '../../FunctionRegistry'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '../../typeguards/structure-nodes'
@@ -41,9 +37,9 @@ import FunctionHandler from '../../nodes/expressions/function/FunctionHandler'
 import EffectHandler from '../../nodes/expressions/effect/EffectHandler'
 import BlockHandler from '../../nodes/structures/block/BlockHandler'
 import StepHandler from '../../nodes/structures/step/StepHandler'
-import AccessHandler from '../../nodes/transitions/access/AccessHandler'
-import ActionHandler from '../../nodes/transitions/action/ActionHandler'
-import SubmitHandler from '../../nodes/transitions/submit/SubmitHandler'
+import AccessHandler from '../../nodes/hooks/access/AccessHandler'
+import ActionHandler from '../../nodes/hooks/action/ActionHandler'
+import SubmitHandler from '../../nodes/hooks/submit/SubmitHandler'
 import { CompilationDependencies } from '../CompilationDependencies'
 import JourneyHandler from '../../nodes/structures/journey/JourneyHandler'
 import {
@@ -75,7 +71,7 @@ import ThrowErrorOutcomeHandler from '../../nodes/outcomes/throw-error/ThrowErro
  * Handlers are created using specialized factories based on node type:
  * - Pseudo nodes: PseudoNodeHandlerFactory
  * - Expression nodes: ReferenceHandler, IterateHandler, ConditionalHandler, TestHandler, AndHandler, OrHandler, XorHandler, NotHandler, FormatHandler, PipelineHandler, LogicHandlerFactory, FunctionHandlerFactory
- * - Transition nodes: AccessHandler, ActionHandler, SubmitHandler
+ * - Hook nodes: AccessHandler, ActionHandler, SubmitHandler
  * - Structural nodes: JourneyHandler, StepHandler, BlockHandler
  * - Unknown nodes: FallbackHandler
  */
@@ -135,7 +131,7 @@ export default class ThunkCompilerFactory {
    * Handler selection order:
    * 1. Pseudo nodes (AnswerLocal, AnswerRemote, Post, Query, Params, Data, Request, Session)
    * 2. Expression nodes (Reference, Iterate, Conditional, TestPredicate, AndPredicate, OrPredicate, XorPredicate, NotPredicate, Format, Pipeline, Function)
-   * 3. Transition nodes (Access, Action, Submit)
+   * 3. Hook nodes (Access, Action, Submit)
    * 4. Structural nodes (Journey, Step, Block)
    * 5. Fallback for unknown types
    *
@@ -309,16 +305,16 @@ export default class ThunkCompilerFactory {
       return new ThrowErrorOutcomeHandler(nodeId, node)
     }
 
-    // Transition nodes (ACCESS, ACTION, SUBMIT)
-    if (isAccessTransitionNode(node)) {
+    // Hook nodes (ACCESS, ACTION, SUBMIT)
+    if (isAccessHookNode(node)) {
       return new AccessHandler(nodeId, node)
     }
 
-    if (isActionTransitionNode(node)) {
+    if (isActionHookNode(node)) {
       return new ActionHandler(nodeId, node)
     }
 
-    if (isSubmitTransitionNode(node)) {
+    if (isSubmitHookNode(node)) {
       return new SubmitHandler(nodeId, node)
     }
 

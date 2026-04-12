@@ -1,5 +1,5 @@
 import { NodeId } from '../../../types/engine.type'
-import { SubmitTransitionASTNode } from '../../../types/expressions.type'
+import { SubmitHookASTNode } from '../../../types/expressions.type'
 import {
   ThunkHandler,
   ThunkInvocationAdapter,
@@ -13,11 +13,11 @@ import { evaluateNextOutcomes, OutcomeEvaluationResult } from '../../../utils/th
 import { evaluateNextOutcomesSync } from '../../../utils/thunkEvaluatorsSync'
 
 /**
- * Result of a submit transition evaluation
+ * Result of a submit hook evaluation
  */
-export interface SubmitTransitionResult {
+export interface SubmitHookResult {
   /**
-   * Whether the transition was executed (when/guards passed)
+   * Whether the hook was executed (when/guards passed)
    */
   executed: boolean
 
@@ -32,8 +32,8 @@ export interface SubmitTransitionResult {
   isValid?: boolean
 
   /**
-   * The outcome of the transition:
-   * - 'continue': Transition completed, proceed to render
+   * The outcome of the hook:
+   * - 'continue': Hook completed, proceed to render
    * - 'redirect': Halt and redirect to another page
    * - 'error': Halt and return HTTP error response
    */
@@ -56,12 +56,12 @@ export interface SubmitTransitionResult {
 }
 
 /**
- * Handler for Submit Transition nodes
+ * Handler for Submit Hook nodes
  *
- * Evaluates onSubmission transitions by:
+ * Evaluates onSubmission hooks by:
  * 1. Checking when/guards predicates
  * 2. Reading stored step validation state from context if validate=true
- * 3. Pushing @transitionType: 'submit' onto scope for effect execution
+ * 3. Pushing @hookType: 'submit' onto scope for effect execution
  * 4. Executing onAlways effects first when validate=true
  * 5. Choosing onValid or onInvalid based on the stored validation result
  * 6. Evaluating next outcomes for navigation/errors after effects have run
@@ -74,11 +74,11 @@ export interface SubmitTransitionResult {
  * ## Outcome Evaluation
  * The `next` array in each branch contains redirect and throwError outcomes.
  * Outcomes are evaluated in order until one matches (when condition is true or absent).
- * First match wins and determines the transition result.
+ * First match wins and determines the hook result.
  *
  * ## Execution Pattern
- * - when → transition (must evaluate before transition)
- * - guards → transition (must evaluate before transition)
+ * - when → hook (must evaluate before hook)
+ * - guards → hook (must evaluate before hook)
  * - validation state is prepared earlier in the request lifecycle
  * - effects are executed sequentially within each branch
  * - next expressions are evaluated after effects complete
@@ -94,15 +94,15 @@ export interface SubmitTransitionResult {
  * - Skips validation
  * - Executes onAlways branch
  *
- * The @transitionType scope variable enables EffectHandler to create
- * EffectFunctionContext with the correct transition type for answer source tracking.
+ * The @hookType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct hook type for answer source tracking.
  */
 export default class SubmitHandler implements ThunkHandler {
   isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
-    private readonly node: SubmitTransitionASTNode,
+    private readonly node: SubmitHookASTNode,
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
@@ -158,10 +158,7 @@ export default class SubmitHandler implements ThunkHandler {
     this.isAsync = false
   }
 
-  evaluateSync(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): HandlerResult<SubmitTransitionResult> {
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<SubmitHookResult> {
     // Check when predicate
     const whenPassed = this.evaluateWhenPredicateSync(context, invoker)
 
@@ -202,8 +199,8 @@ export default class SubmitHandler implements ThunkHandler {
       isValid = validation.isValid
     }
 
-    // Push transition type onto scope for effect execution
-    context.scope.push({ '@transitionType': 'submit' })
+    // Push hook type onto scope for effect execution
+    context.scope.push({ '@hookType': 'submit' })
 
     // Execute effects and evaluate next from appropriate branch
     let outcomeResult: OutcomeEvaluationResult = { type: 'none' }
@@ -240,7 +237,7 @@ export default class SubmitHandler implements ThunkHandler {
         outcomeResult = result.outcome
       }
     } else {
-      // Skip validation transition
+      // Skip validation hook
       const result = this.executeBranchSync(this.node.properties.onAlways, context, invoker)
 
       if (result.error) {
@@ -263,7 +260,7 @@ export default class SubmitHandler implements ThunkHandler {
   async evaluate(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<HandlerResult<SubmitTransitionResult>> {
+  ): Promise<HandlerResult<SubmitHookResult>> {
     // Check when predicate
     const whenPassed = await this.evaluateWhenPredicate(context, invoker)
 
@@ -304,8 +301,8 @@ export default class SubmitHandler implements ThunkHandler {
       isValid = validation.isValid
     }
 
-    // Push transition type onto scope for effect execution
-    context.scope.push({ '@transitionType': 'submit' })
+    // Push hook type onto scope for effect execution
+    context.scope.push({ '@hookType': 'submit' })
 
     // Execute effects and evaluate next from appropriate branch
     let outcomeResult: OutcomeEvaluationResult = { type: 'none' }
@@ -342,7 +339,7 @@ export default class SubmitHandler implements ThunkHandler {
         outcomeResult = result.outcome
       }
     } else {
-      // Skip validation transition
+      // Skip validation hook
       const result = await this.executeBranch(this.node.properties.onAlways, context, invoker)
 
       if (result.error) {
@@ -369,7 +366,7 @@ export default class SubmitHandler implements ThunkHandler {
     validated: boolean,
     isValid: boolean | undefined,
     outcomeResult: OutcomeEvaluationResult,
-  ): SubmitTransitionResult {
+  ): SubmitHookResult {
     const baseResult = {
       executed: true,
       validated,

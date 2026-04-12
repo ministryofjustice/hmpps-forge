@@ -1,21 +1,14 @@
 // eslint-disable-next-line max-classes-per-file
-import {
-  BlockType,
-  ExpressionType,
-  FunctionType,
-  OutcomeType,
-  PredicateType,
-  TransitionType,
-} from '../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../authoring/types/enums'
 import { AstNodeId, NodeId, PseudoNodeId } from '../engine/types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
   PipelineASTNode,
   ReferenceASTNode,
-  AccessTransitionASTNode,
-  ActionTransitionASTNode,
-  SubmitTransitionASTNode,
+  AccessHookASTNode,
+  ActionHookASTNode,
+  SubmitHookASTNode,
   RedirectOutcomeASTNode,
   ThrowErrorOutcomeASTNode,
 } from '../engine/types/expressions.type'
@@ -125,10 +118,10 @@ export class ASTTestFactory {
   }
 
   /**
-   * Create a new TransitionBuilder for fluent transition construction
+   * Create a new HookBuilder for fluent hook construction
    */
-  static transition(type: TransitionType): TransitionBuilder {
-    return new TransitionBuilder(type)
+  static hook(type: HookType): HookBuilder {
+    return new HookBuilder(type)
   }
 
   static reference(path: string[]): ReferenceASTNode {
@@ -573,14 +566,14 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 }
 
 /**
- * Fluent builder for Transition nodes
+ * Fluent builder for Hook nodes
  */
-export class TransitionBuilder {
+export class HookBuilder {
   private id?: string
 
   private properties: any = {}
 
-  constructor(private transitionType: TransitionType) {}
+  constructor(private hookType: HookType) {}
 
   withId(id: string): this {
     this.id = id
@@ -592,14 +585,14 @@ export class TransitionBuilder {
     return this
   }
 
-  build(): AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode {
+  build(): AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
-      type: ASTNodeType.TRANSITION,
+      type: ASTNodeType.HOOK,
       id: nodeId,
-      transitionType: this.transitionType,
+      hookType: this.hookType,
       properties: this.properties,
-    } as AccessTransitionASTNode | ActionTransitionASTNode | SubmitTransitionASTNode
+    } as AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode
   }
 }

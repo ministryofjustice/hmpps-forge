@@ -13,7 +13,7 @@ import {
   ValueExpr,
   RedirectOutcome,
   ThrowErrorOutcome,
-  TransitionOutcome,
+  HookOutcome,
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, OutcomeType } from '../types/enums'
 import { isFunctionExpr, isTransformerFunctionExpr } from './functions'
@@ -62,7 +62,7 @@ export function isThrowErrorOutcome(obj: any): obj is ThrowErrorOutcome {
   return obj != null && obj.type === OutcomeType.THROW_ERROR
 }
 
-export function isTransitionOutcome(obj: any): obj is TransitionOutcome {
+export function isHookOutcome(obj: any): obj is HookOutcome {
   return isRedirectOutcome(obj) || isThrowErrorOutcome(obj)
 }
 
@@ -106,5 +106,5 @@ export function isExpression(node: any): boolean {
     isPredicateExpr(node) ||
     isFunctionExpr(node) ||
     isValidationExpr(node) ||
-    isTransitionOutcome(node)
+    isHookOutcome(node)
 }

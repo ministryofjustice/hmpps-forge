@@ -7,7 +7,7 @@ describe('EffectFunctionContext', () => {
       // Arrange
       const mockContext = createMockContext()
       mockContext.cacheManager = { clearCache: jest.fn() } as any
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', 'hello')).not.toThrow()
@@ -21,7 +21,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a function', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', (() => {}) as any)).toThrow(TypeError)
@@ -31,7 +31,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a Symbol', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', Symbol('test') as any)).toThrow(TypeError)
@@ -41,7 +41,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a Date object', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', new Date() as any)).toThrow(TypeError)
@@ -51,7 +51,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a BigInt', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', BigInt(123) as any)).toThrow(TypeError)
@@ -61,7 +61,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a class instance', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       class MyClass {
         value = 1
@@ -75,7 +75,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a nested non-serializable value', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setAnswer('field', { nested: () => {} } as any)).toThrow(TypeError)
@@ -88,7 +88,7 @@ describe('EffectFunctionContext', () => {
       // Arrange
       const mockContext = createMockContext()
       mockContext.cacheManager = { clearCache: jest.fn() } as any
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setData('key', 'value')).not.toThrow()
@@ -98,7 +98,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a function', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setData('key', (() => {}) as any)).toThrow(TypeError)
@@ -108,7 +108,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when setting a Date object', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setData('key', new Date() as any)).toThrow(TypeError)
@@ -124,7 +124,7 @@ describe('EffectFunctionContext', () => {
           headers: { 'content-type': 'application/json', authorization: 'Bearer token123' },
         },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getRequestHeader('authorization')
@@ -138,7 +138,7 @@ describe('EffectFunctionContext', () => {
       const mockContext = createMockContext({
         mockRequest: { headers: {} },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getRequestHeader('x-non-existent')
@@ -154,7 +154,7 @@ describe('EffectFunctionContext', () => {
           headers: { 'set-cookie': ['cookie1=value1', 'cookie2=value2'] },
         },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getRequestHeader('set-cookie')
@@ -172,7 +172,7 @@ describe('EffectFunctionContext', () => {
           headers: { 'content-type': 'application/json', accept: 'text/html' },
         },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllRequestHeaders()
@@ -186,7 +186,7 @@ describe('EffectFunctionContext', () => {
       const mockContext = createMockContext({
         mockRequest: { headers: {} },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllRequestHeaders()
@@ -204,7 +204,7 @@ describe('EffectFunctionContext', () => {
           cookies: { session: 'abc123', preference: 'dark' },
         },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getRequestCookie('session')
@@ -218,7 +218,7 @@ describe('EffectFunctionContext', () => {
       const mockContext = createMockContext({
         mockRequest: { cookies: {} },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getRequestCookie('non-existent')
@@ -236,7 +236,7 @@ describe('EffectFunctionContext', () => {
           cookies: { session: 'abc123', preference: 'dark' },
         },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllRequestCookies()
@@ -250,7 +250,7 @@ describe('EffectFunctionContext', () => {
       const mockContext = createMockContext({
         mockRequest: { cookies: {} },
       })
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllRequestCookies()
@@ -264,7 +264,7 @@ describe('EffectFunctionContext', () => {
     it('should set a header in the response', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       effectContext.setResponseHeader('X-Custom-Header', 'test-value')
@@ -276,7 +276,7 @@ describe('EffectFunctionContext', () => {
     it('should overwrite an existing header', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       effectContext.setResponseHeader('X-Custom-Header', 'first-value')
@@ -289,7 +289,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when name is not a string', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setResponseHeader(123 as any, 'value')).toThrow(TypeError)
@@ -299,7 +299,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when value is not a string', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setResponseHeader('X-Header', {} as any)).toThrow(TypeError)
@@ -311,7 +311,7 @@ describe('EffectFunctionContext', () => {
     it('should return a previously set header', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
       effectContext.setResponseHeader('X-Custom-Header', 'test-value')
 
       // Act
@@ -324,7 +324,7 @@ describe('EffectFunctionContext', () => {
     it('should return undefined for non-existent header', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getResponseHeader('X-Non-Existent')
@@ -338,7 +338,7 @@ describe('EffectFunctionContext', () => {
     it('should return all set headers', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
       effectContext.setResponseHeader('X-First', 'value1')
       effectContext.setResponseHeader('X-Second', 'value2')
 
@@ -354,7 +354,7 @@ describe('EffectFunctionContext', () => {
     it('should return empty map when no headers set', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllResponseHeaders()
@@ -368,7 +368,7 @@ describe('EffectFunctionContext', () => {
     it('should set a cookie in the response', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       effectContext.setResponseCookie('session', 'abc123')
@@ -381,7 +381,7 @@ describe('EffectFunctionContext', () => {
     it('should set a cookie with options', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       effectContext.setResponseCookie('preference', 'dark', {
@@ -407,7 +407,7 @@ describe('EffectFunctionContext', () => {
     it('should overwrite an existing cookie', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       effectContext.setResponseCookie('session', 'first')
@@ -421,7 +421,7 @@ describe('EffectFunctionContext', () => {
     it('should clear a cookie by setting maxAge to 0', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
       effectContext.setResponseCookie('session', 'abc123')
 
       // Act
@@ -435,7 +435,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when name is not a string', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setResponseCookie(123 as any, 'value')).toThrow(TypeError)
@@ -445,7 +445,7 @@ describe('EffectFunctionContext', () => {
     it('should throw when value is not a string', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
       expect(() => effectContext.setResponseCookie('session', 123 as any)).toThrow(TypeError)
@@ -457,7 +457,7 @@ describe('EffectFunctionContext', () => {
     it('should return a previously set cookie', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
       effectContext.setResponseCookie('session', 'abc123', { httpOnly: true })
 
       // Act
@@ -470,7 +470,7 @@ describe('EffectFunctionContext', () => {
     it('should return undefined for non-existent cookie', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getResponseCookie('non-existent')
@@ -484,7 +484,7 @@ describe('EffectFunctionContext', () => {
     it('should return all set cookies', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
       effectContext.setResponseCookie('session', 'abc123')
       effectContext.setResponseCookie('preference', 'dark')
 
@@ -500,7 +500,7 @@ describe('EffectFunctionContext', () => {
     it('should return empty map when no cookies set', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getAllResponseCookies()
@@ -528,7 +528,7 @@ describe('EffectFunctionContext', () => {
         ],
       }
 
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()
@@ -541,7 +541,7 @@ describe('EffectFunctionContext', () => {
     it('should return empty array when no reachability data', () => {
       // Arrange
       const mockContext = createMockContext()
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()
@@ -565,7 +565,7 @@ describe('EffectFunctionContext', () => {
         unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^task_\\d+_status$'] }],
       }
 
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()
@@ -590,7 +590,7 @@ describe('EffectFunctionContext', () => {
         unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^fieldA$'] }],
       }
 
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()
@@ -620,7 +620,7 @@ describe('EffectFunctionContext', () => {
         ],
       }
 
-      const effectContext = new EffectFunctionContext(mockContext, 'load')
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()

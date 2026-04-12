@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, PredicateType, TransitionType, IteratorType, OutcomeType } from './enums'
+import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, OutcomeType } from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -209,7 +209,7 @@ export interface TransformerFunctionExpr<A extends ValueExpr[] = ValueExpr[]> ex
 }
 
 /**
- * Represents a side effect to be executed during transitions.
+ * Represents a side effect to be executed during lifecycle hooks.
  * Effects handle actions like saving data, manipulating collections,
  * or triggering external operations.
  **
@@ -604,11 +604,11 @@ export interface MatchExpr {
   otherwise?: ValueExpr
 }
 
-/* ===== Transition Outcomes ===== */
+/* ===== Hook Outcomes ===== */
 
 /**
- * Represents a redirect outcome in a transition.
- * When matched, halts transition processing and redirects to the specified path.
+ * Represents a redirect outcome in a hook.
+ * When matched, halts hook processing and redirects to the specified path.
  *
  * @example
  * // Unconditional redirect
@@ -630,8 +630,8 @@ export interface RedirectOutcome {
 }
 
 /**
- * Represents an error outcome in a transition.
- * When matched, halts transition processing and throws an HTTP error.
+ * Represents an error outcome in a hook.
+ * When matched, halts hook processing and throws an HTTP error.
  *
  * @example
  * // Not found error
@@ -660,35 +660,35 @@ export interface ThrowErrorOutcome {
 }
 
 /**
- * Union type for all transition outcomes.
- * Used in the `next` array of access and submit transitions.
+ * Union type for all hook outcomes.
+ * Used in the `next` array of access and submit hooks.
  */
-export type TransitionOutcome = RedirectOutcome | ThrowErrorOutcome
+export type HookOutcome = RedirectOutcome | ThrowErrorOutcome
 
 /**
- * Lifecycle transition for access control and data loading.
+ * Lifecycle hook for access control and data loading.
  *
- * Access transitions are evaluated in sequence. Each transition:
+ * Access hooks are evaluated in sequence. Each hook:
  * 1. Evaluates `when` condition (if present)
- * 2. If `when` is false → skip to next transition
+ * 2. If `when` is false → skip to next hook
  * 3. If `when` is true (or absent) → execute effects
  * 4. Evaluate `next` outcomes - first match halts (redirect or error)
- * 5. If no outcome matches → CONTINUE to next transition
+ * 5. If no outcome matches → CONTINUE to next hook
  *
  * @example
- * // Effects-only transition (always executes, continues)
- * accessTransition({ effects: [loadUserData()] })
+ * // Effects-only hook (always executes, continues)
+ * access({ effects: [loadUserData()] })
  *
  * @example
  * // Conditional redirect
- * accessTransition({
+ * access({
  *   when: Data('user').not.match(Condition.IsRequired()),
  *   next: [redirect({ goto: '/login' })],
  * })
  *
  * @example
  * // Error response
- * accessTransition({
+ * access({
  *   effects: [checkPermissions()],
  *   next: [
  *     throwError({
@@ -700,23 +700,23 @@ export type TransitionOutcome = RedirectOutcome | ThrowErrorOutcome
  *   ],
  * })
  */
-export interface AccessTransition {
-  type: TransitionType.ACCESS
-  /** Condition for this transition to execute. If omitted, always executes. */
+export interface AccessHook {
+  type: HookType.ACCESS
+  /** Condition for this hook to execute. If omitted, always executes. */
   when?: PredicateExpr
-  /** Effects to execute when transition runs (data loading, analytics, etc.) */
+  /** Effects to execute when hook runs (data loading, analytics, etc.) */
   effects?: EffectFunctionExpr<any>[]
   /** Outcomes to evaluate - first match halts (redirect or throws error) */
-  next?: TransitionOutcome[]
+  next?: HookOutcome[]
 }
 
 /**
- * Submission transition for handling form submissions.
+ * Submission hook for handling form submissions.
  * Controls validation, effects, and navigation when users submit forms.
  *
  * @example
  * // Simple save and redirect
- * submitTransition({
+ * submit({
  *   validate: true,
  *   onValid: {
  *     effects: [saveData()],
@@ -726,7 +726,7 @@ export interface AccessTransition {
  *
  * @example
  * // Error handling on save failure
- * submitTransition({
+ * submit({
  *   validate: true,
  *   onValid: {
  *     effects: [saveGoal()],
@@ -741,18 +741,18 @@ export interface AccessTransition {
  *   },
  * })
  */
-export interface SubmitTransition {
-  type: TransitionType.SUBMIT
+export interface SubmitHook {
+  type: HookType.SUBMIT
 
   /**
-   * Optional trigger condition for this transition.
-   * If omitted, the transition triggers on any form submission.
+   * Optional trigger condition for this hook.
+   * If omitted, the hook triggers on any form submission.
    */
   when?: PredicateExpr
 
   /**
-   * Optional guard conditions that must be met for the transition to proceed.
-   * Guards act as a security layer, preventing transitions in certain states.
+   * Optional guard conditions that must be met for the hook to proceed.
+   * Guards act as a security layer, preventing hooks in certain states.
    */
   guards?: PredicateExpr
 
@@ -772,7 +772,7 @@ export interface SubmitTransition {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
     /** Outcomes to evaluate - first match halts (redirect or throws error) */
-    next?: TransitionOutcome[]
+    next?: HookOutcome[]
   }
 
   /**
@@ -783,7 +783,7 @@ export interface SubmitTransition {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
     /** Outcomes to evaluate - first match halts (redirect or throws error) */
-    next?: TransitionOutcome[]
+    next?: HookOutcome[]
   }
 
   /**
@@ -794,14 +794,14 @@ export interface SubmitTransition {
     /** Effects to execute */
     effects?: EffectFunctionExpr<any>[]
     /** Outcomes to evaluate - first match halts (redirect or throws error) */
-    next?: TransitionOutcome[]
+    next?: HookOutcome[]
   }
 }
 
 /**
- * Lifecycle transition for in-page actions.
+ * Lifecycle hook for in-page actions.
  *
- * Executes effects in response to button clicks that don't navigate away,
+ * Executes effects in response to button clicks that do not navigate away,
  * such as "Find address" or "Add another item" buttons.
  *
  * Runs BEFORE block evaluation on POST requests, allowing effects to populate
@@ -810,7 +810,7 @@ export interface SubmitTransition {
  * @example
  * // Postcode lookup action
  * {
- *   type: 'TransitionType.Action',
+ *   type: 'HookType.Action',
  *   when: Post('action').match(Condition.Equals('lookup')),
  *   effects: [lookupPostcode()]
  * }
@@ -818,13 +818,13 @@ export interface SubmitTransition {
  * @example
  * // Add item to collection
  * {
- *   type: 'TransitionType.Action',
+ *   type: 'HookType.Action',
  *   when: Post('action').match(Condition.Equals('add-item')),
  *   effects: [addItemToCollection()]
  * }
  */
-export interface ActionTransition {
-  type: TransitionType.ACTION
+export interface ActionHook {
+  type: HookType.ACTION
 
   /**
    * Trigger condition for this action.

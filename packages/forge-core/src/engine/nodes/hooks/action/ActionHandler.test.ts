@@ -1,5 +1,5 @@
-import { ActionTransitionASTNode } from '../../../types/expressions.type'
-import { TransitionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import { ActionHookASTNode } from '../../../types/expressions.type'
+import { HookType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
 import { createMockContext, createMockInvoker } from '../../../../testing/thunkTestHelpers'
 import { ThunkResult } from '../../../compilation/thunks/types'
@@ -18,12 +18,12 @@ describe('ActionHandler', () => {
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
@@ -48,12 +48,12 @@ describe('ActionHandler', () => {
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
 
@@ -85,12 +85,12 @@ describe('ActionHandler', () => {
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const invokedIds: string[] = []
@@ -119,12 +119,12 @@ describe('ActionHandler', () => {
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
@@ -157,12 +157,12 @@ describe('ActionHandler', () => {
       const effect1 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect1')
       const effect2 = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'effect2')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect1, effect2])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
 
@@ -193,12 +193,12 @@ describe('ActionHandler', () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
@@ -224,12 +224,12 @@ describe('ActionHandler', () => {
       const failingEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'failingEffect')
       const successEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'successEffect')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [failingEffect, successEffect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const invokedIds: string[] = []
@@ -270,12 +270,12 @@ describe('ActionHandler', () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', null)
         .withProperty('effects', [effect])
-        .build() as unknown as ActionTransitionASTNode
+        .build() as unknown as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker()
@@ -288,20 +288,20 @@ describe('ActionHandler', () => {
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
     })
 
-    it('should push @transitionType to scope before executing effects', async () => {
+    it('should push @hookType scope key before executing effects', async () => {
       // Arrange
       const whenPredicate = ASTTestFactory.expression(PredicateType.TEST).build()
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'lookupAddress')
 
-      const transition = ASTTestFactory.transition(TransitionType.ACTION)
+      const hook = ASTTestFactory.hook(HookType.ACTION)
         .withProperty('when', whenPredicate)
         .withProperty('effects', [effect])
-        .build() as ActionTransitionASTNode
+        .build() as ActionHookASTNode
 
-      const handler = new ActionHandler(transition.id, transition)
+      const handler = new ActionHandler(hook.id, hook)
 
       const mockContext = createMockContext()
-      let capturedTransitionType: string | undefined
+      let capturedHookType: string | undefined
 
       const mockInvoker = createMockInvoker({
         invokeImpl: async nodeId => {
@@ -310,9 +310,9 @@ describe('ActionHandler', () => {
           }
 
           if (nodeId === effect.id) {
-            // Capture transition type from scope (as EffectHandler would read it)
+            // Capture hook type from scope (as EffectHandler would read it)
             const currentScope = mockContext.scope[mockContext.scope.length - 1] ?? {}
-            capturedTransitionType = currentScope['@transitionType'] as string
+            capturedHookType = currentScope['@hookType'] as string
 
             return { value: undefined, metadata: mockMetadata() }
           }
@@ -325,7 +325,7 @@ describe('ActionHandler', () => {
       await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(capturedTransitionType).toBe('action')
+      expect(capturedHookType).toBe('action')
     })
   })
 })

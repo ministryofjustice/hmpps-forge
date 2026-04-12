@@ -1,5 +1,5 @@
 import { NodeId } from '../../../types/engine.type'
-import { ActionTransitionASTNode, FunctionASTNode } from '../../../types/expressions.type'
+import { ActionHookASTNode, FunctionASTNode } from '../../../types/expressions.type'
 import {
   ThunkHandler,
   ThunkInvocationAdapter,
@@ -11,9 +11,9 @@ import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationC
 import { isASTNode } from '../../../typeguards/nodes'
 
 /**
- * Result of an action transition evaluation
+ * Result of an action hook evaluation
  */
-export interface ActionTransitionResult {
+export interface ActionHookResult {
   /**
    * Whether the action was executed (when predicate passed)
    */
@@ -21,40 +21,40 @@ export interface ActionTransitionResult {
 }
 
 /**
- * Handler for Action Transition nodes
+ * Handler for Action Hook nodes
  *
- * Evaluates onAction transitions by:
+ * Evaluates onAction hooks by:
  * 1. Checking the when predicate (required - must match to execute)
- * 2. Pushing @transitionType: 'action' onto scope for effect execution
+ * 2. Pushing @hookType: 'action' onto scope for effect execution
  * 3. Executing effects immediately
  *
  * ## Purpose
- * onAction transitions handle "in-page actions" like postcode lookups.
+ * onAction hooks handle "in-page actions" like postcode lookups.
  * They run on POST requests BEFORE block evaluation, allowing effects
  * to set answers that blocks then display.
  *
  * ## Execution Pattern
  * 1. Evaluate when predicate
  * 2. If when fails -> return { executed: false }
- * 3. If when passes -> push transition type to scope -> execute effects -> return { executed: true }
+ * 3. If when passes -> push hook type to scope -> execute effects -> return { executed: true }
  *
  * ## Wiring Pattern
- * - when -> transition (must evaluate before transition)
- * - effects are chained: effect[0] -> effect[1] -> transition
+ * - when -> hook (must evaluate before hook)
+ * - effects are chained: effect[0] -> effect[1] -> hook
  *
  * ## First-Match Semantics
  * Only the first matching onAction executes (controlled by StepController).
- * This handler just evaluates a single transition; the controller handles iteration.
+ * This handler just evaluates a single hook; the controller handles iteration.
  *
- * The @transitionType scope variable enables EffectHandler to create
- * EffectFunctionContext with the correct transition type for answer source tracking.
+ * The @hookType scope variable enables EffectHandler to create
+ * EffectFunctionContext with the correct hook type for answer source tracking.
  */
 export default class ActionHandler implements ThunkHandler {
   isAsync = false
 
   constructor(
     public readonly nodeId: NodeId,
-    private readonly node: ActionTransitionASTNode,
+    private readonly node: ActionHookASTNode,
   ) {}
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
@@ -84,10 +84,7 @@ export default class ActionHandler implements ThunkHandler {
     this.isAsync = false
   }
 
-  evaluateSync(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-  ): HandlerResult<ActionTransitionResult> {
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ActionHookResult> {
     const whenPassed = this.evaluateWhenPredicateSync(context, invoker)
 
     if (!whenPassed) {
@@ -98,8 +95,8 @@ export default class ActionHandler implements ThunkHandler {
       }
     }
 
-    // Push transition type onto scope for effect execution
-    context.scope.push({ '@transitionType': 'action' })
+    // Push hook type onto scope for effect execution
+    context.scope.push({ '@hookType': 'action' })
 
     // Execute effects
     const effectError = this.executeEffectsSync(context, invoker)
@@ -121,7 +118,7 @@ export default class ActionHandler implements ThunkHandler {
   async evaluate(
     context: ThunkEvaluationContext,
     invoker: ThunkInvocationAdapter,
-  ): Promise<HandlerResult<ActionTransitionResult>> {
+  ): Promise<HandlerResult<ActionHookResult>> {
     const whenPassed = await this.evaluateWhenPredicate(context, invoker)
 
     if (!whenPassed) {
@@ -132,8 +129,8 @@ export default class ActionHandler implements ThunkHandler {
       }
     }
 
-    // Push transition type onto scope for effect execution
-    context.scope.push({ '@transitionType': 'action' })
+    // Push hook type onto scope for effect execution
+    context.scope.push({ '@hookType': 'action' })
 
     // Execute effects
     const effectError = await this.executeEffects(context, invoker)
@@ -156,7 +153,7 @@ export default class ActionHandler implements ThunkHandler {
    * Evaluate the when predicate
    * Returns true if predicate passes, false otherwise
    *
-   * Note: when is required for ActionTransition (always has a trigger condition)
+   * Note: when is required for ActionHook (always has a trigger condition)
    */
   private async evaluateWhenPredicate(
     context: ThunkEvaluationContext,

@@ -1,7 +1,7 @@
 import ValidationTemplateAnalyzer from './analyzers/ValidationTemplateAnalyzer'
 import { normalizeRelativePath } from '../../framework/path/routePath'
 import { NodeId } from '../types/engine.type'
-import { IterateASTNode, SubmitTransitionASTNode } from '../types/expressions.type'
+import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
@@ -17,15 +17,15 @@ export interface StepRuntimePlan {
   path: string
   code?: string
   accessAncestorIds: NodeId[]
-  actionTransitionIds: NodeId[]
-  submitTransitionIds: NodeId[]
+  actionHookIds: NodeId[]
+  submitHookIds: NodeId[]
   fieldIteratorRootIds: NodeId[]
   validationIterateNodeIds: NodeId[]
   validationBlockIds: NodeId[]
   domainValidationNodeIds: NodeId[]
   renderAncestorIds: NodeId[]
   renderStepId: NodeId
-  hasValidatingSubmitTransition: boolean
+  hasValidatingSubmitHook: boolean
   hasDomainValidation: boolean
 }
 
@@ -142,8 +142,8 @@ export default class RuntimePlanBuilder {
     const stepId = stepNode.id
 
     const accessAncestorIds = getAncestorChain(stepId, this.metadataRegistry)
-    const actionTransitionIds = (stepNode.properties.onAction ?? []).map(transition => transition.id)
-    const submitTransitionIds = (stepNode.properties.onSubmission ?? []).map(transition => transition.id)
+    const actionHookIds = (stepNode.properties.onAction ?? []).map(hook => hook.id)
+    const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
     const fieldIterateNodeIds = this.findFieldIterateNodeIds(stepId)
     const fieldIteratorRootIds = this.findIteratorRootIds(stepId, fieldIterateNodeIds)
     const validationIterateNodeIds = this.findValidationIterateNodeIds(fieldIterateNodeIds)
@@ -156,15 +156,15 @@ export default class RuntimePlanBuilder {
       path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
       accessAncestorIds,
-      actionTransitionIds,
-      submitTransitionIds,
+      actionHookIds,
+      submitHookIds,
       fieldIteratorRootIds,
       validationIterateNodeIds,
       validationBlockIds,
       domainValidationNodeIds,
       renderAncestorIds,
       renderStepId: stepId,
-      hasValidatingSubmitTransition: this.computeHasValidatingSubmitTransition(stepNode),
+      hasValidatingSubmitHook: this.computeHasValidatingSubmitHook(stepNode),
       hasDomainValidation: domainValidationNodeIds.length > 0,
     }
   }
@@ -255,41 +255,39 @@ export default class RuntimePlanBuilder {
     forwardOutcomeIds: NodeId[]
     hasValidation: boolean
   } {
-    const submitTransitions = stepNode.properties.onSubmission ?? []
-    const validatingTransitions = submitTransitions.filter(t => t.properties.validate === true)
+    const submitHooks = stepNode.properties.onSubmission ?? []
+    const validatingHooks = submitHooks.filter(t => t.properties.validate === true)
 
-    if (validatingTransitions.length > 0) {
+    if (validatingHooks.length > 0) {
       return {
-        forwardOutcomeIds: this.extractOutcomeIdsFromValidBranch(validatingTransitions),
+        forwardOutcomeIds: this.extractOutcomeIdsFromValidBranch(validatingHooks),
         hasValidation: true,
       }
     }
 
     return {
-      forwardOutcomeIds: this.extractOutcomeIdsFromAlwaysBranch(submitTransitions),
+      forwardOutcomeIds: this.extractOutcomeIdsFromAlwaysBranch(submitHooks),
       hasValidation: false,
     }
   }
 
-  private extractOutcomeIdsFromValidBranch(transitions: SubmitTransitionASTNode[]): NodeId[] {
-    return transitions.flatMap(transition =>
-      (transition.properties.onValid?.next ?? [])
+  private extractOutcomeIdsFromValidBranch(hooks: SubmitHookASTNode[]): NodeId[] {
+    return hooks.flatMap(hook =>
+      (hook.properties.onValid?.next ?? [])
         .filter(isRedirectOutcomeNode)
         .map(node => node.id),
     )
   }
 
-  private extractOutcomeIdsFromAlwaysBranch(transitions: SubmitTransitionASTNode[]): NodeId[] {
-    return transitions.flatMap(transition =>
-      (transition.properties.onAlways?.next ?? [])
+  private extractOutcomeIdsFromAlwaysBranch(hooks: SubmitHookASTNode[]): NodeId[] {
+    return hooks.flatMap(hook =>
+      (hook.properties.onAlways?.next ?? [])
         .filter(isRedirectOutcomeNode)
         .map(node => node.id),
     )
   }
 
-  private computeHasValidatingSubmitTransition(stepNode: StepASTNode): boolean {
-    return (stepNode.properties.onSubmission ?? []).some(
-      (transition: SubmitTransitionASTNode) => transition.properties.validate === true,
-    )
+  private computeHasValidatingSubmitHook(stepNode: StepASTNode): boolean {
+    return (stepNode.properties.onSubmission ?? []).some((hook: SubmitHookASTNode) => hook.properties.validate === true)
   }
 }

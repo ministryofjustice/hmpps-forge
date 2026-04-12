@@ -1,20 +1,20 @@
-import { TransitionType } from '../../../authoring/types/enums'
+import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { AccessTransitionASTNode, ActionTransitionASTNode, SubmitTransitionASTNode } from '../../types/expressions.type'
+import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { NodeId, AstNodeId } from '../../types/engine.type'
-import { AccessTransitionResult } from '../../nodes/transitions/access/AccessHandler'
-import { SubmitTransitionResult } from '../../nodes/transitions/submit/SubmitHandler'
-import { ActionTransitionResult } from '../../nodes/transitions/action/ActionHandler'
+import { AccessHookResult } from '../../nodes/hooks/access/AccessHandler'
+import { SubmitHookResult } from '../../nodes/hooks/submit/SubmitHandler'
+import { ActionHookResult } from '../../nodes/hooks/action/ActionHandler'
 import { ThunkInvocationAdapter, ThunkResult } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import TransitionExecutor from './TransitionExecutor'
+import HookExecutor from './HookExecutor'
 
 function createStep(options: {
-  onAccess?: AccessTransitionASTNode[]
-  onAction?: ActionTransitionASTNode[]
-  onSubmission?: SubmitTransitionASTNode[]
+  onAccess?: AccessHookASTNode[]
+  onAction?: ActionHookASTNode[]
+  onSubmission?: SubmitHookASTNode[]
 }): StepASTNode {
   const builder = ASTTestFactory.step().withPath('/step-1').withTitle('Test Step')
 
@@ -33,7 +33,7 @@ function createStep(options: {
   return builder.build()
 }
 
-function createJourney(options: { onAccess?: AccessTransitionASTNode[] }): JourneyASTNode {
+function createJourney(options: { onAccess?: AccessHookASTNode[] }): JourneyASTNode {
   const builder = ASTTestFactory.journey()
     .withProperty('path', '/journey')
     .withCode('test-journey')
@@ -47,7 +47,7 @@ function createJourney(options: { onAccess?: AccessTransitionASTNode[] }): Journ
 }
 
 function setupExecutor(step: StepASTNode): {
-  executor: TransitionExecutor
+  executor: HookExecutor
   context: jest.Mocked<ThunkEvaluationContext>
   invoker: jest.Mocked<ThunkInvocationAdapter>
   logger: { warn: jest.Mock; debug: jest.Mock; info: jest.Mock; error: jest.Mock }
@@ -74,7 +74,7 @@ function setupExecutor(step: StepASTNode): {
     error: jest.fn(),
   }
 
-  const executor = new TransitionExecutor(logger as unknown as Console)
+  const executor = new HookExecutor(logger as unknown as Console)
 
   return { executor, context, invoker, logger }
 }
@@ -83,15 +83,15 @@ function createRuntimePlan(step: StepASTNode, options: Partial<StepRuntimePlan> 
   return {
     stepId: step.id,
     accessAncestorIds: [step.id],
-    actionTransitionIds: (step.properties.onAction ?? []).map(transition => transition.id),
-    submitTransitionIds: (step.properties.onSubmission ?? []).map(transition => transition.id),
+    actionHookIds: (step.properties.onAction ?? []).map(hook => hook.id),
+    submitHookIds: (step.properties.onSubmission ?? []).map(hook => hook.id),
     fieldIteratorRootIds: [],
     validationIterateNodeIds: [],
     validationBlockIds: [],
     domainValidationNodeIds: [],
     renderAncestorIds: [],
     renderStepId: step.id,
-    hasValidatingSubmitTransition: false,
+    hasValidatingSubmitHook: false,
     hasDomainValidation: false,
     ...options,
   }
@@ -108,36 +108,36 @@ function errorResult(message: string): ThunkResult {
   }
 }
 
-describe('TransitionExecutor', () => {
+describe('HookExecutor', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
   })
 
-  describe('executeAccessTransitions()', () => {
-    it('should return continue when ancestor has no transitions', async () => {
+  describe('executeAccessHooks()', () => {
+    it('should return continue when ancestor has no hooks', async () => {
       // Arrange
       const step = createStep({})
       const { executor, context, invoker } = setupExecutor(step)
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true, outcome: 'continue' })
       expect(invoker.invoke).not.toHaveBeenCalled()
     })
 
-    it('should invoke all transitions and return continue when all pass', async () => {
+    it('should invoke all hooks and return continue when all pass', async () => {
       // Arrange
-      const access1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const access2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access1 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const access2 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const step = createStep({ onAccess: [access1, access2] })
       const { executor, context, invoker } = setupExecutor(step)
 
-      invoker.invoke.mockResolvedValue(successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' }))
+      invoker.invoke.mockResolvedValue(successResult<AccessHookResult>({ executed: true, outcome: 'continue' }))
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
       expect(invoker.invoke).toHaveBeenCalledWith(access1.id, context)
@@ -147,17 +147,17 @@ describe('TransitionExecutor', () => {
 
     it('should halt on redirect outcome', async () => {
       // Arrange
-      const access1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const access2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access1 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const access2 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const step = createStep({ onAccess: [access1, access2] })
       const { executor, context, invoker } = setupExecutor(step)
 
       invoker.invoke.mockResolvedValue(
-        successResult<AccessTransitionResult>({ executed: true, outcome: 'redirect', redirect: '/login' }),
+        successResult<AccessHookResult>({ executed: true, outcome: 'redirect', redirect: '/login' }),
       )
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/login' })
@@ -166,25 +166,25 @@ describe('TransitionExecutor', () => {
 
     it('should halt on error outcome', async () => {
       // Arrange
-      const access = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const step = createStep({ onAccess: [access] })
       const { executor, context, invoker } = setupExecutor(step)
 
       invoker.invoke.mockResolvedValue(
-        successResult<AccessTransitionResult>({ executed: true, outcome: 'error', status: 403, message: 'Forbidden' }),
+        successResult<AccessHookResult>({ executed: true, outcome: 'error', status: 403, message: 'Forbidden' }),
       )
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true, outcome: 'error', status: 403, message: 'Forbidden' })
     })
 
-    it('should warn and skip when transition invocation errors', async () => {
+    it('should warn and skip when hook invocation errors', async () => {
       // Arrange
-      const access1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const access2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access1 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const access2 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const step = createStep({ onAccess: [access1, access2] })
       const { executor, context, invoker, logger } = setupExecutor(step)
 
@@ -193,35 +193,35 @@ describe('TransitionExecutor', () => {
           return errorResult('API timeout')
         }
 
-        return successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' })
+        return successResult<AccessHookResult>({ executed: true, outcome: 'continue' })
       })
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
-      expect(logger.warn).toHaveBeenCalledWith('Access transition error: API timeout')
+      expect(logger.warn).toHaveBeenCalledWith('Access hook error: API timeout')
       expect(invoker.invoke).toHaveBeenCalledWith(access2.id, context)
       expect(result).toEqual({ executed: true, outcome: 'continue' })
     })
 
-    it('should skip non-executed transitions (when condition false)', async () => {
+    it('should skip non-executed hooks (when condition false)', async () => {
       // Arrange
-      const access1 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const access2 = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access1 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const access2 = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const step = createStep({ onAccess: [access1, access2] })
       const { executor, context, invoker } = setupExecutor(step)
 
       invoker.invoke.mockImplementation(async (nodeId: NodeId) => {
         if (nodeId === access1.id) {
-          return successResult<AccessTransitionResult>({ executed: false, outcome: 'continue' })
+          return successResult<AccessHookResult>({ executed: false, outcome: 'continue' })
         }
 
-        return successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' })
+        return successResult<AccessHookResult>({ executed: true, outcome: 'continue' })
       })
 
       // Act
-      const result = await executor.executeAccessTransitions(step, invoker, context)
+      const result = await executor.executeAccessHooks(step, invoker, context)
 
       // Assert
       expect(invoker.invoke).toHaveBeenCalledWith(access2.id, context)
@@ -230,15 +230,15 @@ describe('TransitionExecutor', () => {
 
     it('should work with journey ancestors', async () => {
       // Arrange
-      const access = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const access = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
       const journey = createJourney({ onAccess: [access] })
       const step = createStep({})
       const { executor, context, invoker } = setupExecutor(step)
 
-      invoker.invoke.mockResolvedValue(successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' }))
+      invoker.invoke.mockResolvedValue(successResult<AccessHookResult>({ executed: true, outcome: 'continue' }))
 
       // Act
-      const result = await executor.executeAccessTransitions(journey, invoker, context)
+      const result = await executor.executeAccessHooks(journey, invoker, context)
 
       // Assert
       expect(invoker.invoke).toHaveBeenCalledWith(access.id, context)
@@ -246,15 +246,15 @@ describe('TransitionExecutor', () => {
     })
   })
 
-  describe('executeActionTransitions()', () => {
-    it('should return not-executed when step has no action transitions', async () => {
+  describe('executeActionHooks()', () => {
+    it('should return not-executed when step has no action hooks', async () => {
       // Arrange
       const step = createStep({})
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
       // Act
-      const result = await executor.executeActionTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeActionHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: false })
@@ -262,22 +262,22 @@ describe('TransitionExecutor', () => {
 
     it('should return first executed action (first-match semantics)', async () => {
       // Arrange
-      const action1 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
-      const action2 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
+      const action1 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
+      const action2 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
       const step = createStep({ onAction: [action1, action2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
       invoker.invoke.mockImplementation(async (nodeId: NodeId) => {
         if (nodeId === action1.id) {
-          return successResult<ActionTransitionResult>({ executed: true })
+          return successResult<ActionHookResult>({ executed: true })
         }
 
-        return successResult<ActionTransitionResult>({ executed: false })
+        return successResult<ActionHookResult>({ executed: false })
       })
 
       // Act
-      const result = await executor.executeActionTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeActionHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true })
@@ -287,26 +287,26 @@ describe('TransitionExecutor', () => {
 
     it('should skip non-matching actions and return not-executed', async () => {
       // Arrange
-      const action1 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
-      const action2 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
+      const action1 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
+      const action2 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
       const step = createStep({ onAction: [action1, action2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
-      invoker.invoke.mockResolvedValue(successResult<ActionTransitionResult>({ executed: false }))
+      invoker.invoke.mockResolvedValue(successResult<ActionHookResult>({ executed: false }))
 
       // Act
-      const result = await executor.executeActionTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeActionHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: false })
       expect(invoker.invoke).toHaveBeenCalledTimes(2)
     })
 
-    it('should skip action transitions that error', async () => {
+    it('should skip action hooks that error', async () => {
       // Arrange
-      const action1 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
-      const action2 = ASTTestFactory.transition(TransitionType.ACTION).build() as ActionTransitionASTNode
+      const action1 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
+      const action2 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
       const step = createStep({ onAction: [action1, action2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
@@ -316,11 +316,11 @@ describe('TransitionExecutor', () => {
           return errorResult('Failed to evaluate')
         }
 
-        return successResult<ActionTransitionResult>({ executed: true })
+        return successResult<ActionHookResult>({ executed: true })
       })
 
       // Act
-      const result = await executor.executeActionTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeActionHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true })
@@ -328,15 +328,15 @@ describe('TransitionExecutor', () => {
     })
   })
 
-  describe('executeSubmitTransitions()', () => {
-    it('should return default when step has no submit transitions', async () => {
+  describe('executeSubmitHooks()', () => {
+    it('should return default when step has no submit hooks', async () => {
       // Arrange
       const step = createStep({})
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
       // Act
-      const result = await executor.executeSubmitTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeSubmitHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: false, validated: false, outcome: 'continue' })
@@ -344,13 +344,13 @@ describe('TransitionExecutor', () => {
 
     it('should return first executed submit (first-match semantics)', async () => {
       // Arrange
-      const submit1 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
-      const submit2 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
+      const submit1 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
+      const submit2 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
       const step = createStep({ onSubmission: [submit1, submit2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
-      const submitResult: SubmitTransitionResult = {
+      const submitResult: SubmitHookResult = {
         executed: true,
         validated: true,
         isValid: false,
@@ -362,11 +362,11 @@ describe('TransitionExecutor', () => {
           return successResult(submitResult)
         }
 
-        return successResult<SubmitTransitionResult>({ executed: false, validated: false, outcome: 'continue' })
+        return successResult<SubmitHookResult>({ executed: false, validated: false, outcome: 'continue' })
       })
 
       // Act
-      const result = await executor.executeSubmitTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeSubmitHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual(submitResult)
@@ -374,14 +374,14 @@ describe('TransitionExecutor', () => {
       expect(invoker.invoke).not.toHaveBeenCalledWith(submit2.id, expect.anything())
     })
 
-    it('should return redirect result from submit transition', async () => {
+    it('should return redirect result from submit hook', async () => {
       // Arrange
-      const submit = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
+      const submit = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
       const step = createStep({ onSubmission: [submit] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
-      const submitResult: SubmitTransitionResult = {
+      const submitResult: SubmitHookResult = {
         executed: true,
         validated: false,
         outcome: 'redirect',
@@ -391,36 +391,36 @@ describe('TransitionExecutor', () => {
       invoker.invoke.mockResolvedValue(successResult(submitResult))
 
       // Act
-      const result = await executor.executeSubmitTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeSubmitHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual(submitResult)
     })
 
-    it('should skip non-matching submit transitions and return default', async () => {
+    it('should skip non-matching submit hooks and return default', async () => {
       // Arrange
-      const submit1 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
-      const submit2 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
+      const submit1 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
+      const submit2 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
       const step = createStep({ onSubmission: [submit1, submit2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
 
       invoker.invoke.mockResolvedValue(
-        successResult<SubmitTransitionResult>({ executed: false, validated: false, outcome: 'continue' }),
+        successResult<SubmitHookResult>({ executed: false, validated: false, outcome: 'continue' }),
       )
 
       // Act
-      const result = await executor.executeSubmitTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeSubmitHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: false, validated: false, outcome: 'continue' })
       expect(invoker.invoke).toHaveBeenCalledTimes(2)
     })
 
-    it('should skip submit transitions that error', async () => {
+    it('should skip submit hooks that error', async () => {
       // Arrange
-      const submit1 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
-      const submit2 = ASTTestFactory.transition(TransitionType.SUBMIT).build() as SubmitTransitionASTNode
+      const submit1 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
+      const submit2 = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
       const step = createStep({ onSubmission: [submit1, submit2] })
       const { executor, context, invoker } = setupExecutor(step)
       const runtimePlan = createRuntimePlan(step)
@@ -430,7 +430,7 @@ describe('TransitionExecutor', () => {
           return errorResult('Validation service down')
         }
 
-        return successResult<SubmitTransitionResult>({
+        return successResult<SubmitHookResult>({
           executed: true,
           validated: false,
           outcome: 'redirect',
@@ -439,7 +439,7 @@ describe('TransitionExecutor', () => {
       })
 
       // Act
-      const result = await executor.executeSubmitTransitions(runtimePlan, invoker, context)
+      const result = await executor.executeSubmitHooks(runtimePlan, invoker, context)
 
       // Assert
       expect(result).toEqual({ executed: true, validated: false, outcome: 'redirect', redirect: 'next' })
@@ -449,7 +449,7 @@ describe('TransitionExecutor', () => {
 
   describe('executeAccessLifecycle()', () => {
     function setupLifecycle(ancestors: (JourneyASTNode | StepASTNode)[]): {
-      executor: TransitionExecutor
+      executor: HookExecutor
       context: jest.Mocked<ThunkEvaluationContext>
       invoker: jest.Mocked<ThunkInvocationAdapter>
       runtimePlan: StepRuntimePlan
@@ -487,7 +487,7 @@ describe('TransitionExecutor', () => {
       } as jest.Mocked<ThunkInvocationAdapter>
 
       const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }
-      const executor = new TransitionExecutor(logger as unknown as Console)
+      const executor = new HookExecutor(logger as unknown as Console)
       const runtimePlan = createRuntimePlan(ancestors.at(-1)! as StepASTNode, {
         accessAncestorIds,
       })
@@ -495,7 +495,7 @@ describe('TransitionExecutor', () => {
       return { executor, context, invoker, runtimePlan }
     }
 
-    it('should return continue when no ancestors have transitions', async () => {
+    it('should return continue when no ancestors have hooks', async () => {
       // Arrange
       const step = createStep({})
       const { executor, context, invoker, runtimePlan } = setupLifecycle([step])
@@ -508,10 +508,10 @@ describe('TransitionExecutor', () => {
       expect(invoker.invoke).not.toHaveBeenCalled()
     })
 
-    it('should run access transitions for all ancestors in outer-to-inner order', async () => {
+    it('should run access hooks for all ancestors in outer-to-inner order', async () => {
       // Arrange
-      const journeyAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const stepAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const journeyAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const stepAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
 
       const journey = createJourney({ onAccess: [journeyAccess] })
       const step = createStep({ onAccess: [stepAccess] })
@@ -521,7 +521,7 @@ describe('TransitionExecutor', () => {
       invoker.invoke.mockImplementation(async (nodeId: NodeId) => {
         invocationOrder.push(nodeId)
 
-        return successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' })
+        return successResult<AccessHookResult>({ executed: true, outcome: 'continue' })
       })
 
       // Act
@@ -533,15 +533,15 @@ describe('TransitionExecutor', () => {
 
     it('should halt on redirect and not run subsequent ancestors', async () => {
       // Arrange
-      const journeyAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const stepAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const journeyAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const stepAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
 
       const journey = createJourney({ onAccess: [journeyAccess] })
       const step = createStep({ onAccess: [stepAccess] })
       const { executor, context, invoker, runtimePlan } = setupLifecycle([journey, step])
 
       invoker.invoke.mockResolvedValue(
-        successResult<AccessTransitionResult>({ executed: true, outcome: 'redirect', redirect: '/login' }),
+        successResult<AccessHookResult>({ executed: true, outcome: 'redirect', redirect: '/login' }),
       )
 
       // Act
@@ -555,15 +555,15 @@ describe('TransitionExecutor', () => {
 
     it('should halt on error and not run subsequent ancestors', async () => {
       // Arrange
-      const journeyAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const stepAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const journeyAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const stepAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
 
       const journey = createJourney({ onAccess: [journeyAccess] })
       const step = createStep({ onAccess: [stepAccess] })
       const { executor, context, invoker, runtimePlan } = setupLifecycle([journey, step])
 
       invoker.invoke.mockResolvedValue(
-        successResult<AccessTransitionResult>({ executed: true, outcome: 'error', status: 403 }),
+        successResult<AccessHookResult>({ executed: true, outcome: 'error', status: 403 }),
       )
 
       // Act
@@ -574,18 +574,18 @@ describe('TransitionExecutor', () => {
       expect(invoker.invoke).toHaveBeenCalledTimes(1)
     })
 
-    it('should run transitions across deeply nested hierarchy', async () => {
+    it('should run hooks across deeply nested hierarchy', async () => {
       // Arrange
-      const outerAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const innerAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
-      const stepAccess = ASTTestFactory.transition(TransitionType.ACCESS).build() as AccessTransitionASTNode
+      const outerAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const innerAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
+      const stepAccess = ASTTestFactory.hook(HookType.ACCESS).build() as AccessHookASTNode
 
       const outerJourney = createJourney({ onAccess: [outerAccess] })
       const innerJourney = createJourney({ onAccess: [innerAccess] })
       const step = createStep({ onAccess: [stepAccess] })
       const { executor, context, invoker, runtimePlan } = setupLifecycle([outerJourney, innerJourney, step])
 
-      invoker.invoke.mockResolvedValue(successResult<AccessTransitionResult>({ executed: true, outcome: 'continue' }))
+      invoker.invoke.mockResolvedValue(successResult<AccessHookResult>({ executed: true, outcome: 'continue' }))
 
       // Act
       const result = await executor.executeAccessLifecycle(runtimePlan, invoker, context)

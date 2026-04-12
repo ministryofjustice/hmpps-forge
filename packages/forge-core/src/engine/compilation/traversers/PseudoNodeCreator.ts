@@ -23,7 +23,7 @@ import { ReferenceASTNode } from '../../types/expressions.type'
  * - QUERY: URL query parameters
  * - PARAMS: URL path parameters
  * - SESSION: Server-side session data
- * - DATA: External data loaded via onLoad transitions
+ * - DATA: External data loaded via onAccess hooks
  */
 export default class PseudoNodeCreator {
   /** Track created pseudo nodes by (type, key) to avoid duplicates */

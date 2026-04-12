@@ -8,7 +8,7 @@ import ThunkEvaluationError from '../../../errors/ThunkEvaluationError'
 /**
  * Handler for DATA pseudo nodes
  *
- * Returns external data loaded via onLoad transitions from context.data.
+ * Returns external data loaded via onAccess hooks from context.data.
  * The data is stored using the base property name as the key.
  *
  * Returns the complete data object/value (unknown type).

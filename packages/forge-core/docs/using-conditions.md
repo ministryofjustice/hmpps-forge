@@ -9,7 +9,7 @@ A condition is a function that takes a value and returns a boolean. Unlike trans
 This enables:
 - Validation rules that check user input
 - Conditional field visibility (show/hide based on other answers)
-- Branching logic in transitions
+- Branching logic in hooks
 - Cross-field comparisons
 
 ### Import
@@ -60,7 +60,7 @@ GovUKTextInput({
 
 ### In Conditional Logic
 
-Use conditions to control field visibility or transitions:
+Use conditions to control field visibility or hooks:
 
 ```typescript
 // Show field when condition is met

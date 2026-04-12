@@ -1,40 +1,35 @@
 import { CompilationDependencies } from './CompilationDependencies'
 import { ASTNode, AstNodeId } from '../types/engine.type'
 import { ASTNodeType } from '../types/enums'
-import {
-  AccessTransitionASTNode,
-  ActionTransitionASTNode,
-  IterateASTNode,
-  SubmitTransitionASTNode,
-} from '../types/expressions.type'
+import { AccessHookASTNode, ActionHookASTNode, IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { BasicBlockASTNode, FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { TemplateValue } from '../types/template.type'
-import { BlockType, ExpressionType, IteratorType, TransitionType } from '../../authoring/types/enums'
+import { BlockType, ExpressionType, IteratorType, HookType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../../testing/ASTTestFactory'
 import RuntimePlanBuilder from './RuntimePlanBuilder'
 
-function createAccessTransition(id: AstNodeId): AccessTransitionASTNode {
-  return ASTTestFactory.transition(TransitionType.ACCESS)
+function createAccessHook(id: AstNodeId): AccessHookASTNode {
+  return ASTTestFactory.hook(HookType.ACCESS)
     .withId(id)
-    .build() as AccessTransitionASTNode
+    .build() as AccessHookASTNode
 }
 
-function createActionTransition(id: AstNodeId): ActionTransitionASTNode {
-  return ASTTestFactory.transition(TransitionType.ACTION)
+function createActionHook(id: AstNodeId): ActionHookASTNode {
+  return ASTTestFactory.hook(HookType.ACTION)
     .withId(id)
     .withProperty('when', { id: 'compile_ast:99', type: ASTNodeType.EXPRESSION })
     .withProperty('effects', [])
-    .build() as ActionTransitionASTNode
+    .build() as ActionHookASTNode
 }
 
-function createSubmitTransition(id: AstNodeId): SubmitTransitionASTNode {
-  return ASTTestFactory.transition(TransitionType.SUBMIT)
+function createSubmitHook(id: AstNodeId): SubmitHookASTNode {
+  return ASTTestFactory.hook(HookType.SUBMIT)
     .withId(id)
     .withProperty('validate', false)
-    .build() as SubmitTransitionASTNode
+    .build() as SubmitHookASTNode
 }
 
-function createJourney(id: AstNodeId, onAccess: AccessTransitionASTNode[]): JourneyASTNode {
+function createJourney(id: AstNodeId, onAccess: AccessHookASTNode[]): JourneyASTNode {
   return ASTTestFactory.journey()
     .withId(id)
     .withProperty('path', '/journey')
@@ -47,9 +42,9 @@ function createJourney(id: AstNodeId, onAccess: AccessTransitionASTNode[]): Jour
 function createStep(
   id: AstNodeId,
   options: {
-    onAccess?: AccessTransitionASTNode[]
-    onAction?: ActionTransitionASTNode[]
-    onSubmission?: SubmitTransitionASTNode[]
+    onAccess?: AccessHookASTNode[]
+    onAction?: ActionHookASTNode[]
+    onSubmission?: SubmitHookASTNode[]
   } = {},
 ): StepASTNode {
   const step = ASTTestFactory.step()
@@ -120,10 +115,10 @@ describe('RuntimePlanBuilder', () => {
     it('should compile the step runtime topology from metadata and node registry', () => {
       // Arrange
       const dependencies = new CompilationDependencies()
-      const journeyAccess = createAccessTransition('compile_ast:1')
-      const stepAccess = createAccessTransition('compile_ast:2')
-      const action = createActionTransition('compile_ast:3')
-      const submit = createSubmitTransition('compile_ast:4')
+      const journeyAccess = createAccessHook('compile_ast:1')
+      const stepAccess = createAccessHook('compile_ast:2')
+      const action = createActionHook('compile_ast:3')
+      const submit = createSubmitHook('compile_ast:4')
       const journey = createJourney('compile_ast:5', [journeyAccess])
       const step = createStep('compile_ast:6', {
         onAccess: [stepAccess],
@@ -192,15 +187,15 @@ describe('RuntimePlanBuilder', () => {
         path: 'step',
         code: undefined,
         accessAncestorIds: [journey.id, step.id],
-        actionTransitionIds: [action.id],
-        submitTransitionIds: [submit.id],
+        actionHookIds: [action.id],
+        submitHookIds: [submit.id],
         fieldIteratorRootIds: [block.id],
         validationIterateNodeIds: [iterateA.id],
         validationBlockIds: [staticValidatingField.id],
         domainValidationNodeIds: [],
         renderAncestorIds: [journey.id],
         renderStepId: step.id,
-        hasValidatingSubmitTransition: false,
+        hasValidatingSubmitHook: false,
         hasDomainValidation: false,
       })
     })

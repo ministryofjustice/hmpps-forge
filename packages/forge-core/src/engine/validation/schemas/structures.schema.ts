@@ -1,12 +1,7 @@
 import { z } from 'zod'
-import { BlockType, StructureType, ExpressionType, TransitionType } from '../../../authoring/types/enums'
+import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
 import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
-import {
-  PredicateExprSchema,
-  ConditionalExprSchema,
-  MatchExprSchema,
-  TransitionOutcomeSchema,
-} from './predicates.schema'
+import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
 /**
@@ -83,51 +78,51 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
 })
 
 /**
- * @see {@link AccessTransition}
+ * @see {@link AccessHook}
  *
- * Access transitions handle access control, data loading, and outcomes.
+ * Access hooks handle access control, data loading, and outcomes.
  * All properties except `type` are optional.
  */
-export const AccessTransitionSchema = z.object({
-  type: z.literal(TransitionType.ACCESS),
+export const AccessHookSchema = z.object({
+  type: z.literal(HookType.ACCESS),
   when: PredicateExprSchema.optional(),
   effects: z.array(EffectFunctionExprSchema).optional(),
-  next: z.array(TransitionOutcomeSchema).optional(),
+  next: z.array(HookOutcomeSchema).optional(),
 })
 
 /**
- * @see {@link ActionTransition}
+ * @see {@link ActionHook}
  */
-export const ActionTransitionSchema = z.object({
-  type: z.literal(TransitionType.ACTION),
+export const ActionHookSchema = z.object({
+  type: z.literal(HookType.ACTION),
   when: PredicateExprSchema,
   effects: z.array(EffectFunctionExprSchema),
 })
 
 /**
- * @see {@link SubmitTransition}
+ * @see {@link SubmitHook}
  */
-export const SubmitTransitionSchema = z.object({
-  type: z.literal(TransitionType.SUBMIT),
+export const SubmitHookSchema = z.object({
+  type: z.literal(HookType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
   validate: z.boolean().optional(),
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(TransitionOutcomeSchema).optional(),
+      next: z.array(HookOutcomeSchema).optional(),
     })
     .optional(),
   onValid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(TransitionOutcomeSchema).optional(),
+      next: z.array(HookOutcomeSchema).optional(),
     })
     .optional(),
   onInvalid: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
-      next: z.array(TransitionOutcomeSchema).optional(),
+      next: z.array(HookOutcomeSchema).optional(),
     })
     .optional(),
 })
@@ -139,9 +134,9 @@ export const StepSchema = z.looseObject({
   type: z.literal(StructureType.STEP),
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
-  onAccess: z.array(AccessTransitionSchema).optional(),
-  onAction: z.array(ActionTransitionSchema).optional(),
-  onSubmission: z.array(SubmitTransitionSchema).optional(),
+  onAccess: z.array(AccessHookSchema).optional(),
+  onAction: z.array(ActionHookSchema).optional(),
+  onSubmission: z.array(SubmitHookSchema).optional(),
   title: z.string(),
   view: ViewConfigSchema.optional(),
   isEntryPoint: z.boolean().optional(),
@@ -158,7 +153,7 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     type: z.literal(StructureType.JOURNEY),
     path: z.string(),
     code: z.string(),
-    onAccess: z.array(AccessTransitionSchema).optional(),
+    onAccess: z.array(AccessHookSchema).optional(),
     steps: z.array(StepSchema).optional(),
     children: z.array(JourneySchema).optional(),
     title: z.string(),

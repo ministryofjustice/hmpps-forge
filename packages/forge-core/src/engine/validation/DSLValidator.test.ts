@@ -1,6 +1,6 @@
 import {
   StructureType,
-  TransitionType,
+  HookType,
   OutcomeType,
   FunctionType,
   PredicateType,
@@ -102,7 +102,7 @@ describe('FormValidator', () => {
             path: null,
             onAccess: [
               {
-                type: TransitionType.ACCESS,
+                type: HookType.ACCESS,
                 next: [
                   {
                     type: OutcomeType.REDIRECT,
@@ -119,7 +119,7 @@ describe('FormValidator', () => {
                 blocks: [],
                 onSubmission: [
                   {
-                    type: TransitionType.SUBMIT,
+                    type: HookType.SUBMIT,
                     validate: true,
                     onValid: {
                       next: [
@@ -358,7 +358,7 @@ describe('FormValidator', () => {
             blocks: [],
             onSubmission: [
               {
-                type: TransitionType.SUBMIT,
+                type: HookType.SUBMIT,
                 validate: true,
                 onValid: {
                   effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
@@ -388,7 +388,7 @@ describe('FormValidator', () => {
             blocks: [],
             onSubmission: [
               {
-                type: TransitionType.SUBMIT,
+                type: HookType.SUBMIT,
                 onValid: {
                   effects: [{ type: FunctionType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
                 },
@@ -478,7 +478,7 @@ describe('FormValidator', () => {
             blocks: [],
             onAccess: [
               {
-                type: TransitionType.ACCESS,
+                type: HookType.ACCESS,
                 effects: [
                   { type: FunctionType.EFFECT, name: 'registeredEffect', arguments: [] },
                   { type: FunctionType.EFFECT, name: 'missingEffect1', arguments: [] },
@@ -487,7 +487,7 @@ describe('FormValidator', () => {
             ],
             onSubmission: [
               {
-                type: TransitionType.SUBMIT,
+                type: HookType.SUBMIT,
                 onValid: {
                   effects: [{ type: FunctionType.EFFECT, name: 'missingEffect2', arguments: [] }],
                 },
@@ -533,7 +533,7 @@ describe('FormValidator', () => {
                 blocks: [],
                 onAccess: [
                   {
-                    type: TransitionType.ACCESS,
+                    type: HookType.ACCESS,
                     effects: [{ type: FunctionType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
                   },
                 ],
@@ -611,7 +611,7 @@ describe('FormValidator', () => {
             blocks: [],
             onAccess: [
               {
-                type: TransitionType.ACCESS,
+                type: HookType.ACCESS,
                 effects: [{ type: FunctionType.EFFECT, name: 'missingEffect', arguments: [] }],
               },
             ],

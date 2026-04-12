@@ -41,11 +41,10 @@ export enum PredicateType {
   NOT = 'PredicateType.Not',
 }
 
-export enum TransitionType {
-  LOAD = 'TransitionType.Load',
-  ACCESS = 'TransitionType.Access',
-  ACTION = 'TransitionType.Action',
-  SUBMIT = 'TransitionType.Submit',
+export enum HookType {
+  ACCESS = 'HookType.Access',
+  ACTION = 'HookType.Action',
+  SUBMIT = 'HookType.Submit',
 }
 
 export enum OutcomeType {

@@ -1,12 +1,12 @@
 import { ASTNodeType } from '../../../types/enums'
-import { TransitionType } from '../../../../authoring/types/enums'
-import { ActionTransitionASTNode } from '../../../types/expressions.type'
+import { HookType } from '../../../../authoring/types/enums'
+import { ActionHookASTNode } from '../../../types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import { ActionTransition } from '../../../../authoring/types/expressions.type'
+import { ActionHook } from '../../../../authoring/types/expressions.type'
 
 /**
- * ActionFactory: Creates Action transition nodes
+ * ActionFactory: Creates Action hook nodes
  * Handles button clicks that trigger effects without navigation (e.g., "Find address")
  */
 export default class ActionFactory {
@@ -17,17 +17,17 @@ export default class ActionFactory {
   ) {}
 
   /**
-   * Transform Action transition: In-page actions
+   * Transform Action hook: In-page actions
    * Handles button clicks that trigger effects without navigation (e.g., "Find address")
    */
-  create(json: ActionTransition): ActionTransitionASTNode {
+  create(json: ActionHook): ActionHookASTNode {
     const when = this.nodeFactory.createNode(json.when)
     const effects = json.effects.map((effect: any) => this.nodeFactory.createNode(effect))
 
     return {
       id: this.nodeIDGenerator.next(this.category),
-      type: ASTNodeType.TRANSITION,
-      transitionType: TransitionType.ACTION,
+      type: ASTNodeType.HOOK,
+      hookType: HookType.ACTION,
       properties: {
         when,
         effects,

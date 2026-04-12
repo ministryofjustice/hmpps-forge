@@ -6,7 +6,7 @@ import { PseudoNodeType } from '../../types/pseudoNodes.type'
 /**
  * AnswerPreparer - Materialises runtime field nodes and resolves answer pseudo nodes
  *
- * This runs before action and submit transitions so transition effects can read
+ * This runs before action and submit hooks so hook effects can read
  * step answers through the normal answer-resolution pipeline rather than raw POST data.
  */
 export default class AnswerPreparer {

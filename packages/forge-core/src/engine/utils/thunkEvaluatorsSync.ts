@@ -178,7 +178,7 @@ function evaluatePropertyObjectSync(
 }
 
 /**
- * Result type for outcome evaluation in transitions (sync version)
+ * Result type for outcome evaluation in hooks (sync version)
  *
  * Used by AccessHandler and SubmitHandler to represent the result
  * of evaluating a `next` array of redirect/throwError outcomes.
@@ -189,7 +189,7 @@ export type OutcomeEvaluationResultSync =
   | { type: 'none' }
 
 /**
- * Evaluate next outcomes to determine transition result (sync version)
+ * Evaluate next outcomes to determine hook result (sync version)
  *
  * Evaluates outcomes in order with first-match semantics:
  * - RedirectOutcome: Returns redirect path when `when` matches

@@ -160,7 +160,7 @@ Both properties use positive polarity — describe when the field *should* be ac
 
 ## `Data()` - External Data
 
-Retrieves values from external data sources loaded via `onAccess` transitions. Use it for API responses, database lookups, and pre-fetched configuration.
+Retrieves values from external data sources loaded via `onAccess` hooks. Use it for API responses, database lookups, and pre-fetched configuration.
 
 ### Signature
 
@@ -170,7 +170,7 @@ Data(key: string): ReferenceExpr
 
 ### How Data Gets Loaded
 
-Data must be loaded before you can reference it. This happens in `onAccess` transitions using effects that call `context.setData()`:
+Data must be loaded before you can reference it. This happens in `onAccess` hooks using effects that call `context.setData()`:
 
 ```typescript
 // In your effects file
@@ -187,7 +187,7 @@ const { effects: MyEffects, implementations } =
 step({
   path: '/profile',
   onAccess: [
-    accessTransition({
+    access({
       effects: [MyEffects.loadUserProfile()],
     }),
   ],
@@ -323,7 +323,7 @@ HtmlBlock({
 | Aspect | Data() | Answer() |
 |--------|--------|----------|
 | Source | External (APIs, databases) | User input (form fields) |
-| When loaded | `onAccess` transitions | Form submission / defaults |
+| When loaded | `onAccess` hooks | Form submission / defaults |
 | Typical use | Lookup data, configuration | Validation, dynamic display |
 | Mutability | Set once at load time | Changes with user interaction |
 
@@ -646,18 +646,18 @@ Answer('email')  // Returns: "test@example.com" (after trim + lowercase formatte
 | Formatters applied? | No | Yes |
 | Default value fallback? | No | Yes |
 | When available | Only on form submission | Always (may be undefined) |
-| Typical use | Action transitions, debugging | Display, validation, logic |
+| Typical use | Action hooks, debugging | Display, validation, logic |
 
 **Common use cases:**
 
 ```typescript
-// Check which button was clicked in action transitions
-actionTransition({
+// Check which button was clicked in action hooks
+action({
   when: Post('action').match(Condition.Equals('lookup')),
   effects: [MyEffects.lookupPostcode(Post('postcode'))],
 })
 
-submitTransition({
+submit({
   when: Post('action').match(Condition.Equals('save')),
   validate: true,
   onValid: { next: [redirect({ goto: 'next-step' })] },
@@ -901,7 +901,7 @@ validation({
 })
 
 // Use Post() only for action detection
-actionTransition({
+action({
   when: Post('action').match(Condition.Equals('lookup')),
   effects: [MyEffects.lookupPostcode(Post('postcode'))],
 })

@@ -16,7 +16,7 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
  * Evaluates properties in the journey based on whether it's an ancestor:
  *
  * For ANCESTOR journeys (isAncestorOfStep = true):
- * - All properties except transitions (handled by StepController)
+ * - All properties except hooks (handled by StepController)
  *
  * For OTHER journeys:
  * - Only structural properties: code, path, children, steps, metadata etc.
@@ -33,10 +33,10 @@ export default class JourneyHandler implements ThunkHandler {
 
   private propertiesWithNodes: ReadonlySet<string> | undefined
 
-  // Transition properties are handled separately by StepController
-  private static readonly TRANSITION_PROPS = ['onLoad', 'onAccess']
+  // Hook properties are handled separately by StepController
+  private static readonly HOOK_PROPS = ['onAccess']
 
-  private static readonly TRANSITION_PROPS_SET = new Set(JourneyHandler.TRANSITION_PROPS)
+  private static readonly HOOK_PROPS_SET = new Set(JourneyHandler.HOOK_PROPS)
 
   // Properties needed for structural navigation on non-ancestor journeys
   private static readonly STRUCTURAL_PROPS = [
@@ -76,7 +76,7 @@ export default class JourneyHandler implements ThunkHandler {
       }
 
       const isRelevant = isAncestorOfStep
-        ? !JourneyHandler.TRANSITION_PROPS_SET.has(property)
+        ? !JourneyHandler.HOOK_PROPS_SET.has(property)
         : JourneyHandler.STRUCTURAL_PROPS_SET.has(property)
 
       if (!isRelevant) {
@@ -163,16 +163,16 @@ export default class JourneyHandler implements ThunkHandler {
   /**
    * Determine which properties to evaluate based on journey context
    *
-   * Ancestor journeys: all properties except transitions
+   * Ancestor journeys: all properties except hooks
    * Other journeys: only structural properties
    */
   private getPropertiesToEvaluate(context: ThunkEvaluationContext): Record<string, unknown> {
     const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
 
     if (isAncestorOfStep) {
-      // Ancestor journey: all non-transition properties
+      // Ancestor journey: all non-hook properties
       return Object.fromEntries(
-        Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.TRANSITION_PROPS.includes(key)),
+        Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.HOOK_PROPS.includes(key)),
       )
     }
 

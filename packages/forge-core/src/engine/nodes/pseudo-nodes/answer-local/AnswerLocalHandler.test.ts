@@ -192,7 +192,7 @@ describe('AnswerLocalHandler', () => {
       })
     })
 
-    it('should preserve existing answer value from onLoad effects when no POST or defaultValue', async () => {
+    it('should preserve existing answer value from onAccess effects when no POST or defaultValue', async () => {
       // Arrange
       const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('preloaded').build()
       const pseudoNode = ASTTestFactory.answerLocalPseudoNode('preloaded', fieldNode.id)
@@ -211,7 +211,7 @@ describe('AnswerLocalHandler', () => {
       // History unchanged - still has original load mutation
       expect(mockContext.global.answers.preloaded).toEqual({
         current: 'value-from-api',
-        mutations: [{ value: 'value-from-api', source: 'load' }],
+        mutations: [{ value: 'value-from-api', source: 'access' }],
       })
     })
 
@@ -240,7 +240,7 @@ describe('AnswerLocalHandler', () => {
       // History unchanged - still has original load mutation
       expect(mockContext.global.answers.address).toEqual({
         current: '123 Main Street',
-        mutations: [{ value: '123 Main Street', source: 'load' }],
+        mutations: [{ value: '123 Main Street', source: 'access' }],
       })
       // defaultValue should NOT have been invoked
       expect(mockInvoker.invoke).not.toHaveBeenCalled()
@@ -428,7 +428,7 @@ describe('AnswerLocalHandler', () => {
           [fieldNode.id, fieldNode],
           [postPseudoNode.id, postPseudoNode],
         ]),
-        // Previously loaded from API with source 'load'
+        // Previously loaded from API with source 'access'
         mockAnswers: { town: 'London' },
         mockRequest: { method: 'POST', post: { town: 'Manchester' } },
       })
@@ -441,7 +441,7 @@ describe('AnswerLocalHandler', () => {
       expect(mockContext.global.answers.town).toEqual({
         current: 'Manchester',
         mutations: [
-          { value: 'London', source: 'load' },
+          { value: 'London', source: 'access' },
           { value: 'Manchester', source: 'post' },
         ],
       })

@@ -29,7 +29,7 @@ import ThunkLookupError from '../../../errors/ThunkLookupError'
  * 5. If dependentWhen condition exists and is false → clear value, source: 'dependentWhen'
  *
  * GET request (page load)
- * 1. Try existing answer (from previous submissions or onLoad effects)
+ * 1. Try existing answer (from onAccess effects)
  * 2. Fall back to defaultValue → source: 'default'
  *
  * Key distinction: On POST, we never fall back to existing answers OR defaults.

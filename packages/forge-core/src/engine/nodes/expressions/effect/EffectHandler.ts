@@ -5,7 +5,7 @@ import {
   ThunkInvocationAdapter,
   HandlerResult,
   MetadataComputationDependencies,
-  TransitionType,
+  HookType,
 } from '../../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationContext'
 import { EffectFunctionContext } from './EffectFunctionContext'
@@ -17,15 +17,15 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
 /**
  * Handler for Effect expression nodes (FunctionType.EFFECT)
  *
- * Executes effects immediately during transition evaluation:
+ * Executes effects immediately during hook evaluation:
  * 1. Gets effect name from node properties
  * 2. Evaluates all arguments
  * 3. Looks up effect function from registry
- * 4. Reads @transitionType from scope to create EffectFunctionContext
+ * 4. Reads @hookType from scope to create EffectFunctionContext
  * 5. Executes the effect function
  *
- * The transition type is read from scope (@transitionType), which must be
- * pushed by the transition handler before invoking effects. This follows the
+ * The hook type is read from scope (@hookType), which must be
+ * pushed by the hook handler before invoking effects. This follows the
  * same pattern as @value for passing contextual data through the scope stack.
  *
  * Synchronous when all arguments are primitives or sync nodes AND the effect is sync.
@@ -75,10 +75,10 @@ export default class EffectHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
-    // Read transition type from scope (pushed by transition handler)
+    // Read hook type from scope (pushed by hook handler)
     const currentScope = context.scope[context.scope.length - 1] ?? {}
-    const transitionType = (currentScope['@transitionType'] as TransitionType) ?? 'load'
-    const effectContext = new EffectFunctionContext(context, transitionType)
+    const hookType = (currentScope['@hookType'] as HookType) ?? 'access'
+    const effectContext = new EffectFunctionContext(context, hookType)
 
     // Execute effect synchronously
     // Note: Most effects are async, so this path is rarely used
@@ -104,10 +104,10 @@ export default class EffectHandler implements ThunkHandler {
       return { error: error.toThunkError() }
     }
 
-    // Read transition type from scope (pushed by transition handler)
+    // Read hook type from scope (pushed by hook handler)
     const currentScope = context.scope[context.scope.length - 1] ?? {}
-    const transitionType = (currentScope['@transitionType'] as TransitionType) ?? 'load'
-    const effectContext = new EffectFunctionContext(context, transitionType)
+    const hookType = (currentScope['@hookType'] as HookType) ?? 'access'
+    const effectContext = new EffectFunctionContext(context, hookType)
 
     // Execute effect
     await effectFn.evaluate(effectContext, ...args)
