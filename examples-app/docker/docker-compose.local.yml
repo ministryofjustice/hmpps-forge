@@ -10,6 +10,7 @@ services:
     volumes:
       - ../../:/app:cached
       - examples_app_node_modules:/app/examples-app/node_modules
+      - examples_app_dist:/app/examples-app/dist
       - ../../packages/dist:/app/examples-app/node_modules/@ministryofjustice/hmpps-forge/dist
     environment:
       NODE_ENV: development
@@ -20,3 +21,4 @@ volumes:
   examples_app_node_modules:
     external: true
     name: ${COMPOSE_PROJECT_NAME}_examples_app_node_modules
+  examples_app_dist:

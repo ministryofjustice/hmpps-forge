@@ -22,23 +22,23 @@ help: ## The help text you're reading.
 build-packages: ## Builds the @packages.
 	@cd packages && npm run build
 
-build: build-packages ## Builds packages and installs into examples-app.
+build: ## Builds packages and installs into examples-app.
 	@xattr -r -d com.apple.provenance examples-app/node_modules/@ministryofjustice/hmpps-forge 2>/dev/null || true
 	@rm -rf examples-app/node_modules/@ministryofjustice/hmpps-forge
 	@cd examples-app && npm install
 
-prod-build: build-packages ## Builds a production image of the app.
+prod-build: ## Builds a production image of the app.
 	@docker compose ${PROD_COMPOSE_FILES} build app
 
 prod-up: ## Starts/restarts the app in a production container.
 	@docker compose ${PROD_COMPOSE_FILES} down app
 	@docker compose ${PROD_COMPOSE_FILES} up app --wait --no-recreate
 
-dev-build: build-packages ## Builds a development image of the app and installs Node dependencies.
+dev-build: ## Builds a development image of the app and installs Node dependencies.
 	@make install-node-modules
 	@docker compose ${DEV_COMPOSE_FILES} build app
 
-dev-up: build-packages ## Starts/restarts a development container. A remote debugger can be attached on port 9229.
+dev-up: ## Starts/restarts a development container. A remote debugger can be attached on port 9229.
 	@make install-node-modules
 	@docker compose down ${SERVICE_NAME}
 	@docker compose ${DEV_COMPOSE_FILES} up ${SERVICE_NAME} --wait --no-recreate
@@ -73,19 +73,18 @@ install-node-modules: ## Installs Node modules into the Docker volume.
 	@docker volume create ${PROJECT_NAME}_examples_app_node_modules > /dev/null 2>&1 || true
 	@docker run --rm \
 	  -v ./examples-app/package.json:/app/examples-app/package.json:ro \
-	  -v ./examples-app/package-lock.json:/app/examples-app/package-lock.json:ro \
 	  -v ./examples-app/.allowed-scripts.mjs:/app/examples-app/.allowed-scripts.mjs:ro \
 	  -v ./packages/package.json:/app/packages/package.json:ro \
 	  -v ./packages/dist:/app/packages/dist:ro \
 	  -v ~/.npm:/npm_cache \
 	  -v ${PROJECT_NAME}_examples_app_node_modules:/app/examples-app/node_modules \
-	  node:24-alpine \
+	  node:24-slim \
 	  /bin/sh -c '\
-	    CURRENT_HASH=$$(cat /app/examples-app/package.json /app/examples-app/package-lock.json /app/packages/package.json | sha256sum | cut -d" " -f1); \
+	    CURRENT_HASH=$$(cat /app/examples-app/package.json /app/packages/package.json | sha256sum | cut -d" " -f1); \
 	    STORED_HASH=$$(cat /app/examples-app/node_modules/.package-hash 2>/dev/null || echo ""); \
 	    if [ "$$CURRENT_HASH" != "$$STORED_HASH" ]; then \
-	      echo "Package files changed, running npm ci..."; \
-	      cd /app/examples-app && npm ci --install-links --cache /npm_cache --prefer-offline && \
+	      echo "Package files changed, running npm install..."; \
+	      cd /app/examples-app && npm install --install-links --no-package-lock --cache /npm_cache --prefer-offline && \
 	      echo "$$CURRENT_HASH" > /app/examples-app/node_modules/.package-hash; \
 	    else \
 	      echo "node_modules is up-to-date."; \
