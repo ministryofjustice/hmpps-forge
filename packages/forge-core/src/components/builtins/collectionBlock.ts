@@ -39,13 +39,20 @@ export interface CollectionBlockProps<T = BlockDefinition, F = T> extends BasicB
   fallback?: F[]
 
   /**
-   * Additional CSS classes to apply to wrapper div.
+   * HTML tag to render content within. When set, `classes` and `attributes`
+   * are applied directly to this element instead of a wrapper `<div>`.
+   * @example 'ul'
+   */
+  tag?: string
+
+  /**
+   * Additional CSS classes to apply to the wrapper element.
    * @example 'govuk-!-margin-bottom-6'
    */
   classes?: ConditionalString
 
   /**
-   * Custom HTML attributes for wrapper div.
+   * Custom HTML attributes for the wrapper element.
    * @example { 'data-module': 'collection-list' }
    */
   attributes?: Record<string, any>
@@ -83,10 +90,13 @@ export interface EvaluatedCollectionBlock {
   /** Fallback blocks rendered when the collection is empty */
   fallback?: RenderedBlock[]
 
-  /** Additional CSS classes applied to wrapper div */
+  /** HTML tag for the wrapper element (defaults to div when classes/attributes are present) */
+  tag?: string
+
+  /** Additional CSS classes applied to the wrapper element */
   classes?: string
 
-  /** Custom HTML attributes for wrapper div */
+  /** Custom HTML attributes for the wrapper element */
   attributes?: Record<string, string>
 }
 
@@ -124,9 +134,10 @@ const renderCollectionBlock = (block: EvaluatedCollectionBlock): string => {
     content = block.fallback.map(item => extractItemValue(item)).join('')
   }
 
-  const hasWrapper = block.classes || block.attributes
+  const hasWrapper = block.tag || block.classes || block.attributes
 
   if (hasWrapper) {
+    const element = block.tag ?? 'div'
     const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
     const customAttrs = block.attributes
       ? Object.entries(block.attributes)
@@ -134,7 +145,7 @@ const renderCollectionBlock = (block: EvaluatedCollectionBlock): string => {
           .join('')
       : ''
 
-    return `<div${classAttr}${customAttrs}>${content}</div>`
+    return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
   }
 
   return content

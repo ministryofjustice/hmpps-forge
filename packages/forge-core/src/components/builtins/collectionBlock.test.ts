@@ -101,6 +101,35 @@ describe('collectionBlock component', () => {
     )
   })
 
+  it('should render with specified tag instead of div', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [mockRenderedBlock('<li>Item 1</li>'), mockRenderedBlock('<li>Item 2</li>')],
+      tag: 'ul',
+      classes: 'govuk-list',
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<ul class="govuk-list"><li>Item 1</li><li>Item 2</li></ul>')
+  })
+
+  it('should render with tag even without classes or attributes', async () => {
+    // Arrange
+    const block = mockEvaluatedBlock({
+      collection: [mockRenderedBlock('<li>Item 1</li>')],
+      tag: 'ol',
+    })
+
+    // Act
+    const result = await collectionBlock.render(block as any)
+
+    // Assert
+    expect(result).toBe('<ol><li>Item 1</li></ol>')
+  })
+
   it('should render empty wrapper when classes provided and collection is empty', async () => {
     // Arrange
     const block = mockEvaluatedBlock({
