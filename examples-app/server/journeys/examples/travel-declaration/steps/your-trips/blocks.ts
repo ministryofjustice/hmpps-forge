@@ -11,7 +11,8 @@ import {
   GovUKSummaryList,
   GovUKHeading,
   GovUKInsetText,
-  GovUKButton, GovUKButtonGroup,
+  GovUKButton,
+  GovUKButtonGroup,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -80,6 +81,6 @@ export const buttonGroup = GovUKButtonGroup({
       text: 'Continue',
       name: 'action',
       value: 'continue',
-    })
-  ]
+    }),
+  ],
 })

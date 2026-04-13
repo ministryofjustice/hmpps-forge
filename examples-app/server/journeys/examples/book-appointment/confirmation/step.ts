@@ -1,4 +1,4 @@
-import { step, submitTransition, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../effects'
 import {
   panel,
@@ -20,7 +20,7 @@ export const confirmationStep = step({
     bookAnotherButton,
   ],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: false,
       onAlways: {
         effects: [ExampleJourneysEffects.ClearAnswers('booking-form')],

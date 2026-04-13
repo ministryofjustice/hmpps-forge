@@ -2,8 +2,8 @@ import {
   defineEffectFunctions,
   EffectFunctionExpr,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
-import {ExampleJourneyDeps} from "../../context.type";
-import {TravelDeclarationContext, Trip} from "./context.type";
+import { ExampleJourneyDeps } from '../../context.type'
+import { TravelDeclarationContext, Trip } from './context.type'
 
 // FORGE-EXAMPLE: These effects manage trips as an answer array.
 // AddTrip reads individual trip field answers, bundles them into a Trip object,

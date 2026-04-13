@@ -1,8 +1,4 @@
-import {
-  step,
-  submitTransition,
-  redirect,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../../effects'
 import {
   heading,
@@ -18,7 +14,7 @@ export const checkAnswersStep = step({
   title: 'Check your travel declaration',
   blocks: [heading, overviewSummary, tripSummaryCards, confirmationBody, submitButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: false,
       onAlways: {
         next: [redirect({ goto: 'confirmation' })],

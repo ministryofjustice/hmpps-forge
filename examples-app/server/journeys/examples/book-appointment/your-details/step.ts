@@ -1,6 +1,6 @@
 import {
   step,
-  submitTransition,
+  submit,
   redirect,
   Answer,
   Condition,
@@ -17,7 +17,7 @@ export const detailsStep = step({
   // When multiple redirects are listed, the first one whose `when` predicate matches is used.
   // A redirect without `when` acts as a fallback.
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('booking-form')],

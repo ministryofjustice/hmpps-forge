@@ -1,4 +1,4 @@
-import { step, submitTransition, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../effects'
 import { appointmentTypeField, continueButton } from './blocks'
 
@@ -9,7 +9,7 @@ export const typeStep = step({
   isEntryPoint: true,
   blocks: [appointmentTypeField, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('booking-form')],

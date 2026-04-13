@@ -1,0 +1,10 @@
+.guide-search-results {
+  > .guide-search-results__item {
+    @include govuk-responsive-margin(4, 'bottom');
+    border-bottom: 1px solid govuk-colour('black', $variant: 'tint-80');
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}

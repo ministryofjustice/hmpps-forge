@@ -1,4 +1,4 @@
-import { step, submitTransition, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../effects'
 import {
   appointmentDateField,
@@ -13,7 +13,7 @@ export const dateStep = step({
   title: 'Appointment date',
   blocks: [appointmentDateField, weekdayWarning, appointmentTypeInset, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('booking-form')],

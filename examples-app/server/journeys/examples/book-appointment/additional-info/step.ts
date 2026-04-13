@@ -1,4 +1,4 @@
-import { redirect, step, submitTransition } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { redirect, step, submit } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../effects'
 import { additionalInfoField, continueButton, heading, whatToExpectDetails } from './blocks'
 
@@ -8,7 +8,7 @@ export const additionalInfoStep = step({
   title: 'Additional information',
   blocks: [heading, whatToExpectDetails, additionalInfoField, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('booking-form')],

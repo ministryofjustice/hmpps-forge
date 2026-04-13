@@ -1,0 +1,21 @@
+.guide-contents {
+  margin-bottom: govuk-spacing(4);
+
+  &__list {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  &__item {
+    @include govuk-font-size($size: 16);
+    margin-bottom: govuk-spacing(2) !important;
+    padding-left: govuk-spacing(5);
+    position: relative;
+
+    &::before {
+      content: "\2014";
+      position: absolute;
+      left: 0;
+    }
+  }
+}

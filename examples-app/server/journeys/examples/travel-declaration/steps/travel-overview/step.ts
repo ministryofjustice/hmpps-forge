@@ -1,6 +1,6 @@
 import {
   step,
-  submitTransition,
+  submit,
   redirect,
   Answer,
   Condition,
@@ -15,7 +15,7 @@ export const travelOverviewStep = step({
   isEntryPoint: true,
   blocks: [hasTravelledField, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('travel-form')],

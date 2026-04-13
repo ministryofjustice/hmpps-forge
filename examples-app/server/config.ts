@@ -19,7 +19,7 @@ export default {
   branchName: get('GIT_BRANCH', 'xxxxxxxxxxxxxxxxxxx', requiredInProduction),
   production,
   https: process.env.NO_HTTPS === 'true' ? false : production,
-  staticResourceCacheDuration: '1h',
+  staticResourceCacheDuration: production ? '1h' : 0,
   logLevel: get('LOG_LEVEL', 'debug'),
   redis: {
     enabled: get('REDIS_ENABLED', 'false', requiredInProduction) === 'true',

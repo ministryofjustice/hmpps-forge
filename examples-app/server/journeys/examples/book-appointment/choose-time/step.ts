@@ -1,9 +1,4 @@
-import {
-  step,
-  submitTransition,
-  accessTransition,
-  redirect,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, access, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../effects'
 import { appointmentTimeField, continueButton } from './blocks'
 
@@ -16,13 +11,13 @@ export const timeStep = step({
   path: '/choose-time',
   title: 'Choose a time',
   onAccess: [
-    accessTransition({
+    access({
       effects: [ExampleJourneysEffects.LoadAppointmentSlots()],
     }),
   ],
   blocks: [appointmentTimeField, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [ExampleJourneysEffects.SaveAnswers('booking-form')],

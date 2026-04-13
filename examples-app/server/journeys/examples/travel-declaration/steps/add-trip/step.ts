@@ -1,4 +1,4 @@
-import { step, submitTransition, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../../effects'
 import {
   heading,
@@ -20,12 +20,12 @@ export const addTripStep = step({
   data: { countries },
   blocks: [heading, countryField, departureDateField, returnDateField, reasonField, continueButton],
   onSubmission: [
-    submitTransition({
+    submit({
       validate: true,
       onValid: {
         effects: [
           ExampleJourneysEffects.AddTrip(),
-          ExampleJourneysEffects.SaveAnswers('travel-form')
+          ExampleJourneysEffects.SaveAnswers('travel-form'),
         ],
         next: [redirect({ goto: 'your-trips' })],
       },

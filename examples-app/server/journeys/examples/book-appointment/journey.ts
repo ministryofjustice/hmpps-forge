@@ -1,4 +1,4 @@
-import { journey, accessTransition } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { journey, access } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../effects'
 import { typeStep } from './type/step'
 import { detailsStep } from './your-details/step'
@@ -20,7 +20,7 @@ export const bookAppointmentJourney = journey({
     locals: { serviceName: 'Book an appointment' },
   },
   onAccess: [
-    accessTransition({
+    access({
       effects: [ExampleJourneysEffects.LoadAnswers('booking-form')],
     }),
   ],

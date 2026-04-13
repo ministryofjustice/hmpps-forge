@@ -1,0 +1,45 @@
+.guide-side-nav {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(9);
+  padding-right: govuk-spacing(3);
+
+  &__section {
+    margin: 0 0 govuk-spacing(4);
+    padding: 0;
+    list-style-type: none;
+  }
+
+  &__link {
+    display: block;
+    padding: 2px 0;
+  }
+
+  &__item {
+    margin-bottom: govuk-spacing(1);
+    padding-top: govuk-spacing(1);
+    padding-bottom: govuk-spacing(1);
+  }
+
+  &__item--current {
+    margin-left: -14px;
+    padding-left: 10px;
+    border-left: 4px solid $govuk-link-colour;
+    background-color: $govuk-body-background-colour;
+  }
+
+  &__item--current &__link {
+    font-weight: bold;
+  }
+
+  &__theme {
+    @include govuk-font($size: 19);
+    margin: 0;
+    padding: govuk-spacing(2) govuk-spacing(3) govuk-spacing(2) 0;
+    color: govuk-colour("black", $variant: "tint-25");
+    font-weight: normal;
+  }
+
+  &__theme:first-of-type {
+    padding-top: 0;
+  }
+}

@@ -126,7 +126,7 @@ export const reasonField = GovUKRadioInput({
           validation({
             condition: Self().match(Condition.IsRequired()),
             message: 'Enter details about your trip',
-            submissionOnly: true
+            submissionOnly: true,
           }),
         ],
       }),
@@ -136,7 +136,7 @@ export const reasonField = GovUKRadioInput({
     validation({
       condition: Self().match(Condition.IsRequired()),
       message: 'Select the main reason for your trip',
-      submissionOnly: true
+      submissionOnly: true,
     }),
   ],
 })

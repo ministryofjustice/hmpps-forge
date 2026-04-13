@@ -1,0 +1,23 @@
+.guide-back-to-top {
+  position: fixed;
+  bottom: govuk-spacing(4);
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+
+  &--visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: govuk-spacing(1);
+  }
+
+  &__icon {
+    display: inline-block;
+  }
+}

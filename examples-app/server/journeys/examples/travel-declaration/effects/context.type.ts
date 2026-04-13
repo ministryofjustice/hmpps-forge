@@ -1,5 +1,5 @@
-import {EffectFunctionContext} from "@ministryofjustice/hmpps-forge/core/authoring";
-import {ExampleJourneySession} from "../../context.type";
+import { EffectFunctionContext } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ExampleJourneySession } from '../../context.type'
 
 export interface Trip {
   country: string

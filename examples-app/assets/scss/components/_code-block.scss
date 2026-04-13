@@ -1,0 +1,36 @@
+$app-code-font: ui-monospace, menlo, 'Cascadia Mono', 'Segoe UI Mono', consolas, 'Liberation Mono', monospace;
+
+pre,
+code,
+.font-monospace {
+  @include govuk-typography-common($font-family: $app-code-font);
+}
+
+pre {
+  margin: 0;
+}
+
+code {
+  display: inline-block;
+  padding: 2px 8px 3px;
+  border: 1px solid govuk-functional-colour(border);
+  background-color: govuk-colour('white');
+  @include govuk-font-size($size: 16);
+  line-height: 23px;
+}
+
+pre code {
+  display: block;
+  overflow-x: auto;
+  border: $govuk-focus-width solid transparent;
+  outline: 1px solid govuk-functional-colour(border);
+  color: govuk-functional-colour(text);
+  background-color: govuk-colour('white');
+  @include govuk-responsive-padding(3);
+  margin-bottom: govuk-spacing(4);
+}
+
+pre code:focus {
+  border-color: govuk-functional-colour(focus);
+  outline: $govuk-focus-width solid govuk-functional-colour(focus);
+}

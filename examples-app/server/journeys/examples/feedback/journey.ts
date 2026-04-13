@@ -1,4 +1,4 @@
-import { journey, accessTransition } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { journey, access } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../effects'
 import { nameStep } from './name/step'
 import { feedbackStep } from './your-feedback/step'
@@ -16,7 +16,7 @@ export const feedbackJourney = journey({
     locals: { serviceName: 'Feedback form' },
   },
   onAccess: [
-    accessTransition({
+    access({
       effects: [ExampleJourneysEffects.LoadAnswers('feedback-form')],
     }),
   ],

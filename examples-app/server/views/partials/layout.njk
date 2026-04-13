@@ -1,5 +1,7 @@
 {% extends "govuk/template.njk" %}
 
+{% set bodyAttributes = { 'data-scroll-restore': '' } %}
+
 {% block head %}
   <link href="{{ '/assets/css/index.css' | assetMap }}" rel="stylesheet"/>
 {% endblock %}

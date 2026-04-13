@@ -17,6 +17,7 @@ import setUpWebSecurity from './middleware/setUpWebSecurity'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
 import exampleJourneysPackage from './journeys/examples'
+import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
 
@@ -37,13 +38,16 @@ export default function createApp(services: Services): express.Application {
       formDataStore: services.formDataStore,
       appointmentApi: services.appointmentApi,
     })
+    .registerPackage(developerGuidePackage, {
+      guideContentStore: services.guideContentStore,
+    })
 
   app.set('json spaces', 2)
   app.set('trust proxy', true)
   app.set('port', process.env.PORT || 3000)
 
   app.use(setUpHealthChecks(services.applicationInfo))
-  app.use(setUpWebSecurity())
+  // app.use(setUpWebSecurity())
   app.use(setUpWebSession())
   app.use(setUpWebRequestParsing())
   app.use(setUpStaticResources())

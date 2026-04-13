@@ -1,6 +1,6 @@
 .hmpps-header {
-  @include govuk-responsive-padding(3, 'top');
-  @include govuk-responsive-padding(3, 'bottom');
+  @include govuk-responsive-padding(2, 'top');
+  @include govuk-responsive-padding(2, 'bottom');
   border-bottom: 1px solid transparent;
   color: govuk-colour('white');
   background: govuk-functional-colour(brand);

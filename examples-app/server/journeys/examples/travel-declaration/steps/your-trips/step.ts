@@ -1,15 +1,15 @@
 import {
   step,
-  submitTransition,
-  actionTransition,
-  accessTransition,
+  submit,
+  action,
+  access,
   redirect,
   Post,
   Query,
   Condition,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ExampleJourneysEffects } from '../../../effects'
-import {heading, tripCards, buttonGroup} from './blocks'
+import { heading, tripCards, buttonGroup } from './blocks'
 
 // FORGE-EXAMPLE: This step demonstrates two key patterns:
 // 1. onAccess handles removal via query string (?remove=0) with a RemoveTrip effect
@@ -19,27 +19,30 @@ export const yourTripsStep = step({
   path: '/your-trips',
   title: 'Your trips',
   onAccess: [
-    accessTransition({
+    access({
       when: Query('remove').match(Condition.IsRequired()),
-      effects: [ExampleJourneysEffects.RemoveTrip(), ExampleJourneysEffects.SaveAnswers('travel-form')],
+      effects: [
+        ExampleJourneysEffects.RemoveTrip(),
+        ExampleJourneysEffects.SaveAnswers('travel-form'),
+      ],
     }),
   ],
   blocks: [heading, tripCards, buttonGroup],
   onAction: [
-    actionTransition({
+    action({
       when: Post('action').match(Condition.Equals('add-another')),
       effects: [ExampleJourneysEffects.SaveAnswers('travel-form')],
     }),
   ],
   onSubmission: [
-    submitTransition({
+    submit({
       when: Post('action').match(Condition.Equals('add-another')),
       validate: false,
       onAlways: {
         next: [redirect({ goto: 'add-trip' })],
       },
     }),
-    submitTransition({
+    submit({
       when: Post('action').match(Condition.Equals('continue')),
       validate: false,
       onAlways: {

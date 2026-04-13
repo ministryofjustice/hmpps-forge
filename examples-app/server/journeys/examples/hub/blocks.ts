@@ -23,7 +23,7 @@ export const journeyCards = MOJCardGroup({
       heading: 'Declare your overseas travel',
       href: '/example-journeys/travel-declaration/travel-overview',
       description:
-        'An "add another" pattern using iterators, CollectionBlock, summary cards, action transitions, and static step data for a country list.',
+        'An "add another" pattern using iterators, CollectionBlock, summary cards, action hooks, and static step data for a country list.',
     },
   ],
   columns: 3,
