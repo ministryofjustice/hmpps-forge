@@ -336,9 +336,9 @@ once when you configure Forge, not in your form definitions:
 
 ```typescript
 const forge = new Forge({ ... })
-  .registerComponents(govukComponents)
-  .registerComponents(mojComponents)
-  .registerComponents([myCustomCard])
+  .registerGlobalComponents(govukComponents)
+  .registerGlobalComponents(mojComponents)
+  .registerGlobalComponents([myCustomCard])
 ```
 
 A component is just a variant string paired with a render function:

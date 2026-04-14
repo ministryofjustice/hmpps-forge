@@ -1,6 +1,9 @@
 import hmppsConfig from '@ministryofjustice/eslint-config-hmpps'
 
 export default [
+  {
+    ignores: ['rolldown/**', 'assets/**'],
+  },
   ...hmppsConfig(),
   {
     rules: {

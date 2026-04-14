@@ -1,6 +1,7 @@
 import { journey } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { buildingJourneysOverviewStep } from './overview/step'
 import { definingAJourneyStep } from './defining-a-journey/step'
+import { registeringAJourneyStep } from './registering-a-journey/step'
 import { definingStepsStep } from './defining-steps/step'
 import { definingBlocksAndFieldsStep } from './blocks/step'
 import { routingAndEntryPointsStep } from './routing-and-entry-points/step'
@@ -22,6 +23,7 @@ export const buildingJourneysJourney = journey({
     definingAJourneyStep,
     definingStepsStep,
     definingBlocksAndFieldsStep,
+    registeringAJourneyStep,
     routingAndEntryPointsStep,
     reachabilityStep,
     navigationTreeStep,

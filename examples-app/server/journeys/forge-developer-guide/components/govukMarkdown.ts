@@ -55,7 +55,7 @@ type RenderRule = (
   tokens: Token[],
   idx: number,
   options: Options,
-  env: any,
+  env: unknown,
   self: Renderer,
 ) => string
 
@@ -112,7 +112,7 @@ function renderWithDefault(
   tokens: Token[],
   idx: number,
   options: Options,
-  env: any,
+  env: unknown,
   self: Renderer,
 ): string {
   const defaultRenderer = defaultRender[ruleName]

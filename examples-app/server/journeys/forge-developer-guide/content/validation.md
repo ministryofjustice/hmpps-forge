@@ -10,8 +10,6 @@ prerequisites: [step, StepDefinition, block, field, FieldBlockDefinition, onSubm
 
 # Validation
 
-
-
 Forge validates form input declaratively. You attach rules to fields
 that describe when the value is valid, and Forge evaluates those
 rules during submission, collecting the results for the component to

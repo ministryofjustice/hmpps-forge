@@ -27,7 +27,7 @@ const TRIP_FIELD_CODES = [
 
 export const { effects: TravelEffects, implementations: TravelEffectsImplementations } =
   defineEffectFunctions<TravelEffectShape, ExampleJourneyDeps>({
-    AddTrip: (deps: ExampleJourneyDeps) => async (context: TravelDeclarationContext) => {
+    AddTrip: (_deps: ExampleJourneyDeps) => async (context: TravelDeclarationContext) => {
       const trip: Trip = {
         country: context.getAnswer('tripCountry'),
         departureDate: context.getAnswer('tripDepartureDate'),
@@ -46,7 +46,7 @@ export const { effects: TravelEffects, implementations: TravelEffectsImplementat
       }
     },
 
-    RemoveTrip: (deps: ExampleJourneyDeps) => async (context: TravelDeclarationContext) => {
+    RemoveTrip: (_deps: ExampleJourneyDeps) => async (context: TravelDeclarationContext) => {
       const indexStr = context.getQueryParam('remove') as string
 
       if (indexStr === undefined) {

@@ -2,6 +2,7 @@
    It receives `blocks` (rendered HTML), `step`, `fieldValidationErrors`, and any view.locals. #}
 {%- extends "partials/layout.njk" -%}
 {% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 
 {% set mainClasses = "govuk-body" %}
 
@@ -32,22 +33,10 @@
   <div class="govuk-grid-row">
     <div class="{{ contentClasses | default('govuk-grid-column-two-thirds') }}">
       {% if fieldValidationErrors and fieldValidationErrors.length %}
-        <div class="govuk-error-summary" data-module="govuk-error-summary">
-          <div role="alert">
-            <h2 class="govuk-error-summary__title">There is a problem</h2>
-            <div class="govuk-error-summary__body">
-              <ul class="govuk-list govuk-error-summary__list">
-                {% set seenFields = "" %}
-                {% for error in fieldValidationErrors %}
-                  {% if ("," + error.blockCode + ",") not in ("," + seenFields + ",") %}
-                    {% set seenFields = seenFields + ("," if seenFields) + error.blockCode %}
-                    <li><a href="#{{ error.blockCode }}">{{ error.message }}</a></li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-        </div>
+        {{ govukErrorSummary({
+          titleText: "There is a problem",
+          errorList: fieldValidationErrors | toErrorList
+        }) }}
       {% endif %}
 
       <form method="post" novalidate>

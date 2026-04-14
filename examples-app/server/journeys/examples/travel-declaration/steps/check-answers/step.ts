@@ -1,5 +1,4 @@
 import { step, submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { ExampleJourneysEffects } from '../../../effects'
 import {
   heading,
   overviewSummary,

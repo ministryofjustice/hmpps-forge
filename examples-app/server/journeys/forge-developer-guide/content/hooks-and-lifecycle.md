@@ -15,6 +15,13 @@ a user arrives at a page, clicks a button, or submits a form. Without
 hooks, a step is a static page that cannot load data, respond to
 input, or navigate anywhere.
 
+Because Forge is stateless, hooks are where your application logic
+lives. Forge does not load or persist data on your behalf. Instead,
+hooks run effect functions that you provide: reading from a
+database, calling an API, saving to a session, or anything else
+your service needs. Forge orchestrates when they run; you decide
+what they do.
+
 {{slot:toc}}
 
 ---

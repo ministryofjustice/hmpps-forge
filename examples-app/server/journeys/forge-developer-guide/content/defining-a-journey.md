@@ -2,7 +2,7 @@
 title: Defining a journey
 section: building-journeys
 path: building-journeys/defining-a-journey
-teaches: [journey, JourneyDefinition, path, code, title, view, data, metadata, createForgePackage]
+teaches: [journey, JourneyDefinition, path, code, title, view, data, metadata]
 prerequisites: []
 ---
 
@@ -71,35 +71,13 @@ something different.
 
 ---
 
-## Packaging a journey
+## Registering a journey
 
-Before Forge can use a journey, it needs to be bundled into a package using
-`createForgePackage`. A package brings together the journey definition with
-any custom functions and components it depends on:
-
-```typescript
-import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export default createForgePackage<MyDeps>({
-  journey: travelDeclaration,
-  components: [myCustomCard],
-  functions: {
-    ...myEffectsImplementations,
-  },
-})
-```
-
-If your journey only uses built-in components and has no custom functions,
-the package is just a wrapper around the journey:
-
-```typescript
-export default createForgePackage({
-  journey: travelDeclaration,
-})
-```
-
-The package is what you pass to `forge.registerPackage()` at startup. This is
-where Forge discovers your journey, compiles it, and mounts its routes.
+Once you are ready with your journey, it needs to be bundled into a
+package and registered with Forge. See
+[Registering a journey](registering-a-journey) for full details on
+creating packages, registering components and effect function
+implementations, and injecting dependencies.
 
 ---
 

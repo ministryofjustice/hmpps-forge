@@ -52,6 +52,18 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
 
   njkEnv.addFilter('initialiseName', initialiseName)
   njkEnv.addFilter('assetMap', (url: string) => assetManifest[url] || url)
+  njkEnv.addFilter('toErrorList', (errors: { blockCode: string; message: string }[]) => {
+    const seen = new Set<string>()
+
+    return errors.reduce<{ text: string; href: string }[]>((list, error) => {
+      if (!seen.has(error.blockCode)) {
+        seen.add(error.blockCode)
+        list.push({ text: error.message, href: `#${error.blockCode}` })
+      }
+
+      return list
+    }, [])
+  })
   njkEnv.addFilter('groupByMetadata', (items: Record<string, unknown>[], key: string) => {
     const groups: { name: string | undefined; items: Record<string, unknown>[] }[] = []
     const groupMap = new Map<string | undefined, Record<string, unknown>[]>()
@@ -63,7 +75,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
       const existing = groupMap.get(groupName)
 
       if (existing) {
-        existing.push(item);
+        existing.push(item)
       } else {
         const newItems = [item]
 

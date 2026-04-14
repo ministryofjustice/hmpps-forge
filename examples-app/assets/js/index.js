@@ -28,6 +28,24 @@ document.querySelectorAll('#main h2[id], #main h3[id], #main h4[id]').forEach(he
   })
 })
 
+const searchToggle = document.querySelector('.guide-search-toggle')
+const searchPanel = document.getElementById('guide-search-panel')
+
+if (searchToggle && searchPanel) {
+  const searchInput = searchPanel.querySelector('input')
+
+  searchToggle.addEventListener('click', () => {
+    const expanded = searchToggle.getAttribute('aria-expanded') === 'true'
+
+    searchToggle.setAttribute('aria-expanded', String(!expanded))
+    searchPanel.hidden = expanded
+
+    if (!expanded && searchInput) {
+      searchInput.focus()
+    }
+  })
+}
+
 const backToTop = document.querySelector('.guide-back-to-top')
 
 if (backToTop) {

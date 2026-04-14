@@ -13,7 +13,6 @@ import setUpCsrf from './middleware/setUpCsrf'
 import setUpHealthChecks from './middleware/setUpHealthChecks'
 import setUpStaticResources from './middleware/setUpStaticResources'
 import setUpWebRequestParsing from './middleware/setupRequestParsing'
-import setUpWebSecurity from './middleware/setUpWebSecurity'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
 import exampleJourneysPackage from './journeys/examples'
@@ -31,8 +30,8 @@ export default function createApp(services: Services): express.Application {
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
   })
     // FORGE-EXAMPLE: Register component libraries so journeys can use GovUK/MOJ components
-    .registerComponents(govukComponents)
-    .registerComponents(mojComponents)
+    .registerGlobalComponents(govukComponents)
+    .registerGlobalComponents(mojComponents)
     // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
     .registerPackage(exampleJourneysPackage, {
       formDataStore: services.formDataStore,

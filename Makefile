@@ -22,7 +22,7 @@ help: ## The help text you're reading.
 build-packages: ## Builds the @packages.
 	@cd packages && npm run build
 
-build: ## Builds packages and installs into examples-app.
+build: build-packages ## Builds packages and installs into examples-app.
 	@xattr -r -d com.apple.provenance examples-app/node_modules/@ministryofjustice/hmpps-forge 2>/dev/null || true
 	@rm -rf examples-app/node_modules/@ministryofjustice/hmpps-forge
 	@cd examples-app && npm install

@@ -16,6 +16,21 @@
 
     <nav aria-label="Account navigation">
       <ul class="hmpps-header__navigation">
+        {% if guideSearchAction %}
+          <li class="hmpps-header__navigation__item hmpps-header__navigation__item--search">
+            <button class="guide-search-toggle" type="button" aria-expanded="false" aria-controls="guide-search-panel">
+              <svg class="guide-search-toggle__icon guide-search-toggle__icon--search" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <svg class="guide-search-toggle__icon guide-search-toggle__icon--close" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              <span class="govuk-visually-hidden">Search the guide</span>
+            </button>
+          </li>
+        {% endif %}
         {% if user %}
           <li class="hmpps-header__navigation__item">
             <a data-qa="manageDetails" class="hmpps-header__link" href="/account-details" data-test="manage-account-link" rel="noopener noreferrer">

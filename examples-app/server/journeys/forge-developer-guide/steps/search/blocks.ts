@@ -6,10 +6,8 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   GovUKBody,
-  GovUKButton,
   GovUKHeading,
   GovUKInsetText,
-  GovUKTextInput,
   GovukUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
@@ -19,19 +17,21 @@ export const heading = GovUKHeading({
 })
 
 export const searchForm = TemplateWrapper({
-  template: '<form method="get">{{slot:fields}}</form>',
-  slots: {
-    fields: [
-      GovUKTextInput({
-        code: 'q',
-        label: 'Enter a keyword or concept',
-        defaultValue: Data('searchQuery').pipe(Transformer.String.EscapeHtml()),
-        classes: 'govuk-!-width-two-thirds',
-      }),
-      GovUKButton({
-        text: 'Search',
-      }),
-    ],
+  template: `<form method="get" role="search">
+    <label class="govuk-label" for="guide-page-search-input">Enter a keyword or concept</label>
+    <div class="guide-search-panel__form">
+      <input class="govuk-input guide-search-panel__input" id="guide-page-search-input" type="search" name="q" value="{{query}}">
+      <button class="guide-search-panel__submit" type="submit">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <span class="govuk-visually-hidden">Search</span>
+      </button>
+    </div>
+  </form>`,
+  values: {
+    query: Data('searchQuery').pipe(Transformer.String.EscapeHtml()),
   },
 })
 
