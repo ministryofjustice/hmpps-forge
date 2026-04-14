@@ -40,6 +40,7 @@ function getAppConfig() {
           baseDir: serverDir,
           outDir,
         }),
+        typecheckPlugin({ prefix: styleText(['bold', 'cyan'], '[TSC]') }),
       ],
     },
     {
@@ -85,7 +86,6 @@ function getAssetsConfig() {
         outDir,
       }),
       manifestPlugin(outDir),
-      typecheckPlugin({ prefix: styleText(['bold', 'cyan'], '[TSC]'), watch: isWatch }),
     ],
     watch: {
       include: [path.join(assetsDir, '**')],

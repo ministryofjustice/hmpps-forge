@@ -94,38 +94,74 @@ function manifestPlugin(outDir) {
   }
 }
 
-function typecheckPlugin({ prefix, watch = false } = {}) {
-  let started = false
+function typecheckPlugin({ prefix, debounceMs = 300 } = {}) {
+  const label = prefix ?? '[TSC]'
+  let child = null
+  let pending = null
 
-  function forward(stream) {
-    stream.on('data', data => {
-      data
-        .toString()
-        .split('\n')
-        .filter(Boolean)
-        .forEach(line => process.stderr.write(`${prefix ?? '[TSC]'} ${line}\n`))
-    })
+  function run() {
+    if (pending) {
+      clearTimeout(pending)
+    }
+
+    pending = setTimeout(() => {
+      pending = null
+
+      if (child) {
+        child.kill()
+        child = null
+      }
+
+      const startTime = Date.now()
+      process.stderr.write(`${label} Typechecking...\n`)
+
+      child = spawn('npx', ['tsgo', '--noEmit', '--pretty'], {
+        stdio: ['inherit', 'pipe', 'pipe'],
+      })
+
+      let hasErrors = false
+
+      child.stdout?.on('data', data => {
+        hasErrors = true
+        data
+          .toString()
+          .split('\n')
+          .filter(Boolean)
+          .forEach(line => process.stderr.write(`${label} ${line}\n`))
+      })
+
+      child.stderr?.on('data', data => {
+        hasErrors = true
+        data
+          .toString()
+          .split('\n')
+          .filter(Boolean)
+          .forEach(line => process.stderr.write(`${label} ${line}\n`))
+      })
+
+      child.on('error', err => {
+        process.stderr.write(`${label} Failed to start: ${err.message}\n`)
+        child = null
+      })
+
+      child.on('exit', code => {
+        const duration = Date.now() - startTime
+
+        if (code === 0) {
+          process.stderr.write(`${label} ${hasErrors ? 'Done' : 'No errors'} (${duration}ms)\n`)
+        } else {
+          process.stderr.write(`${label} Exited with code ${code} (${duration}ms)\n`)
+        }
+
+        child = null
+      })
+    }, debounceMs)
   }
 
   return {
     name: 'typecheck',
     buildStart() {
-      if (started) {
-        return
-      }
-
-      started = true
-
-      const args = watch
-        ? ['tsgo', '--noEmit', '--pretty', '--watch', '--preserveWatchOutput']
-        : ['tsgo', '--noEmit', '--pretty']
-
-      const child = spawn('npx', args, {
-        stdio: ['inherit', 'pipe', 'pipe'],
-      })
-
-      forward(child.stdout)
-      forward(child.stderr)
+      run()
     },
   }
 }
