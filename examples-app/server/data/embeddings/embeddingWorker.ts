@@ -1,5 +1,7 @@
 import { parentPort } from 'node:worker_threads'
+import { createEmbeddingBatchPlan } from './embeddingBatchPlanner'
 import { configureTransformersLocalModelSource } from './embeddingRuntimeConfig'
+
 
 interface EmbedMessage {
   type: 'embed'
@@ -13,7 +15,8 @@ interface QueryMessage {
 
 type WorkerMessage = EmbedMessage | QueryMessage
 
-const BATCH_SIZE = 32
+const MAX_BATCH_SIZE = 8
+const MAX_BATCH_CHARACTERS = 5_000
 
 async function createPipeline() {
   const { env, pipeline } = await import('@huggingface/transformers')
@@ -36,22 +39,31 @@ async function embedBatch(
   const data = output.data as Float32Array
   const dimensions = output.dims[output.dims.length - 1]
 
-  return texts.map((_, i) => {
+  const vectors = texts.map((_, i) => {
     const start = i * dimensions
 
     return Array.from(data.slice(start, start + dimensions))
   })
+
+  output.dispose()
+
+  return vectors
 }
 
 async function embedTexts(texts: string[]): Promise<number[][]> {
   const extractor = await extractorPromise
-  const vectors: number[][] = []
+  const vectors = new Array<number[]>(texts.length)
+  const batchPlan = createEmbeddingBatchPlan(texts, MAX_BATCH_SIZE, MAX_BATCH_CHARACTERS)
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE)
+  for (let i = 0; i < batchPlan.length; i += 1) {
+    const batch = batchPlan[i]
+    const batchTexts = batch.map(item => item.text)
     // eslint-disable-next-line no-await-in-loop
-    const batchVectors = await embedBatch(extractor, batch)
-    vectors.push(...batchVectors)
+    const batchVectors = await embedBatch(extractor, batchTexts)
+
+    batchVectors.forEach((vector, batchIndex) => {
+      vectors[batch[batchIndex].index] = vector
+    })
   }
 
   return vectors
@@ -60,8 +72,11 @@ async function embedTexts(texts: string[]): Promise<number[][]> {
 async function embedSingle(text: string): Promise<number[]> {
   const extractor = await extractorPromise
   const output = await extractor(text, { pooling: 'mean', normalize: true })
+  const vector = Array.from(output.data as Float32Array)
 
-  return Array.from(output.data as Float32Array)
+  output.dispose()
+
+  return vector
 }
 
 parentPort?.on('message', async (message: WorkerMessage) => {
