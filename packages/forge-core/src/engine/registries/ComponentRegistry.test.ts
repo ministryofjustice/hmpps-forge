@@ -1,7 +1,7 @@
-import { buildComponent } from './utils/buildComponent'
-import RegistryDuplicateError from '../engine/errors/RegistryDuplicateError'
-import RegistryValidationError from '../engine/errors/RegistryValidationError'
-import type { BlockDefinition, EvaluatedBlock } from './types/structures.type'
+import { buildComponent } from '../../components/utils/buildComponent'
+import RegistryDuplicateError from '../errors/RegistryDuplicateError'
+import RegistryValidationError from '../errors/RegistryValidationError'
+import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
 import ComponentRegistry from './ComponentRegistry'
 
 describe('ComponentRegistry', () => {

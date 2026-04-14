@@ -52,11 +52,12 @@ export default class ForgeRouter<TRouter> {
    *
    * @param journeyInstance - Journey instance containing compiled journey and configuration
    */
-  mount(journeyInstance: JourneyInstance): void {
+  mount(journeyInstance: JourneyInstance, journeyDependencies?: JourneyInstanceDependencies): void {
     const stepIndex = journeyInstance.getStepIndex()
     const sharedArtefact = journeyInstance.getSharedCompilationArtefact()
     const config = journeyInstance.getConfiguration()
     const routeTemplateContexts = this.buildRouteTemplateContexts(stepIndex, sharedArtefact)
+    const stepDependencies = journeyDependencies ?? this.dependencies
 
     stepIndex.forEach((stepNode, stepId) => {
       const routeTemplateContext = routeTemplateContexts.get(stepId)
@@ -72,6 +73,7 @@ export default class ForgeRouter<TRouter> {
         resolveCompiledStep: () => journeyInstance.getCompiledStep(stepId),
         routeTemplatePath: routeTemplateContext.routeTemplatePath,
         routeTemplateCatalog: routeTemplateContext.routeTemplateCatalog,
+        dependencies: stepDependencies,
       })
     })
 
@@ -124,7 +126,7 @@ export default class ForgeRouter<TRouter> {
       if (!controller) {
         controller = new StepController(
           resolveCompiledStep(),
-          this.dependencies,
+          stepMountContext.dependencies,
           this.navigationMetadata,
           routeTemplatePath,
           routeTemplateCatalog,

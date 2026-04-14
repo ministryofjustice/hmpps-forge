@@ -1,4 +1,4 @@
-import type ComponentRegistry from '../../components/ComponentRegistry'
+import type ComponentRegistry from '../../engine/registries/ComponentRegistry'
 import type { RenderContext } from '../rendering/types'
 import type { StepRequest } from './request.type'
 import type { StepResponse } from './response.type'

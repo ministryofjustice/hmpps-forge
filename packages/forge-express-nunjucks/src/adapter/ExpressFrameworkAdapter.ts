@@ -1,7 +1,7 @@
 import express from 'express'
 import nunjucks from 'nunjucks'
-import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
 import {
+  ComponentRegistry,
   CookieMutation,
   CookieOptions,
   extractPathname,

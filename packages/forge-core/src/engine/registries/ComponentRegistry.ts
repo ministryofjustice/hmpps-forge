@@ -1,8 +1,8 @@
-import type { BlockDefinition } from './types/structures.type'
-import RegistryDuplicateError from '../engine/errors/RegistryDuplicateError'
-import RegistryValidationError from '../engine/errors/RegistryValidationError'
-import { ComponentRegistryEntry } from './types/components.type'
-import { coreComponents } from './builtins'
+import type { BlockDefinition } from '../../components/types/structures.type'
+import RegistryDuplicateError from '../errors/RegistryDuplicateError'
+import RegistryValidationError from '../errors/RegistryValidationError'
+import { ComponentRegistryEntry } from '../../components/types/components.type'
+import { coreComponents } from '../../components/builtins'
 
 /**
  * Registry for managing UI components in forge.

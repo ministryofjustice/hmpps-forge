@@ -1,4 +1,4 @@
-import RegistryValidationError from './errors/RegistryValidationError'
+import RegistryValidationError from '../errors/RegistryValidationError'
 import FunctionRegistry from './FunctionRegistry'
 
 describe('FunctionRegistry', () => {

@@ -7,7 +7,7 @@ import ThunkHandlerRegistry from '../registries/ThunkHandlerRegistry'
 import PostHandler from '../../nodes/pseudo-nodes/post/PostHandler'
 import QueryHandler from '../../nodes/pseudo-nodes/query/QueryHandler'
 import { CompilationDependencies } from '../CompilationDependencies'
-import FunctionRegistry from '../../FunctionRegistry'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 
 describe('ThunkCompilerFactory', () => {
   let compiler: ThunkCompilerFactory

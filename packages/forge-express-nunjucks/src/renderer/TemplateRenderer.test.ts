@@ -1,8 +1,13 @@
 import nunjucks from 'nunjucks'
 
 import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { RenderContext, Evaluated, BlockASTNode, ASTNodeType } from '@ministryofjustice/hmpps-forge/core/framework'
-import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  ComponentRegistry,
+  RenderContext,
+  Evaluated,
+  BlockASTNode,
+  ASTNodeType,
+} from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
 

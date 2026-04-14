@@ -1,5 +1,5 @@
 export { default as Forge } from './engine/Forge'
-export { default as FunctionRegistry } from './engine/FunctionRegistry'
+export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as EffectFunctionContext } from './engine/nodes/expressions/effect/EffectFunctionContext'
 export { isBlockStructNode } from './engine/typeguards/structure-nodes'
 export type { ForgeOptions } from './engine/Forge'

@@ -1,8 +1,8 @@
-import { ASTNode, NodeId } from '../types/engine.type'
+import { ASTNode, NodeId } from '../types/ast.type'
 import NodeRegistry from './registries/NodeRegistry'
 import MetadataRegistry from './registries/MetadataRegistry'
 import PseudoNodeCreator from './traversers/PseudoNodeCreator'
-import FunctionRegistry from '../FunctionRegistry'
+import FunctionRegistry from '../registries/FunctionRegistry'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ReferenceASTNode } from '../types/expressions.type'
 import { BlockType, ExpressionType } from '../../authoring/types/enums'
@@ -104,8 +104,6 @@ export class NodeCompilationPipeline {
    * - DATA: External data loaded via onAccess
    *
    * Pseudo nodes are automatically registered in the node registry.
-   *
-   * @param compilationDependencies
    */
   static createPseudoNodes(compilationDependencies: CompilationDependencies, scanSource?: NodeRegistry): void {
     const registry = scanSource ?? compilationDependencies.nodeRegistry

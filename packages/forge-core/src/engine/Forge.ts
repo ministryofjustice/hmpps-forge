@@ -1,8 +1,10 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import JourneyInstance from './JourneyInstance'
 import { JourneyInstanceDependencies, ForgePackage } from './types/engine.type'
-import FunctionRegistry from './FunctionRegistry'
-import ComponentRegistry from '../components/ComponentRegistry'
+import FunctionRegistry from './registries/FunctionRegistry'
+import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
+import ComponentRegistry from './registries/ComponentRegistry'
+import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import { ComponentRegistryEntry } from '../components/types/components.type'
 import { FunctionRegistryObject } from '../authoring/types/functions.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
@@ -112,7 +114,7 @@ export default class Forge {
    *   logger,
    *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
    * })
-   *   .registerComponents(govukComponents(nunjucksEnv))
+   *   .registerGlobalComponents(govukComponents(nunjucksEnv))
    *   .register(myJourney)
    *
    * app.use(forge.getRouter() as express.Router)
@@ -155,22 +157,22 @@ export default class Forge {
     this.forgeRouter = new ForgeRouter(this.dependencies, this.options)
   }
 
-  /** Add a new component to forge */
-  registerComponent(component: ComponentRegistryEntry<any>): this {
+  /** Add a component to the global registry, making it available to all journeys. */
+  registerGlobalComponent(component: ComponentRegistryEntry<any>): this {
     this.componentRegistry.registerMany([component])
 
     return this
   }
 
-  /** Add new components to forge */
-  registerComponents(components: ComponentRegistryEntry<any>[]): this {
+  /** Add components to the global registry, making them available to all journeys. */
+  registerGlobalComponents(components: ComponentRegistryEntry<any>[]): this {
     this.componentRegistry.registerMany(components)
 
     return this
   }
 
-  /** Register functions from a registry object */
-  registerFunctions(functions: FunctionRegistryObject): this {
+  /** Add functions to the global registry, making them available to all journeys. */
+  registerGlobalFunctions(functions: FunctionRegistryObject): this {
     this.functionRegistry.register(functions)
 
     return this
@@ -179,22 +181,7 @@ export default class Forge {
   /** Register a journey with forge */
   register(journeyConfiguration: string | JourneyDefinition): this {
     try {
-      const instance = JourneyInstance.createFromConfiguration(journeyConfiguration, this.dependencies)
-
-      const routesBefore = this.forgeRouter.getRegisteredRoutes().length
-
-      if (!this.options.lazyStepCompilation) {
-        instance.compileAllSteps()
-      }
-
-      this.forgeRouter.mount(instance)
-
-      const routeCount = this.forgeRouter.getRegisteredRoutes().length - routesBefore
-
-      this.dependencies.logger.info(
-        { journey: instance.getJourneyCode(), routes: routeCount },
-        `Forge: Registered journey '${instance.getJourneyTitle()}' with ${routeCount} routes`,
-      )
+      this.registerJourney(journeyConfiguration, this.dependencies)
     } catch (e) {
       this.handleRegistrationError(e)
     }
@@ -232,21 +219,58 @@ export default class Forge {
     }
 
     try {
-      if (pkg.components) {
-        this.registerComponents(pkg.components)
-      }
+      let journeyDependencies = this.dependencies
 
       if (pkg.functions) {
         const resolvedDeps = (deps ?? {}) as TDeps
-        this.registerFunctions(createFunctionsRegistry(pkg.functions, resolvedDeps))
+        const scopedFunctionRegistry = new ScopedFunctionRegistry(this.functionRegistry)
+
+        scopedFunctionRegistry.register(createFunctionsRegistry(pkg.functions, resolvedDeps))
+        journeyDependencies = { ...journeyDependencies, functionRegistry: scopedFunctionRegistry }
       }
 
-      this.register(pkg.journey)
+      if (pkg.components) {
+        const scopedComponentRegistry = new ScopedComponentRegistry(this.componentRegistry)
+
+        scopedComponentRegistry.registerMany(pkg.components)
+        journeyDependencies = {
+          ...journeyDependencies,
+          componentRegistry: scopedComponentRegistry,
+          frameworkAdapter: this.options.frameworkAdapter.build({
+            componentRegistry: scopedComponentRegistry,
+            logger: this.options.logger,
+          }),
+        }
+      }
+
+      this.registerJourney(pkg.journey, journeyDependencies)
     } catch (e) {
       this.handleRegistrationError(e)
     }
 
     return this
+  }
+
+  private registerJourney(
+    journeyConfiguration: string | JourneyDefinition,
+    dependencies: JourneyInstanceDependencies,
+  ): void {
+    const instance = JourneyInstance.createFromConfiguration(journeyConfiguration, dependencies)
+
+    const routesBefore = this.forgeRouter.getRegisteredRoutes().length
+
+    if (!this.options.lazyStepCompilation) {
+      instance.compileAllSteps()
+    }
+
+    this.forgeRouter.mount(instance, dependencies)
+
+    const routeCount = this.forgeRouter.getRegisteredRoutes().length - routesBefore
+
+    dependencies.logger.info(
+      { journey: instance.getJourneyCode(), routes: routeCount },
+      `Forge: Registered journey '${instance.getJourneyTitle()}' with ${routeCount} routes`,
+    )
   }
 
   private handleRegistrationError(e: unknown): void {

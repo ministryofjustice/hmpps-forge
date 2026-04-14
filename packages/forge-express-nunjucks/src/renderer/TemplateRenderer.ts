@@ -1,12 +1,8 @@
 import nunjucks from 'nunjucks'
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import {
-  BlockDefinition,
-  EvaluatedBlock,
-  RenderedBlock,
   ComponentRegistry,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import {
   isBlockStructNode,
   BlockASTNode,
   Evaluated,

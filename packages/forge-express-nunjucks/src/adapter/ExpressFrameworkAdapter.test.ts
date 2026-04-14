@@ -3,6 +3,7 @@ import nunjucks from 'nunjucks'
 
 import { BlockType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
+  ComponentRegistry,
   FrameworkAdapter,
   StepHandler,
   Evaluated,
@@ -10,7 +11,6 @@ import {
   ASTNodeType,
   BlockASTNode,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import { ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/components'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
 describe('ExpressFrameworkAdapter', () => {

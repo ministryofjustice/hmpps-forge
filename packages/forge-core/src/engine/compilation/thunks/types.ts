@@ -1,10 +1,10 @@
-import { NodeId, ASTNode } from '../../types/engine.type'
+import { NodeId, ASTNode } from '../../types/ast.type'
 import NodeRegistry from '../registries/NodeRegistry'
 import ThunkHandlerRegistry from '../registries/ThunkHandlerRegistry'
 import { NodeFactory } from '../../nodes/NodeFactory'
 import MetadataRegistry from '../registries/MetadataRegistry'
 import ThunkEvaluationContext from './ThunkEvaluationContext'
-import FunctionRegistry from '../../FunctionRegistry'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 import ASTNodeTree from '../node-tree/ASTNodeTree'
 import ThunkRuntimeHooksFactory from './ThunkRuntimeHooksFactory'
 

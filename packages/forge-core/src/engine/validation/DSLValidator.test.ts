@@ -8,8 +8,8 @@ import {
   BlockType,
 } from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
-import FunctionRegistry from '../FunctionRegistry'
-import ComponentRegistry from '../../components/ComponentRegistry'
+import FunctionRegistry from '../registries/FunctionRegistry'
+import ComponentRegistry from '../registries/ComponentRegistry'
 import { buildComponent } from '../../components/utils/buildComponent'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'

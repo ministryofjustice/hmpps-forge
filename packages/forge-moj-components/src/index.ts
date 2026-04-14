@@ -17,7 +17,7 @@
  *   logger,
  *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
  * })
- *   .registerComponents(mojComponents)
+ *   .registerGlobalComponents(mojComponents)
  *   .register(myJourney)
  * ```
  */

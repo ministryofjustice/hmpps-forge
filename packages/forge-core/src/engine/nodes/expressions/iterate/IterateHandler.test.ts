@@ -1,18 +1,18 @@
-import { AstNodeId, NodeId } from '../../../types/engine.type'
+import { AstNodeId, NodeId } from '../../../types/ast.type'
 import { IterateASTNode } from '../../../types/expressions.type'
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { MetadataComputationDependencies, ThunkResult } from '../../../compilation/thunks/types'
-import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
 import {
+  ASTTestFactory,
   createMockContext,
   createMockHooks,
   createMockInvoker,
   createSequentialMockInvoker,
-} from '../../../../testing/thunkTestHelpers'
+} from '../../../../testing'
 import { NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import TemplateFactory from '../../template/TemplateFactory'
-import FunctionRegistry from '../../../FunctionRegistry'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
 import IterateHandler from './IterateHandler'
 
 type IteratorTestInput = IterateASTNode['properties']['iterator'] & {

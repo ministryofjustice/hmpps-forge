@@ -1,4 +1,3 @@
-export { default as ComponentRegistry } from './ComponentRegistry'
 export { buildComponent } from './utils/buildComponent'
 export { coreComponents, HtmlBlock, CollectionBlock, TemplateWrapper } from './builtins'
 export type { EvaluatedCollectionBlock } from './builtins'

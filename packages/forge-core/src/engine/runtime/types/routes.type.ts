@@ -1,6 +1,7 @@
 import { NodeId } from '../../types/ast.type'
 import { CompilationArtefact, CompiledStep } from '../../compilation/CompilationFactory'
 import { StepASTNode } from '../../types/structures.type'
+import { JourneyInstanceDependencies } from '../../types/engine.type'
 
 export type StepResolver = () => CompiledStep
 
@@ -21,4 +22,5 @@ export interface StepMountContext {
   resolveCompiledStep: StepResolver
   routeTemplatePath: string
   routeTemplateCatalog: JourneyRouteTemplateCatalog
+  dependencies: JourneyInstanceDependencies
 }

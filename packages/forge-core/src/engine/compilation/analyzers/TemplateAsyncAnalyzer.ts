@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../types/enums'
 import { TemplateNode } from '../../types/template.type'
 import { ExpressionType, FunctionType } from '../../../authoring/types/enums'
 import { isObjectValue } from '../../../shared/typeguards/primitives'
-import FunctionRegistry from '../../FunctionRegistry'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 
 const FUNCTION_EXPRESSION_TYPES = new Set<string>([
   FunctionType.CONDITION,
@@ -86,13 +86,7 @@ export default class TemplateAsyncAnalyzer {
       return true
     }
 
-    if (
-      'predicateTemplate' in iterator &&
+    return 'predicateTemplate' in iterator &&
       TemplateAsyncAnalyzer.containsAsyncNodes(iterator.predicateTemplate, functionRegistry)
-    ) {
-      return true
-    }
-
-    return false
   }
 }

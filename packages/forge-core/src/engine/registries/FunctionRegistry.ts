@@ -1,9 +1,9 @@
-import RegistryDuplicateError from './errors/RegistryDuplicateError'
-import RegistryValidationError from './errors/RegistryValidationError'
-import { ConditionsRegistry } from '../authoring/conditions'
-import { GeneratorsRegistry } from '../authoring/generators'
-import { TransformersRegistry } from '../authoring/transformers'
-import { FunctionRegistryEntry, FunctionRegistryObject } from '../authoring/types/functions.type'
+import RegistryDuplicateError from '../errors/RegistryDuplicateError'
+import RegistryValidationError from '../errors/RegistryValidationError'
+import { ConditionsRegistry } from '../../authoring/conditions'
+import { GeneratorsRegistry } from '../../authoring/generators'
+import { TransformersRegistry } from '../../authoring/transformers'
+import { FunctionRegistryEntry, FunctionRegistryObject } from '../../authoring/types/functions.type'
 
 /**
  * Registry for managing functions (conditions, transformers, effects) in forge.

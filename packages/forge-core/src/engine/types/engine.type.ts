@@ -1,5 +1,5 @@
-import ComponentRegistry from '../../components/ComponentRegistry'
-import FunctionRegistry from '../FunctionRegistry'
+import ComponentRegistry from '../registries/ComponentRegistry'
+import FunctionRegistry from '../registries/FunctionRegistry'
 import type { FrameworkAdapter, Logger } from '../../framework/types/adapter.type'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionImplementations, FunctionShapeMap } from '../../authoring/utils/defineFunction.type'

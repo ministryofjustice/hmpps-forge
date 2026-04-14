@@ -138,7 +138,7 @@ import { myAlertBox } from './components/myAlertBox'
 import { myStarRating } from './components/myStarRating'
 
 const forge = new Forge({ /* ... */ })
-  .registerComponents({
+  .registerGlobalComponents({
     ...myAlertBox,
     ...myStarRating,
   })

@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../types/enums'
 import { TemplateNode, TemplateValue } from '../../types/template.type'
 import { ExpressionType, FunctionType } from '../../../authoring/types/enums'
-import FunctionRegistry from '../../FunctionRegistry'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 import TemplateAsyncAnalyzer from './TemplateAsyncAnalyzer'
 
 function createFunctionTemplate(name: string, expressionType: FunctionType = FunctionType.CONDITION): TemplateNode {

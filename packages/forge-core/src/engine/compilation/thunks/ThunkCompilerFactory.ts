@@ -1,4 +1,4 @@
-import { ASTNode, NodeId } from '../../types/engine.type'
+import { ASTNode, NodeId } from '../../types/ast.type'
 import { PseudoNode, PseudoNodeType } from '../../types/pseudoNodes.type'
 import { isPseudoNode } from '../../typeguards/nodes'
 import {
@@ -14,7 +14,7 @@ import {
 } from '../../typeguards/expression-nodes'
 import { isAccessHookNode, isActionHookNode, isSubmitHookNode } from '../../typeguards/hook-nodes'
 import { ThunkHandler, MetadataComputationDependencies } from './types'
-import FunctionRegistry from '../../FunctionRegistry'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 import { isBlockStructNode, isJourneyStructNode, isStepStructNode } from '../../typeguards/structure-nodes'
 import ScopeReferenceHandler from '../../nodes/expressions/reference/scope/ScopeReferenceHandler'
 import AnswersReferenceHandler from '../../nodes/expressions/reference/answers/AnswersReferenceHandler'
