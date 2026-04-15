@@ -99,6 +99,12 @@ export default class FunctionHandler implements ThunkHandler {
 
       return { value: result }
     } catch (cause) {
+      if (cause instanceof TypeError) {
+        const error = ThunkEvaluationError.typeMismatch(this.nodeId, cause, `FunctionHandler:${functionName}`)
+
+        return { error: error.toThunkError() }
+      }
+
       const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
       const error = ThunkEvaluationError.failed(this.nodeId, wrappedCause, `FunctionHandler:${functionName}`)
 
@@ -129,6 +135,12 @@ export default class FunctionHandler implements ThunkHandler {
 
       return { value: result }
     } catch (cause) {
+      if (cause instanceof TypeError) {
+        const error = ThunkEvaluationError.typeMismatch(this.nodeId, cause, `FunctionHandler:${functionName}`)
+
+        return { error: error.toThunkError() }
+      }
+
       const wrappedCause = cause instanceof Error ? cause : new Error(String(cause))
       const error = ThunkEvaluationError.failed(this.nodeId, wrappedCause, `FunctionHandler:${functionName}`)
 
@@ -152,6 +164,13 @@ export default class FunctionHandler implements ThunkHandler {
     }
 
     const firstArgument = this.getFirstArgument(context)
+
+    if (
+      (firstArgument === undefined || firstArgument === null) &&
+      (this.node.expressionType === FunctionType.CONDITION || this.node.expressionType === FunctionType.TRANSFORMER)
+    ) {
+      return this.node.expressionType === FunctionType.CONDITION ? false : undefined
+    }
 
     return evaluate(firstArgument, ...evaluatedArguments)
   }

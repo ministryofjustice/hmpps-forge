@@ -30,6 +30,17 @@ export default class ThunkEvaluationError extends ThunkBaseError {
     )
   }
 
+  static typeMismatch(nodeId: NodeId, cause: TypeError, handlerType?: string): ThunkEvaluationError {
+    const message = handlerType
+      ? `Handler "${handlerType}" type mismatch for node "${nodeId}": ${cause.message}`
+      : `Type mismatch for node "${nodeId}": ${cause.message}`
+
+    return new ThunkEvaluationError('TYPE_MISMATCH', nodeId, message, {
+      'Handler Type': handlerType,
+      Cause: cause.message,
+    })
+  }
+
   static securityViolation(nodeId: NodeId, propertyName: string, pseudoNodeType?: string): ThunkEvaluationError {
     const typeInfo = pseudoNodeType ? ` in ${pseudoNodeType}` : ''
 

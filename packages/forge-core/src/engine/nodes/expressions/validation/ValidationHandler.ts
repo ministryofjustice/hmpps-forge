@@ -125,7 +125,16 @@ export default class ValidationHandler implements ThunkHandler {
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<ValidationResult> {
     // Evaluate the 'condition' predicate
-    const predicateResult = invoker.invokeSync(this.node.properties.condition.id, context)
+    // TYPE_MISMATCH errors are caught here because in a validation context,
+    // a type mismatch (e.g. string into a number condition after a formatter failure)
+    // is a validation failure, not a developer configuration error.
+    let predicateResult
+
+    try {
+      predicateResult = invoker.invokeSync(this.node.properties.condition.id, context)
+    } catch {
+      predicateResult = { error: true }
+    }
 
     // Evaluate the message (needed for both success and error cases)
     const message = evaluateOperandSync(this.node.properties.message, context, invoker)
@@ -162,7 +171,16 @@ export default class ValidationHandler implements ThunkHandler {
     invoker: ThunkInvocationAdapter,
   ): Promise<HandlerResult<ValidationResult>> {
     // Evaluate the 'condition' predicate
-    const predicateResult = await invoker.invoke(this.node.properties.condition.id, context)
+    // TYPE_MISMATCH errors are caught here because in a validation context,
+    // a type mismatch (e.g. string into a number condition after a formatter failure)
+    // is a validation failure, not a developer configuration error.
+    let predicateResult
+
+    try {
+      predicateResult = await invoker.invoke(this.node.properties.condition.id, context)
+    } catch {
+      predicateResult = { error: true }
+    }
 
     // Evaluate the message (needed for both success and error cases)
     const message = await evaluateOperand(this.node.properties.message, context, invoker)

@@ -98,6 +98,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
 
     if (!handler.isAsync) {
       const result = this.executeSyncHandler<T>(handler, isolatedContext)
+      this.throwIfTypeMismatch(result)
       this.cacheManager.set(nodeId, result)
 
       return result
@@ -105,6 +106,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
 
     const hooks = this.runtimeHooksFactory.create(nodeId)
     const result = (await handler.evaluate(isolatedContext, this, hooks)) as ThunkResult<T>
+    this.throwIfTypeMismatch(result)
     this.cacheManager.set(nodeId, result)
 
     return result
@@ -127,6 +129,7 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     }
 
     const result = this.executeSyncHandler<T>(handler, context)
+    this.throwIfTypeMismatch(result)
     this.cacheManager.set(nodeId, result)
 
     return result
@@ -141,6 +144,12 @@ export default class ThunkEvaluator implements ThunkInvocationAdapter {
     }
 
     return handler
+  }
+
+  private throwIfTypeMismatch<T>(result: ThunkResult<T>): void {
+    if (result.error?.type === 'TYPE_MISMATCH') {
+      throw result.error.cause ?? new Error(result.error.message)
+    }
   }
 
   private executeSyncHandler<T>(handler: ThunkHandler, context: ThunkEvaluationContext): ThunkResult<T> {

@@ -46,6 +46,7 @@ describe('FunctionHandler', () => {
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 'test-value', '@type': 'predicate' }],
         mockRegisteredFunctions: new Map([['equals', mockFunction]]),
       })
 
@@ -56,7 +57,7 @@ describe('FunctionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined, 'hello', 'world')
+      expect(mockFunction.evaluate).toHaveBeenCalledWith('test-value', 'hello', 'world')
       expect(result.value).toBe(false)
     })
 
@@ -73,6 +74,7 @@ describe('FunctionHandler', () => {
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 'input-value', '@type': 'pipeline' }],
         mockRegisteredFunctions: new Map([['uppercase', mockFunction]]),
         mockNodes: new Map([[refNode.id, refNode]]),
       })
@@ -86,7 +88,7 @@ describe('FunctionHandler', () => {
 
       // Assert
       expect(mockInvoker.invoke).toHaveBeenCalledWith(refNode.id, mockContext)
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined, 'test@example.com')
+      expect(mockFunction.evaluate).toHaveBeenCalledWith('input-value', 'test@example.com')
       expect(result.value).toBe('TEST@EXAMPLE.COM')
     })
 
@@ -103,6 +105,7 @@ describe('FunctionHandler', () => {
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 'test-value', '@type': 'predicate' }],
         mockRegisteredFunctions: new Map([['greaterThan', mockFunction]]),
         mockNodes: new Map([[refNode.id, refNode]]),
       })
@@ -115,7 +118,7 @@ describe('FunctionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined, 15, 10)
+      expect(mockFunction.evaluate).toHaveBeenCalledWith('test-value', 15, 10)
       expect(result.value).toBe(true)
     })
 
@@ -127,11 +130,12 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'isPresent',
-        evaluate: jest.fn((value: any) => value !== undefined && value !== null),
+        evaluate: jest.fn((_value: any, arg: any) => arg !== undefined && arg !== null),
         isAsync: false,
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 'test-value', '@type': 'predicate' }],
         mockRegisteredFunctions: new Map([['isPresent', mockFunction]]),
       })
 
@@ -146,7 +150,7 @@ describe('FunctionHandler', () => {
       const result = await handler.evaluate(mockContext, mockInvoker)
 
       // Assert
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined, undefined)
+      expect(mockFunction.evaluate).toHaveBeenCalledWith('test-value', undefined)
       expect(result.value).toBe(false)
     })
 
@@ -174,7 +178,7 @@ describe('FunctionHandler', () => {
       expect(result.error?.message).toContain('not found')
     })
 
-    it('should wrap error in ThunkError when function throws', async () => {
+    it('should wrap error in ThunkError with EVALUATION_FAILED when function throws non-TypeError', async () => {
       // Arrange
       const functionNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'divide', [10, 0])
 
@@ -187,6 +191,7 @@ describe('FunctionHandler', () => {
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 100, '@type': 'pipeline' }],
         mockRegisteredFunctions: new Map([['divide', mockFunction]]),
       })
 
@@ -218,6 +223,7 @@ describe('FunctionHandler', () => {
       }
 
       const mockContext = createMockContext({
+        mockScope: [{ '@value': 'input-value', '@type': 'pipeline' }],
         mockRegisteredFunctions: new Map([['concat', mockFunction]]),
         mockNodes: new Map([
           [ref1.id, ref1],
@@ -239,8 +245,143 @@ describe('FunctionHandler', () => {
 
       // Assert
       expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
-      expect(mockFunction.evaluate).toHaveBeenCalledWith(undefined, 'Hello', 'World')
+      expect(mockFunction.evaluate).toHaveBeenCalledWith('input-value', 'Hello', 'World')
       expect(result.value).toBe('HelloWorld')
+    })
+
+    it('should return false when @value is undefined for CONDITION', async () => {
+      // Arrange
+      const functionNode = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', ['hello'])
+
+      const mockFunction: FunctionRegistryEntry = {
+        name: 'equals',
+        evaluate: jest.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockScope: [{ '@value': undefined, '@type': 'predicate' }],
+        mockRegisteredFunctions: new Map([['equals', mockFunction]]),
+      })
+
+      const handler = new FunctionHandler(functionNode.id, functionNode)
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe(false)
+      expect(mockFunction.evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return false when @value is null for CONDITION', async () => {
+      // Arrange
+      const functionNode = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', ['hello'])
+
+      const mockFunction: FunctionRegistryEntry = {
+        name: 'equals',
+        evaluate: jest.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockScope: [{ '@value': null, '@type': 'predicate' }],
+        mockRegisteredFunctions: new Map([['equals', mockFunction]]),
+      })
+
+      const handler = new FunctionHandler(functionNode.id, functionNode)
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe(false)
+      expect(mockFunction.evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return undefined when @value is undefined for TRANSFORMER', async () => {
+      // Arrange
+      const functionNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'uppercase')
+
+      const mockFunction: FunctionRegistryEntry = {
+        name: 'uppercase',
+        evaluate: jest.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockScope: [{ '@value': undefined, '@type': 'pipeline' }],
+        mockRegisteredFunctions: new Map([['uppercase', mockFunction]]),
+      })
+
+      const handler = new FunctionHandler(functionNode.id, functionNode)
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBeUndefined()
+      expect(mockFunction.evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return undefined when @value is null for TRANSFORMER', async () => {
+      // Arrange
+      const functionNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'uppercase')
+
+      const mockFunction: FunctionRegistryEntry = {
+        name: 'uppercase',
+        evaluate: jest.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockScope: [{ '@value': null, '@type': 'pipeline' }],
+        mockRegisteredFunctions: new Map([['uppercase', mockFunction]]),
+      })
+
+      const handler = new FunctionHandler(functionNode.id, functionNode)
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBeUndefined()
+      expect(mockFunction.evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return TYPE_MISMATCH error when function throws TypeError', async () => {
+      // Arrange
+      const functionNode = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'greaterThan', [10])
+
+      const mockFunction: FunctionRegistryEntry = {
+        name: 'greaterThan',
+        evaluate: jest.fn(() => {
+          throw new TypeError('greaterThan expects a number but received string')
+        }),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockScope: [{ '@value': 'not-a-number', '@type': 'predicate' }],
+        mockRegisteredFunctions: new Map([['greaterThan', mockFunction]]),
+      })
+
+      const handler = new FunctionHandler(functionNode.id, functionNode)
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('TYPE_MISMATCH')
+      expect(result.error?.message).toContain('greaterThan')
+      expect(result.error?.message).toContain('expects a number but received string')
+      expect(result.error?.cause).toBeInstanceOf(Error)
     })
   })
 })

@@ -322,6 +322,107 @@ describe('ThunkEvaluator', () => {
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toBe('String error')
     })
+
+    it('should throw when handler returns TYPE_MISMATCH error', async () => {
+      // Arrange
+      const cause = new Error('type mismatch in greaterThan')
+      const mockHandler = createMockHybridHandler(
+        nodeId,
+        jest.fn().mockResolvedValue({
+          error: {
+            type: 'TYPE_MISMATCH',
+            nodeId,
+            message: 'type mismatch in greaterThan',
+            cause,
+          },
+        }),
+      )
+
+      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+
+      // Act & Assert
+      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('type mismatch in greaterThan')
+    })
+
+    it('should throw when sync handler returns TYPE_MISMATCH error via invoke()', async () => {
+      // Arrange
+      const cause = new Error('type mismatch in trim')
+      const syncHandler: jest.Mocked<ThunkHandler> = {
+        nodeId,
+        isAsync: false,
+        computeIsAsync: jest.fn(),
+        evaluateSync: jest.fn().mockReturnValue({
+          error: {
+            type: 'TYPE_MISMATCH',
+            nodeId,
+            message: 'type mismatch in trim',
+            cause,
+          },
+        }),
+        evaluate: jest.fn(),
+      }
+
+      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(syncHandler)
+
+      // Act & Assert
+      await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('type mismatch in trim')
+    })
+
+    it('should not throw for EVALUATION_FAILED errors', async () => {
+      // Arrange
+      const mockHandler = createMockHybridHandler(
+        nodeId,
+        jest.fn().mockResolvedValue({
+          error: {
+            type: 'EVALUATION_FAILED',
+            nodeId,
+            message: 'Division by zero',
+          },
+        }),
+      )
+
+      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+
+      // Act
+      const result = await evaluator.invoke(nodeId, mockContext)
+
+      // Assert
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('EVALUATION_FAILED')
+    })
+  })
+
+  describe('invokeSync()', () => {
+    const nodeId: NodeId = 'compile_ast:1'
+    let mockContext: ThunkEvaluationContext
+
+    beforeEach(() => {
+      mockContext = createMockContext() as ThunkEvaluationContext
+    })
+
+    it('should throw when handler returns TYPE_MISMATCH error', () => {
+      // Arrange
+      const cause = new Error('type mismatch in greaterThan')
+      const syncHandler: jest.Mocked<ThunkHandler> = {
+        nodeId,
+        isAsync: false,
+        computeIsAsync: jest.fn(),
+        evaluateSync: jest.fn().mockReturnValue({
+          error: {
+            type: 'TYPE_MISMATCH',
+            nodeId,
+            message: 'type mismatch in greaterThan',
+            cause,
+          },
+        }),
+        evaluate: jest.fn(),
+      }
+
+      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(syncHandler)
+
+      // Act & Assert
+      expect(() => evaluator.invokeSync(nodeId, mockContext)).toThrow('type mismatch in greaterThan')
+    })
   })
 
   describe('createContext()', () => {
