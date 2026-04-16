@@ -4,6 +4,7 @@ import FormDataStore from '../data/formDataStore'
 import AppointmentApi from '../data/appointmentApi'
 import EmbeddingIndex from '../data/embeddings/embeddingIndex'
 import GuideContentStore from '../data/guideContentStore'
+import GuideSearch from '../data/guideSearch'
 import logger from '../logger'
 
 export const services = () => {
@@ -13,16 +14,17 @@ export const services = () => {
   const embeddingIndex = new EmbeddingIndex()
   const guideContentStore = new GuideContentStore(
     join(__dirname, 'journeys', 'forge-developer-guide', 'content'),
-    embeddingIndex,
   )
+  const guideSearch = new GuideSearch(guideContentStore, embeddingIndex)
 
-  guideContentStore.load().catch(err => logger.error({ err }, 'Failed to preload guide content'))
+  guideSearch.load().catch(err => logger.error({ err }, 'Failed to preload guide content'))
 
   return {
     applicationInfo,
     formDataStore,
     appointmentApi,
     guideContentStore,
+    guideSearch,
   }
 }
 

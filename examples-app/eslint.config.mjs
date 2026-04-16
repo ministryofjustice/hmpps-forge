@@ -4,7 +4,9 @@ export default [
   {
     ignores: ['rolldown/**', 'assets/**'],
   },
-  ...hmppsConfig(),
+  ...hmppsConfig({
+    extraPathsAllowingDevDependencies: ['vitest.config.ts'],
+  }),
   {
     rules: {
       'import/prefer-default-export': 'off',

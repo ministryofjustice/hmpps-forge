@@ -12,11 +12,6 @@ export const developerGuideJourney = journey({
   view: {
     template: 'partials/guide-step',
   },
-  children: [
-    getStartedJourney,
-    buildingJourneysJourney,
-    expressionsJourney,
-    componentsJourney,
-  ],
+  children: [getStartedJourney, buildingJourneysJourney, expressionsJourney, componentsJourney],
   steps: [searchStep],
 })

@@ -2,7 +2,6 @@ import { parentPort } from 'node:worker_threads'
 import { createEmbeddingBatchPlan } from './embeddingBatchPlanner'
 import { configureTransformersLocalModelSource } from './embeddingRuntimeConfig'
 
-
 interface EmbedMessage {
   type: 'embed'
   texts: string[]

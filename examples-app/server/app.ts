@@ -39,6 +39,7 @@ export default function createApp(services: Services): express.Application {
     })
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
+      guideSearch: services.guideSearch,
     })
 
   app.set('json spaces', 2)

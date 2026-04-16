@@ -1,33 +1,39 @@
 import { EventEmitter } from 'node:events'
+import { vi, type Mock } from 'vitest'
 import EmbeddingIndex from './embeddingIndex'
 
-jest.mock('node:worker_threads', () => {
+vi.mock('node:worker_threads', () => {
   const mockWorker = new EventEmitter()
   Object.assign(mockWorker, {
-    postMessage: jest.fn(),
-    terminate: jest.fn(),
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
   })
 
+  function Worker() {
+    return mockWorker
+  }
+
   return {
-    Worker: jest.fn(() => mockWorker),
-    __mockWorker: mockWorker,
+    Worker,
+    mockWorker,
   }
 })
 
-function getMockWorker(): EventEmitter & { postMessage: jest.Mock; terminate: jest.Mock } {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, n/global-require
-  const { __mockWorker } = require('node:worker_threads')
+async function getMockWorker(): Promise<EventEmitter & { postMessage: Mock; terminate: Mock }> {
+  const workerThreads = (await import('node:worker_threads')) as unknown as {
+    mockWorker: EventEmitter & { postMessage: Mock; terminate: Mock }
+  }
 
-  return __mockWorker
+  return workerThreads.mockWorker
 }
 
 describe('EmbeddingIndex', () => {
   let index: EmbeddingIndex
-  let mockWorker: EventEmitter & { postMessage: jest.Mock; terminate: jest.Mock }
+  let mockWorker: EventEmitter & { postMessage: Mock; terminate: Mock }
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    mockWorker = getMockWorker()
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    mockWorker = await getMockWorker()
     mockWorker.removeAllListeners()
     index = new EmbeddingIndex()
   })

@@ -49,7 +49,7 @@ export const searchResults = CollectionBlock({
             content: Item().path('title'),
           }),
           GovUKBody({
-            text: Item().path('excerpt').pipe(Transformer.String.EscapeHtml()),
+            text: Item().path('excerpt'),
             size: 's',
             classes: 'govuk-!-margin-top-1',
           }),

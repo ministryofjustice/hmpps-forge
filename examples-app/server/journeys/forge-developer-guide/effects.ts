@@ -4,9 +4,11 @@ import {
   EffectFunctionExpr,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type GuideContentStore from '../../data/guideContentStore'
+import type GuideSearch from '../../data/guideSearch'
 
 export interface GuideDeps {
   guideContentStore: GuideContentStore
+  guideSearch: GuideSearch
 }
 
 export interface GuideEffectShape {
@@ -28,13 +30,11 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
     },
 
     SearchContent: deps => async (context: EffectFunctionContext) => {
-      await deps.guideContentStore.load()
-
       const queryParam = context.getQueryParam('q')
       const query = typeof queryParam === 'string' ? queryParam : ''
 
       if (query) {
-        const results = await deps.guideContentStore.search(query)
+        const results = await deps.guideSearch.search(query)
         context.setData('searchResults', results)
         context.setData('searchQuery', query)
       } else {
