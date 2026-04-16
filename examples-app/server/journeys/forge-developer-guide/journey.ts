@@ -3,7 +3,6 @@ import { searchStep } from './steps/search/step'
 import { getStartedJourney } from './sections/get-started/journey'
 import { buildingJourneysJourney } from './sections/building-journeys/journey'
 import { expressionsJourney } from './sections/expressions/journey'
-import { functionsAndEffectsJourney } from './sections/functions-and-effects/journey'
 import { componentsJourney } from './sections/components/journey'
 
 export const developerGuideJourney = journey({
@@ -17,7 +16,6 @@ export const developerGuideJourney = journey({
     getStartedJourney,
     buildingJourneysJourney,
     expressionsJourney,
-    functionsAndEffectsJourney,
     componentsJourney,
   ],
   steps: [searchStep],
