@@ -9,18 +9,17 @@
     "sourceMap": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "baseUrl": ".",
     "rootDir": ".",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "paths": {
-      "@ministryofjustice/hmpps-forge/core": ["forge-core/src/index.ts"],
-      "@ministryofjustice/hmpps-forge/core/authoring": ["forge-core/src/authoring/index.ts"],
-      "@ministryofjustice/hmpps-forge/core/components": ["forge-core/src/components/index.ts"],
-      "@ministryofjustice/hmpps-forge/core/framework": ["forge-core/src/framework/index.ts"],
-      "@ministryofjustice/hmpps-forge/express-nunjucks": ["forge-express-nunjucks/src/index.ts"],
-      "@ministryofjustice/hmpps-forge/govuk-components": ["forge-govuk-components/src/index.ts"],
-      "@ministryofjustice/hmpps-forge/moj-components": ["forge-moj-components/src/index.ts"]
+      "@ministryofjustice/hmpps-forge/core": ["./forge-core/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/core/authoring": ["./forge-core/src/authoring/index.ts"],
+      "@ministryofjustice/hmpps-forge/core/components": ["./forge-core/src/components/index.ts"],
+      "@ministryofjustice/hmpps-forge/core/framework": ["./forge-core/src/framework/index.ts"],
+      "@ministryofjustice/hmpps-forge/express-nunjucks": ["./forge-express-nunjucks/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/govuk-components": ["./forge-govuk-components/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"]
     }
   },
   "include": ["./**/src/**/*.ts"],

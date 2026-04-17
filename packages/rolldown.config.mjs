@@ -1,13 +1,9 @@
-/* eslint-disable import/no-extraneous-dependencies */
-import * as path from 'node:path'
 import * as fs from 'node:fs'
-import esbuild from 'rollup-plugin-esbuild'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import { dts } from 'rollup-plugin-dts'
-/* eslint-enable import/no-extraneous-dependencies */
+import * as path from 'node:path'
+import { dts } from 'rolldown-plugin-dts'
 
 const subpaths = {
-  'core': 'forge-core/src/index.ts',
+  core: 'forge-core/src/index.ts',
   'core/authoring': 'forge-core/src/authoring/index.ts',
   'core/components': 'forge-core/src/components/index.ts',
   'core/framework': 'forge-core/src/framework/index.ts',
@@ -17,6 +13,7 @@ const subpaths = {
 }
 
 const packageName = '@ministryofjustice/hmpps-forge'
+const entries = Object.entries(subpaths)
 
 const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
 const externalPrefixes = [
@@ -25,14 +22,6 @@ const externalPrefixes = [
   '@ministryofjustice/hmpps-forge/govuk-components',
   '@ministryofjustice/hmpps-forge/moj-components',
 ]
-
-const isExternal = id => {
-  if (external.includes(id)) {
-    return true
-  }
-
-  return externalPrefixes.some(prefix => id === prefix || id.startsWith(prefix))
-}
 
 const dtsOwnershipRules = [
   { match: '/forge-core/src/components/', entrypoint: 'core/components' },
@@ -50,16 +39,23 @@ const dtsOwnershipRules = [
 
 const normalizeId = id => id.replaceAll('\\', '/')
 
-const resolveDtsEntrypoint = id => {
-  const normalizedId = normalizeId(id)
+const isExternal = id => {
+  if (external.includes(id)) {
+    return true
+  }
 
-  const ownershipRule = dtsOwnershipRules.find(({ match }) => normalizedId.includes(match))
-
-  return ownershipRule?.entrypoint
+  return externalPrefixes.some(prefix => id === prefix || id.startsWith(prefix))
 }
 
-const createDtsEntrypointPlugin = entrypoint => ({
-  name: `dts-entrypoint-${entrypoint.replaceAll('/', '-')}`,
+const resolveDtsEntrypoint = id => {
+  const normalizedId = normalizeId(id)
+  const ownershipRule = dtsOwnershipRules.find(({ match }) => normalizedId.includes(match))
+
+  return ownershipRule ? ownershipRule.entrypoint : undefined
+}
+
+const createDtsEntrypointPlugin = () => ({
+  name: 'dts-entrypoint-rewriter',
   resolveId(source, importer) {
     if (isExternal(source)) {
       return { id: source, external: true }
@@ -73,12 +69,11 @@ const createDtsEntrypointPlugin = entrypoint => ({
       return null
     }
 
-    const resolvedId = normalizeId(
-      path.isAbsolute(source) ? source : path.resolve(path.dirname(importer), source),
-    )
+    const resolvedId = normalizeId(path.isAbsolute(source) ? source : path.resolve(path.dirname(importer), source))
+    const importerEntrypoint = resolveDtsEntrypoint(importer)
     const ownerEntrypoint = resolveDtsEntrypoint(resolvedId)
 
-    if (ownerEntrypoint === undefined || ownerEntrypoint === entrypoint) {
+    if (importerEntrypoint === undefined || ownerEntrypoint === undefined || ownerEntrypoint === importerEntrypoint) {
       return null
     }
 
@@ -86,14 +81,10 @@ const createDtsEntrypointPlugin = entrypoint => ({
   },
 })
 
-/**
- * Copies non-TS assets (templates, styles) from a source package into its dist output.
- * This ensures nunjucks templates and SCSS files are available at runtime.
- */
-const copyAssets = (sourceDir: string, destDir: string, extensions: string[]) => ({
+const copyAssets = (sourceDir, destDir, extensions) => ({
   name: 'copy-assets',
   writeBundle() {
-    const copyRecursive = (src: string, dest: string) => {
+    const copyRecursive = (src, dest) => {
       if (!fs.existsSync(src)) {
         return
       }
@@ -115,27 +106,38 @@ const copyAssets = (sourceDir: string, destDir: string, extensions: string[]) =>
   },
 })
 
-const jsConfigs = Object.entries(subpaths).map(([name, input]) => ({
-  input,
-  output: [{ file: `dist/${name}/index.mjs`, format: 'esm', sourcemap: true }],
+const createDtsConfig = () => ({
+  input: Object.fromEntries(entries.map(([name, input]) => [`${name}/index`, input])),
+  output: {
+    dir: 'dist',
+    format: 'esm',
+    entryFileNames: chunk => (chunk.name.endsWith('.d') ? '[name].ts' : '[name].js'),
+    chunkFileNames: chunk => (chunk.name.endsWith('.d') ? '[name]-[hash].ts' : '[name]-[hash].js'),
+  },
+  external: isExternal,
+  resolve: { tsconfigFilename: './tsconfig.json' },
   plugins: [
-    nodeResolve({ preferBuiltins: true }),
-    esbuild({ tsconfig: './tsconfig.json', target: 'es2024', exclude: 'rollup.config.ts' }),
+    createDtsEntrypointPlugin(),
+    dts({ emitDtsOnly: true, tsgo: true }),
+  ],
+})
+
+const createJsConfig = ([name, input]) => ({
+  input: { index: input },
+  output: {
+    dir: `dist/${name}`,
+    format: 'esm',
+    sourcemap: true,
+    entryFileNames: '[name].mjs',
+    chunkFileNames: '[name]-[hash].mjs',
+  },
+  external: isExternal,
+  resolve: { tsconfigFilename: './tsconfig.json' },
+  plugins: [
     ...(name === 'moj-components'
       ? [copyAssets('forge-moj-components/src', 'dist/moj-components', ['.njk', '.scss'])]
       : []),
   ],
-  external: isExternal,
-}))
+})
 
-const dtsConfigs = Object.entries(subpaths).map(([name, input]) => ({
-  input,
-  output: {
-    file: `dist/${name}/index.d.ts`,
-    format: 'esm',
-  },
-  plugins: [createDtsEntrypointPlugin(name), dts({ tsconfig: './tsconfig.json', respectExternal: true })],
-  external: isExternal,
-}))
-
-export default [...jsConfigs, ...dtsConfigs]
+export default [...entries.map(createJsConfig), createDtsConfig()]
