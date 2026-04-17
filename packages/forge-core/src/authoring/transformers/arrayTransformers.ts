@@ -1,7 +1,7 @@
 import { assertArray, assertNumber, assertString } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
 
 /**
  * Array transformation functions for manipulating collections of data
@@ -10,52 +10,120 @@ import { ValueExpr } from '../types/expressions.type'
  * - Static: Transformer.Array.Slice(0, 5)
  * - Dynamic: Transformer.Array.Slice(0, Answer('limit'))
  */
-const { transformers: ArrayTransformers, implementations } = defineTransformerFunctions({
+export interface ArrayTransformerGroup {
   /**
    * Returns the length of the array
    * @example
-   * // Length([1, 2, 3, 4]) returns 4
+   * // Length() applied to [1, 2, 3, 4] returns 4
    */
+  Length: () => TransformerFunctionExpr
+
+  /**
+   * Returns the first element of the array
+   * @example
+   * // First() applied to [1, 2, 3] returns 1
+   */
+  First: () => TransformerFunctionExpr
+
+  /**
+   * Returns the last element of the array
+   * @example
+   * // Last() applied to [1, 2, 3] returns 3
+   */
+  Last: () => TransformerFunctionExpr
+
+  /**
+   * Reverses the array (returns a new array)
+   * @example
+   * // Reverse() applied to [1, 2, 3] returns [3, 2, 1]
+   */
+  Reverse: () => TransformerFunctionExpr
+
+  /**
+   * Joins array elements into a string with specified separator
+   * @param separator - Separator to place between elements (defaults to ',')
+   * @example
+   * // Join(", ") applied to [1, 2, 3] returns "1, 2, 3"
+   */
+  Join: (separator?: string | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Returns a slice of the array from start to end index
+   * @param start - The zero-based index at which to begin extraction
+   * @param end - The zero-based index before which to end extraction (optional)
+   * @example
+   * // Slice(1, 4) applied to [1, 2, 3, 4, 5] returns [2, 3, 4]
+   */
+  Slice: (start: number | ValueExpr, end?: number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Concatenates arrays together
+   * @param arrays - Additional arrays to concatenate to the input
+   * @example
+   * // Concat([3, 4]) applied to [1, 2] returns [1, 2, 3, 4]
+   */
+  Concat: (...arrays: (ValueExpr[] | ValueExpr)[]) => TransformerFunctionExpr
+
+  /**
+   * Returns unique elements from the array (removes duplicates)
+   * @example
+   * // Unique() applied to [1, 2, 2, 3, 1] returns [1, 2, 3]
+   */
+  Unique: () => TransformerFunctionExpr
+
+  /**
+   * Sorts the array in ascending order (returns a new array)
+   * @example
+   * // Sort() applied to [3, 1, 4, 2] returns [1, 2, 3, 4]
+   */
+  Sort: () => TransformerFunctionExpr
+
+  /**
+   * Filters the array to only include elements that match the specified value
+   * @param filterValue - The value each element is compared against
+   * @example
+   * // Filter(2) applied to [1, 2, 2, 3] returns [2, 2]
+   */
+  Filter: (filterValue: ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
+   * @param property - The property name (for objects) or index (for nested arrays) to extract
+   * @example
+   * // Map('name') applied to [{name: 'John'}, {name: 'Jane'}] returns ['John', 'Jane']
+   * // Map(0) applied to [[1, 2], [3, 4]] returns [1, 3]
+   */
+  Map: (property: string | number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Flattens a nested array by one level
+   * @example
+   * // Flatten() applied to [[1, 2], [3, 4]] returns [1, 2, 3, 4]
+   */
+  Flatten: () => TransformerFunctionExpr
+}
+
+const { transformers: ArrayTransformers, implementations } = defineTransformerFunctions<ArrayTransformerGroup>({
   Length: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Length')
     return value.length
   },
 
-  /**
-   * Returns the first element of the array
-   * @example
-   * // First([1, 2, 3]) returns 1
-   */
   First: () => (value: any) => {
     assertArray(value, 'Transformer.Array.First')
     return value.length > 0 ? value[0] : undefined
   },
 
-  /**
-   * Returns the last element of the array
-   * @example
-   * // Last([1, 2, 3]) returns 3
-   */
   Last: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Last')
     return value.length > 0 ? value[value.length - 1] : undefined
   },
 
-  /**
-   * Reverses the array (returns a new array)
-   * @example
-   * // Reverse([1, 2, 3]) returns [3, 2, 1]
-   */
   Reverse: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Reverse')
     return [...value].reverse()
   },
 
-  /**
-   * Joins array elements into a string with specified separator
-   * @example
-   * // Join([1, 2, 3], ", ") returns "1, 2, 3"
-   */
   Join:
     () =>
     (value: any, separator: string | ValueExpr = ',') => {
@@ -64,11 +132,6 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
       return value.join(separator)
     },
 
-  /**
-   * Returns a slice of the array from start to end index
-   * @example
-   * // Slice([1, 2, 3, 4, 5], 1, 4) returns [2, 3, 4]
-   */
   Slice: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Slice')
     assertNumber(start, 'Transformer.Array.Slice (start)')
@@ -79,11 +142,6 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
     return value.slice(start)
   },
 
-  /**
-   * Concatenates arrays together
-   * @example
-   * // Concat([1, 2], [3, 4]) returns [1, 2, 3, 4]
-   */
   Concat:
     () =>
     (value: any, ...arrays: (any[] | ValueExpr)[]) => {
@@ -94,21 +152,11 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
       return value.concat(...(arrays as any[][]))
     },
 
-  /**
-   * Returns unique elements from the array (removes duplicates)
-   * @example
-   * // Unique([1, 2, 2, 3, 1]) returns [1, 2, 3]
-   */
   Unique: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Unique')
     return [...new Set(value)]
   },
 
-  /**
-   * Sorts the array in ascending order (returns a new array)
-   * @example
-   * // Sort([3, 1, 4, 2]) returns [1, 2, 3, 4]
-   */
   Sort: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Sort')
     return [...value].sort((a, b) => {
@@ -119,22 +167,11 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
     })
   },
 
-  /**
-   * Filters the array to only include elements that match the specified value
-   * @example
-   * // Filter([1, 2, 2, 3], 2) returns [2, 2]
-   */
   Filter: () => (value: any, filterValue: any | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Filter')
     return value.filter((item: any) => item === filterValue)
   },
 
-  /**
-   * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
-   * @example
-   * // Map([{name: 'John'}, {name: 'Jane'}], 'name') returns ['John', 'Jane']
-   * // Map([[1, 2], [3, 4]], 0) returns [1, 3]
-   */
   Map: () => (value: any, property: string | number | ValueExpr) => {
     assertArray(value, 'Transformer.Array.Map')
     if (typeof property !== 'string' && typeof property !== 'number') {
@@ -151,11 +188,6 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
     })
   },
 
-  /**
-   * Flattens a nested array by one level
-   * @example
-   * // Flatten([[1, 2], [3, 4]]) returns [1, 2, 3, 4]
-   */
   Flatten: () => (value: any) => {
     assertArray(value, 'Transformer.Array.Flatten')
     return value.flat()

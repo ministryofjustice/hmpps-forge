@@ -1,7 +1,19 @@
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineGeneratorFunctions } from '../utils/defineGeneratorFunctions'
+import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 
-const { generators: DateGenerators, implementations } = defineGeneratorFunctions({
+/**
+ * Date generator functions for producing date values
+ *
+ * @example
+ * // Standalone
+ * Generator.Date.Today()
+ *
+ * @example
+ * // With pipeline
+ * Generator.Date.Now().pipe(Transformer.Date.AddDays(7))
+ */
+export interface DateGeneratorGroup {
   /**
    * Generates the current date and time.
    *
@@ -15,7 +27,7 @@ const { generators: DateGenerators, implementations } = defineGeneratorFunctions
    * // With pipeline
    * deadline: Generator.Date.Now().pipe(Transformer.Date.AddDays(7))
    */
-  Now: () => () => new Date(),
+  Now: () => GeneratorBuilder<[]>
 
   /**
    * Generates today's date at midnight (start of day).
@@ -27,6 +39,12 @@ const { generators: DateGenerators, implementations } = defineGeneratorFunctions
    * // In form definition
    * defaultDate: Generator.Date.Today()
    */
+  Today: () => GeneratorBuilder<[]>
+}
+
+const { generators: DateGenerators, implementations } = defineGeneratorFunctions<DateGeneratorGroup>({
+  Now: () => () => new Date(),
+
   Today: () => () => {
     const now = new Date()
 

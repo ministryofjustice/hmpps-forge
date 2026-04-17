@@ -1,11 +1,8 @@
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
 import { assertDate, assertNumber, assertString } from '../../shared/utils/asserts'
 
-/**
- * Format tokens for date formatting
- */
 const formatDate = (date: Date, format: string): string => {
   const monthNames = [
     'January',
@@ -50,7 +47,7 @@ const formatDate = (date: Date, format: string): string => {
     s: () => String(date.getSeconds()),
   }
 
-  // Sort by length descending to match longer tokens first (YYYY before YY)
+  // Sort by length descending so longer tokens match first (YYYY before YY)
   const tokenPattern = Object.keys(tokens)
     .sort((a, b) => b.length - a.length)
     .join('|')
@@ -65,10 +62,11 @@ const formatDate = (date: Date, format: string): string => {
  * // Format a date
  * Generator.Date.Now().pipe(Transformer.Date.Format('DD/MM/YYYY'))
  *
+ * @example
  * // Add days to a date
  * Generator.Date.Today().pipe(Transformer.Date.AddDays(7))
  */
-const { transformers: DateTransformers, implementations } = defineTransformerFunctions({
+export interface DateTransformerGroup {
   /**
    * Formats a Date object into a string using the specified format
    *
@@ -88,12 +86,89 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
    * - ss: 2-digit seconds (00-59)
    * - s: Seconds (0-59)
    *
+   * @param format - Format string using the supported tokens
    * @example
-   * // Format("DD/MM/YYYY") -> "15/03/2024"
-   * // Format("YYYY-MM-DD") -> "2024-03-15"
-   * // Format("D M YYYY") -> "15 3 2024"
-   * // Format("HH:mm:ss") -> "14:30:45"
+   * // Format("DD/MM/YYYY") returns "15/03/2024"
+   * // Format("YYYY-MM-DD") returns "2024-03-15"
+   * // Format("D M YYYY") returns "15 3 2024"
+   * // Format("HH:mm:ss") returns "14:30:45"
    */
+  Format: (format: string | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Adds a number of days to a Date
+   * @param days - Number of days to add (negative values subtract)
+   * @example
+   * // AddDays(7) adds one week
+   * // AddDays(-1) subtracts one day
+   */
+  AddDays: (days: number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Subtracts a number of days from a Date
+   * @param days - Number of days to subtract
+   * @example
+   * // SubtractDays(7) subtracts one week
+   */
+  SubtractDays: (days: number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Adds a number of months to a Date
+   * @param months - Number of months to add (negative values subtract)
+   * @example
+   * // AddMonths(1) adds one month
+   * // AddMonths(-6) subtracts 6 months
+   */
+  AddMonths: (months: number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Adds a number of years to a Date
+   * @param years - Number of years to add (negative values subtract)
+   * @example
+   * // AddYears(1) adds one year
+   * // AddYears(-18) subtracts 18 years
+   */
+  AddYears: (years: number | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Returns the start of the day (midnight) for a Date
+   * @example
+   * // StartOfDay() returns 2024-03-15T00:00:00.000
+   */
+  StartOfDay: () => TransformerFunctionExpr
+
+  /**
+   * Returns the end of the day (23:59:59.999) for a Date
+   * @example
+   * // EndOfDay() returns 2024-03-15T23:59:59.999
+   */
+  EndOfDay: () => TransformerFunctionExpr
+
+  /**
+   * Converts a Date to ISO-8601 string format
+   * @example
+   * // ToISOString() returns "2024-03-15T14:30:45.123Z"
+   */
+  ToISOString: () => TransformerFunctionExpr
+
+  /**
+   * Converts a Date to a locale-specific string
+   * @param locale - Optional locale identifier (e.g. 'en-GB', 'en-US')
+   * @example
+   * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
+   * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
+   */
+  ToLocaleString: (locale?: string | ValueExpr) => TransformerFunctionExpr
+
+  /**
+   * Converts a Date to UK long date format (e.g. "18 March 2026")
+   * @example
+   * // ToUKLongDate() returns "18 March 2026"
+   */
+  ToUKLongDate: () => TransformerFunctionExpr
+}
+
+const { transformers: DateTransformers, implementations } = defineTransformerFunctions<DateTransformerGroup>({
   Format: () => (value: any, format: string | ValueExpr) => {
     assertDate(value, 'Transformer.Date.Format')
     assertString(format, 'Transformer.Date.Format (format)')
@@ -101,12 +176,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return formatDate(value, format)
   },
 
-  /**
-   * Adds a number of days to a Date
-   * @example
-   * // AddDays(7) adds one week
-   * // AddDays(-1) subtracts one day
-   */
   AddDays: () => (value: any, days: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddDays')
     assertNumber(days, 'Transformer.Date.AddDays (days)')
@@ -116,11 +185,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Subtracts a number of days from a Date
-   * @example
-   * // SubtractDays(7) subtracts one week
-   */
   SubtractDays: () => (value: any, days: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.SubtractDays')
     assertNumber(days, 'Transformer.Date.SubtractDays (days)')
@@ -130,12 +194,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Adds a number of months to a Date
-   * @example
-   * // AddMonths(1) adds one month
-   * // AddMonths(-6) subtracts 6 months
-   */
   AddMonths: () => (value: any, months: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddMonths')
     assertNumber(months, 'Transformer.Date.AddMonths (months)')
@@ -145,12 +203,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Adds a number of years to a Date
-   * @example
-   * // AddYears(1) adds one year
-   * // AddYears(-18) subtracts 18 years
-   */
   AddYears: () => (value: any, years: number | ValueExpr) => {
     assertDate(value, 'Transformer.Date.AddYears')
     assertNumber(years, 'Transformer.Date.AddYears (years)')
@@ -160,11 +212,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Returns the start of the day (midnight) for a Date
-   * @example
-   * // StartOfDay() -> 2024-03-15T00:00:00.000
-   */
   StartOfDay: () => (value: any) => {
     assertDate(value, 'Transformer.Date.StartOfDay')
 
@@ -173,11 +220,6 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Returns the end of the day (23:59:59.999) for a Date
-   * @example
-   * // EndOfDay() -> 2024-03-15T23:59:59.999
-   */
   EndOfDay: () => (value: any) => {
     assertDate(value, 'Transformer.Date.EndOfDay')
 
@@ -186,32 +228,20 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  /**
-   * Converts a Date to ISO-8601 string format
-   * @example
-   * // ToISOString() -> "2024-03-15T14:30:45.123Z"
-   */
   ToISOString: () => (value: any) => {
     assertDate(value, 'Transformer.Date.ToISOString')
     return value.toISOString()
   },
 
-  /**
-   * Converts a Date to a locale-specific string
-   * @example
-   * // ToLocaleString() -> "15/03/2024, 14:30:45" (UK locale)
-   * // ToLocaleString('en-US') -> "3/15/2024, 2:30:45 PM"
-   */
-  ToLocaleString: () => (value: any, locale?: string) => {
+  ToLocaleString: () => (value: any, locale?: string | ValueExpr) => {
     assertDate(value, 'Transformer.Date.ToLocaleString')
-    return locale ? value.toLocaleString(locale) : value.toLocaleString()
+    if (locale === undefined) {
+      return value.toLocaleString()
+    }
+    assertString(locale, 'Transformer.Date.ToLocaleString (locale)')
+    return value.toLocaleString(locale)
   },
 
-  /**
-   * Converts a Date to UK long date format (e.g., "18 March 2026")
-   * @example
-   * // ToUKLongDate() -> "18 March 2026"
-   */
   ToUKLongDate: () => (value: any) => {
     assertDate(value, 'Transformer.Date.ToUKLongDate')
     return value.toLocaleDateString('en-GB', {

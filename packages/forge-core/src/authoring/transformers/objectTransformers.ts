@@ -2,6 +2,7 @@ import { assertObject } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
 import { getByPath } from '../../shared/utils/utils'
+import { TransformerFunctionExpr } from '../types/expressions.type'
 
 export interface DateParts {
   year?: string
@@ -9,22 +10,31 @@ export interface DateParts {
   day?: string
 }
 
-const { transformers: ObjectTransformers, implementations } = defineTransformerFunctions({
+/**
+ * Object transformation functions for extracting and reshaping object values
+ */
+export interface ObjectTransformerGroup {
   /**
    * Converts an object with date parts to an ISO 8601 date string
    * Supports full dates (YYYY-MM-DD), partial dates (YYYY-MM, MM-DD), or single components
    *
    * @param paths - Object mapping date components to property paths
    * @example
-   * // Full date: {day: "15", month: "3", year: "2024"} → "2024-03-15"
+   * // Full date: {day: "15", month: "3", year: "2024"} becomes "2024-03-15"
    * ToISO({year: 'year', month: 'month', day: 'day'})
    *
-   * // Partial date: {month: "3", year: "2024"} → "2024-03"
+   * @example
+   * // Partial date: {month: "3", year: "2024"} becomes "2024-03"
    * ToISO({year: 'year', month: 'month'})
    *
-   * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} → "2024-03-15"
+   * @example
+   * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} becomes "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
+  ToISO: (paths: DateParts) => TransformerFunctionExpr
+}
+
+const { transformers: ObjectTransformers, implementations } = defineTransformerFunctions<ObjectTransformerGroup>({
   ToISO: () => (value: any, paths: DateParts) => {
     assertObject(value, 'Transformer.Object.ToISO')
 
@@ -32,20 +42,18 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
       throw new Error('Transformer.Object.ToISO requires a paths configuration object')
     }
 
-    // Extract values using paths
     const year = paths.year ? getByPath<string>(value, paths.year) : undefined
     const month = paths.month ? getByPath<string>(value, paths.month) : undefined
     const day = paths.day ? getByPath<string>(value, paths.day) : undefined
 
     // If all three paths are specified (full date expected), require all three values
-    // This ensures field-specific validation can run when any field is empty
+    // so field-specific validation can run when any field is empty.
     if (paths.year && paths.month && paths.day) {
       if (!year || !month || !day) {
         throw new Error('Transformer.Object.ToISO: Full date requested but not all fields provided')
       }
     }
 
-    // Validate extracted values are numeric strings if present
     if (year && !/^\d{1,4}$/.test(year)) {
       throw new Error(`Transformer.Object.ToISO: Invalid year value "${year}"`)
     }
@@ -58,7 +66,6 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
       throw new Error(`Transformer.Object.ToISO: Invalid day value "${day}"`)
     }
 
-    // Validate month and day ranges
     if (month) {
       const monthNum = parseInt(month, 10)
       if (monthNum < 1 || monthNum > 12) {
@@ -73,9 +80,7 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
       }
     }
 
-    // Build ISO string based on what's provided
     if (year && month && day) {
-      // Full date: YYYY-MM-DD
       const paddedYear = year.padStart(4, '0')
       const paddedMonth = month.padStart(2, '0')
       const paddedDay = day.padStart(2, '0')
@@ -83,25 +88,21 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
     }
 
     if (year && month) {
-      // Year-Month: YYYY-MM
       const paddedYear = year.padStart(4, '0')
       const paddedMonth = month.padStart(2, '0')
       return `${paddedYear}-${paddedMonth}`
     }
 
     if (month && day) {
-      // Month-Day (recurring date): --MM-DD
       const paddedMonth = month.padStart(2, '0')
       const paddedDay = day.padStart(2, '0')
       return `--${paddedMonth}-${paddedDay}`
     }
 
     if (year) {
-      // Year only: YYYY
       return year.padStart(4, '0')
     }
 
-    // No valid date components found
     throw new Error('Transformer.Object.ToISO: No valid date components found in object')
   },
 })
