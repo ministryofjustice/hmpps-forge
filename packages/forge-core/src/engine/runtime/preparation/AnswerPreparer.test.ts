@@ -25,21 +25,21 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
 
 describe('AnswerPreparer', () => {
   let preparer: AnswerPreparer
-  let context: jest.Mocked<ThunkEvaluationContext>
-  let invoker: jest.Mocked<ThunkInvocationAdapter>
+  let context: Mocked<ThunkEvaluationContext>
+  let invoker: Mocked<ThunkInvocationAdapter>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
     preparer = new AnswerPreparer()
     context = {
       nodeRegistry: {
-        findByType: jest.fn().mockReturnValue([]),
+        findByType: vi.fn().mockReturnValue([]),
       },
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
     invoker = {
-      invoke: jest.fn().mockResolvedValue({ value: undefined, metadata: { source: 'test', timestamp: Date.now() } }),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn().mockResolvedValue({ value: undefined, metadata: { source: 'test', timestamp: Date.now() } }),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkInvocationAdapter>
   })
 
   describe('prepare()', () => {
@@ -49,7 +49,7 @@ describe('AnswerPreparer', () => {
       const remoteAnswerNode = ASTTestFactory.answerRemotePseudoNode('field-2')
       const runtimePlan = createRuntimePlan()
 
-      context.nodeRegistry.findByType = jest.fn().mockImplementation((type: string) => {
+      context.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
         if (type === PseudoNodeType.ANSWER_LOCAL) {
           return [localAnswerNode]
         }
@@ -78,7 +78,7 @@ describe('AnswerPreparer', () => {
         fieldIteratorRootIds: [iteratorRootId],
       })
 
-      context.nodeRegistry.findByType = jest.fn().mockImplementation((type: string) => {
+      context.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
         if (type === PseudoNodeType.ANSWER_LOCAL) {
           return [localAnswerNode]
         }
@@ -103,7 +103,7 @@ describe('AnswerPreparer', () => {
         fieldIteratorRootIds: [firstIteratorRootId, secondIteratorRootId],
       })
 
-      context.nodeRegistry.findByType = jest.fn().mockImplementation((type: string) => {
+      context.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
         if (type === PseudoNodeType.ANSWER_LOCAL) {
           return [localAnswerNode]
         }

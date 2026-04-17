@@ -132,7 +132,7 @@ describe('PostHandler', () => {
       const pseudoNode = ASTTestFactory.postPseudoNode('interests', fieldNode.id)
       const handler = new PostHandler(pseudoNode.id, pseudoNode)
       const mockContext = createMockContext({
-        mockRequest: { post: { interests: null } },
+        mockRequest: { post: { interests: null as unknown as string } },
         mockNodes: new Map<NodeId, ASTNode>([[fieldNode.id, fieldNode]]),
       })
 

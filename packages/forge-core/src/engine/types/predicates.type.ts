@@ -38,7 +38,7 @@ export interface NotPredicateASTNode extends PredicateASTNode {
 export interface AndPredicateASTNode extends PredicateASTNode {
   predicateType: PredicateType.AND
   properties: {
-    operands: ASTNode[]
+    operands: PredicateASTNode[]
   }
 }
 
@@ -48,7 +48,7 @@ export interface AndPredicateASTNode extends PredicateASTNode {
 export interface OrPredicateASTNode extends PredicateASTNode {
   predicateType: PredicateType.OR
   properties: {
-    operands: ASTNode[]
+    operands: PredicateASTNode[]
   }
 }
 
@@ -58,6 +58,6 @@ export interface OrPredicateASTNode extends PredicateASTNode {
 export interface XorPredicateASTNode extends PredicateASTNode {
   predicateType: PredicateType.XOR
   properties: {
-    operands: ASTNode[]
+    operands: PredicateASTNode[]
   }
 }

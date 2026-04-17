@@ -59,13 +59,13 @@ describe('IterateHandler', () => {
   ): MetadataComputationDependencies {
     return {
       thunkHandlerRegistry: {
-        get: jest.fn().mockReturnValue(undefined),
+        get: vi.fn().mockReturnValue(undefined),
       },
       functionRegistry: new FunctionRegistry(),
       nodeRegistry: {},
       metadataRegistry: {
-        set: jest.fn(),
-        get: jest.fn(),
+        set: vi.fn(),
+        get: vi.fn(),
       },
       ...overrides,
     } as unknown as MetadataComputationDependencies
@@ -84,7 +84,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: false }),
+          get: vi.fn().mockReturnValue({ isAsync: false }),
         } as any,
       })
 
@@ -107,7 +107,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: true }),
+          get: vi.fn().mockReturnValue({ isAsync: true }),
         } as any,
       })
 
@@ -175,7 +175,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: false }),
+          get: vi.fn().mockReturnValue({ isAsync: false }),
         } as any,
         functionRegistry: asyncRegistry,
       })
@@ -206,7 +206,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: false }),
+          get: vi.fn().mockReturnValue({ isAsync: false }),
         } as any,
         functionRegistry: asyncRegistry,
       })
@@ -237,7 +237,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: false }),
+          get: vi.fn().mockReturnValue({ isAsync: false }),
         } as any,
         functionRegistry: syncRegistry,
       })
@@ -261,7 +261,7 @@ describe('IterateHandler', () => {
 
       const deps = createMockMetadataDeps({
         thunkHandlerRegistry: {
-          get: jest.fn().mockReturnValue({ isAsync: false }),
+          get: vi.fn().mockReturnValue({ isAsync: false }),
         } as any,
       })
 
@@ -606,7 +606,7 @@ describe('IterateHandler', () => {
 
         const deps = createMockMetadataDeps({
           thunkHandlerRegistry: {
-            get: jest.fn().mockReturnValue({ isAsync: true }),
+            get: vi.fn().mockReturnValue({ isAsync: true }),
           } as any,
           functionRegistry: asyncRegistry,
         })

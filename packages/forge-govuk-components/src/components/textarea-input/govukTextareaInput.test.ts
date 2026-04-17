@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukTextareaInput } from './govukTextareaInput'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukTextareaInput', () => {
   setupComponentTest()

@@ -93,50 +93,58 @@ const createMockResponse = (): StepResponse => {
   }
 }
 
-jest.mock('../../compilation/thunks/ThunkEvaluator')
+vi.mock('../../compilation/thunks/ThunkEvaluator')
 
-const mockRenderProjectorBuild = jest.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-const mockStepValidityAnalyzerExecute = jest.fn().mockResolvedValue({
+const mockRenderProjectorBuild = vi.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
+const mockStepValidityAnalyzerExecute = vi.fn().mockResolvedValue({
   isValid: true,
   fieldFailures: [],
   domainFailures: [],
 })
 
-jest.mock('../evaluation/StepValidityAnalyzer', () => {
+vi.mock('../evaluation/StepValidityAnalyzer', () => {
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockStepValidityAnalyzerExecute(...args),
-    })),
+    default: vi.fn(function MockStepValidityAnalyzer() {
+      return {
+        execute(...args: unknown[]) {
+          return mockStepValidityAnalyzerExecute(...args)
+        },
+      }
+    }),
   }
 })
 
-jest.mock('../projection/RenderProjector', () => {
+vi.mock('../projection/RenderProjector', () => {
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      build: (...args: unknown[]) => mockRenderProjectorBuild(...args),
-    })),
+    default: vi.fn(function MockRenderProjector() {
+      return {
+        build(...args: unknown[]) {
+          return mockRenderProjectorBuild(...args)
+        },
+      }
+    }),
   }
 })
 
 describe('StepController', () => {
   let mockCompiledForm: CompiledForm[number]
-  let mockDependencies: jest.Mocked<JourneyInstanceDependencies>
+  let mockDependencies: Mocked<JourneyInstanceDependencies>
   let mockNavigationMetadata: JourneyMetadata[]
   let mockCurrentStepPath: string
   let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
   let mockRes: unknown
-  let mockEvaluator: jest.Mocked<ThunkEvaluator>
-  let mockContext: jest.Mocked<ThunkEvaluationContext>
+  let mockEvaluator: Mocked<ThunkEvaluator>
+  let mockContext: Mocked<ThunkEvaluationContext>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
     mockRenderProjectorBuild.mockClear()
     mockStepValidityAnalyzerExecute.mockClear()
-    ;(StepValidityAnalyzer as unknown as jest.Mock).mockClear()
-    ;(RenderProjector as unknown as jest.Mock).mockClear()
+    ;(StepValidityAnalyzer as unknown as Mock).mockClear()
+    ;(RenderProjector as unknown as Mock).mockClear()
     mockRenderProjectorBuild.mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
     mockStepValidityAnalyzerExecute.mockResolvedValue({
       isValid: true,
@@ -153,53 +161,53 @@ describe('StepController', () => {
 
     mockDependencies = {
       logger: {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
       },
       frameworkAdapter: {
-        redirect: jest.fn(),
-        render: jest.fn().mockResolvedValue(undefined),
-        toStepRequest: jest.fn().mockImplementation(() => createMockRequest()),
-        toStepResponse: jest.fn().mockImplementation(createMockResponse),
+        redirect: vi.fn(),
+        render: vi.fn().mockResolvedValue(undefined),
+        toStepRequest: vi.fn().mockImplementation(() => createMockRequest()),
+        toStepResponse: vi.fn().mockImplementation(createMockResponse),
       },
       componentRegistry: {} as any,
       functionRegistry: {} as any,
-    } as unknown as jest.Mocked<JourneyInstanceDependencies>
+    } as unknown as Mocked<JourneyInstanceDependencies>
 
     mockReq = {}
     mockRes = {}
 
     mockContext = {
       request: {
-        getParams: jest.fn().mockReturnValue({}),
+        getParams: vi.fn().mockReturnValue({}),
       },
       metadataRegistry: {
-        get: jest.fn(),
-        findNodesWhere: jest.fn().mockReturnValue([]),
+        get: vi.fn(),
+        findNodesWhere: vi.fn().mockReturnValue([]),
       },
       nodeRegistry: {
-        get: jest.fn(),
-        findByType: jest.fn().mockReturnValue([]),
+        get: vi.fn(),
+        findByType: vi.fn().mockReturnValue([]),
       },
       functionRegistry: {
-        get: jest.fn().mockReturnValue({ evaluate: jest.fn() }),
-        getAll: jest.fn().mockReturnValue(new Map()),
+        get: vi.fn().mockReturnValue({ evaluate: vi.fn() }),
+        getAll: vi.fn().mockReturnValue(new Map()),
       },
       global: {
         answers: {},
         data: {},
         validation: undefined,
       },
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
 
     mockEvaluator = {
-      createContext: jest.fn().mockReturnValue(mockContext),
-      invoke: jest.fn(),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkEvaluator>
-    ;(ThunkEvaluator.withRuntimeOverlay as jest.Mock).mockReturnValue(mockEvaluator)
+      createContext: vi.fn().mockReturnValue(mockContext),
+      invoke: vi.fn(),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkEvaluator>
+    ;(ThunkEvaluator.withRuntimeOverlay as Mock).mockReturnValue(mockEvaluator)
   })
 
   function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
@@ -232,7 +240,7 @@ describe('StepController', () => {
     return {
       artefact: {
         nodeRegistry: {
-          get: jest.fn((nodeId: NodeId) => {
+          get: vi.fn((nodeId: NodeId) => {
             if (nodeId === stepNode.id) {
               return stepNode
             }
@@ -241,7 +249,7 @@ describe('StepController', () => {
           }),
         },
         metadataRegistry: {
-          get: jest.fn(),
+          get: vi.fn(),
         },
       } as any,
       currentStepId: stepNode.id,
@@ -305,7 +313,7 @@ describe('StepController', () => {
       mockCompiledForm.runtimePlan.renderAncestorIds = ancestorIds.slice(0, -1)
     }
 
-    mockContext.metadataRegistry.get = jest.fn().mockImplementation((nodeId: NodeId, key: string) => {
+    mockContext.metadataRegistry.get = vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
       if (key === 'attachedToParentNode') {
         const index = ancestorIds.indexOf(nodeId as AstNodeId)
 
@@ -317,7 +325,7 @@ describe('StepController', () => {
       return undefined
     })
 
-    mockContext.nodeRegistry.get = jest.fn().mockImplementation((nodeId: NodeId) => {
+    mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
       return ancestors.find(a => a.id === nodeId)
     })
   }
@@ -522,7 +530,7 @@ describe('StepController', () => {
 
   describe('post()', () => {
     beforeEach(() => {
-      ;(mockDependencies.frameworkAdapter.toStepRequest as jest.Mock).mockImplementation(() =>
+      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
         createMockRequest({
           method: 'POST',
           post: { fieldName: 'value' },
@@ -603,7 +611,7 @@ describe('StepController', () => {
 
         let iteratorExpanded = false
 
-        mockContext.nodeRegistry.get = jest.fn().mockImplementation((nodeId: NodeId) => {
+        mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
           if (nodeId === iterateNode.id) {
             return iterateNode
           }
@@ -615,7 +623,7 @@ describe('StepController', () => {
           return undefined
         })
 
-        mockContext.nodeRegistry.findByType = jest.fn().mockImplementation((type: string) => {
+        mockContext.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
           if (type === PseudoNodeType.ANSWER_LOCAL && iteratorExpanded) {
             return [dynamicAnswerNode]
           }
@@ -1172,7 +1180,7 @@ describe('StepController', () => {
         state: { key: 'value' },
       })
 
-      ;(mockDependencies.frameworkAdapter.toStepRequest as jest.Mock).mockReturnValue(customRequest)
+      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(customRequest)
 
       const controller = new StepController(
         mockCompiledForm,
@@ -1241,9 +1249,7 @@ describe('StepController', () => {
         value: actionResult,
         metadata: { source: 'test', timestamp: Date.now() },
       })
-      ;(mockDependencies.frameworkAdapter.toStepRequest as jest.Mock).mockReturnValue(
-        createMockRequest({ method: 'POST' }),
-      )
+      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(createMockRequest({ method: 'POST' }))
 
       const controller = new StepController(
         mockCompiledForm,
@@ -1279,9 +1285,7 @@ describe('StepController', () => {
         value: submitResult,
         metadata: { source: 'test', timestamp: Date.now() },
       })
-      ;(mockDependencies.frameworkAdapter.toStepRequest as jest.Mock).mockReturnValue(
-        createMockRequest({ method: 'POST' }),
-      )
+      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(createMockRequest({ method: 'POST' }))
 
       const controller = new StepController(
         mockCompiledForm,

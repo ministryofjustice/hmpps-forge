@@ -16,7 +16,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'generateId',
-        evaluate: jest.fn().mockReturnValue('generated-id-123'),
+        evaluate: vi.fn().mockReturnValue('generated-id-123'),
         isAsync: false,
       }
 
@@ -41,7 +41,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'equals',
-        evaluate: jest.fn().mockReturnValue(false),
+        evaluate: vi.fn().mockReturnValue(false),
         isAsync: false,
       }
 
@@ -69,7 +69,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'uppercase',
-        evaluate: jest.fn((_, str: string) => str.toUpperCase()),
+        evaluate: vi.fn((_, str: string) => str.toUpperCase()),
         isAsync: false,
       }
 
@@ -100,7 +100,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'greaterThan',
-        evaluate: jest.fn((_, a: number, b: number) => a > b),
+        evaluate: vi.fn((_, a: number, b: number) => a > b),
         isAsync: false,
       }
 
@@ -130,7 +130,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'isPresent',
-        evaluate: jest.fn((_value: any, arg: any) => arg !== undefined && arg !== null),
+        evaluate: vi.fn((_value: any, arg: any) => arg !== undefined && arg !== null),
         isAsync: false,
       }
 
@@ -160,8 +160,8 @@ describe('FunctionHandler', () => {
 
       const mockContext = createMockContext({
         mockRegisteredFunctions: new Map([
-          ['equals', { name: 'equals', evaluate: jest.fn() }],
-          ['greaterThan', { name: 'greaterThan', evaluate: jest.fn() }],
+          ['equals', { name: 'equals', evaluate: vi.fn() }],
+          ['greaterThan', { name: 'greaterThan', evaluate: vi.fn() }],
         ]),
       })
 
@@ -184,7 +184,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'divide',
-        evaluate: jest.fn(() => {
+        evaluate: vi.fn(() => {
           throw new Error('Division by zero')
         }),
         isAsync: false,
@@ -218,7 +218,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'concat',
-        evaluate: jest.fn((_, a: string, b: string) => `${a}${b}`),
+        evaluate: vi.fn((_, a: string, b: string) => `${a}${b}`),
         isAsync: false,
       }
 
@@ -255,7 +255,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'equals',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -281,7 +281,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'equals',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -307,7 +307,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'uppercase',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -333,7 +333,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'uppercase',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -359,7 +359,7 @@ describe('FunctionHandler', () => {
 
       const mockFunction: FunctionRegistryEntry = {
         name: 'greaterThan',
-        evaluate: jest.fn(() => {
+        evaluate: vi.fn(() => {
           throw new TypeError('greaterThan expects a number but received string')
         }),
         isAsync: false,

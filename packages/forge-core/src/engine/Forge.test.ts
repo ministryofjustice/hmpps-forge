@@ -9,31 +9,31 @@ import ForgeRouter from './runtime/routes/ForgeRouter'
 import JourneyInstance from './JourneyInstance'
 import Forge from './Forge'
 
-jest.mock('./JourneyInstance')
-jest.mock('./registries/ComponentRegistry')
-jest.mock('./registries/ScopedComponentRegistry')
-jest.mock('./registries/FunctionRegistry')
-jest.mock('./registries/ScopedFunctionRegistry')
-jest.mock('./runtime/routes/ForgeRouter')
+vi.mock('./JourneyInstance')
+vi.mock('./registries/ComponentRegistry')
+vi.mock('./registries/ScopedComponentRegistry')
+vi.mock('./registries/FunctionRegistry')
+vi.mock('./registries/ScopedFunctionRegistry')
+vi.mock('./runtime/routes/ForgeRouter')
 
 describe('Forge', () => {
-  let mockLogger: jest.Mocked<Console>
+  let mockLogger: Mocked<Console>
   let mockRouter: unknown
-  let mockJourneyInstance: jest.Mocked<JourneyInstance>
-  let mockForgeRouter: jest.Mocked<ForgeRouter<unknown>>
-  let mockFrameworkAdapter: jest.Mocked<FrameworkAdapter<unknown, unknown, unknown>>
-  let mockFrameworkAdapterBuilder: jest.Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
+  let mockJourneyInstance: Mocked<JourneyInstance>
+  let mockForgeRouter: Mocked<ForgeRouter<unknown>>
+  let mockFrameworkAdapter: Mocked<FrameworkAdapter<unknown, unknown, unknown>>
+  let mockFrameworkAdapterBuilder: Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     // Mock logger
     mockLogger = {
-      log: jest.fn(),
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
+      log: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
     } as any
 
     // Mock router (opaque object since it's framework-specific)
@@ -41,45 +41,47 @@ describe('Forge', () => {
 
     // Mock framework adapter
     mockFrameworkAdapter = {
-      createRouter: jest.fn().mockReturnValue(mockRouter),
-      mountRouter: jest.fn(),
-      get: jest.fn(),
-      post: jest.fn(),
-      toStepRequest: jest.fn(),
-      redirect: jest.fn(),
-      forwardError: jest.fn(),
-      render: jest.fn().mockResolvedValue(undefined),
+      createRouter: vi.fn().mockReturnValue(mockRouter),
+      mountRouter: vi.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      toStepRequest: vi.fn(),
+      redirect: vi.fn(),
+      forwardError: vi.fn(),
+      render: vi.fn().mockResolvedValue(undefined),
     } as any
 
     // Mock framework adapter builder (returns adapter when build() is called)
     mockFrameworkAdapterBuilder = {
-      build: jest.fn().mockReturnValue(mockFrameworkAdapter),
+      build: vi.fn().mockReturnValue(mockFrameworkAdapter),
     } as any
 
     // Mock ForgeRouter with a mutable routes array that mount populates
     const mockRoutes: Array<{ method: string; path: string }> = []
 
     mockForgeRouter = {
-      mount: jest.fn().mockImplementation(() => {
+      mount: vi.fn().mockImplementation(() => {
         mockRoutes.push(
           { method: 'GET', path: '/start' },
           { method: 'GET', path: '/page-1' },
           { method: 'POST', path: '/page-1' },
         )
       }),
-      getRouter: jest.fn().mockReturnValue(mockRouter),
-      getRegisteredRoutes: jest.fn().mockImplementation(() => [...mockRoutes]),
+      getRouter: vi.fn().mockReturnValue(mockRouter),
+      getRegisteredRoutes: vi.fn().mockImplementation(() => [...mockRoutes]),
     } as any
-    ;(ForgeRouter as jest.MockedClass<typeof ForgeRouter>).mockImplementation(() => mockForgeRouter as any)
+    ;(ForgeRouter as MockedClass<typeof ForgeRouter>).mockImplementation(function mockForgeRouterCtor() {
+      return mockForgeRouter as any
+    })
 
     // Mock JourneyInstance (now a pure data container)
     mockJourneyInstance = {
-      getJourneyTitle: jest.fn().mockReturnValue('Test Form'),
-      getJourneyCode: jest.fn().mockReturnValue('test-form'),
-      getCompiledForm: jest.fn().mockReturnValue([]),
-      getConfiguration: jest.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
+      getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
+      getJourneyCode: vi.fn().mockReturnValue('test-form'),
+      getCompiledForm: vi.fn().mockReturnValue([]),
+      getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
     } as any
-    ;(JourneyInstance.createFromConfiguration as jest.Mock).mockReturnValue(mockJourneyInstance)
+    ;(JourneyInstance.createFromConfiguration as Mock).mockReturnValue(mockJourneyInstance)
   })
 
   /**
@@ -111,8 +113,8 @@ describe('Forge', () => {
         }),
       )
 
-      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as jest.MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       expect(mockFunctionRegistry.registerBuiltInFunctions).not.toHaveBeenCalled()
       expect(mockComponentRegistry.registerBuiltInComponents).not.toHaveBeenCalled()
@@ -122,8 +124,8 @@ describe('Forge', () => {
       // eslint-disable-next-line no-new
       new Forge(createDefaultOptions())
 
-      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as jest.MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       expect(mockFunctionRegistry.registerBuiltInFunctions).toHaveBeenCalledTimes(1)
       expect(mockComponentRegistry.registerBuiltInComponents).toHaveBeenCalledTimes(1)
@@ -144,7 +146,7 @@ describe('Forge', () => {
 
       engine.registerGlobalComponent(mockComponent)
 
-      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
+      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([mockComponent])
     })
   })
@@ -159,7 +161,7 @@ describe('Forge', () => {
 
       engine.registerGlobalComponents(mockComponents)
 
-      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
+      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith(mockComponents)
     })
   })
@@ -174,7 +176,7 @@ describe('Forge', () => {
 
       engine.registerGlobalFunctions(mockRegistry)
 
-      const mockFunctionRegistry = (FunctionRegistry as jest.MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith(mockRegistry)
     })
   })
@@ -227,7 +229,7 @@ describe('Forge', () => {
     it('should throw registration errors by default', () => {
       // Arrange
       const error = new Error('Registration failed')
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw error
       })
 
@@ -242,7 +244,7 @@ describe('Forge', () => {
     it('should swallow registration errors when strictRegistration is false', () => {
       // Arrange
       const error = new Error('Registration failed')
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw error
       })
 
@@ -260,7 +262,7 @@ describe('Forge', () => {
       const error2 = new Error('Validation error 2')
       const aggregateError = new AggregateError([error1, error2], 'Multiple validation errors')
 
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw aggregateError
       })
 
@@ -280,7 +282,7 @@ describe('Forge', () => {
       const error2: any = null
       const aggregateError = new AggregateError([error1, error2], 'Mixed errors')
 
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw aggregateError
       })
 
@@ -310,13 +312,15 @@ describe('Forge', () => {
       }
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const scopedFunctionRegistryCallsBefore = vi.mocked(ScopedFunctionRegistry).mock.calls.length
+      const scopedComponentRegistryCallsBefore = vi.mocked(ScopedComponentRegistry).mock.calls.length
 
       // Act
       engine.registerPackage(pkg, {})
 
       // Assert — components and functions are scoped, not global
-      expect(ScopedFunctionRegistry).toHaveBeenCalledTimes(1)
-      expect(ScopedComponentRegistry).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(ScopedFunctionRegistry).mock.calls.length - scopedFunctionRegistryCallsBefore).toBe(1)
+      expect(vi.mocked(ScopedComponentRegistry).mock.calls.length - scopedComponentRegistryCallsBefore).toBe(1)
       expect(JourneyInstance.createFromConfiguration).toHaveBeenCalled()
     })
 
@@ -328,14 +332,14 @@ describe('Forge', () => {
       }
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const MockedScoped = ScopedFunctionRegistry as MockedClass<typeof ScopedFunctionRegistry>
+      const scopedCallsBefore = MockedScoped.mock.calls.length
 
       // Act
       engine.registerPackage(pkg, {})
 
       // Assert — a ScopedFunctionRegistry should have been created
-      const MockedScoped = ScopedFunctionRegistry as jest.MockedClass<typeof ScopedFunctionRegistry>
-
-      expect(MockedScoped).toHaveBeenCalledTimes(1)
+      expect(MockedScoped.mock.calls.length - scopedCallsBefore).toBe(1)
 
       // The scoped registry should have been passed to JourneyInstance
       expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(
@@ -350,14 +354,14 @@ describe('Forge', () => {
       // Arrange
       const pkg = { journey: mockJourneyDef }
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const MockedScoped = ScopedFunctionRegistry as MockedClass<typeof ScopedFunctionRegistry>
+      const scopedCallsBefore = MockedScoped.mock.calls.length
 
       // Act
       engine.registerPackage(pkg)
 
       // Assert — no ScopedFunctionRegistry should be created
-      const MockedScoped = ScopedFunctionRegistry as jest.MockedClass<typeof ScopedFunctionRegistry>
-
-      expect(MockedScoped).not.toHaveBeenCalled()
+      expect(MockedScoped.mock.calls.length - scopedCallsBefore).toBe(0)
 
       // Journey should receive the global FunctionRegistry
       expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(
@@ -376,7 +380,7 @@ describe('Forge', () => {
       }
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-      const globalFunctionRegistry = (FunctionRegistry as jest.MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const globalFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       // Act
       engine.registerPackage(pkg, {})
@@ -394,14 +398,14 @@ describe('Forge', () => {
       }
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+      const MockedScoped = ScopedComponentRegistry as MockedClass<typeof ScopedComponentRegistry>
+      const scopedCallsBefore = MockedScoped.mock.calls.length
 
       // Act
       engine.registerPackage(pkg)
 
       // Assert — a ScopedComponentRegistry should have been created
-      const MockedScoped = ScopedComponentRegistry as jest.MockedClass<typeof ScopedComponentRegistry>
-
-      expect(MockedScoped).toHaveBeenCalledTimes(1)
+      expect(MockedScoped.mock.calls.length - scopedCallsBefore).toBe(1)
 
       // The journey should receive the scoped component registry
       expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(
@@ -421,8 +425,7 @@ describe('Forge', () => {
       }
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-      const globalComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock
-        .instances[0]
+      const globalComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
 
       // Act
       engine.registerPackage(pkg)
@@ -469,7 +472,7 @@ describe('Forge', () => {
     it('should throw on journey registration failure by default', () => {
       // Arrange
       const error = new Error('Journey failed')
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw error
       })
 
@@ -483,9 +486,9 @@ describe('Forge', () => {
     it('should throw on component registration failure by default', () => {
       // Arrange
       const error = new Error('Bad component')
-      const MockedScopedComponent = ScopedComponentRegistry as jest.MockedClass<typeof ScopedComponentRegistry>
+      const MockedScopedComponent = ScopedComponentRegistry as MockedClass<typeof ScopedComponentRegistry>
 
-      MockedScopedComponent.prototype.registerMany = jest.fn().mockImplementation(() => {
+      MockedScopedComponent.prototype.registerMany = vi.fn().mockImplementation(() => {
         throw error
       })
 
@@ -502,7 +505,7 @@ describe('Forge', () => {
 
     it('should swallow errors when strictRegistration is false', () => {
       // Arrange
-      ;(JourneyInstance.createFromConfiguration as jest.Mock).mockImplementation(() => {
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
         throw new Error('Journey failed')
       })
 
@@ -562,7 +565,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       const component = buildComponent('comp', () => '<div />')
 
-      ;(JourneyInstance.createFromConfiguration as jest.Mock)
+      ;(JourneyInstance.createFromConfiguration as Mock)
         .mockImplementationOnce(() => {
           throw new Error('First form fails')
         })
@@ -598,8 +601,8 @@ describe('Forge', () => {
       expect(result).toBe(engine)
 
       // Verify all registrations worked
-      const mockComponentRegistry = (ComponentRegistry as jest.MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as jest.MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith(customFunctions)

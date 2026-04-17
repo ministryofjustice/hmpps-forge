@@ -3,7 +3,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukAccordion } from './govukAccordion'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Accordion Component', () => {
   setupComponentTest()

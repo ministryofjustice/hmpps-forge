@@ -212,7 +212,7 @@ describe('ThrowErrorOutcomeHandler', () => {
       const errorNode = ASTTestFactory.throwErrorOutcome({ status: 404, message: 'Static message' })
       const handler = new ThrowErrorOutcomeHandler(errorNode.id, errorNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: false }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: false }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},
@@ -231,7 +231,7 @@ describe('ThrowErrorOutcomeHandler', () => {
       const errorNode = ASTTestFactory.throwErrorOutcome({ when: whenNode, status: 404, message: 'Error' })
       const handler = new ThrowErrorOutcomeHandler(errorNode.id, errorNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: true }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: true }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},
@@ -250,7 +250,7 @@ describe('ThrowErrorOutcomeHandler', () => {
       const errorNode = ASTTestFactory.throwErrorOutcome({ status: 500, message: messageNode })
       const handler = new ThrowErrorOutcomeHandler(errorNode.id, errorNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: true }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: true }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},

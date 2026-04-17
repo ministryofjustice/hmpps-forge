@@ -48,30 +48,30 @@ function createJourney(options: { onAccess?: AccessHookASTNode[] }): JourneyASTN
 
 function setupExecutor(step: StepASTNode): {
   executor: HookExecutor
-  context: jest.Mocked<ThunkEvaluationContext>
-  invoker: jest.Mocked<ThunkInvocationAdapter>
-  logger: { warn: jest.Mock; debug: jest.Mock; info: jest.Mock; error: jest.Mock }
+  context: Mocked<ThunkEvaluationContext>
+  invoker: Mocked<ThunkInvocationAdapter>
+  logger: { warn: Mock; debug: Mock; info: Mock; error: Mock }
 } {
   const context = {
     nodeRegistry: {
-      get: jest.fn().mockReturnValue(step),
+      get: vi.fn().mockReturnValue(step),
     },
     global: {
       answers: {},
       data: {},
     },
-  } as unknown as jest.Mocked<ThunkEvaluationContext>
+  } as unknown as Mocked<ThunkEvaluationContext>
 
   const invoker = {
-    invoke: jest.fn(),
-    invokeSync: jest.fn(),
-  } as jest.Mocked<ThunkInvocationAdapter>
+    invoke: vi.fn(),
+    invokeSync: vi.fn(),
+  } as Mocked<ThunkInvocationAdapter>
 
   const logger = {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   }
 
   const executor = new HookExecutor(logger as unknown as Console)
@@ -450,15 +450,15 @@ describe('HookExecutor', () => {
   describe('executeAccessLifecycle()', () => {
     function setupLifecycle(ancestors: (JourneyASTNode | StepASTNode)[]): {
       executor: HookExecutor
-      context: jest.Mocked<ThunkEvaluationContext>
-      invoker: jest.Mocked<ThunkInvocationAdapter>
+      context: Mocked<ThunkEvaluationContext>
+      invoker: Mocked<ThunkInvocationAdapter>
       runtimePlan: StepRuntimePlan
     } {
       const accessAncestorIds = ancestors.map(a => a.id) as AstNodeId[]
 
       const context = {
         metadataRegistry: {
-          get: jest.fn().mockImplementation((nodeId: NodeId, key: string) => {
+          get: vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
             if (key === 'attachedToParentNode') {
               const index = accessAncestorIds.indexOf(nodeId as AstNodeId)
 
@@ -471,7 +471,7 @@ describe('HookExecutor', () => {
           }),
         },
         nodeRegistry: {
-          get: jest.fn().mockImplementation((nodeId: NodeId) => {
+          get: vi.fn().mockImplementation((nodeId: NodeId) => {
             return ancestors.find(a => a.id === nodeId)
           }),
         },
@@ -479,14 +479,14 @@ describe('HookExecutor', () => {
           answers: {},
           data: {},
         },
-      } as unknown as jest.Mocked<ThunkEvaluationContext>
+      } as unknown as Mocked<ThunkEvaluationContext>
 
       const invoker = {
-        invoke: jest.fn(),
-        invokeSync: jest.fn(),
-      } as jest.Mocked<ThunkInvocationAdapter>
+        invoke: vi.fn(),
+        invokeSync: vi.fn(),
+      } as Mocked<ThunkInvocationAdapter>
 
-      const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
       const executor = new HookExecutor(logger as unknown as Console)
       const runtimePlan = createRuntimePlan(ancestors.at(-1)! as StepASTNode, {
         accessAncestorIds,

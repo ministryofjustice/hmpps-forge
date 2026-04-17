@@ -13,21 +13,21 @@ import { TemplateContext } from './types'
 
 describe('TemplateRenderer', () => {
   let renderer: TemplateRenderer
-  let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
-  let mockComponentRegistry: jest.Mocked<ComponentRegistry>
-  let mockTemplate: { render: jest.Mock }
+  let mockNunjucksEnv: Mocked<nunjucks.Environment>
+  let mockComponentRegistry: Mocked<ComponentRegistry>
+  let mockTemplate: { render: Mock }
 
   beforeEach(() => {
-    mockTemplate = { render: jest.fn().mockReturnValue('<html>rendered</html>') }
+    mockTemplate = { render: vi.fn().mockReturnValue('<html>rendered</html>') }
 
     mockNunjucksEnv = {
-      getTemplate: jest.fn().mockReturnValue(mockTemplate),
-    } as unknown as jest.Mocked<nunjucks.Environment>
+      getTemplate: vi.fn().mockReturnValue(mockTemplate),
+    } as unknown as Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
-      get: jest.fn(),
-      getAll: jest.fn().mockReturnValue(new Map()),
-    } as unknown as jest.Mocked<ComponentRegistry>
+      get: vi.fn(),
+      getAll: vi.fn().mockReturnValue(new Map()),
+    } as unknown as Mocked<ComponentRegistry>
 
     renderer = new TemplateRenderer({
       nunjucksEnv: mockNunjucksEnv,
@@ -66,7 +66,7 @@ describe('TemplateRenderer', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockReturnValue('<input type="text" />'),
+        render: vi.fn().mockReturnValue('<input type="text" />'),
       })
 
       const context = createRenderContext({
@@ -85,7 +85,7 @@ describe('TemplateRenderer', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockReturnValue('<input type="text" />'),
+        render: vi.fn().mockReturnValue('<input type="text" />'),
       })
 
       const context = createRenderContext({
@@ -137,7 +137,7 @@ describe('TemplateRenderer', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
-        render: jest.fn().mockReturnValue('<input />'),
+        render: vi.fn().mockReturnValue('<input />'),
       })
 
       const visibleBlock = createMockBlock({ id: 'compile_ast:1' })
@@ -333,8 +333,8 @@ describe('TemplateRenderer', () => {
       mockComponentRegistry.get.mockReturnValue(undefined)
       mockComponentRegistry.getAll.mockReturnValue(
         new Map([
-          ['html', { variant: 'html', render: jest.fn() }],
-          ['radios', { variant: 'radios', render: jest.fn() }],
+          ['html', { variant: 'html', render: vi.fn() }],
+          ['radios', { variant: 'radios', render: vi.fn() }],
         ]),
       )
 
@@ -350,7 +350,7 @@ describe('TemplateRenderer', () => {
 
     it('should call component render with evaluated block', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -385,7 +385,7 @@ describe('TemplateRenderer', () => {
   describe('extractErrorsFromValidations()', () => {
     it('should extract failed validations as errors when showValidationFailures is true', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -423,7 +423,7 @@ describe('TemplateRenderer', () => {
 
     it('should not include errors when showValidationFailures is false', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -454,7 +454,7 @@ describe('TemplateRenderer', () => {
 
     it('should handle validWhen property that is not an array', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -485,7 +485,7 @@ describe('TemplateRenderer', () => {
   describe('transformPropertiesWithRenderedBlocks()', () => {
     it('should render nested blocks to RenderedBlock format', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<div>Nested content</div>')
+      const mockRender = vi.fn().mockReturnValue('<div>Nested content</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'fieldset',
         render: mockRender,
@@ -525,7 +525,7 @@ describe('TemplateRenderer', () => {
 
     it('should handle arrays with nested blocks', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<div>Block</div>')
+      const mockRender = vi.fn().mockReturnValue('<div>Block</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'html',
         render: mockRender,
@@ -568,7 +568,7 @@ describe('TemplateRenderer', () => {
 
     it('should filter out non-visible nested blocks from arrays', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<div>Block</div>')
+      const mockRender = vi.fn().mockReturnValue('<div>Block</div>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'html',
         render: mockRender,
@@ -610,7 +610,7 @@ describe('TemplateRenderer', () => {
 
     it('should recursively transform nested objects', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<span>Hint</span>')
+      const mockRender = vi.fn().mockReturnValue('<span>Hint</span>')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -649,7 +649,7 @@ describe('TemplateRenderer', () => {
 
     it('should preserve null and undefined values', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,
@@ -683,7 +683,7 @@ describe('TemplateRenderer', () => {
 
     it('should preserve primitive values unchanged', () => {
       // Arrange
-      const mockRender = jest.fn().mockReturnValue('<input />')
+      const mockRender = vi.fn().mockReturnValue('<input />')
       mockComponentRegistry.get.mockReturnValue({
         variant: 'text-input',
         render: mockRender,

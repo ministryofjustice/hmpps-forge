@@ -4,7 +4,7 @@ import { PredicateXorExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import { XorPredicateASTNode } from '../../../types/predicates.type'
+import {PredicateASTNode, XorPredicateASTNode} from '../../../types/predicates.type'
 
 /**
  * XorFactory: Creates Xor predicate AST nodes
@@ -36,7 +36,7 @@ export default class XorFactory {
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.XOR,
       properties: {
-        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)),
+        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)) as PredicateASTNode[],
       },
       raw: json,
     }

@@ -3,13 +3,13 @@ import { PseudoNodeType } from '../../../types/pseudoNodes.type'
 import AnswerRemoteFactory from './AnswerRemoteFactory'
 
 describe('AnswerRemoteFactory', () => {
-  let mockNodeIDGenerator: jest.Mocked<NodeIDGenerator>
+  let mockNodeIDGenerator: Mocked<NodeIDGenerator>
   let factory: AnswerRemoteFactory
 
   beforeEach(() => {
     mockNodeIDGenerator = {
-      next: jest.fn(),
-    } as unknown as jest.Mocked<NodeIDGenerator>
+      next: vi.fn(),
+    } as unknown as Mocked<NodeIDGenerator>
 
     factory = new AnswerRemoteFactory(mockNodeIDGenerator, NodeIDCategory.COMPILE_PSEUDO)
   })

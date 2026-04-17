@@ -25,9 +25,9 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('continue')
-        expect(result.value.redirect).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('continue')
+        expect(result.value!.redirect).toBeUndefined()
       })
 
       it('should return executed: true, outcome: continue when when condition evaluates to true', async () => {
@@ -53,9 +53,9 @@ describe('AccessHandler', () => {
 
         // Assert
         expect(invoker.invoke).toHaveBeenCalledWith(whenPredicate.id, mockContext)
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('continue')
-        expect(result.value.redirect).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('continue')
+        expect(result.value!.redirect).toBeUndefined()
       })
 
       it('should return executed: false, outcome: continue when when condition evaluates to false', async () => {
@@ -80,8 +80,8 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(false)
-        expect(result.value.outcome).toBe('continue')
+        expect(result.value!.executed).toBe(false)
+        expect(result.value!.outcome).toBe('continue')
       })
 
       it('should return executed: false, outcome: continue when when condition evaluation errors (fail safe)', async () => {
@@ -110,8 +110,8 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(false)
-        expect(result.value.outcome).toBe('continue')
+        expect(result.value!.executed).toBe(false)
+        expect(result.value!.outcome).toBe('continue')
       })
     })
 
@@ -153,9 +153,9 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('redirect')
-        expect(result.value.redirect).toBe('/login')
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('redirect')
+        expect(result.value!.redirect).toBe('/login')
       })
 
       it('should return first matching redirect from multiple redirect expressions', async () => {
@@ -204,8 +204,8 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.outcome).toBe('redirect')
-        expect(result.value.redirect).toBe('/fallback')
+        expect(result.value!.outcome).toBe('redirect')
+        expect(result.value!.redirect).toBe('/fallback')
       })
 
       it('should return outcome: continue when no redirect expressions defined', async () => {
@@ -230,9 +230,9 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('continue')
-        expect(result.value.redirect).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('continue')
+        expect(result.value!.redirect).toBeUndefined()
       })
     })
 
@@ -280,11 +280,11 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('error')
-        expect(result.value.status).toBe(404)
-        expect(result.value.message).toBe('Item not found')
-        expect(result.value.redirect).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('error')
+        expect(result.value!.status).toBe(404)
+        expect(result.value!.message).toBe('Item not found')
+        expect(result.value!.redirect).toBeUndefined()
       })
 
       it('should return outcome: error with status and evaluated message expression', async () => {
@@ -335,11 +335,11 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('error')
-        expect(result.value.status).toBe(403)
-        expect(result.value.message).toBe('Item 123 not found')
-        expect(result.value.redirect).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('error')
+        expect(result.value!.status).toBe(403)
+        expect(result.value!.message).toBe('Item 123 not found')
+        expect(result.value!.redirect).toBeUndefined()
       })
 
       it('should not return status/message when when condition is false', async () => {
@@ -370,10 +370,10 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(false)
-        expect(result.value.outcome).toBe('continue')
-        expect(result.value.status).toBeUndefined()
-        expect(result.value.message).toBeUndefined()
+        expect(result.value!.executed).toBe(false)
+        expect(result.value!.outcome).toBe('continue')
+        expect(result.value!.status).toBeUndefined()
+        expect(result.value!.message).toBeUndefined()
       })
 
       it('should return undefined message when message expression evaluation errors', async () => {
@@ -424,10 +424,10 @@ describe('AccessHandler', () => {
         const result = await handler.evaluate(mockContext, invoker)
 
         // Assert
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('error')
-        expect(result.value.status).toBe(500)
-        expect(result.value.message).toBeUndefined()
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('error')
+        expect(result.value!.status).toBe(500)
+        expect(result.value!.message).toBeUndefined()
       })
     })
 
@@ -477,8 +477,8 @@ describe('AccessHandler', () => {
 
         // Assert - effect was executed
         expect(invocationOrder).toContain(effect.id)
-        expect(result.value.executed).toBe(true)
-        expect(result.value.outcome).toBe('continue')
+        expect(result.value!.executed).toBe(true)
+        expect(result.value!.outcome).toBe('continue')
       })
 
       it('should execute effects after when condition evaluation', async () => {

@@ -1,5 +1,6 @@
 import { FunctionType } from '../types/enums'
-import { ConditionFunctionExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, EffectFunctionExpr, TransformerFunctionExpr } from '../types/expressions.type'
+import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { createFunctionsRegistry } from './createFunctionsRegistry'
 import { defineConditionFunctions } from './defineConditionFunctions'
 import { defineEffectFunctions } from './defineEffectFunctions'
@@ -127,7 +128,7 @@ describe('typed function wrappers', () => {
       }
     }
 
-    const logger = { info: jest.fn() }
+    const logger = { info: vi.fn() }
     const { effects, implementations } = defineEffectFunctions<
       { LogAction: (context: unknown, action: string) => void },
       TestDeps
@@ -169,8 +170,10 @@ describe('typed function wrappers', () => {
 describe('factory validate hook', () => {
   it('should run validate synchronously when a condition builder is called', () => {
     // Arrange
-    const validate = jest.fn()
-    const { conditions } = defineConditionFunctions({
+    const validate = vi.fn()
+    const { conditions } = defineConditionFunctions<{
+      GreaterThan: (threshold: number) => ConditionFunctionExpr<[number]>
+    }>({
       GreaterThan: {
         validate,
         factory: () => (value: unknown, threshold: number) => Number(value) > threshold,
@@ -187,7 +190,9 @@ describe('factory validate hook', () => {
 
   it('should propagate validate errors from condition builders at author-call time', () => {
     // Arrange
-    const { conditions } = defineConditionFunctions({
+    const { conditions } = defineConditionFunctions<{
+      Between: (min: number, max: number) => ConditionFunctionExpr<[number, number]>
+    }>({
       Between: {
         validate: (min: number, max: number) => {
           if (min > max) {
@@ -223,8 +228,10 @@ describe('factory validate hook', () => {
 
   it('should run validate when a transformer builder is called', () => {
     // Arrange
-    const validate = jest.fn()
-    const { transformers, implementations } = defineTransformerFunctions({
+    const validate = vi.fn()
+    const { transformers, implementations } = defineTransformerFunctions<{
+      AddPrefix: (prefix: string) => TransformerFunctionExpr<[string]>
+    }>({
       AddPrefix: {
         validate,
         factory: () => (value: unknown, prefix: string) => `${prefix}${String(value)}`,
@@ -242,8 +249,10 @@ describe('factory validate hook', () => {
 
   it('should run validate when an effect builder is called', () => {
     // Arrange
-    const validate = jest.fn()
-    const { effects } = defineEffectFunctions<{ LogAction: (context: unknown, action: string) => void }>({
+    const validate = vi.fn()
+    const { effects } = defineEffectFunctions<{
+      LogAction: (action: string) => EffectFunctionExpr<[string]>
+    }>({
       LogAction: {
         validate,
         factory: () => () => {},
@@ -259,8 +268,10 @@ describe('factory validate hook', () => {
 
   it('should run validate when a generator builder is called', () => {
     // Arrange
-    const validate = jest.fn()
-    const { generators, implementations } = defineGeneratorFunctions({
+    const validate = vi.fn()
+    const { generators, implementations } = defineGeneratorFunctions<{
+      PrefixedId: (prefix: string) => GeneratorBuilder<[string]>
+    }>({
       PrefixedId: {
         validate,
         factory: () => (prefix: string) => `${prefix}123`,
@@ -283,7 +294,9 @@ describe('factory validate hook', () => {
 
   it('should not require validate on the object-form factory', () => {
     // Arrange / Act: object form without validate is fine.
-    const { generators } = defineGeneratorFunctions({
+    const { generators } = defineGeneratorFunctions<{
+      Today: () => GeneratorBuilder<[]>
+    }>({
       Today: {
         factory: () => () => '2026-04-01',
       },

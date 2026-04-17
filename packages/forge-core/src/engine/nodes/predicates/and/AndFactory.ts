@@ -4,7 +4,7 @@ import { PredicateAndExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import { AndPredicateASTNode } from '../../../types/predicates.type'
+import {AndPredicateASTNode, PredicateASTNode} from '../../../types/predicates.type'
 
 /**
  * AndFactory: Creates And predicate AST nodes
@@ -36,7 +36,7 @@ export default class AndFactory {
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.AND,
       properties: {
-        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)),
+        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)) as PredicateASTNode[],
       },
       raw: json,
     }

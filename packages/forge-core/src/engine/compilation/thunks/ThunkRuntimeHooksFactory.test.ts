@@ -18,16 +18,16 @@ import TemplateFactory from '../../nodes/template/TemplateFactory'
 function createMockRuntimeOverlayBuilder(): RuntimeOverlayBuilder {
   return {
     nodeRegistry: {
-      register: jest.fn(),
+      register: vi.fn(),
     } as unknown as NodeRegistry,
     handlerRegistry: {
-      register: jest.fn(),
-      has: jest.fn().mockReturnValue(false),
+      register: vi.fn(),
+      has: vi.fn().mockReturnValue(false),
     } as unknown as ThunkHandlerRegistry,
     metadataRegistry: {} as MetadataRegistry,
     nodeFactory: {
-      createNode: jest.fn(),
-      transformValue: jest.fn(),
+      createNode: vi.fn(),
+      transformValue: vi.fn(),
     } as unknown as NodeFactory,
     runtimeNodes: new Map(),
   }
@@ -35,25 +35,25 @@ function createMockRuntimeOverlayBuilder(): RuntimeOverlayBuilder {
 
 describe('ThunkRuntimeHooksFactory', () => {
   let factory: ThunkRuntimeHooksFactory
-  let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
-  let mockCompiler: jest.Mocked<ThunkCompilerFactory>
-  let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
+  let mockCompilationDependencies: Mocked<CompilationDependencies>
+  let mockCompiler: Mocked<ThunkCompilerFactory>
+  let mockFunctionRegistry: Mocked<FunctionRegistry>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
 
     mockCompilationDependencies = {
       nodeIdGenerator: {
-        next: jest.fn().mockReturnValue('runtime_ast:1'),
+        next: vi.fn().mockReturnValue('runtime_ast:1'),
       },
-      createOverlay: jest.fn(),
-    } as unknown as jest.Mocked<CompilationDependencies>
+      createOverlay: vi.fn(),
+    } as unknown as Mocked<CompilationDependencies>
 
     mockCompiler = {
-      compileASTNode: jest.fn(),
-    } as unknown as jest.Mocked<ThunkCompilerFactory>
+      compileASTNode: vi.fn(),
+    } as unknown as Mocked<ThunkCompilerFactory>
 
-    mockFunctionRegistry = {} as jest.Mocked<FunctionRegistry>
+    mockFunctionRegistry = {} as Mocked<FunctionRegistry>
   })
 
   describe('create()', () => {
@@ -85,7 +85,7 @@ describe('ThunkRuntimeHooksFactory', () => {
       const mockBuilder = createMockRuntimeOverlayBuilder()
       const transformedValue = { transformed: true }
 
-      mockBuilder.nodeFactory.transformValue = jest.fn().mockReturnValue(transformedValue)
+      mockBuilder.nodeFactory.transformValue = vi.fn().mockReturnValue(transformedValue)
 
       factory = new ThunkRuntimeHooksFactory(
         mockCompilationDependencies,
@@ -226,37 +226,37 @@ describe('ThunkRuntimeHooksFactory', () => {
 
   describe('registerRuntimeNodesBatch() Phase 8 optimization', () => {
     function createMockPendingOverlay() {
-      const mockHandler = { computeIsAsync: jest.fn(), isAsync: false, nodeId: 'runtime_ast:1' }
+      const mockHandler = { computeIsAsync: vi.fn(), isAsync: false, nodeId: 'runtime_ast:1' }
       const pendingNodeIds: string[] = []
 
       return {
         overlay: {
-          nodeIdGenerator: { next: jest.fn().mockReturnValue('runtime_ast:1') },
-          nodeFactory: { transformValue: jest.fn() },
+          nodeIdGenerator: { next: vi.fn().mockReturnValue('runtime_ast:1') },
+          nodeFactory: { transformValue: vi.fn() },
           nodeRegistry: {
-            get: jest.fn().mockReturnValue({ id: 'runtime_ast:1', type: ASTNodeType.EXPRESSION }),
-            register: jest.fn(),
-            findByType: jest.fn().mockReturnValue([]),
-            getAllEntries: jest.fn().mockReturnValue(new Map()),
-            getPendingRegistry: jest.fn().mockReturnValue({
-              findByType: jest.fn().mockReturnValue([]),
+            get: vi.fn().mockReturnValue({ id: 'runtime_ast:1', type: ASTNodeType.EXPRESSION }),
+            register: vi.fn(),
+            findByType: vi.fn().mockReturnValue([]),
+            getAllEntries: vi.fn().mockReturnValue(new Map()),
+            getPendingRegistry: vi.fn().mockReturnValue({
+              findByType: vi.fn().mockReturnValue([]),
             }),
           },
           metadataRegistry: {
-            set: jest.fn(),
-            get: jest.fn(),
+            set: vi.fn(),
+            get: vi.fn(),
           },
           thunkHandlerRegistry: {
-            register: jest.fn(),
-            get: jest.fn().mockReturnValue(mockHandler),
+            register: vi.fn(),
+            get: vi.fn().mockReturnValue(mockHandler),
           },
           astNodeTree: {
-            postOrder: jest.fn().mockReturnValue(['runtime_ast:1']),
-            addNode: jest.fn(),
+            postOrder: vi.fn().mockReturnValue(['runtime_ast:1']),
+            addNode: vi.fn(),
           },
         },
-        flush: jest.fn(),
-        getPendingNodeIds: jest.fn().mockImplementation(() => {
+        flush: vi.fn(),
+        getPendingNodeIds: vi.fn().mockImplementation(() => {
           if (pendingNodeIds.length === 0) {
             pendingNodeIds.push('runtime_ast:1')
           }
@@ -272,9 +272,9 @@ describe('ThunkRuntimeHooksFactory', () => {
       const pending = createMockPendingOverlay()
 
       const compilationDeps = {
-        nodeIdGenerator: { next: jest.fn().mockReturnValue('runtime_ast:1') },
+        nodeIdGenerator: { next: vi.fn().mockReturnValue('runtime_ast:1') },
         metadataRegistry: {
-          get: jest.fn().mockImplementation((_nodeId: string, key: string, defaultValue: unknown) => {
+          get: vi.fn().mockImplementation((_nodeId: string, key: string, defaultValue: unknown) => {
             if (key === 'isTemplateAsync') {
               return isTemplateAsync ?? defaultValue
             }
@@ -282,7 +282,7 @@ describe('ThunkRuntimeHooksFactory', () => {
             return defaultValue
           }),
         },
-        createOverlay: jest.fn().mockReturnValue({
+        createOverlay: vi.fn().mockReturnValue({
           deps: pending.overlay,
           flush: pending.flush,
           getPendingNodeIds: pending.getPendingNodeIds,
@@ -290,7 +290,7 @@ describe('ThunkRuntimeHooksFactory', () => {
       } as unknown as CompilationDependencies
 
       const compiler = {
-        compileASTNode: jest.fn().mockReturnValue(pending.mockHandler),
+        compileASTNode: vi.fn().mockReturnValue(pending.mockHandler),
       } as unknown as ThunkCompilerFactory
 
       const f = new ThunkRuntimeHooksFactory(compilationDeps, compiler, mockBuilder, new FunctionRegistry())

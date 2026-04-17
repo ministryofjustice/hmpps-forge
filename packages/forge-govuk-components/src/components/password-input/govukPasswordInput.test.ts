@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukPasswordInput } from './govukPasswordInput'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukPasswordInput', () => {
   setupComponentTest()

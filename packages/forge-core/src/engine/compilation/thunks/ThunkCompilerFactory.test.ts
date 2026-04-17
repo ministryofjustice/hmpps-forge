@@ -1,4 +1,4 @@
-import { when } from 'jest-when'
+import { when } from 'vitest-when'
 import { NodeId } from '../../types/engine.type'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import ThunkCompilerFactory from './ThunkCompilerFactory'
@@ -11,17 +11,17 @@ import FunctionRegistry from '../../registries/FunctionRegistry'
 
 describe('ThunkCompilerFactory', () => {
   let compiler: ThunkCompilerFactory
-  let mockNodeRegistry: jest.Mocked<NodeRegistry>
-  let mockThunkHandlerRegistry: jest.Mocked<ThunkHandlerRegistry>
-  let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
-  let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
+  let mockNodeRegistry: Mocked<NodeRegistry>
+  let mockThunkHandlerRegistry: Mocked<ThunkHandlerRegistry>
+  let mockCompilationDependencies: Mocked<CompilationDependencies>
+  let mockFunctionRegistry: Mocked<FunctionRegistry>
   const mockMetadataRegistry = {
-    get: jest.fn(),
-    set: jest.fn(),
-    has: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    has: vi.fn(),
   }
   const mockAstNodeTree = {
-    postOrder: jest.fn().mockReturnValue([]),
+    postOrder: vi.fn().mockReturnValue([]),
   }
 
   beforeEach(() => {
@@ -33,34 +33,34 @@ describe('ThunkCompilerFactory', () => {
     mockAstNodeTree.postOrder.mockReturnValue([])
 
     mockNodeRegistry = {
-      get: jest.fn(),
-      getAll: jest.fn(),
-      getAllEntries: jest.fn(),
-      getIds: jest.fn().mockReturnValue([]),
-      has: jest.fn(),
-      size: jest.fn(),
-    } as unknown as jest.Mocked<NodeRegistry>
+      get: vi.fn(),
+      getAll: vi.fn(),
+      getAllEntries: vi.fn(),
+      getIds: vi.fn().mockReturnValue([]),
+      has: vi.fn(),
+      size: vi.fn(),
+    } as unknown as Mocked<NodeRegistry>
 
     mockThunkHandlerRegistry = {
-      register: jest.fn(),
-      get: jest.fn(),
-      getAll: jest.fn().mockReturnValue(new Map()),
-      has: jest.fn(),
-      size: jest.fn(),
-    } as unknown as jest.Mocked<ThunkHandlerRegistry>
+      register: vi.fn(),
+      get: vi.fn(),
+      getAll: vi.fn().mockReturnValue(new Map()),
+      has: vi.fn(),
+      size: vi.fn(),
+    } as unknown as Mocked<ThunkHandlerRegistry>
 
     mockFunctionRegistry = {
-      get: jest.fn(),
-      has: jest.fn(),
-      size: jest.fn(),
-    } as unknown as jest.Mocked<FunctionRegistry>
+      get: vi.fn(),
+      has: vi.fn(),
+      size: vi.fn(),
+    } as unknown as Mocked<FunctionRegistry>
 
     mockCompilationDependencies = {
       nodeRegistry: mockNodeRegistry,
       thunkHandlerRegistry: mockThunkHandlerRegistry,
       metadataRegistry: mockMetadataRegistry as any,
       astNodeTree: mockAstNodeTree as any,
-    } as unknown as jest.Mocked<CompilationDependencies>
+    } as unknown as Mocked<CompilationDependencies>
 
     compiler = new ThunkCompilerFactory()
   })
@@ -68,7 +68,7 @@ describe('ThunkCompilerFactory', () => {
   describe('compile()', () => {
     it('should register no handlers when no nodes exist', () => {
       // Arrange
-      when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(new Map())
+      when(mockNodeRegistry.getAllEntries).calledWith().thenReturn(new Map())
 
       // Act
       compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
@@ -90,7 +90,7 @@ describe('ThunkCompilerFactory', () => {
         ],
       ])
 
-      when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
+      when(mockNodeRegistry.getAllEntries).calledWith().thenReturn(entries)
 
       // Act
       compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
@@ -113,7 +113,7 @@ describe('ThunkCompilerFactory', () => {
         ],
       ])
 
-      when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
+      when(mockNodeRegistry.getAllEntries).calledWith().thenReturn(entries)
 
       // Act
       compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
@@ -145,7 +145,7 @@ describe('ThunkCompilerFactory', () => {
         ],
       ])
 
-      when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
+      when(mockNodeRegistry.getAllEntries).calledWith().thenReturn(entries)
 
       // Act
       compiler.compile(mockCompilationDependencies, mockFunctionRegistry)
@@ -171,7 +171,7 @@ describe('ThunkCompilerFactory', () => {
         ],
       ])
 
-      when(mockNodeRegistry.getAllEntries).calledWith().mockReturnValue(entries)
+      when(mockNodeRegistry.getAllEntries).calledWith().thenReturn(entries)
 
       // Act
       compiler.compile(mockCompilationDependencies, mockFunctionRegistry)

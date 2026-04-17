@@ -4,7 +4,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukRadioInput } from './govukRadioInput'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukRadioInput', () => {
   setupComponentTest()

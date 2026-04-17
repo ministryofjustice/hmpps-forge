@@ -11,56 +11,57 @@ import StepController from './StepController'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ForgeRouter from './ForgeRouter'
 
-jest.mock('./StepController')
+vi.mock('./StepController')
 
 describe('ForgeRouter', () => {
   let router: ForgeRouter<unknown>
-  let mockFrameworkAdapter: jest.Mocked<FrameworkAdapter<unknown, unknown, unknown>>
-  let mockFrameworkAdapterBuilder: jest.Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
-  let mockLogger: jest.Mocked<Console>
+  let mockFrameworkAdapter: Mocked<FrameworkAdapter<unknown, unknown, unknown>>
+  let mockFrameworkAdapterBuilder: Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
+  let mockLogger: Mocked<Console>
   let mockDependencies: JourneyInstanceDependencies
   let mockOptions: ForgeOptions
   let mockMainRouter: unknown
-  let mockControllerGet: jest.Mock
-  let mockControllerPost: jest.Mock
+  let mockControllerGet: Mock
+  let mockControllerPost: Mock
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    mockControllerGet = jest.fn().mockResolvedValue(undefined)
-    mockControllerPost = jest.fn().mockResolvedValue(undefined)
-    ;(StepController as unknown as jest.MockedClass<typeof StepController>).mockImplementation(
-      () =>
-        ({
+    vi.clearAllMocks()
+    mockControllerGet = vi.fn().mockResolvedValue(undefined)
+    mockControllerPost = vi.fn().mockResolvedValue(undefined)
+    ;(StepController as unknown as MockedClass<typeof StepController>).mockImplementation(
+      function mockStepControllerCtor() {
+        return {
           get: mockControllerGet,
           post: mockControllerPost,
-        }) as unknown as StepController<unknown, unknown>,
+        } as unknown as StepController<unknown, unknown>
+      },
     )
 
     mockMainRouter = { _type: 'main-router' }
 
     mockFrameworkAdapter = {
-      createRouter: jest.fn().mockReturnValue(mockMainRouter),
-      mountRouter: jest.fn(),
-      get: jest.fn(),
-      post: jest.fn(),
-      toStepRequest: jest.fn(),
-      redirect: jest.fn(),
-      registerRedirect: jest.fn(),
-      forwardError: jest.fn(),
-      render: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<FrameworkAdapter<unknown, unknown, unknown>>
+      createRouter: vi.fn().mockReturnValue(mockMainRouter),
+      mountRouter: vi.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      toStepRequest: vi.fn(),
+      redirect: vi.fn(),
+      registerRedirect: vi.fn(),
+      forwardError: vi.fn(),
+      render: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Mocked<FrameworkAdapter<unknown, unknown, unknown>>
 
     mockFrameworkAdapterBuilder = {
-      build: jest.fn().mockReturnValue(mockFrameworkAdapter),
-    } as unknown as jest.Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
+      build: vi.fn().mockReturnValue(mockFrameworkAdapter),
+    } as unknown as Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
 
     mockLogger = {
-      log: jest.fn(),
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-    } as unknown as jest.Mocked<Console>
+      log: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as Mocked<Console>
 
     mockDependencies = {
       frameworkAdapter: mockFrameworkAdapter,
@@ -101,7 +102,7 @@ describe('ForgeRouter', () => {
 
   function createMockArtefact(stepNode: StepASTNode, journeyNodes: JourneyASTNode[], parentChain: NodeId[]) {
     const nodeRegistry = {
-      get: jest.fn((nodeId: NodeId) => {
+      get: vi.fn((nodeId: NodeId) => {
         if (nodeId === stepNode.id) {
           return stepNode
         }
@@ -111,7 +112,7 @@ describe('ForgeRouter', () => {
     }
 
     const metadataRegistry = {
-      get: jest.fn((nodeId: NodeId, key: string) => {
+      get: vi.fn((nodeId: NodeId, key: string) => {
         if (key !== 'attachedToParentNode') {
           return undefined
         }
@@ -132,7 +133,7 @@ describe('ForgeRouter', () => {
   function createMockJourneyInstance(
     compiledForm: Array<{ artefact: any; currentStepId: NodeId; runtimePlan?: StepRuntimePlan }>,
     config: JourneyDefinition,
-  ): jest.Mocked<JourneyInstance> {
+  ): Mocked<JourneyInstance> {
     const compiledSteps = compiledForm.map(compiled => {
       if (compiled.runtimePlan !== undefined) {
         return compiled
@@ -168,7 +169,7 @@ describe('ForgeRouter', () => {
 
     const sharedArtefact = {
       nodeRegistry: {
-        get: jest.fn((nodeId: NodeId) => {
+        get: vi.fn((nodeId: NodeId) => {
           for (const compiled of compiledSteps) {
             const node = compiled.artefact.nodeRegistry.get(nodeId)
 
@@ -181,7 +182,7 @@ describe('ForgeRouter', () => {
         }),
       },
       metadataRegistry: {
-        get: jest.fn((nodeId: NodeId, key: string) => {
+        get: vi.fn((nodeId: NodeId, key: string) => {
           for (const compiled of compiledSteps) {
             const metadata = compiled.artefact.metadataRegistry.get(nodeId, key)
 
@@ -196,8 +197,8 @@ describe('ForgeRouter', () => {
     }
 
     return {
-      getCompiledForm: jest.fn().mockReturnValue(compiledSteps),
-      getCompiledStep: jest.fn().mockImplementation((stepId: NodeId) => {
+      getCompiledForm: vi.fn().mockReturnValue(compiledSteps),
+      getCompiledStep: vi.fn().mockImplementation((stepId: NodeId) => {
         const compiledStep = byStepId.get(stepId)
 
         if (!compiledStep) {
@@ -206,12 +207,12 @@ describe('ForgeRouter', () => {
 
         return compiledStep
       }),
-      getStepIndex: jest.fn().mockImplementation(() => new Map(stepIndex)),
-      getSharedCompilationArtefact: jest.fn().mockReturnValue(sharedArtefact),
-      getConfiguration: jest.fn().mockReturnValue(config),
-      getJourneyCode: jest.fn().mockReturnValue(config.code),
-      getJourneyTitle: jest.fn().mockReturnValue(config.title),
-    } as unknown as jest.Mocked<JourneyInstance>
+      getStepIndex: vi.fn().mockImplementation(() => new Map(stepIndex)),
+      getSharedCompilationArtefact: vi.fn().mockReturnValue(sharedArtefact),
+      getConfiguration: vi.fn().mockReturnValue(config),
+      getJourneyCode: vi.fn().mockReturnValue(config.code),
+      getJourneyTitle: vi.fn().mockReturnValue(config.title),
+    } as unknown as Mocked<JourneyInstance>
   }
 
   describe('constructor', () => {

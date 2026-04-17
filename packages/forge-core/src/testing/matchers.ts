@@ -1,3 +1,6 @@
+import { expect } from 'vitest'
+import type { Matcher, MatcherResult, MatcherState } from 'vitest'
+
 /**
  * Encodes text to match HTML entity encoding
  * Common replacements for HTML entities that appear in rendered content
@@ -14,11 +17,11 @@ function encodeHtmlEntities(text: string): string {
 /**
  * Custom matcher to check if HTML contains text (accounting for HTML entity encoding)
  */
-const toContainText: jest.CustomMatcher = function toContainTextMatcher(
-  this: jest.MatcherContext,
+const toContainText: Matcher = function toContainTextMatcher(
+  this: MatcherState,
   received: string,
   expected: string,
-): jest.CustomMatcherResult {
+): MatcherResult {
   const encodedExpected = encodeHtmlEntities(expected)
   const pass = received.includes(expected) || received.includes(encodedExpected)
 
@@ -36,11 +39,11 @@ const toContainText: jest.CustomMatcher = function toContainTextMatcher(
 /**
  * Check if an AST tree contains a specific number of nodes
  */
-const toHaveNodeCount: jest.CustomMatcher = function toHaveNodeCountMatcher(
-  this: jest.MatcherContext,
+const toHaveNodeCount: Matcher = function toHaveNodeCountMatcher(
+  this: MatcherState,
   received: any,
   expected: number,
-): jest.CustomMatcherResult {
+): MatcherResult {
   let count = 0
 
   const countNodes = (node: any): void => {
@@ -77,11 +80,11 @@ const toHaveNodeCount: jest.CustomMatcher = function toHaveNodeCountMatcher(
 /**
  * Check if an AST tree has a specific depth
  */
-const toHaveDepth: jest.CustomMatcher = function toHaveDepthMatcher(
-  this: jest.MatcherContext,
+const toHaveDepth: Matcher = function toHaveDepthMatcher(
+  this: MatcherState,
   received: any,
   expected: number,
-): jest.CustomMatcherResult {
+): MatcherResult {
   const getDepth = (node: any, currentDepth: number = 0): number => {
     if (!node || typeof node !== 'object') return currentDepth
 
@@ -123,11 +126,11 @@ const toHaveDepth: jest.CustomMatcher = function toHaveDepthMatcher(
 /**
  * Check if an AST tree contains a node with a specific ID
  */
-const toContainNodeWithId: jest.CustomMatcher = function toContainNodeWithIdMatcher(
-  this: jest.MatcherContext,
+const toContainNodeWithId: Matcher = function toContainNodeWithIdMatcher(
+  this: MatcherState,
   received: any,
   expectedId: number,
-): jest.CustomMatcherResult {
+): MatcherResult {
   const findNode = (node: any): boolean => {
     if (!node || typeof node !== 'object') return false
 
@@ -158,11 +161,11 @@ const toContainNodeWithId: jest.CustomMatcher = function toContainNodeWithIdMatc
 /**
  * Check if an AST node has a specific type
  */
-const toHaveNodeType: jest.CustomMatcher = function toHaveNodeTypeMatcher(
-  this: jest.MatcherContext,
+const toHaveNodeType: Matcher = function toHaveNodeTypeMatcher(
+  this: MatcherState,
   received: any,
   expectedType: string,
-): jest.CustomMatcherResult {
+): MatcherResult {
   const hasType = received?.type === expectedType
 
   const message = hasType
@@ -175,10 +178,10 @@ const toHaveNodeType: jest.CustomMatcher = function toHaveNodeTypeMatcher(
 /**
  * Check if an AST node has valid structure
  */
-const toHaveValidStructure: jest.CustomMatcher = function toHaveValidStructureMatcher(
-  this: jest.MatcherContext,
+const toHaveValidStructure: Matcher = function toHaveValidStructureMatcher(
+  this: MatcherState,
   received: any,
-): jest.CustomMatcherResult {
+): MatcherResult {
   const errors: string[] = []
 
   const validateNode = (node: any, path: string = 'root'): void => {

@@ -4,7 +4,7 @@ import { PredicateOrExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import { OrPredicateASTNode } from '../../../types/predicates.type'
+import {OrPredicateASTNode, PredicateASTNode} from '../../../types/predicates.type'
 
 /**
  * OrFactory: Creates Or predicate AST nodes
@@ -36,7 +36,7 @@ export default class OrFactory {
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.OR,
       properties: {
-        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)),
+        operands: json.operands.map((operand: any) => this.nodeFactory.createNode(operand)) as PredicateASTNode[],
       },
       raw: json,
     }

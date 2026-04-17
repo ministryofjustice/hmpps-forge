@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukBackLink } from './govukBackLink'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Back Link Component', () => {
   setupComponentTest()

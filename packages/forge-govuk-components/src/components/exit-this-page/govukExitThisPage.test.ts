@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukExitThisPage } from './govukExitThisPage'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Exit This Page Component', () => {
   setupComponentTest()

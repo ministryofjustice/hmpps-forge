@@ -1,7 +1,11 @@
+import { vi } from 'vitest'
+import type { Mocked } from 'vitest'
+
 import { ASTNode, NodeId } from '../engine/types/engine.type'
 import { PseudoNode } from '../engine/types/pseudoNodes.type'
 import { IndexableNodeType } from '../engine/compilation/registries/NodeRegistry'
 import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '../engine/compilation/thunks/ThunkEvaluationContext'
+import ThunkCacheManager from '../engine/compilation/thunks/ThunkCacheManager'
 import {
   AnswerHistory,
   AnswerSource,
@@ -78,7 +82,7 @@ export interface MockContextOptions {
   mockAnswers?: Record<string, MockAnswerInput>
   mockScope?: Record<string, unknown>[]
   mockNodes?: Map<NodeId, ASTNode | PseudoNode>
-  mockRegisteredFunctions?: Map<string, any>
+  mockRegisteredFunctions?: Map<string, unknown>
   /**
    * Mock metadata - key is nodeId, value is a record of metadata key-values
    *
@@ -162,19 +166,19 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
 
   const scope = options.mockScope ?? []
 
-  const findFieldByCode = jest.fn()
+  const findFieldByCode = vi.fn()
 
   const mockFunctionRegistry = {
-    has: jest.fn((name: string) => options.mockRegisteredFunctions?.has(name) ?? false),
-    get: jest.fn((name: string) => options.mockRegisteredFunctions?.get(name)),
-    getAll: jest.fn(() => options.mockRegisteredFunctions ?? new Map()),
+    has: vi.fn((name: string) => options.mockRegisteredFunctions?.has(name) ?? false),
+    get: vi.fn((name: string) => options.mockRegisteredFunctions?.get(name)),
+    getAll: vi.fn(() => options.mockRegisteredFunctions ?? new Map()),
   }
 
   const mockNodeRegistry = {
-    getAll: jest.fn(() => options.mockNodes ?? new Map()),
-    get: jest.fn((nodeId: NodeId) => options.mockNodes?.get(nodeId)),
-    has: jest.fn((nodeId: NodeId) => options.mockNodes?.has(nodeId) ?? false),
-    findByType: jest.fn((type: IndexableNodeType) => {
+    getAll: vi.fn(() => options.mockNodes ?? new Map()),
+    get: vi.fn((nodeId: NodeId) => options.mockNodes?.get(nodeId)),
+    has: vi.fn((nodeId: NodeId) => options.mockNodes?.has(nodeId) ?? false),
+    findByType: vi.fn((type: IndexableNodeType) => {
       if (!options.mockNodes) {
         return []
       }
@@ -193,7 +197,7 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
 
   // Mock metadataRegistry - by default, treat all nodes as on the current step
   const mockMetadataRegistry = {
-    get: jest.fn((nodeId: NodeId, key: string, defaultValue?: unknown) => {
+    get: vi.fn((nodeId: NodeId, key: string, defaultValue?: unknown) => {
       const nodeMetadata = options.mockMetadata?.get(nodeId)
 
       if (nodeMetadata && key in nodeMetadata) {
@@ -208,12 +212,12 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
 
       return defaultValue
     }),
-    set: jest.fn(),
-    has: jest.fn((nodeId: NodeId, key: string) => {
+    set: vi.fn(),
+    has: vi.fn((nodeId: NodeId, key: string) => {
       const nodeMetadata = options.mockMetadata?.get(nodeId)
       return nodeMetadata ? key in nodeMetadata : false
     }),
-    findNodesWhere: jest.fn((): NodeId[] => []),
+    findNodesWhere: vi.fn((): NodeId[] => []),
   }
 
   // Create mock response with methods that track state
@@ -239,11 +243,12 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     scope,
     response,
     findFieldByCode,
+    cacheManager: new ThunkCacheManager(),
     nodeRegistry: mockNodeRegistry,
     metadataRegistry: mockMetadataRegistry,
     functionRegistry: mockFunctionRegistry,
     logger: console,
-    withIsolatedScope: jest.fn().mockImplementation(function withIsolatedScopeMock(this: any) {
+    withIsolatedScope: vi.fn().mockImplementation(function withIsolatedScopeMock(this: any) {
       // Create a shallow clone with the same global state but new scope array
       const clone = {
         ...this,
@@ -312,7 +317,7 @@ export interface MockInvokerOptions {
  *   })
  * })
  */
-export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked<ThunkInvocationAdapter> {
+export function createMockInvoker(options: MockInvokerOptions = {}): Mocked<ThunkInvocationAdapter> {
   const defaultImpl = async (
     nodeId: NodeId,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -349,8 +354,8 @@ export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked
   }
 
   return {
-    invoke: jest.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
-    invokeSync: jest.fn().mockImplementation(options.invokeSyncImpl ?? defaultSyncImpl),
+    invoke: vi.fn().mockImplementation(options.invokeImpl ?? defaultImpl),
+    invokeSync: vi.fn().mockImplementation(options.invokeSyncImpl ?? defaultSyncImpl),
   }
 }
 
@@ -373,7 +378,7 @@ export function createMockInvoker(options: MockInvokerOptions = {}): jest.Mocked
  * const result = await handler.evaluate(context, invoker)
  * expect(result.value.options).toEqual(['Option 1', 'Option 2'])
  */
-export function createSequentialMockInvoker(values: unknown[]): jest.Mocked<ThunkInvocationAdapter> {
+export function createSequentialMockInvoker(values: unknown[]): Mocked<ThunkInvocationAdapter> {
   let callIndex = 0
 
   return createMockInvoker({
@@ -422,7 +427,7 @@ export function createMockInvokerWithError(
     nodeId?: NodeId
     message?: string
   } = {},
-): jest.Mocked<ThunkInvocationAdapter> {
+): Mocked<ThunkInvocationAdapter> {
   const errorResult: ThunkResult = {
     error: {
       type: options.type ?? 'EVALUATION_FAILED',
@@ -441,19 +446,19 @@ export function createMockInvokerWithError(
 /**
  * Create mock runtime hooks for testing
  *
- * @returns A mock ThunkRuntimeHooks object with jest.fn() for all methods
+ * @returns A mock ThunkRuntimeHooks object with vi.fn() for all methods
  *
  * @example
  * const hooks = createMockHooks()
  * await handler.evaluate(context, invoker, hooks)
  * expect(hooks.registerRuntimeNodesBatch).toHaveBeenCalledWith([node], 'template')
  */
-export function createMockHooks(): jest.Mocked<ThunkRuntimeHooks> {
-  const templateValueMock = jest.fn()
+export function createMockHooks(): Mocked<ThunkRuntimeHooks> {
+  const templateValueMock = vi.fn()
 
   return {
     instantiateTemplateValue: templateValueMock,
     transformValue: templateValueMock,
-    registerRuntimeNodesBatch: jest.fn(),
+    registerRuntimeNodesBatch: vi.fn(),
   }
 }

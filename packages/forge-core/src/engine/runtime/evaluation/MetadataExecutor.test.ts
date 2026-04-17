@@ -28,8 +28,8 @@ function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimeP
 
 describe('MetadataExecutor', () => {
   let executor: MetadataExecutor
-  let context: jest.Mocked<ThunkEvaluationContext>
-  let invoker: jest.Mocked<ThunkInvocationAdapter>
+  let context: Mocked<ThunkEvaluationContext>
+  let invoker: Mocked<ThunkInvocationAdapter>
   let nodes: Map<NodeId, JourneyASTNode | StepASTNode | object>
 
   beforeEach(() => {
@@ -38,14 +38,14 @@ describe('MetadataExecutor', () => {
     nodes = new Map()
     context = {
       nodeRegistry: {
-        get: jest.fn((nodeId: NodeId) => nodes.get(nodeId)),
-        has: jest.fn((nodeId: NodeId) => nodes.has(nodeId)),
+        get: vi.fn((nodeId: NodeId) => nodes.get(nodeId)),
+        has: vi.fn((nodeId: NodeId) => nodes.has(nodeId)),
       },
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
     invoker = {
-      invoke: jest.fn(),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn(),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkInvocationAdapter>
   })
 
   describe('execute()', () => {

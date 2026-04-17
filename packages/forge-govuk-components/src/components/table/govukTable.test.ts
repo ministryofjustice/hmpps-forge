@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukTable } from './govukTable'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Table Component', () => {
   setupComponentTest()

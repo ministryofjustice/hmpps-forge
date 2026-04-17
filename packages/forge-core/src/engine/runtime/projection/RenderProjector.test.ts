@@ -9,33 +9,41 @@ import RuntimeArtifacts from '../RuntimeArtifacts'
 import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 import RenderProjector from './RenderProjector'
 
-const mockMetadataExecutorExecute = jest.fn()
-const mockRenderExecutorExecute = jest.fn()
-const mockRenderContextFactoryBuild = jest.fn().mockReturnValue({
+const mockMetadataExecutorExecute = vi.fn()
+const mockRenderExecutorExecute = vi.fn()
+const mockRenderContextFactoryBuild = vi.fn().mockReturnValue({
   step: {},
   blocks: [],
   ancestors: [],
 })
 
-jest.mock('../evaluation/MetadataExecutor', () => {
+vi.mock('../evaluation/MetadataExecutor', () => {
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockMetadataExecutorExecute(...args),
-    })),
+    default: vi.fn(function MockMetadataExecutor() {
+      return {
+        execute(...args: unknown[]) {
+          return mockMetadataExecutorExecute(...args)
+        },
+      }
+    }),
   }
 })
 
-jest.mock('../evaluation/RenderExecutor', () => {
+vi.mock('../evaluation/RenderExecutor', () => {
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      execute: (...args: unknown[]) => mockRenderExecutorExecute(...args),
-    })),
+    default: vi.fn(function MockRenderExecutor() {
+      return {
+        execute(...args: unknown[]) {
+          return mockRenderExecutorExecute(...args)
+        },
+      }
+    }),
   }
 })
 
-jest.mock('./RenderContextFactory', () => {
+vi.mock('./RenderContextFactory', () => {
   return {
     __esModule: true,
     default: {
@@ -94,8 +102,8 @@ function createNavigationStep(overrides: Partial<NavigationStepState> = {}): Nav
 
 describe('RenderProjector', () => {
   let projector: RenderProjector
-  let invoker: jest.Mocked<ThunkInvocationAdapter>
-  let context: jest.Mocked<ThunkEvaluationContext>
+  let invoker: Mocked<ThunkInvocationAdapter>
+  let context: Mocked<ThunkEvaluationContext>
   let artifacts: RuntimeArtifacts
 
   beforeEach(() => {
@@ -110,17 +118,17 @@ describe('RenderProjector', () => {
     projector = new RenderProjector([] as JourneyMetadata[], '/journey/step-1')
 
     invoker = {
-      invoke: jest.fn(),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn(),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkInvocationAdapter>
 
     context = {
       global: { answers: {}, data: {} },
       astNodeTree: {
-        getNodeType: jest.fn(),
-        hasDescendantOfType: jest.fn(),
+        getNodeType: vi.fn(),
+        hasDescendantOfType: vi.fn(),
       },
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
 
     artifacts = new RuntimeArtifacts()
     artifacts.setNavigation({

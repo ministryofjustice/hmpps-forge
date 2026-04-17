@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukBreadcrumbs } from './govukBreadcrumbs'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Breadcrumbs Component', () => {
   setupComponentTest()

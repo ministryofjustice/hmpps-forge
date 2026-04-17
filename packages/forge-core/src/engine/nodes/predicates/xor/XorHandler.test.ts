@@ -248,7 +248,7 @@ describe('XorHandler', () => {
       const handler = new XorHandler(xorPredicate.id, xorPredicate as any)
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
-        invokeImpl: jest
+        invokeImpl: vi
           .fn()
           .mockResolvedValueOnce({
             value: true,

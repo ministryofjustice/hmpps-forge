@@ -6,7 +6,7 @@ describe('EffectFunctionContext', () => {
     it('should accept serializable values', () => {
       // Arrange
       const mockContext = createMockContext()
-      mockContext.cacheManager = { clearCache: jest.fn() } as any
+      mockContext.cacheManager = { clearCache: vi.fn() } as any
       const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert
@@ -87,7 +87,7 @@ describe('EffectFunctionContext', () => {
     it('should accept serializable values', () => {
       // Arrange
       const mockContext = createMockContext()
-      mockContext.cacheManager = { clearCache: jest.fn() } as any
+      mockContext.cacheManager = { clearCache: vi.fn() } as any
       const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act / Assert

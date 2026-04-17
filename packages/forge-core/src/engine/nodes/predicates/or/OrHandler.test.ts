@@ -148,7 +148,7 @@ describe('OrHandler', () => {
       const handler = new OrHandler(orPredicate.id, orPredicate as any)
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
-        invokeImpl: jest
+        invokeImpl: vi
           .fn()
           .mockResolvedValueOnce({
             error: {
@@ -182,7 +182,7 @@ describe('OrHandler', () => {
       const handler = new OrHandler(orPredicate.id, orPredicate as any)
       const mockContext = createMockContext()
       const mockInvoker = createMockInvoker({
-        invokeImpl: jest.fn().mockResolvedValue({
+        invokeImpl: vi.fn().mockResolvedValue({
           error: {
             type: 'EVALUATION_FAILED',
             nodeId: 'compile_ast:100',

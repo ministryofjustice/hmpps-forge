@@ -1,4 +1,8 @@
+import { createRequire } from 'node:module'
+
 import type nunjucks from 'nunjucks'
+import { vi } from 'vitest'
+import type { Mocked } from 'vitest'
 
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, ComponentRegistryEntry, EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
@@ -11,15 +15,17 @@ import { NunjucksComponentRenderer } from '@ministryofjustice/hmpps-forge/expres
  * Provides utilities for testing component data transformation and rendering.
  */
 export class GovukComponentTestHelper<T extends BlockDefinition> {
+  private static readonly require = createRequire(import.meta.url)
+
   private readonly renderFn: NunjucksComponentRenderer<T>
 
-  private mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
+  private mockNunjucksEnv: Mocked<nunjucks.Environment>
 
   constructor(component: ComponentRegistryEntry<T>) {
     this.renderFn = (block, nunjucksEnv) => component.render(block, nunjucksEnv)
     this.mockNunjucksEnv = {
-      render: jest.fn().mockReturnValue('<div>Mocked HTML</div>'),
-    } as unknown as jest.Mocked<nunjucks.Environment>
+      render: vi.fn().mockReturnValue('<div>Mocked HTML</div>'),
+    } as unknown as Mocked<nunjucks.Environment>
   }
 
   /**
@@ -55,8 +61,10 @@ export class GovukComponentTestHelper<T extends BlockDefinition> {
    * Renders the component with real nunjucks for DOM testing
    */
   async renderWithNunjucks(props: Partial<EvaluatedBlock<T>> = {}) {
-    const nunjucksReal = jest.requireActual('nunjucks') as typeof nunjucks
-    const govukPath = require.resolve('govuk-frontend/package.json').replace('/package.json', '/dist/')
+    const nunjucksReal = GovukComponentTestHelper.require('nunjucks') as typeof nunjucks
+    const govukPath = GovukComponentTestHelper.require
+      .resolve('govuk-frontend/package.json')
+      .replace('/package.json', '/dist/')
     const realEnv = nunjucksReal.configure([govukPath])
 
     const block: EvaluatedBlock<T> = {

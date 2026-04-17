@@ -2,7 +2,7 @@ import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojTimeline } from './mojTimeline'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('mojTimeline', () => {
   setupComponentTest()

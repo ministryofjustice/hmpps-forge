@@ -3,13 +3,13 @@ import { PseudoNodeType } from '../../../types/pseudoNodes.type'
 import PostFactory from './PostFactory'
 
 describe('PostFactory', () => {
-  let mockNodeIDGenerator: jest.Mocked<NodeIDGenerator>
+  let mockNodeIDGenerator: Mocked<NodeIDGenerator>
   let factory: PostFactory
 
   beforeEach(() => {
     mockNodeIDGenerator = {
-      next: jest.fn(),
-    } as unknown as jest.Mocked<NodeIDGenerator>
+      next: vi.fn(),
+    } as unknown as Mocked<NodeIDGenerator>
 
     factory = new PostFactory(mockNodeIDGenerator, NodeIDCategory.COMPILE_PSEUDO)
   })

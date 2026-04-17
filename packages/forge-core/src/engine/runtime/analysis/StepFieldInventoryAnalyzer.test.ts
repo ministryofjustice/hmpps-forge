@@ -32,8 +32,8 @@ function successResult<T>(value: T): ThunkResult<T> {
 
 describe('StepFieldInventoryAnalyzer', () => {
   let analyzer: StepFieldInventoryAnalyzer
-  let context: jest.Mocked<ThunkEvaluationContext>
-  let invoker: jest.Mocked<ThunkInvocationAdapter>
+  let context: Mocked<ThunkEvaluationContext>
+  let invoker: Mocked<ThunkInvocationAdapter>
 
   beforeEach(() => {
     analyzer = new StepFieldInventoryAnalyzer()
@@ -44,15 +44,15 @@ describe('StepFieldInventoryAnalyzer', () => {
         data: {},
       },
       nodeRegistry: {
-        findByType: jest.fn().mockReturnValue([]),
+        findByType: vi.fn().mockReturnValue([]),
       },
       metadataRegistry: {},
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
 
     invoker = {
-      invoke: jest.fn().mockResolvedValue(successResult(undefined)),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn().mockResolvedValue(successResult(undefined)),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkInvocationAdapter>
   })
 
   it('should collect cleardown field codes from plan entries', async () => {

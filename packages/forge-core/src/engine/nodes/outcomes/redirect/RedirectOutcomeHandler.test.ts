@@ -192,7 +192,7 @@ describe('RedirectOutcomeHandler', () => {
       const redirectNode = ASTTestFactory.redirectOutcome({ goto: '/static-path' })
       const handler = new RedirectOutcomeHandler(redirectNode.id, redirectNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: false }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: false }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},
@@ -211,7 +211,7 @@ describe('RedirectOutcomeHandler', () => {
       const redirectNode = ASTTestFactory.redirectOutcome({ when: whenNode, goto: '/path' })
       const handler = new RedirectOutcomeHandler(redirectNode.id, redirectNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: true }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: true }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},
@@ -230,7 +230,7 @@ describe('RedirectOutcomeHandler', () => {
       const redirectNode = ASTTestFactory.redirectOutcome({ goto: gotoNode })
       const handler = new RedirectOutcomeHandler(redirectNode.id, redirectNode)
       const mockDeps = {
-        thunkHandlerRegistry: { get: jest.fn().mockReturnValue({ isAsync: true }) },
+        thunkHandlerRegistry: { get: vi.fn().mockReturnValue({ isAsync: true }) },
         functionRegistry: {},
         nodeRegistry: {},
         metadataRegistry: {},

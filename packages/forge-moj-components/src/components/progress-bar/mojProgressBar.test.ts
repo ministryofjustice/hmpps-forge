@@ -2,7 +2,7 @@ import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojProgressBar } from './mojProgressBar'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('mojProgressBar', () => {
   setupComponentTest()

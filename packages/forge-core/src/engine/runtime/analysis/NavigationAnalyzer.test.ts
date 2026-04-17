@@ -52,19 +52,19 @@ function createRouteTemplateCatalog(entries: ReachabilityStepEntry[]): JourneyRo
 
 describe('NavigationAnalyzer', () => {
   let evaluator: NavigationAnalyzer
-  let context: jest.Mocked<ThunkEvaluationContext>
-  let invoker: jest.Mocked<ThunkInvocationAdapter>
-  let mockStepValidityAnalyzer: jest.Mocked<StepValidityAnalyzer>
+  let context: Mocked<ThunkEvaluationContext>
+  let invoker: Mocked<ThunkInvocationAdapter>
+  let mockStepValidityAnalyzer: Mocked<StepValidityAnalyzer>
 
   beforeEach(() => {
     evaluator = new NavigationAnalyzer()
     mockStepValidityAnalyzer = {
-      execute: jest.fn().mockResolvedValue({
+      execute: vi.fn().mockResolvedValue({
         isValid: true,
         fieldFailures: [],
         domainFailures: [],
       } satisfies StepValidityResult),
-    } as unknown as jest.Mocked<StepValidityAnalyzer>
+    } as unknown as Mocked<StepValidityAnalyzer>
 
     context = {
       global: {
@@ -72,15 +72,15 @@ describe('NavigationAnalyzer', () => {
         data: {},
       },
       nodeRegistry: {
-        findByType: jest.fn().mockReturnValue([]),
+        findByType: vi.fn().mockReturnValue([]),
       },
       metadataRegistry: {},
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
 
     invoker = {
-      invoke: jest.fn().mockResolvedValue(successResult(undefined)),
-      invokeSync: jest.fn(),
-    } as unknown as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn().mockResolvedValue(successResult(undefined)),
+      invokeSync: vi.fn(),
+    } as unknown as Mocked<ThunkInvocationAdapter>
   })
 
   it('should seed reachability from all entry points', async () => {

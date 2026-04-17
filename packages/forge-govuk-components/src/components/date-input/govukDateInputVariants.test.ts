@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukDateInputFull, govukDateInputYearMonth, govukDateInputMonthDay } from './govukDateInputVariants'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukDateInputVariants', () => {
   setupComponentTest()

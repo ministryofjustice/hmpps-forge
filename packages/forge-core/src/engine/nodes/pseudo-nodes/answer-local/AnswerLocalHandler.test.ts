@@ -362,7 +362,7 @@ describe('AnswerLocalHandler', () => {
       const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
       const mockInvoker = createMockInvoker()
       const mockContext = createMockContext()
-      mockContext.nodeRegistry.get = jest.fn().mockReturnValue(undefined)
+      mockContext.nodeRegistry.get = vi.fn().mockReturnValue(undefined)
 
       // Act
       const result = await handler.evaluate(mockContext, mockInvoker)

@@ -75,9 +75,9 @@ describe('XorFactory', () => {
       const result = xorFactory.create(json)
 
       // Assert
-      result.properties.operands.forEach((operand: PredicateASTNode) => {
+      result.properties.operands.forEach(operand => {
         expect(operand.type).toBe(ASTNodeType.PREDICATE)
-        expect(operand.predicateType).toBe(PredicateType.TEST)
+        expect((operand as PredicateASTNode).predicateType).toBe(PredicateType.TEST)
       })
     })
 

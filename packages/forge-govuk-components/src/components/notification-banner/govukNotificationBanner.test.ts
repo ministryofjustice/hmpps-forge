@@ -3,7 +3,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukNotificationBanner } from './govukNotificationBanner'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('GOV.UK Notification Banner Component', () => {
   setupComponentTest()

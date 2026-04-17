@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukCheckboxInput } from './govukCheckboxInput'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukCheckboxInput', () => {
   setupComponentTest()

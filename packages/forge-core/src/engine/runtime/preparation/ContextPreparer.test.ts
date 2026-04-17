@@ -28,8 +28,8 @@ function createJourney(data?: Record<string, unknown>): JourneyASTNode {
 
 function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
   preparer: ContextPreparer
-  evaluator: jest.Mocked<ThunkEvaluator>
-  mockContext: jest.Mocked<ThunkEvaluationContext>
+  evaluator: Mocked<ThunkEvaluator>
+  mockContext: Mocked<ThunkEvaluationContext>
   runtimePlan: StepRuntimePlan
   request: StepRequest
   response: StepResponse
@@ -38,7 +38,7 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
 
   const mockContext = {
     metadataRegistry: {
-      get: jest.fn().mockImplementation((nodeId: NodeId, key: string) => {
+      get: vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
         if (key === 'attachedToParentNode') {
           const index = accessAncestorIds.indexOf(nodeId as AstNodeId)
 
@@ -51,7 +51,7 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
       }),
     },
     nodeRegistry: {
-      get: jest.fn().mockImplementation((nodeId: NodeId) => {
+      get: vi.fn().mockImplementation((nodeId: NodeId) => {
         return ancestors.find(a => a.id === nodeId)
       }),
     },
@@ -59,11 +59,11 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
       answers: {},
       data: {},
     },
-  } as unknown as jest.Mocked<ThunkEvaluationContext>
+  } as unknown as Mocked<ThunkEvaluationContext>
 
   const evaluator = {
-    createContext: jest.fn().mockReturnValue(mockContext),
-  } as unknown as jest.Mocked<ThunkEvaluator>
+    createContext: vi.fn().mockReturnValue(mockContext),
+  } as unknown as Mocked<ThunkEvaluator>
 
   const runtimePlan: StepRuntimePlan = {
     stepId: ancestors.at(-1)!.id,

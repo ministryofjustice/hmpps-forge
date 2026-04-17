@@ -21,17 +21,17 @@ function createMockContext() {
       post: {},
     },
     logger: {
-      debug: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      info: jest.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
     },
     metadataRegistry: {
-      get: jest.fn().mockReturnValue(undefined),
+      get: vi.fn().mockReturnValue(undefined),
     },
     nodeRegistry: {
-      get: jest.fn().mockReturnValue(undefined),
-      getAll: jest.fn().mockReturnValue(new Map()),
+      get: vi.fn().mockReturnValue(undefined),
+      getAll: vi.fn().mockReturnValue(new Map()),
     },
   } as any
 }
@@ -322,8 +322,8 @@ describe('SubmitHandler', () => {
           },
         },
         logger: {
-          debug: jest.fn(),
-          error: jest.fn(),
+          debug: vi.fn(),
+          error: vi.fn(),
         },
       }
 
@@ -379,8 +379,8 @@ describe('SubmitHandler', () => {
           },
         },
         logger: {
-          debug: jest.fn(),
-          error: jest.fn(),
+          debug: vi.fn(),
+          error: vi.fn(),
         },
       }
 
@@ -435,8 +435,8 @@ describe('SubmitHandler', () => {
           },
         },
         logger: {
-          debug: jest.fn(),
-          error: jest.fn(),
+          debug: vi.fn(),
+          error: vi.fn(),
         },
       }
 

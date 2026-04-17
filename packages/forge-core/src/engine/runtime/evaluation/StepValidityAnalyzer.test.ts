@@ -73,8 +73,8 @@ describe('StepValidityAnalyzer', () => {
   })
 
   function setup(): {
-    context: jest.Mocked<ThunkEvaluationContext>
-    invoker: jest.Mocked<ThunkInvocationAdapter>
+    context: Mocked<ThunkEvaluationContext>
+    invoker: Mocked<ThunkInvocationAdapter>
     nodes: Map<NodeId, any>
     parentByNodeId: Map<NodeId, NodeId>
   } {
@@ -83,8 +83,8 @@ describe('StepValidityAnalyzer', () => {
 
     const context = {
       nodeRegistry: {
-        get: jest.fn((nodeId: NodeId) => nodes.get(nodeId)),
-        findByType: jest.fn((type: string) => {
+        get: vi.fn((nodeId: NodeId) => nodes.get(nodeId)),
+        findByType: vi.fn((type: string) => {
           const allNodes = [...nodes.values()]
 
           if (type === ExpressionType.ITERATE) {
@@ -101,7 +101,7 @@ describe('StepValidityAnalyzer', () => {
         }),
       },
       metadataRegistry: {
-        get: jest.fn((nodeId: NodeId, key: string) => {
+        get: vi.fn((nodeId: NodeId, key: string) => {
           if (key === 'attachedToParentNode') {
             return parentByNodeId.get(nodeId)
           }
@@ -113,12 +113,12 @@ describe('StepValidityAnalyzer', () => {
         answers: {},
         data: {},
       },
-    } as unknown as jest.Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<ThunkEvaluationContext>
 
     const invoker = {
-      invoke: jest.fn(),
-      invokeSync: jest.fn(),
-    } as jest.Mocked<ThunkInvocationAdapter>
+      invoke: vi.fn(),
+      invokeSync: vi.fn(),
+    } as Mocked<ThunkInvocationAdapter>
 
     return { context, invoker, nodes, parentByNodeId }
   }

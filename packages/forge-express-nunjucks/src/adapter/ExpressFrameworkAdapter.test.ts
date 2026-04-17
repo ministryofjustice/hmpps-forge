@@ -15,26 +15,26 @@ import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
 describe('ExpressFrameworkAdapter', () => {
   let adapter: FrameworkAdapter<express.Router, express.Request, express.Response>
-  let mockNunjucksEnv: jest.Mocked<nunjucks.Environment>
-  let mockComponentRegistry: jest.Mocked<ComponentRegistry>
+  let mockNunjucksEnv: Mocked<nunjucks.Environment>
+  let mockComponentRegistry: Mocked<ComponentRegistry>
   let mockLogger: Console
-  let mockTemplate: { render: jest.Mock }
+  let mockTemplate: { render: Mock }
 
   beforeEach(() => {
-    mockTemplate = { render: jest.fn().mockReturnValue('<html>rendered</html>') }
+    mockTemplate = { render: vi.fn().mockReturnValue('<html>rendered</html>') }
 
     mockNunjucksEnv = {
-      getTemplate: jest.fn().mockReturnValue(mockTemplate),
-    } as unknown as jest.Mocked<nunjucks.Environment>
+      getTemplate: vi.fn().mockReturnValue(mockTemplate),
+    } as unknown as Mocked<nunjucks.Environment>
 
     mockComponentRegistry = {
-      get: jest.fn().mockReturnValue({
-        render: jest.fn().mockResolvedValue('<div>Block HTML</div>'),
+      get: vi.fn().mockReturnValue({
+        render: vi.fn().mockResolvedValue('<div>Block HTML</div>'),
       }),
-      getAll: jest.fn().mockReturnValue(new Map()),
-    } as unknown as jest.Mocked<ComponentRegistry>
+      getAll: vi.fn().mockReturnValue(new Map()),
+    } as unknown as Mocked<ComponentRegistry>
 
-    mockLogger = { debug: jest.fn() } as unknown as Console
+    mockLogger = { debug: vi.fn() } as unknown as Console
 
     const builder = ExpressFrameworkAdapter.configure({ nunjucksEnv: mockNunjucksEnv })
 
@@ -59,7 +59,7 @@ describe('ExpressFrameworkAdapter', () => {
       // Arrange
       const parent = express.Router()
       const child = express.Router()
-      const useSpy = jest.spyOn(parent, 'use')
+      const useSpy = vi.spyOn(parent, 'use')
 
       // Act
       adapter.mountRouter(parent, '/journey', child)
@@ -73,8 +73,8 @@ describe('ExpressFrameworkAdapter', () => {
     it('should register GET route handler on router', () => {
       // Arrange
       const router = express.Router()
-      const getSpy = jest.spyOn(router, 'get')
-      const handler: StepHandler<express.Request, express.Response> = jest.fn().mockResolvedValue(undefined)
+      const getSpy = vi.spyOn(router, 'get')
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
 
       // Act
       adapter.get(router, '/step-one', handler)
@@ -86,8 +86,8 @@ describe('ExpressFrameworkAdapter', () => {
     it('should wrap handler to catch async errors', async () => {
       // Arrange
       const error = new Error('Async error')
-      const handler: StepHandler<express.Request, express.Response> = jest.fn().mockRejectedValue(error)
-      const mockNext = jest.fn()
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockRejectedValue(error)
+      const mockNext = vi.fn()
       const mockReq = {
         method: 'GET',
         body: {},
@@ -100,7 +100,7 @@ describe('ExpressFrameworkAdapter', () => {
       let capturedHandler: express.RequestHandler | undefined
 
       const mockRouter = {
-        get: jest.fn((path: string, h: express.RequestHandler) => {
+        get: vi.fn((path: string, h: express.RequestHandler) => {
           capturedHandler = h
         }),
       } as unknown as express.Router
@@ -116,8 +116,8 @@ describe('ExpressFrameworkAdapter', () => {
 
     it('should convert request to StepRequest before calling handler', async () => {
       // Arrange
-      const handler: StepHandler<express.Request, express.Response> = jest.fn().mockResolvedValue(undefined)
-      const mockNext = jest.fn()
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
+      const mockNext = vi.fn()
       const mockReq = {
         method: 'GET',
         body: { field: 'value' },
@@ -134,7 +134,7 @@ describe('ExpressFrameworkAdapter', () => {
       let capturedHandler: express.RequestHandler | undefined
 
       const mockRouter = {
-        get: jest.fn((path: string, h: express.RequestHandler) => {
+        get: vi.fn((path: string, h: express.RequestHandler) => {
           capturedHandler = h
         }),
       } as unknown as express.Router
@@ -153,8 +153,8 @@ describe('ExpressFrameworkAdapter', () => {
     it('should register POST route handler on router', () => {
       // Arrange
       const router = express.Router()
-      const postSpy = jest.spyOn(router, 'post')
-      const handler: StepHandler<express.Request, express.Response> = jest.fn().mockResolvedValue(undefined)
+      const postSpy = vi.spyOn(router, 'post')
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
 
       // Act
       adapter.post(router, '/step-one', handler)
@@ -166,8 +166,8 @@ describe('ExpressFrameworkAdapter', () => {
     it('should wrap handler to catch async errors', async () => {
       // Arrange
       const error = new Error('POST async error')
-      const handler: StepHandler<express.Request, express.Response> = jest.fn().mockRejectedValue(error)
-      const mockNext = jest.fn()
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockRejectedValue(error)
+      const mockNext = vi.fn()
       const mockReq = {
         method: 'POST',
         body: {},
@@ -180,7 +180,7 @@ describe('ExpressFrameworkAdapter', () => {
       let capturedHandler: express.RequestHandler | undefined
 
       const mockRouter = {
-        post: jest.fn((path: string, h: express.RequestHandler) => {
+        post: vi.fn((path: string, h: express.RequestHandler) => {
           capturedHandler = h
         }),
       } as unknown as express.Router
@@ -303,10 +303,10 @@ describe('ExpressFrameworkAdapter', () => {
     it('should create a StepResponse that writes headers directly to Express response', () => {
       // Arrange
       const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn().mockReturnValue('test-value'),
-        getHeaderNames: jest.fn().mockReturnValue(['x-custom']),
-        cookie: jest.fn(),
+        setHeader: vi.fn(),
+        getHeader: vi.fn().mockReturnValue('test-value'),
+        getHeaderNames: vi.fn().mockReturnValue(['x-custom']),
+        cookie: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -321,16 +321,16 @@ describe('ExpressFrameworkAdapter', () => {
     it('should create a StepResponse that writes cookies directly to Express response', () => {
       // Arrange
       const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn().mockImplementation((name: string) => {
+        setHeader: vi.fn(),
+        getHeader: vi.fn().mockImplementation((name: string) => {
           if (name === 'Set-Cookie') {
             return ['session=abc123; HttpOnly']
           }
 
           return undefined
         }),
-        getHeaderNames: jest.fn().mockReturnValue([]),
-        cookie: jest.fn(),
+        getHeaderNames: vi.fn().mockReturnValue([]),
+        cookie: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -344,16 +344,16 @@ describe('ExpressFrameworkAdapter', () => {
     it('should create a new instance each time', () => {
       // Arrange
       const mockRes1 = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-        getHeaderNames: jest.fn().mockReturnValue([]),
-        cookie: jest.fn(),
+        setHeader: vi.fn(),
+        getHeader: vi.fn(),
+        getHeaderNames: vi.fn().mockReturnValue([]),
+        cookie: vi.fn(),
       } as unknown as express.Response
       const mockRes2 = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-        getHeaderNames: jest.fn().mockReturnValue([]),
-        cookie: jest.fn(),
+        setHeader: vi.fn(),
+        getHeader: vi.fn(),
+        getHeaderNames: vi.fn().mockReturnValue([]),
+        cookie: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -367,10 +367,10 @@ describe('ExpressFrameworkAdapter', () => {
     it('should return empty maps when no headers or cookies have been set', () => {
       // Arrange
       const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn().mockReturnValue(undefined),
-        getHeaderNames: jest.fn().mockReturnValue([]),
-        cookie: jest.fn(),
+        setHeader: vi.fn(),
+        getHeader: vi.fn().mockReturnValue(undefined),
+        getHeaderNames: vi.fn().mockReturnValue([]),
+        cookie: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -384,16 +384,16 @@ describe('ExpressFrameworkAdapter', () => {
     it('should parse Set-Cookie header to return cookies that have been set', () => {
       // Arrange
       const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn().mockImplementation((name: string) => {
+        setHeader: vi.fn(),
+        getHeader: vi.fn().mockImplementation((name: string) => {
           if (name === 'Set-Cookie') {
             return ['session=abc123; HttpOnly; Secure', 'preference=dark; Max-Age=86400; SameSite=Lax; Path=/']
           }
 
           return undefined
         }),
-        getHeaderNames: jest.fn().mockReturnValue([]),
-        cookie: jest.fn(),
+        getHeaderNames: vi.fn().mockReturnValue([]),
+        cookie: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -532,7 +532,7 @@ describe('ExpressFrameworkAdapter', () => {
     it('should redirect to specified URL', () => {
       // Arrange
       const mockRes = {
-        redirect: jest.fn(),
+        redirect: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -545,7 +545,7 @@ describe('ExpressFrameworkAdapter', () => {
     it('should handle absolute URLs', () => {
       // Arrange
       const mockRes = {
-        redirect: jest.fn(),
+        redirect: vi.fn(),
       } as unknown as express.Response
 
       // Act
@@ -564,8 +564,8 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Request
       const mockRes = {
         locals: {},
-        type: jest.fn().mockReturnThis(),
-        send: jest.fn(),
+        type: vi.fn().mockReturnThis(),
+        send: vi.fn(),
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
@@ -604,8 +604,8 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Request
       const mockRes = {
         locals: { csrfToken: 'abc123' },
-        type: jest.fn().mockReturnThis(),
-        send: jest.fn(),
+        type: vi.fn().mockReturnThis(),
+        send: vi.fn(),
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
@@ -639,7 +639,7 @@ describe('ExpressFrameworkAdapter', () => {
     it('should call next with error when next is provided', () => {
       // Arrange
       const mockRes = {} as express.Response
-      const mockNext = jest.fn()
+      const mockNext = vi.fn()
       const error = new Error('Something went wrong')
 
       // Act

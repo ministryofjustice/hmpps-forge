@@ -16,7 +16,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'save',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -47,7 +47,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'saveAnswer',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -79,7 +79,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'logValue',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -112,7 +112,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'setData',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -146,7 +146,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'logValue',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -200,7 +200,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'multiArg',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -241,7 +241,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'addToCollection',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -283,7 +283,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'addNotification',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -320,7 +320,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'track',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 
@@ -346,7 +346,7 @@ describe('EffectHandler', () => {
 
       const mockEffectFn: FunctionRegistryEntry = {
         name: 'track',
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
         isAsync: false,
       }
 

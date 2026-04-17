@@ -6,8 +6,8 @@ import OverlayThunkHandlerRegistry from './OverlayThunkHandlerRegistry'
 const createHandler = (id: NodeId): ThunkHandler => ({
   nodeId: id,
   isAsync: true as const,
-  computeIsAsync: jest.fn(),
-  evaluateSync: jest.fn(),
+  computeIsAsync: vi.fn(),
+  evaluateSync: vi.fn(),
   async evaluate() {
     const result: ThunkResult = {
       value: id,

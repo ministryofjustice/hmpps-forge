@@ -2,7 +2,7 @@ import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojAlert } from './mojAlert'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('mojAlert', () => {
   setupComponentTest()

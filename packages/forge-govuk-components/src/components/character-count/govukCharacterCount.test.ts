@@ -2,7 +2,7 @@ import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHel
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukCharacterCount } from './govukCharacterCount'
 
-jest.mock('nunjucks')
+vi.mock('nunjucks')
 
 describe('govukCharacterCount', () => {
   setupComponentTest()

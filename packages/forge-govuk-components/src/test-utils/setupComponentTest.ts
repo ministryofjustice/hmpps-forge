@@ -1,5 +1,7 @@
+import { beforeAll, expect } from 'vitest'
+
 /**
- * Sets up component test utilities for jest
+ * Sets up component test utilities for Vitest
  *
  * Adds custom matchers for HTML content checking.
  * Call in top-level describe block.

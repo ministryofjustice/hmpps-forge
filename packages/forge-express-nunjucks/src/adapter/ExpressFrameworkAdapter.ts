@@ -108,13 +108,13 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   }
 
   /** Convert Express request to framework-agnostic StepRequest */
-  toStepRequest(req: RequestWithState): StepRequest {
+  toStepRequest(req: express.Request): StepRequest {
     const headers = req.headers as Record<string, string | string[] | undefined>
     const cookies = (req.cookies as Record<string, string | undefined>) ?? {}
     const params = req.params
     const query = (req.query as Record<string, string | string[]>) ?? {}
     const post = (req.body as Record<string, string | string[]>) ?? {}
-    const state = req.state ?? {}
+    const state = (req as RequestWithState).state ?? {}
     const origin = `${req.protocol}://${req.host}`
     const href = `${origin}${req.originalUrl}`
     const pathname = extractPathname(req.originalUrl)

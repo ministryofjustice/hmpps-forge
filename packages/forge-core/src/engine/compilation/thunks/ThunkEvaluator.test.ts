@@ -1,4 +1,4 @@
-import { when } from 'jest-when'
+import { when } from 'vitest-when'
 import { ASTNode, NodeId, JourneyInstanceDependencies } from '../../types/engine.type'
 import ThunkEvaluator from './ThunkEvaluator'
 import ThunkHandlerRegistry from '../registries/ThunkHandlerRegistry'
@@ -35,9 +35,18 @@ const createTestRequest = (
   const session = overrides.session
   const state = overrides.state ?? {}
 
+  const url = overrides.url ?? 'http://localhost/test'
+
   return {
     method: overrides.method ?? 'GET',
-    url: overrides.url ?? 'http://localhost/test',
+    url,
+    baseUrl: '',
+    location: {
+      origin: 'http://localhost',
+      href: url,
+      pathname: '/test',
+      basePath: '',
+    },
 
     getHeader: (name: string) => headers[name.toLowerCase()],
     getAllHeaders: () => headers,
@@ -74,38 +83,38 @@ const createTestResponse = (): StepResponse => {
 }
 
 // Mock NodeCompilationPipeline to prevent full compilation pipeline from running in tests
-jest.mock('../NodeCompilationPipeline', () => ({
+vi.mock('../NodeCompilationPipeline', () => ({
   NodeCompilationPipeline: {
-    normalize: jest.fn(),
-    setRuntimeMetadata: jest.fn(),
-    createPseudoNodes: jest.fn(),
-    wireDependencies: jest.fn(),
+    normalize: vi.fn(),
+    setRuntimeMetadata: vi.fn(),
+    createPseudoNodes: vi.fn(),
+    wireDependencies: vi.fn(),
   },
 }))
 
 /**
  * Create a mock ThunkHandler for testing
  */
-function createMockHybridHandler(nodeId: NodeId, evaluateImpl: jest.Mock): jest.Mocked<ThunkHandler> {
+function createMockHybridHandler(nodeId: NodeId, evaluateImpl: Mock): Mocked<ThunkHandler> {
   return {
     nodeId,
     isAsync: true,
-    computeIsAsync: jest.fn(),
-    evaluateSync: jest.fn(),
+    computeIsAsync: vi.fn(),
+    evaluateSync: vi.fn(),
     evaluate: evaluateImpl,
   }
 }
 
 describe('ThunkEvaluator', () => {
   let evaluator: ThunkEvaluator
-  let mockCompilationDependencies: jest.Mocked<CompilationDependencies>
-  let mockJourneyInstanceDependencies: jest.Mocked<JourneyInstanceDependencies>
-  let mockHandlerRegistry: jest.Mocked<ThunkHandlerRegistry>
-  let mockNodeRegistry: jest.Mocked<NodeRegistry>
-  let mockMetadataRegistry: jest.Mocked<MetadataRegistry>
-  let mockFunctionRegistry: jest.Mocked<FunctionRegistry>
-  let mockComponentRegistry: jest.Mocked<ComponentRegistry>
-  let mockLogger: jest.Mocked<Console>
+  let mockCompilationDependencies: Mocked<CompilationDependencies>
+  let mockJourneyInstanceDependencies: Mocked<JourneyInstanceDependencies>
+  let mockHandlerRegistry: Mocked<ThunkHandlerRegistry>
+  let mockNodeRegistry: Mocked<NodeRegistry>
+  let mockMetadataRegistry: Mocked<MetadataRegistry>
+  let mockFunctionRegistry: Mocked<FunctionRegistry>
+  let mockComponentRegistry: Mocked<ComponentRegistry>
+  let mockLogger: Mocked<Console>
   let mockRuntimeOverlayBuilder: RuntimeOverlayBuilder
 
   beforeEach(() => {
@@ -115,48 +124,48 @@ describe('ThunkEvaluator', () => {
       nodeRegistry: {} as NodeRegistry,
       handlerRegistry: {} as ThunkHandlerRegistry,
       metadataRegistry: {} as MetadataRegistry,
-      nodeFactory: { createNode: jest.fn() } as any,
+      nodeFactory: { createNode: vi.fn() } as any,
       runtimeNodes: new Map(),
     }
     mockHandlerRegistry = {
-      get: jest.fn(),
-      register: jest.fn(),
-      has: jest.fn(),
-      size: jest.fn().mockReturnValue(0),
-      getIds: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<ThunkHandlerRegistry>
+      get: vi.fn(),
+      register: vi.fn(),
+      has: vi.fn(),
+      size: vi.fn().mockReturnValue(0),
+      getIds: vi.fn().mockReturnValue([]),
+    } as unknown as Mocked<ThunkHandlerRegistry>
 
     mockNodeRegistry = {
-      get: jest.fn(),
-      getAll: jest.fn().mockReturnValue(new Map()),
-      getAllEntries: jest.fn(),
-      getIds: jest.fn().mockReturnValue([]),
-      has: jest.fn(),
-      size: jest.fn(),
-      register: jest.fn(),
-      findByType: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<NodeRegistry>
+      get: vi.fn(),
+      getAll: vi.fn().mockReturnValue(new Map()),
+      getAllEntries: vi.fn(),
+      getIds: vi.fn().mockReturnValue([]),
+      has: vi.fn(),
+      size: vi.fn(),
+      register: vi.fn(),
+      findByType: vi.fn().mockReturnValue([]),
+    } as unknown as Mocked<NodeRegistry>
 
     mockMetadataRegistry = {
-      get: jest.fn(),
-      set: jest.fn(),
-    } as unknown as jest.Mocked<MetadataRegistry>
+      get: vi.fn(),
+      set: vi.fn(),
+    } as unknown as Mocked<MetadataRegistry>
 
     mockCompilationDependencies = {
       thunkHandlerRegistry: mockHandlerRegistry,
       nodeRegistry: mockNodeRegistry,
       metadataRegistry: mockMetadataRegistry,
-      createPendingView: jest.fn().mockImplementation(() => {
+      createPendingView: vi.fn().mockImplementation(() => {
         const pendingNodeIds: NodeId[] = []
         const pendingNodes = new Map<NodeId, ASTNode>()
         const pendingNodeRegistry = {
           ...mockNodeRegistry,
-          register: jest.fn().mockImplementation((id: NodeId, node: ASTNode) => {
+          register: vi.fn().mockImplementation((id: NodeId, node: ASTNode) => {
             pendingNodeIds.push(id)
             pendingNodes.set(id, node)
           }),
-          get: jest.fn().mockImplementation((id: NodeId) => pendingNodes.get(id) ?? mockNodeRegistry.get(id)),
-          has: jest.fn().mockImplementation((id: NodeId) => pendingNodes.has(id) || mockNodeRegistry.has(id)),
+          get: vi.fn().mockImplementation((id: NodeId) => pendingNodes.get(id) ?? mockNodeRegistry.get(id)),
+          has: vi.fn().mockImplementation((id: NodeId) => pendingNodes.has(id) || mockNodeRegistry.has(id)),
         }
 
         return {
@@ -165,28 +174,28 @@ describe('ThunkEvaluator', () => {
             metadataRegistry: mockMetadataRegistry,
             thunkHandlerRegistry: mockHandlerRegistry,
           },
-          flush: jest.fn(),
+          flush: vi.fn(),
           getPendingNodeIds: () => pendingNodeIds,
         }
       }),
-    } as unknown as jest.Mocked<CompilationDependencies>
+    } as unknown as Mocked<CompilationDependencies>
 
-    mockFunctionRegistry = {} as jest.Mocked<FunctionRegistry>
+    mockFunctionRegistry = {} as Mocked<FunctionRegistry>
 
-    mockComponentRegistry = {} as jest.Mocked<ComponentRegistry>
+    mockComponentRegistry = {} as Mocked<ComponentRegistry>
 
     mockLogger = {
-      log: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-    } as unknown as jest.Mocked<Console>
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    } as unknown as Mocked<Console>
 
     mockJourneyInstanceDependencies = {
       componentRegistry: mockComponentRegistry,
       functionRegistry: mockFunctionRegistry,
       logger: mockLogger,
       frameworkAdapter: {} as any,
-    } as jest.Mocked<JourneyInstanceDependencies>
+    } as Mocked<JourneyInstanceDependencies>
 
     evaluator = new ThunkEvaluator(
       mockCompilationDependencies,
@@ -208,13 +217,13 @@ describe('ThunkEvaluator', () => {
       const pseudoNodeId: NodeId = 'compile_pseudo:1'
       const mockHandler = createMockHybridHandler(
         pseudoNodeId,
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           value: 'test-value',
           metadata: { source: 'test', timestamp: 123456 },
         }),
       )
 
-      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).thenReturn(mockHandler)
 
       // Act
       const firstResult = await evaluator.invoke(pseudoNodeId, mockContext)
@@ -237,7 +246,7 @@ describe('ThunkEvaluator', () => {
       const pseudoNodeId: NodeId = 'compile_pseudo:2'
       const mockHandler = createMockHybridHandler(
         pseudoNodeId,
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           error: {
             type: 'EVALUATION_FAILED',
             nodeId: pseudoNodeId,
@@ -247,7 +256,7 @@ describe('ThunkEvaluator', () => {
         }),
       )
 
-      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(pseudoNodeId).thenReturn(mockHandler)
 
       // Act
       const firstResult = await evaluator.invoke(pseudoNodeId, mockContext)
@@ -267,7 +276,7 @@ describe('ThunkEvaluator', () => {
 
     it('should throw HANDLER_NOT_FOUND error when handler not found', async () => {
       // Arrange
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(undefined)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(undefined)
 
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('No handler registered')
@@ -277,13 +286,13 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const mockHandler = createMockHybridHandler(
         nodeId,
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           value: 42,
           metadata: { source: 'handler', timestamp: Date.now() },
         }),
       )
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(mockHandler)
 
       // Act
       const result = await evaluator.invoke(nodeId, mockContext)
@@ -305,9 +314,9 @@ describe('ThunkEvaluator', () => {
     it('should let handler exceptions bubble up', async () => {
       // Arrange
       const thrownError = new Error('Handler crashed')
-      const mockHandler = createMockHybridHandler(nodeId, jest.fn().mockRejectedValue(thrownError))
+      const mockHandler = createMockHybridHandler(nodeId, vi.fn().mockRejectedValue(thrownError))
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(mockHandler)
 
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('Handler crashed')
@@ -315,9 +324,9 @@ describe('ThunkEvaluator', () => {
 
     it('should let non-Error exceptions bubble up', async () => {
       // Arrange
-      const mockHandler = createMockHybridHandler(nodeId, jest.fn().mockRejectedValue('String error'))
+      const mockHandler = createMockHybridHandler(nodeId, vi.fn().mockRejectedValue('String error'))
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(mockHandler)
 
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toBe('String error')
@@ -328,7 +337,7 @@ describe('ThunkEvaluator', () => {
       const cause = new Error('type mismatch in greaterThan')
       const mockHandler = createMockHybridHandler(
         nodeId,
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           error: {
             type: 'TYPE_MISMATCH',
             nodeId,
@@ -338,7 +347,7 @@ describe('ThunkEvaluator', () => {
         }),
       )
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(mockHandler)
 
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('type mismatch in greaterThan')
@@ -347,11 +356,11 @@ describe('ThunkEvaluator', () => {
     it('should throw when sync handler returns TYPE_MISMATCH error via invoke()', async () => {
       // Arrange
       const cause = new Error('type mismatch in trim')
-      const syncHandler: jest.Mocked<ThunkHandler> = {
+      const syncHandler: Mocked<ThunkHandler> = {
         nodeId,
         isAsync: false,
-        computeIsAsync: jest.fn(),
-        evaluateSync: jest.fn().mockReturnValue({
+        computeIsAsync: vi.fn(),
+        evaluateSync: vi.fn().mockReturnValue({
           error: {
             type: 'TYPE_MISMATCH',
             nodeId,
@@ -359,10 +368,10 @@ describe('ThunkEvaluator', () => {
             cause,
           },
         }),
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
       }
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(syncHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(syncHandler)
 
       // Act & Assert
       await expect(evaluator.invoke(nodeId, mockContext)).rejects.toThrow('type mismatch in trim')
@@ -372,7 +381,7 @@ describe('ThunkEvaluator', () => {
       // Arrange
       const mockHandler = createMockHybridHandler(
         nodeId,
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           error: {
             type: 'EVALUATION_FAILED',
             nodeId,
@@ -381,7 +390,7 @@ describe('ThunkEvaluator', () => {
         }),
       )
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(mockHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(mockHandler)
 
       // Act
       const result = await evaluator.invoke(nodeId, mockContext)
@@ -403,11 +412,11 @@ describe('ThunkEvaluator', () => {
     it('should throw when handler returns TYPE_MISMATCH error', () => {
       // Arrange
       const cause = new Error('type mismatch in greaterThan')
-      const syncHandler: jest.Mocked<ThunkHandler> = {
+      const syncHandler: Mocked<ThunkHandler> = {
         nodeId,
         isAsync: false,
-        computeIsAsync: jest.fn(),
-        evaluateSync: jest.fn().mockReturnValue({
+        computeIsAsync: vi.fn(),
+        evaluateSync: vi.fn().mockReturnValue({
           error: {
             type: 'TYPE_MISMATCH',
             nodeId,
@@ -415,10 +424,10 @@ describe('ThunkEvaluator', () => {
             cause,
           },
         }),
-        evaluate: jest.fn(),
+        evaluate: vi.fn(),
       }
 
-      when(mockHandlerRegistry.get).calledWith(nodeId).mockReturnValue(syncHandler)
+      when(mockHandlerRegistry.get).calledWith(nodeId).thenReturn(syncHandler)
 
       // Act & Assert
       expect(() => evaluator.invokeSync(nodeId, mockContext)).toThrow('type mismatch in greaterThan')

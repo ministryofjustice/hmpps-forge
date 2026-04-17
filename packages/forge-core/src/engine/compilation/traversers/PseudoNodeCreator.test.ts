@@ -1,4 +1,4 @@
-import { when } from 'jest-when'
+import { when } from 'vitest-when'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { ASTNodeType } from '../../types/enums'
 import { BlockType, ExpressionType } from '../../../authoring/types/enums'
@@ -10,32 +10,32 @@ import NodeRegistry from '../registries/NodeRegistry'
 import PseudoNodeCreator from './PseudoNodeCreator'
 
 describe('PseudoNodeCreator', () => {
-  let mockNodeRegistry: jest.Mocked<NodeRegistry>
-  let mockMetadataRegistry: jest.Mocked<MetadataRegistry>
-  let mockPseudoNodeFactory: jest.Mocked<PseudoNodeFactory>
+  let mockNodeRegistry: Mocked<NodeRegistry>
+  let mockMetadataRegistry: Mocked<MetadataRegistry>
+  let mockPseudoNodeFactory: Mocked<PseudoNodeFactory>
   let creator: PseudoNodeCreator
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
     mockNodeRegistry = {
-      findByType: jest.fn().mockReturnValue([]),
-      register: jest.fn(),
-    } as unknown as jest.Mocked<NodeRegistry>
+      findByType: vi.fn().mockReturnValue([]),
+      register: vi.fn(),
+    } as unknown as Mocked<NodeRegistry>
 
     mockMetadataRegistry = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<MetadataRegistry>
+      get: vi.fn(),
+    } as unknown as Mocked<MetadataRegistry>
 
     mockPseudoNodeFactory = {
-      createAnswerLocalPseudoNode: jest.fn(),
-      createAnswerRemotePseudoNode: jest.fn(),
-      createPostPseudoNode: jest.fn(),
-      createQueryPseudoNode: jest.fn(),
-      createParamsPseudoNode: jest.fn(),
-      createDataPseudoNode: jest.fn(),
-      createRequestPseudoNode: jest.fn(),
-      createSessionPseudoNode: jest.fn(),
-    } as unknown as jest.Mocked<PseudoNodeFactory>
+      createAnswerLocalPseudoNode: vi.fn(),
+      createAnswerRemotePseudoNode: vi.fn(),
+      createPostPseudoNode: vi.fn(),
+      createQueryPseudoNode: vi.fn(),
+      createParamsPseudoNode: vi.fn(),
+      createDataPseudoNode: vi.fn(),
+      createRequestPseudoNode: vi.fn(),
+      createSessionPseudoNode: vi.fn(),
+    } as unknown as Mocked<PseudoNodeFactory>
 
     creator = new PseudoNodeCreator(mockNodeRegistry, mockPseudoNodeFactory, mockMetadataRegistry)
   })
@@ -54,15 +54,15 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(fieldBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
         .calledWith('firstName', fieldBlock.id)
-        .mockReturnValue(answerLocalPseudoNode)
+        .thenReturn(answerLocalPseudoNode)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
         .calledWith('firstName', fieldBlock.id)
-        .mockReturnValue(postPseudoNode)
+        .thenReturn(postPseudoNode)
 
       // Act
       creator.createForFields([fieldBlock])
@@ -82,7 +82,7 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(fieldBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(false)
+        .thenReturn(false)
 
       // Act
       creator.createForFields([fieldBlock])
@@ -100,7 +100,7 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(fieldBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       // Act
       creator.createForFields([fieldBlock])
@@ -124,7 +124,7 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(fieldBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       // Act
       creator.createForFields([fieldBlock])
@@ -155,27 +155,27 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(firstNameBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       when(mockMetadataRegistry.get)
         .calledWith(lastNameBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
         .calledWith('firstName', firstNameBlock.id)
-        .mockReturnValue(firstNameAnswerLocal)
+        .thenReturn(firstNameAnswerLocal)
 
       when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
         .calledWith('lastName', lastNameBlock.id)
-        .mockReturnValue(lastNameAnswerLocal)
+        .thenReturn(lastNameAnswerLocal)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
         .calledWith('firstName', firstNameBlock.id)
-        .mockReturnValue(firstNamePost)
+        .thenReturn(firstNamePost)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
         .calledWith('lastName', lastNameBlock.id)
-        .mockReturnValue(lastNamePost)
+        .thenReturn(lastNamePost)
 
       // Act
       creator.createForFields([firstNameBlock, lastNameBlock])
@@ -208,15 +208,15 @@ describe('PseudoNodeCreator', () => {
       const sessionPseudo = ASTTestFactory.sessionPseudoNode('user')
       const answerRemotePseudo = ASTTestFactory.answerRemotePseudoNode('age')
 
-      when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').mockReturnValue(queryPseudo)
-      when(mockPseudoNodeFactory.createParamsPseudoNode).calledWith('journeyId').mockReturnValue(paramsPseudo)
-      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('firstName', undefined).mockReturnValue(postPseudo)
-      when(mockPseudoNodeFactory.createDataPseudoNode).calledWith('userData').mockReturnValue(dataPseudo)
+      when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').thenReturn(queryPseudo)
+      when(mockPseudoNodeFactory.createParamsPseudoNode).calledWith('journeyId').thenReturn(paramsPseudo)
+      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('firstName', undefined).thenReturn(postPseudo)
+      when(mockPseudoNodeFactory.createDataPseudoNode).calledWith('userData').thenReturn(dataPseudo)
       when(mockPseudoNodeFactory.createRequestPseudoNode)
         .calledWith('headers.x-request-id')
-        .mockReturnValue(requestPseudo)
-      when(mockPseudoNodeFactory.createSessionPseudoNode).calledWith('user').mockReturnValue(sessionPseudo)
-      when(mockPseudoNodeFactory.createAnswerRemotePseudoNode).calledWith('age').mockReturnValue(answerRemotePseudo)
+        .thenReturn(requestPseudo)
+      when(mockPseudoNodeFactory.createSessionPseudoNode).calledWith('user').thenReturn(sessionPseudo)
+      when(mockPseudoNodeFactory.createAnswerRemotePseudoNode).calledWith('age').thenReturn(answerRemotePseudo)
 
       // Act
       creator.createForReferences([queryRef, paramsRef, postRef, dataRef, requestRef, sessionRef, answersRef])
@@ -237,7 +237,7 @@ describe('PseudoNodeCreator', () => {
       const requestRef2 = ASTTestFactory.reference(['request', 'state', 'user', 'role'])
       const requestPseudo = ASTTestFactory.requestPseudoNode('state.user')
 
-      when(mockPseudoNodeFactory.createRequestPseudoNode).calledWith('state.user').mockReturnValue(requestPseudo)
+      when(mockPseudoNodeFactory.createRequestPseudoNode).calledWith('state.user').thenReturn(requestPseudo)
 
       // Act
       creator.createForReferences([requestRef1, requestRef2])
@@ -254,7 +254,7 @@ describe('PseudoNodeCreator', () => {
       const sessionRef2 = ASTTestFactory.reference(['session', 'user', 'role'])
       const sessionPseudo = ASTTestFactory.sessionPseudoNode('user')
 
-      when(mockPseudoNodeFactory.createSessionPseudoNode).calledWith('user').mockReturnValue(sessionPseudo)
+      when(mockPseudoNodeFactory.createSessionPseudoNode).calledWith('user').thenReturn(sessionPseudo)
 
       // Act
       creator.createForReferences([sessionRef1, sessionRef2])
@@ -271,7 +271,7 @@ describe('PseudoNodeCreator', () => {
       const queryRef2 = ASTTestFactory.reference(['query', 'returnUrl'])
       const queryPseudo = ASTTestFactory.queryPseudoNode('returnUrl')
 
-      when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').mockReturnValue(queryPseudo)
+      when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').thenReturn(queryPseudo)
 
       // Act
       creator.createForReferences([queryRef1, queryRef2])
@@ -288,7 +288,7 @@ describe('PseudoNodeCreator', () => {
       const postRef = ASTTestFactory.reference(['post', 'address.street.name'])
       const postPseudo = ASTTestFactory.postPseudoNode('address')
 
-      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('address', undefined).mockReturnValue(postPseudo)
+      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('address', undefined).thenReturn(postPseudo)
 
       // Act
       creator.createForReferences([postRef])
@@ -304,7 +304,7 @@ describe('PseudoNodeCreator', () => {
       const postRef2 = ASTTestFactory.reference(['post', 'address.city'])
       const postPseudo = ASTTestFactory.postPseudoNode('address')
 
-      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('address', undefined).mockReturnValue(postPseudo)
+      when(mockPseudoNodeFactory.createPostPseudoNode).calledWith('address', undefined).thenReturn(postPseudo)
 
       // Act
       creator.createForReferences([postRef1, postRef2])
@@ -328,15 +328,15 @@ describe('PseudoNodeCreator', () => {
 
       when(mockMetadataRegistry.get)
         .calledWith(fieldBlock.id, 'isDescendantOfStep', false)
-        .mockReturnValue(true)
+        .thenReturn(true)
 
       when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
         .calledWith('firstName', fieldBlock.id)
-        .mockReturnValue(answerLocalPseudo)
+        .thenReturn(answerLocalPseudo)
 
       when(mockPseudoNodeFactory.createPostPseudoNode)
         .calledWith('firstName', fieldBlock.id)
-        .mockReturnValue(postPseudo)
+        .thenReturn(postPseudo)
 
       // Act
       creator.createForFields([fieldBlock])
@@ -424,24 +424,24 @@ describe('PseudoNodeCreator', () => {
     const requestPseudo = ASTTestFactory.requestPseudoNode('method')
     const answerRemotePseudo = ASTTestFactory.answerRemotePseudoNode('age')
 
-    when(mockMetadataRegistry.get).calledWith(firstNameBlock.id, 'isDescendantOfStep', false).mockReturnValue(true)
-    when(mockMetadataRegistry.get).calledWith(lastNameBlock.id, 'isDescendantOfStep', false).mockReturnValue(true)
+    when(mockMetadataRegistry.get).calledWith(firstNameBlock.id, 'isDescendantOfStep', false).thenReturn(true)
+    when(mockMetadataRegistry.get).calledWith(lastNameBlock.id, 'isDescendantOfStep', false).thenReturn(true)
     when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
       .calledWith('firstName', firstNameBlock.id)
-      .mockReturnValue(firstNameAnswerLocal)
+      .thenReturn(firstNameAnswerLocal)
     when(mockPseudoNodeFactory.createAnswerLocalPseudoNode)
       .calledWith('lastName', lastNameBlock.id)
-      .mockReturnValue(lastNameAnswerLocal)
+      .thenReturn(lastNameAnswerLocal)
     when(mockPseudoNodeFactory.createPostPseudoNode)
       .calledWith('firstName', firstNameBlock.id)
-      .mockReturnValue(firstNamePost)
+      .thenReturn(firstNamePost)
     when(mockPseudoNodeFactory.createPostPseudoNode)
       .calledWith('lastName', lastNameBlock.id)
-      .mockReturnValue(lastNamePost)
-    when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').mockReturnValue(queryPseudo)
-    when(mockPseudoNodeFactory.createDataPseudoNode).calledWith('userData').mockReturnValue(dataPseudo)
-    when(mockPseudoNodeFactory.createRequestPseudoNode).calledWith('method').mockReturnValue(requestPseudo)
-    when(mockPseudoNodeFactory.createAnswerRemotePseudoNode).calledWith('age').mockReturnValue(answerRemotePseudo)
+      .thenReturn(lastNamePost)
+    when(mockPseudoNodeFactory.createQueryPseudoNode).calledWith('returnUrl').thenReturn(queryPseudo)
+    when(mockPseudoNodeFactory.createDataPseudoNode).calledWith('userData').thenReturn(dataPseudo)
+    when(mockPseudoNodeFactory.createRequestPseudoNode).calledWith('method').thenReturn(requestPseudo)
+    when(mockPseudoNodeFactory.createAnswerRemotePseudoNode).calledWith('age').thenReturn(answerRemotePseudo)
 
     // Act
     creator.createForFields([firstNameBlock, lastNameBlock])
