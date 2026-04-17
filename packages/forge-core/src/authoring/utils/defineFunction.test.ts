@@ -165,3 +165,135 @@ describe('typed function wrappers', () => {
     expect(registry.PrefixedId.evaluate('id-')).toBe('id-123')
   })
 })
+
+describe('factory validate hook', () => {
+  it('should run validate synchronously when a condition builder is called', () => {
+    // Arrange
+    const validate = jest.fn()
+    const { conditions } = defineConditionFunctions({
+      GreaterThan: {
+        validate,
+        factory: () => (value: unknown, threshold: number) => Number(value) > threshold,
+      },
+    })
+
+    // Act
+    conditions.GreaterThan(10)
+
+    // Assert: validate is called with the author-passed args, not the runtime value.
+    expect(validate).toHaveBeenCalledTimes(1)
+    expect(validate).toHaveBeenCalledWith(10)
+  })
+
+  it('should propagate validate errors from condition builders at author-call time', () => {
+    // Arrange
+    const { conditions } = defineConditionFunctions({
+      Between: {
+        validate: (min: number, max: number) => {
+          if (min > max) {
+            throw new Error('min must be <= max')
+          }
+        },
+        factory: () => (value: unknown, min: number, max: number) => {
+          return Number(value) >= min && Number(value) <= max
+        },
+      },
+    })
+
+    // Act / Assert
+    expect(() => conditions.Between(5, 1)).toThrow('min must be <= max')
+  })
+
+  it('should still build a working registry from a validated condition factory', () => {
+    // Arrange
+    const { implementations } = defineConditionFunctions({
+      IsPositive: {
+        validate: () => {},
+        factory: () => (value: unknown) => Number(value) > 0,
+      },
+    })
+
+    // Act
+    const registry = createFunctionsRegistry(implementations)
+
+    // Assert
+    expect(registry.IsPositive.evaluate(5)).toBe(true)
+    expect(registry.IsPositive.evaluate(-1)).toBe(false)
+  })
+
+  it('should run validate when a transformer builder is called', () => {
+    // Arrange
+    const validate = jest.fn()
+    const { transformers, implementations } = defineTransformerFunctions({
+      AddPrefix: {
+        validate,
+        factory: () => (value: unknown, prefix: string) => `${prefix}${String(value)}`,
+      },
+    })
+
+    // Act
+    transformers.AddPrefix('hello-')
+    const registry = createFunctionsRegistry(implementations)
+
+    // Assert
+    expect(validate).toHaveBeenCalledWith('hello-')
+    expect(registry.AddPrefix.evaluate('world', 'hello-')).toBe('hello-world')
+  })
+
+  it('should run validate when an effect builder is called', () => {
+    // Arrange
+    const validate = jest.fn()
+    const { effects } = defineEffectFunctions<{ LogAction: (context: unknown, action: string) => void }>({
+      LogAction: {
+        validate,
+        factory: () => () => {},
+      },
+    })
+
+    // Act
+    effects.LogAction('SUBMIT')
+
+    // Assert: effect validate receives author args only (not the runtime context).
+    expect(validate).toHaveBeenCalledWith('SUBMIT')
+  })
+
+  it('should run validate when a generator builder is called', () => {
+    // Arrange
+    const validate = jest.fn()
+    const { generators, implementations } = defineGeneratorFunctions({
+      PrefixedId: {
+        validate,
+        factory: () => (prefix: string) => `${prefix}123`,
+      },
+    })
+
+    // Act
+    const expr = generators.PrefixedId('id-').build()
+    const registry = createFunctionsRegistry(implementations)
+
+    // Assert
+    expect(validate).toHaveBeenCalledWith('id-')
+    expect(expr).toEqual({
+      type: FunctionType.GENERATOR,
+      name: 'PrefixedId',
+      arguments: ['id-'],
+    })
+    expect(registry.PrefixedId.evaluate('id-')).toBe('id-123')
+  })
+
+  it('should not require validate on the object-form factory', () => {
+    // Arrange / Act: object form without validate is fine.
+    const { generators } = defineGeneratorFunctions({
+      Today: {
+        factory: () => () => '2026-04-01',
+      },
+    })
+
+    // Assert
+    expect(generators.Today().build()).toEqual({
+      type: FunctionType.GENERATOR,
+      name: 'Today',
+      arguments: [],
+    })
+  })
+})

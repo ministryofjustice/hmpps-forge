@@ -26,6 +26,27 @@ export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = No
   [K in keyof TShapes]: (deps: TDeps) => TShapes[K]
 }
 
+/**
+ * A factory entry can be a plain factory function (backward-compatible) or an
+ * object that also exposes a synchronous `validate` hook.
+ *
+ * `validate` runs at author-call time — when `conditions.Name(...)`, `generators.Name(...)`
+ * etc. are invoked to build the expression — and receives the same args the
+ * author passed. It does not see runtime dependencies or the injected `value` /
+ * `context` first parameter, so it can only catch structural problems (bad
+ * template syntax, missing required arg, etc.).
+ */
+export type FunctionFactoryEntry<
+  TEvaluator extends FunctionEvaluator<unknown>,
+  TDeps,
+  TPublicArgs extends readonly unknown[],
+> =
+  | ((deps: TDeps) => TEvaluator)
+  | {
+      validate?: (...args: TPublicArgs) => void
+      factory: (deps: TDeps) => TEvaluator
+    }
+
 type RuntimeContext = {
   condition: [value: unknown]
   transformer: [value: unknown]
@@ -49,25 +70,40 @@ type ImplementationShapes<
   ) => RuntimeReturn[TKind]
 }
 
-export type ConditionImplementations<
-  TConditions extends ConditionFunctionGroup<TConditions>,
-  TDeps = NoDeps,
-> = FunctionImplementations<ImplementationShapes<'condition', TConditions>, TDeps>
+export type ConditionImplementations<TConditions extends ConditionFunctionGroup<TConditions>, TDeps = NoDeps> = {
+  [K in keyof TConditions]: FunctionFactoryEntry<
+    ImplementationShapes<'condition', TConditions>[K],
+    TDeps,
+    PublicFunctionArguments<TConditions[K]>
+  >
+}
 
 export type TransformerImplementations<
   TTransformers extends TransformerFunctionGroup<TTransformers>,
   TDeps = NoDeps,
-> = FunctionImplementations<ImplementationShapes<'transformer', TTransformers>, TDeps>
+> = {
+  [K in keyof TTransformers]: FunctionFactoryEntry<
+    ImplementationShapes<'transformer', TTransformers>[K],
+    TDeps,
+    PublicFunctionArguments<TTransformers[K]>
+  >
+}
 
-export type EffectImplementations<
-  TEffects extends EffectFunctionGroup<TEffects>,
-  TDeps = NoDeps,
-> = FunctionImplementations<ImplementationShapes<'effect', TEffects>, TDeps>
+export type EffectImplementations<TEffects extends EffectFunctionGroup<TEffects>, TDeps = NoDeps> = {
+  [K in keyof TEffects]: FunctionFactoryEntry<
+    ImplementationShapes<'effect', TEffects>[K],
+    TDeps,
+    PublicFunctionArguments<TEffects[K]>
+  >
+}
 
-export type GeneratorImplementations<
-  TGenerators extends GeneratorFunctionGroup<TGenerators>,
-  TDeps = NoDeps,
-> = FunctionImplementations<ImplementationShapes<'generator', TGenerators>, TDeps>
+export type GeneratorImplementations<TGenerators extends GeneratorFunctionGroup<TGenerators>, TDeps = NoDeps> = {
+  [K in keyof TGenerators]: FunctionFactoryEntry<
+    ImplementationShapes<'generator', TGenerators>[K],
+    TDeps,
+    PublicFunctionArguments<TGenerators[K]>
+  >
+}
 
 type ReferenceArguments<TFunction extends FunctionEvaluator<unknown>> =
   Parameters<TFunction> extends [unknown, ...infer TRest] ? TRest : []

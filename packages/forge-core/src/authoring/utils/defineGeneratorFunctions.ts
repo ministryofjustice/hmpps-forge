@@ -1,6 +1,7 @@
 import { FunctionEvaluator } from '../types/functions.type'
 import { ValueExpr } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { extractFactories, extractValidator } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -25,6 +26,10 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * the configuration arguments. The returned builders create `GeneratorBuilder` instances
  * that support chaining via `.pipe()`.
  *
+ * Each factory entry can be a plain factory function or `{ validate?, factory }`. When
+ * `validate` is provided, it runs synchronously when the author calls the builder —
+ * failing early at module-load time rather than at render time.
+ *
  * @param factories - Generator factories keyed by function name
  *
  * @returns Object containing generator builders and implementations
@@ -33,6 +38,14 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * const { generators, implementations } = defineGeneratorFunctions({
  *   Today: () => () => new Date().toISOString().split('T')[0],
  *   PrefixedId: () => (prefix: string) => `${prefix}${crypto.randomUUID()}`,
+ * })
+ *
+ * // With author-time validation:
+ * const { generators } = defineGeneratorFunctions<{ Slug: (input: string) => string }>({
+ *   Slug: {
+ *     validate: (input) => { if (!input) throw new Error('input required') },
+ *     factory: () => (input) => input.toLowerCase().replace(/\s+/g, '-'),
+ *   },
  * })
  *
  * // Use in form definitions (returns GeneratorBuilder for chaining)
@@ -51,10 +64,10 @@ export function defineGeneratorFunctions<TGenerators extends GeneratorFunctionGr
   factories: GeneratorImplementations<TGenerators, TDeps>,
 ): {
   generators: TGenerators
-  implementations: GeneratorImplementations<TGenerators, TDeps>
+  implementations: FunctionImplementations<{ [K in keyof TGenerators]: TGenerators[K] }, TDeps>
 }
 export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
-  factories: FunctionImplementations<TShapes, TDeps>,
+  factories: Record<string, unknown>,
 ): {
   generators: GeneratorFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
@@ -63,10 +76,16 @@ export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps
 
   Object.keys(factories).forEach(name => {
     const key = name as keyof TShapes & string
+    const validate = extractValidator(factories[key])
     generators[key] = ((...args: GeneratorArguments<TShapes[typeof key]>) => {
+      validate?.(...args)
+
       return GeneratorBuilder.create(name, args)
     }) as GeneratorFunctions<TShapes>[typeof key]
   })
 
-  return { generators, implementations: factories }
+  return {
+    generators,
+    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+  }
 }

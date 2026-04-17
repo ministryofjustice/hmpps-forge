@@ -1,5 +1,5 @@
 import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions } from './defineFunction'
+import { buildExpressionFunctions, extractFactories } from './defineFunction'
 import type {
   ConditionFunctionGroup,
   ConditionFunctions,
@@ -46,16 +46,16 @@ export function defineConditionFunctions<TConditions extends ConditionFunctionGr
   factories: ConditionImplementations<TConditions, TDeps>,
 ): {
   conditions: TConditions
-  implementations: ConditionImplementations<TConditions, TDeps>
+  implementations: FunctionImplementations<{ [K in keyof TConditions]: TConditions[K] }, TDeps>
 }
 export function defineConditionFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
-  factories: FunctionImplementations<TShapes, TDeps>,
+  factories: Record<string, unknown>,
 ): {
   conditions: ConditionFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
   return {
     conditions: buildExpressionFunctions(factories, FunctionType.CONDITION) as ConditionFunctions<TShapes>,
-    implementations: factories,
+    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
   }
 }
