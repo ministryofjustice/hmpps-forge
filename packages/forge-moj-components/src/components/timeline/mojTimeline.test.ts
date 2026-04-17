@@ -490,4 +490,32 @@ describe('mojTimeline', () => {
       expect(params.items[0]).toHaveProperty('attributes')
     })
   })
+
+  describe('Conditional item visibility', () => {
+    it('omits items where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [
+          { label: { text: 'Application approved' } },
+          { label: { text: 'Internal note' }, visibleWhen: false },
+          { label: { text: 'Application submitted' } },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(2)
+      expect(params.items[0].label.text).toBe('Application approved')
+      expect(params.items[1].label.text).toBe('Application submitted')
+    })
+
+    it('keeps items where visibleWhen is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [{ label: { text: 'Application approved' } }],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(1)
+    })
+  })
 })

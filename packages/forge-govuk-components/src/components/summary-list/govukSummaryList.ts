@@ -2,6 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -93,6 +94,14 @@ export interface SummaryListRow {
 
   /** Additional CSS classes for the row div element. */
   classes?: ConditionalString
+
+  /**
+   * Conditional visibility for this row. When the evaluated value is `false`,
+   * the row is omitted from rendering. Defaults to showing the row.
+   *
+   * @example Answer('contactMethod').match(Condition.Equals('email'))
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -197,7 +206,7 @@ export interface GovUKSummaryList extends BlockDefinition, GovUKSummaryListProps
  */
 function summaryListRenderer(block: EvaluatedBlock<GovUKSummaryList>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    rows: block.rows,
+    rows: block.rows.filter(row => row.visibleWhen !== false),
     card: block.card,
     classes: block.classes,
     attributes: block.attributes,

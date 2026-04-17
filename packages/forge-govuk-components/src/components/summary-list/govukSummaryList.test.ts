@@ -136,6 +136,50 @@ describe('GOV.UK Summary List Component', () => {
     })
   })
 
+  describe('Conditional row visibility', () => {
+    it('omits rows where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        rows: [
+          {
+            key: { text: 'Name' },
+            value: { text: 'John Smith' },
+          },
+          {
+            key: { text: 'Office' },
+            value: { text: 'London' },
+            visibleWhen: false,
+          },
+          {
+            key: { text: 'Email' },
+            value: { text: 'john@example.com' },
+            visibleWhen: true,
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.rows).toHaveLength(2)
+      expect(params.rows[0].key.text).toBe('Name')
+      expect(params.rows[1].key.text).toBe('Email')
+    })
+
+    it('keeps rows where visibleWhen is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        rows: [
+          {
+            key: { text: 'Name' },
+            value: { text: 'John Smith' },
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.rows).toHaveLength(1)
+    })
+  })
+
   describe('Key and value content', () => {
     it('sets key with text content', async () => {
       // Arrange & Act

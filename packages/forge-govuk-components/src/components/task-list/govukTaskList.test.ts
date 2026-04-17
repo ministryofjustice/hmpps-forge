@@ -689,4 +689,48 @@ describe('GOV.UK Task List Component', () => {
       expect(html).toContain('govuk-tag--grey')
     })
   })
+
+  describe('Conditional item visibility', () => {
+    it('omits items where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [
+          {
+            title: { text: 'Company information' },
+            status: { tag: { text: 'Completed' } },
+          },
+          {
+            title: { text: 'Upload photo' },
+            status: { tag: { text: 'Not started' } },
+            visibleWhen: false,
+          },
+          {
+            title: { text: 'Submit' },
+            status: { tag: { text: 'Cannot start yet' } },
+            visibleWhen: true,
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(2)
+      expect(params.items[0].title.text).toBe('Company information')
+      expect(params.items[1].title.text).toBe('Submit')
+    })
+
+    it('keeps items where visibleWhen is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [
+          {
+            title: { text: 'Company information' },
+            status: { tag: { text: 'Completed' } },
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(1)
+    })
+  })
 })

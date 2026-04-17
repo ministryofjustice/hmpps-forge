@@ -3,6 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   ConditionalArray,
   EvaluatedBlock,
@@ -105,6 +106,12 @@ export interface MOJTimelineItem {
 
   /** Additional HTML attributes for this timeline item */
   attributes?: Record<string, ConditionalString>
+
+  /**
+   * Conditional visibility for this timeline item. When the evaluated value is `false`,
+   * the item is omitted from rendering. Defaults to showing the item.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -175,9 +182,14 @@ export interface MOJTimeline extends BlockDefinition, MOJTimelineProps {
 /**
  * Renders an MOJ Timeline component using Nunjucks template
  */
+/** Evaluated timeline item after expression resolution */
+type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimelineItem, false>
+
 function timelineRenderer(block: EvaluatedBlock<MOJTimeline>, nunjucksEnv: nunjucks.Environment): string {
+  // NOTE: items is typed as ConditionalArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
+  const items = block.items as EvaluatedMOJTimelineItem[]
   const params = {
-    items: block.items,
+    items: items.filter(item => item.visibleWhen !== false),
     headingLevel: block.headingLevel,
     classes: block.classes,
     attributes: block.attributes,

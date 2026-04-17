@@ -774,4 +774,50 @@ describe('GOV.UK Accordion Component', () => {
       expect(html).toContain('data-module="custom-accordion"')
     })
   })
+
+  describe('Conditional item visibility', () => {
+    it('omits items where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        id: 'accordion-default',
+        items: [
+          {
+            heading: { text: 'Section A' },
+            content: { text: 'A' },
+          },
+          {
+            heading: { text: 'Section B' },
+            content: { text: 'B' },
+            visibleWhen: false,
+          },
+          {
+            heading: { text: 'Section C' },
+            content: { text: 'C' },
+            visibleWhen: true,
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(2)
+      expect(params.items[0].heading.text).toBe('Section A')
+      expect(params.items[1].heading.text).toBe('Section C')
+    })
+
+    it('keeps items where visibleWhen is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        id: 'accordion-default',
+        items: [
+          {
+            heading: { text: 'Section A' },
+            content: { text: 'A' },
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(1)
+    })
+  })
 })

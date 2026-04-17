@@ -3,6 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -70,6 +71,12 @@ export interface MOJCardGroupItem {
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
+
+  /**
+   * Conditional visibility for this card. When the evaluated value is `false`,
+   * the card is omitted from rendering. Defaults to showing the card.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -162,7 +169,7 @@ function isHeadingLevel(value: number | undefined): value is NonNullable<MOJCard
  */
 function cardGroupRenderer(block: EvaluatedBlock<MOJCardGroup>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items.map(normalizeCardItem),
+    items: block.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
     columns: block.columns,
     classes: block.classes,
     attributes: block.attributes,

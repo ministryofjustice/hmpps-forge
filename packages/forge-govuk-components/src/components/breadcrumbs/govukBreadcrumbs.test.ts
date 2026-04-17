@@ -335,4 +335,32 @@ describe('GOV.UK Breadcrumbs Component', () => {
       expect(html).toContain('app-breadcrumbs--custom')
     })
   })
+
+  describe('Conditional item visibility', () => {
+    it('omits items where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [
+          { text: 'Home', href: '/' },
+          { text: 'Admin', href: '/admin', visibleWhen: false },
+          { text: 'Account' },
+        ],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(2)
+      expect(params.items[0]).toEqual({ text: 'Home', href: '/' })
+      expect(params.items[1]).toEqual({ text: 'Account' })
+    })
+
+    it('keeps items where visibleWhen is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [{ text: 'Home' }],
+      })
+
+      // Assert
+      expect(params.items).toHaveLength(1)
+    })
+  })
 })

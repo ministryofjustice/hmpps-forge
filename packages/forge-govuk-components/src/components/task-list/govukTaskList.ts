@@ -2,6 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -120,6 +121,14 @@ export interface TaskListItem {
 
   /** Additional CSS classes for the item div. */
   classes?: ConditionalString
+
+  /**
+   * Conditional visibility for this task. When the evaluated value is `false`,
+   * the task is omitted from rendering. Defaults to showing the task.
+   *
+   * @example Answer('applicationType').match(Condition.Equals('business'))
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -193,7 +202,7 @@ export interface GovUKTaskList extends BlockDefinition, GovUKTaskListProps {
  */
 function taskListRenderer(block: EvaluatedBlock<GovUKTaskList>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     classes: block.classes,
     attributes: block.attributes,
     idPrefix: block.idPrefix,

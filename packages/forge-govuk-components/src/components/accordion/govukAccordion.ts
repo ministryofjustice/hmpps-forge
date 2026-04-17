@@ -71,6 +71,12 @@ export interface AccordionItem {
 
   /** Whether the section should be expanded when the page loads. Defaults to false. */
   expanded?: ConditionalBoolean
+
+  /**
+   * Conditional visibility for this section. When the evaluated value is `false`,
+   * the section is omitted from rendering. Defaults to showing the section.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -162,32 +168,34 @@ function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: n
   // Process items, handling child blocks in content
   // NOTE: items is typed as ConditionalArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
   const items = block.items as EvaluatedAccordionItem[]
-  const processedItems = items.map(item => {
-    let contentHtml: string | undefined
+  const processedItems = items
+    .filter(item => item.visibleWhen !== false)
+    .map(item => {
+      let contentHtml: string | undefined
 
-    // If content blocks are provided, render them and use as HTML
-    if (item.content.blocks && item.content.blocks.length > 0) {
-      contentHtml = (item.content.blocks as RenderedBlock[]).map(b => b.html).join('')
-    }
+      // If content blocks are provided, render them and use as HTML
+      if (item.content.blocks && item.content.blocks.length > 0) {
+        contentHtml = (item.content.blocks as RenderedBlock[]).map(b => b.html).join('')
+      }
 
-    return {
-      heading: {
-        text: item.heading.html ? undefined : item.heading.text,
-        html: item.heading.html,
-      },
-      summary: item.summary
-        ? {
-            text: item.summary.html ? undefined : item.summary.text,
-            html: item.summary.html,
-          }
-        : undefined,
-      content: {
-        text: contentHtml || item.content.html ? undefined : item.content.text,
-        html: contentHtml || item.content.html,
-      },
-      expanded: item.expanded,
-    }
-  })
+      return {
+        heading: {
+          text: item.heading.html ? undefined : item.heading.text,
+          html: item.heading.html,
+        },
+        summary: item.summary
+          ? {
+              text: item.summary.html ? undefined : item.summary.text,
+              html: item.summary.html,
+            }
+          : undefined,
+        content: {
+          text: contentHtml || item.content.html ? undefined : item.content.text,
+          html: contentHtml || item.content.html,
+        },
+        expanded: item.expanded,
+      }
+    })
 
   const params: Record<string, any> = {
     id: block.id,

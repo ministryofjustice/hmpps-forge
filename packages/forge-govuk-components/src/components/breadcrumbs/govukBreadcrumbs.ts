@@ -2,6 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -23,6 +24,12 @@ export interface BreadcrumbItem {
 
   /** Custom HTML attributes for the breadcrumb item. */
   attributes?: Record<string, any>
+
+  /**
+   * Conditional visibility for this breadcrumb. When the evaluated value is `false`,
+   * the item is omitted from rendering. Defaults to showing the item.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -76,7 +83,7 @@ export interface GovUKBreadcrumbs extends BlockDefinition, GovUKBreadcrumbsProps
  */
 function breadcrumbsRenderer(block: EvaluatedBlock<GovUKBreadcrumbs>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     collapseOnMobile: block.collapseOnMobile,
     labelText: block.labelText,
     classes: block.classes,
