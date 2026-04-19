@@ -4,7 +4,7 @@ import { PredicateOrExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import {OrPredicateASTNode, PredicateASTNode} from '../../../types/predicates.type'
+import { OrPredicateASTNode, PredicateASTNode } from '../../../types/predicates.type'
 
 /**
  * OrFactory: Creates Or predicate AST nodes

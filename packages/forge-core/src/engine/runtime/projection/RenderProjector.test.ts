@@ -1,6 +1,7 @@
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { NodeId } from '../../types/engine.type'
 import { JourneyAncestor, JourneyMetadata } from '../../../framework/rendering/types'
 import { StepRequest } from '../../../framework/types/request.type'
 import { StepValidityResult } from '../evaluation/StepValidityAnalyzer'
@@ -92,6 +93,7 @@ function createNavigationStep(overrides: Partial<NavigationStepState> = {}): Nav
     stepId: 'compile_ast:1',
     routeTemplatePath: '/forms/journey/step-1',
     isEntryPoint: false,
+    isConditionalEntry: false,
     isReachable: true,
     isValid: true,
     forwardRouteTemplatePaths: [],
@@ -138,6 +140,8 @@ describe('RenderProjector', () => {
           isEntryPoint: true,
         }),
       ],
+      redirectTargetRouteTemplatePath: undefined,
+      resumeActive: false,
     })
   })
 
@@ -159,7 +163,13 @@ describe('RenderProjector', () => {
       // Arrange
       const plan = createPlan()
       const fieldFailures = [
-        { blockId: 'compile_ast:99', blockCode: 'email', passed: false, message: 'Required', submissionOnly: false },
+        {
+          blockId: 'compile_ast:99' as NodeId,
+          blockCode: 'email',
+          passed: false,
+          message: 'Required',
+          submissionOnly: false,
+        },
       ]
 
       artifacts.setStepValidity({
@@ -228,6 +238,8 @@ describe('RenderProjector', () => {
             predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
           }),
         ],
+        redirectTargetRouteTemplatePath: undefined,
+        resumeActive: false,
       } satisfies NavigationEvaluation)
 
       // Act
@@ -258,6 +270,8 @@ describe('RenderProjector', () => {
             predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
           }),
         ],
+        redirectTargetRouteTemplatePath: undefined,
+        resumeActive: false,
       } satisfies NavigationEvaluation)
 
       // Act

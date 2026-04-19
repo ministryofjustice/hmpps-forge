@@ -16,6 +16,7 @@ function createEntry(options: {
     stepId: options.stepId,
     path: options.path,
     isEntryPoint: options.isEntryPoint ?? false,
+    entryWhenNodeId: undefined,
     forwardOutcomeIds: [],
     hasValidation: false,
     cleardownFieldCodes: options.cleardownFieldCodes ?? [],
@@ -23,6 +24,7 @@ function createEntry(options: {
     validationIterateNodeIds: [],
     validationBlockIds: [],
     domainValidationNodeIds: [],
+    reachabilityTieBreakers: [],
   }
 }
 
@@ -66,6 +68,7 @@ describe('StepFieldInventoryAnalyzer', () => {
           cleardownFieldCodes: ['fieldA', '^task_\\d+$'],
         }),
       ],
+      resumeAlways: false,
     }
 
     // Act
@@ -82,20 +85,21 @@ describe('StepFieldInventoryAnalyzer', () => {
         createEntry({ stepId: 'compile_ast:1', path: 'step-a', isEntryPoint: true }),
         createEntry({ stepId: 'compile_ast:2', path: 'step-b' }),
       ],
+      resumeAlways: false,
     }
 
-    context.nodeRegistry.findByType.mockReturnValue([
+    vi.mocked(context.nodeRegistry.findByType).mockReturnValue([
       { id: 'compile_ast:10', properties: { code: 'firstName' } },
       { id: 'compile_ast:11', properties: { code: 'lastName' } },
       { id: 'compile_ast:12', properties: { code: 'email' } },
-    ])
+    ] as never)
 
     const registry = new MetadataRegistry()
 
     registry.set('compile_ast:10', 'attachedToParentNode', 'compile_ast:1')
     registry.set('compile_ast:11', 'attachedToParentNode', 'compile_ast:1')
     registry.set('compile_ast:12', 'attachedToParentNode', 'compile_ast:2')
-    context.metadataRegistry = registry
+    ;(context as { metadataRegistry: unknown }).metadataRegistry = registry
 
     // Act
     const result = await analyzer.analyze(plan, invoker, context)
@@ -116,6 +120,7 @@ describe('StepFieldInventoryAnalyzer', () => {
           fieldIteratorRootIds: ['compile_ast:100'],
         }),
       ],
+      resumeAlways: false,
     }
 
     // Act
@@ -129,18 +134,19 @@ describe('StepFieldInventoryAnalyzer', () => {
     // Arrange
     const plan: ReachabilityRuntimePlan = {
       entries: [createEntry({ stepId: 'compile_ast:1', path: 'step-a', isEntryPoint: true })],
+      resumeAlways: false,
     }
 
-    context.nodeRegistry.findByType.mockReturnValue([
+    vi.mocked(context.nodeRegistry.findByType).mockReturnValue([
       { id: 'compile_ast:10', properties: { code: 'name' } },
       { id: 'compile_ast:11', properties: { code: 'name' } },
-    ])
+    ] as never)
 
     const registry = new MetadataRegistry()
 
     registry.set('compile_ast:10', 'attachedToParentNode', 'compile_ast:1')
     registry.set('compile_ast:11', 'attachedToParentNode', 'compile_ast:1')
-    context.metadataRegistry = registry
+    ;(context as { metadataRegistry: unknown }).metadataRegistry = registry
 
     // Act
     const result = await analyzer.analyze(plan, invoker, context)

@@ -5,6 +5,8 @@ function createEvaluation(overrides: Partial<NavigationEvaluation> = {}): Naviga
   return {
     currentStepId: 'compile_ast:3',
     steps: [],
+    resumeActive: false,
+    redirectTargetRouteTemplatePath: undefined,
     ...overrides,
   }
 }
@@ -17,6 +19,7 @@ describe('RedirectResolver', () => {
       stepId: 'compile_ast:3',
       routeTemplatePath: '/journey/current',
       isEntryPoint: false,
+      isConditionalEntry: false,
       isReachable: true,
       isValid: true,
       forwardRouteTemplatePaths: [],
@@ -28,11 +31,8 @@ describe('RedirectResolver', () => {
   it('should return undefined when the current step is reachable', () => {
     // Arrange
     const evaluation = createEvaluation({
-      steps: [
-        createNavigationStep({
-          isEntryPoint: true,
-        }),
-      ],
+      steps: [createNavigationStep({ isEntryPoint: true })],
+      redirectTargetRouteTemplatePath: '/journey/frontier',
     })
 
     // Act
@@ -42,76 +42,105 @@ describe('RedirectResolver', () => {
     expect(result).toBeUndefined()
   })
 
-  it('should return the single reachable invalid blocker', () => {
+  it('should return the resume frontier when the current step is unreachable', () => {
     // Arrange
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:11',
       steps: [
         createNavigationStep({
-          stepId: 'compile_ast:7',
-          routeTemplatePath: '/journey/one',
-          isEntryPoint: true,
-        }),
-        createNavigationStep({
-          stepId: 'compile_ast:9',
-          routeTemplatePath: '/journey/two',
-          isValid: false,
-          predecessorRouteTemplatePaths: ['/journey/one'],
-        }),
-        createNavigationStep({
           stepId: 'compile_ast:11',
-          routeTemplatePath: '/journey/three',
+          routeTemplatePath: '/journey/unreachable',
           isReachable: false,
         }),
       ],
+      redirectTargetRouteTemplatePath: '/journey/frontier',
     })
 
     // Act
     const result = resolver.resolve(evaluation)
 
     // Assert
-    expect(result).toBe('/journey/two')
+    expect(result).toBe('/journey/frontier')
   })
 
-  it('should fall back to the first reachable entry point when multiple blockers exist', () => {
+  it('should return undefined when the current step cannot be found', () => {
     // Arrange
     const evaluation = createEvaluation({
-      currentStepId: 'compile_ast:20',
-      steps: [
-        createNavigationStep({
-          stepId: 'compile_ast:12',
-          routeTemplatePath: '/journey/entry-a',
-          isEntryPoint: true,
-        }),
-        createNavigationStep({
-          stepId: 'compile_ast:14',
-          routeTemplatePath: '/journey/entry-b',
-          isEntryPoint: true,
-        }),
-        createNavigationStep({
-          stepId: 'compile_ast:16',
-          routeTemplatePath: '/journey/middle-a',
-          isValid: false,
-          predecessorRouteTemplatePaths: ['/journey/entry-a'],
-        }),
-        createNavigationStep({
-          stepId: 'compile_ast:18',
-          routeTemplatePath: '/journey/middle-b',
-          isValid: false,
-          predecessorRouteTemplatePaths: ['/journey/entry-b'],
-        }),
-        createNavigationStep({
-          stepId: 'compile_ast:20',
-          routeTemplatePath: '/journey/target',
-          isReachable: false,
-        }),
-      ],
+      currentStepId: 'compile_ast:999',
+      steps: [],
+      redirectTargetRouteTemplatePath: '/journey/frontier',
     })
 
     // Act
     const result = resolver.resolve(evaluation)
 
     // Assert
-    expect(result).toBe('/journey/entry-a')
+    expect(result).toBeUndefined()
+  })
+
+  it('should return undefined when the current step is unreachable and the evaluation has no frontier', () => {
+    // Arrange
+    const evaluation = createEvaluation({
+      currentStepId: 'compile_ast:11',
+      steps: [
+        createNavigationStep({
+          stepId: 'compile_ast:11',
+          routeTemplatePath: '/journey/unreachable',
+          isReachable: false,
+        }),
+      ],
+      redirectTargetRouteTemplatePath: undefined,
+    })
+
+    // Act
+    const result = resolver.resolve(evaluation)
+
+    // Assert
+    expect(result).toBeUndefined()
+  })
+
+  it('should redirect to frontier when resume is active even if step is reachable', () => {
+    // Arrange
+    const evaluation = createEvaluation({
+      steps: [createNavigationStep({ isReachable: true })],
+      resumeActive: true,
+      redirectTargetRouteTemplatePath: '/journey/frontier',
+    })
+
+    // Act
+    const result = resolver.resolve(evaluation)
+
+    // Assert
+    expect(result).toBe('/journey/frontier')
+  })
+
+  it('should not redirect when resume is active and already at the frontier', () => {
+    // Arrange
+    const evaluation = createEvaluation({
+      steps: [createNavigationStep({ routeTemplatePath: '/journey/frontier' })],
+      resumeActive: true,
+      redirectTargetRouteTemplatePath: '/journey/frontier',
+    })
+
+    // Act
+    const result = resolver.resolve(evaluation)
+
+    // Assert
+    expect(result).toBeUndefined()
+  })
+
+  it('should not redirect when resume is active but frontier is undefined', () => {
+    // Arrange
+    const evaluation = createEvaluation({
+      steps: [createNavigationStep()],
+      resumeActive: true,
+      redirectTargetRouteTemplatePath: undefined,
+    })
+
+    // Act
+    const result = resolver.resolve(evaluation)
+
+    // Assert
+    expect(result).toBeUndefined()
   })
 })

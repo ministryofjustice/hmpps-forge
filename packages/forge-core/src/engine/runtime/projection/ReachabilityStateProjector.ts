@@ -25,7 +25,7 @@ export default class ReachabilityStateProjector {
 
     evaluation.steps.forEach(step => {
       const inventory = inventoryByStepId.get(step.stepId)
-      const projectedStep = this.projectStep(step, inventory, params)
+      const projectedStep = this.projectStep(step, inventory, params, evaluation.steps)
 
       if (step.isReachable) {
         reachableSteps.push(projectedStep)
@@ -44,6 +44,7 @@ export default class ReachabilityStateProjector {
     step: NavigationStepState,
     inventory: StepFieldInventory | undefined,
     params: Record<string, string>,
+    allSteps: NavigationStepState[],
   ): ReachabilityStep {
     const projectedStep: ReachabilityStep = { path: resolvePathParams(step.routeTemplatePath, params) }
 
@@ -62,7 +63,7 @@ export default class ReachabilityStateProjector {
       projectedStep.cleardownFieldCodes = cleardownFieldCodes
     }
 
-    const backPath = this.backlinkResolver.resolveForStep(step)
+    const backPath = this.backlinkResolver.resolveForStep(step, allSteps)
 
     if (backPath) {
       projectedStep.backPath = resolvePathParams(backPath, params)

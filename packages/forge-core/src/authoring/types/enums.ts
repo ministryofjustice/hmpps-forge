@@ -25,6 +25,7 @@ export enum ExpressionType {
   ITERATE = 'ExpressionType.Iterate',
   CONDITIONAL = 'ExpressionType.Conditional',
   MATCH = 'ExpressionType.Match',
+  TIE_BREAKER = 'ExpressionType.TieBreaker',
 }
 
 export enum IteratorType {

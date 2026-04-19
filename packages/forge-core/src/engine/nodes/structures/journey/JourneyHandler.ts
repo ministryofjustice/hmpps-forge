@@ -38,6 +38,9 @@ export default class JourneyHandler implements ThunkHandler {
 
   private static readonly HOOK_PROPS_SET = new Set(JourneyHandler.HOOK_PROPS)
 
+  // Properties consumed at compile time by RuntimePlanBuilder, not needed at render time
+  private static readonly EXCLUDED_PROPS = new Set(['reachability'])
+
   // Properties needed for structural navigation on non-ancestor journeys
   private static readonly STRUCTURAL_PROPS = [
     'code',
@@ -72,6 +75,10 @@ export default class JourneyHandler implements ThunkHandler {
       propertiesWithNodes.add(property)
 
       if (hasAsync) {
+        return
+      }
+
+      if (JourneyHandler.EXCLUDED_PROPS.has(property)) {
         return
       }
 
@@ -170,15 +177,17 @@ export default class JourneyHandler implements ThunkHandler {
     const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
 
     if (isAncestorOfStep) {
-      // Ancestor journey: all non-hook properties
       return Object.fromEntries(
-        Object.entries(this.node.properties).filter(([key]) => !JourneyHandler.HOOK_PROPS.includes(key)),
+        Object.entries(this.node.properties).filter(
+          ([key]) => !JourneyHandler.HOOK_PROPS_SET.has(key) && !JourneyHandler.EXCLUDED_PROPS.has(key),
+        ),
       )
     }
 
-    // Other journeys: only structural properties
     return Object.fromEntries(
-      Object.entries(this.node.properties).filter(([key]) => JourneyHandler.STRUCTURAL_PROPS.includes(key)),
+      Object.entries(this.node.properties).filter(
+        ([key]) => JourneyHandler.STRUCTURAL_PROPS_SET.has(key) && !JourneyHandler.EXCLUDED_PROPS.has(key),
+      ),
     )
   }
 }

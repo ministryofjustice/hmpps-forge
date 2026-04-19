@@ -1,4 +1,4 @@
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { AccessHookResult } from '../../nodes/hooks/access/AccessHandler'
@@ -7,6 +7,10 @@ import { SubmitHookResult } from '../../nodes/hooks/submit/SubmitHandler'
 import { AccessHookASTNode } from '../../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+
+interface AccessRuntimeInputs {
+  accessAncestorIds: NodeId[]
+}
 
 /**
  * HookExecutor - Runs lifecycle hooks for form steps
@@ -37,7 +41,7 @@ export default class HookExecutor {
    * @returns The first halting result (redirect/error), or 'continue' if all ancestors pass
    */
   async executeAccessLifecycle(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: AccessRuntimeInputs,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<AccessHookResult> {

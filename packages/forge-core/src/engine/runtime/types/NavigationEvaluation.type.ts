@@ -5,13 +5,17 @@ export interface NavigationStepState {
   routeTemplatePath: string
   code?: string
   isEntryPoint: boolean
+  isConditionalEntry: boolean
   isReachable: boolean
   isValid: boolean
   forwardRouteTemplatePaths: string[]
   predecessorRouteTemplatePaths: string[]
+  tieBreakerPriority?: number
 }
 
 export interface NavigationEvaluation {
-  currentStepId: NodeId
+  currentStepId: NodeId | undefined
   steps: NavigationStepState[]
+  redirectTargetRouteTemplatePath: string | undefined
+  resumeActive: boolean
 }

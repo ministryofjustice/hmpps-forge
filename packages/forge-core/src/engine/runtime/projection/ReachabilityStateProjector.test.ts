@@ -11,6 +11,7 @@ describe('ReachabilityStateProjector', () => {
       stepId: 'compile_ast:40',
       routeTemplatePath: '/journey/step-a',
       isEntryPoint: false,
+      isConditionalEntry: false,
       isReachable: true,
       isValid: true,
       forwardRouteTemplatePaths: [],
@@ -19,9 +20,19 @@ describe('ReachabilityStateProjector', () => {
     }
   }
 
+  function createEvaluation(overrides: Partial<NavigationEvaluation>): NavigationEvaluation {
+    return {
+      currentStepId: undefined,
+      steps: [],
+      redirectTargetRouteTemplatePath: undefined,
+      resumeActive: false,
+      ...overrides,
+    }
+  }
+
   it('should omit fieldCodes when no field blocks exist', () => {
     // Arrange
-    const evaluation: NavigationEvaluation = {
+    const evaluation = createEvaluation({
       currentStepId: 'compile_ast:40',
       steps: [
         createNavigationStep({
@@ -29,7 +40,7 @@ describe('ReachabilityStateProjector', () => {
           isEntryPoint: true,
         }),
       ],
-    }
+    })
 
     const fieldInventory: StepFieldInventory[] = [{ stepId: 'compile_ast:40', fieldCodes: [], cleardownFieldCodes: [] }]
     const artifacts = new RuntimeArtifacts()
@@ -46,7 +57,7 @@ describe('ReachabilityStateProjector', () => {
 
   it('should project cleardown field codes for reachable steps', () => {
     // Arrange
-    const evaluation: NavigationEvaluation = {
+    const evaluation = createEvaluation({
       currentStepId: 'compile_ast:42',
       steps: [
         createNavigationStep({
@@ -60,7 +71,7 @@ describe('ReachabilityStateProjector', () => {
           isReachable: false,
         }),
       ],
-    }
+    })
 
     const fieldInventory: StepFieldInventory[] = [
       { stepId: 'compile_ast:42', fieldCodes: [], cleardownFieldCodes: ['fieldA', '^task_\\d+$'] },
@@ -81,7 +92,7 @@ describe('ReachabilityStateProjector', () => {
 
   it('should project back path when a step has a single predecessor', () => {
     // Arrange
-    const evaluation: NavigationEvaluation = {
+    const evaluation = createEvaluation({
       currentStepId: 'compile_ast:54',
       steps: [
         createNavigationStep({
@@ -100,7 +111,7 @@ describe('ReachabilityStateProjector', () => {
           predecessorRouteTemplatePaths: ['/journey/second'],
         }),
       ],
-    }
+    })
 
     const fieldInventory: StepFieldInventory[] = [
       { stepId: 'compile_ast:50', fieldCodes: [], cleardownFieldCodes: [] },
@@ -127,7 +138,7 @@ describe('ReachabilityStateProjector', () => {
 
   it('should omit back path when a step has multiple predecessors', () => {
     // Arrange
-    const evaluation: NavigationEvaluation = {
+    const evaluation = createEvaluation({
       currentStepId: 'compile_ast:59',
       steps: [
         createNavigationStep({
@@ -136,7 +147,7 @@ describe('ReachabilityStateProjector', () => {
           predecessorRouteTemplatePaths: ['/journey/branch-a', '/journey/branch-b'],
         }),
       ],
-    }
+    })
 
     const fieldInventory: StepFieldInventory[] = [{ stepId: 'compile_ast:59', fieldCodes: [], cleardownFieldCodes: [] }]
     const artifacts = new RuntimeArtifacts()

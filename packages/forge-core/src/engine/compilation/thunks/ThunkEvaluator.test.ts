@@ -300,7 +300,7 @@ describe('ThunkEvaluator', () => {
       // Assert
       expect(result.value).toBe(42)
       expect(result.error).toBeUndefined()
-      expect(result.metadata.source).toBe('handler')
+      expect(result.metadata!.source).toBe('handler')
       expect(mockHandler.evaluate).toHaveBeenCalledWith(
         mockContext,
         evaluator,

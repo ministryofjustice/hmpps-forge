@@ -5,7 +5,14 @@ import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
 import { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { BlockDefinition, ConditionalString, FieldBlockDefinition } from '../../components/types/structures.type'
-import { JourneyDefinition, StepDefinition, ValidationExpr, ValidationProps } from '../types/structures.type'
+import {
+  JourneyDefinition,
+  StepDefinition,
+  TieBreaker,
+  TieBreakerProps,
+  ValidationExpr,
+  ValidationProps,
+} from '../types/structures.type'
 import {
   AccessHook,
   ActionHook,
@@ -146,6 +153,21 @@ export function validation(definition: ValidationProps): ValidationExpr {
     ...definition,
     type: ExpressionType.VALIDATION,
   }) as ValidationExpr
+}
+
+/**
+ * Creates a tie-breaker rule for a step. Add to `reachability.tieBreakers` —
+ * entries are evaluated top-to-bottom and the first matching `when` (or an
+ * entry with no `when`) supplies the step's priority.
+ *
+ * @example
+ * tieBreaker({ priority: 100, when: Answer('income_started').match(true) })
+ */
+export function tieBreaker(definition: TieBreakerProps): TieBreaker {
+  return finaliseBuilders({
+    ...definition,
+    type: ExpressionType.TIE_BREAKER,
+  }) as TieBreaker
 }
 
 /**

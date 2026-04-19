@@ -4,20 +4,24 @@ export default class RedirectResolver {
   resolve(evaluation: NavigationEvaluation): string | undefined {
     const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
 
-    if (!currentStep || currentStep.isReachable) {
+    if (!currentStep) {
       return undefined
     }
 
-    const blockerPaths = evaluation.steps
-      .filter(step => step.isReachable && !step.isValid)
-      .map(step => step.routeTemplatePath)
+    if (evaluation.resumeActive) {
+      const frontier = evaluation.redirectTargetRouteTemplatePath
 
-    if (blockerPaths.length === 1) {
-      return blockerPaths[0]
+      if (frontier && frontier !== currentStep.routeTemplatePath) {
+        return frontier
+      }
+
+      return undefined
     }
 
-    const reachableEntryPoint = evaluation.steps.find(step => step.isEntryPoint && step.isReachable)
+    if (currentStep.isReachable) {
+      return undefined
+    }
 
-    return reachableEntryPoint?.routeTemplatePath ?? evaluation.steps[0]?.routeTemplatePath
+    return evaluation.redirectTargetRouteTemplatePath
   }
 }

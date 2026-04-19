@@ -4,7 +4,7 @@ import { PredicateXorExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import {PredicateASTNode, XorPredicateASTNode} from '../../../types/predicates.type'
+import { PredicateASTNode, XorPredicateASTNode } from '../../../types/predicates.type'
 
 /**
  * XorFactory: Creates Xor predicate AST nodes

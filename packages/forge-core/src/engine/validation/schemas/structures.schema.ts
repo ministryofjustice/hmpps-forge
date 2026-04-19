@@ -127,6 +127,25 @@ export const SubmitHookSchema = z.object({
     .optional(),
 })
 
+const TieBreakerSchema = z.looseObject({
+  type: z.literal(ExpressionType.TIE_BREAKER),
+  priority: z.number(),
+  when: PredicateExprSchema.optional(),
+})
+
+const StepReachabilitySchema = z
+  .object({
+    entryWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    tieBreakers: z.array(TieBreakerSchema).optional(),
+  })
+  .optional()
+
+const JourneyReachabilitySchema = z
+  .object({
+    resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+  })
+  .optional()
+
 /**
  * @see {@link StepDefinition}
  */
@@ -139,7 +158,7 @@ export const StepSchema = z.looseObject({
   onSubmission: z.array(SubmitHookSchema).optional(),
   title: z.string(),
   view: ViewConfigSchema.optional(),
-  isEntryPoint: z.boolean().optional(),
+  reachability: StepReachabilitySchema,
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -159,8 +178,8 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     title: z.string(),
     description: z.string().optional(),
     view: ViewConfigSchema.optional(),
-    entryPath: z.string().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
     data: z.record(z.string(), z.unknown()).optional(),
+    reachability: JourneyReachabilitySchema,
   }),
 )

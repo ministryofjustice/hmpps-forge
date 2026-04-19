@@ -4,7 +4,7 @@ import { PredicateAndExpr } from '../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
-import {AndPredicateASTNode, PredicateASTNode} from '../../../types/predicates.type'
+import { AndPredicateASTNode, PredicateASTNode } from '../../../types/predicates.type'
 
 /**
  * AndFactory: Creates And predicate AST nodes

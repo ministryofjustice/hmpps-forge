@@ -11,6 +11,7 @@ import {
   isValidationExprNode,
   isConditionalExprNode,
   isMatchExprNode,
+  isTieBreakerExprNode,
 } from '../../typeguards/expression-nodes'
 import { isAccessHookNode, isActionHookNode, isSubmitHookNode } from '../../typeguards/hook-nodes'
 import { ThunkHandler, MetadataComputationDependencies } from './types'
@@ -62,6 +63,7 @@ import AnswerRemoteHandler from '../../nodes/pseudo-nodes/answer-remote/AnswerRe
 import PipelineHandler from '../../nodes/expressions/pipeline/PipelineHandler'
 import FormatHandler from '../../nodes/expressions/format/FormatHandler'
 import ValidationHandler from '../../nodes/expressions/validation/ValidationHandler'
+import TieBreakerHandler from '../../nodes/expressions/tie-breaker/TieBreakerHandler'
 import RedirectOutcomeHandler from '../../nodes/outcomes/redirect/RedirectOutcomeHandler'
 import ThrowErrorOutcomeHandler from '../../nodes/outcomes/throw-error/ThrowErrorOutcomeHandler'
 
@@ -296,6 +298,10 @@ export default class ThunkCompilerFactory {
       return new ValidationHandler(nodeId, node)
     }
 
+    if (isTieBreakerExprNode(node)) {
+      return new TieBreakerHandler(nodeId, node)
+    }
+
     // Outcome nodes (REDIRECT, THROW_ERROR)
     if (isRedirectOutcomeNode(node)) {
       return new RedirectOutcomeHandler(nodeId, node)
@@ -347,6 +353,7 @@ export default class ThunkCompilerFactory {
       'FUNCTION',
       'NEXT',
       'VALIDATION',
+      'TIE_BREAKER',
       'OUTCOME',
       'ACCESS',
       'ACTION',

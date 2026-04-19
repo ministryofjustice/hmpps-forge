@@ -165,6 +165,19 @@ export interface ValidationASTNode extends ExpressionASTNode {
 }
 
 /**
+ * Tie-breaker Expression AST node - one prioritised rule inside a step's
+ * `reachability.tieBreakers` list. The `when` predicate (when present) decides
+ * whether this priority applies to the owning step.
+ */
+export interface TieBreakerASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.TIE_BREAKER
+  properties: {
+    priority: number
+    when?: ASTNode
+  }
+}
+
+/**
  * Hook AST node - represents lifecycle hooks
  */
 export interface HookASTNode extends ASTNode {

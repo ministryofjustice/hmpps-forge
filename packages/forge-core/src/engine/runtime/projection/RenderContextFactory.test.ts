@@ -335,6 +335,7 @@ describe('RenderContextFactory', () => {
           ),
         ],
         currentStepPath: '/journey/child/step',
+        params: {},
       }
 
       // Act

@@ -261,6 +261,7 @@ describe('StepController', () => {
             path: stepNode.properties.path.replace(/^\//, ''),
             code: stepNode.properties.code,
             isEntryPoint: true,
+            entryWhenNodeId: undefined,
             forwardOutcomeIds: [],
             hasValidation: false,
             cleardownFieldCodes: [],
@@ -268,8 +269,10 @@ describe('StepController', () => {
             validationIterateNodeIds: [],
             validationBlockIds: [],
             domainValidationNodeIds: [],
+            reachabilityTieBreakers: [],
           },
         ],
+        resumeAlways: false,
       },
     }
   }
@@ -688,6 +691,7 @@ describe('StepController', () => {
               path: 'step-1',
               code: 'test-step',
               isEntryPoint: true,
+              entryWhenNodeId: undefined,
               forwardOutcomeIds: [],
               hasValidation: false,
               cleardownFieldCodes: [],
@@ -695,8 +699,10 @@ describe('StepController', () => {
               validationIterateNodeIds: [],
               validationBlockIds: [],
               domainValidationNodeIds: [],
+              reachabilityTieBreakers: [],
             },
           ],
+          resumeAlways: false,
         }
 
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {

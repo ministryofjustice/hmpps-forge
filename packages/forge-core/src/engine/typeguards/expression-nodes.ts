@@ -9,6 +9,7 @@ import {
   MatchASTNode,
   PipelineASTNode,
   ReferenceASTNode,
+  TieBreakerASTNode,
   ValidationASTNode,
 } from '../types/expressions.type'
 
@@ -45,6 +46,13 @@ export function isPipelineExprNode(obj: any): obj is PipelineASTNode {
  */
 export function isValidationExprNode(obj: any): obj is ValidationASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.VALIDATION
+}
+
+/**
+ * Check if an AST node is a Tie-breaker Expression node
+ */
+export function isTieBreakerExprNode(obj: any): obj is TieBreakerASTNode {
+  return isExpressionNode(obj) && obj.expressionType === ExpressionType.TIE_BREAKER
 }
 
 /**

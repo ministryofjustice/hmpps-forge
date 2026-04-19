@@ -1,7 +1,11 @@
-import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import { NodeId } from '../../types/engine.type'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
 import { PseudoNodeType } from '../../types/pseudoNodes.type'
+
+interface AnswerRuntimeInputs {
+  fieldIteratorRootIds: NodeId[]
+}
 
 /**
  * AnswerPreparer - Materialises runtime field nodes and resolves answer pseudo nodes
@@ -12,7 +16,7 @@ import { PseudoNodeType } from '../../types/pseudoNodes.type'
 export default class AnswerPreparer {
 
   async prepare(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: AnswerRuntimeInputs,
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<void> {
@@ -22,7 +26,7 @@ export default class AnswerPreparer {
   }
 
   private async expandFieldIterators(
-    fieldIteratorRootIds: StepRuntimePlan['fieldIteratorRootIds'],
+    fieldIteratorRootIds: NodeId[],
     invoker: ThunkInvocationAdapter,
     context: ThunkEvaluationContext,
   ): Promise<void> {

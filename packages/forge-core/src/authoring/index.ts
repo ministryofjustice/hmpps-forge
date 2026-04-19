@@ -15,7 +15,11 @@ export { StructureType, BlockType } from './types/enums'
 
 export type {
   JourneyDefinition,
+  JourneyReachability,
+  StepReachability,
   StepDefinition,
+  TieBreaker,
+  TieBreakerProps,
   ValidationExpr,
   ValidationProps,
   ViewConfig,

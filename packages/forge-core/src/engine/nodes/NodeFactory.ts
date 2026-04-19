@@ -7,6 +7,7 @@ import {
   isFormatExpr,
   isPipelineExpr,
   isIterateExpr,
+  isTieBreaker,
   isValidationExpr,
   isRedirectOutcome,
   isThrowErrorOutcome,
@@ -43,6 +44,7 @@ import FormatFactory from './expressions/format/FormatFactory'
 import PipelineFactory from './expressions/pipeline/PipelineFactory'
 import IterateFactory from './expressions/iterate/IterateFactory'
 import ValidationFactory from './expressions/validation/ValidationFactory'
+import TieBreakerFactory from './expressions/tie-breaker/TieBreakerFactory'
 import FunctionFactory from './expressions/function/FunctionFactory'
 import RedirectOutcomeFactory from './outcomes/redirect/RedirectOutcomeFactory'
 import ThrowErrorOutcomeFactory from './outcomes/throw-error/ThrowErrorOutcomeFactory'
@@ -90,6 +92,8 @@ export class NodeFactory {
 
   private readonly validationFactory: ValidationFactory
 
+  private readonly tieBreakerFactory: TieBreakerFactory
+
   private readonly functionFactory: FunctionFactory
 
   private readonly redirectOutcomeFactory: RedirectOutcomeFactory
@@ -118,6 +122,7 @@ export class NodeFactory {
     this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this, this.category)
     this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this, this.category)
     this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
+    this.tieBreakerFactory = new TieBreakerFactory(this.nodeIDGenerator, this, this.category)
     this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this, this.category)
     this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this, this.category)
     this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this, this.category)
@@ -198,6 +203,10 @@ export class NodeFactory {
 
     if (isValidationExpr(json)) {
       return this.validationFactory.create(json)
+    }
+
+    if (isTieBreaker(json)) {
+      return this.tieBreakerFactory.create(json)
     }
 
     if (isFunctionExpr(json)) {

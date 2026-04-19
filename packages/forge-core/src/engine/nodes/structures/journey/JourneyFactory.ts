@@ -1,9 +1,10 @@
 import { ASTNodeType } from '../../../types/enums'
-import { JourneyASTNode } from '../../../types/structures.type'
+import { JourneyASTNode, JourneyReachabilityAST } from '../../../types/structures.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
+import { isExpression } from '../../../../authoring/typeguards/expressions'
 
 /**
  * JourneyFactory: Creates Journey AST nodes
@@ -77,16 +78,27 @@ export default class JourneyFactory {
       properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
-    if (dataProperties.entryPath !== undefined) {
-      properties.entryPath = dataProperties.entryPath
-    }
-
     if (dataProperties.metadata !== undefined) {
       properties.metadata = dataProperties.metadata
     }
 
     if (dataProperties.data !== undefined) {
       properties.data = dataProperties.data
+    }
+
+    if (dataProperties.reachability !== undefined) {
+      const { resumeWhen } = dataProperties.reachability
+      const reachability: JourneyReachabilityAST = {}
+
+      if (resumeWhen === true) {
+        reachability.resumeWhen = true
+      }
+
+      if (isExpression(resumeWhen)) {
+        reachability.resumeWhen = this.nodeFactory.createNode(resumeWhen)
+      }
+
+      properties.reachability = reachability
     }
 
     return {

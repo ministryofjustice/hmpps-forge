@@ -48,6 +48,7 @@ function createIterate(id: AstNodeId, yieldTemplate?: TemplateValue): IterateAST
 function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {}): StepRuntimePlan {
   return {
     stepId,
+    path: '/step',
     accessAncestorIds: [stepId],
     actionHookIds: [],
     submitHookIds: [],

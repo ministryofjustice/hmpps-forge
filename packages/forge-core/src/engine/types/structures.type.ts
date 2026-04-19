@@ -1,12 +1,24 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ASTNode } from './ast.type'
-import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode, ValidationASTNode } from './expressions.type'
+import {
+  AccessHookASTNode,
+  ActionHookASTNode,
+  SubmitHookASTNode,
+  TieBreakerASTNode,
+  ValidationASTNode,
+} from './expressions.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
-/**
- * Journey AST node - represents the top-level form journey
- */
+export interface JourneyReachabilityAST {
+  resumeWhen?: true | ASTNode
+}
+
+export interface StepReachabilityAST {
+  entryWhen?: true | ASTNode
+  tieBreakers?: TieBreakerASTNode[]
+}
+
 export interface JourneyASTNode extends ASTNode {
   type: ASTNodeType.JOURNEY
   properties: {
@@ -19,15 +31,12 @@ export interface JourneyASTNode extends ASTNode {
     description?: string
     version?: string
     view?: ViewConfig
-    entryPath?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>
+    reachability?: JourneyReachabilityAST
   }
 }
 
-/**
- * Step AST node - represents a single page/step in the journey
- */
 export interface StepASTNode extends ASTNode {
   type: ASTNodeType.STEP
   properties: {
@@ -40,7 +49,7 @@ export interface StepASTNode extends ASTNode {
     title: string
     description?: string
     view?: ViewConfig
-    isEntryPoint?: boolean
+    reachability?: StepReachabilityAST
     backlink?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>

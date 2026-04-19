@@ -82,6 +82,7 @@ function setupExecutor(step: StepASTNode): {
 function createRuntimePlan(step: StepASTNode, options: Partial<StepRuntimePlan> = {}): StepRuntimePlan {
   return {
     stepId: step.id,
+    path: step.properties.path,
     accessAncestorIds: [step.id],
     actionHookIds: (step.properties.onAction ?? []).map(hook => hook.id),
     submitHookIds: (step.properties.onSubmission ?? []).map(hook => hook.id),

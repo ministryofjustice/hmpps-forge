@@ -1,17 +1,19 @@
 import { JourneyInstanceDependencies, NodeId, CompileAstNodeId } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
-import { FrameworkAdapter, FrameworkAdapterBuilder } from '../../../framework/types/adapter.type'
+import { FrameworkAdapter, FrameworkAdapterBuilder } from '../../../framework'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { ASTNodeType } from '../../types/enums'
-import { StructureType } from '../../../authoring/types/enums'
-import type { JourneyDefinition } from '../../../authoring/types/structures.type'
+import { StructureType } from '../../../authoring'
+import type { JourneyDefinition } from '../../../authoring'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import JourneyInstance from '../../JourneyInstance'
 import StepController from './StepController'
-import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import JourneyController from './JourneyController'
+import { JourneyRuntimePlan, StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ForgeRouter from './ForgeRouter'
 
 vi.mock('./StepController')
+vi.mock('./JourneyController')
 
 describe('ForgeRouter', () => {
   let router: ForgeRouter<unknown>
@@ -23,17 +25,26 @@ describe('ForgeRouter', () => {
   let mockMainRouter: unknown
   let mockControllerGet: Mock
   let mockControllerPost: Mock
+  let mockJourneyControllerGet: Mock
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockControllerGet = vi.fn().mockResolvedValue(undefined)
     mockControllerPost = vi.fn().mockResolvedValue(undefined)
+    mockJourneyControllerGet = vi.fn().mockResolvedValue(undefined)
     ;(StepController as unknown as MockedClass<typeof StepController>).mockImplementation(
       function mockStepControllerCtor() {
         return {
           get: mockControllerGet,
           post: mockControllerPost,
         } as unknown as StepController<unknown, unknown>
+      },
+    )
+    ;(JourneyController as unknown as MockedClass<typeof JourneyController>).mockImplementation(
+      function mockJourneyControllerCtor() {
+        return {
+          get: mockJourneyControllerGet,
+        } as unknown as JourneyController<unknown, unknown>
       },
     )
 
@@ -46,7 +57,6 @@ describe('ForgeRouter', () => {
       post: vi.fn(),
       toStepRequest: vi.fn(),
       redirect: vi.fn(),
-      registerRedirect: vi.fn(),
       forwardError: vi.fn(),
       render: vi.fn().mockResolvedValue(undefined),
     } as unknown as Mocked<FrameworkAdapter<unknown, unknown, unknown>>
@@ -88,7 +98,12 @@ describe('ForgeRouter', () => {
     }
   }
 
-  function createMockJourneyNode(id: CompileAstNodeId, path: string, code: string): JourneyASTNode {
+  function createMockJourneyNode(
+    id: CompileAstNodeId,
+    path: string,
+    code: string,
+    steps?: StepASTNode[],
+  ): JourneyASTNode {
     return {
       type: ASTNodeType.JOURNEY,
       id,
@@ -96,6 +111,7 @@ describe('ForgeRouter', () => {
         path,
         code,
         title: `Journey ${code}`,
+        steps,
       },
     }
   }
@@ -127,7 +143,7 @@ describe('ForgeRouter', () => {
       }),
     }
 
-    return { nodeRegistry, metadataRegistry }
+    return { nodeRegistry, metadataRegistry, journeyNodes }
   }
 
   function createMockJourneyInstance(
@@ -141,7 +157,7 @@ describe('ForgeRouter', () => {
 
       return {
         ...compiled,
-        reachabilityPlan: { entries: [] },
+        reachabilityPlan: { entries: [], resumeAlways: false },
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
@@ -196,6 +212,14 @@ describe('ForgeRouter', () => {
       },
     }
 
+    const journeyRuntimePlanMock: JourneyRuntimePlan = {
+      journeyId: 'compile_ast:journey' as NodeId,
+      path: '/mock',
+      accessAncestorIds: [],
+      fieldIteratorRootIds: [],
+      reachabilityPlan: { entries: [], resumeAlways: false },
+    }
+
     return {
       getCompiledForm: vi.fn().mockReturnValue(compiledSteps),
       getCompiledStep: vi.fn().mockImplementation((stepId: NodeId) => {
@@ -208,6 +232,13 @@ describe('ForgeRouter', () => {
         return compiledStep
       }),
       getStepIndex: vi.fn().mockImplementation(() => new Map(stepIndex)),
+      getJourneyIndex: vi.fn().mockImplementation(() => {
+        const allJourneyNodes = compiledSteps.flatMap(c => c.artefact.journeyNodes ?? [])
+        const uniqueJourneys = new Map(allJourneyNodes.map((j: JourneyASTNode) => [j.id, j]))
+
+        return new Map(uniqueJourneys)
+      }),
+      getJourneyRuntimePlan: vi.fn().mockReturnValue(journeyRuntimePlanMock),
       getSharedCompilationArtefact: vi.fn().mockReturnValue(sharedArtefact),
       getConfiguration: vi.fn().mockReturnValue(config),
       getJourneyCode: vi.fn().mockReturnValue(config.code),
@@ -723,9 +754,11 @@ describe('ForgeRouter', () => {
 
       // Assert
       const routes = router.getRegisteredRoutes()
-      expect(routes).toHaveLength(4)
+      expect(routes).toHaveLength(6)
+      expect(routes).toContainEqual({ method: 'GET', path: '/form-one' })
       expect(routes).toContainEqual({ method: 'GET', path: '/form-one/start' })
       expect(routes).toContainEqual({ method: 'POST', path: '/form-one/start' })
+      expect(routes).toContainEqual({ method: 'GET', path: '/form-two' })
       expect(routes).toContainEqual({ method: 'GET', path: '/form-two/begin' })
       expect(routes).toContainEqual({ method: 'POST', path: '/form-two/begin' })
     })
@@ -772,38 +805,11 @@ describe('ForgeRouter', () => {
     })
   })
 
-  describe('journey redirect handling', () => {
-    it('should register redirect when entryPath is defined', () => {
+  describe('journey resume handling', () => {
+    it('should register a dynamic GET handler at / when the journey has direct steps', () => {
       // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      journeyNode.properties.entryPath = '/first-step'
-      const stepNode = createMockStepNode('compile_ast:2', '/first-step')
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        entryPath: '/first-step',
-        steps: [{ type: StructureType.STEP, path: '/first-step', title: 'First Step' }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/journey/first-step')
-    })
-
-    it('should register redirect to step with isEntryPoint when entryPath not defined', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
       const stepNode = createMockStepNode('compile_ast:2', '/entry')
-      stepNode.properties.isEntryPoint = true
-      journeyNode.properties.steps = [stepNode]
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey', [stepNode])
       const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
 
       const config: JourneyDefinition = {
@@ -811,7 +817,7 @@ describe('ForgeRouter', () => {
         path: '/journey',
         code: 'test-journey',
         title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/entry', title: 'Entry Step', isEntryPoint: true }],
+        steps: [{ type: StructureType.STEP, path: '/entry', title: 'Entry Step' }],
       }
 
       const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
@@ -820,13 +826,42 @@ describe('ForgeRouter', () => {
       router.mount(journeyInstance)
 
       // Assert
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/journey/entry')
+      const rootHandlerCall = mockFrameworkAdapter.get.mock.calls.find(call => call[1] === '/')
+      expect(rootHandlerCall).toBeDefined()
+      expect(router.getRegisteredRoutes()).toContainEqual({ method: 'GET', path: '/journey' })
     })
 
-    it('should not register redirect when no entry point defined', () => {
+    it('should not register a resume handler when a step already claims path "/"', () => {
+      // Arrange — a step at '/' owns the journey root, so auto-resume must
+      // stand down to avoid an infinite redirect loop.
+      const rootStep = createMockStepNode('compile_ast:2', '/')
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey', [rootStep])
+      const artefact = createMockArtefact(rootStep, [journeyNode], [journeyNode.id, rootStep.id])
+
+      const config: JourneyDefinition = {
+        type: StructureType.JOURNEY,
+        path: '/journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
+      }
+
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: rootStep.id }], config)
+
+      // Act
+      router.mount(journeyInstance)
+
+      // Assert — the only GET at '/' on this router comes from the step itself,
+      // registered by mountStep; the resume handler must not also register.
+      const rootHandlerCalls = mockFrameworkAdapter.get.mock.calls.filter(call => call[1] === '/')
+      expect(rootHandlerCalls).toHaveLength(1)
+      expect(JourneyController).not.toHaveBeenCalled()
+    })
+
+    it('should lazily construct the JourneyController on the first request and reuse it', async () => {
       // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/step')
+      const stepNode = createMockStepNode('compile_ast:2', '/entry')
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey', [stepNode])
       const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
 
       const config: JourneyDefinition = {
@@ -834,7 +869,7 @@ describe('ForgeRouter', () => {
         path: '/journey',
         code: 'test-journey',
         title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
+        steps: [{ type: StructureType.STEP, path: '/entry', title: 'Entry Step' }],
       }
 
       const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
@@ -842,23 +877,36 @@ describe('ForgeRouter', () => {
       // Act
       router.mount(journeyInstance)
 
-      // Assert
-      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
+      // Assert - no controller construction at mount time
+      expect(JourneyController).not.toHaveBeenCalled()
+
+      const rootHandler = mockFrameworkAdapter.get.mock.calls.find(call => call[1] === '/')?.[2] as (
+        req: unknown,
+        res: unknown,
+      ) => Promise<void>
+
+      await rootHandler({}, {})
+
+      // Assert - first request triggers construction and dispatch
+      expect(JourneyController).toHaveBeenCalledTimes(1)
+      expect(mockJourneyControllerGet).toHaveBeenCalledTimes(1)
+
+      await rootHandler({}, {})
+
+      // Assert - second request reuses the controller
+      expect(JourneyController).toHaveBeenCalledTimes(1)
+      expect(mockJourneyControllerGet).toHaveBeenCalledTimes(2)
     })
 
-    it('should handle nested journey redirects', () => {
+    it('should not register a resume handler for a journey with no direct steps', () => {
       // Arrange
       const parentJourney = createMockJourneyNode('compile_ast:1', '/parent', 'parent-journey')
-      parentJourney.properties.entryPath = '/first'
-
-      const childJourney = createMockJourneyNode('compile_ast:2', '/child', 'child-journey')
-      childJourney.properties.entryPath = '/nested'
-
-      const stepNode = createMockStepNode('compile_ast:3', '/nested')
+      const childStep = createMockStepNode('compile_ast:3', '/nested')
+      const childJourney = createMockJourneyNode('compile_ast:2', '/child', 'child-journey', [childStep])
       const artefact = createMockArtefact(
-        stepNode,
+        childStep,
         [parentJourney, childJourney],
-        [parentJourney.id, childJourney.id, stepNode.id],
+        [parentJourney.id, childJourney.id, childStep.id],
       )
 
       const config: JourneyDefinition = {
@@ -866,169 +914,84 @@ describe('ForgeRouter', () => {
         path: '/parent',
         code: 'parent-journey',
         title: 'Parent Journey',
-        entryPath: '/first',
         children: [
           {
             type: StructureType.JOURNEY,
             path: '/child',
             code: 'child-journey',
             title: 'Child Journey',
-            entryPath: '/nested',
             steps: [{ type: StructureType.STEP, path: '/nested', title: 'Nested Step' }],
           },
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: childStep.id }], config)
+      ;(journeyInstance.getJourneyRuntimePlan as Mock).mockImplementation((journeyId: NodeId) => {
+        if (journeyId === childJourney.id) {
+          return {
+            journeyId,
+            path: '/child',
+            accessAncestorIds: [],
+            fieldIteratorRootIds: [],
+            reachabilityPlan: { entries: [], resumeAlways: false },
+          }
+        }
+
+        return undefined
+      })
 
       // Act
       router.mount(journeyInstance)
 
-      // Assert - both journey routers should have redirect handlers
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledTimes(2)
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/parent/first')
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/parent/child/nested')
+      // Assert - only one '/' GET (from child journey), parent has no resume handler
+      const rootHandlerCalls = mockFrameworkAdapter.get.mock.calls.filter(call => call[1] === '/')
+      expect(rootHandlerCalls).toHaveLength(1)
     })
 
-    it('should prefer entryPath over isEntryPoint step', () => {
+    it('should register separate resume handlers for nested journeys that each have direct steps', () => {
       // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      journeyNode.properties.entryPath = '/explicit-entry'
-
-      const entryPointStep = createMockStepNode('compile_ast:2', '/entry-point')
-      entryPointStep.properties.isEntryPoint = true
-
-      const explicitStep = createMockStepNode('compile_ast:3', '/explicit-entry')
-      journeyNode.properties.steps = [entryPointStep, explicitStep]
-
-      const artefact = createMockArtefact(entryPointStep, [journeyNode], [journeyNode.id, entryPointStep.id])
+      const parentStep = createMockStepNode('compile_ast:3', '/parent-entry')
+      const parentJourney = createMockJourneyNode('compile_ast:1', '/parent', 'parent-journey', [parentStep])
+      const childStep = createMockStepNode('compile_ast:4', '/nested')
+      const childJourney = createMockJourneyNode('compile_ast:2', '/child', 'child-journey', [childStep])
+      const artefactParent = createMockArtefact(parentStep, [parentJourney], [parentJourney.id, parentStep.id])
+      const artefactChild = createMockArtefact(
+        childStep,
+        [parentJourney, childJourney],
+        [parentJourney.id, childJourney.id, childStep.id],
+      )
 
       const config: JourneyDefinition = {
         type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        entryPath: '/explicit-entry',
-        steps: [
-          { type: StructureType.STEP, path: '/entry-point', title: 'Entry Point Step', isEntryPoint: true },
-          { type: StructureType.STEP, path: '/explicit-entry', title: 'Explicit Entry' },
+        path: '/parent',
+        code: 'parent-journey',
+        title: 'Parent Journey',
+        steps: [{ type: StructureType.STEP, path: '/parent-entry', title: 'Parent Entry' }],
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child-journey',
+            title: 'Child Journey',
+            steps: [{ type: StructureType.STEP, path: '/nested', title: 'Nested Step' }],
+          },
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: entryPointStep.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert - should redirect to entryPath, not isEntryPoint step
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(
-        expect.anything(),
-        '/',
-        '/journey/explicit-entry',
+      const journeyInstance = createMockJourneyInstance(
+        [
+          { artefact: artefactParent, currentStepId: parentStep.id },
+          { artefact: artefactChild, currentStepId: childStep.id },
+        ],
+        config,
       )
-    })
-
-    it('should not register redirect when entry step path is / (would redirect to self)', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/')
-      stepNode.properties.isEntryPoint = true
-      journeyNode.properties.steps = [stepNode]
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step', isEntryPoint: true }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
 
-      // Assert
-      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
-    })
-
-    it('should not register redirect when entryPath is /', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      journeyNode.properties.entryPath = '/'
-      const stepNode = createMockStepNode('compile_ast:2', '/')
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        entryPath: '/',
-        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert
-      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
-    })
-
-    it('should register correct fullPath when journey is at root with step at /', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/', 'root-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/')
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/',
-        code: 'root-journey',
-        title: 'Root Journey',
-        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert
-      const routes = router.getRegisteredRoutes()
-      expect(routes).toContainEqual({ method: 'GET', path: '/' })
-      expect(routes).toContainEqual({ method: 'POST', path: '/' })
-      expect(mockFrameworkAdapter.registerRedirect).not.toHaveBeenCalled()
-    })
-
-    it('should register redirect for root journey with non-root entry step', () => {
-      // Arrange
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/', 'root-journey')
-      const stepNode = createMockStepNode('compile_ast:2', '/home')
-      stepNode.properties.isEntryPoint = true
-      journeyNode.properties.steps = [stepNode]
-      const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/',
-        code: 'root-journey',
-        title: 'Root Journey',
-        steps: [{ type: StructureType.STEP, path: '/home', title: 'Home', isEntryPoint: true }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(expect.anything(), '/', '/home')
-      const routes = router.getRegisteredRoutes()
-      expect(routes).toContainEqual({ method: 'GET', path: '/home' })
+      // Assert - two GET '/' registrations (one per journey router)
+      const rootHandlerCalls = mockFrameworkAdapter.get.mock.calls.filter(call => call[1] === '/')
+      expect(rootHandlerCalls).toHaveLength(2)
     })
   })
 
@@ -1097,7 +1060,7 @@ describe('ForgeRouter', () => {
       expect(metadata[0].children[0]).toEqual({ title: 'Step One', path: '/forms/journey/step-one' })
     })
 
-    it('should include basePath in redirect paths', () => {
+    it('should register the journey resume handler under basePath', () => {
       // Arrange
       const optionsWithBasePath: ForgeOptions = {
         ...mockOptions,
@@ -1106,9 +1069,8 @@ describe('ForgeRouter', () => {
 
       const routerWithBasePath = new ForgeRouter(mockDependencies, optionsWithBasePath)
 
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey')
-      journeyNode.properties.entryPath = '/first-step'
       const stepNode = createMockStepNode('compile_ast:2', '/first-step')
+      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey', [stepNode])
       const artefact = createMockArtefact(stepNode, [journeyNode], [journeyNode.id, stepNode.id])
 
       const config: JourneyDefinition = {
@@ -1116,7 +1078,6 @@ describe('ForgeRouter', () => {
         path: '/journey',
         code: 'test-journey',
         title: 'Test Journey',
-        entryPath: '/first-step',
         steps: [{ type: StructureType.STEP, path: '/first-step', title: 'First Step' }],
       }
 
@@ -1126,11 +1087,7 @@ describe('ForgeRouter', () => {
       routerWithBasePath.mount(journeyInstance)
 
       // Assert
-      expect(mockFrameworkAdapter.registerRedirect).toHaveBeenCalledWith(
-        expect.anything(),
-        '/',
-        '/forms/journey/first-step',
-      )
+      expect(routerWithBasePath.getRegisteredRoutes()).toContainEqual({ method: 'GET', path: '/forms/journey' })
     })
 
     it('should mount first journey router at basePath + journeyPath', () => {

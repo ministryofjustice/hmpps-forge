@@ -1,8 +1,8 @@
 import ValidationTemplateAnalyzer from './analyzers/ValidationTemplateAnalyzer'
 import { normalizeRelativePath } from '../../framework/path/routePath'
-import { NodeId } from '../types/engine.type'
+import { NodeId } from '../types/ast.type'
 import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
-import { FieldBlockASTNode, StepASTNode } from '../types/structures.type'
+import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
 import ASTNodeTree from './node-tree/ASTNodeTree'
@@ -33,6 +33,8 @@ export interface StepRuntimePlan {
 
 export interface ReachabilityRuntimePlan {
   entries: ReachabilityStepEntry[]
+  resumeAlways: boolean
+  resumeWhenNodeId?: NodeId
 }
 
 export interface ReachabilityStepEntry {
@@ -40,6 +42,7 @@ export interface ReachabilityStepEntry {
   path: string
   code?: string
   isEntryPoint: boolean
+  entryWhenNodeId?: NodeId
   forwardOutcomeIds: NodeId[]
   hasValidation: boolean
   cleardownFieldCodes: string[]
@@ -47,6 +50,32 @@ export interface ReachabilityStepEntry {
   validationIterateNodeIds: NodeId[]
   validationBlockIds: NodeId[]
   domainValidationNodeIds: NodeId[]
+  reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
+}
+
+/**
+ * Runtime shape of a tie-breaker rule. `whenNodeId` is the compiled
+ * predicate thunk; when absent, the rule is a catch-all.
+ */
+export interface ReachabilityTieBreakerEntry {
+  priority: number
+  whenNodeId?: NodeId
+}
+
+// ── Journey runtime plan ────────────────────────────────────────────
+
+/**
+ * Runtime plan for a journey as a whole, used when handling the journey root
+ * (e.g. resume). Bundles the journey's access ancestor chain, the field
+ * iterator roots across every direct step (so answers can be prepared before
+ * reachability runs), and the reachability plan shared by the journey's steps.
+ */
+export interface JourneyRuntimePlan {
+  journeyId: NodeId
+  path: string
+  accessAncestorIds: NodeId[]
+  fieldIteratorRootIds: NodeId[]
+  reachabilityPlan: ReachabilityRuntimePlan
 }
 
 // ── Builder ─────────────────────────────────────────────────────────
@@ -76,14 +105,23 @@ export default class RuntimePlanBuilder {
   }
 
   /**
-   * Build a reachability plan for every step, grouped by parent journey.
+   * Build reachability and journey runtime plans in a single pass.
    *
-   * Steps that share the same parent journey share the same plan. Returns a
-   * map from stepId → plan so callers can look up the plan for any step.
+   * Groups steps by parent journey. For each journey that owns direct steps,
+   * builds one immutable `ReachabilityRuntimePlan` (with resume config baked
+   * in) and one `JourneyRuntimePlan`. Returns both as step-keyed and
+   * journey-keyed maps respectively.
    */
-  buildAllReachabilityPlans(stepIndex: Map<NodeId, StepASTNode>): Map<NodeId, ReachabilityRuntimePlan> {
+  buildAllPlans(
+    stepIndex: Map<NodeId, StepASTNode>,
+    journeyIndex: Map<NodeId, JourneyASTNode>,
+  ): {
+    reachabilityPlansByStepId: Map<NodeId, ReachabilityRuntimePlan>
+    journeyRuntimePlans: Map<NodeId, JourneyRuntimePlan>
+  } {
     const journeyStepMap = new Map<NodeId, StepASTNode[]>()
-    const plansByStepId = new Map<NodeId, ReachabilityRuntimePlan>()
+    const reachabilityPlansByStepId = new Map<NodeId, ReachabilityRuntimePlan>()
+    const journeyRuntimePlans = new Map<NodeId, JourneyRuntimePlan>()
 
     stepIndex.forEach((stepNode, stepId) => {
       const ancestors = getAncestorChain(stepId, this.metadataRegistry)
@@ -97,21 +135,47 @@ export default class RuntimePlanBuilder {
       }
     })
 
-    journeyStepMap.forEach(journeySteps => {
-      const plan = this.buildReachabilityPlan(journeySteps)
+    journeyStepMap.forEach((journeySteps, journeyId) => {
+      const journeyNode = journeyIndex.get(journeyId)
+      const reachabilityPlan = this.buildReachabilityPlan(journeySteps, journeyNode)
 
       journeySteps.forEach(stepNode => {
-        plansByStepId.set(stepNode.id, plan)
+        reachabilityPlansByStepId.set(stepNode.id, reachabilityPlan)
       })
+
+      if (journeyNode) {
+        journeyRuntimePlans.set(journeyId, this.buildJourneyRuntimePlan(journeyNode, reachabilityPlan))
+      }
     })
 
-    return plansByStepId
+    return { reachabilityPlansByStepId, journeyRuntimePlans }
   }
 
-  private buildReachabilityPlan(journeySteps: StepASTNode[]): ReachabilityRuntimePlan {
-    const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
+  private buildJourneyRuntimePlan(
+    journeyNode: JourneyASTNode,
+    reachabilityPlan: ReachabilityRuntimePlan,
+  ): JourneyRuntimePlan {
+    return {
+      journeyId: journeyNode.id,
+      path: normalizeRelativePath(journeyNode.properties.path),
+      accessAncestorIds: getAncestorChain(journeyNode.id, this.metadataRegistry),
+      fieldIteratorRootIds: reachabilityPlan.entries.flatMap(entry => entry.fieldIteratorRootIds),
+      reachabilityPlan,
+    }
+  }
 
-    return { entries }
+  private buildReachabilityPlan(
+    journeySteps: StepASTNode[],
+    journeyNode: JourneyASTNode | undefined,
+  ): ReachabilityRuntimePlan {
+    const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
+    const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
+
+    return {
+      entries,
+      resumeAlways: resumeWhen === true,
+      resumeWhenNodeId: resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined,
+    }
   }
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityStepEntry {
@@ -120,11 +184,15 @@ export default class RuntimePlanBuilder {
     const fieldIterateNodeIds = this.findFieldIterateNodeIds(stepId)
     const fieldIteratorRootIds = this.findIteratorRootIds(stepId, fieldIterateNodeIds)
 
+    const reachability = stepNode.properties.reachability
+    const entryWhen = reachability?.entryWhen
+
     return {
       stepId,
       path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
-      isEntryPoint: stepNode.properties.isEntryPoint === true,
+      isEntryPoint: entryWhen === true,
+      entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeIds,
       hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
@@ -132,6 +200,10 @@ export default class RuntimePlanBuilder {
       validationIterateNodeIds: this.findValidationIterateNodeIds(fieldIterateNodeIds),
       validationBlockIds: this.findValidationBlockIds(stepId),
       domainValidationNodeIds: this.findDomainValidationNodeIds(stepNode),
+      reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
+        priority: entry.properties.priority,
+        whenNodeId: entry.properties.when?.id,
+      })),
     }
   }
 

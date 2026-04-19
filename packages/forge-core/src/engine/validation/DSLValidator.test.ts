@@ -8,6 +8,7 @@ import {
   BlockType,
 } from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
+import type { FieldBlockDefinition } from '../../components/types/structures.type'
 import FunctionRegistry from '../registries/FunctionRegistry'
 import ComponentRegistry from '../registries/ComponentRegistry'
 import { buildComponent } from '../../components/utils/buildComponent'
@@ -44,7 +45,7 @@ describe('FormValidator', () => {
         code: 'test-journey',
         title: 'Test Journey',
         steps: [],
-      } as JourneyDefinition
+      } as unknown as JourneyDefinition
 
       expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
 
@@ -68,7 +69,7 @@ describe('FormValidator', () => {
       const invalidJourney = {
         type: StructureType.JOURNEY,
         steps: [],
-      } as JourneyDefinition
+      } as unknown as JourneyDefinition
 
       expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
 
@@ -141,9 +142,9 @@ describe('FormValidator', () => {
                 ],
               },
             ],
-          } as JourneyDefinition,
+          } as unknown as JourneyDefinition,
         ],
-      } as JourneyDefinition
+      } as unknown as JourneyDefinition
 
       expect(() => DSLValidator.validateSchema(brokenJson)).toThrow(AggregateError)
 
@@ -316,10 +317,10 @@ describe('FormValidator', () => {
       const registry = new FunctionRegistry()
 
       if (names.length > 0) {
-        const entries: Record<string, { name: string; evaluate: () => void }> = {}
+        const entries: Record<string, { name: string; evaluate: () => void; isAsync: boolean }> = {}
 
         names.forEach(name => {
-          entries[name] = { name, evaluate: () => {} }
+          entries[name] = { name, evaluate: () => {}, isAsync: false }
         })
 
         registry.register(entries)
@@ -443,7 +444,7 @@ describe('FormValidator', () => {
                     },
                   },
                 ],
-              },
+              } as FieldBlockDefinition,
             ],
           } as StepDefinition,
         ],
@@ -500,7 +501,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateFunctions(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -546,7 +547,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateFunctions(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -575,7 +576,7 @@ describe('FormValidator', () => {
                 code: 'field1',
                 defaultValue: { type: FunctionType.GENERATOR, name: 'missingGenerator', arguments: [] },
                 formatters: [{ type: FunctionType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
-              },
+              } as FieldBlockDefinition,
             ],
           } as StepDefinition,
         ],
@@ -584,7 +585,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateFunctions(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -622,7 +623,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateFunctions(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         if (error instanceof AggregateError) {
           const err = error.errors[0] as UnregisteredFunctionError
@@ -677,12 +678,11 @@ describe('FormValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'text',
                 code: 'field1',
-              },
+              } as FieldBlockDefinition,
               {
                 type: StructureType.BLOCK,
                 blockType: BlockType.BASIC,
                 variant: 'radio',
-                code: 'field2',
               },
             ],
           } as StepDefinition,
@@ -710,7 +710,7 @@ describe('FormValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'nonExistentComponent',
                 code: 'field1',
-              },
+              } as FieldBlockDefinition,
             ],
           } as StepDefinition,
         ],
@@ -768,7 +768,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateComponents(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -804,7 +804,7 @@ describe('FormValidator', () => {
                     blockType: BlockType.FIELD,
                     variant: 'deeplyNestedComponent',
                     code: 'field1',
-                  },
+                  } as FieldBlockDefinition,
                 ],
               } as StepDefinition,
             ],
@@ -815,7 +815,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateComponents(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -842,7 +842,7 @@ describe('FormValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'missingComponent',
                 code: 'field1',
-              },
+              } as FieldBlockDefinition,
             ],
           } as StepDefinition,
         ],
@@ -851,7 +851,7 @@ describe('FormValidator', () => {
       // Act / Assert
       try {
         DSLValidator.validateComponents(journey, registry)
-        fail('Expected AggregateError')
+        expect.fail('Expected AggregateError')
       } catch (error) {
         if (error instanceof AggregateError) {
           const err = error.errors[0] as UnregisteredComponentError

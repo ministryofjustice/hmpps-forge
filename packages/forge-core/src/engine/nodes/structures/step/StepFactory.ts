@@ -1,9 +1,10 @@
 import { ASTNodeType } from '../../../types/enums'
-import { StepASTNode } from '../../../types/structures.type'
+import { StepASTNode, StepReachabilityAST } from '../../../types/structures.type'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import type { StepDefinition } from '../../../../authoring/types/structures.type'
+import { isExpression, isTieBreaker } from '../../../../authoring/typeguards/expressions'
 
 /**
  * StepFactory: Creates Step AST nodes
@@ -71,8 +72,23 @@ export default class StepFactory {
       properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
-    if (dataProperties.isEntryPoint !== undefined) {
-      properties.isEntryPoint = dataProperties.isEntryPoint
+    if (dataProperties.reachability !== undefined) {
+      const { entryWhen, tieBreakers } = dataProperties.reachability
+      const reachability: StepReachabilityAST = {}
+
+      if (entryWhen === true) {
+        reachability.entryWhen = true
+      }
+
+      if (isExpression(entryWhen)) {
+        reachability.entryWhen = this.nodeFactory.createNode(entryWhen)
+      }
+
+      if (tieBreakers?.every(isTieBreaker)) {
+        reachability.tieBreakers = this.nodeFactory.transformValue(tieBreakers)
+      }
+
+      properties.reachability = reachability
     }
 
     if (dataProperties.backlink !== undefined) {

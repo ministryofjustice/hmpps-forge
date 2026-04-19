@@ -4,6 +4,7 @@ import { NodeId, AstNodeId } from '../../types/engine.type'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { StepRequest, StepResponse } from '../../../framework'
 import ContextPreparer from './ContextPreparer'
 
 function createStep(data?: Record<string, unknown>): StepASTNode {
@@ -67,6 +68,7 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
 
   const runtimePlan: StepRuntimePlan = {
     stepId: ancestors.at(-1)!.id,
+    path: '/step',
     accessAncestorIds,
     actionHookIds: [],
     submitHookIds: [],

@@ -1,4 +1,4 @@
-import { ValidationExpr } from '../types/structures.type'
+import { TieBreaker, ValidationExpr } from '../types/structures.type'
 import { isPredicateExpr } from './predicates'
 import {
   ReferenceExpr,
@@ -96,6 +96,10 @@ export function isValidationExpr(obj: any): obj is ValidationExpr {
   return obj != null && obj.type === ExpressionType.VALIDATION
 }
 
+export function isTieBreaker(obj: any): obj is TieBreaker {
+  return obj != null && obj.type === ExpressionType.TIE_BREAKER
+}
+
 export function isExpression(node: any): boolean {
   return isReferenceExpr(node) ||
     isFormatExpr(node) ||
@@ -106,5 +110,6 @@ export function isExpression(node: any): boolean {
     isPredicateExpr(node) ||
     isFunctionExpr(node) ||
     isValidationExpr(node) ||
+    isTieBreaker(node) ||
     isHookOutcome(node)
 }

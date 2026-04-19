@@ -16,10 +16,11 @@ import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
  * Evaluates properties in the step based on whether it's the current step:
  *
  * For CURRENT STEP (isCurrentStep = true) or ANCESTOR steps (isAncestorOfStep = true):
- * - All properties except hooks (handled by StepController)
+ * - All properties except those in EXCLUDED_PROPS, which are consumed elsewhere
+ *   (hooks by StepController, reachability by NavigationAnalyzer).
  *
  * For OTHER STEPS:
- * - Only navigation/validation properties: path, code, title, description, isEntryPoint, blocks, metadata
+ * - Only navigation/validation properties: path, code, title, description, blocks, metadata
  * - Rendering properties are skipped
  *
  * This runtime filtering replaces compile-time filtering in findRelevantNodes,
@@ -33,21 +34,16 @@ export default class StepHandler implements ThunkHandler {
 
   private propertiesWithNodes: ReadonlySet<string> | undefined
 
-  // Hook properties are handled separately by StepController
-  private static readonly HOOK_PROPS = ['onAccess', 'onAction', 'onSubmission']
+  // Properties consumed outside the step render pipeline - hooks are driven by
+  // StepController, `reachability` by NavigationAnalyzer via the runtime plan.
+  // Walking them at render time would invoke their child AST nodes pointlessly
+  // and leak evaluated config into the rendered payload.
+  private static readonly EXCLUDED_PROPS = ['onAccess', 'onAction', 'onSubmission', 'reachability']
 
-  private static readonly HOOK_PROPS_SET = new Set(StepHandler.HOOK_PROPS)
+  private static readonly EXCLUDED_PROPS_SET = new Set(StepHandler.EXCLUDED_PROPS)
 
   // Properties needed for navigation/validation on non-current steps
-  private static readonly NAVIGATION_PROPS = [
-    'path',
-    'code',
-    'title',
-    'isEntryPoint',
-    'description',
-    'blocks',
-    'metadata',
-  ]
+  private static readonly NAVIGATION_PROPS = ['path', 'code', 'title', 'description', 'blocks', 'metadata']
 
   private static readonly NAVIGATION_PROPS_SET = new Set(StepHandler.NAVIGATION_PROPS)
 
@@ -77,7 +73,7 @@ export default class StepHandler implements ThunkHandler {
       }
 
       const isRelevant = isCurrentOrAncestor
-        ? !StepHandler.HOOK_PROPS_SET.has(property)
+        ? !StepHandler.EXCLUDED_PROPS_SET.has(property)
         : StepHandler.NAVIGATION_PROPS_SET.has(property)
 
       if (!isRelevant) {
@@ -171,18 +167,18 @@ export default class StepHandler implements ThunkHandler {
     const isCurrentStep = context.metadataRegistry.get(this.nodeId, 'isCurrentStep', false)
     const isAncestorOfStep = context.metadataRegistry.get(this.nodeId, 'isAncestorOfStep', false)
 
-    // Always exclude hook properties - they're handled by StepController
-    const excludeHooks = ([key]: [string, unknown]) => !StepHandler.HOOK_PROPS.includes(key)
+    // Always drop properties that aren't part of the step render payload
+    const includeAtRender = ([key]: [string, unknown]) => !StepHandler.EXCLUDED_PROPS.includes(key)
 
     if (isCurrentStep || isAncestorOfStep) {
-      // Current or ancestor step: all non-hook properties
-      return Object.fromEntries(Object.entries(this.node.properties).filter(excludeHooks))
+      // Current or ancestor step: everything that is part of the render payload
+      return Object.fromEntries(Object.entries(this.node.properties).filter(includeAtRender))
     }
 
     // Other steps: only navigation/validation properties
     return Object.fromEntries(
       Object.entries(this.node.properties).filter(
-        ([key]) => StepHandler.NAVIGATION_PROPS.includes(key) && !StepHandler.HOOK_PROPS.includes(key),
+        ([key]) => StepHandler.NAVIGATION_PROPS.includes(key) && !StepHandler.EXCLUDED_PROPS.includes(key),
       ),
     )
   }

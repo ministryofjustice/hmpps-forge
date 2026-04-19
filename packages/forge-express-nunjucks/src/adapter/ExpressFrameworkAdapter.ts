@@ -297,13 +297,6 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     res.redirect(url)
   }
 
-  /** Register a route that redirects to another path */
-  registerRedirect(router: express.Router, fromPath: string, toPath: string): void {
-    router.get(fromPath, (_req, res) => {
-      res.redirect(toPath)
-    })
-  }
-
   /** Render a full page from RenderContext and send the HTML response */
   render(context: RenderContext, req: express.Request, res: express.Response): void {
     const locals = {

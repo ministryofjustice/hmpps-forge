@@ -6,9 +6,11 @@ import CompilationFactory, {
   CompiledForm,
   CompiledStep,
   CompilationArtefact,
+  JourneyIndex,
   SharedCompiledForm,
   StepIndex,
 } from './compilation/CompilationFactory'
+import { JourneyRuntimePlan } from './compilation/RuntimePlanBuilder'
 
 /**
  * Contains compiled journey metadata and original configuration.
@@ -61,6 +63,14 @@ export default class JourneyInstance {
 
   getStepIndex(): StepIndex {
     return new Map(this.sharedCompilation.stepIndex)
+  }
+
+  getJourneyIndex(): JourneyIndex {
+    return new Map(this.sharedCompilation.journeyIndex)
+  }
+
+  getJourneyRuntimePlan(journeyId: NodeId): JourneyRuntimePlan | undefined {
+    return this.sharedCompilation.journeyRuntimePlans.get(journeyId)
   }
 
   getSharedCompilationArtefact(): CompilationArtefact {

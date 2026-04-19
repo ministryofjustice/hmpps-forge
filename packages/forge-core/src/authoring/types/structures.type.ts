@@ -34,6 +34,23 @@ export interface ValidationExpr {
 export type ValidationProps = Omit<ValidationExpr, 'type'>
 
 /**
+ * A prioritised rule that participates in tie-breaking during reachability,
+ * backlink, and resume resolution. The first entry whose `when` evaluates
+ * truthy (or which has no `when`) supplies the step's priority; the highest
+ * priority among competing candidates wins, with journey declaration order
+ * as the final tiebreaker.
+ */
+export interface TieBreaker {
+  type: ExpressionType.TIE_BREAKER
+  /** Priority value — higher beats lower. */
+  priority: number
+  /** Predicate that must hold for this priority to apply. Omit for a catch-all. */
+  when?: PredicateExpr | PredicateTestExprBuilder
+}
+
+export type TieBreakerProps = Omit<TieBreaker, 'type'>
+
+/**
  * Top-level journey definition representing a complete form flow.
  * Journeys contain steps and can have nested child journeys.
  */
@@ -47,11 +64,64 @@ export interface JourneyDefinition {
   title: string
   description?: string
   view?: ViewConfig
-  entryPath?: string
   metadata?: {
     [key: string]: any
   }
   data?: Record<string, unknown>
+  reachability?: JourneyReachability
+}
+
+/**
+ * Journey-level reachability configuration. Controls whether the resume
+ * resolver is active — when it is, users are redirected to their furthest
+ * incomplete step instead of being able to access any reachable step freely.
+ */
+export interface JourneyReachability {
+  /**
+   * Controls when Forge's resume behaviour is active for this journey.
+   *
+   * - `true` — always resume (every request redirects to the resume frontier).
+   * - A predicate expression — resume only when the condition evaluates to true.
+   * - Omitted — resume is never active; users access any reachable step freely.
+   *
+   * @example
+   * reachability: { resumeWhen: true }
+   * reachability: { resumeWhen: Query('resume').match(Condition.Equals('true')) }
+   */
+  resumeWhen?: true | PredicateExpr | PredicateTestExprBuilder
+}
+
+/**
+ * Reachability configuration for a step. Controls how the step participates
+ * in the reachability walk that determines which steps a user can access.
+ */
+export interface StepReachability {
+  /**
+   * Declares this step as an entry point for the reachability walk.
+   *
+   * - `true` — unconditional entry point (always seeded as reachable).
+   * - A predicate expression — conditional entry point, seeded only when the
+   *   condition evaluates to true. Active conditional entries take priority
+   *   in the resume frontier over normal blockers.
+   *
+   * @example
+   * reachability: { entryWhen: true }
+   * reachability: { entryWhen: Session('submitted').match(Condition.Equals(true)) }
+   */
+  entryWhen?: true | PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Prioritised tie-breaker rules consulted whenever this step is one of
+   * several equally-valid candidates. Rules are evaluated top-to-bottom;
+   * the first matching entry supplies the step's priority.
+   *
+   * @example
+   * reachability: {
+   *   entryWhen: true,
+   *   tieBreakers: [tieBreaker({ priority: 100 })],
+   * }
+   */
+  tieBreakers?: TieBreaker[]
 }
 
 /**
@@ -68,7 +138,7 @@ export interface StepDefinition {
   onSubmission?: SubmitHook[]
   title: string
   view?: ViewConfig
-  isEntryPoint?: boolean
+  reachability?: StepReachability
   backlink?: string
   metadata?: {
     [key: string]: any

@@ -3,13 +3,17 @@ import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { StepRequest } from '../../../framework/types/request.type'
 import { StepResponse } from '../../../framework/types/response.type'
 import { JourneyASTNode } from '../../types/structures.type'
-import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import { NodeId } from '../../types/engine.type'
+
+interface AccessRuntimeInputs {
+  accessAncestorIds: NodeId[]
+}
 
 /**
  * ContextPreparer - Creates and prepares the evaluation context before hooks run
  *
  * Creates the ThunkEvaluationContext via the evaluator, then resolves the ancestor
- * chain for a step and merges all ancestors' static data into context.global.data
+ * chain and merges all ancestors' static data into context.global.data
  * (outermost first, so inner ancestors override outer).
  *
  * This must run before access hooks so that effects can read static data
@@ -23,7 +27,7 @@ export default class ContextPreparer {
    * @returns A context ready for hook execution and evaluation
    */
   prepare(
-    runtimePlan: StepRuntimePlan,
+    runtimePlan: AccessRuntimeInputs,
     evaluator: ThunkEvaluator,
     request: StepRequest,
     response: StepResponse,
@@ -41,7 +45,7 @@ export default class ContextPreparer {
    * Merge order is outermost first (journeys before step), so later ancestors
    * override earlier ones via shallow merge.
    */
-  private mergeStaticData(runtimePlan: StepRuntimePlan, context: ThunkEvaluationContext): void {
+  private mergeStaticData(runtimePlan: AccessRuntimeInputs, context: ThunkEvaluationContext): void {
     const ancestors = runtimePlan.accessAncestorIds
       .map(nodeId => context.nodeRegistry.get(nodeId) as JourneyASTNode)
 

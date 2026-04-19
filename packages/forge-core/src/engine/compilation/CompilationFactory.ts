@@ -6,15 +6,19 @@ import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
 import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.type'
 import { CompilationDependencies } from './CompilationDependencies'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
-import RuntimePlanBuilder, { StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
+import RuntimePlanBuilder, { JourneyRuntimePlan, StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
 
 export type StepIndex = Map<NodeId, StepASTNode>
+
+export type JourneyIndex = Map<NodeId, JourneyASTNode>
 
 export interface SharedCompiledForm {
   rootNode: JourneyASTNode
   sharedDependencies: CompilationDependencies
   stepIndex: StepIndex
+  journeyIndex: JourneyIndex
   reachabilityPlans: Map<NodeId, ReachabilityRuntimePlan>
+  journeyRuntimePlans: Map<NodeId, JourneyRuntimePlan>
   planBuilder: RuntimePlanBuilder
 }
 
@@ -60,19 +64,27 @@ export default class CompilationFactory {
     const stepNodes = sharedDependencies.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
     const stepIndex: StepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
 
+    const journeyNodes = sharedDependencies.nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
+    const journeyIndex: JourneyIndex = new Map(journeyNodes.map(journeyNode => [journeyNode.id, journeyNode]))
+
     const planBuilder = new RuntimePlanBuilder(
       sharedDependencies.nodeRegistry,
       sharedDependencies.metadataRegistry,
       sharedDependencies.astNodeTree,
     )
 
-    const reachabilityPlans = planBuilder.buildAllReachabilityPlans(stepIndex)
+    const { reachabilityPlansByStepId: reachabilityPlans, journeyRuntimePlans } = planBuilder.buildAllPlans(
+      stepIndex,
+      journeyIndex,
+    )
 
     return {
       rootNode,
       sharedDependencies,
       stepIndex,
+      journeyIndex,
       reachabilityPlans,
+      journeyRuntimePlans,
       planBuilder,
     }
   }

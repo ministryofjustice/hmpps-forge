@@ -10,6 +10,7 @@ import RenderExecutor from './RenderExecutor'
 function createRuntimePlan(options: Partial<StepRuntimePlan> = {}): StepRuntimePlan {
   return {
     stepId: 'compile_ast:1',
+    path: '/step',
     accessAncestorIds: ['compile_ast:1'],
     actionHookIds: [],
     submitHookIds: [],
