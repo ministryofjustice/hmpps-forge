@@ -366,5 +366,59 @@ describe('EffectHandler', () => {
       // Assert
       expect(mockEffectFn.evaluate).toHaveBeenCalledWith(expect.objectContaining({ hookType: 'access' }))
     })
+
+    it('should call cacheManager.clearCache() after effect execution', async () => {
+      // Arrange
+      const effectNode = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'save')
+
+      const mockEffectFn: FunctionRegistryEntry = {
+        name: 'save',
+        evaluate: vi.fn(),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockRegisteredFunctions: new Map([['save', mockEffectFn]]),
+      })
+
+      mockContext.scope.push({ '@hookType': 'submit' })
+      const clearCacheSpy = vi.spyOn(mockContext.cacheManager, 'clearCache')
+
+      const mockInvoker = createMockInvoker()
+      const handler = new EffectHandler(effectNode.id, effectNode)
+
+      // Act
+      await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(clearCacheSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('should call cacheManager.clearCache() when effect throws', async () => {
+      // Arrange
+      const effectNode = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'failingEffect')
+
+      const mockEffectFn: FunctionRegistryEntry = {
+        name: 'failingEffect',
+        evaluate: vi.fn().mockImplementation(() => {
+          throw new Error('effect failed')
+        }),
+        isAsync: false,
+      }
+
+      const mockContext = createMockContext({
+        mockRegisteredFunctions: new Map([['failingEffect', mockEffectFn]]),
+      })
+
+      mockContext.scope.push({ '@hookType': 'submit' })
+      const clearCacheSpy = vi.spyOn(mockContext.cacheManager, 'clearCache')
+
+      const mockInvoker = createMockInvoker()
+      const handler = new EffectHandler(effectNode.id, effectNode)
+
+      // Act & Assert
+      await expect(handler.evaluate(mockContext, mockInvoker)).rejects.toThrow('effect failed')
+      expect(clearCacheSpy).toHaveBeenCalledTimes(1)
+    })
   })
 })

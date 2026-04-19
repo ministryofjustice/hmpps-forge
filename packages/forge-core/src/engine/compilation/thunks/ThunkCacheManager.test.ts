@@ -154,5 +154,6 @@ describe('ThunkCacheManager', () => {
       expect(cacheManager.has(nodeA)).toBe(false)
       expect(cacheManager.has(nodeB)).toBe(false)
     })
+
   })
 })

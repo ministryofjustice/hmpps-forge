@@ -80,9 +80,11 @@ export default class EffectHandler implements ThunkHandler {
     const hookType = (currentScope['@hookType'] as HookType) ?? 'access'
     const effectContext = new EffectFunctionContext(context, hookType)
 
-    // Execute effect synchronously
-    // Note: Most effects are async, so this path is rarely used
-    effectFn.evaluate(effectContext, ...args)
+    try {
+      effectFn.evaluate(effectContext, ...args)
+    } finally {
+      context.cacheManager.clearCache()
+    }
 
     return { value: undefined }
   }
@@ -109,8 +111,11 @@ export default class EffectHandler implements ThunkHandler {
     const hookType = (currentScope['@hookType'] as HookType) ?? 'access'
     const effectContext = new EffectFunctionContext(context, hookType)
 
-    // Execute effect
-    await effectFn.evaluate(effectContext, ...args)
+    try {
+      await effectFn.evaluate(effectContext, ...args)
+    } finally {
+      context.cacheManager.clearCache()
+    }
 
     return { value: undefined }
   }

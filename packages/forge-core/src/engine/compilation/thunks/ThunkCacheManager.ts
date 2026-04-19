@@ -1,4 +1,4 @@
-import { NodeId } from '../../types/engine.type'
+import { NodeId } from '../../types/ast.type'
 import { ThunkResult } from './types'
 
 /**
@@ -37,7 +37,7 @@ export default class ThunkCacheManager {
 
   /**
    * Clear all cached results.
-   * Used when state mutations (setAnswer, setData) make cached results potentially stale.
+   * Called after each effect hook so subsequent evaluation phases see fresh state.
    */
   clearCache(): void {
     this.cache.clear()

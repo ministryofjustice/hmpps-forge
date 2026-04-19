@@ -4,6 +4,7 @@ import type { Mocked } from 'vitest'
 import { ASTNode, NodeId } from '../engine/types/engine.type'
 import { PseudoNode } from '../engine/types/pseudoNodes.type'
 import { IndexableNodeType } from '../engine/compilation/registries/NodeRegistry'
+import ThunkCacheManager from '../engine/compilation/thunks/ThunkCacheManager'
 import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '../engine/compilation/thunks/ThunkEvaluationContext'
 import ThunkCacheManager from '../engine/compilation/thunks/ThunkCacheManager'
 import {

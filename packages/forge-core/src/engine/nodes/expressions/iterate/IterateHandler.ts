@@ -534,7 +534,6 @@ export default class IterateHandler implements ThunkHandler {
     // Phase 3: Evaluate each with its scope
     for (const { node, itemScope } of nodesToEvaluate) {
       if (this.isTemplateAsync) {
-
         await evaluateWithScope(itemScope, context, async () => {
           if (isASTNode(node)) {
             const result = await invoker.invoke(node.id, context)

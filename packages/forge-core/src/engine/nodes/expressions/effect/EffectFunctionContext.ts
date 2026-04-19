@@ -80,9 +80,6 @@ class EffectFunctionContext<
    *
    * Pushes a mutation to the answer's history with the current hookType as source.
    * This enables precedence logic and delta tracking via mutation history.
-   *
-   * Clears the evaluation cache so subsequent phases (validation, render) re-evaluate
-   * nodes that may depend on this answer rather than serving stale cached results.
    */
   setAnswer<K extends string & keyof TAnswers>(key: K, value: TAnswers[K]): void {
     assertSerializable(value, 'setAnswer', [key])
@@ -92,8 +89,6 @@ class EffectFunctionContext<
     history.mutations.push({ value, source: this.hookType })
     history.current = value
     this.context.global.answers[key] = history
-
-    this.context.cacheManager.clearCache()
   }
 
   /**
@@ -151,16 +146,11 @@ class EffectFunctionContext<
 
   /**
    * Store data in the context
-   *
-   * Clears the evaluation cache so subsequent phases see the updated value
-   * rather than stale cached results from nodes that depend on this data key.
    */
   setData<K extends string & keyof TData>(key: K, value: TData[K]): void {
     assertSerializable(value, 'setData', [key])
 
     this.context.global.data[key] = value
-
-    this.context.cacheManager.clearCache()
   }
 
   /**
