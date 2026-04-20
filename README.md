@@ -5,33 +5,33 @@ journeys, handling routing, rendering, validation, and navigation.
 
 Define your journeys as plain data structures. Forge compiles them into routes, 
 renders GOV.UK-styled pages, validates submissions, builds navigation trees, and 
-manages page flow -- so you focus on what to ask, not how to wire it up.
+manages page flow - so you focus on what to ask, not how to wire it up.
 
 > Note: 'Forge' is temporary name, if you can think of a better one, please 
 > suggest it!
 
 ## What it does
 
-- **Declarative journeys** -- describe pages, fields, validation rules, and 
+- **Declarative journeys** - describe pages, fields, validation rules, and 
   navigation as data. No imperative request handlers.
-- **GOV.UK and MOJ components** -- built-in blocks for text inputs, radios, 
+- **GOV.UK and MOJ components** - built-in blocks for text inputs, radios, 
   checkboxes, date inputs, summary lists, task lists, and more. All render 
   through the GOV.UK Design System and MOJ Frontend.
-- **Validation pipeline** -- field-level and step-level rules with formatters, 
+- **Validation pipeline** - field-level and step-level rules with formatters, 
   conditional validation, cross-field checks, and error summaries wired to the 
   right fields automatically.
-- **Hooks and lifecycle** -- three hook types (`onAccess`, `onAction`, 
+- **Hooks and lifecycle** - three hook types (`onAccess`, `onAction`, 
   `onSubmission`) let you load data, handle in-page actions, and control what 
   happens on form submission.
-- **Reachability** -- prevents users skipping ahead, clears stale answers when 
+- **Reachability** - prevents users skipping ahead, clears stale answers when 
   the path changes, and supports resuming partially-completed journeys.
-- **Navigation tree** -- automatically built from your journey definitions and 
+- **Navigation tree** - automatically built from your journey definitions and 
   available in templates for sidebars, breadcrumbs, and menus.
-- **Expression language** -- references (`Answer()`, `Data()`, `Params()`, 
+- **Expression language** - references (`Answer()`, `Data()`, `Params()`, 
   `Session()`), conditionals, iterators, combinators, and pluggable functions 
   (conditions, transformers, generators, effects) let you express dynamic 
   behaviour without leaving the declarative model.
-- **Framework agnostic core** -- the engine is decoupled from any web framework. 
+- **Framework agnostic core** - the engine is decoupled from any web framework. 
   An Express + Nunjucks adapter is provided out of the box.
 
 ## What a journey looks like
@@ -51,7 +51,7 @@ export const feedbackJourney = journey({
       title: 'What is your name?',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({ code: 'fullName', label: { text: 'What is your name?', isPageHeading: true, classes: 'govuk-label--l' } }),
+        GovUKTextInput({ code: 'fullName', label: { text: 'What is your name?', isPageHeading: true, classes: 'govuk-label-l' } }),
         GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
@@ -73,7 +73,7 @@ renders the GOV.UK components, validates on submission, and redirects on success
 ## Packages
 
 | Package | Import path | Purpose |
-|---|---|---|
+|--|--|--|
 | Core | `@ministryofjustice/hmpps-forge/core/authoring` | Authoring API, expression language, engine |
 | Components | `@ministryofjustice/hmpps-forge/core/components` | Built-in block primitives (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`) |
 | Framework | `@ministryofjustice/hmpps-forge/core/framework` | Framework adapter interface |
@@ -119,15 +119,15 @@ See the [developer guide](examples-app/server/journeys/forge-developer-guide/con
 
 The developer guide covers the full API surface:
 
-- **Building journeys** -- defining journeys, steps, blocks, fields, validation, 
+- **Building journeys** - defining journeys, steps, blocks, fields, validation, 
   routing, hooks, and navigation
-- **Authoring language** -- references, expressions, conditionals, iterators, and 
+- **Authoring language** - references, expressions, conditionals, iterators, and 
   combinators
-- **Functions** -- conditions, transformers, generators, and effects (built-in 
+- **Functions** - conditions, transformers, generators, and effects (built-in 
   and custom)
-- **Custom components** -- building your own blocks and fields with the component 
+- **Custom components** - building your own blocks and fields with the component 
   system
-- **Patterns** -- single question per page, branching, reveal fields, composite 
+- **Patterns** - single question per page, branching, reveal fields, composite 
   fields, and resuming partially-completed journeys
 
 The guide lives in [`examples-app/server/journeys/forge-developer-guide/content/`](examples-app/server/journeys/forge-developer-guide/content/) and is itself built with Forge, so each pattern page includes a runnable demo.
