@@ -484,6 +484,89 @@ describe('IterateHandler', () => {
         expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
+      it('should return empty array when input is undefined for MAP iterator', () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.MAP,
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({
+          invokeSyncImpl: () => ({
+            value: undefined,
+            metadata: { source: 'test', timestamp: Date.now() },
+          }),
+        })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toEqual([])
+        expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
+        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
+      })
+
+      it('should return empty array when input is null for MAP iterator', () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.MAP,
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({
+          invokeSyncImpl: () => ({
+            value: null,
+            metadata: { source: 'test', timestamp: Date.now() },
+          }),
+        })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toEqual([])
+        expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
+        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
+      })
+
+      it('should return undefined when input is undefined for FIND iterator', () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.FIND,
+          predicate: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'active'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({
+          invokeSyncImpl: () => ({
+            value: undefined,
+            metadata: { source: 'test', timestamp: Date.now() },
+          }),
+        })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toBeUndefined()
+        expect(result.metadata).toEqual({ source: 'IterateHandler.find.empty' })
+      })
+
       it('should propagate error when input evaluation fails', () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
@@ -775,6 +858,74 @@ describe('IterateHandler', () => {
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
         expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
+      })
+
+      it('should return empty array when input is undefined for MAP iterator', async () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.MAP,
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({ defaultValue: undefined })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toEqual([])
+        expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
+        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
+      })
+
+      it('should return empty array when input is null for MAP iterator', async () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.MAP,
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({ defaultValue: null })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toEqual([])
+        expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
+        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
+      })
+
+      it('should return undefined when input is undefined for FIND iterator', async () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.FIND,
+          predicate: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'active'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({ defaultValue: undefined })
+        const mockHooks = createMockHooks()
+
+        // Act
+        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+
+        // Assert
+        expect(result.value).toBeUndefined()
+        expect(result.metadata).toEqual({ source: 'IterateHandler.find.empty' })
       })
 
       it('should propagate error when input evaluation fails', async () => {

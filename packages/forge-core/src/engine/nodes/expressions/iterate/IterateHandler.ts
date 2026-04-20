@@ -580,11 +580,15 @@ export default class IterateHandler implements ThunkHandler {
    * { accommodation: 5 } → [{ '@key': 'accommodation', '@value': 5 }]
    */
   private normalizeToArray(input: unknown): unknown[] | undefined {
+    if (input === undefined || input === null) {
+      return []
+    }
+
     if (Array.isArray(input)) {
       return input
     }
 
-    if (typeof input === 'object' && input !== null) {
+    if (typeof input === 'object') {
       return Object.entries(input).map(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
           return { '@key': key, ...value }
