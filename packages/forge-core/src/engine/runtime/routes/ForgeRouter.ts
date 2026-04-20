@@ -187,19 +187,13 @@ export default class ForgeRouter<TRouter> {
         return
       }
 
-      const hasStepAtRoot = journeyNode.properties.steps?.some(step => step.properties.path === '/')
-
-      if (hasStepAtRoot) {
-        return
-      }
-
       let controller: JourneyController<unknown, unknown> | undefined
 
       const getController = () => {
         if (!controller) {
           controller = new JourneyController(
             journeyPlan,
-            journeyInstance.getSharedCompilationArtefact(),
+            journeyInstance.getJourneyCompilationArtefact(),
             dependencies,
             routeTemplateCatalog,
           )

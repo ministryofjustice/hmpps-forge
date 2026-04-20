@@ -87,7 +87,7 @@ export default class JourneyFactory {
     }
 
     if (dataProperties.reachability !== undefined) {
-      const { resumeWhen } = dataProperties.reachability
+      const { resumeWhen, disableReachabilityChecks } = dataProperties.reachability
       const reachability: JourneyReachabilityAST = {}
 
       if (resumeWhen === true) {
@@ -96,6 +96,10 @@ export default class JourneyFactory {
 
       if (isExpression(resumeWhen)) {
         reachability.resumeWhen = this.nodeFactory.createNode(resumeWhen)
+      }
+
+      if (disableReachabilityChecks !== undefined) {
+        reachability.disableReachabilityChecks = disableReachabilityChecks
       }
 
       properties.reachability = reachability

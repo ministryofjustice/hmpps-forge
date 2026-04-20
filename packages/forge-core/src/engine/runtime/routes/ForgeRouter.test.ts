@@ -157,7 +157,7 @@ describe('ForgeRouter', () => {
 
       return {
         ...compiled,
-        reachabilityPlan: { entries: [], resumeAlways: false },
+        reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
@@ -217,7 +217,7 @@ describe('ForgeRouter', () => {
       path: '/mock',
       accessAncestorIds: [],
       fieldIteratorRootIds: [],
-      reachabilityPlan: { entries: [], resumeAlways: false },
+      reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 
     return {
@@ -240,6 +240,7 @@ describe('ForgeRouter', () => {
       }),
       getJourneyRuntimePlan: vi.fn().mockReturnValue(journeyRuntimePlanMock),
       getSharedCompilationArtefact: vi.fn().mockReturnValue(sharedArtefact),
+      getJourneyCompilationArtefact: vi.fn().mockReturnValue(sharedArtefact),
       getConfiguration: vi.fn().mockReturnValue(config),
       getJourneyCode: vi.fn().mockReturnValue(config.code),
       getJourneyTitle: vi.fn().mockReturnValue(config.title),
@@ -831,33 +832,6 @@ describe('ForgeRouter', () => {
       expect(router.getRegisteredRoutes()).toContainEqual({ method: 'GET', path: '/journey' })
     })
 
-    it('should not register a resume handler when a step already claims path "/"', () => {
-      // Arrange — a step at '/' owns the journey root, so auto-resume must
-      // stand down to avoid an infinite redirect loop.
-      const rootStep = createMockStepNode('compile_ast:2', '/')
-      const journeyNode = createMockJourneyNode('compile_ast:1', '/journey', 'test-journey', [rootStep])
-      const artefact = createMockArtefact(rootStep, [journeyNode], [journeyNode.id, rootStep.id])
-
-      const config: JourneyDefinition = {
-        type: StructureType.JOURNEY,
-        path: '/journey',
-        code: 'test-journey',
-        title: 'Test Journey',
-        steps: [{ type: StructureType.STEP, path: '/', title: 'Root Step' }],
-      }
-
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: rootStep.id }], config)
-
-      // Act
-      router.mount(journeyInstance)
-
-      // Assert — the only GET at '/' on this router comes from the step itself,
-      // registered by mountStep; the resume handler must not also register.
-      const rootHandlerCalls = mockFrameworkAdapter.get.mock.calls.filter(call => call[1] === '/')
-      expect(rootHandlerCalls).toHaveLength(1)
-      expect(JourneyController).not.toHaveBeenCalled()
-    })
-
     it('should lazily construct the JourneyController on the first request and reuse it', async () => {
       // Arrange
       const stepNode = createMockStepNode('compile_ast:2', '/entry')
@@ -933,7 +907,7 @@ describe('ForgeRouter', () => {
             path: '/child',
             accessAncestorIds: [],
             fieldIteratorRootIds: [],
-            reachabilityPlan: { entries: [], resumeAlways: false },
+            reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
           }
         }
 

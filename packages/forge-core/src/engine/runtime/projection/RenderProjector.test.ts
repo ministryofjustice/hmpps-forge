@@ -92,8 +92,10 @@ function createNavigationStep(overrides: Partial<NavigationStepState> = {}): Nav
   return {
     stepId: 'compile_ast:1',
     routeTemplatePath: '/forms/journey/step-1',
+    declarationIndex: 0,
     isEntryPoint: false,
     isConditionalEntry: false,
+    hasValidation: false,
     isReachable: true,
     isValid: true,
     forwardRouteTemplatePaths: [],
@@ -140,8 +142,12 @@ describe('RenderProjector', () => {
           isEntryPoint: true,
         }),
       ],
-      redirectTargetRouteTemplatePath: undefined,
+      defaultEntryRouteTemplatePath: '/forms/journey/step-1',
+      frontierRouteTemplatePath: undefined,
+      canonicalPathRouteTemplatePaths: ['/forms/journey/step-1'],
+      progressExists: false,
       resumeActive: false,
+      resumeOutcome: 'no-op',
     })
   })
 
@@ -233,13 +239,18 @@ describe('RenderProjector', () => {
             stepId: 'compile_ast:2',
             routeTemplatePath: '/forms/journey/step-0',
             isEntryPoint: true,
+            declarationIndex: 0,
           }),
           createNavigationStep({
-            predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
+            declarationIndex: 1,
           }),
         ],
-        redirectTargetRouteTemplatePath: undefined,
+        defaultEntryRouteTemplatePath: '/forms/journey/step-0',
+        frontierRouteTemplatePath: undefined,
+        canonicalPathRouteTemplatePaths: ['/forms/journey/step-0', '/forms/journey/step-1'],
+        progressExists: false,
         resumeActive: false,
+        resumeOutcome: 'no-op',
       } satisfies NavigationEvaluation)
 
       // Act
@@ -267,11 +278,15 @@ describe('RenderProjector', () => {
         currentStepId: 'compile_ast:1',
         steps: [
           createNavigationStep({
-            predecessorRouteTemplatePaths: ['/forms/journey/step-0'],
+            declarationIndex: 1,
           }),
         ],
-        redirectTargetRouteTemplatePath: undefined,
+        defaultEntryRouteTemplatePath: '/forms/journey/step-0',
+        frontierRouteTemplatePath: undefined,
+        canonicalPathRouteTemplatePaths: ['/forms/journey/step-0', '/forms/journey/step-1'],
+        progressExists: false,
         resumeActive: false,
+        resumeOutcome: 'no-op',
       } satisfies NavigationEvaluation)
 
       // Act

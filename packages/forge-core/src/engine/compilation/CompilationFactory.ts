@@ -90,6 +90,18 @@ export default class CompilationFactory {
   }
 
   /**
+   * Compile a journey-level artefact with thunk handlers but no step-scope metadata.
+   */
+  compileJourney(shared: SharedCompiledForm): CompilationArtefact {
+    const { deps: overlayDeps } = shared.sharedDependencies.createOverlay()
+
+    NodeCompilationPipeline.createPseudoNodes(overlayDeps)
+    NodeCompilationPipeline.compileThunks(overlayDeps, this.journeyInstanceDependencies.functionRegistry)
+
+    return overlayDeps
+  }
+
+  /**
    * Compile a single step artefact from shared compilation output.
    */
   compileStep(shared: SharedCompiledForm, stepId: NodeId) {
