@@ -15,7 +15,7 @@ export default async function embeddingDebug(req: Request, res: Response, next: 
     res.render('pages/embeddings', {
       pageTitle: 'Embedding debug',
       payload,
-      rowsJson: JSON.stringify(payload?.rows ?? []),
+      rowsJson: JSON.stringify(payload?.rows ?? []).replaceAll('</', '<\\/'),
     })
   } catch (error) {
     next(error)
