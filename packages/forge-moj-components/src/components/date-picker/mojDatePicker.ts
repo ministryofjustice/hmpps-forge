@@ -5,6 +5,7 @@ import {
   FieldBlockProps,
   ConditionalString,
   ConditionalBoolean,
+  ConditionalObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -87,14 +88,14 @@ export interface MOJDatePickerProps extends FieldBlockProps {
    * @example 'Select a date'
    * @example { text: 'Select a date', classes: 'govuk-label--l' }
    */
-  label: ConditionalString | MOJDatePickerLabel
+  label: ConditionalString | MOJDatePickerLabel | ConditionalObject<MOJDatePickerLabel>
 
   /**
    * Optional hint text - can be a simple string or object with additional options.
    * @example 'For example, 17/5/2024'
    * @example { html: 'Enter the date in <strong>dd/mm/yyyy</strong> format' }
    */
-  hint?: ConditionalString | MOJDatePickerHint
+  hint?: ConditionalString | MOJDatePickerHint | ConditionalObject<MOJDatePickerHint>
 
   /**
    * Earliest date that can be selected (format: dd/mm/yyyy).

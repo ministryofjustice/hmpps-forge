@@ -3,6 +3,7 @@ import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalBoolean,
+  ConditionalObject,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -43,7 +44,7 @@ export interface TaskListStatus {
    * Use this for statuses that should be visually prominent.
    * If provided, text and html are ignored.
    */
-  tag?: TaskListStatusTag
+  tag?: TaskListStatusTag | ConditionalObject<TaskListStatusTag>
 
   /**
    * Plain text for the status.

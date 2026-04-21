@@ -8,6 +8,7 @@ export type {
   ConditionalArray,
   ConditionalBoolean,
   ConditionalNumber,
+  ConditionalObject,
   ConditionalString,
   EvaluatedBlock,
   FieldBlockDefinition,

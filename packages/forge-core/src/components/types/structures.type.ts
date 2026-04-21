@@ -138,80 +138,61 @@ export interface FieldBlockProps extends BasicBlockProps {
  */
 export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {}
 
+type DynamicExpression =
+  | ReferenceExpr
+  | PipelineExpr
+  | ConditionalExpr
+  | MatchExpr
+  | ConditionalExprBuilder
+  | MatchExprBuilder
+  | ChainableRef
+  | ChainableExpr<any>
+
 export type ConditionalString =
   | string
-  | ReferenceExpr
+  | DynamicExpression
   | FormatExpr
-  | PipelineExpr
-  | ConditionalExpr
-  | MatchExpr
-  | ConditionalExprBuilder
-  | MatchExprBuilder
-  | ChainableRef
-  | ChainableExpr<any>
 
-export type ConditionalBoolean =
-  | boolean
-  | ReferenceExpr
-  | PipelineExpr
-  | ConditionalExpr
-  | MatchExpr
-  | ConditionalExprBuilder
-  | MatchExprBuilder
-  | ChainableRef
-  | ChainableExpr<any>
+export type ConditionalBoolean = boolean | DynamicExpression
 
-export type ConditionalNumber =
-  | number
-  | ReferenceExpr
-  | PipelineExpr
-  | ConditionalExpr
-  | MatchExpr
-  | ConditionalExprBuilder
-  | MatchExprBuilder
-  | ChainableRef
-  | ChainableExpr<any>
+export type ConditionalNumber = number | DynamicExpression
 
-export type ConditionalArray<T> =
-  | T[]
-  | ReferenceExpr
-  | PipelineExpr
-  | ConditionalExpr
-  | MatchExpr
-  | ConditionalExprBuilder
-  | MatchExprBuilder
-  | ChainableIterable
-  | ChainableRef
-  | ChainableExpr<any>
+export type ConditionalArray<T> = T[] | DynamicExpression | ChainableIterable
+
+export type ConditionalObject<T extends object> = T | DynamicExpression
 
 export type RenderedBlock = {
   block: BlockDefinition
   html: string
 }
 
-export type EvaluatedBlock<T, IsRoot extends boolean = true> = T extends ConditionalString
-  ? string
-  : T extends ConditionalBoolean
-    ? boolean
-    : T extends ConditionalNumber
-      ? number
-      : T extends ConditionalArray<infer U>
-        ? EvaluatedBlock<U, false>[]
-        : T extends (infer U)[]
-          ? EvaluatedBlock<U, false>[]
-          : T extends FieldBlockDefinition
-            ? IsRoot extends true
-              ? { [K in keyof T]: K extends 'type' | 'variant' ? T[K] : EvaluatedBlock<T[K], false> } & {
-                  value?: unknown
-                  errors?: { message: string; details?: Record<string, any> }[]
-                }
-              : RenderedBlock
-            : T extends BlockDefinition
+type Resolved<T> = Exclude<T, DynamicExpression | FormatExpr | ChainableIterable>
+
+export type EvaluatedBlock<T, IsRoot extends boolean = true> = Resolved<T> extends infer R
+  ? [R] extends [never]
+    ? never
+    : R extends string
+      ? string
+      : R extends boolean
+        ? boolean
+        : R extends number
+          ? number
+          : R extends (infer U)[]
+            ? EvaluatedBlock<U, false>[]
+            : R extends FieldBlockDefinition
               ? IsRoot extends true
-                ? { [K in keyof T]: K extends 'type' | 'variant' ? T[K] : EvaluatedBlock<T[K], false> } & {
+                ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
                     value?: unknown
+                    errors?: { message: string; details?: Record<string, any> }[]
                   }
                 : RenderedBlock
-              : T extends object
-                ? { [K in keyof T]: K extends 'type' | 'variant' ? T[K] : EvaluatedBlock<T[K], false> }
-                : T
+              : R extends BlockDefinition
+                ? IsRoot extends true
+                  ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                      value?: unknown
+                    }
+                  : RenderedBlock
+                : R extends object
+                  ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> }
+                  : R
+  : never
