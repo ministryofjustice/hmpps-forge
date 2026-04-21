@@ -1,0 +1,99 @@
+{# Pattern steps render a two-column layout — the running demo on the left,
+   the code that produced it on the right. They extend the guide template so
+   the header, search panel, and top service navigation stay consistent with
+   the rest of the developer guide, but replace its side-nav-plus-content
+   body with a split screen. #}
+{%- extends "partials/guide-step.njk" -%}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+
+{# Derive the pattern's display name and docs URL from the innermost ancestor
+   journey so pattern demos don't need to set them explicitly. The demo journey
+   always mounts at .../<pattern>/demo, so its parent docs page is the path
+   without the trailing /demo. #}
+{% set patternName = "Forge pattern" %}
+{% set patternDocsPath = "/forge-developer-guide/patterns" %}
+{% if ancestors and ancestors.length > 1 %}
+  {% set demoJourney = ancestors[ancestors.length - 1] %}
+  {% set patternName = demoJourney.title %}
+  {% set patternDocsPath = demoJourney.path.slice(0, -5) %}
+{% endif %}
+
+{% set pageTitle = patternName + " — Forge patterns" %}
+
+{% block beforeContent %}
+  <div class="pattern-banner">
+    <div class="pattern-banner__container">
+      <strong class="pattern-banner__tag govuk-tag govuk-tag--blue">Pattern</strong>
+      <span class="pattern-banner__text">
+        {{ patternName }}
+      </span>
+      <a class="pattern-banner__close govuk-link govuk-link--no-visited-state"
+         href="{{ patternDocsPath }}">
+        Back to pattern
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="pattern-layout" data-module="pattern-code-tabs">
+    <section class="pattern-layout__demo" aria-label="Interactive demo">
+      <div class="pattern-layout__demo-inner">
+        {% if step.backlink %}
+          {{ govukBackLink({ href: step.backlink, classes: "govuk-!-margin-top-0" }) }}
+        {% endif %}
+
+        {% set errorList = toErrorList(fieldValidationErrors, domainValidationErrors) %}
+        {% if errorList.length %}
+          {{ govukErrorSummary({
+            titleText: "There is a problem",
+            errorList: errorList
+          }) }}
+        {% endif %}
+
+        <form method="post" novalidate>
+          <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+          {% for block in blocks %}
+            {{ block | safe }}
+          {% endfor %}
+        </form>
+      </div>
+    </section>
+
+    <section class="pattern-layout__code" aria-label="Code">
+      {% if codePanels and codePanels.length %}
+        <div class="pattern-code-tabs">
+          <div class="pattern-code-tabs__header">
+            <ul class="pattern-code-tabs__list" role="tablist">
+              {% for panel in codePanels %}
+                <li class="pattern-code-tabs__item" role="presentation">
+                  <button type="button"
+                          class="pattern-code-tabs__tab{% if loop.first %} pattern-code-tabs__tab--active{% endif %}"
+                          role="tab"
+                          aria-selected="{{ 'true' if loop.first else 'false' }}"
+                          aria-controls="pattern-code-panel-{{ loop.index }}"
+                          id="pattern-code-tab-{{ loop.index }}"
+                          tabindex="{{ '0' if loop.first else '-1' }}">
+                    {{ panel.label }}
+                  </button>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% for panel in codePanels %}
+            <div class="pattern-code-tabs__panel"
+                 role="tabpanel"
+                 id="pattern-code-panel-{{ loop.index }}"
+                 aria-labelledby="pattern-code-tab-{{ loop.index }}"
+                 {% if not loop.first %}hidden{% endif %}>
+              {{ panel.html | safe }}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="govuk-body-s pattern-layout__code-empty">No code to show for this step.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
