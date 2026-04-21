@@ -40,6 +40,7 @@ function getAppConfig() {
             path.join(serverDir, '**/*.njk'),
             path.join(serverDir, '**/*.md'),
             path.join(serverDir, 'journeys/forge-developer-guide/sections/patterns/**/*.ts'),
+            path.join(serverDir, 'journeys/forge-developer-guide/components/**/*.ts'),
           ],
           baseDir: serverDir,
           outDir,

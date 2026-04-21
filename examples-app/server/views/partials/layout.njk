@@ -4,6 +4,8 @@
 
 {% block head %}
   <link href="{{ '/assets/css/index.css' | assetMap }}" rel="stylesheet"/>
+  <link rel="llms-txt" href="/llms.txt"/>
+  <link rel="llms-full-txt" href="/llms-full.txt"/>
 {% endblock %}
 
 {% block pageTitle %}{{pageTitle | default(applicationName)}}{% endblock %}

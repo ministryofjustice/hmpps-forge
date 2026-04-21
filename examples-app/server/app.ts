@@ -22,6 +22,7 @@ import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
+import llmsTxtRoutes from './routes/llmsTxt'
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -42,12 +43,17 @@ export default function createApp(services: Services): express.Application {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,
       formDataStore: services.formDataStore,
+      mocksApi: services.mocksApi,
     })
 
   app.set('json spaces', 2)
   app.set('trust proxy', true)
   app.set('port', process.env.PORT || 3000)
 
+  app.use((_req, res, next) => {
+    res.setHeader('Link', '</llms.txt>; rel="llms-txt", </llms-full.txt>; rel="llms-full-txt"')
+    next()
+  })
   app.use(setUpHealthChecks(services.applicationInfo))
   app.use(setUpWebSecurity())
   app.use(setUpWebSession())
@@ -56,6 +62,14 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpCsrf())
   // FORGE-EXAMPLE: Mount the Forge router — this serves all registered journey routes
   app.use(forge.getRouter() as express.Router)
+
+  const llms = llmsTxtRoutes({
+    contentStore: services.guideContentStore,
+    patternSources: services.patternSourceStore,
+  })
+  app.get('/llms.txt', llms.index)
+  app.get('/llms-full.txt', llms.full)
+  app.get('/llms/content/:slug', llms.content)
 
   app.use((req, res, next) => next(createError(404, 'Not found')))
   app.use(errorHandler(process.env.NODE_ENV === 'production'))
