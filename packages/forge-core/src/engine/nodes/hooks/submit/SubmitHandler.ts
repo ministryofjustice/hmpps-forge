@@ -189,7 +189,7 @@ export default class SubmitHandler implements ThunkHandler {
     const validate = this.node.properties.validate
     let isValid: boolean | undefined
 
-    if (validate === true) {
+    if (validate) {
       const validation = this.getStoredValidationState(context)
 
       if ('error' in validation) {
@@ -205,36 +205,29 @@ export default class SubmitHandler implements ThunkHandler {
     // Execute effects and evaluate next from appropriate branch
     let outcomeResult: OutcomeEvaluationResult = { type: 'none' }
 
-    if (validate === true) {
-      // Execute onAlways effects first
-      const alwaysError = this.executeEffectsSync(this.node.properties.onAlways?.effects, context, invoker)
+    if (validate) {
+      const alwaysResult = this.executeBranchSync(this.node.properties.onAlways, context, invoker)
 
-      if (alwaysError) {
+      if (alwaysResult.error) {
         context.scope.pop()
 
-        return { error: alwaysError }
+        return { error: alwaysResult.error }
       }
 
-      if (isValid) {
-        const result = this.executeBranchSync(this.node.properties.onValid, context, invoker)
+      outcomeResult = alwaysResult.outcome
 
-        if (result.error) {
-          context.scope.pop()
+      const branchResult = isValid
+        ? this.executeBranchSync(this.node.properties.onValid, context, invoker)
+        : this.executeBranchSync(this.node.properties.onInvalid, context, invoker)
 
-          return { error: result.error }
-        }
+      if (branchResult.error) {
+        context.scope.pop()
 
-        outcomeResult = result.outcome
-      } else {
-        const result = this.executeBranchSync(this.node.properties.onInvalid, context, invoker)
+        return { error: branchResult.error }
+      }
 
-        if (result.error) {
-          context.scope.pop()
-
-          return { error: result.error }
-        }
-
-        outcomeResult = result.outcome
+      if (outcomeResult.type === 'none') {
+        outcomeResult = branchResult.outcome
       }
     } else {
       // Skip validation hook
@@ -253,7 +246,7 @@ export default class SubmitHandler implements ThunkHandler {
     context.scope.pop()
 
     return {
-      value: this.buildResult(validate === true, isValid, outcomeResult),
+      value: this.buildResult(validate, isValid, outcomeResult),
     }
   }
 
@@ -291,7 +284,7 @@ export default class SubmitHandler implements ThunkHandler {
     const validate = this.node.properties.validate
     let isValid: boolean | undefined
 
-    if (validate === true) {
+    if (validate) {
       const validation = this.getStoredValidationState(context)
 
       if ('error' in validation) {
@@ -307,39 +300,31 @@ export default class SubmitHandler implements ThunkHandler {
     // Execute effects and evaluate next from appropriate branch
     let outcomeResult: OutcomeEvaluationResult = { type: 'none' }
 
-    if (validate === true) {
-      // Execute onAlways effects first
-      const alwaysError = await this.executeEffects(this.node.properties.onAlways?.effects, context, invoker)
+    if (validate) {
+      const alwaysResult = await this.executeBranch(this.node.properties.onAlways, context, invoker)
 
-      if (alwaysError) {
+      if (alwaysResult.error) {
         context.scope.pop()
 
-        return { error: alwaysError }
+        return { error: alwaysResult.error }
       }
 
-      if (isValid) {
-        const result = await this.executeBranch(this.node.properties.onValid, context, invoker)
+      outcomeResult = alwaysResult.outcome
 
-        if (result.error) {
-          context.scope.pop()
+      const branchResult = isValid
+        ? await this.executeBranch(this.node.properties.onValid, context, invoker)
+        : await this.executeBranch(this.node.properties.onInvalid, context, invoker)
 
-          return { error: result.error }
-        }
+      if (branchResult.error) {
+        context.scope.pop()
 
-        outcomeResult = result.outcome
-      } else {
-        const result = await this.executeBranch(this.node.properties.onInvalid, context, invoker)
+        return { error: branchResult.error }
+      }
 
-        if (result.error) {
-          context.scope.pop()
-
-          return { error: result.error }
-        }
-
-        outcomeResult = result.outcome
+      if (outcomeResult.type === 'none') {
+        outcomeResult = branchResult.outcome
       }
     } else {
-      // Skip validation hook
       const result = await this.executeBranch(this.node.properties.onAlways, context, invoker)
 
       if (result.error) {
@@ -355,7 +340,7 @@ export default class SubmitHandler implements ThunkHandler {
     context.scope.pop()
 
     return {
-      value: this.buildResult(validate === true, isValid, outcomeResult),
+      value: this.buildResult(validate, isValid, outcomeResult),
     }
   }
 
@@ -478,7 +463,6 @@ export default class SubmitHandler implements ThunkHandler {
 
     // Execute effects sequentially (order matters)
     for (const effectNode of effectNodes) {
-
       const result = await invoker.invoke(effectNode.id, context)
 
       if (result.error) {
@@ -504,14 +488,12 @@ export default class SubmitHandler implements ThunkHandler {
       return { outcome: { type: 'none' } }
     }
 
-    // Execute effects FIRST
     const error = await this.executeEffects(branch.effects, context, invoker)
 
     if (error) {
       return { error, outcome: { type: 'none' } }
     }
 
-    // THEN evaluate next outcomes (effects have already run, so Data('goalUuid') works)
     const outcome = branch.next ? await evaluateNextOutcomes(branch.next, context, invoker) : { type: 'none' as const }
 
     return { outcome }

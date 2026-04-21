@@ -12,6 +12,7 @@ import type { ViewConfig } from '../../authoring/types/structures.type'
 
 export interface JourneyReachabilityAST {
   resumeWhen?: true | ASTNode
+  disableReachabilityChecks?: boolean
 }
 
 export interface StepReachabilityAST {

@@ -148,6 +148,59 @@ type at runtime.
 
 ---
 
+## Author-time validation
+
+Factory entries can also be written as `{ validate, factory }`,
+where `validate` is an optional hook that runs synchronously when
+the transformer builder is called. This lets configuration errors
+surface when the journey module loads rather than at render time.
+
+```typescript
+export const { transformers: MyTransformers, implementations: myTransformerImplementations } =
+  defineTransformerFunctions<MyTransformerShape, MyDeps>({
+    Truncate: {
+      validate: (maxLength: number, suffix: string) => {
+        if (!Number.isInteger(maxLength) || maxLength < 1) {
+          throw new Error('Truncate requires a positive integer maxLength')
+        }
+
+        if (typeof suffix !== 'string') {
+          throw new Error('Truncate requires a string suffix')
+        }
+      },
+      factory: (deps) => (value: unknown, maxLength: number, suffix: string) => {
+        if (typeof value !== 'string') {
+          throw new TypeError('Truncate expects a string')
+        }
+
+        if (value.length <= maxLength) return value
+
+        return value.slice(0, maxLength) + suffix
+      },
+    },
+  })
+```
+
+A bad call fails as soon as the definition is imported:
+
+```typescript
+// Throws 'Truncate requires a positive integer maxLength'.
+MyTransformers.Truncate(0, '...')
+```
+
+`validate` receives only the arguments the author passed to the
+builder. It does not see injected dependencies or the runtime
+value, so it can only check structural properties of the
+arguments: required fields, numeric ranges, enum membership, or
+combinations of arguments. Checks that depend on the resolved
+value belong inside the evaluator.
+
+If an argument is itself an expression like `Data('maxBioLength')`,
+its resolved value is not available at author time. Validate the
+resolved value inside the evaluator instead.
+
+---
+
 ## Type checking with TypeError
 
 Transformer inputs are resolved at runtime, so you cannot rely on
@@ -315,3 +368,7 @@ expect(formatCurrency(42.5, 'GBP')).toBe('GBP 42.50')
   output.** Formatters run during the submission pipeline before
   validation. `.pipe()` runs at evaluation time for display and
   conditions.
+- **Validate static arguments at author time.** Use the
+  `{ validate, factory }` form when the argument is a plain value,
+  so configuration errors surface at module load rather than at
+  render time.

@@ -1,0 +1,37 @@
+$pattern-demo-min-width: 420px;
+$pattern-code-min-width: 360px;
+
+.pattern-layout {
+  display: grid;
+  grid-template-columns: minmax($pattern-demo-min-width, 1fr) minmax($pattern-code-min-width, 1fr);
+  gap: govuk-spacing(6);
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__demo,
+  &__code {
+    min-width: 0;
+  }
+
+  &__demo-inner {
+    background-color: govuk-colour('white');
+    border: 1px solid govuk-functional-colour(border);
+    padding: govuk-spacing(4);
+  }
+
+  &__code {
+    position: sticky;
+    top: govuk-spacing(4);
+
+    @media (max-width: 1024px) {
+      position: static;
+    }
+  }
+
+  &__code-empty {
+    color: govuk-colour('dark-grey');
+  }
+}

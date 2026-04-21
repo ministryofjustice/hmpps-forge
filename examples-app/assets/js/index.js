@@ -3,10 +3,12 @@ import * as govukFrontend from 'govuk-frontend'
 import * as mojFrontend from '@ministryofjustice/frontend'
 import { initScrollRestore } from './scroll-restore.mjs'
 import './embedding-debug.js'
+import { initPatternCodeTabs } from './pattern-code-tabs.mjs'
 
 govukFrontend.initAll()
 mojFrontend.initAll()
 initScrollRestore()
+initPatternCodeTabs()
 
 document.querySelectorAll('#main h2[id], #main h3[id], #main h4[id]').forEach(heading => {
   const anchor = document.createElement('a')

@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const installingForgeStep = step({
   path: '/installing-forge',
   title: 'Installing Forge',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
   onAccess: [
     access({

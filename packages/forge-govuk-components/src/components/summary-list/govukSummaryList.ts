@@ -3,6 +3,7 @@ import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalBoolean,
+  ConditionalObject,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -90,7 +91,7 @@ export interface SummaryListRow {
   value: SummaryListValue
 
   /** Optional action links for this row (e.g., "Change", "Remove"). */
-  actions?: SummaryListActions
+  actions?: SummaryListActions | ConditionalObject<SummaryListActions>
 
   /** Additional CSS classes for the row div element. */
   classes?: ConditionalString
@@ -130,7 +131,7 @@ export interface SummaryCard {
   title?: SummaryCardTitle
 
   /** Action links displayed in the card header. */
-  actions?: SummaryListActions
+  actions?: SummaryListActions | ConditionalObject<SummaryListActions>
 
   /** Additional CSS classes for the card container. */
   classes?: ConditionalString
@@ -181,7 +182,7 @@ export interface GovUKSummaryListProps extends BasicBlockProps {
    * If provided, the summary list will be displayed inside a summary card
    * with an optional title and header actions.
    */
-  card?: SummaryCard
+  card?: SummaryCard | ConditionalObject<SummaryCard>
 
   /** Additional CSS classes for the summary list dl element. */
   classes?: ConditionalString

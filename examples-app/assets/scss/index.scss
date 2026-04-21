@@ -19,5 +19,8 @@ $govuk-page-width: $moj-page-width;
 @import './components/guide-search-panel';
 @import './components/guide-search-results';
 @import './components/code-block';
+@import './components/pattern-banner';
+@import './components/pattern-layout';
+@import './components/pattern-code-tabs';
 @import './overrides/local';
 @import './components/embedding-debug';

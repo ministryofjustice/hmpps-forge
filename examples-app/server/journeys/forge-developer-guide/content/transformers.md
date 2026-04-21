@@ -2,7 +2,7 @@
 title: Transformers
 section: authoring-language
 path: authoring-language/transformers
-teaches: [Transformer, pipe, defineTransformerFunctions, custom-transformers, formatters]
+teaches: [Transformer, pipe, formatters]
 prerequisites: [Answer, Data, Generator]
 ---
 
@@ -164,87 +164,18 @@ Item().path('name').pipe(Transformer.String.EscapeHtml())
 
 ## Custom transformers
 
-You can define your own transformers using
-`defineTransformerFunctions`. A custom transformer is referenced in
-the journey definition and implemented in the package:
+When the built-in set does not cover a reshaping step your
+definitions need, you can define your own. Custom transformers are
+used the same way as built-ins: with `.pipe()` on references and
+generators, and in the `formatters` property on fields.
 
-```typescript
-import {
-  defineTransformerFunctions,
-  TransformerFunctionExpr,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export interface MyTransformerShape {
-  RelativeTime: () => TransformerFunctionExpr
-}
-
-export const { transformers: MyTransformers, implementations: myTransformerImplementations } =
-  defineTransformerFunctions<MyTransformerShape, MyDeps>({
-    RelativeTime: (deps) => (value: any) => {
-      const date = new Date(value)
-      const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-      if (diffDays === 0) return 'Today'
-      if (diffDays === 1) return 'Yesterday'
-      return `${diffDays} days ago`
-    },
-  })
-```
-
-Because transformer inputs are resolved at runtime, you should
-verify the value matches the type you expect. If a transformer
-receives an unexpected type, throw a `TypeError`. Forge uses
-`TypeError` specifically to detect type mismatches: outside of
-validation, it immediately surfaces as a configuration error.
-Inside `validWhen`, it is caught and treated as a validation
-failure. Use `TypeError` for type checks, not `Error`.
-
-```typescript
-RelativeTime: (deps) => (value: any) => {
-  if (typeof value !== 'string' && !(value instanceof Date)) {
-    throw new TypeError('RelativeTime expects a string or Date')
-  }
-  // ...
-}
-```
-
-Like all custom functions in Forge, transformers follow the
-`(deps) => (value, ...args) => result` pattern. The outer function
-receives injected dependencies. Dependencies are injected when you
-register the package with `forge.registerPackage(pkg, deps)`.
-
-Use it in a definition:
-
-```typescript
-Item().path('createdAt').pipe(MyTransformers.RelativeTime())
-```
-
-Register the implementations in the package:
-
-```typescript
-export default createForgePackage({
-  journey: myJourney,
-  functions: {
-    ...myTransformerImplementations,
-  },
-})
-```
+See [Building custom transformers](building-functions-and-components/custom-transformers)
+for the shape interface, implementation, type-checking conventions,
+and registration details.
 
 ---
 
 ## API surface
-
-### `defineTransformerFunctions(implementations)`
-
-Defines custom transformer functions. Returns a `transformers`
-object for use in definitions and an `implementations` object for
-registration in a package.
-
-```typescript
-import { defineTransformerFunctions } from '@ministryofjustice/hmpps-forge/core/authoring'
-```
 
 ### `.pipe(...transformers)`
 
@@ -277,9 +208,6 @@ Transformer.String.Replace(Answer('search'), 'fixed') // dynamic
 - **Use `EscapeHtml()` for untrusted data in HTML contexts.**
   User input and external API data should be escaped before being
   interpolated into HTML strings.
-- **Register implementations in the package.** Like effects,
-  conditions, and generators, transformer implementations are
-  scoped to the package that registers them.
 
 ---
 

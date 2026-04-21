@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const queryStep = step({
   path: '/query',
   title: 'Query',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
   onAccess: [
     access({

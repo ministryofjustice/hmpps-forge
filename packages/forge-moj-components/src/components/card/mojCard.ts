@@ -5,6 +5,7 @@ import {
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
+  ConditionalObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -60,7 +61,7 @@ export interface MOJCardProps extends BasicBlockProps {
    * @example 'Search cases'
    * @example { text: 'Search cases', level: 3 }
    */
-  heading: ConditionalString | MOJCardHeading
+  heading: ConditionalString | MOJCardHeading | ConditionalObject<MOJCardHeading>
 
   /** Link URL for the card heading */
   href: ConditionalString
@@ -70,7 +71,7 @@ export interface MOJCardProps extends BasicBlockProps {
    * @example 'Find and manage case records'
    * @example { html: '<strong>Find</strong> records' }
    */
-  description?: ConditionalString | MOJCardDescription
+  description?: ConditionalString | MOJCardDescription | ConditionalObject<MOJCardDescription>
 
   /** Makes the entire card clickable via CSS (default: true) */
   clickable?: ConditionalBoolean

@@ -22,6 +22,8 @@ export default class JourneyInstance {
 
   private readonly stepCache = new Map<NodeId, CompiledStep>()
 
+  private journeyArtefact?: CompilationArtefact
+
   private readonly rawConfiguration: JourneyDefinition
 
   private constructor(formConfiguration: JourneyDefinition, dependencies: JourneyInstanceDependencies) {
@@ -75,6 +77,14 @@ export default class JourneyInstance {
 
   getSharedCompilationArtefact(): CompilationArtefact {
     return this.sharedCompilation.sharedDependencies
+  }
+
+  getJourneyCompilationArtefact(): CompilationArtefact {
+    if (!this.journeyArtefact) {
+      this.journeyArtefact = this.compiler.compileJourney(this.sharedCompilation)
+    }
+
+    return this.journeyArtefact
   }
 
   getConfiguration(): JourneyDefinition {

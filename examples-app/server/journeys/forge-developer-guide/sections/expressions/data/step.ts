@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const dataStep = step({
   path: '/data',
   title: 'Data',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
   onAccess: [
     access({

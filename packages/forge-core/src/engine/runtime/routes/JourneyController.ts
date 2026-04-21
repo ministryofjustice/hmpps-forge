@@ -6,12 +6,12 @@ import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { StepRequest } from '../../../framework/types/request.type'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../resolution/redirectTarget'
-import { pickTieBreakerWinner } from '../resolution/tieBreakerSelection'
 import ContextPreparer from '../preparation/ContextPreparer'
 import AnswerPreparer from '../preparation/AnswerPreparer'
 import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
 import HookExecutor from '../evaluation/HookExecutor'
 import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
+import NavigationDecisionResolver from '../resolution/NavigationDecisionResolver'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 
 export default class JourneyController<TRequest, TResponse> {
@@ -22,6 +22,8 @@ export default class JourneyController<TRequest, TResponse> {
   private readonly answerPreparer: AnswerPreparer
 
   private readonly navigationAnalyzer: NavigationAnalyzer
+
+  private readonly navigationDecisionResolver: NavigationDecisionResolver
 
   private readonly stepValidityAnalyzer: StepValidityAnalyzer
 
@@ -35,6 +37,7 @@ export default class JourneyController<TRequest, TResponse> {
     this.hookExecutor = new HookExecutor(this.dependencies.logger)
     this.answerPreparer = new AnswerPreparer()
     this.navigationAnalyzer = new NavigationAnalyzer()
+    this.navigationDecisionResolver = new NavigationDecisionResolver()
     this.stepValidityAnalyzer = new StepValidityAnalyzer()
   }
 
@@ -62,19 +65,10 @@ export default class JourneyController<TRequest, TResponse> {
       this.stepValidityAnalyzer,
     )
 
-    if (evaluation.resumeActive && evaluation.redirectTargetRouteTemplatePath) {
-      return this.redirectToRouteTemplatePath(res, request, evaluation.redirectTargetRouteTemplatePath)
-    }
+    const redirectRouteTemplatePath = this.navigationDecisionResolver.resolveJourneyRootRedirect(evaluation)
 
-    const entrySteps = evaluation.steps.filter(step => step.isEntryPoint || step.isConditionalEntry)
-    const winner = pickTieBreakerWinner(entrySteps)
-
-    if (winner) {
-      return this.redirectToRouteTemplatePath(res, request, winner.routeTemplatePath)
-    }
-
-    if (evaluation.steps.length > 0) {
-      return this.redirectToRouteTemplatePath(res, request, evaluation.steps[0].routeTemplatePath)
+    if (redirectRouteTemplatePath) {
+      return this.redirectToRouteTemplatePath(res, request, redirectRouteTemplatePath)
     }
 
     throw createHttpError(500, 'No steps found in journey')

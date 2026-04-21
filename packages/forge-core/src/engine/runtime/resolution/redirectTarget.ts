@@ -25,7 +25,7 @@ export function parseRedirectTarget(target: string): ParsedRedirectTarget {
 
 export function resolveRedirectTarget(
   target: string | ParsedRedirectTarget,
-  location: Pick<RequestLocation, 'origin' | 'pathname'>,
+  location: Pick<RequestLocation, 'origin' | 'pathname'> & { basePath?: string },
 ): ResolvedRedirectTarget {
   const parsedTarget = typeof target === 'string' ? parseRedirectTarget(target) : target
 
@@ -51,10 +51,13 @@ export function resolveRedirectTarget(
     }
   }
 
-  const resolvedUrl = new URL(
-    encodePathTemplate(parsedTarget.value),
-    `${location.origin}${encodePathTemplate(location.pathname)}`,
-  )
+  const isDotRelative = parsedTarget.value.startsWith('./') || parsedTarget.value.startsWith('../')
+
+  const base = !isDotRelative && location.basePath !== undefined
+    ? `${location.origin}${encodePathTemplate(location.basePath)}/`
+    : `${location.origin}${encodePathTemplate(location.pathname)}`
+
+  const resolvedUrl = new URL(encodePathTemplate(parsedTarget.value), base)
   const pathname = decodePathTemplate(resolvedUrl.pathname)
   const value = decodePathTemplate(`${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`)
 

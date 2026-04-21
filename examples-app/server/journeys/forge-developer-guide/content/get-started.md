@@ -39,7 +39,7 @@ const myJourney = journey({
     step({
       path: '/your-name',
       title: 'What is your name?',
-      isEntryPoint: true,
+      reachability: { entryWhen: true },
       blocks: [
         GovUKTextInput({ code: 'fullName', label: { text: 'Full name' } }),
         GovUKButton({ text: 'Continue' }),

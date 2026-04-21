@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const hooksAndLifecycleStep = step({
   path: '/hooks-and-lifecycle',
   title: 'Hooks and lifecycle',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
   onAccess: [
     access({

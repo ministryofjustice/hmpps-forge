@@ -5,6 +5,7 @@ import {
   BlockDefinition,
   ConditionalString,
   ConditionalBoolean,
+  ConditionalObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -42,7 +43,7 @@ export interface MOJProgressBarItem {
    * @example 'Personal details'
    * @example { text: 'Personal details', classes: 'custom-label' }
    */
-  label: ConditionalString | MOJProgressBarItemLabel
+  label: ConditionalString | MOJProgressBarItemLabel | ConditionalObject<MOJProgressBarItemLabel>
 
   /**
    * Whether this item represents the current/active step.

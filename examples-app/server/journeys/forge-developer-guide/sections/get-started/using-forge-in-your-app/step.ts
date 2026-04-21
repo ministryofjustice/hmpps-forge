@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const usingForgeInYourAppStep = step({
   path: '/using-forge-in-your-app',
   title: 'Using Forge in your app',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
   onAccess: [
     access({

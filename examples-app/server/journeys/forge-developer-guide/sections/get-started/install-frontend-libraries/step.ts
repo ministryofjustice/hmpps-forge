@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const installFrontendLibrariesStep = step({
   path: '/install-frontend-libraries',
   title: 'Install frontend libraries',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
   onAccess: [
     access({

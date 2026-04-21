@@ -1,0 +1,64 @@
+.pattern-code-tabs {
+  border: 1px solid govuk-functional-colour(border);
+  background-color: govuk-colour('white');
+
+  &__header {
+    border-bottom: 1px solid govuk-functional-colour(border);
+    background-color: govuk-colour('light-grey');
+    overflow-x: auto;
+  }
+
+  &__list {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    margin: 0;
+    padding: 0;
+  }
+
+  &__tab {
+    @include govuk-font($size: 16, $weight: 'bold');
+    display: inline-block;
+    padding: govuk-spacing(2) govuk-spacing(3);
+    color: govuk-colour('dark-grey');
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: govuk-functional-colour(text);
+      background-color: govuk-colour('white');
+    }
+
+    &:focus {
+      outline: $govuk-focus-width solid govuk-functional-colour(focus);
+      outline-offset: -$govuk-focus-width;
+    }
+
+    &--active {
+      color: govuk-functional-colour(text);
+      background-color: govuk-colour('white');
+      border-bottom-color: govuk-colour('blue');
+    }
+  }
+
+  &__panel {
+    padding: 0;
+
+    pre {
+      margin: 0;
+    }
+
+    pre code {
+      border: 0;
+      outline: none;
+      margin-bottom: 0;
+      max-height: 70vh;
+    }
+  }
+}

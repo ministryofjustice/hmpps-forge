@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const generatorsStep = step({
   path: '/generators',
   title: 'Generators',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

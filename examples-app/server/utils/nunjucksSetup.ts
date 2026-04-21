@@ -52,18 +52,6 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
 
   njkEnv.addFilter('initialiseName', initialiseName)
   njkEnv.addFilter('assetMap', (url: string) => assetManifest[url] || url)
-  njkEnv.addFilter('toErrorList', (errors: { blockCode: string; message: string }[]) => {
-    const seen = new Set<string>()
-
-    return errors.reduce<{ text: string; href: string }[]>((list, error) => {
-      if (!seen.has(error.blockCode)) {
-        seen.add(error.blockCode)
-        list.push({ text: error.message, href: `#${error.blockCode}` })
-      }
-
-      return list
-    }, [])
-  })
   njkEnv.addFilter('groupByMetadata', (items: Record<string, unknown>[], key: string) => {
     const groups: { name: string | undefined; items: Record<string, unknown>[] }[] = []
     const groupMap = new Map<string | undefined, Record<string, unknown>[]>()
@@ -85,6 +73,28 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
     }
 
     return groups
+  })
+
+  interface ValidationError {
+    message: string
+    blockCode?: string
+  }
+
+  njkEnv.addGlobal('toErrorList', (fieldErrors?: ValidationError[], domainErrors?: ValidationError[]) => {
+    const allErrors = [...(domainErrors ?? []), ...(fieldErrors ?? [])]
+    const seen = new Set<string>()
+
+    return allErrors.flatMap((error): { text: string; href?: string }[] => {
+      const key = error.blockCode ?? error.message
+
+      if (seen.has(key)) {
+        return []
+      }
+
+      seen.add(key)
+
+      return [error.blockCode ? { text: error.message, href: `#${error.blockCode}` } : { text: error.message }]
+    })
   })
 
   return njkEnv

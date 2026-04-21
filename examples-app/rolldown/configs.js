@@ -36,7 +36,11 @@ function getAppConfig() {
       plugins: [
         cleanPlugin(outDir, { exclude: ['assets'], excludeExtensions: ['.js', '.js.map'] }),
         copyPlugin({
-          patterns: [path.join(serverDir, '**/*.njk'), path.join(serverDir, '**/*.md')],
+          patterns: [
+            path.join(serverDir, '**/*.njk'),
+            path.join(serverDir, '**/*.md'),
+            path.join(serverDir, 'journeys/forge-developer-guide/sections/patterns/**/*.ts'),
+          ],
           baseDir: serverDir,
           outDir,
         }),

@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const validationStep = step({
   path: '/validation',
   title: 'Validation',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
   onAccess: [
     access({

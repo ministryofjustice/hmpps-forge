@@ -3,9 +3,9 @@ import { GuideEffects } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const getStartedOverviewStep = step({
-  path: '/',
+  path: '/overview',
   title: 'Get started',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { hiddenFromNav: true },
   onAccess: [
     access({

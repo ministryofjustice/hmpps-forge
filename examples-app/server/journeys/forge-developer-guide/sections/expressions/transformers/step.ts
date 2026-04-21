@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const transformersStep = step({
   path: '/transformers',
   title: 'Transformers',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

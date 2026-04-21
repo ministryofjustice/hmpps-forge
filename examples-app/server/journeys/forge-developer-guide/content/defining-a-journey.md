@@ -173,7 +173,8 @@ view: {
 ### `entryPath` (Optional)
 
 The path users land on when they navigate to the journey's root URL. If not
-set, Forge uses the first step with `isEntryPoint: true`. See
+set, Forge uses the tiebreaker-winning active entry point. If no active entry
+point exists, it falls back to the first declared step. See
 [Routing and entry points](routing-and-entry-points).
 
 ### `onAccess` (Optional)

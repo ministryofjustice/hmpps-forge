@@ -14,7 +14,7 @@ import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
 import StepFieldInventoryAnalyzer from '../analysis/StepFieldInventoryAnalyzer'
 import HookExecutor from '../evaluation/HookExecutor'
 import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import RedirectResolver from '../resolution/RedirectResolver'
+import NavigationDecisionResolver from '../resolution/NavigationDecisionResolver'
 import ReachabilityStateProjector from '../projection/ReachabilityStateProjector'
 import ValidationStateProjector from '../projection/ValidationStateProjector'
 import RenderProjector from '../projection/RenderProjector'
@@ -43,7 +43,7 @@ export default class StepController<TRequest, TResponse> {
 
   private readonly stepFieldInventoryAnalyzer: StepFieldInventoryAnalyzer
 
-  private readonly redirectResolver: RedirectResolver
+  private readonly navigationDecisionResolver: NavigationDecisionResolver
 
   private readonly reachabilityStateProjector: ReachabilityStateProjector
 
@@ -67,7 +67,7 @@ export default class StepController<TRequest, TResponse> {
     this.answerPreparer = new AnswerPreparer()
     this.navigationEvaluator = new NavigationAnalyzer()
     this.stepFieldInventoryAnalyzer = new StepFieldInventoryAnalyzer()
-    this.redirectResolver = new RedirectResolver()
+    this.navigationDecisionResolver = new NavigationDecisionResolver()
     this.reachabilityStateProjector = new ReachabilityStateProjector()
     this.validationStateProjector = new ValidationStateProjector()
     this.renderProjector = new RenderProjector(navigationMetadata, currentRouteTemplatePath)
@@ -91,7 +91,7 @@ export default class StepController<TRequest, TResponse> {
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
-    const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
+    const reachabilityRedirect = this.navigationDecisionResolver.resolveStepRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
@@ -120,7 +120,7 @@ export default class StepController<TRequest, TResponse> {
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
-    const reachabilityRedirect = this.redirectResolver.resolve(navigationEvaluation)
+    const reachabilityRedirect = this.navigationDecisionResolver.resolvePostRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)

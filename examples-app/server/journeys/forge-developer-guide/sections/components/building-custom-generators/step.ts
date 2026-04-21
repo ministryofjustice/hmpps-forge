@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const buildingCustomGeneratorsStep = step({
   path: '/custom-generators',
   title: 'Custom generators',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

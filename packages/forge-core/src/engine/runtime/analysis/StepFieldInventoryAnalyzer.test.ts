@@ -69,6 +69,7 @@ describe('StepFieldInventoryAnalyzer', () => {
         }),
       ],
       resumeAlways: false,
+      reachabilityDisabled: false,
     }
 
     // Act
@@ -86,6 +87,7 @@ describe('StepFieldInventoryAnalyzer', () => {
         createEntry({ stepId: 'compile_ast:2', path: 'step-b' }),
       ],
       resumeAlways: false,
+      reachabilityDisabled: false,
     }
 
     vi.mocked(context.nodeRegistry.findByType).mockReturnValue([
@@ -121,6 +123,7 @@ describe('StepFieldInventoryAnalyzer', () => {
         }),
       ],
       resumeAlways: false,
+      reachabilityDisabled: false,
     }
 
     // Act
@@ -135,6 +138,7 @@ describe('StepFieldInventoryAnalyzer', () => {
     const plan: ReachabilityRuntimePlan = {
       entries: [createEntry({ stepId: 'compile_ast:1', path: 'step-a', isEntryPoint: true })],
       resumeAlways: false,
+      reachabilityDisabled: false,
     }
 
     vi.mocked(context.nodeRegistry.findByType).mockReturnValue([

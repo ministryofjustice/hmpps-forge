@@ -10,8 +10,10 @@ describe('ReachabilityStateProjector', () => {
     return {
       stepId: 'compile_ast:40',
       routeTemplatePath: '/journey/step-a',
+      declarationIndex: 0,
       isEntryPoint: false,
       isConditionalEntry: false,
+      hasValidation: false,
       isReachable: true,
       isValid: true,
       forwardRouteTemplatePaths: [],
@@ -24,8 +26,12 @@ describe('ReachabilityStateProjector', () => {
     return {
       currentStepId: undefined,
       steps: [],
-      redirectTargetRouteTemplatePath: undefined,
+      defaultEntryRouteTemplatePath: undefined,
+      frontierRouteTemplatePath: undefined,
+      canonicalPathRouteTemplatePaths: [],
+      progressExists: false,
       resumeActive: false,
+      resumeOutcome: 'no-op',
       ...overrides,
     }
   }
@@ -99,18 +105,20 @@ describe('ReachabilityStateProjector', () => {
           stepId: 'compile_ast:50',
           routeTemplatePath: '/journey/first',
           isEntryPoint: true,
+          declarationIndex: 0,
         }),
         createNavigationStep({
           stepId: 'compile_ast:52',
           routeTemplatePath: '/journey/second',
-          predecessorRouteTemplatePaths: ['/journey/first'],
+          declarationIndex: 1,
         }),
         createNavigationStep({
           stepId: 'compile_ast:54',
           routeTemplatePath: '/journey/third',
-          predecessorRouteTemplatePaths: ['/journey/second'],
+          declarationIndex: 2,
         }),
       ],
+      canonicalPathRouteTemplatePaths: ['/journey/first', '/journey/second', '/journey/third'],
     })
 
     const fieldInventory: StepFieldInventory[] = [
@@ -136,7 +144,7 @@ describe('ReachabilityStateProjector', () => {
     expect(third?.backPath).toBe('/journey/second')
   })
 
-  it('should omit back path when a step has multiple predecessors', () => {
+  it('should omit back path when a step is outside the canonical path', () => {
     // Arrange
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:59',
@@ -144,9 +152,9 @@ describe('ReachabilityStateProjector', () => {
         createNavigationStep({
           stepId: 'compile_ast:59',
           routeTemplatePath: '/journey/converge',
-          predecessorRouteTemplatePaths: ['/journey/branch-a', '/journey/branch-b'],
         }),
       ],
+      canonicalPathRouteTemplatePaths: ['/journey/branch-a', '/journey/branch-b'],
     })
 
     const fieldInventory: StepFieldInventory[] = [{ stepId: 'compile_ast:59', fieldCodes: [], cleardownFieldCodes: [] }]

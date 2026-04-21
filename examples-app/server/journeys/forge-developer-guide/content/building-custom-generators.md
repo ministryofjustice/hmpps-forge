@@ -113,6 +113,52 @@ NextSequenceNumber: (deps) => () => {
 
 ---
 
+## Author-time validation
+
+Factory entries can also be written as `{ validate, factory }`,
+where `validate` is an optional hook that runs synchronously when
+the generator builder is called. This lets configuration errors
+surface when the journey module loads rather than at render time.
+
+```typescript
+export const { generators: MyGenerators, implementations: myGeneratorImplementations } =
+  defineGeneratorFunctions<MyGeneratorShape, MyDeps>({
+    NewReferenceNumber: {
+      validate: (prefix: string) => {
+        if (typeof prefix !== 'string' || prefix.length === 0) {
+          throw new Error('NewReferenceNumber requires a non-empty prefix')
+        }
+      },
+      factory: (deps) => (prefix: string) => {
+        const timestamp = Date.now().toString(36)
+        const random = Math.random().toString(36).substring(2, 6)
+
+        return `${prefix}-${timestamp}-${random}`.toUpperCase()
+      },
+    },
+  })
+```
+
+A bad call fails as soon as the definition is imported:
+
+```typescript
+// Throws 'NewReferenceNumber requires a non-empty prefix'.
+MyGenerators.NewReferenceNumber('')
+```
+
+`validate` receives the same arguments as the evaluator. Since
+generators have no injected first parameter, both see exactly what
+the author passed to the builder. Use `validate` for structural
+checks that hold regardless of runtime state, such as required
+fields, numeric ranges, or enum membership. Checks that depend on
+injected dependencies belong inside the evaluator.
+
+If an argument is itself an expression like `Data('referencePrefix')`,
+its resolved value is not available at author time. Validate the
+resolved value inside the evaluator instead.
+
+---
+
 ## Chainable output
 
 Generator expressions support the same chaining methods as
@@ -290,3 +336,7 @@ describe('MyGenerators', () => {
 - **Return consistent types.** A generator that sometimes returns a
   string and sometimes returns a number makes pipeline chaining
   unpredictable. Pick a return type and stick with it.
+- **Validate static arguments at author time.** Use the
+  `{ validate, factory }` form when the argument is a plain value,
+  so configuration errors surface at module load rather than at
+  render time.

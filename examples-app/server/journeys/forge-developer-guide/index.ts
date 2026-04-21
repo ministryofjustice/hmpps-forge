@@ -1,6 +1,7 @@
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { developerGuideJourney } from './journey'
 import { GuideDeps, GuideEffectsImplementations } from './effects'
+import { PatternEffectsImplementations } from './sections/patterns/effects'
 import { govukMarkdown } from './components/govukMarkdown'
 import { tableOfContentsComponent } from './components/tableOfContents'
 
@@ -9,5 +10,6 @@ export default createForgePackage<GuideDeps>({
   components: [govukMarkdown, tableOfContentsComponent],
   functions: {
     ...GuideEffectsImplementations,
+    ...PatternEffectsImplementations,
   },
 })

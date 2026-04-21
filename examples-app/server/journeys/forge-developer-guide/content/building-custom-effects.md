@@ -121,6 +121,50 @@ The call returns two things:
 
 ---
 
+## Author-time validation
+
+Factory entries can also be written as `{ validate, factory }`,
+where `validate` is an optional hook that runs synchronously when
+the effect builder is called. This lets configuration errors
+surface when the journey module loads rather than at render time.
+
+```typescript
+export const { effects: MyEffects, implementations: myEffectImplementations } =
+  defineEffectFunctions<MyEffectShape, MyDeps>({
+    RemoveTrip: {
+      validate: (index: number) => {
+        if (!Number.isInteger(index) || index < 0) {
+          throw new Error('RemoveTrip requires a non-negative integer index')
+        }
+      },
+      factory: (deps) => async (context, index: number) => {
+        const trips = context.getAnswer('trips') ?? []
+        context.setAnswer('trips', trips.filter((_, i) => i !== index))
+      },
+    },
+  })
+```
+
+A bad call fails as soon as the definition is imported:
+
+```typescript
+// Throws 'RemoveTrip requires a non-negative integer index'.
+MyEffects.RemoveTrip(-1)
+```
+
+`validate` receives only the arguments the author passed to the
+builder. It does not see injected dependencies or the runtime
+context, so it can only check structural properties of the
+arguments: required fields, numeric ranges, enum membership, or
+combinations of arguments. Checks that depend on the context
+belong inside the evaluator.
+
+If an argument is itself an expression like `Params('caseId')`, its
+resolved value is not available at author time. Validate the
+resolved value inside the evaluator instead.
+
+---
+
 ## The effect context
 
 Unlike transformers, generators, and conditions, effects receive a
@@ -447,3 +491,7 @@ across tests.
   catch errors when you need to transform them into a different
   outcome (for example, setting a "not found" flag on the data
   context).
+- **Validate static arguments at author time.** Use the
+  `{ validate, factory }` form when the argument is a plain value,
+  so configuration errors surface at module load rather than at
+  render time.

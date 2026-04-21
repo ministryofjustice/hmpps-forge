@@ -128,7 +128,6 @@ export default class HookExecutor {
     context: ThunkEvaluationContext,
   ): Promise<SubmitHookResult> {
     for (const hookId of runtimePlan.submitHookIds) {
-
       const result = await invoker.invoke<SubmitHookResult>(hookId, context)
 
       if (!result.error && result.value?.executed) {

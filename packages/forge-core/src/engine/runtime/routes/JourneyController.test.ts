@@ -142,7 +142,7 @@ describe('JourneyController', () => {
       path: '/journey',
       accessAncestorIds: ['compile_ast:root-journey' as NodeId, 'compile_ast:journey' as NodeId],
       fieldIteratorRootIds: [],
-      reachabilityPlan: { entries: [], resumeAlways: false },
+      reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 
     mockArtefact = {} as CompilationArtefact
@@ -187,8 +187,10 @@ describe('JourneyController', () => {
     ) => ({
       stepId: (overrides.stepId ?? 'compile_ast:step-1') as NodeId,
       routeTemplatePath: overrides.routeTemplatePath ?? '/journey/step-1',
+      declarationIndex: 0,
       isEntryPoint: overrides.isEntryPoint ?? false,
       isConditionalEntry: overrides.isConditionalEntry ?? false,
+      hasValidation: false,
       isReachable: true,
       isValid: true,
       forwardRouteTemplatePaths: [],
@@ -196,15 +198,28 @@ describe('JourneyController', () => {
       tieBreakerPriority: overrides.tieBreakerPriority,
     })
 
+    const createEvaluation = (overrides: Record<string, unknown>) => ({
+      currentStepId: undefined,
+      steps: [createStepState()],
+      defaultEntryRouteTemplatePath: '/journey/step-1',
+      frontierRouteTemplatePath: undefined,
+      canonicalPathRouteTemplatePaths: ['/journey/step-1'],
+      progressExists: false,
+      resumeActive: false,
+      resumeOutcome: 'no-op' as const,
+      ...overrides,
+    })
+
     it('should redirect to resume frontier when resumeWhen is always active', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [createStepState()],
-        redirectTargetRouteTemplatePath: '/journey/resume-target',
-        resumeActive: true,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          frontierRouteTemplatePath: '/journey/resume-target',
+          resumeActive: true,
+          resumeOutcome: 'redirect',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -218,20 +233,20 @@ describe('JourneyController', () => {
     it('should redirect to winning entry point when resume is not active', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [
-          createStepState({ routeTemplatePath: '/journey/overview', isEntryPoint: true }),
-          createStepState({
-            stepId: 'compile_ast:step-2' as NodeId,
-            routeTemplatePath: '/journey/your-name',
-            isEntryPoint: true,
-            tieBreakerPriority: 100,
-          }),
-        ],
-        redirectTargetRouteTemplatePath: '/journey/your-name',
-        resumeActive: false,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [
+            createStepState({ routeTemplatePath: '/journey/overview', isEntryPoint: true }),
+            createStepState({
+              stepId: 'compile_ast:step-2' as NodeId,
+              routeTemplatePath: '/journey/your-name',
+              isEntryPoint: true,
+              tieBreakerPriority: 100,
+            }),
+          ],
+          defaultEntryRouteTemplatePath: '/journey/your-name',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -245,12 +260,13 @@ describe('JourneyController', () => {
     it('should fall back to entry point when resume is active but frontier is undefined', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [createStepState({ routeTemplatePath: '/journey/first', isEntryPoint: true })],
-        redirectTargetRouteTemplatePath: undefined,
-        resumeActive: true,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [createStepState({ routeTemplatePath: '/journey/first', isEntryPoint: true })],
+          defaultEntryRouteTemplatePath: '/journey/first',
+          resumeActive: true,
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -264,12 +280,12 @@ describe('JourneyController', () => {
     it('should fall back to first step when no entry points exist', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [createStepState({ routeTemplatePath: '/journey/step-a' })],
-        redirectTargetRouteTemplatePath: undefined,
-        resumeActive: false,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [createStepState({ routeTemplatePath: '/journey/step-a' })],
+          defaultEntryRouteTemplatePath: '/journey/step-a',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -283,12 +299,13 @@ describe('JourneyController', () => {
     it('should throw when no steps exist', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [],
-        redirectTargetRouteTemplatePath: undefined,
-        resumeActive: false,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [],
+          defaultEntryRouteTemplatePath: undefined,
+          canonicalPathRouteTemplatePaths: [],
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -314,12 +331,10 @@ describe('JourneyController', () => {
       mockNavigationAnalyzerEvaluate.mockImplementation(async () => {
         callOrder.push('navigation')
 
-        return {
-          currentStepId: undefined,
+        return createEvaluation({
           steps: [createStepState({ isEntryPoint: true })],
-          redirectTargetRouteTemplatePath: '/journey/target',
-          resumeActive: false,
-        }
+          defaultEntryRouteTemplatePath: '/journey/target',
+        })
       })
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
@@ -371,12 +386,13 @@ describe('JourneyController', () => {
         createMockRequest({ params: { personId: 'abc-123' } }),
       )
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [createStepState()],
-        redirectTargetRouteTemplatePath: '/journey/people/:personId/details',
-        resumeActive: true,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          frontierRouteTemplatePath: '/journey/people/:personId/details',
+          resumeActive: true,
+          resumeOutcome: 'redirect',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -393,12 +409,12 @@ describe('JourneyController', () => {
     it('should invoke NavigationAnalyzer with an undefined currentStepId', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [createStepState({ isEntryPoint: true })],
-        redirectTargetRouteTemplatePath: '/journey/any',
-        resumeActive: false,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [createStepState({ isEntryPoint: true })],
+          defaultEntryRouteTemplatePath: '/journey/any',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 
@@ -419,20 +435,20 @@ describe('JourneyController', () => {
     it('should include conditional entries when selecting the winning entry point', async () => {
       // Arrange
       mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
-      mockNavigationAnalyzerEvaluate.mockResolvedValue({
-        currentStepId: undefined,
-        steps: [
-          createStepState({ routeTemplatePath: '/journey/start', isEntryPoint: true }),
-          createStepState({
-            stepId: 'compile_ast:step-2' as NodeId,
-            routeTemplatePath: '/journey/confirmation',
-            isConditionalEntry: true,
-            tieBreakerPriority: 200,
-          }),
-        ],
-        redirectTargetRouteTemplatePath: undefined,
-        resumeActive: false,
-      })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [
+            createStepState({ routeTemplatePath: '/journey/start', isEntryPoint: true }),
+            createStepState({
+              stepId: 'compile_ast:step-2' as NodeId,
+              routeTemplatePath: '/journey/confirmation',
+              isConditionalEntry: true,
+              tieBreakerPriority: 200,
+            }),
+          ],
+          defaultEntryRouteTemplatePath: '/journey/confirmation',
+        }),
+      )
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
 

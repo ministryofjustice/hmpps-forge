@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const buildingCustomTransformersStep = step({
   path: '/custom-transformers',
   title: 'Custom transformers',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

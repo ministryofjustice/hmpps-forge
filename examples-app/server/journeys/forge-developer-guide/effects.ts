@@ -5,10 +5,12 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type GuideContentStore from '../../data/guideContentStore'
 import type GuideSearch from '../../data/guideSearch'
+import type FormDataStore from '../../data/formDataStore'
 
 export interface GuideDeps {
   guideContentStore: GuideContentStore
   guideSearch: GuideSearch
+  formDataStore: FormDataStore
 }
 
 export interface GuideEffectShape {
@@ -18,7 +20,7 @@ export interface GuideEffectShape {
 
 export const { effects: GuideEffects, implementations: GuideEffectsImplementations } =
   defineEffectFunctions<GuideEffectShape, GuideDeps>({
-    LoadContent: deps => async (context: EffectFunctionContext, slug: string) => {
+    LoadContent: (deps: GuideDeps) => async (context: EffectFunctionContext, slug: string) => {
       await deps.guideContentStore.load()
 
       const markdown = deps.guideContentStore.getMarkdown(slug)
@@ -29,7 +31,7 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
       }
     },
 
-    SearchContent: deps => async (context: EffectFunctionContext) => {
+    SearchContent: (deps: GuideDeps) => async (context: EffectFunctionContext) => {
       const queryParam = context.getQueryParam('q')
       const query = typeof queryParam === 'string' ? queryParam : ''
 

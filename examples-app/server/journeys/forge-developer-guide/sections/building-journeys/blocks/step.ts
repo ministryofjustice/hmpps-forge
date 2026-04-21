@@ -5,7 +5,7 @@ import { content } from './blocks'
 export const definingBlocksAndFieldsStep = step({
   path: '/defining-blocks-and-fields',
   title: 'Defining blocks and fields',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Building flows and content' },
   onAccess: [
     access({

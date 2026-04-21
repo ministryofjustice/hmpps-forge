@@ -32,10 +32,11 @@
 {% block content %}
   <div class="govuk-grid-row">
     <div class="{{ contentClasses | default('govuk-grid-column-two-thirds') }}">
-      {% if fieldValidationErrors and fieldValidationErrors.length %}
+      {% set errorList = toErrorList(fieldValidationErrors, domainValidationErrors) %}
+      {% if errorList.length %}
         {{ govukErrorSummary({
           titleText: "There is a problem",
-          errorList: fieldValidationErrors | toErrorList
+          errorList: errorList
         }) }}
       {% endif %}
 

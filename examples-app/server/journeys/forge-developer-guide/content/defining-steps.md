@@ -249,15 +249,22 @@ backlink: '/travel-declaration/your-trips'  // Custom URL
 backlink: ''                                // No back link
 ```
 
-### `isEntryPoint` (Optional)
+### `reachability` (Optional)
 
-Marks this step as a reachable entry point. See
-[Routing and entry points](routing-and-entry-points) for how entry
-points and reachability work together.
+Marks the step as an entry point and configures tie-breaking behaviour.
+`entryWhen` can be `true` (always an entry point) or a condition
+expression (entry point only when the condition is met). `tieBreakers`
+resolves ambiguity when Forge has multiple candidates - entry points,
+paths to a step, or redirect targets.
 
 ```typescript
-isEntryPoint: true
+reachability: { entryWhen: true }
+reachability: { entryWhen: Session('submitted').match(Condition.Equals(true)) }
+reachability: { entryWhen: true, tieBreakers: [tieBreaker({ priority: 100 })] }
 ```
+
+See [Routing and entry points](routing-and-entry-points) for how entry
+points work, and [Reachability](reachability) for the redirect logic.
 
 ### `data` (Optional)
 

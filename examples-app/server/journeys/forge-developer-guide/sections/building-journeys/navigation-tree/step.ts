@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const navigationTreeStep = step({
   path: '/navigation-tree',
   title: 'The navigation tree',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Routing, reachability and navigation' },
   onAccess: [
     access({

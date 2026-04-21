@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const definingAJourneyStep = step({
   path: '/defining-a-journey',
   title: 'Defining a journey',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Building flows and content' },
   onAccess: [
     access({

@@ -273,6 +273,7 @@ describe('StepController', () => {
           },
         ],
         resumeAlways: false,
+        reachabilityDisabled: false,
       },
     }
   }
@@ -703,6 +704,7 @@ describe('StepController', () => {
             },
           ],
           resumeAlways: false,
+          reachabilityDisabled: false,
         }
 
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {

@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const answerAndSelfStep = step({
   path: '/answer-and-self',
   title: 'Answer and Self',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
   onAccess: [
     access({

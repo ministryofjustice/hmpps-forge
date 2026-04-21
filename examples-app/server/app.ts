@@ -3,7 +3,10 @@ import express from 'express'
 import createError from 'http-errors'
 
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import {
+  ExpressFrameworkAdapter,
+  nunjucksFunctions,
+} from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 
@@ -15,10 +18,10 @@ import setUpStaticResources from './middleware/setUpStaticResources'
 import setUpWebRequestParsing from './middleware/setupRequestParsing'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
-import exampleJourneysPackage from './journeys/examples'
 import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
+import setUpWebSecurity from "./middleware/setUpWebSecurity";
 import embeddingDebug from "./routes/embeddingDebug";
 
 export default function createApp(services: Services): express.Application {
@@ -30,17 +33,16 @@ export default function createApp(services: Services): express.Application {
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
   })
-    // FORGE-EXAMPLE: Register component libraries so journeys can use GovUK/MOJ components
+    // FORGE-EXAMPLE: Register global component libraries so journeys can use GovUK/MOJ components
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
+    // FORGE-EXAMPLE: Register global functions so journeys can use them
+    .registerGlobalFunctions(nunjucksFunctions)
     // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
-    .registerPackage(exampleJourneysPackage, {
-      formDataStore: services.formDataStore,
-      appointmentApi: services.appointmentApi,
-    })
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,
+      formDataStore: services.formDataStore,
     })
 
   app.set('json spaces', 2)
@@ -48,7 +50,7 @@ export default function createApp(services: Services): express.Application {
   app.set('port', process.env.PORT || 3000)
 
   app.use(setUpHealthChecks(services.applicationInfo))
-  // app.use(setUpWebSecurity())
+  app.use(setUpWebSecurity())
   app.use(setUpWebSession())
   app.use(setUpWebRequestParsing())
   app.use(setUpStaticResources())

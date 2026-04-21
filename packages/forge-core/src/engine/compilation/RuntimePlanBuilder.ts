@@ -35,6 +35,7 @@ export interface ReachabilityRuntimePlan {
   entries: ReachabilityStepEntry[]
   resumeAlways: boolean
   resumeWhenNodeId?: NodeId
+  reachabilityDisabled: boolean
 }
 
 export interface ReachabilityStepEntry {
@@ -137,7 +138,7 @@ export default class RuntimePlanBuilder {
 
     journeyStepMap.forEach((journeySteps, journeyId) => {
       const journeyNode = journeyIndex.get(journeyId)
-      const reachabilityPlan = this.buildReachabilityPlan(journeySteps, journeyNode)
+      const reachabilityPlan = this.buildReachabilityPlan(journeySteps, journeyNode, journeyIndex)
 
       journeySteps.forEach(stepNode => {
         reachabilityPlansByStepId.set(stepNode.id, reachabilityPlan)
@@ -167,6 +168,7 @@ export default class RuntimePlanBuilder {
   private buildReachabilityPlan(
     journeySteps: StepASTNode[],
     journeyNode: JourneyASTNode | undefined,
+    journeyIndex: Map<NodeId, JourneyASTNode>,
   ): ReachabilityRuntimePlan {
     const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
@@ -175,14 +177,51 @@ export default class RuntimePlanBuilder {
       entries,
       resumeAlways: resumeWhen === true,
       resumeWhenNodeId: resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined,
+      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
     }
+  }
+
+  private resolveReachabilityDisabled(
+    journeyNode: JourneyASTNode | undefined,
+    journeyIndex: Map<NodeId, JourneyASTNode>,
+  ): boolean {
+    if (!journeyNode) {
+      return false
+    }
+
+    const ownSetting = journeyNode.properties.reachability?.disableReachabilityChecks
+
+    if (ownSetting !== undefined) {
+      return ownSetting
+    }
+
+    const ancestors = getAncestorChain(journeyNode.id, this.metadataRegistry)
+
+    for (let i = ancestors.length - 2; i >= 0; i--) {
+      const ancestorJourney = journeyIndex.get(ancestors[i])
+
+      if (!ancestorJourney) {
+        continue
+      }
+
+      const ancestorSetting = ancestorJourney.properties.reachability?.disableReachabilityChecks
+
+      if (ancestorSetting !== undefined) {
+        return ancestorSetting
+      }
+    }
+
+    return false
   }
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityStepEntry {
     const stepId = stepNode.id
-    const { forwardOutcomeIds, hasValidation } = this.extractForwardNavigation(stepNode)
+    const { forwardOutcomeIds } = this.extractForwardNavigation(stepNode)
     const fieldIterateNodeIds = this.findFieldIterateNodeIds(stepId)
     const fieldIteratorRootIds = this.findIteratorRootIds(stepId, fieldIterateNodeIds)
+    const validationIterateNodeIds = this.findValidationIterateNodeIds(fieldIterateNodeIds)
+    const validationBlockIds = this.findValidationBlockIds(stepId)
+    const domainValidationNodeIds = this.findDomainValidationNodeIds(stepNode)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
@@ -194,12 +233,12 @@ export default class RuntimePlanBuilder {
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeIds,
-      hasValidation,
+      hasValidation: validationBlockIds.length > 0 || domainValidationNodeIds.length > 0,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       fieldIteratorRootIds,
-      validationIterateNodeIds: this.findValidationIterateNodeIds(fieldIterateNodeIds),
-      validationBlockIds: this.findValidationBlockIds(stepId),
-      domainValidationNodeIds: this.findDomainValidationNodeIds(stepNode),
+      validationIterateNodeIds,
+      validationBlockIds,
+      domainValidationNodeIds,
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,
         whenNodeId: entry.properties.when?.id,
@@ -325,21 +364,14 @@ export default class RuntimePlanBuilder {
 
   private extractForwardNavigation(stepNode: StepASTNode): {
     forwardOutcomeIds: NodeId[]
-    hasValidation: boolean
   } {
     const submitHooks = stepNode.properties.onSubmission ?? []
-    const validatingHooks = submitHooks.filter(t => t.properties.validate === true)
-
-    if (validatingHooks.length > 0) {
-      return {
-        forwardOutcomeIds: this.extractOutcomeIdsFromValidBranch(validatingHooks),
-        hasValidation: true,
-      }
-    }
+    const alwaysOutcomeIds = this.extractOutcomeIdsFromAlwaysBranch(submitHooks)
+    const validatingHooks = submitHooks.filter(t => t.properties.validate)
+    const validOutcomeIds = validatingHooks.length > 0 ? this.extractOutcomeIdsFromValidBranch(validatingHooks) : []
 
     return {
-      forwardOutcomeIds: this.extractOutcomeIdsFromAlwaysBranch(submitHooks),
-      hasValidation: false,
+      forwardOutcomeIds: [...alwaysOutcomeIds, ...validOutcomeIds],
     }
   }
 
@@ -360,6 +392,6 @@ export default class RuntimePlanBuilder {
   }
 
   private computeHasValidatingSubmitHook(stepNode: StepASTNode): boolean {
-    return (stepNode.properties.onSubmission ?? []).some((hook: SubmitHookASTNode) => hook.properties.validate === true)
+    return (stepNode.properties.onSubmission ?? []).some((hook: SubmitHookASTNode) => hook.properties.validate)
   }
 }

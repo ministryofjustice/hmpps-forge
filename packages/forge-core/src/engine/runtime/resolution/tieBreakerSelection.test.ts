@@ -6,8 +6,10 @@ describe('tieBreakerSelection', () => {
     return {
       stepId: 'compile_ast:1',
       routeTemplatePath: '/journey/step',
+      declarationIndex: 0,
       isEntryPoint: false,
       isConditionalEntry: false,
+      hasValidation: false,
       isReachable: true,
       isValid: true,
       forwardRouteTemplatePaths: [],

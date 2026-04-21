@@ -143,6 +143,7 @@ const StepReachabilitySchema = z
 const JourneyReachabilitySchema = z
   .object({
     resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    disableReachabilityChecks: z.boolean().optional(),
   })
   .optional()
 

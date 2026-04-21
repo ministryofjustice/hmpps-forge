@@ -2,7 +2,7 @@
 title: Generators
 section: authoring-language
 path: authoring-language/generators
-teaches: [Generator, Generator.Date.Now, Generator.Date.Today, defineGeneratorFunctions, custom-generators]
+teaches: [Generator, Generator.Date.Now, Generator.Date.Today]
 prerequisites: [pipe, Transformer]
 ---
 
@@ -89,71 +89,13 @@ GovUKBody({
 
 ## Custom generators
 
-You can define your own generators using `defineGeneratorFunctions`.
-A custom generator is referenced in the journey definition and
-implemented in the package, following the same pattern as effects,
-conditions, and transformers.
+When the built-in set does not cover what you need (UUIDs, reference
+numbers, computed defaults), you can define your own. Custom
+generators plug into the same `.pipe()` pipeline as the built-ins
+and are used in definitions the same way.
 
-```typescript
-import {
-  defineGeneratorFunctions,
-  GeneratorFunctionExpr,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export interface MyGeneratorShape {
-  NewUUID: () => GeneratorFunctionExpr
-}
-
-export const { generators: MyGenerators, implementations: myGeneratorImplementations } =
-  defineGeneratorFunctions<MyGeneratorShape, MyDeps>({
-    NewUUID: (deps) => () => {
-      return crypto.randomUUID()
-    },
-  })
-```
-
-Like all custom functions in Forge, generators follow the
-`(deps) => (...args) => result` pattern. The outer function
-receives injected dependencies, even if the generator does not need
-them. Dependencies are injected when you register the package with
-`forge.registerPackage(pkg, deps)`.
-
-Use it in a definition:
-
-```typescript
-GovUKTextInput({
-  code: 'referenceId',
-  defaultValue: MyGenerators.NewUUID(),
-})
-```
-
-Register the implementations in the package:
-
-```typescript
-export default createForgePackage({
-  journey: myJourney,
-  functions: {
-    ...myGeneratorImplementations,
-  },
-})
-```
-
----
-
-## API surface
-
-### `defineGeneratorFunctions(implementations)`
-
-Defines custom generator functions. Returns a `generators` object
-for use in definitions and an `implementations` object for
-registration in a package.
-
-```typescript
-import { defineGeneratorFunctions } from '@ministryofjustice/hmpps-forge/core/authoring'
-```
-
-Generator functions return a chainable expression that supports
-`.path()`, `.match()`, `.pipe()`, and `.each()`.
+See [Building custom generators](building-functions-and-components/custom-generators)
+for the shape interface, implementation, and registration details.
 
 ---
 
@@ -166,9 +108,6 @@ Generator functions return a chainable expression that supports
 - **Pipe generators to shape the output.** A generator produces a
   raw value. Use `.pipe()` with transformers to convert it into the
   format your component or condition expects.
-- **Register implementations in the package.** Like effects,
-  conditions, and transformers, generator implementations are
-  scoped to the package that registers them.
 
 ---
 

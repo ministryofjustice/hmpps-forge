@@ -89,6 +89,18 @@ export interface JourneyReachability {
    * reachability: { resumeWhen: Query('resume').match(Condition.Equals('true')) }
    */
   resumeWhen?: true | PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Disables the reachability BFS walk for this journey. All steps are
+   * treated as reachable without requiring entry points or forward edges.
+   *
+   * Child journeys inherit this setting but can override it with an
+   * explicit `false` to re-enable reachability checks.
+   *
+   * @example
+   * reachability: { disableReachabilityChecks: true }
+   */
+  disableReachabilityChecks?: boolean
 }
 
 /**
