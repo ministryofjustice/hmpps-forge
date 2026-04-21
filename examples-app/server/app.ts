@@ -19,6 +19,7 @@ import exampleJourneysPackage from './journeys/examples'
 import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
+import embeddingDebug from "./routes/embeddingDebug";
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -54,6 +55,7 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpCsrf())
   // FORGE-EXAMPLE: Mount the Forge router — this serves all registered journey routes
   app.use(forge.getRouter() as express.Router)
+  app.get('/dev/embeddings', embeddingDebug)
 
   app.use((req, res, next) => next(createError(404, 'Not found')))
   app.use(errorHandler(process.env.NODE_ENV === 'production'))

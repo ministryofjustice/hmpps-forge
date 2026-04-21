@@ -404,7 +404,25 @@ export default class GuideSearch {
     logger.info({ count: this.chunks.length }, 'Guide search index built')
 
     if (this.embeddingIndex && this.chunks.length > 0) {
-      this.embeddingIndex.buildIndex(this.chunks.map(chunkToEmbeddingText))
+      const embeddingTexts = this.chunks.map(chunkToEmbeddingText)
+
+      this.embeddingIndex.buildIndex(embeddingTexts, {
+        enabled: process.env.EMBEDDING_DEBUG_EXPORT === 'true',
+        chunks: this.chunks.map((chunk, index) => ({
+          slug: chunk.slug,
+          path: chunk.path,
+          title: chunk.title,
+          heading: chunk.heading,
+          tags: chunk.tags,
+          text: chunk.text,
+          embeddingText: embeddingTexts[index],
+        })),
+        queries: [
+          'how do I build a multi-page journey?',
+          'how is validation configured?',
+          'how do routes and navigation work?',
+        ],
+      })
     }
   }
 

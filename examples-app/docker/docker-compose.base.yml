@@ -41,6 +41,7 @@ services:
       INGRESS_URL: http://localhost:3000
       NO_HTTPS: true
       TOKEN_VERIFICATION_ENABLED: false
+      EMBEDDING_DEBUG_EXPORT: true
 
 networks:
   hmpps:

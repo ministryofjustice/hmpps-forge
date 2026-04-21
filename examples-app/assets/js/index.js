@@ -2,6 +2,7 @@ import '../scss/index.scss'
 import * as govukFrontend from 'govuk-frontend'
 import * as mojFrontend from '@ministryofjustice/frontend'
 import { initScrollRestore } from './scroll-restore.mjs'
+import './embedding-debug.js'
 
 govukFrontend.initAll()
 mojFrontend.initAll()

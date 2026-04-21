@@ -1,0 +1,62 @@
+{% extends "../partials/layout.njk" %}
+
+{% block pageTitle %}
+  {{ pageTitle }}
+{% endblock %}
+
+{% block content %}
+  <div class="govuk-width-container">
+    <main class="govuk-main-wrapper">
+      <h1 class="govuk-heading-l">Embedding debug</h1>
+
+      <div class="app-embedding-toolbar">
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="embedding-projection">Projection</label>
+          <select class="govuk-select" id="embedding-projection">
+            <option value="pca">PCA</option>
+            <option value="tsne">t-SNE</option>
+            <option value="umap" selected>UMAP</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="govuk-body-s govuk-hint">
+        The plot is a 2D projection of high-dimensional embeddings. Use the selector to compare PCA, t-SNE, and UMAP. Nearest chunk highlighting is always computed from the original embedding vectors, not from 2D point distance.
+      </p>
+
+      {% if not payload %}
+        <div class="govuk-inset-text">
+          No embedding debug export found at <code>tmp/embeddings-debug.json</code>.
+        </div>
+      {% else %}
+        <p class="govuk-body">
+          Model: <strong>{{ payload.model }}</strong><br />
+          Generated: <strong>{{ payload.generatedAt }}</strong><br />
+          Chunks: <strong>{{ payload.chunkCount }}</strong>,
+          Queries: <strong>{{ payload.queryCount }}</strong>
+        </p>
+
+        <div class="govuk-grid-row">
+          <div class="govuk-grid-column-two-thirds">
+            <div class="app-embedding-toolbar">
+              <label class="govuk-label" for="embedding-filter">Filter</label>
+              <input class="govuk-input" id="embedding-filter" type="text" />
+            </div>
+
+            <div id="embedding-plot" class="app-embedding-plot" aria-label="Embedding plot"></div>
+          </div>
+
+          <div class="govuk-grid-column-one-third">
+            <div id="embedding-details" class="app-embedding-details">
+              <p class="govuk-body">Select a point to inspect it.</p>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          window.embeddingRows = {{ rowsJson | safe }}
+        </script>
+      {% endif %}
+    </main>
+  </div>
+{% endblock %}

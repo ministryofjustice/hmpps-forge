@@ -56,7 +56,7 @@ function getAssetsConfig() {
   const outDir = path.join(cwd, 'dist/assets')
 
   return {
-    input: path.join(assetsDir, 'js/index.js'),
+    input: path.join(assetsDir, 'js/index.js',),
     output: {
       dir: outDir,
       format: 'iife',
