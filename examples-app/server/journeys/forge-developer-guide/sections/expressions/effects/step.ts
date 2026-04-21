@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const effectsStep = step({
   path: '/effects',
   title: 'Effects',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

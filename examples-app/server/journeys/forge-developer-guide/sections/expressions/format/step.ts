@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const formatStep = step({
   path: '/format',
   title: 'Format',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Expressions' },
   onAccess: [
     access({

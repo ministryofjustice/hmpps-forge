@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const conditionsStep = step({
   path: '/conditions',
   title: 'Conditions',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
   onAccess: [
     access({

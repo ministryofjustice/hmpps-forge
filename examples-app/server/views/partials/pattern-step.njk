@@ -16,7 +16,7 @@
 {% if ancestors and ancestors.length > 1 %}
   {% set demoJourney = ancestors[ancestors.length - 1] %}
   {% set patternName = demoJourney.title %}
-  {% set patternDocsPath = demoJourney.path.slice(0, -5) %}
+  {% set patternDocsPath = demoJourney.path | replace('/demos/', '/') %}
 {% endif %}
 
 {% set pageTitle = patternName + " — Forge patterns" %}

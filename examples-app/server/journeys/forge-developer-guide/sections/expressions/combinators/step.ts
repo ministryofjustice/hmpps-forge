@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const combinatorsStep = step({
   path: '/combinators',
   title: 'Combinators',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Expressions' },
   onAccess: [
     access({

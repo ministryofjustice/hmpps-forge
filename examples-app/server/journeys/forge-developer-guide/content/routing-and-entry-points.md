@@ -2,7 +2,7 @@
 title: Routing and entry points
 section: building-journeys
 path: building-journeys/routing-and-entry-points
-teaches: [entryPath, isEntryPoint, routing, redirects, route-mounting]
+teaches: [reachability, routing, redirects, route-mounting, resumeWhen]
 prerequisites: [journey, JourneyDefinition]
 ---
 
@@ -56,17 +56,22 @@ mounting fails with a `DuplicateRouteError`.
 
 ## How it works
 
-### Entry point resolution
+### Journey root resolution
 
-Forge resolves the entry point in this order:
+When a user navigates to a journey's root URL, Forge evaluates entry
+points and redirects:
 
-1. The journey's `entryPath` property, if set.
-2. The first step in the `steps` array with `isEntryPoint: true`.
-3. If neither is set, no redirect is registered and requests to the
-   journey root will return a 404.
+1. If `resumeWhen` is set on the journey and the condition is active,
+   Forge redirects to the user's furthest incomplete step (the resume
+   frontier).
+2. Otherwise, Forge collects all steps marked as entry points
+   (unconditional and conditional whose condition is true) and redirects
+   to the winner after tie-breaker selection.
+3. If no entry points exist, Forge redirects to the first step.
+4. If the journey has no steps, the request returns a 404.
 
-If the resolved entry path is `/` (the same as the journey root), Forge
-skips the redirect to avoid an infinite loop.
+If a step claims `path: '/'`, it handles the journey root directly and
+this resolution does not apply.
 
 Entry points also play a role in
 [reachability](reachability). Forge uses them to determine which steps
@@ -120,37 +125,97 @@ submit({
 
 ## API surface
 
-### `entryPath` (Optional)
+### `reachability` on journeys (Optional)
 
-The step path to redirect to when a user navigates to the journey's root
-URL. Takes priority over `isEntryPoint`.
+Journey-level reachability configuration. Has two properties:
+
+**`resumeWhen`** controls whether Forge's resume behaviour is active
+for this journey. When `true`, every request to the journey - whether
+to the root or to a specific step - redirects the user to their
+furthest incomplete step. When omitted, users can access any reachable
+step freely.
 
 ```typescript
 journey({
   code: 'travel-declaration',
   path: '/travel-declaration',
   title: 'Travel declaration',
-  entryPath: '/travel-overview',
+  reachability: {
+    resumeWhen: Query('resume').match(Condition.Equals('true')),
+  },
   steps: [travelOverviewStep, addTripStep, checkAnswersStep],
 })
 ```
 
-A request to `/travel-declaration` redirects to
-`/travel-declaration/travel-overview`.
+`resumeWhen` accepts `true` (always resume) or a condition expression
+(resume only when the condition evaluates to true). A common pattern
+is to use a query parameter so that task list links can include
+`?resume=true` while change links do not.
 
-### `isEntryPoint` (Optional)
+**`disableReachabilityChecks`** skips the reachability BFS walk for
+this journey. All steps are treated as reachable without needing entry
+points or forward edges. Child journeys inherit this setting but can
+override it with an explicit `false`.
 
-Marks a step as a reachable entry point. When set, this step is used as
-the redirect target if the journey has no `entryPath`. It is also always
-considered reachable, so Forge will not redirect users away from it.
+```typescript
+journey({
+  code: 'developer-guide',
+  path: '/developer-guide',
+  title: 'Developer Guide',
+  reachability: { disableReachabilityChecks: true },
+  steps: [introStep, conceptsStep, apiStep],
+})
+```
+
+See [Reachability](reachability) for details on when and how to use
+this option.
+
+### `reachability` on steps (Optional)
+
+Marks a step as an entry point. When `entryWhen` is `true`, the step is
+always reachable and Forge will not redirect users away from it.
 
 ```typescript
 const travelOverviewStep = step({
   path: '/travel-overview',
   title: 'Have you travelled outside the UK in the last 5 years?',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   ...
 })
+```
+
+`entryWhen` also accepts a condition expression. The step is treated as
+an entry point only when the condition evaluates to true. This is useful
+for pages that should only be accessible under certain circumstances,
+such as a confirmation page that should only be reachable after the user
+has submitted their answers.
+
+```typescript
+const confirmationStep = step({
+  path: '/confirmation',
+  title: 'Answers submitted',
+  reachability: {
+    entryWhen: Session('submitted').match(Condition.Equals(true)),
+  },
+  ...
+})
+```
+
+When a conditional entry is active, it takes priority over other steps
+when Forge decides where to redirect the user. This ensures the user
+lands on the correct page rather than being bounced back to an earlier
+step.
+
+`tieBreakers` resolves ambiguity when Forge has multiple candidates to
+choose from - whether that is multiple entry points, multiple paths a
+user could have taken to reach a step, or multiple redirect targets.
+The step with the highest matching priority wins.
+
+```typescript
+reachability: {
+  entryWhen: true,
+  tieBreakers: [tieBreaker({ priority: 100 })],
+}
 ```
 
 ### `redirectTo` (Optional)
@@ -164,12 +229,19 @@ relative path (`check-answers`), or an external URL
 
 ## Best practices
 
-- **Always set an entry point.** Every journey should have either
-  `entryPath` or a step with `isEntryPoint: true`. Without one, users
-  arriving at the journey root will get a 404.
-- **Prefer `isEntryPoint` over `entryPath`.** It keeps the entry point
-  co-located with the step definition rather than duplicating the path
-  string on the journey.
+- **Always set an entry point.** Every journey should have at least one
+  step with `reachability: { entryWhen: true }`. Without one, users
+  arriving at the journey root fall back to the first step.
+- **Use tie-breakers when multiple entries can be active.** Forge picks
+  the tiebreaker-winning active entry as the default landing point when
+  resume does not redirect to a frontier.
+- **Use `resumeWhen` for sequential journeys.** If users should not be
+  able to skip ahead or go back, set `resumeWhen` on the journey to
+  enforce forward-only progress.
+- **Prefer conditional `resumeWhen` over always-on.** Using a condition
+  like `Query('resume').match(Condition.Equals('true'))` lets change
+  links on check-answers pages work normally while task list links
+  still trigger resume.
 - **Use relative redirects for steps in the same journey.** This avoids
   hardcoding the full path and keeps redirects working if the journey's
   path changes.

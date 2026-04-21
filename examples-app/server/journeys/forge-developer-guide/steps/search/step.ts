@@ -5,7 +5,7 @@ import { heading, searchForm, searchResults } from './blocks'
 export const searchStep = step({
   path: '/search',
   title: 'Search',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { hiddenFromNav: true },
   view: {
     locals: { showBackToTop: true },

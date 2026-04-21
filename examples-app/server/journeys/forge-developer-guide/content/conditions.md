@@ -2,7 +2,7 @@
 title: Conditions
 section: authoring-language
 path: authoring-language/conditions
-teaches: [Condition, defineConditionFunctions, custom-conditions, match-method, predicate]
+teaches: [Condition, match-method, predicate]
 prerequisites: [Answer, Self, Data, validation, visibleWhen, dependentWhen]
 ---
 
@@ -172,77 +172,18 @@ These combinators are covered in more detail on the
 
 ## Custom conditions
 
-You can define your own conditions using `defineConditionFunctions`.
-A custom condition is referenced in the journey definition and
-implemented in the package:
+When you need domain-specific validation or visibility logic that
+the built-in set does not cover, you can define your own
+conditions. They are used through `.match()` on references in
+exactly the same way as built-ins.
 
-```typescript
-import {
-  defineConditionFunctions,
-  ConditionFunctionExpr,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export interface MyConditionShape {
-  IsEligible: (minScore: number) => ConditionFunctionExpr
-}
-
-export const { conditions: MyConditions, implementations: myConditionImplementations } =
-  defineConditionFunctions<MyConditionShape, MyDeps>({
-    IsEligible: (deps) => (value: unknown, minScore: number) => {
-      if (typeof value !== 'number') {
-        throw new TypeError('IsEligible expects a number')
-      }
-
-      return value >= minScore
-    },
-  })
-```
-
-Use it in a definition:
-
-```typescript
-validation({
-  condition: Answer('score').match(MyConditions.IsEligible(50)),
-  message: 'Score must be at least 50 to be eligible',
-})
-```
-
-Register the implementations in the package:
-
-```typescript
-export default createForgePackage({
-  journey: myJourney,
-  functions: {
-    ...myConditionImplementations,
-  },
-})
-```
-
-Like all custom functions in Forge, conditions follow the
-`(deps) => (value, ...args) => result` pattern. The outer function
-receives injected dependencies. Dependencies are injected when you
-register the package with `forge.registerPackage(pkg, deps)`.
-
-As with transformers, verify the input type at runtime and throw a
-`TypeError` if it does not match what you expect. Forge uses
-`TypeError` specifically to detect type mismatches: outside of
-validation, a `TypeError` immediately surfaces as a configuration
-error. Inside `validWhen`, it is caught and treated as a validation
-failure.
+See [Building custom conditions](building-functions-and-components/custom-conditions)
+for the shape interface, implementation, type-checking conventions,
+and registration details.
 
 ---
 
 ## API surface
-
-### `defineConditionFunctions(implementations)`
-
-Defines custom condition functions. Returns a `conditions` object
-for use in definitions and an `implementations` object for
-registration in a package.
-
-```typescript
-import { defineConditionFunctions } from '@ministryofjustice/hmpps-forge/core/authoring'
-```
 
 ### `.match(condition)`
 
@@ -268,17 +209,9 @@ Answer('date').not.match(Condition.Date.IsFutureDate())
 - **Write conditions in positive form.** Describe when the field
   *is* valid, not when it is invalid. Use `.not.match()` only when
   there is no positive-form condition available.
-- **Verify input types in custom conditions.** Throw a `TypeError`
-  if the value is not the expected type. This surfaces
-  misconfiguration immediately rather than producing subtle false
-  results. Use `TypeError` specifically, not `Error`, so Forge can
-  distinguish type mismatches from other failures.
 - **Use dynamic arguments for cross-field comparisons.**
   `Condition.Equals(Answer('otherField'))` resolves the argument at
   evaluation time, keeping the condition reactive.
-- **Register implementations in the package.** Like effects,
-  transformers, and generators, condition implementations are
-  scoped to the package that registers them.
 
 ---
 

@@ -3,9 +3,9 @@ import { GuideEffects } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const buildingJourneysOverviewStep = step({
-  path: '/',
+  path: '/overview',
   title: 'Building journeys',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { hiddenFromNav: true },
   onAccess: [
     access({

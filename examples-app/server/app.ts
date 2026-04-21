@@ -18,10 +18,10 @@ import setUpStaticResources from './middleware/setUpStaticResources'
 import setUpWebRequestParsing from './middleware/setupRequestParsing'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
-import exampleJourneysPackage from './journeys/examples'
 import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
+import setUpWebSecurity from "./middleware/setUpWebSecurity";
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -32,15 +32,12 @@ export default function createApp(services: Services): express.Application {
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
   })
-    // FORGE-EXAMPLE: Register component libraries so journeys can use GovUK/MOJ components
+    // FORGE-EXAMPLE: Register global component libraries so journeys can use GovUK/MOJ components
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
+    // FORGE-EXAMPLE: Register global functions so journeys can use them
     .registerGlobalFunctions(nunjucksFunctions)
     // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
-    .registerPackage(exampleJourneysPackage, {
-      formDataStore: services.formDataStore,
-      appointmentApi: services.appointmentApi,
-    })
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,
@@ -52,7 +49,7 @@ export default function createApp(services: Services): express.Application {
   app.set('port', process.env.PORT || 3000)
 
   app.use(setUpHealthChecks(services.applicationInfo))
-  // app.use(setUpWebSecurity())
+  app.use(setUpWebSecurity())
   app.use(setUpWebSession())
   app.use(setUpWebRequestParsing())
   app.use(setUpStaticResources())

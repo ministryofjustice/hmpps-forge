@@ -4,6 +4,7 @@ import { getStartedJourney } from './sections/get-started/journey'
 import { buildingJourneysJourney } from './sections/building-journeys/journey'
 import { expressionsJourney } from './sections/expressions/journey'
 import { componentsJourney } from './sections/components/journey'
+import { patternsGuideJourney } from './sections/patterns/journey'
 
 export const developerGuideJourney = journey({
   code: 'forge-developer-guide',
@@ -12,6 +13,15 @@ export const developerGuideJourney = journey({
   view: {
     template: 'partials/guide-step',
   },
-  children: [getStartedJourney, buildingJourneysJourney, expressionsJourney, componentsJourney],
+  reachability: {
+    disableReachabilityChecks: true,
+  },
+  children: [
+    getStartedJourney,
+    buildingJourneysJourney,
+    expressionsJourney,
+    componentsJourney,
+    patternsGuideJourney,
+  ],
   steps: [searchStep],
 })

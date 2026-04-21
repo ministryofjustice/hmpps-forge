@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const getInTouchStep = step({
   path: '/get-in-touch',
   title: 'Get in touch',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Resources' },
   onAccess: [
     access({

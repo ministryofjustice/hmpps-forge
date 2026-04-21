@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const literalStep = step({
   path: '/literal',
   title: 'Literal',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Expressions' },
   onAccess: [
     access({

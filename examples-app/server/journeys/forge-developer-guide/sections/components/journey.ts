@@ -3,6 +3,7 @@ import { buildingCustomTransformersStep } from './building-custom-transformers/s
 import { buildingCustomGeneratorsStep } from './building-custom-generators/step'
 import { buildingCustomConditionsStep } from './building-custom-conditions/step'
 import { buildingCustomEffectsStep } from './building-custom-effects/step'
+import { buildingCustomComponentsStep } from './building-custom-components/step'
 
 export const componentsJourney = journey({
   code: 'building-functions-and-components',
@@ -16,5 +17,6 @@ export const componentsJourney = journey({
     buildingCustomGeneratorsStep,
     buildingCustomConditionsStep,
     buildingCustomEffectsStep,
+    buildingCustomComponentsStep,
   ],
 })

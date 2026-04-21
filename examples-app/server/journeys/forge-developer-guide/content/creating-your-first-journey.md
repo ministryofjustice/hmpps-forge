@@ -34,7 +34,7 @@ import {
 const nameStep = step({
   path: '/',
   title: 'What is your name?',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   blocks: [
     GovUKTextInput({
       code: 'fullName',
@@ -99,7 +99,7 @@ export const feedbackJourney = journey({
 ```
 
 Each step declares its URL path, a title, and the blocks that make up
-the page content. The `isEntryPoint` property on the first step marks
+the page content. The `reachability: { entryWhen: true }` property on the first step marks
 it as the starting page.
 
 The `onSubmission` hooks define what happens when the user submits

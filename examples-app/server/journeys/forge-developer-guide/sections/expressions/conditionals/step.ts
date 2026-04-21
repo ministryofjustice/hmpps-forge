@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const conditionalsStep = step({
   path: '/conditionals',
   title: 'Conditionals',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Expressions' },
   onAccess: [
     access({

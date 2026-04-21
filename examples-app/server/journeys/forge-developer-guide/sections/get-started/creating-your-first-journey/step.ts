@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const creatingYourFirstJourneyStep = step({
   path: '/creating-your-first-journey',
   title: 'Creating your first journey',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
   onAccess: [
     access({

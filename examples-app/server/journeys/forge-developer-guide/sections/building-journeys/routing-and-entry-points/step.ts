@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const routingAndEntryPointsStep = step({
   path: '/routing-and-entry-points',
   title: 'Routing and entry points',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Routing, reachability and navigation' },
   onAccess: [
     access({

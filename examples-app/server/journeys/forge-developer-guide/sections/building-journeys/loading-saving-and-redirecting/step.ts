@@ -5,7 +5,7 @@ import { content } from '../blocks/blocks'
 export const loadingSavingAndRedirectingStep = step({
   path: '/loading-saving-and-redirecting',
   title: 'Loading, saving and redirecting',
-  isEntryPoint: true,
+  reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
   onAccess: [
     access({
