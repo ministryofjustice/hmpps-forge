@@ -3,7 +3,10 @@ import express from 'express'
 import createError from 'http-errors'
 
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import {
+  ExpressFrameworkAdapter,
+  nunjucksFunctions,
+} from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 
@@ -32,6 +35,7 @@ export default function createApp(services: Services): express.Application {
     // FORGE-EXAMPLE: Register component libraries so journeys can use GovUK/MOJ components
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
+    .registerGlobalFunctions(nunjucksFunctions)
     // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
     .registerPackage(exampleJourneysPackage, {
       formDataStore: services.formDataStore,
@@ -40,6 +44,7 @@ export default function createApp(services: Services): express.Application {
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,
+      formDataStore: services.formDataStore,
     })
 
   app.set('json spaces', 2)

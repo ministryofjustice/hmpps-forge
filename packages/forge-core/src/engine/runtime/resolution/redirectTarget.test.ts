@@ -126,5 +126,80 @@ describe('redirectTarget', () => {
         pathname: '/forms/applications/123/people/456/check-answers',
       })
     })
+
+    it('should resolve plain step names against basePath when provided', () => {
+      // Arrange
+      const target = 'your-contacts'
+
+      // Act
+      const result = resolveRedirectTarget(target, {
+        origin: 'https://our-domain.com',
+        pathname: '/forms/journey/edit-contact/0',
+        basePath: '/forms/journey',
+      })
+
+      // Assert
+      expect(result).toEqual({
+        kind: 'relative',
+        value: '/forms/journey/your-contacts',
+        pathname: '/forms/journey/your-contacts',
+      })
+    })
+
+    it('should resolve dot-relative paths against pathname even when basePath is provided', () => {
+      // Arrange
+      const target = '../documents/list'
+
+      // Act
+      const result = resolveRedirectTarget(target, {
+        origin: 'https://our-domain.com',
+        pathname: '/forms/applications/:applicationId/people/',
+        basePath: '/forms/applications/:applicationId',
+      })
+
+      // Assert
+      expect(result).toEqual({
+        kind: 'relative',
+        value: '/forms/applications/:applicationId/documents/list',
+        pathname: '/forms/applications/:applicationId/documents/list',
+      })
+    })
+
+    it('should resolve plain step paths with sub-segments against basePath', () => {
+      // Arrange
+      const target = 'section/step-one'
+
+      // Act
+      const result = resolveRedirectTarget(target, {
+        origin: 'https://our-domain.com',
+        pathname: '/forms/journey/deep/nested/step',
+        basePath: '/forms/journey',
+      })
+
+      // Assert
+      expect(result).toEqual({
+        kind: 'relative',
+        value: '/forms/journey/section/step-one',
+        pathname: '/forms/journey/section/step-one',
+      })
+    })
+
+    it('should fall back to pathname resolution when basePath is not provided', () => {
+      // Arrange
+      const target = 'sibling-step'
+
+      // Act
+      const result = resolveRedirectTarget(target, {
+        origin: 'https://our-domain.com',
+        pathname: '/forms/journey/current-step',
+      })
+
+      // Assert
+      expect(result).toEqual({
+        kind: 'relative',
+        value: '/forms/journey/sibling-step',
+        pathname: '/forms/journey/sibling-step',
+      })
+    })
   })
 })
