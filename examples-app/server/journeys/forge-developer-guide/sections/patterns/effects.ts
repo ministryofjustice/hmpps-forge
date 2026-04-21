@@ -110,8 +110,6 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
 
         const fieldsToClear = context.getFieldsToClear()
 
-        console.log('[SaveAnswers] fields to clear:', fieldsToClear)
-
         for (const field of fieldsToClear) {
           context.clearAnswer(field)
         }
@@ -120,14 +118,11 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       },
 
     SaveDraftAnswers: () => (context: PatternEffectContext, patternCode: string) => {
-      console.log('SAVE DRAFT')
       const session = context.getSession()
 
       if (!session) {
         return
       }
-
-      console.log('SAVE DRAFT', context.getAllAnswers())
 
       if (!session.patternDrafts) {
         session.patternDrafts = {}
@@ -169,36 +164,19 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         }
       },
 
-    ClearDraftAnswers: () => (context: PatternEffectContext, patternCode: string) => {
-      const session = context.getSession()
+    ClearDraftAnswers: () => {
+      return (context: PatternEffectContext, patternCode: string) => {
+        const session = context.getSession()
 
-      if (session?.patternDrafts) {
-        delete session.patternDrafts[patternCode]
-      }
+        if (session?.patternDrafts) {
+          delete session.patternDrafts[patternCode]
+        }
 
-      for (const key of Object.keys(context.getAllAnswers())) {
-        context.clearAnswer(key)
+        for (const key of Object.keys(context.getAllAnswers())) {
+          context.clearAnswer(key)
+        }
       }
     },
-
-    SeedAnswers:
-      (deps: GuideDeps) =>
-      async (
-        context: PatternEffectContext,
-        patternCode: string,
-        answers: Record<string, unknown>,
-      ) => {
-        const sessionId = context.getSession()?.id
-
-        if (sessionId) {
-          await deps.formDataStore.set(sessionId, patternCode, answers)
-        }
-
-        for (const [code, value] of Object.entries(answers)) {
-          context.setAnswer(code, value)
-        }
-      },
-
     SeedDraftAnswers:
       () =>
       (context: PatternEffectContext, patternCode: string, answers: Record<string, unknown>) => {

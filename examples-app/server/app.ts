@@ -21,7 +21,7 @@ import logger from './logger'
 import developerGuidePackage from './journeys/forge-developer-guide'
 
 import type { Services } from './services'
-import setUpWebSecurity from "./middleware/setUpWebSecurity";
+import setUpWebSecurity from './middleware/setUpWebSecurity'
 
 export default function createApp(services: Services): express.Application {
   const app = express()

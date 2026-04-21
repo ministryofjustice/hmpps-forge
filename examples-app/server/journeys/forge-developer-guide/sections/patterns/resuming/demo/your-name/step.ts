@@ -1,4 +1,4 @@
-import { submit, redirect, tieBreaker } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { submit, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'
 import { fullNameField, continueButton } from './blocks'

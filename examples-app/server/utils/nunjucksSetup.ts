@@ -80,22 +80,29 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
     blockCode?: string
   }
 
-  njkEnv.addGlobal('toErrorList', (fieldErrors?: ValidationError[], domainErrors?: ValidationError[]) => {
-    const allErrors = [...(domainErrors ?? []), ...(fieldErrors ?? [])]
-    const seen = new Set<string>()
+  njkEnv.addGlobal(
+    'toErrorList',
+    (fieldErrors?: ValidationError[], domainErrors?: ValidationError[]) => {
+      const allErrors = [...(domainErrors ?? []), ...(fieldErrors ?? [])]
+      const seen = new Set<string>()
 
-    return allErrors.flatMap((error): { text: string; href?: string }[] => {
-      const key = error.blockCode ?? error.message
+      return allErrors.flatMap((error): { text: string; href?: string }[] => {
+        const key = error.blockCode ?? error.message
 
-      if (seen.has(key)) {
-        return []
-      }
+        if (seen.has(key)) {
+          return []
+        }
 
-      seen.add(key)
+        seen.add(key)
 
-      return [error.blockCode ? { text: error.message, href: `#${error.blockCode}` } : { text: error.message }]
-    })
-  })
+        return [
+          error.blockCode
+            ? { text: error.message, href: `#${error.blockCode}` }
+            : { text: error.message },
+        ]
+      })
+    },
+  )
 
   return njkEnv
 }

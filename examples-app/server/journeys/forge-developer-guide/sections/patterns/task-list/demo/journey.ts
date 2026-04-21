@@ -18,13 +18,7 @@ export const taskListDemoJourney = journey({
       effects: [PatternEffects.LoadDraftAnswers('task-list')],
     }),
   ],
-  steps: [
-    overviewStep,
-    tasksStep,
-    additionalNeedsStep,
-    checkAnswersStep,
-    confirmationStep,
-  ],
+  steps: [overviewStep, tasksStep, additionalNeedsStep, checkAnswersStep, confirmationStep],
   // Multi-step sections modelled as child journeys
   children: [yourDetailsJourney, visitPreferencesJourney],
 })

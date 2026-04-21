@@ -1,4 +1,4 @@
-import {action, Post, Condition, tieBreaker} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { action, Post, Condition, tieBreaker } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'
 import {

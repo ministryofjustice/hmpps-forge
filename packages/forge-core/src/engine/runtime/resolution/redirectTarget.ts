@@ -53,9 +53,10 @@ export function resolveRedirectTarget(
 
   const isDotRelative = parsedTarget.value.startsWith('./') || parsedTarget.value.startsWith('../')
 
-  const base = !isDotRelative && location.basePath !== undefined
-    ? `${location.origin}${encodePathTemplate(location.basePath)}/`
-    : `${location.origin}${encodePathTemplate(location.pathname)}`
+  const base =
+    !isDotRelative && location.basePath !== undefined
+      ? `${location.origin}${encodePathTemplate(location.basePath)}/`
+      : `${location.origin}${encodePathTemplate(location.pathname)}`
 
   const resolvedUrl = new URL(encodePathTemplate(parsedTarget.value), base)
   const pathname = decodePathTemplate(resolvedUrl.pathname)

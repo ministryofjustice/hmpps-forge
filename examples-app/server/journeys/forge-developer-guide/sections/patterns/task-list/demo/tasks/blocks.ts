@@ -26,7 +26,6 @@ const statusTag = (code: string) =>
     .branch(Condition.Equals('in-progress'), inProgressTag)
     .otherwise(notStartedTag)
 
-
 export const heading = GovUKHeading({
   text: 'Book a prison visit',
   size: 'l',
