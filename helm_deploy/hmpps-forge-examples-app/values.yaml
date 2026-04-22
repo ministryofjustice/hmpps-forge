@@ -5,7 +5,7 @@ generic-service:
   replicaCount: 2
 
   image:
-    repository: ghcr.io/ministryofjustice/hmpps-forge
+    repository: ghcr.io/ministryofjustice/hmpps-forge-examples-app
     tag: app_version # override at deployment time
     port: 3000
 

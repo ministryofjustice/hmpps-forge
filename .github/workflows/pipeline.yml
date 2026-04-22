@@ -41,27 +41,56 @@ jobs:
     with:
       environment: ${{ matrix.environments }}
       chart_name: hmpps-forge-examples-app
-#  build:
-#    name: Build docker image from hmpps-github-actions
-#    if: github.ref == 'refs/heads/main'
-#    uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
-#    needs:
-#      - validate_packages
-#      - validate_examples_app
-#    with:
-#      docker_registry: 'ghcr.io'
-#      registry_org: 'ministryofjustice'
-#      additional_docker_tag: ${{ inputs.additional_docker_tag }}
-#      push: ${{ inputs.push || inputs.push == null }}
-#      docker_multiplatform: false
-#  deploy_dev:
-#    name: Deploy to the development environment
-#    needs:
-#      - build
-#      - helm_lint
-#    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-#    secrets: inherit
-#    with:
-#      environment: 'dev'
-#      app_version: '${{ needs.build.outputs.app_version }}'
-#      slack_notification: 'false' # if 'true', it needs a valid NONPROD_RELEASES_SLACK_CHANNEL variable to be set
+  build:
+    name: Build and push docker image
+    needs:
+      - validate_packages
+      - validate_examples_app
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install and build packages
+        working-directory: packages
+        run: |
+          npm ci
+          npm run build
+      - name: Create app version
+        id: version
+        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@v1
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: examples-app/Dockerfile
+          push: ${{ inputs.push || inputs.push == null }}
+          tags: |
+            ghcr.io/ministryofjustice/hmpps-forge-examples-app:${{ steps.version.outputs.version }}
+            ghcr.io/ministryofjustice/hmpps-forge-examples-app:latest
+          build-args: |
+            BUILD_NUMBER=${{ steps.version.outputs.version }}
+            GIT_REF=${{ github.sha }}
+            GIT_BRANCH=${{ github.ref_name }}
+  deploy_dev:
+    name: Deploy to the development environment
+    needs:
+      - build
+      - helm_lint
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
+    secrets: inherit
+    with:
+      environment: 'dev'
+      app_version: '${{ needs.build.outputs.app_version }}'
+      helm_chart_name: hmpps-forge-examples-app
+      helm_timeout: '10m'
+      slack_notification: 'false'
