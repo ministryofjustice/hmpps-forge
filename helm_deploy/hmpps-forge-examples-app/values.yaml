@@ -1,21 +1,18 @@
 generic-service:
-  nameOverride: hmpps-template-typescript
+  nameOverride: hmpps-forge-examples-app
   productId: 'UNASSIGNED' # productId for the product that this belongs too, i.e. DPS001, see README.md for details
 
-  # the IRSA service account name for accessing AWS resources
-  # serviceAccountName: "hmpps-template-typescript"
-
-  replicaCount: 4
+  replicaCount: 2
 
   image:
-    repository: ghcr.io/ministryofjustice/hmpps-template-typescript
+    repository: ghcr.io/ministryofjustice/hmpps-forge
     tag: app_version # override at deployment time
     port: 3000
 
   ingress:
     enabled: true
     host: app-hostname.local # override per environment
-    tlsSecretName: hmpps-template-typescript-cert
+    tlsSecretName: hmpps-forge-examples-app-cert
 
   livenessProbe:
     httpGet:
@@ -41,27 +38,17 @@ generic-service:
 
   namespace_secrets:
     # These secrets are created by terraform.
-    hmpps-template-typescript-client-creds:
-      CLIENT_CREDS_CLIENT_ID: 'CLIENT_CREDS_CLIENT_ID'
-      CLIENT_CREDS_CLIENT_SECRET: 'CLIENT_CREDS_CLIENT_SECRET'
-    hmpps-template-typescript-auth-code:
-      AUTH_CODE_CLIENT_ID: 'AUTH_CODE_CLIENT_ID'
-      AUTH_CODE_CLIENT_SECRET: 'AUTH_CODE_CLIENT_SECRET'    
-    hmpps-template-typescript-session-secret:
+    hmpps-forge-examples-app-session-secret:
       SESSION_SECRET: 'SESSION_SECRET'
-    hmpps-template-typescript-elasticache-redis:
+    hmpps-forge-examples-app-elasticache-redis:
       REDIS_HOST: 'primary_endpoint_address'
       REDIS_AUTH_TOKEN: 'auth_token'
-    hmpps-template-typescript-application-insights:
+    hmpps-forge-examples-app-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
-    # This secret will need to be created in your namespace (note it isn't in hmpps-templates-dev)
-    # IRSA configuration in your namespace will also be required, and then uncomment serviceAccountName above.
-    # sqs-hmpps-audit-secret:
-    #   AUDIT_SQS_QUEUE_URL: 'sqs_queue_url'
 
   allowlist:
     groups:
       - internal
 
 generic-prometheus-alerts:
-  targetApplication: hmpps-template-typescript
+  targetApplication: hmpps-forge-examples-app
