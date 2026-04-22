@@ -40,6 +40,7 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ matrix.environments }}
+      chart_name: hmpps-forge-examples-app
 #  build:
 #    name: Build docker image from hmpps-github-actions
 #    if: github.ref == 'refs/heads/main'

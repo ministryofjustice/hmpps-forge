@@ -4,7 +4,9 @@ import {
   access,
   redirect,
   Post,
-  Condition, validation, Answer, Data,
+  Condition,
+  validation,
+  Data,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'

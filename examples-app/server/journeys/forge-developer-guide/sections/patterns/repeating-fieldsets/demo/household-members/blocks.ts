@@ -8,7 +8,7 @@ import {
   Transformer,
   validation,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { CollectionBlock, TemplateWrapper } from '@ministryofjustice/hmpps-forge/core/components'
+import { CollectionBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   GovUKTextInput,
   GovUKButton,
