@@ -1,0 +1,39 @@
+name: Examples App
+
+on:
+  pull_request:
+    paths:
+      - 'examples-app/**'
+      - 'packages/**'
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate examples-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install and build packages
+        working-directory: packages
+        run: |
+          npm ci
+          npm run build
+      - name: Install examples-app dependencies
+        working-directory: examples-app
+        run: npm ci
+      - name: Lint
+        working-directory: examples-app
+        run: npm run lint
+      - name: Typecheck
+        working-directory: examples-app
+        run: npm run typecheck
+      - name: Test
+        working-directory: examples-app
+        run: npm run test:ci
