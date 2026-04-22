@@ -85,7 +85,6 @@ GovUKDateInputFull({
   code: 'dateOfBirth',
   fieldset: { legend: { text: 'What is your date of birth?', isPageHeading: true } },
   hint: { text: 'For example, 27 3 1990' },
-  formatters: [Transformer.Object.ToISO({ year: 'year', month: 'month', day: 'day' })],
   validWhen: [
     ...GovukValidations.DateInputFull({
       empty: { message: 'Enter your date of birth', submissionOnly: true },
@@ -98,6 +97,11 @@ GovUKDateInputFull({
   ],
 })
 ```
+
+The wrapper automatically adds a formatter (`Transformer.Object.ToISO`)
+to convert the 3 parts into a single ISO string on submission, and a
+parser (`Transformer.Object.FromISO`) to convert it back when the user
+returns to the page. You do not need to add these yourself.
 
 The answer stored under `dateOfBirth` is a single string like
 `"1990-03-27"`. Downstream code never sees the 3 parts. That means

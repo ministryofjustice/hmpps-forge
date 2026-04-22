@@ -302,13 +302,14 @@ outside the component.
 
 ### The render path
 
-On render, the component receives the stored answer as `block.value`
-and has to split it back into the shape the sub-inputs expect. For a
-date input, that means parsing the ISO string into day, month and
-year parts:
+On render, `block.value` is already in the shape the component
+expects. The field's `parsers` convert the stored ISO string back to
+an object with date parts before the component sees it. On POST
+(validation failure re-render), `block.value` is the raw submitted
+object. Either way, the component receives an object:
 
 ```typescript
-const parts = parseISOToDateParts(block.value)
+const parts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
 
 const items = [
   { name: `${block.code}[day]`,   value: parts.day },
@@ -317,18 +318,11 @@ const items = [
 ]
 ```
 
-Components that handle this pattern typically type `block.value` as
-the canonical form plus the raw object form, to cover the case where a
-formatter could not parse the user's input and left the submitted
-object untouched:
-
-```typescript
-const value = block.value as string | Record<string, string> | undefined
-```
-
-This keeps the inputs populated with whatever the user typed, even
-when the combination was not a valid value, so they can correct it
-without losing their work.
+The built-in `GovUKDateInputFull` wrapper adds both a formatter
+(`Transformer.Object.ToISO`) and a parser (`Transformer.Object.FromISO`)
+automatically. If you are building a custom multi-part component, add
+the appropriate formatter and parser to the wrapper function so authors
+do not need to specify them manually.
 
 ### Per-part error styling
 
