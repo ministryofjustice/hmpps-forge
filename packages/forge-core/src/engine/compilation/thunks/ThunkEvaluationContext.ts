@@ -1,5 +1,6 @@
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompilationDependencies } from '../CompilationDependencies'
+import { createRuntimeExpansionState, RuntimeExpansionState } from '../../runtime/expansion/RuntimeExpansionState.type'
 import { AnswerHistory } from './types'
 import ThunkCacheManager from './ThunkCacheManager'
 import type { StepRequest } from '../../../framework/types/request.type'
@@ -87,6 +88,7 @@ export default class ThunkEvaluationContext {
       data: {},
       answers: {},
     },
+    readonly runtimeExpansionState: RuntimeExpansionState = createRuntimeExpansionState(),
   ) {}
 
   get nodeRegistry() {
@@ -107,6 +109,10 @@ export default class ThunkEvaluationContext {
 
   get astNodeTree() {
     return this.compilationDependencies.astNodeTree
+  }
+
+  get runtimeCompilationDependencies() {
+    return this.compilationDependencies
   }
 
   /**
@@ -132,6 +138,7 @@ export default class ThunkEvaluationContext {
       this.request,
       this.response,
       this.global,
+      this.runtimeExpansionState,
     )
 
     // Copy current scope stack (shallow copy - each scope object is shared)

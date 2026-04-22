@@ -43,6 +43,7 @@ describe('BlockHandler', () => {
           label: 'First name',
           required: true,
           maxLength: 50,
+          value: undefined,
         },
       })
     })
@@ -72,6 +73,7 @@ describe('BlockHandler', () => {
         properties: {
           code: 'userName',
           defaultValue: 'John Doe',
+          value: 'John Doe',
         },
       })
     })
@@ -101,6 +103,7 @@ describe('BlockHandler', () => {
         properties: {
           code: 'userName',
           defaultValue: undefined,
+          value: undefined,
         },
       })
     })
@@ -134,6 +137,7 @@ describe('BlockHandler', () => {
         properties: {
           code: 'choices',
           options: ['Option 1', 'static-option', 'Option 2'],
+          value: undefined,
         },
       })
     })
@@ -160,6 +164,7 @@ describe('BlockHandler', () => {
         properties: {
           code: 'choices',
           options: ['Option 1', 'Option 2', 'Option 3'],
+          value: undefined,
         },
       })
     })
@@ -201,6 +206,7 @@ describe('BlockHandler', () => {
             description: 'Dynamic Description',
             static: 'value',
           },
+          value: undefined,
         },
       })
     })
@@ -242,6 +248,7 @@ describe('BlockHandler', () => {
             { label: 'Label 2', value: 'value2' },
             { label: 'Static Label', value: 'value3' },
           ],
+          value: undefined,
         },
       })
     })
@@ -278,6 +285,7 @@ describe('BlockHandler', () => {
             nullValue: null,
             undefinedValue: undefined,
           },
+          value: null,
         },
       })
     })
@@ -401,6 +409,141 @@ describe('BlockHandler', () => {
       expect((result.value as FieldBlockASTNode).properties.formatters).toEqual([formatterNode])
       // The formatter node should NOT have been invoked
       expect(mockInvoker.invoke).not.toHaveBeenCalledWith(formatterNode.id, expect.anything(), expect.anything())
+    })
+
+    it('should resolve value from existing answer on GET', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('firstName')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Thomas' },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('Thomas')
+    })
+
+    it('should fall back to defaultValue on GET when no answer exists', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('country')
+        .withProperty('defaultValue', 'United Kingdom')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('United Kingdom')
+    })
+
+    it('should prefer existing answer over defaultValue on GET', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('country')
+        .withProperty('defaultValue', 'United Kingdom')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockAnswers: { country: 'France' },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('France')
+    })
+
+    it('should preserve an explicit authored value instead of overwriting it from answer history', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('country')
+        .withProperty('value', 'Spain')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockAnswers: { country: 'France' },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('Spain')
+    })
+
+    it('should resolve value from raw POST mutation on POST', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('email')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockRequest: { method: 'POST' },
+        mockAnswers: {
+          email: {
+            current: 'TEST@EXAMPLE.COM',
+            mutations: [
+              { value: 'test@example.com', source: 'post' },
+              { value: 'TEST@EXAMPLE.COM', source: 'processed' },
+            ],
+          },
+        },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert — uses raw POST value, not the formatted/processed value
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('test@example.com')
+    })
+
+    it('should not fall back to defaultValue on POST when no answer exists', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('country')
+        .withProperty('defaultValue', 'United Kingdom')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockRequest: { method: 'POST' },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBeUndefined()
+    })
+
+    it('should not set value for basic blocks', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('inset-text', BlockType.BASIC)
+        .withProperty('content', 'Some informational text')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext()
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as any).properties.value).toBeUndefined()
     })
   })
 })

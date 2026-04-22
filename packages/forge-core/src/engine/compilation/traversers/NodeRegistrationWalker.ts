@@ -2,10 +2,7 @@ import { ASTNode, NodeId } from '../../types/engine.type'
 import { NodeIDCategory, NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import NodeRegistry from '../registries/NodeRegistry'
 import MetadataRegistry from '../registries/MetadataRegistry'
-import { NodeFactory } from '../../nodes/NodeFactory'
 import { FieldBlockASTNode } from '../../types/structures.type'
-import { ExpressionType } from '../../../authoring/types/enums'
-import { ReferenceExpr } from '../../../authoring/types/expressions.type'
 import { ASTNodeType } from '../../types/enums'
 import { isASTNode, isTemplateNode } from '../../typeguards/nodes'
 import { isFieldBlockStructNode } from '../../typeguards/structure-nodes'
@@ -15,8 +12,8 @@ import InvalidNodeError from '../../errors/InvalidNodeError'
 import ASTNodeTree from '../node-tree/ASTNodeTree'
 
 /**
- * Single-pass walker that replaces 4 separate structuralTraverse passes
- * (assignIds + AddSelfValueToFields + ResolveSelfReferences + Registration + Metadata)
+ * Single-pass walker that replaces structural traversal passes
+ * (assignIds + ResolveSelfReferences + Registration + Metadata)
  * with one recursive descent.
  *
  * No context objects, no array copies, no sibling tracking.
@@ -27,7 +24,6 @@ export default class NodeRegistrationWalker {
     private readonly nodeIdGenerator: NodeIDGenerator,
     private readonly idCategory: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
     private readonly nodeRegistry: NodeRegistry,
-    private readonly nodeFactory: NodeFactory,
     private readonly metadataRegistry: MetadataRegistry,
     private readonly markAsDescendantOfStep: boolean,
     private readonly astNodeTree: ASTNodeTree,
@@ -81,17 +77,9 @@ export default class NodeRegistrationWalker {
       ;(node as { id: string }).id = this.nodeIdGenerator.next(this.idCategory)
     }
 
-    // 2. Add Self() to field blocks (replaces AddSelfValueToFieldsNormalizer)
     const isField = isFieldBlockStructNode(node)
 
-    if (isField) {
-      node.properties.value = this.nodeFactory.createNode({
-        type: ExpressionType.REFERENCE,
-        path: ['answers', '@self'],
-      } satisfies ReferenceExpr)
-    }
-
-    // 3. Resolve @self references (replaces ResolveSelfReferencesNormalizer)
+    // 2. Resolve @self references (replaces ResolveSelfReferencesNormalizer)
     if (isReferenceExprNode(node)) {
       this.resolveSelfReference(node, fieldStack, codeOwnerFieldId)
     }

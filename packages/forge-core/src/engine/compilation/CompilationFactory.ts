@@ -53,7 +53,6 @@ export default class CompilationFactory {
       sharedDependencies.nodeIdGenerator,
       NodeIDCategory.COMPILE_AST,
       sharedDependencies.nodeRegistry,
-      sharedDependencies.nodeFactory,
       sharedDependencies.metadataRegistry,
       false,
       sharedDependencies.astNodeTree,

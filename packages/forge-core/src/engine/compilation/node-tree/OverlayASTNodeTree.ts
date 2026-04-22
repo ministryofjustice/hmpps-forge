@@ -2,8 +2,15 @@ import { NodeId } from '../../types/engine.type'
 import ASTNodeTree from './ASTNodeTree'
 
 export default class OverlayASTNodeTree extends ASTNodeTree {
+  private readonly overlayNodeIds: NodeId[] = []
+
   constructor(private readonly main: ASTNodeTree) {
     super()
+  }
+
+  addNode(nodeId: NodeId, parentId?: NodeId, propertyKey?: string, nodeType?: string): void {
+    this.overlayNodeIds.push(nodeId)
+    super.addNode(nodeId, parentId, propertyKey, nodeType)
   }
 
   getParent(nodeId: NodeId): NodeId | undefined {
@@ -87,7 +94,7 @@ export default class OverlayASTNodeTree extends ASTNodeTree {
   }
 
   flushIntoMain(): void {
-    this.postOrder().forEach(nodeId => {
+    this.overlayNodeIds.forEach(nodeId => {
       const parentId = super.getParent(nodeId)
       const nodeType = super.getNodeType(nodeId)
       const propertyKey = this.findOverlayPropertyKey(nodeId, parentId)

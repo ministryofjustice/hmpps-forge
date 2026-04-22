@@ -7,19 +7,20 @@ import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationCont
 import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
-import { resolveRedirectTarget } from '../resolution/redirectTarget'
-import ContextPreparer from '../preparation/ContextPreparer'
-import AnswerPreparer from '../preparation/AnswerPreparer'
-import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
-import StepFieldInventoryAnalyzer from '../analysis/StepFieldInventoryAnalyzer'
-import HookExecutor from '../evaluation/HookExecutor'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import NavigationDecisionResolver from '../resolution/NavigationDecisionResolver'
-import ReachabilityStateProjector from '../projection/ReachabilityStateProjector'
-import ValidationStateProjector from '../projection/ValidationStateProjector'
-import RenderProjector from '../projection/RenderProjector'
+import { resolveRedirectTarget } from '../navigation/redirectTarget'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import RuntimeExpansionService from '../expansion/RuntimeExpansionService'
+import AnswerPreparer from '../lifecycle/AnswerPreparer'
+import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
+import StepFieldInventoryAnalyzer from '../validation/StepFieldInventoryAnalyzer'
+import HookExecutor from '../lifecycle/HookExecutor'
+import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
+import NavigationDecisionResolver from '../navigation/NavigationDecisionResolver'
+import ReachabilityStateProjector from '../navigation/ReachabilityStateProjector'
+import ValidationStateProjector from '../validation/ValidationStateProjector'
+import RenderProjector from '../rendering/RenderProjector'
 import RuntimeArtifacts from '../RuntimeArtifacts'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog } from './routes.type'
 
 /**
  * Handles the full request lifecycle for steps.
@@ -34,6 +35,8 @@ export default class StepController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
 
   private readonly hookExecutor: HookExecutor
+
+  private readonly runtimeExpansionService: RuntimeExpansionService
 
   private readonly validationExecutor: StepValidityAnalyzer
 
@@ -63,6 +66,7 @@ export default class StepController<TRequest, TResponse> {
     this.routeTemplateCatalog = routeTemplateCatalog
     this.contextPreparer = new ContextPreparer()
     this.hookExecutor = new HookExecutor(this.dependencies.logger)
+    this.runtimeExpansionService = new RuntimeExpansionService()
     this.validationExecutor = new StepValidityAnalyzer()
     this.answerPreparer = new AnswerPreparer()
     this.navigationEvaluator = new NavigationAnalyzer()
@@ -87,7 +91,8 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    await this.answerPreparer.prepare(plan, evaluator, context)
+    await this.runtimeExpansionService.expandAllForPlan(this.compiledForm.reachabilityPlan.entries, context, evaluator)
+    await this.answerPreparer.prepare(evaluator, context)
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
@@ -116,7 +121,8 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    await this.answerPreparer.prepare(plan, evaluator, context)
+    await this.runtimeExpansionService.expandAllForPlan(this.compiledForm.reachabilityPlan.entries, context, evaluator)
+    await this.answerPreparer.prepare(evaluator, context)
 
     await this.evaluateNavigation(artifacts, evaluator, context)
     const navigationEvaluation = artifacts.requireNavigation()
@@ -127,6 +133,8 @@ export default class StepController<TRequest, TResponse> {
     }
 
     await this.hookExecutor.executeActionHooks(plan, evaluator, context)
+
+    await this.runtimeExpansionService.refreshExpansion(plan.iterateNodeIds, context, evaluator)
 
     if (plan.hasValidatingSubmitHook) {
       await this.evaluateValidation(artifacts, evaluator, context)
@@ -198,7 +206,7 @@ export default class StepController<TRequest, TResponse> {
     context: ThunkEvaluationContext,
   ): Promise<void> {
     artifacts.setStepFieldInventory(
-      await this.stepFieldInventoryAnalyzer.analyze(this.compiledForm.reachabilityPlan, invoker, context),
+      this.stepFieldInventoryAnalyzer.analyze(this.compiledForm.reachabilityPlan, context),
     )
 
     artifacts.setNavigation(

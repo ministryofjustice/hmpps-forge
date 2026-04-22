@@ -48,29 +48,29 @@ describe('govukCharacterCount', () => {
     it('sets maxlength when only maxLength provided', async () => {
       const params = await helper.getParams({
         code: 'test-field',
-        maxLength: '500',
+        maxLength: 500,
       })
-      expect(params.maxlength).toBe('500')
+      expect(params.maxlength).toBe(500)
       expect(params.maxwords).toBeUndefined()
     })
 
     it('sets maxwords when only maxWords provided', async () => {
       const params = await helper.getParams({
         code: 'test-field',
-        maxWords: '150',
+        maxWords: 150,
         maxLength: undefined,
       })
-      expect(params.maxwords).toBe('150')
+      expect(params.maxwords).toBe(150)
       expect(params.maxlength).toBeUndefined()
     })
 
     it('prioritizes maxWords over maxLength when both provided', async () => {
       const params = await helper.getParams({
         code: 'test-field',
-        maxWords: '150',
-        maxLength: '1000',
+        maxWords: 150,
+        maxLength: 1000,
       })
-      expect(params.maxwords).toBe('150')
+      expect(params.maxwords).toBe(150)
       expect(params.maxlength).toBeUndefined()
     })
 
@@ -216,7 +216,7 @@ describe('govukCharacterCount', () => {
     it('passes through all custom text messages for characters', async () => {
       const params = await helper.getParams({
         code: 'test-field',
-        maxLength: '200',
+        maxLength: 200,
         textareaDescriptionText: 'You can enter up to %{count} characters',
         charactersUnderLimitText: {
           one: 'You have %{count} character remaining',
@@ -250,7 +250,7 @@ describe('govukCharacterCount', () => {
     it('passes through all custom text messages for words', async () => {
       const params = await helper.getParams({
         code: 'test-field',
-        maxWords: '100',
+        maxWords: 100,
         wordsUnderLimitText: {
           one: 'You have %{count} word remaining',
           other: 'You have %{count} words remaining',
@@ -301,7 +301,7 @@ describe('govukCharacterCount', () => {
         label: 'Provide feedback',
         hint: 'Do not include personal information',
         value: 'This is some initial text',
-        maxLength: '200',
+        maxLength: 200,
         threshold: '75',
         spellcheck: false,
         errors: [{ message: 'Your feedback is too long' }],

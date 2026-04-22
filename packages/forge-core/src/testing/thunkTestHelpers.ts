@@ -6,13 +6,13 @@ import { PseudoNode } from '../engine/types/pseudoNodes.type'
 import { IndexableNodeType } from '../engine/compilation/registries/NodeRegistry'
 import ThunkEvaluationContext, { ThunkEvaluationGlobalState } from '../engine/compilation/thunks/ThunkEvaluationContext'
 import ThunkCacheManager from '../engine/compilation/thunks/ThunkCacheManager'
+import { createRuntimeExpansionState } from '../engine/runtime/expansion/RuntimeExpansionState.type'
 import {
   AnswerHistory,
   AnswerSource,
   ThunkErrorType,
   ThunkInvocationAdapter,
   ThunkResult,
-  ThunkRuntimeHooks,
 } from '../engine/compilation/thunks/types'
 import { extractPathname } from '../framework/path/routePath'
 import type { StepRequest } from '../framework/types/request.type'
@@ -195,6 +195,16 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     }),
   }
 
+  const mockThunkHandlerRegistry = {
+    get: vi.fn(),
+    register: vi.fn(),
+  }
+
+  const mockAstNodeTree = {
+    postOrder: vi.fn(() => []),
+    isDescendantOf: vi.fn(() => false),
+  }
+
   // Mock metadataRegistry - by default, treat all nodes as on the current step
   const mockMetadataRegistry = {
     get: vi.fn((nodeId: NodeId, key: string, defaultValue?: unknown) => {
@@ -244,9 +254,48 @@ export function createMockContext(options: MockContextOptions = {}): ThunkEvalua
     response,
     findFieldByCode,
     cacheManager: new ThunkCacheManager(),
+    runtimeExpansionState: createRuntimeExpansionState(),
     nodeRegistry: mockNodeRegistry,
     metadataRegistry: mockMetadataRegistry,
     functionRegistry: mockFunctionRegistry,
+    runtimeCompilationDependencies: {
+      createOverlay: vi.fn(() => ({
+        deps: {
+          nodeIdGenerator: {
+            flushIntoMain: vi.fn(),
+          },
+          nodeFactory: {},
+          pseudoNodeFactory: {},
+          nodeRegistry: {
+            getPendingRegistry: vi.fn(() => new Map()),
+            getPendingIds: vi.fn(() => []),
+            get: vi.fn((nodeId: NodeId) => options.mockNodes?.get(nodeId)),
+            register: vi.fn(),
+          },
+          metadataRegistry: {
+            get: mockMetadataRegistry.get,
+            set: mockMetadataRegistry.set,
+            flushIntoMain: vi.fn(),
+          },
+          thunkHandlerRegistry: {
+            get: mockThunkHandlerRegistry.get,
+            register: mockThunkHandlerRegistry.register,
+            flushIntoMain: vi.fn(),
+          },
+          astNodeTree: {
+            postOrder: mockAstNodeTree.postOrder,
+            isDescendantOf: mockAstNodeTree.isDescendantOf,
+            flushIntoMain: vi.fn(),
+          },
+        },
+        flush: vi.fn(),
+        getPendingNodeIds: vi.fn(() => []),
+      })),
+      nodeRegistry: mockNodeRegistry,
+      metadataRegistry: mockMetadataRegistry,
+      thunkHandlerRegistry: mockThunkHandlerRegistry,
+      astNodeTree: mockAstNodeTree,
+    },
     logger: console,
     withIsolatedScope: vi.fn().mockImplementation(function withIsolatedScopeMock(this: any) {
       // Create a shallow clone with the same global state but new scope array
@@ -281,7 +330,7 @@ export interface MockInvokerOptions {
   /**
    * Custom invoke implementation
    */
-  invokeImpl?: (nodeId: NodeId, context: ThunkEvaluationContext, hooks: ThunkRuntimeHooks) => Promise<ThunkResult>
+  invokeImpl?: (nodeId: NodeId, context: ThunkEvaluationContext) => Promise<ThunkResult>
 
   /**
    * Custom invokeSync implementation
@@ -320,10 +369,8 @@ export interface MockInvokerOptions {
 export function createMockInvoker(options: MockInvokerOptions = {}): Mocked<ThunkInvocationAdapter> {
   const defaultImpl = async (
     nodeId: NodeId,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    context: ThunkEvaluationContext,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    hooks: ThunkRuntimeHooks,
+
+    _context: ThunkEvaluationContext,
   ): Promise<ThunkResult> => {
     let value = options.defaultValue
 
@@ -441,24 +488,4 @@ export function createMockInvokerWithError(
     invokeImpl: async (): Promise<ThunkResult> => errorResult,
     invokeSyncImpl: (): ThunkResult => errorResult,
   })
-}
-
-/**
- * Create mock runtime hooks for testing
- *
- * @returns A mock ThunkRuntimeHooks object with vi.fn() for all methods
- *
- * @example
- * const hooks = createMockHooks()
- * await handler.evaluate(context, invoker, hooks)
- * expect(hooks.registerRuntimeNodesBatch).toHaveBeenCalledWith([node], 'template')
- */
-export function createMockHooks(): Mocked<ThunkRuntimeHooks> {
-  const templateValueMock = vi.fn()
-
-  return {
-    instantiateTemplateValue: templateValueMock,
-    transformValue: templateValueMock,
-    registerRuntimeNodesBatch: vi.fn(),
-  }
 }

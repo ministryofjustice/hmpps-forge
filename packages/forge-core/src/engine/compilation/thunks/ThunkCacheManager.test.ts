@@ -154,6 +154,21 @@ describe('ThunkCacheManager', () => {
       expect(cacheManager.has(nodeA)).toBe(false)
       expect(cacheManager.has(nodeB)).toBe(false)
     })
+  })
 
+  describe('API shape', () => {
+    it('should expose only evaluation cache methods', () => {
+      // Arrange
+      const typedCacheManager = cacheManager as unknown as Record<string, unknown>
+
+      // Act
+      const hasExpansionMethods =
+        'hasExpansion' in typedCacheManager ||
+        'getExpansion' in typedCacheManager ||
+        'setExpansion' in typedCacheManager
+
+      // Assert
+      expect(hasExpansionMethods).toBe(false)
+    })
   })
 })

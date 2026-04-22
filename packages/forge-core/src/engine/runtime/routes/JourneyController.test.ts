@@ -2,14 +2,14 @@ import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompilationArtefact } from '../../compilation/CompilationFactory'
 import { JourneyRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import ContextPreparer from '../preparation/ContextPreparer'
-import AnswerPreparer from '../preparation/AnswerPreparer'
-import HookExecutor from '../evaluation/HookExecutor'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import AnswerPreparer from '../lifecycle/AnswerPreparer'
+import HookExecutor from '../lifecycle/HookExecutor'
+import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
+import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
 import JourneyController from './JourneyController'
 import { StepRequest, CookieMutation, CookieOptions, StepResponse } from '../../../framework'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog } from './routes.type'
 
 vi.mock('../../compilation/thunks/ThunkEvaluator')
 
@@ -18,7 +18,7 @@ const mockAnswerPreparerPrepare = vi.fn().mockResolvedValue(undefined)
 const mockHookExecutorExecuteAccessLifecycle = vi.fn()
 const mockNavigationAnalyzerEvaluate = vi.fn()
 
-vi.mock('../preparation/ContextPreparer', () => ({
+vi.mock('../lifecycle/ContextPreparer', () => ({
   __esModule: true,
   default: vi.fn(function MockContextPreparer() {
     return {
@@ -27,7 +27,7 @@ vi.mock('../preparation/ContextPreparer', () => ({
   }),
 }))
 
-vi.mock('../preparation/AnswerPreparer', () => ({
+vi.mock('../lifecycle/AnswerPreparer', () => ({
   __esModule: true,
   default: vi.fn(function MockAnswerPreparer() {
     return {
@@ -36,7 +36,7 @@ vi.mock('../preparation/AnswerPreparer', () => ({
   }),
 }))
 
-vi.mock('../evaluation/HookExecutor', () => ({
+vi.mock('../lifecycle/HookExecutor', () => ({
   __esModule: true,
   default: vi.fn(function MockHookExecutor() {
     return {
@@ -45,7 +45,7 @@ vi.mock('../evaluation/HookExecutor', () => ({
   }),
 }))
 
-vi.mock('../evaluation/StepValidityAnalyzer', () => ({
+vi.mock('../validation/StepValidityAnalyzer', () => ({
   __esModule: true,
   default: vi.fn(function MockStepValidityAnalyzer() {
     return {
@@ -54,7 +54,7 @@ vi.mock('../evaluation/StepValidityAnalyzer', () => ({
   }),
 }))
 
-vi.mock('../analysis/NavigationAnalyzer', () => ({
+vi.mock('../navigation/NavigationAnalyzer', () => ({
   __esModule: true,
   default: vi.fn(function MockNavigationAnalyzer() {
     return {
@@ -141,7 +141,7 @@ describe('JourneyController', () => {
       journeyId: 'compile_ast:journey' as NodeId,
       path: '/journey',
       accessAncestorIds: ['compile_ast:root-journey' as NodeId, 'compile_ast:journey' as NodeId],
-      fieldIteratorRootIds: [],
+      iterateNodeIds: [],
       reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 

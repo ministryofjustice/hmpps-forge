@@ -1,12 +1,10 @@
-import { NodeId, ASTNode } from '../../types/ast.type'
+import { NodeId } from '../../types/ast.type'
 import NodeRegistry from '../registries/NodeRegistry'
 import ThunkHandlerRegistry from '../registries/ThunkHandlerRegistry'
-import { NodeFactory } from '../../nodes/NodeFactory'
 import MetadataRegistry from '../registries/MetadataRegistry'
 import ThunkEvaluationContext from './ThunkEvaluationContext'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ASTNodeTree from '../node-tree/ASTNodeTree'
-import ThunkRuntimeHooksFactory from './ThunkRuntimeHooksFactory'
 
 /**
  * Hook types that can set answers
@@ -231,38 +229,9 @@ export interface ThunkHandler {
    */
   computeIsAsync(deps: MetadataComputationDependencies): void
 
-  /**
-   * Evaluate synchronously and return result directly
-   *
-   * Only called when isAsync is false. Must not use await or return Promises.
-   * No Promise overhead - returns in microseconds.
-   *
-   * @param context - Runtime evaluation context with data and services
-   * @param invoker - Adapter for recursively evaluating other nodes
-   * @param hooks - Optional runtime hooks for sync handlers that instantiate runtime nodes
-   * @returns The evaluation result (no Promise)
-   */
-  evaluateSync(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-    hooks?: ThunkRuntimeHooks,
-  ): HandlerResult<unknown>
+  evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<unknown>
 
-  /**
-   * Evaluate asynchronously and return Promise
-   *
-   * Only called when isAsync is true. Can use await and async operations.
-   *
-   * @param context - Runtime evaluation context with data and services
-   * @param invoker - Adapter for recursively evaluating other nodes
-   * @param hooks - Runtime hooks for logging, metrics, etc.
-   * @returns Promise resolving to the evaluation result
-   */
-  evaluate(
-    context: ThunkEvaluationContext,
-    invoker: ThunkInvocationAdapter,
-    hooks: ThunkRuntimeHooks,
-  ): Promise<HandlerResult<unknown>>
+  evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult<unknown>>
 }
 
 /**
@@ -323,36 +292,3 @@ export interface ThunkInvocationAdapter {
    */
   invokeSync<T = unknown>(nodeId: NodeId, context: ThunkEvaluationContext): ThunkResult<T>
 }
-
-/**
- * Runtime overlay builder - manages dynamically created nodes during evaluation
- *
- * Created via ThunkEvaluator.withRuntimeOverlay(), this builder contains cloned
- * registries and graphs that accumulate runtime nodes without mutating the
- * original compile-time structures.
- *
- * Used by handlers (e.g., IterateHandler) to register nodes created during
- * evaluation, enabling dynamic form structures based on runtime data.
- */
-export interface RuntimeOverlayBuilder {
-  /** Cloned node registry - accumulates both compile-time and runtime nodes */
-  nodeRegistry: NodeRegistry
-
-  /** Cloned handler registry - accumulates handlers for compile-time and runtime nodes */
-  handlerRegistry: ThunkHandlerRegistry
-
-  /** Cloned metadata registry - accumulates metadata for compile-time and runtime nodes */
-  metadataRegistry: MetadataRegistry
-
-  /** Fresh node factory using cloned dependencies */
-  nodeFactory: NodeFactory
-
-  /** Map of all runtime nodes created during evaluation (runtime_ast:* and runtime_pseudo:*) */
-  runtimeNodes: Map<NodeId, ASTNode>
-}
-
-/**
- * Runtime hooks for extending evaluation (overlay builder, etc.)
- * Derived from ThunkRuntimeHooksFactory.create()
- */
-export type ThunkRuntimeHooks = ReturnType<ThunkRuntimeHooksFactory['create']>

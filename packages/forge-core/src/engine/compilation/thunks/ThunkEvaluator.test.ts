@@ -5,7 +5,7 @@ import ThunkHandlerRegistry from '../registries/ThunkHandlerRegistry'
 import NodeRegistry from '../registries/NodeRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
-import { ThunkHandler, RuntimeOverlayBuilder } from './types'
+import { ThunkHandler } from './types'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse, CookieMutation, CookieOptions } from '../../../framework/types/response.type'
 import { CompilationDependencies } from '../CompilationDependencies'
@@ -115,18 +115,9 @@ describe('ThunkEvaluator', () => {
   let mockFunctionRegistry: Mocked<FunctionRegistry>
   let mockComponentRegistry: Mocked<ComponentRegistry>
   let mockLogger: Mocked<Console>
-  let mockRuntimeOverlayBuilder: RuntimeOverlayBuilder
-
   beforeEach(() => {
     ASTTestFactory.resetIds()
 
-    mockRuntimeOverlayBuilder = {
-      nodeRegistry: {} as NodeRegistry,
-      handlerRegistry: {} as ThunkHandlerRegistry,
-      metadataRegistry: {} as MetadataRegistry,
-      nodeFactory: { createNode: vi.fn() } as any,
-      runtimeNodes: new Map(),
-    }
     mockHandlerRegistry = {
       get: vi.fn(),
       register: vi.fn(),
@@ -197,11 +188,20 @@ describe('ThunkEvaluator', () => {
       frameworkAdapter: {} as any,
     } as Mocked<JourneyInstanceDependencies>
 
-    evaluator = new ThunkEvaluator(
-      mockCompilationDependencies,
-      mockJourneyInstanceDependencies,
-      mockRuntimeOverlayBuilder,
-    )
+    evaluator = new ThunkEvaluator(mockCompilationDependencies, mockJourneyInstanceDependencies)
+  })
+
+  describe('public API', () => {
+    it('should expose only invoke and invokeSync for evaluation', () => {
+      // Arrange
+      const typedEvaluator = evaluator as unknown as Record<string, unknown>
+
+      // Act
+      const hasExpansionMethod = 'expandIterator' in typedEvaluator
+
+      // Assert
+      expect(hasExpansionMethod).toBe(false)
+    })
   })
 
   describe('invoke()', () => {
@@ -301,14 +301,7 @@ describe('ThunkEvaluator', () => {
       expect(result.value).toBe(42)
       expect(result.error).toBeUndefined()
       expect(result.metadata!.source).toBe('handler')
-      expect(mockHandler.evaluate).toHaveBeenCalledWith(
-        mockContext,
-        evaluator,
-        expect.objectContaining({
-          transformValue: expect.any(Function),
-          registerRuntimeNodesBatch: expect.any(Function),
-        }),
-      )
+      expect(mockHandler.evaluate).toHaveBeenCalledWith(mockContext, evaluator)
     })
 
     it('should let handler exceptions bubble up', async () => {

@@ -9,6 +9,7 @@ import {
 import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationContext'
 import { evaluatePropertyValue } from '../../../utils/thunkEvaluatorsAsync'
 import { evaluatePropertyValueSync } from '../../../utils/thunkEvaluatorsSync'
+import { BlockType } from '../../../../authoring/types/enums'
 
 /**
  * Handler for Block structure nodes (both field and basic blocks)
@@ -65,6 +66,10 @@ export default class BlockHandler implements ThunkHandler {
     const propertiesToEvaluate = this.getPropertiesToEvaluate()
     const evaluatedProperties = this.evaluateBlockPropertiesSync(propertiesToEvaluate, context, invoker)
 
+    if (this.node.blockType === BlockType.FIELD) {
+      this.resolveFieldValue(context, evaluatedProperties)
+    }
+
     return {
       value: {
         id: this.nodeId,
@@ -79,6 +84,10 @@ export default class BlockHandler implements ThunkHandler {
   async evaluate(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): Promise<HandlerResult> {
     const propertiesToEvaluate = this.getPropertiesToEvaluate()
     const evaluatedProperties = await this.evaluateBlockProperties(propertiesToEvaluate, context, invoker)
+
+    if (this.node.blockType === BlockType.FIELD) {
+      this.resolveFieldValue(context, evaluatedProperties)
+    }
 
     return {
       value: {
@@ -95,6 +104,30 @@ export default class BlockHandler implements ThunkHandler {
     return Object.fromEntries(
       Object.entries(this.node.properties).filter(([key]) => key !== 'validWhen' && key !== 'dependentWhen'),
     )
+  }
+
+  private resolveFieldValue(context: ThunkEvaluationContext, evaluatedProperties: Record<string, unknown>): void {
+    if (this.node.properties.value !== undefined) {
+      return
+    }
+
+    const code = evaluatedProperties.code
+
+    if (typeof code !== 'string') {
+      return
+    }
+
+    const history = context.global.answers[code]
+
+    if (context.request.method === 'POST') {
+      const postMutation = [...(history?.mutations ?? [])].reverse().find(mutation => mutation.source === 'post')
+
+      evaluatedProperties.value = postMutation?.value ?? history?.current
+
+      return
+    }
+
+    evaluatedProperties.value = history?.current ?? evaluatedProperties.defaultValue
   }
 
   private evaluateBlockPropertiesSync(

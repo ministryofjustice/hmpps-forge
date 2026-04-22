@@ -1,0 +1,620 @@
+import { ThunkInvocationAdapter, ThunkResult } from '../../compilation/thunks/types'
+import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
+import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import { AstNodeId, NodeId } from '../../types/engine.type'
+import { ASTNodeType } from '../../types/enums'
+import { IterateASTNode, ValidationASTNode } from '../../types/expressions.type'
+import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
+import { TemplateValue } from '../../types/template.type'
+import { BlockType, ExpressionType, IteratorType, PredicateType } from '../../../authoring/types/enums'
+import { ASTTestFactory } from '../../../testing/ASTTestFactory'
+import StepValidityAnalyzer from './StepValidityAnalyzer'
+
+function createStep(id: AstNodeId): StepASTNode {
+  return ASTTestFactory.step()
+    .withId(id)
+    .withPath('/step')
+    .withTitle('Step')
+    .build()
+}
+
+function createFieldBlock(id: AstNodeId): FieldBlockASTNode {
+  return ASTTestFactory.block('text-input', BlockType.FIELD)
+    .withId(id)
+    .build() as FieldBlockASTNode
+}
+
+function createValidationNode(id: AstNodeId, message: string): ValidationASTNode {
+  const predicateNode = ASTTestFactory.predicate(PredicateType.TEST)
+
+  return ASTTestFactory.expression<ValidationASTNode>(ExpressionType.VALIDATION)
+    .withId(id)
+    .withProperty('condition', predicateNode)
+    .withProperty('message', message)
+    .build()
+}
+
+function createIterate(id: AstNodeId, yieldTemplate?: TemplateValue): IterateASTNode {
+  return ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+    .withId(id)
+    .withProperty('input', [])
+    .withProperty('iterator', {
+      type: IteratorType.MAP,
+      yieldTemplate,
+    })
+    .build()
+}
+
+function createRuntimePlan(stepId: NodeId, options: Partial<StepRuntimePlan> = {}): StepRuntimePlan {
+  return {
+    stepId,
+    path: '/step',
+    accessAncestorIds: [stepId],
+    actionHookIds: [],
+    submitHookIds: [],
+    iterateNodeIds: [],
+    validationBlockIds: [],
+    domainValidationNodeIds: [],
+    renderAncestorIds: [],
+    renderStepId: stepId,
+    hasValidatingSubmitHook: false,
+    hasDomainValidation: false,
+    ...options,
+  }
+}
+
+function successResult<T>(value: T): ThunkResult<T> {
+  return { value, metadata: { source: 'test', timestamp: Date.now() } }
+}
+
+describe('StepValidityAnalyzer', () => {
+  beforeEach(() => {
+    ASTTestFactory.resetIds()
+  })
+
+  function setup(): {
+    context: Mocked<ThunkEvaluationContext>
+    invoker: Mocked<ThunkInvocationAdapter>
+    nodes: Map<NodeId, any>
+    parentByNodeId: Map<NodeId, NodeId>
+  } {
+    const nodes = new Map<NodeId, any>()
+    const parentByNodeId = new Map<NodeId, NodeId>()
+
+    const context = {
+      nodeRegistry: {
+        get: vi.fn((nodeId: NodeId) => nodes.get(nodeId)),
+        findByType: vi.fn((type: string) => {
+          const allNodes = [...nodes.values()]
+
+          if (type === ExpressionType.ITERATE) {
+            return allNodes.filter(
+              node => node.type === ASTNodeType.EXPRESSION && node.expressionType === ExpressionType.ITERATE,
+            )
+          }
+
+          if (type === BlockType.FIELD) {
+            return allNodes.filter(node => node.type === ASTNodeType.BLOCK && node.blockType === BlockType.FIELD)
+          }
+
+          return []
+        }),
+      },
+      metadataRegistry: {
+        get: vi.fn((nodeId: NodeId, key: string) => {
+          if (key === 'attachedToParentNode') {
+            return parentByNodeId.get(nodeId)
+          }
+
+          return undefined
+        }),
+      },
+      astNodeTree: {
+        isDescendantOf: vi.fn((nodeId: NodeId, ancestorId: NodeId) => {
+          let currentId: NodeId | undefined = parentByNodeId.get(nodeId)
+
+          while (currentId !== undefined) {
+            if (currentId === ancestorId) {
+              return true
+            }
+
+            currentId = parentByNodeId.get(currentId)
+          }
+
+          return false
+        }),
+      },
+      global: {
+        answers: {},
+        data: {},
+      },
+    } as unknown as Mocked<ThunkEvaluationContext>
+
+    const invoker = {
+      invoke: vi.fn(),
+      invokeSync: vi.fn(),
+    } as Mocked<ThunkInvocationAdapter>
+
+    return { context, invoker, nodes, parentByNodeId }
+  }
+
+  it('should evaluate static validation blocks', async () => {
+    // Arrange
+    const step = createStep('compile_ast:1')
+    const block = createFieldBlock('compile_ast:2')
+    const validationNode = createValidationNode('compile_ast:7', 'Looks good')
+    const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    block.properties.code = 'field-1'
+    block.properties.validWhen = [validationNode]
+    nodes.set(step.id, step)
+    nodes.set(block.id, block)
+    nodes.set(validationNode.id, validationNode)
+    nodes.set(validationNode.properties.condition.id, validationNode.properties.condition)
+    parentByNodeId.set(block.id, step.id)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === validationNode.id) {
+        return successResult({ passed: true, message: 'Looks good', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new StepValidityAnalyzer()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result).toEqual({
+      isValid: true,
+      fieldFailures: [],
+      domainFailures: [],
+    })
+    expect(invoker.invoke).not.toHaveBeenCalledWith(block.id, context)
+  })
+
+  it('should expand validation iterators and evaluate runtime-created field validations', async () => {
+    // Arrange
+    const step = createStep('compile_ast:3')
+    const iterate = createIterate('compile_ast:4', {
+      field: {
+        type: ASTNodeType.TEMPLATE,
+        originalType: ASTNodeType.BLOCK,
+        id: 'template:1',
+        blockType: BlockType.FIELD,
+        properties: {
+          validWhen: ['required'],
+        },
+      },
+    })
+    const runtimeBlock = createFieldBlock('runtime_ast:1')
+    const runtimeValidationNode = createValidationNode('runtime_ast:5', 'This field is required')
+    const runtimePlan = createRuntimePlan(step.id)
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    runtimeBlock.properties.code = 'runtime-field'
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
+    nodes.set(step.id, step)
+    nodes.set(iterate.id, iterate)
+    nodes.set(runtimeBlock.id, runtimeBlock)
+    nodes.set(runtimeValidationNode.id, runtimeValidationNode)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
+    parentByNodeId.set(iterate.id, step.id)
+    parentByNodeId.set(runtimeBlock.id, iterate.id)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === runtimeValidationNode.id) {
+        return successResult({ passed: false, message: 'This field is required', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new StepValidityAnalyzer()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result).toEqual({
+      isValid: false,
+      fieldFailures: [
+        {
+          blockId: runtimeBlock.id,
+          blockCode: 'runtime-field',
+          message: 'This field is required',
+          passed: false,
+          submissionOnly: true,
+        },
+      ],
+      domainFailures: [],
+    })
+    expect(invoker.invoke).not.toHaveBeenCalledWith(runtimeBlock.id, context)
+  })
+
+  it('should recursively expand nested validation iterators', async () => {
+    // Arrange
+    const step = createStep('compile_ast:5')
+    const outerIterate = createIterate('compile_ast:6', {
+      nested: {
+        type: ASTNodeType.TEMPLATE,
+        originalType: ASTNodeType.EXPRESSION,
+        id: 'template:2',
+        expressionType: ExpressionType.ITERATE,
+        properties: {
+          iterator: {
+            yieldTemplate: {
+              field: {
+                type: ASTNodeType.TEMPLATE,
+                originalType: ASTNodeType.BLOCK,
+                id: 'template:3',
+                blockType: BlockType.FIELD,
+                properties: {
+                  validWhen: ['required'],
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    const runtimeNestedIterate = createIterate('runtime_ast:2', {
+      field: {
+        type: ASTNodeType.TEMPLATE,
+        originalType: ASTNodeType.BLOCK,
+        id: 'template:4',
+        blockType: BlockType.FIELD,
+        properties: {
+          validWhen: ['required'],
+        },
+      },
+    })
+    const runtimeBlock = createFieldBlock('runtime_ast:3')
+    const runtimeValidationNode = createValidationNode('runtime_ast:8', 'Looks good')
+    const runtimePlan = createRuntimePlan(step.id)
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    runtimeBlock.properties.code = 'nested-field'
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
+    nodes.set(step.id, step)
+    nodes.set(outerIterate.id, outerIterate)
+    nodes.set(runtimeNestedIterate.id, runtimeNestedIterate)
+    nodes.set(runtimeBlock.id, runtimeBlock)
+    nodes.set(runtimeValidationNode.id, runtimeValidationNode)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
+    parentByNodeId.set(outerIterate.id, step.id)
+    parentByNodeId.set(runtimeNestedIterate.id, outerIterate.id)
+    parentByNodeId.set(runtimeBlock.id, runtimeNestedIterate.id)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === runtimeValidationNode.id) {
+        return successResult({ passed: true, message: 'Looks good', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new StepValidityAnalyzer()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result).toEqual({
+      isValid: true,
+      fieldFailures: [],
+      domainFailures: [],
+    })
+    expect(invoker.invoke).not.toHaveBeenCalledWith(runtimeBlock.id, context)
+  })
+
+  it('should order validation failures by document position when iterator fields appear before static fields', async () => {
+    // Arrange
+    const step = createStep('compile_ast:20')
+    const wrapperBlock = ASTTestFactory.block('template-wrapper', BlockType.BASIC).withId('compile_ast:21').build()
+    const iterate = createIterate('compile_ast:22', {
+      field: {
+        type: ASTNodeType.TEMPLATE,
+        originalType: ASTNodeType.BLOCK,
+        id: 'template:10',
+        blockType: BlockType.FIELD,
+        properties: {
+          validWhen: ['required'],
+        },
+      },
+    })
+    const staticBlock = createFieldBlock('compile_ast:23')
+    const staticValidationNode = createValidationNode('compile_ast:24', 'Static field is required')
+    const runtimeBlock = createFieldBlock('runtime_ast:10')
+    const runtimeValidationNode = createValidationNode('runtime_ast:11', 'Dynamic field is required')
+
+    step.properties.blocks = [wrapperBlock, staticBlock]
+
+    const runtimePlan = createRuntimePlan(step.id, {
+      validationBlockIds: [staticBlock.id],
+    })
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    staticBlock.properties.code = 'static-field'
+    staticBlock.properties.validWhen = [staticValidationNode]
+    runtimeBlock.properties.code = 'dynamic-field'
+    runtimeBlock.properties.validWhen = [runtimeValidationNode]
+
+    nodes.set(step.id, step)
+    nodes.set(wrapperBlock.id, wrapperBlock)
+    nodes.set(iterate.id, iterate)
+    nodes.set(staticBlock.id, staticBlock)
+    nodes.set(staticValidationNode.id, staticValidationNode)
+    nodes.set(staticValidationNode.properties.condition.id, staticValidationNode.properties.condition)
+    nodes.set(runtimeValidationNode.id, runtimeValidationNode)
+    nodes.set(runtimeValidationNode.properties.condition.id, runtimeValidationNode.properties.condition)
+
+    parentByNodeId.set(wrapperBlock.id, step.id)
+    parentByNodeId.set(iterate.id, wrapperBlock.id)
+    parentByNodeId.set(staticBlock.id, step.id)
+    parentByNodeId.set(runtimeBlock.id, iterate.id)
+    nodes.set(runtimeBlock.id, runtimeBlock)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === runtimeValidationNode.id) {
+        return successResult({ passed: false, message: 'Dynamic field is required', submissionOnly: true })
+      }
+
+      if (nodeId === staticValidationNode.id) {
+        return successResult({ passed: false, message: 'Static field is required', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new StepValidityAnalyzer()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result.isValid).toBe(false)
+    expect(result.fieldFailures).toHaveLength(2)
+    expect(result.fieldFailures[0].blockCode).toBe('dynamic-field')
+    expect(result.fieldFailures[1].blockCode).toBe('static-field')
+  })
+
+  describe('domain validation', () => {
+    it('should evaluate domain validations and return failures', async () => {
+      // Arrange
+      const step = createStep('compile_ast:40')
+      const domainValidationNode = createValidationNode('compile_ast:41', 'Assessment is not open')
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: false, message: 'Assessment is not open', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new StepValidityAnalyzer()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: false,
+        fieldFailures: [],
+        domainFailures: [
+          {
+            passed: false,
+            message: 'Assessment is not open',
+            submissionOnly: false,
+          },
+        ],
+      })
+    })
+
+    it('should return empty domainFailures when all domain validations pass', async () => {
+      // Arrange
+      const step = createStep('compile_ast:42')
+      const domainValidationNode = createValidationNode('compile_ast:43', 'Assessment is not open')
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: true, message: 'Assessment is not open', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new StepValidityAnalyzer()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result).toEqual({
+        isValid: true,
+        fieldFailures: [],
+        domainFailures: [],
+      })
+    })
+
+    it('should flatten array results from iterate-driven domain validations', async () => {
+      // Arrange
+      const step = createStep('compile_ast:50')
+      const iterateNodeId = 'compile_ast:51' as AstNodeId
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [iterateNodeId],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === iterateNodeId) {
+          return successResult([
+            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+            { passed: true, message: "Add steps to 'Goal B'", submissionOnly: false },
+            { passed: false, message: "Add steps to 'Goal C'", submissionOnly: false, details: { href: '#goal-3' } },
+          ])
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new StepValidityAnalyzer()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toEqual([
+        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+        { passed: false, message: "Add steps to 'Goal C'", submissionOnly: false, details: { href: '#goal-3' } },
+      ])
+    })
+
+    it('should handle mixed single and array domain validation results', async () => {
+      // Arrange
+      const step = createStep('compile_ast:54')
+      const singleValidationNode = createValidationNode('compile_ast:55', 'No active goals')
+      const iterateNodeId = 'compile_ast:56' as AstNodeId
+      const runtimePlan = createRuntimePlan(step.id, {
+        domainValidationNodeIds: [singleValidationNode.id, iterateNodeId],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes } = setup()
+
+      nodes.set(step.id, step)
+      nodes.set(singleValidationNode.id, singleValidationNode)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === singleValidationNode.id) {
+          return successResult({ passed: true, message: 'No active goals', submissionOnly: false })
+        }
+
+        if (nodeId === iterateNodeId) {
+          return successResult([
+            { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+          ])
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new StepValidityAnalyzer()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toEqual([
+        { passed: false, message: "Add steps to 'Goal A'", submissionOnly: false, details: { href: '#goal-1' } },
+      ])
+    })
+
+    it('should combine field and domain validation failures', async () => {
+      // Arrange
+      const step = createStep('compile_ast:46')
+      const block = createFieldBlock('compile_ast:47')
+      const fieldValidationNode = createValidationNode('compile_ast:48', 'Field is required')
+      const domainValidationNode = createValidationNode('compile_ast:49', 'Assessment is locked')
+      const runtimePlan = createRuntimePlan(step.id, {
+        validationBlockIds: [block.id],
+        domainValidationNodeIds: [domainValidationNode.id],
+        hasDomainValidation: true,
+      })
+      const { context, invoker, nodes, parentByNodeId } = setup()
+
+      block.properties.code = 'field-1'
+      block.properties.validWhen = [fieldValidationNode]
+      nodes.set(step.id, step)
+      nodes.set(block.id, block)
+      nodes.set(fieldValidationNode.id, fieldValidationNode)
+      nodes.set(fieldValidationNode.properties.condition.id, fieldValidationNode.properties.condition)
+      nodes.set(domainValidationNode.id, domainValidationNode)
+      parentByNodeId.set(block.id, step.id)
+
+      invoker.invoke.mockImplementation(async nodeId => {
+        if (nodeId === fieldValidationNode.id) {
+          return successResult({ passed: false, message: 'Field is required', submissionOnly: true })
+        }
+
+        if (nodeId === domainValidationNode.id) {
+          return successResult({ passed: false, message: 'Assessment is locked', submissionOnly: false })
+        }
+
+        return successResult(undefined)
+      })
+
+      // Act
+      const executor = new StepValidityAnalyzer()
+      const result = await executor.execute(runtimePlan, invoker, context)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].message).toBe('Field is required')
+      expect(result.domainFailures).toHaveLength(1)
+      expect(result.domainFailures[0].message).toBe('Assessment is locked')
+    })
+  })
+
+  it('should skip validation nodes when dependentWhen evaluates to false', async () => {
+    // Arrange
+    const step = createStep('compile_ast:9')
+    const block = createFieldBlock('compile_ast:10')
+    const dependentNode = ASTTestFactory.reference(['answers', 'businessType'])
+    const validationNode = createValidationNode('compile_ast:11', 'Should not run')
+    const runtimePlan = createRuntimePlan(step.id, { validationBlockIds: [block.id] })
+    const { context, invoker, nodes, parentByNodeId } = setup()
+
+    block.properties.code = 'business-hours'
+    block.properties.dependentWhen = dependentNode
+    block.properties.validWhen = [validationNode]
+    nodes.set(step.id, step)
+    nodes.set(block.id, block)
+    nodes.set(dependentNode.id, dependentNode)
+    nodes.set(validationNode.id, validationNode)
+    nodes.set(validationNode.properties.condition.id, validationNode.properties.condition)
+    parentByNodeId.set(block.id, step.id)
+
+    invoker.invoke.mockImplementation(async nodeId => {
+      if (nodeId === dependentNode.id) {
+        return successResult(false)
+      }
+
+      if (nodeId === validationNode.id) {
+        return successResult({ passed: false, message: 'Should not run', submissionOnly: true })
+      }
+
+      return successResult(undefined)
+    })
+
+    // Act
+    const executor = new StepValidityAnalyzer()
+    const result = await executor.execute(runtimePlan, invoker, context)
+
+    // Assert
+    expect(result).toEqual({
+      isValid: true,
+      fieldFailures: [],
+      domainFailures: [],
+    })
+    expect(invoker.invoke).toHaveBeenCalledWith(dependentNode.id, context)
+    expect(invoker.invoke).not.toHaveBeenCalledWith(validationNode.id, context)
+  })
+})

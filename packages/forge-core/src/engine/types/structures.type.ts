@@ -89,7 +89,6 @@ export interface FieldBlockASTNode extends ASTNode {
     visibleWhen?: ASTNode
     validWhen?: ValidationASTNode[]
     dependentWhen?: ASTNode
-    value?: ASTNode // Added by normalizer (Self reference)
     metadata?: Record<string, any>
     multiple?: boolean
 

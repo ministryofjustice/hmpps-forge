@@ -5,19 +5,22 @@ import { JourneyRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import { StepRequest } from '../../../framework/types/request.type'
 import { resolvePathParams } from '../../../framework/path/routePath'
-import { resolveRedirectTarget } from '../resolution/redirectTarget'
-import ContextPreparer from '../preparation/ContextPreparer'
-import AnswerPreparer from '../preparation/AnswerPreparer'
-import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
-import HookExecutor from '../evaluation/HookExecutor'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import NavigationDecisionResolver from '../resolution/NavigationDecisionResolver'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { resolveRedirectTarget } from '../navigation/redirectTarget'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import RuntimeExpansionService from '../expansion/RuntimeExpansionService'
+import AnswerPreparer from '../lifecycle/AnswerPreparer'
+import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
+import HookExecutor from '../lifecycle/HookExecutor'
+import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
+import NavigationDecisionResolver from '../navigation/NavigationDecisionResolver'
+import { JourneyRouteTemplateCatalog } from './routes.type'
 
 export default class JourneyController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
 
   private readonly hookExecutor: HookExecutor
+
+  private readonly runtimeExpansionService: RuntimeExpansionService
 
   private readonly answerPreparer: AnswerPreparer
 
@@ -35,6 +38,7 @@ export default class JourneyController<TRequest, TResponse> {
   ) {
     this.contextPreparer = new ContextPreparer()
     this.hookExecutor = new HookExecutor(this.dependencies.logger)
+    this.runtimeExpansionService = new RuntimeExpansionService()
     this.answerPreparer = new AnswerPreparer()
     this.navigationAnalyzer = new NavigationAnalyzer()
     this.navigationDecisionResolver = new NavigationDecisionResolver()
@@ -54,7 +58,8 @@ export default class JourneyController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    await this.answerPreparer.prepare(this.journeyPlan, evaluator, context)
+    await this.runtimeExpansionService.expandAllForPlan(this.journeyPlan.reachabilityPlan.entries, context, evaluator)
+    await this.answerPreparer.prepare(evaluator, context)
 
     const evaluation = await this.navigationAnalyzer.evaluate(
       this.journeyPlan.reachabilityPlan,

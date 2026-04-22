@@ -163,8 +163,7 @@ describe('ForgeRouter', () => {
           accessAncestorIds: [compiled.currentStepId],
           actionHookIds: [],
           submitHookIds: [],
-          fieldIteratorRootIds: [],
-          validationIterateNodeIds: [],
+          iterateNodeIds: [],
           validationBlockIds: [],
           domainValidationNodeIds: [],
           renderAncestorIds: [],
@@ -216,7 +215,7 @@ describe('ForgeRouter', () => {
       journeyId: 'compile_ast:journey' as NodeId,
       path: '/mock',
       accessAncestorIds: [],
-      fieldIteratorRootIds: [],
+      iterateNodeIds: [],
       reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 
@@ -906,7 +905,7 @@ describe('ForgeRouter', () => {
             journeyId,
             path: '/child',
             accessAncestorIds: [],
-            fieldIteratorRootIds: [],
+            iterateNodeIds: [],
             reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
           }
         }

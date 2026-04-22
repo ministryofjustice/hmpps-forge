@@ -11,7 +11,7 @@ import getAncestorChain from '../../utils/getAncestorChain'
 import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type JourneyInstance from '../../JourneyInstance'
-import { JourneyRouteTemplateCatalog, RouteMapEntry } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog, RouteMapEntry } from './routes.type'
 
 interface StepRouteContext {
   stepId: NodeId

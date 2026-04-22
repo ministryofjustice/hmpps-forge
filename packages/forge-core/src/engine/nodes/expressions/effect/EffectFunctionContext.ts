@@ -2,7 +2,7 @@ import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationC
 import { AnswerHistory, HookType } from '../../../compilation/thunks/types'
 import type { CookieMutation, CookieOptions } from '../../../../framework/types/response.type'
 import { assertSerializable } from '../../../../shared/utils/asserts'
-import FieldsToClearResolver from '../../../runtime/resolution/FieldsToClearResolver'
+import FieldsToClearResolver from '../../../runtime/navigation/FieldsToClearResolver'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {

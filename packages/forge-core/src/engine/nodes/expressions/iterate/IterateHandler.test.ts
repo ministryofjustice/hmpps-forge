@@ -3,17 +3,15 @@ import { IterateASTNode } from '../../../types/expressions.type'
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { MetadataComputationDependencies, ThunkResult } from '../../../compilation/thunks/types'
-import {
-  ASTTestFactory,
-  createMockContext,
-  createMockHooks,
-  createMockInvoker,
-  createSequentialMockInvoker,
-} from '../../../../testing'
+import { ASTTestFactory, createMockContext, createMockInvoker, createSequentialMockInvoker } from '../../../../testing'
 import { NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import TemplateFactory from '../../template/TemplateFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import IterateHandler from './IterateHandler'
+
+vi.mock('../../../runtime/expansion/registerRuntimeNodes', () => ({
+  default: vi.fn().mockReturnValue([]),
+}))
 
 type IteratorTestInput = IterateASTNode['properties']['iterator'] & {
   yield?: unknown
@@ -275,7 +273,7 @@ describe('IterateHandler', () => {
 
   describe('evaluateSync()', () => {
     describe('MAP iterator', () => {
-      it('should transform each item using yield template', () => {
+      it('should evaluate each pre-expanded item from the cache', () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
         const nodeId = 'compile_ast:2'
@@ -286,16 +284,30 @@ describe('IterateHandler', () => {
         handler = new IterateHandler(nodeId, iterateNode)
 
         const mockContext = createMockContext()
-        const inputData = [
-          { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-          { id: 3, name: 'Charlie' },
-        ]
         const yieldNodes = [
           { id: 'runtime_ast:100', type: ASTNodeType.EXPRESSION },
           { id: 'runtime_ast:101', type: ASTNodeType.EXPRESSION },
           { id: 'runtime_ast:102', type: ASTNodeType.EXPRESSION },
         ]
+
+        mockContext.runtimeExpansionState.preparedIterators.set(nodeId, {
+          items: [
+            {
+              itemScope: { name: 'Alice', '@index': 0, '@type': 'iterator', '@item': { name: 'Alice' } },
+              yieldValue: yieldNodes[0],
+            },
+            {
+              itemScope: { name: 'Bob', '@index': 1, '@type': 'iterator', '@item': { name: 'Bob' } },
+              yieldValue: yieldNodes[1],
+            },
+            {
+              itemScope: { name: 'Charlie', '@index': 2, '@type': 'iterator', '@item': { name: 'Charlie' } },
+              yieldValue: yieldNodes[2],
+            },
+          ],
+        })
+
+        const inputData = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }]
 
         let syncCallIndex = 0
         const syncValues = [inputData, 'Alice', 'Bob', 'Charlie']
@@ -306,23 +318,16 @@ describe('IterateHandler', () => {
             return { value, metadata: { source: 'test', timestamp: Date.now() } }
           },
         })
-        const mockHooks = createMockHooks()
-
-        yieldNodes.forEach(node => {
-          mockHooks.instantiateTemplateValue.mockReturnValueOnce(node as any)
-        })
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual(['Alice', 'Bob', 'Charlie'])
         expect(result.metadata).toEqual({ source: 'IterateHandler.map' })
-        expect(mockHooks.instantiateTemplateValue).toHaveBeenCalledTimes(3)
-        expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledWith(yieldNodes, 'yield')
       })
 
-      it('should evaluate plain object yield templates with nested AST nodes', () => {
+      it('should evaluate plain object yield values with nested AST nodes', () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
         const nodeId = 'compile_ast:2'
@@ -336,12 +341,38 @@ describe('IterateHandler', () => {
         handler = new IterateHandler(nodeId, iterateNode)
 
         const mockContext = createMockContext()
+        const labelNode = { id: 'runtime_ast:200', type: ASTNodeType.EXPRESSION }
+        const valueNode = { id: 'runtime_ast:201', type: ASTNodeType.EXPRESSION }
+
+        mockContext.runtimeExpansionState.preparedIterators.set(nodeId, {
+          items: [
+            {
+              itemScope: {
+                id: 'opt1',
+                name: 'Option 1',
+                '@index': 0,
+                '@type': 'iterator',
+                '@item': { id: 'opt1', name: 'Option 1' },
+              },
+              yieldValue: { label: labelNode, value: valueNode },
+            },
+            {
+              itemScope: {
+                id: 'opt2',
+                name: 'Option 2',
+                '@index': 1,
+                '@type': 'iterator',
+                '@item': { id: 'opt2', name: 'Option 2' },
+              },
+              yieldValue: { label: labelNode, value: valueNode },
+            },
+          ],
+        })
+
         const inputData = [
           { id: 'opt1', name: 'Option 1' },
           { id: 'opt2', name: 'Option 2' },
         ]
-        const labelNode = { id: 'runtime_ast:200', type: ASTNodeType.EXPRESSION }
-        const valueNode = { id: 'runtime_ast:201', type: ASTNodeType.EXPRESSION }
 
         let syncCallIndex = 0
         const syncValues = [inputData, 'Option 1', 'opt1', 'Option 2', 'opt2']
@@ -352,21 +383,39 @@ describe('IterateHandler', () => {
             return { value, metadata: { source: 'test', timestamp: Date.now() } }
           },
         })
-        const mockHooks = createMockHooks()
-
-        mockHooks.instantiateTemplateValue.mockImplementation(() => ({
-          label: labelNode,
-          value: valueNode,
-        }))
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([
           { label: 'Option 1', value: 'opt1' },
           { label: 'Option 2', value: 'opt2' },
         ])
+      })
+
+      it('should throw when cache is missing', () => {
+        // Arrange
+        const inputSourceId = 'compile_ast:1'
+        const nodeId = 'compile_ast:2'
+        iterateNode = createIterateNode(nodeId, inputSourceId, {
+          type: IteratorType.MAP,
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        })
+        handler = new IterateHandler(nodeId, iterateNode)
+
+        const mockContext = createMockContext()
+        const mockInvoker = createMockInvoker({
+          invokeSyncImpl: () => ({
+            value: [{ name: 'Alice' }],
+            metadata: { source: 'test', timestamp: Date.now() },
+          }),
+        })
+
+        // Act & Assert
+        expect(() => handler.evaluateSync(mockContext, mockInvoker)).toThrow(
+          'MAP iterator was not pre-expanded by RuntimeExpansionService',
+        )
       })
     })
 
@@ -398,12 +447,11 @@ describe('IterateHandler', () => {
             return { value, metadata: { source: 'test', timestamp: Date.now() } }
           },
         })
-        const mockHooks = createMockHooks()
 
-        mockHooks.instantiateTemplateValue.mockReturnValue(predicateNode)
+        vi.spyOn(TemplateFactory, 'instantiate').mockReturnValue(predicateNode)
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([
@@ -442,12 +490,11 @@ describe('IterateHandler', () => {
             return { value, metadata: { source: 'test', timestamp: Date.now() } }
           },
         })
-        const mockHooks = createMockHooks()
 
-        mockHooks.instantiateTemplateValue.mockReturnValue(predicateNode)
+        vi.spyOn(TemplateFactory, 'instantiate').mockReturnValue(predicateNode)
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual({ id: 2, isTarget: true })
@@ -473,15 +520,13 @@ describe('IterateHandler', () => {
             metadata: { source: 'test', timestamp: Date.now() },
           }),
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return empty array when input is undefined for MAP iterator', () => {
@@ -501,15 +546,13 @@ describe('IterateHandler', () => {
             metadata: { source: 'test', timestamp: Date.now() },
           }),
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return empty array when input is null for MAP iterator', () => {
@@ -529,15 +572,13 @@ describe('IterateHandler', () => {
             metadata: { source: 'test', timestamp: Date.now() },
           }),
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return undefined when input is undefined for FIND iterator', () => {
@@ -557,10 +598,9 @@ describe('IterateHandler', () => {
             metadata: { source: 'test', timestamp: Date.now() },
           }),
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toBeUndefined()
@@ -589,38 +629,20 @@ describe('IterateHandler', () => {
         const mockInvoker = createMockInvoker({
           invokeSyncImpl: (): ThunkResult => errorResult,
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = handler.evaluateSync(mockContext, mockInvoker, mockHooks)
+        const result = handler.evaluateSync(mockContext, mockInvoker)
 
         // Assert
         expect(result.error).toEqual(errorResult.error)
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
-      it('should throw when hooks are not provided', () => {
-        // Arrange
-        const inputSourceId = 'compile_ast:1'
-        const nodeId = 'compile_ast:2'
-        iterateNode = createIterateNode(nodeId, inputSourceId, {
-          type: IteratorType.MAP,
-          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
-        })
-        handler = new IterateHandler(nodeId, iterateNode)
-
-        const mockContext = createMockContext()
-        const mockInvoker = createMockInvoker()
-
-        // Act & Assert
-        expect(() => handler.evaluateSync(mockContext, mockInvoker)).toThrow('requires hooks')
-      })
     })
   })
 
   describe('evaluate()', () => {
     describe('MAP iterator', () => {
-      it('should transform each item using yield template with sync templates', async () => {
+      it('should evaluate each pre-expanded item from the cache', async () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
         const nodeId = 'compile_ast:2'
@@ -631,16 +653,29 @@ describe('IterateHandler', () => {
         handler = new IterateHandler(nodeId, iterateNode)
 
         const mockContext = createMockContext()
-        const inputData = [
-          { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-          { id: 3, name: 'Charlie' },
-        ]
+        const inputData = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }]
         const yieldNodes = [
           { id: 'runtime_ast:100', type: ASTNodeType.EXPRESSION },
           { id: 'runtime_ast:101', type: ASTNodeType.EXPRESSION },
           { id: 'runtime_ast:102', type: ASTNodeType.EXPRESSION },
         ]
+
+        mockContext.runtimeExpansionState.preparedIterators.set(nodeId, {
+          items: [
+            {
+              itemScope: { name: 'Alice', '@index': 0, '@type': 'iterator', '@item': { name: 'Alice' } },
+              yieldValue: yieldNodes[0],
+            },
+            {
+              itemScope: { name: 'Bob', '@index': 1, '@type': 'iterator', '@item': { name: 'Bob' } },
+              yieldValue: yieldNodes[1],
+            },
+            {
+              itemScope: { name: 'Charlie', '@index': 2, '@type': 'iterator', '@item': { name: 'Charlie' } },
+              yieldValue: yieldNodes[2],
+            },
+          ],
+        })
 
         let syncCallIndex = 0
         const syncValues = ['Alice', 'Bob', 'Charlie']
@@ -652,23 +687,16 @@ describe('IterateHandler', () => {
             return { value, metadata: { source: 'test', timestamp: Date.now() } }
           },
         })
-        const mockHooks = createMockHooks()
-
-        yieldNodes.forEach(node => {
-          mockHooks.instantiateTemplateValue.mockReturnValueOnce(node as any)
-        })
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual(['Alice', 'Bob', 'Charlie'])
         expect(result.metadata).toEqual({ source: 'IterateHandler.map' })
-        expect(mockHooks.instantiateTemplateValue).toHaveBeenCalledTimes(3)
-        expect(mockHooks.registerRuntimeNodesBatch).toHaveBeenCalledWith(yieldNodes, 'yield')
       })
 
-      it('should transform each item using yield template with async templates', async () => {
+      it('should use async invoke when template is async', async () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
         const nodeId = 'compile_ast:2'
@@ -696,23 +724,29 @@ describe('IterateHandler', () => {
         handler.computeIsAsync(deps)
 
         const mockContext = createMockContext()
-        const inputData = [
-          { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-        ]
+        const inputData = [{ name: 'Alice' }, { name: 'Bob' }]
         const yieldNodes = [
           { id: 'runtime_ast:100', type: ASTNodeType.EXPRESSION },
           { id: 'runtime_ast:101', type: ASTNodeType.EXPRESSION },
         ]
-        const mockInvoker = createSequentialMockInvoker([inputData, 'Alice', 'Bob'])
-        const mockHooks = createMockHooks()
 
-        yieldNodes.forEach(node => {
-          mockHooks.instantiateTemplateValue.mockReturnValueOnce(node as any)
+        mockContext.runtimeExpansionState.preparedIterators.set(nodeId, {
+          items: [
+            {
+              itemScope: { name: 'Alice', '@index': 0, '@type': 'iterator', '@item': { name: 'Alice' } },
+              yieldValue: yieldNodes[0],
+            },
+            {
+              itemScope: { name: 'Bob', '@index': 1, '@type': 'iterator', '@item': { name: 'Bob' } },
+              yieldValue: yieldNodes[1],
+            },
+          ],
         })
 
+        const mockInvoker = createSequentialMockInvoker([inputData, 'Alice', 'Bob'])
+
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual(['Alice', 'Bob'])
@@ -720,52 +754,23 @@ describe('IterateHandler', () => {
         expect(mockInvoker.invokeSync).not.toHaveBeenCalled()
       })
 
-      it('should evaluate plain object yield templates with nested AST nodes', async () => {
+      it('should throw when cache is missing', async () => {
         // Arrange
         const inputSourceId = 'compile_ast:1'
         const nodeId = 'compile_ast:2'
         iterateNode = createIterateNode(nodeId, inputSourceId, {
           type: IteratorType.MAP,
-          yield: {
-            label: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
-            value: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'id'] },
-          },
+          yield: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
         })
         handler = new IterateHandler(nodeId, iterateNode)
 
         const mockContext = createMockContext()
-        const inputData = [
-          { id: 'opt1', name: 'Option 1' },
-          { id: 'opt2', name: 'Option 2' },
-        ]
-        const labelNode = { id: 'runtime_ast:200', type: ASTNodeType.EXPRESSION }
-        const valueNode = { id: 'runtime_ast:201', type: ASTNodeType.EXPRESSION }
+        const mockInvoker = createMockInvoker({ defaultValue: [{ name: 'Alice' }] })
 
-        let syncCallIndex = 0
-        const syncValues = ['Option 1', 'opt1', 'Option 2', 'opt2']
-        const mockInvoker = createMockInvoker({
-          invokeImpl: async () => ({ value: inputData, metadata: { source: 'test', timestamp: Date.now() } }),
-          invokeSyncImpl: () => {
-            const value = syncValues[syncCallIndex]
-            syncCallIndex += 1
-            return { value, metadata: { source: 'test', timestamp: Date.now() } }
-          },
-        })
-        const mockHooks = createMockHooks()
-
-        mockHooks.instantiateTemplateValue.mockImplementation(() => ({
-          label: labelNode,
-          value: valueNode,
-        }))
-
-        // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
-
-        // Assert
-        expect(result.value).toEqual([
-          { label: 'Option 1', value: 'opt1' },
-          { label: 'Option 2', value: 'opt2' },
-        ])
+        // Act & Assert
+        await expect(handler.evaluate(mockContext, mockInvoker)).rejects.toThrow(
+          'MAP iterator was not pre-expanded by RuntimeExpansionService',
+        )
       })
     })
 
@@ -788,12 +793,11 @@ describe('IterateHandler', () => {
         ]
         const predicateNode = { id: 'runtime_ast:filter', type: ASTNodeType.EXPRESSION }
         const mockInvoker = createSequentialMockInvoker([inputData, true, false, true])
-        const mockHooks = createMockHooks()
 
-        mockHooks.instantiateTemplateValue.mockReturnValue(predicateNode)
+        vi.spyOn(TemplateFactory, 'instantiate').mockReturnValue(predicateNode)
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([
@@ -823,12 +827,11 @@ describe('IterateHandler', () => {
         ]
         const predicateNode = { id: 'runtime_ast:predicate', type: ASTNodeType.EXPRESSION }
         const mockInvoker = createSequentialMockInvoker([inputData, false, true])
-        const mockHooks = createMockHooks()
 
-        mockHooks.instantiateTemplateValue.mockReturnValue(predicateNode)
+        vi.spyOn(TemplateFactory, 'instantiate').mockReturnValue(predicateNode)
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual({ id: 2, isTarget: true })
@@ -849,15 +852,13 @@ describe('IterateHandler', () => {
 
         const mockContext = createMockContext()
         const mockInvoker = createMockInvoker({ defaultValue: [] })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return empty array when input is undefined for MAP iterator', async () => {
@@ -872,15 +873,13 @@ describe('IterateHandler', () => {
 
         const mockContext = createMockContext()
         const mockInvoker = createMockInvoker({ defaultValue: undefined })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return empty array when input is null for MAP iterator', async () => {
@@ -895,15 +894,13 @@ describe('IterateHandler', () => {
 
         const mockContext = createMockContext()
         const mockInvoker = createMockInvoker({ defaultValue: null })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toEqual([])
         expect(result.metadata).toEqual({ source: 'IterateHandler.empty' })
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
 
       it('should return undefined when input is undefined for FIND iterator', async () => {
@@ -918,10 +915,9 @@ describe('IterateHandler', () => {
 
         const mockContext = createMockContext()
         const mockInvoker = createMockInvoker({ defaultValue: undefined })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.value).toBeUndefined()
@@ -950,14 +946,12 @@ describe('IterateHandler', () => {
         const mockInvoker = createMockInvoker({
           invokeImpl: async (): Promise<ThunkResult> => errorResult,
         })
-        const mockHooks = createMockHooks()
 
         // Act
-        const result = await handler.evaluate(mockContext, mockInvoker, mockHooks)
+        const result = await handler.evaluate(mockContext, mockInvoker)
 
         // Assert
         expect(result.error).toEqual(errorResult.error)
-        expect(mockHooks.instantiateTemplateValue).not.toHaveBeenCalled()
       })
     })
   })

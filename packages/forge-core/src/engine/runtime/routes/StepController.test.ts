@@ -1,13 +1,8 @@
 import { ASTNodeType } from '../../types/enums'
-import { ExpressionType, IteratorType, HookType } from '../../../authoring/types/enums'
+import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import {
-  AccessHookASTNode,
-  ActionHookASTNode,
-  ExpressionASTNode,
-  SubmitHookASTNode,
-} from '../../types/expressions.type'
+import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engine.type'
 import { AccessHookResult } from '../../nodes/hooks/access/AccessHandler'
 import { SubmitHookResult } from '../../nodes/hooks/submit/SubmitHandler'
@@ -18,12 +13,13 @@ import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
 import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
 import { PseudoNodeType } from '../../types/pseudoNodes.type'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import RenderProjector from '../projection/RenderProjector'
+import RuntimeExpansionService from '../expansion/RuntimeExpansionService'
+import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
+import RenderProjector from '../rendering/RenderProjector'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog } from './routes.type'
 
 const createMockRequest = (
   overrides: Partial<{
@@ -102,7 +98,7 @@ const mockStepValidityAnalyzerExecute = vi.fn().mockResolvedValue({
   domainFailures: [],
 })
 
-vi.mock('../evaluation/StepValidityAnalyzer', () => {
+vi.mock('../validation/StepValidityAnalyzer', () => {
   return {
     __esModule: true,
     default: vi.fn(function MockStepValidityAnalyzer() {
@@ -115,7 +111,7 @@ vi.mock('../evaluation/StepValidityAnalyzer', () => {
   }
 })
 
-vi.mock('../projection/RenderProjector', () => {
+vi.mock('../rendering/RenderProjector', () => {
   return {
     __esModule: true,
     default: vi.fn(function MockRenderProjector() {
@@ -200,6 +196,14 @@ describe('StepController', () => {
         data: {},
         validation: undefined,
       },
+      runtimeExpansionState: {
+        preparedIterators: new Map(),
+        expandedIteratorIds: new Set(),
+      },
+      runtimeCompilationDependencies: {
+        nodeRegistry: { get: vi.fn() },
+        metadataRegistry: { get: vi.fn() },
+      },
     } as unknown as Mocked<ThunkEvaluationContext>
 
     mockEvaluator = {
@@ -218,8 +222,7 @@ describe('StepController', () => {
       accessAncestorIds: [stepNode.id],
       actionHookIds: (stepNode.properties.onAction ?? []).map(hook => hook.id),
       submitHookIds: (stepNode.properties.onSubmission ?? []).map(hook => hook.id),
-      fieldIteratorRootIds: [],
-      validationIterateNodeIds: [],
+      iterateNodeIds: [],
       validationBlockIds: [],
       domainValidationNodeIds: [],
       renderAncestorIds: [],
@@ -265,8 +268,7 @@ describe('StepController', () => {
             forwardOutcomeIds: [],
             hasValidation: false,
             cleardownFieldCodes: [],
-            fieldIteratorRootIds: [],
-            validationIterateNodeIds: [],
+            iterateNodeIds: [],
             validationBlockIds: [],
             domainValidationNodeIds: [],
             reachabilityTieBreakers: [],
@@ -598,12 +600,6 @@ describe('StepController', () => {
 
       it('should evaluate dynamic answer pseudo nodes after iterator expansion on POST', async () => {
         // Arrange
-        const iterateNode = ASTTestFactory.expression(ExpressionType.ITERATE)
-          .withId('compile_ast:iterate')
-          .withProperty('input', { id: 'compile_ast:input', type: ASTNodeType.EXPRESSION })
-          .withProperty('iterator', { type: IteratorType.MAP })
-          .build() as ExpressionASTNode
-
         const dynamicAnswerNode: { id: NodeId; type: PseudoNodeType.ANSWER_LOCAL } = {
           id: 'runtime_pseudo:1',
           type: PseudoNodeType.ANSWER_LOCAL,
@@ -611,15 +607,27 @@ describe('StepController', () => {
 
         const step = createStepWithHooks({})
         mockCompiledForm = createCompiledForm(step)
-        mockCompiledForm.runtimePlan.fieldIteratorRootIds = [iterateNode.id]
+        mockCompiledForm.runtimePlan.iterateNodeIds = ['compile_ast:iterate' as NodeId]
 
-        let iteratorExpanded = false
+        let expansionCalled = false
 
-        mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
-          if (nodeId === iterateNode.id) {
-            return iterateNode
+        mockContext.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
+          if (type === PseudoNodeType.ANSWER_LOCAL && expansionCalled) {
+            return [dynamicAnswerNode]
           }
 
+          return []
+        })
+
+        Object.defineProperty(mockContext, 'runtimeExpansionState', {
+          value: {
+            preparedIterators: new Map(),
+            expandedIteratorIds: new Set(),
+          },
+          writable: true,
+        })
+
+        mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
           if (nodeId === step.id) {
             return step
           }
@@ -627,24 +635,7 @@ describe('StepController', () => {
           return undefined
         })
 
-        mockContext.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
-          if (type === PseudoNodeType.ANSWER_LOCAL && iteratorExpanded) {
-            return [dynamicAnswerNode]
-          }
-
-          return []
-        })
-
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
-          if (nodeId === iterateNode.id) {
-            iteratorExpanded = true
-
-            return {
-              value: [],
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
           if (nodeId === dynamicAnswerNode.id) {
             return {
               value: 'dynamic answer',
@@ -658,6 +649,14 @@ describe('StepController', () => {
           }
         })
 
+        // Simulate expansion registering ANSWER_LOCAL nodes
+        const originalExpandIteratorRoots = RuntimeExpansionService.prototype.expandIteratorRoots
+        RuntimeExpansionService.prototype.expandIteratorRoots = async function expandIteratorRoots() {
+          expansionCalled = true
+
+          return []
+        }
+
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
@@ -670,11 +669,11 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        const invokedNodeIds = mockEvaluator.invoke.mock.calls.map(([nodeId]) => nodeId)
+        expect(expansionCalled).toBe(true)
+        expect(mockEvaluator.invoke).toHaveBeenCalledWith(dynamicAnswerNode.id, mockContext)
 
-        expect(invokedNodeIds).toContain(iterateNode.id)
-        expect(invokedNodeIds).toContain(dynamicAnswerNode.id)
-        expect(invokedNodeIds.indexOf(iterateNode.id)).toBeLessThan(invokedNodeIds.indexOf(dynamicAnswerNode.id))
+        // Restore
+        RuntimeExpansionService.prototype.expandIteratorRoots = originalExpandIteratorRoots
       })
 
       it('should expose journey reachability to submit hooks after answers are prepared', async () => {
@@ -696,8 +695,7 @@ describe('StepController', () => {
               forwardOutcomeIds: [],
               hasValidation: false,
               cleardownFieldCodes: [],
-              fieldIteratorRootIds: [],
-              validationIterateNodeIds: [],
+              iterateNodeIds: [],
               validationBlockIds: [],
               domainValidationNodeIds: [],
               reachabilityTieBreakers: [],

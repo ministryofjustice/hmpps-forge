@@ -80,6 +80,20 @@ export default class ASTNodeTree {
     return Array.from(edges.values()).some(edge => edge.childTypes.has(type))
   }
 
+  isDescendantOf(nodeId: NodeId, ancestorId: NodeId): boolean {
+    let currentId: NodeId | undefined = this.getParent(nodeId)
+
+    while (currentId !== undefined) {
+      if (currentId === ancestorId) {
+        return true
+      }
+
+      currentId = this.getParent(currentId)
+    }
+
+    return false
+  }
+
   /** Checks whether any descendant (direct or transitive) has the specified type */
   hasDescendantOfType(nodeId: NodeId, type: string): boolean {
     if (this.hasChildOfType(nodeId, type)) {
