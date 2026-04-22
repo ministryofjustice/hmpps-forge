@@ -64,4 +64,120 @@ describe('Object Transformers', () => {
       })
     })
   })
+
+  describe('FromISO', () => {
+    const { evaluate } = ObjectTransformersRegistry.FromISO
+
+    it('should convert full ISO date to object', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month', day: 'day' }
+
+      // Act
+      const result = evaluate('2024-03-15', paths)
+
+      // Assert
+      expect(result).toEqual({ year: '2024', month: '03', day: '15' })
+    })
+
+    it('should convert year-month ISO to object', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month' }
+
+      // Act
+      const result = evaluate('2025-03', paths)
+
+      // Assert
+      expect(result).toEqual({ year: '2025', month: '03' })
+    })
+
+    it('should convert month-day to object', () => {
+      // Arrange
+      const paths = { month: 'month', day: 'day' }
+
+      // Act / Assert
+      expect(evaluate('12-25', paths)).toEqual({ month: '12', day: '25' })
+      expect(evaluate('--12-25', paths)).toEqual({ month: '12', day: '25' })
+    })
+
+    it('should convert year-only to object', () => {
+      // Arrange
+      const paths = { year: 'year' }
+
+      // Act
+      const result = evaluate('2024', paths)
+
+      // Assert
+      expect(result).toEqual({ year: '2024' })
+    })
+
+    it('should pass through objects unchanged', () => {
+      // Arrange
+      const obj = { day: '31', month: '03', year: '1980' }
+      const paths = { year: 'year', month: 'month', day: 'day' }
+
+      // Act
+      const result = evaluate(obj, paths)
+
+      // Assert
+      expect(result).toBe(obj)
+    })
+
+    it('should use custom property names from paths', () => {
+      // Arrange
+      const paths = { day: 'jour', month: 'mois', year: 'annee' }
+
+      // Act
+      const result = evaluate('2024-02-28', paths)
+
+      // Assert
+      expect(result).toEqual({ annee: '2024', mois: '02', jour: '28' })
+    })
+
+    it('should return empty object for undefined or empty values', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month', day: 'day' }
+
+      // Act / Assert
+      expect(evaluate(undefined, paths)).toEqual({})
+      expect(evaluate('', paths)).toEqual({})
+      expect(evaluate(null, paths)).toEqual({})
+    })
+
+    it('should return empty object for invalid formats', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month', day: 'day' }
+
+      // Act / Assert
+      expect(evaluate('not-a-date', paths)).toEqual({})
+      expect(evaluate('2024/03/15', paths)).toEqual({})
+    })
+
+    it('should be the inverse of ToISO', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month', day: 'day' }
+      const original = { day: '5', month: '3', year: '2024' }
+
+      // Act
+      const iso = ObjectTransformersRegistry.ToISO.evaluate(original, paths)
+      const restored = evaluate(iso, paths)
+
+      // Assert
+      expect(restored).toEqual({ year: '2024', month: '03', day: '05' })
+    })
+
+    it('should return correct function expression', () => {
+      // Arrange
+      const paths = { year: 'year', month: 'month', day: 'day' }
+
+      // Act
+      const expr = ObjectTransformers.FromISO(paths)
+
+      // Assert
+      expect(expr).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'FromISO',
+        arguments: [paths],
+      })
+    })
+  })
 })

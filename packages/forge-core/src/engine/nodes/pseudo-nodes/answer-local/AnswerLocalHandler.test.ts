@@ -657,4 +657,284 @@ describe('AnswerLocalHandler', () => {
       expect(mockContext.scope.length).toBe(0)
     })
   })
+
+  describe('parser execution', () => {
+    it('should apply parser to existing answer on GET', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'fromISO')
+      const fieldNode = ASTTestFactory.block('DateInput', BlockType.FIELD)
+        .withCode('date_of_birth')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('date_of_birth', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: { day: '15', month: '01', year: '2024' } })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { date_of_birth: '2024-01-15' },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toEqual({ day: '15', month: '01', year: '2024' })
+      expect(mockContext.global.answers.date_of_birth.current).toBe('2024-01-15')
+      expect(mockContext.global.answers.date_of_birth.parsed).toEqual({ day: '15', month: '01', year: '2024' })
+    })
+
+    it('should apply parser to default value on GET', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'fromISO')
+      const fieldNode = ASTTestFactory.block('DateInput', BlockType.FIELD)
+        .withCode('start_date')
+        .withProperty('defaultValue', '2024-06-01')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('start_date', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: { day: '01', month: '06', year: '2024' } })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toEqual({ day: '01', month: '06', year: '2024' })
+      expect(mockContext.global.answers.start_date.current).toBe('2024-06-01')
+      expect(mockContext.global.answers.start_date.parsed).toEqual({ day: '01', month: '06', year: '2024' })
+    })
+
+    it('should NOT run parsers on POST', async () => {
+      // Arrange
+      const formatterNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'toISO')
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'fromISO')
+      const fieldNode = ASTTestFactory.block('DateInput', BlockType.FIELD)
+        .withCode('date')
+        .withProperty('formatters', [formatterNode])
+        .withProperty('parsers', [parserNode])
+        .build()
+      const postPseudoNode = ASTTestFactory.postPseudoNode('date')
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('date', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: '15/01/2024' }) // POST
+        .mockResolvedValueOnce({ value: '2024-01-15' }) // formatter
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [postPseudoNode.id, postPseudoNode],
+          [formatterNode.id, formatterNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockRequest: { method: 'POST', post: { date: '15/01/2024' } },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('2024-01-15')
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(parserNode.id, mockContext)
+    })
+
+    it('should NOT modify history.current when parser runs', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'split')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('tags')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('tags', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: ['a', 'b', 'c'] })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { tags: 'a,b,c' },
+      })
+
+      // Act
+      await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(mockContext.global.answers.tags.current).toBe('a,b,c')
+      expect(mockContext.global.answers.tags.mutations).toEqual([{ value: 'a,b,c', source: 'access' }])
+    })
+
+    it('should chain multiple parsers sequentially', async () => {
+      // Arrange
+      const parser1 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'split')
+      const parser2 = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'first')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('value')
+        .withProperty('parsers', [parser1, parser2])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('value', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke
+        .mockResolvedValueOnce({ value: ['a', 'b', 'c'] }) // parser1
+        .mockResolvedValueOnce({ value: 'a' }) // parser2
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parser1.id, parser1],
+          [parser2.id, parser2],
+        ]),
+        mockAnswers: { value: 'a,b,c' },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('a')
+      expect(mockInvoker.invoke).toHaveBeenCalledTimes(2)
+    })
+
+    it('should push and pop scope correctly for parsers', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'parse')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('field')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('field', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: 'parsed' })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { field: 'stored' },
+      })
+
+      // Act
+      await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(mockContext.scope.length).toBe(0)
+    })
+
+    it('should preserve value when parser returns undefined', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'noop')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('field')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('field', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: undefined })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { field: 'original' },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('original')
+    })
+
+    it('should preserve value when parser returns error', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'failing')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('field')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('field', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({
+        error: {
+          type: 'EVALUATION_FAILED',
+          nodeId: parserNode.id,
+          message: 'Parser failed',
+        },
+      })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { field: 'original' },
+      })
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(result.value).toBe('original')
+      expect(result.error).toBeUndefined()
+    })
+
+    it('should not set history.parsed when value is unchanged', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'identity')
+      const fieldNode = ASTTestFactory.block('TextInput', BlockType.FIELD)
+        .withCode('field')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const pseudoNode = ASTTestFactory.answerLocalPseudoNode('field', fieldNode.id)
+      const handler = new AnswerLocalHandler(pseudoNode.id, pseudoNode)
+
+      const mockInvoker = createMockInvoker()
+      mockInvoker.invoke.mockResolvedValueOnce({ value: 'same-value' })
+
+      const mockContext = createMockContext({
+        mockNodes: new Map<NodeId, ASTNode | PseudoNode>([
+          [fieldNode.id, fieldNode],
+          [parserNode.id, parserNode],
+        ]),
+        mockAnswers: { field: 'same-value' },
+      })
+
+      // Act
+      await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect(mockContext.global.answers.field.parsed).toBeUndefined()
+    })
+  })
 })

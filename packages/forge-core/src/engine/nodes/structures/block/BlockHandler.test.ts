@@ -411,6 +411,69 @@ describe('BlockHandler', () => {
       expect(mockInvoker.invoke).not.toHaveBeenCalledWith(formatterNode.id, expect.anything(), expect.anything())
     })
 
+    it('should pass parsers through without evaluating AST nodes', async () => {
+      // Arrange
+      const parserNode = ASTTestFactory.expression(FunctionType.TRANSFORMER).build()
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('date')
+        .withProperty('parsers', [parserNode])
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockNodes: new Map([[parserNode.id, parserNode]]),
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.parsers).toEqual([parserNode])
+      expect(mockInvoker.invoke).not.toHaveBeenCalledWith(parserNode.id, expect.anything(), expect.anything())
+    })
+
+    it('should use history.parsed for field value on GET when available', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('date-input', BlockType.FIELD)
+        .withCode('dob')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockAnswers: {
+          dob: {
+            current: '2024-01-15',
+            parsed: { day: '15', month: '01', year: '2024' },
+            mutations: [{ value: '2024-01-15', source: 'access' }],
+          },
+        },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toEqual({ day: '15', month: '01', year: '2024' })
+    })
+
+    it('should fall back to history.current when no parsed value exists', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('name')
+        .build()
+      const handler = new BlockHandler(block.id, block)
+      const mockContext = createMockContext({
+        mockAnswers: { name: 'John' },
+      })
+      const mockInvoker = createMockInvoker()
+
+      // Act
+      const result = await handler.evaluate(mockContext, mockInvoker)
+
+      // Assert
+      expect((result.value as FieldBlockASTNode).properties.value).toBe('John')
+    })
+
     it('should resolve value from existing answer on GET', async () => {
       // Arrange
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)

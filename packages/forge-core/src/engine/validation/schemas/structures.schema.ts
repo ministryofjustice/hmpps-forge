@@ -51,6 +51,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     code: ConditionalStringSchema,
     defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
+    parsers: z.array(TransformerFunctionExprSchema).optional(),
     errors: z
       .array(
         z.object({

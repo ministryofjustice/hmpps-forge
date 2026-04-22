@@ -83,11 +83,13 @@ export default class AnswerLocalHandler implements ThunkHandler {
       return handler?.isAsync ?? true // Conservative: assume async if not found
     }
 
-    // Check if any formatter is async
+    // Check if any formatter or parser is async
     const anyFormatterAsync = Array.isArray(formatters) && formatters.some(isNodeAsync)
+    const parsers = fieldNode.properties.parsers
+    const anyParserAsync = Array.isArray(parsers) && parsers.some(isNodeAsync)
 
     // AnswerLocalHandler is sync ONLY if all dependencies are sync
-    this.isAsync = anyFormatterAsync || isNodeAsync(dependentWhen) || isNodeAsync(defaultValue)
+    this.isAsync = anyFormatterAsync || anyParserAsync || isNodeAsync(dependentWhen) || isNodeAsync(defaultValue)
   }
 
   evaluateSync(context: ThunkEvaluationContext, invoker: ThunkInvocationAdapter): HandlerResult<unknown> {
@@ -245,7 +247,9 @@ export default class AnswerLocalHandler implements ThunkHandler {
     const existingHistory = context.global.answers[baseFieldCode]
 
     if (existingHistory?.current !== undefined) {
-      return { value: existingHistory.current }
+      const parsed = await this.applyParsers(context, invoker, fieldNode, baseFieldCode, existingHistory.current)
+
+      return { value: parsed }
     }
 
     return this.resolveDefault(context, invoker, fieldNode, baseFieldCode)
@@ -267,13 +271,17 @@ export default class AnswerLocalHandler implements ThunkHandler {
 
       if (!defaultResult.error && defaultResult.value !== undefined) {
         this.pushMutation(context, baseFieldCode, defaultResult.value, 'default')
-        return { value: defaultResult.value }
+        const parsed = await this.applyParsers(context, invoker, fieldNode, baseFieldCode, defaultResult.value)
+
+        return { value: parsed }
       }
     }
 
     if (defaultValue !== undefined && !isASTNode(defaultValue)) {
       this.pushMutation(context, baseFieldCode, defaultValue, 'default')
-      return { value: defaultValue }
+      const parsed = await this.applyParsers(context, invoker, fieldNode, baseFieldCode, defaultValue)
+
+      return { value: parsed }
     }
 
     this.pushMutation(context, baseFieldCode, undefined, 'default')
@@ -366,7 +374,9 @@ export default class AnswerLocalHandler implements ThunkHandler {
     const existingHistory = context.global.answers[baseFieldCode]
 
     if (existingHistory?.current !== undefined) {
-      return { value: existingHistory.current }
+      const parsed = this.applyParsersSync(context, invoker, fieldNode, baseFieldCode, existingHistory.current)
+
+      return { value: parsed }
     }
 
     return this.resolveDefaultSync(context, invoker, fieldNode, baseFieldCode)
@@ -388,17 +398,105 @@ export default class AnswerLocalHandler implements ThunkHandler {
 
       if (!defaultResult.error && defaultResult.value !== undefined) {
         this.pushMutation(context, baseFieldCode, defaultResult.value, 'default')
-        return { value: defaultResult.value }
+        const parsed = this.applyParsersSync(context, invoker, fieldNode, baseFieldCode, defaultResult.value)
+
+        return { value: parsed }
       }
     }
 
     if (defaultValue !== undefined && !isASTNode(defaultValue)) {
       this.pushMutation(context, baseFieldCode, defaultValue, 'default')
-      return { value: defaultValue }
+      const parsed = this.applyParsersSync(context, invoker, fieldNode, baseFieldCode, defaultValue)
+
+      return { value: parsed }
     }
 
     this.pushMutation(context, baseFieldCode, undefined, 'default')
     return { value: undefined }
+  }
+
+  private async applyParsers(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+    fieldNode: FieldBlockASTNode,
+    baseFieldCode: string,
+    value: unknown,
+  ): Promise<unknown> {
+    const parsers = fieldNode.properties.parsers
+
+    if (!Array.isArray(parsers) || parsers.length === 0) {
+      return value
+    }
+
+    let resolvedValue = value
+
+    for (const parser of parsers) {
+      if (isASTNode(parser)) {
+        context.scope.push({ '@value': resolvedValue, '@type': 'formatter' })
+
+        try {
+          const parserResult = await invoker.invoke(parser.id, context)
+
+          if (!parserResult.error && parserResult.value !== undefined) {
+            resolvedValue = parserResult.value
+          }
+        } finally {
+          context.scope.pop()
+        }
+      }
+    }
+
+    if (resolvedValue !== value) {
+      const history = context.global.answers[baseFieldCode]
+
+      if (history) {
+        history.parsed = resolvedValue
+      }
+    }
+
+    return resolvedValue
+  }
+
+  private applyParsersSync(
+    context: ThunkEvaluationContext,
+    invoker: ThunkInvocationAdapter,
+    fieldNode: FieldBlockASTNode,
+    baseFieldCode: string,
+    value: unknown,
+  ): unknown {
+    const parsers = fieldNode.properties.parsers
+
+    if (!Array.isArray(parsers) || parsers.length === 0) {
+      return value
+    }
+
+    let resolvedValue = value
+
+    for (const parser of parsers) {
+      if (isASTNode(parser)) {
+        context.scope.push({ '@value': resolvedValue, '@type': 'formatter' })
+
+        try {
+          const parserResult = invoker.invokeSync(parser.id, context)
+
+          if (!parserResult.error && parserResult.value !== undefined) {
+            resolvedValue = parserResult.value
+          }
+        } finally {
+          context.scope.pop()
+        }
+      }
+    }
+
+    if (resolvedValue !== value) {
+      const history = context.global.answers[baseFieldCode]
+
+      if (history) {
+        history.parsed = resolvedValue
+      }
+    }
+
+    return resolvedValue
   }
 
   /**
