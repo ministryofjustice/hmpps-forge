@@ -7,6 +7,9 @@ import { compositeFieldsPatternStep } from './composite-fields/step'
 import { resumingPatternStep } from './resuming/step'
 import { addAnotherPatternStep } from './add-another/step'
 import { taskListPatternStep } from './task-list/step'
+import { loadReferenceDataPatternStep } from './load-reference-data/step'
+import { preFillPatternStep } from './pre-fill/step'
+import { repeatingFieldsetsPatternStep } from './repeating-fieldsets/step'
 import { patternDemosJourney } from './demos/journey'
 
 export const patternsGuideJourney = journey({
@@ -25,6 +28,9 @@ export const patternsGuideJourney = journey({
     resumingPatternStep,
     addAnotherPatternStep,
     taskListPatternStep,
+    loadReferenceDataPatternStep,
+    preFillPatternStep,
+    repeatingFieldsetsPatternStep,
   ],
   children: [patternDemosJourney],
 })

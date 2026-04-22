@@ -6,11 +6,13 @@ import {
 import type GuideContentStore from '../../data/guideContentStore'
 import type GuideSearch from '../../data/guideSearch'
 import type FormDataStore from '../../data/formDataStore'
+import type MocksApi from '../../data/mocksApi'
 
 export interface GuideDeps {
   guideContentStore: GuideContentStore
   guideSearch: GuideSearch
   formDataStore: FormDataStore
+  mocksApi: MocksApi
 }
 
 export interface GuideEffectShape {

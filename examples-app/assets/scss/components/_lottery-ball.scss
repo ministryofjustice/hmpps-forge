@@ -1,0 +1,35 @@
+.lottery-ball {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: govuk-colour("blue");
+
+  &__number {
+    @include govuk-font($size: 24, $weight: bold);
+
+    color: govuk-colour("white");
+  }
+
+  &--blue {
+    background-color: govuk-colour("blue");
+  }
+
+  &--green {
+    background-color: govuk-colour("green");
+  }
+
+  &--block {
+    display: flex;
+    margin-bottom: govuk-spacing(4);
+  }
+}
+
+.lottery-ball-row {
+  display: flex;
+  gap: govuk-spacing(3);
+  flex-wrap: wrap;
+  margin-bottom: govuk-spacing(4);
+}

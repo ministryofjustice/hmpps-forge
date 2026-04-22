@@ -61,6 +61,40 @@ export interface PatternEffectShape {
     collectionCode: string,
     fieldCodes: string[],
   ) => EffectFunctionExpr
+
+  /** Loads a repeating collection from the session, sets it as Data for the iterator, and restores indexed field answers. */
+  InitializeRepeatingFieldsets: (
+    patternCode: string,
+    collectionCode: string,
+    fieldCodes: string[],
+  ) => EffectFunctionExpr
+
+  /** Saves current indexed field values to the session collection, appends an empty item, and restores answers with new indices. */
+  AddRepeatingItem: (
+    patternCode: string,
+    collectionCode: string,
+    fieldCodes: string[],
+  ) => EffectFunctionExpr
+
+  /** Saves current indexed field values, removes the item whose index matches the POST action value, and re-indexes answers. */
+  RemoveRepeatingItem: (
+    patternCode: string,
+    collectionCode: string,
+    fieldCodes: string[],
+  ) => EffectFunctionExpr
+
+  /** Reads current indexed field values into the session collection for persistence across requests. */
+  SaveRepeatingItems: (
+    patternCode: string,
+    collectionCode: string,
+    fieldCodes: string[],
+  ) => EffectFunctionExpr
+
+  /** Reads the postcode answer, calls the address lookup API, and sets the address field answers with the result. */
+  LookupAddress: () => EffectFunctionExpr
+
+  /** Generates 6 unique lottery numbers (1-59, sorted) and a bonus ball, then sets them as Data values for blocks to display. */
+  DrawLotteryNumbers: () => EffectFunctionExpr
 }
 
 export const { effects: PatternEffects, implementations: PatternEffectsImplementations } =
@@ -282,6 +316,191 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           session.patternDrafts[patternCode].editingIndex = index
         }
       },
+
+    InitializeRepeatingFieldsets:
+      () =>
+      (
+        context: PatternEffectContext,
+        patternCode: string,
+        collectionCode: string,
+        fieldCodes: string[],
+      ) => {
+        const stored = context.getSession()?.patternDrafts?.[patternCode]
+        const collection = (stored?.[collectionCode] ?? []) as Record<string, unknown>[]
+
+        if (collection.length === 0) {
+          return
+        }
+
+        context.setData(collectionCode, collection)
+
+        collection.forEach((item, index) => {
+          for (const code of fieldCodes) {
+            context.setAnswer(`${code}_${index}`, (item[code] as string) ?? '')
+          }
+        })
+      },
+
+    AddRepeatingItem:
+      () =>
+      (
+        context: PatternEffectContext,
+        patternCode: string,
+        collectionCode: string,
+        fieldCodes: string[],
+      ) => {
+        const session = context.getSession()
+
+        if (!session) {
+          return
+        }
+
+        if (!session.patternDrafts) {
+          session.patternDrafts = {}
+        }
+
+        if (!session.patternDrafts[patternCode]) {
+          session.patternDrafts[patternCode] = {}
+        }
+
+        const stored = session.patternDrafts[patternCode]
+        const collection = (stored[collectionCode] ??
+          context.getData(collectionCode) ??
+          []) as Record<string, unknown>[]
+
+        const updated = collection.map((item, index) => {
+          const merged = { ...item }
+
+          for (const code of fieldCodes) {
+            merged[code] = context.getAnswer(`${code}_${index}`) ?? item[code]
+          }
+
+          return merged
+        })
+
+        updated.push(Object.fromEntries(fieldCodes.map(code => [code, ''])))
+        stored[collectionCode] = updated
+
+        context.setData(collectionCode, updated)
+
+        updated.forEach((item, index) => {
+          for (const code of fieldCodes) {
+            context.setAnswer(`${code}_${index}`, (item[code] as string) ?? '')
+          }
+        })
+      },
+
+    RemoveRepeatingItem:
+      () =>
+      (
+        context: PatternEffectContext,
+        patternCode: string,
+        collectionCode: string,
+        fieldCodes: string[],
+      ) => {
+        const session = context.getSession()
+
+        if (!session?.patternDrafts?.[patternCode]) {
+          return
+        }
+
+        const stored = session.patternDrafts[patternCode]
+        const collection = (stored[collectionCode] ??
+          context.getData(collectionCode) ??
+          []) as Record<string, unknown>[]
+
+        const actionValue = context.getPostData('action') as string
+        const indexStr = actionValue?.replace('remove_', '')
+        const index = parseInt(indexStr, 10)
+
+        if (Number.isNaN(index) || index < 0 || index >= collection.length) {
+          return
+        }
+
+        let updated = collection.map((item, i) => {
+          const merged = { ...item }
+
+          for (const code of fieldCodes) {
+            merged[code] = context.getAnswer(`${code}_${i}`) ?? item[code]
+          }
+
+          return merged
+        })
+
+        updated = [...updated.slice(0, index), ...updated.slice(index + 1)]
+
+        stored[collectionCode] = updated
+
+        context.setData(collectionCode, updated)
+
+        updated.forEach((item, i) => {
+          for (const code of fieldCodes) {
+            context.setAnswer(`${code}_${i}`, (item[code] as string) ?? '')
+          }
+        })
+      },
+
+    SaveRepeatingItems:
+      () =>
+      (
+        context: PatternEffectContext,
+        patternCode: string,
+        collectionCode: string,
+        fieldCodes: string[],
+      ) => {
+        const session = context.getSession()
+
+        if (!session) {
+          return
+        }
+
+        if (!session.patternDrafts) {
+          session.patternDrafts = {}
+        }
+
+        if (!session.patternDrafts[patternCode]) {
+          session.patternDrafts[patternCode] = {}
+        }
+
+        const stored = session.patternDrafts[patternCode]
+        const collection = (stored[collectionCode] ??
+          context.getData(collectionCode) ??
+          []) as Record<string, unknown>[]
+
+        stored[collectionCode] = collection.map((item, index) => {
+          const merged = { ...item }
+
+          for (const code of fieldCodes) {
+            merged[code] = context.getAnswer(`${code}_${index}`) ?? item[code]
+          }
+
+          return merged
+        })
+      },
+
+    LookupAddress: (deps: GuideDeps) => async (context: PatternEffectContext) => {
+      const postcode = context.getAnswer('postcode') as string | undefined
+
+      if (!postcode) {
+        return
+      }
+
+      const address = await deps.mocksApi.lookupAddress(postcode)
+
+      context.setAnswer('addressLine1', address.line1)
+      context.setAnswer('addressLine2', address.line2)
+      context.setAnswer('addressTown', address.town)
+      context.setAnswer('addressCounty', address.county)
+      context.setAnswer('addressPostcode', address.postcode)
+    },
+
+    DrawLotteryNumbers: (deps: GuideDeps) => async (context: PatternEffectContext) => {
+      const draw = await deps.mocksApi.getLotteryBalls()
+
+      draw.balls.forEach((n, i) => context.setData(`ball${i + 1}`, String(n)))
+      context.setData('bonusBall', String(draw.bonusBall))
+      context.setData('drawDate', draw.drawDate)
+    },
 
     EditItemInCollection:
       () =>

@@ -1,7 +1,5 @@
 import express from 'express'
-
 import createError from 'http-errors'
-
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import {
   ExpressFrameworkAdapter,
@@ -9,7 +7,6 @@ import {
 } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
-
 import nunjucksSetup from './utils/nunjucksSetup'
 import errorHandler from './errorHandler'
 import setUpCsrf from './middleware/setUpCsrf'
@@ -19,10 +16,9 @@ import setUpWebRequestParsing from './middleware/setupRequestParsing'
 import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
 import developerGuidePackage from './journeys/forge-developer-guide'
-
-import type { Services } from './services'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import llmsTxtRoutes from './routes/llmsTxt'
+import type { Services } from './services'
 
 export default function createApp(services: Services): express.Application {
   const app = express()

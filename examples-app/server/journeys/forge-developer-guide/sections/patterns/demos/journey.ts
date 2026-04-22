@@ -6,6 +6,9 @@ import { compositeFieldsDemoJourney } from '../composite-fields/demo/journey'
 import { resumingDemoJourney } from '../resuming/demo/journey'
 import { addAnotherDemoJourney } from '../add-another/demo/journey'
 import { taskListDemoJourney } from '../task-list/demo/journey'
+import { loadReferenceDataDemoJourney } from '../load-reference-data/demo/journey'
+import { preFillDemoJourney } from '../pre-fill/demo/journey'
+import { repeatingFieldsetsDemoJourney } from '../repeating-fieldsets/demo/journey'
 
 export const patternDemosJourney = journey({
   code: 'pattern-demos',
@@ -22,5 +25,8 @@ export const patternDemosJourney = journey({
     resumingDemoJourney,
     addAnotherDemoJourney,
     taskListDemoJourney,
+    loadReferenceDataDemoJourney,
+    preFillDemoJourney,
+    repeatingFieldsetsDemoJourney,
   ],
 })
