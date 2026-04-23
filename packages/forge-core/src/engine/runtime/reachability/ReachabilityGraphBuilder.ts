@@ -8,6 +8,7 @@ import { NavigationStepState } from '../types/NavigationEvaluation.type'
 import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
 import type { ValidationContext } from '../../compilation/validation/StepValidationCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import { buildCompiledBaseContext } from '../context/compiledEvaluationContext'
 
 /**
  * Builds the reachability graph for a journey using pre-compiled results.
@@ -265,22 +266,6 @@ export default class ReachabilityGraphBuilder {
     context: RuntimeEvaluationContext,
     functionRegistry: FunctionRegistry,
   ): ValidationContext {
-    return {
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: functionRegistry,
-      scope: context.scope,
-    }
+    return buildCompiledBaseContext(context, functionRegistry)
   }
 }

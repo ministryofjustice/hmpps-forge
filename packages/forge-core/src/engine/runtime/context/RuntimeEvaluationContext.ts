@@ -43,14 +43,6 @@ export interface RuntimeEvaluationGlobalState {
 }
 
 export default class RuntimeEvaluationContext {
-  /**
-   * The compiled quick functions share one mutable request context so answer
-   * prep, hooks, validation, render, and navigation see the same request data.
-   * Scope remains here because generated iterator expressions push lexical
-   * values while evaluating nested blocks and predicates.
-   */
-  readonly scope: Record<string, unknown>[] = []
-
   constructor(
     private readonly compilationDependencies: CompilationDependencies,
     private readonly journeyInstanceDependencies: JourneyInstanceDependencies,

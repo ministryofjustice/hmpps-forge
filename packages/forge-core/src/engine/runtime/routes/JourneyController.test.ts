@@ -177,7 +177,6 @@ describe('JourneyController', () => {
         getAllState: () => ({}),
         getAllPost: () => ({}),
       },
-      scope: [],
     })
   })
 
@@ -380,7 +379,6 @@ describe('JourneyController', () => {
           getAllState: () => ({ csrf: 'token' }),
           getAllPost: () => ({}),
         },
-        scope: [],
       })
 
       const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
@@ -404,7 +402,6 @@ describe('JourneyController', () => {
           state: { csrf: 'token' },
         },
         conditions: mockDependencies.functionRegistry,
-        scope: [],
         post: {},
       })
     })

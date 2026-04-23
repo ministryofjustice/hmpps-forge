@@ -9,8 +9,13 @@ import ContextPreparer from '../lifecycle/ContextPreparer'
 import NavigationAnalyzer, { resolveJourneyRootRedirect } from '../navigation/NavigationAnalyzer'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
+import {
+  buildCompiledAnswerPreparationContext,
+  buildCompiledBaseContext,
+  buildCompiledHookLifecycleContext,
+} from '../context/compiledEvaluationContext'
 import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
-import { CompiledAccessHookResult, HookLifecycleContext } from '../../compilation/hooks/HookLifecycleCompiler'
+import { CompiledAccessHookResult } from '../../compilation/hooks/HookLifecycleCompiler'
 
 export default class JourneyController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
@@ -107,35 +112,7 @@ export default class JourneyController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(this.buildHookContext(context))
-  }
-
-  private buildHookContext(context: RuntimeEvaluationContext): HookLifecycleContext {
-    return {
-      answers: context.global.answers,
-      data: context.global.data,
-      validation: context.global.validation,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      post: context.request.getAllPost(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-      logger: this.dependencies.logger,
-      effectContext: {
-        global: context.global,
-        request: context.request,
-        response: context.response,
-      },
-    }
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
 
   /**
@@ -152,30 +129,12 @@ export default class JourneyController<TRequest, TResponse> {
       )
     }
 
-    await compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-      post: context.request.getAllPost(),
-    })
+    await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
   }
 
   /**
-   * Same pattern as StepController.evaluateCompiledReachability — assembles the
-   * ReachabilityContext and calls the compiled function. Hybrid compiled
-   * functions may be sync or async, so callers always await this helper.
+   * Same pattern as StepController.evaluateCompiledReachability. Hybrid
+   * compiled functions may be sync or async, so callers always await this helper.
    * The journey controller passes `undefined` as currentStepId to
    * NavigationAnalyzer since it handles the journey root.
    */
@@ -186,21 +145,6 @@ export default class JourneyController<TRequest, TResponse> {
       throw new Error('[Forge] Reachability fallback is disabled — compiledReachability function is missing from plan')
     }
 
-    return compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-    })
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
   }
 }

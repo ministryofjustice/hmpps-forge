@@ -80,11 +80,11 @@ export default class ReferenceNodeCompiler {
     const frame = this.ctx.iteratorStack[this.ctx.iteratorStack.length - 1 - level]
 
     if (!frame) {
-      return `ctx.scope[ctx.scope.length - 1 - ${level}]`
+      return 'undefined'
     }
 
     if (path.length === 2) {
-      return `${frame.itemVar}["@item"]`
+      return frame.rawItemExpr
     }
 
     const property = path[2] as string
@@ -98,7 +98,7 @@ export default class ReferenceNodeCompiler {
     }
 
     if (property === '@item') {
-      return `${frame.itemVar}["@item"]`
+      return frame.rawItemExpr
     }
 
     if (property === '@value') {

@@ -188,7 +188,6 @@ describe('StepController', () => {
         getNodeType: vi.fn().mockReturnValue(undefined),
         hasDescendantOfType: vi.fn().mockReturnValue(false),
       },
-      scope: [],
     } as unknown as Mocked<RuntimeEvaluationContext>
 
     mockEvaluator = {

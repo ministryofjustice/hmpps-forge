@@ -31,7 +31,6 @@ export interface HookLifecycleContext {
   post: Record<string, string | string[]>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  scope: Record<string, unknown>[]
   logger: JourneyInstanceDependencies['logger']
   effectContext: EffectEvaluationContext
 }

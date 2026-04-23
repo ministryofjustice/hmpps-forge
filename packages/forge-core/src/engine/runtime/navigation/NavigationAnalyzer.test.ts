@@ -116,7 +116,6 @@ describe('NavigationAnalyzer', () => {
         getAllCookies: vi.fn().mockReturnValue({}),
         getAllState: vi.fn().mockReturnValue({}),
       },
-      scope: [],
       nodeRegistry: {
         findByType: vi.fn().mockReturnValue([]),
       },

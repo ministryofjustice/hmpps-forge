@@ -19,16 +19,16 @@ export function emitNormalizeIteratorInput(emitter: CodeEmitter, inputVar: strin
 }
 
 /**
- * Emits the iterator item scope object expected by @scope/@item references.
+ * Emits the iterator item scope object expected by scoped property references.
  *
  * Object items are copied rather than mutated because their source may be
  * backed by session or data state shared with later compiled evaluations.
+ * The raw item itself stays in the iterator frame, so Item().value() does not
+ * need to be mirrored onto the scope object.
  */
 export function emitIteratorItemScope(emitter: CodeEmitter, inputVar: string, indexVar: string, itemVar: string): void {
   emitter.emit(
     `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`,
   )
   emitter.emit(`${itemVar}["@index"] = ${indexVar};`)
-  emitter.emit(`${itemVar}["@type"] = "iterator";`)
-  emitter.emit(`${itemVar}["@item"] = ${inputVar}[${indexVar}];`)
 }

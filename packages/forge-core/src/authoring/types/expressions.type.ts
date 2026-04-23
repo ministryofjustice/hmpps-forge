@@ -18,14 +18,14 @@ import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, Ou
  *
  * @example
  * // Reference to current collection item
- * { type: 'ExpressionType.Reference', path: ['@item', 'id'] }
+ * { type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }
  */
 export interface ReferenceExpr {
   type: ExpressionType.REFERENCE
 
   /**
    * Path segments to traverse to reach the target value.
-   * Special paths include '@self' (current field) and '@item' (current collection item).
+   * Special paths include '@self' (current field) and '@scope' (current iterator item).
    */
   path: string[]
 
@@ -66,7 +66,7 @@ export interface ReferenceExpr {
  * {
  *   type: 'ExpressionType.Format',
  *   template: 'address_%1_street',
- *   arguments: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }]
+ *   arguments: [{ type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }]
  * }
  */
 export interface FormatExpr {

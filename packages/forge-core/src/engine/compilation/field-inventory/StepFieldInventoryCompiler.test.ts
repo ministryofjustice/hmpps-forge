@@ -67,7 +67,6 @@ function createContext(
     query: {},
     request: { method: 'GET' },
     conditions: functionRegistry,
-    scope: [],
     ...overrides,
   }
 }

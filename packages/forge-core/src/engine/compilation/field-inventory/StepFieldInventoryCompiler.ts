@@ -18,7 +18,6 @@ export interface FieldInventoryContext {
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  scope: Record<string, unknown>[]
 }
 
 export interface FieldInventoryStepSource {
@@ -108,6 +107,7 @@ export default class StepFieldInventoryCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -118,7 +118,7 @@ export default class StepFieldInventoryCompiler {
           emitter.emit('continue;')
         })
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-        this.expr.pushIteratorFrame({ itemVar, indexVar })
+        this.expr.pushIteratorFrame({ itemVar, indexVar, rawItemExpr })
         this.compileTemplateInventory(template, codesVar, emitter)
         this.expr.popIteratorFrame()
       })
@@ -173,6 +173,7 @@ export default class StepFieldInventoryCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -184,7 +185,7 @@ export default class StepFieldInventoryCompiler {
         })
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
-        const frame: IteratorScopeFrame = { itemVar, indexVar }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
         this.compileTemplateInventory(iterator.yieldTemplate as TemplateValue, codesVar, emitter)

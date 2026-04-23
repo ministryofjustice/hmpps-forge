@@ -101,7 +101,6 @@ function createCtx(overrides: Partial<AnswerPreparationContext> = {}): AnswerPre
         return { evaluate: () => undefined }
       }),
     } as unknown as AnswerPreparationContext['conditions'],
-    scope: [],
     post: {},
     ...overrides,
   }

@@ -121,7 +121,6 @@ function createCtx(overrides: Partial<ValidationContext> = {}): ValidationContex
         return { evaluate: () => false }
       }),
     } as unknown as ValidationContext['conditions'],
-    scope: [],
     ...overrides,
   }
 }
@@ -824,6 +823,131 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures).toHaveLength(1)
       expect(result.fieldFailures[0].blockCode).toBe('item_1')
       expect(result.fieldFailures[0].message).toBe('Required')
+    })
+
+    it('should compile iterator validation against the raw item value', () => {
+      // Arrange
+      const step = createStep()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'items']),
+        createTemplateValue({
+          type: ASTNodeType.BLOCK,
+          variant: 'text-input',
+          blockType: BlockType.FIELD,
+          properties: {
+            code: 'item',
+            validWhen: [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.VALIDATION,
+                properties: {
+                  condition: {
+                    type: ASTNodeType.PREDICATE,
+                    predicateType: PredicateType.TEST,
+                    properties: {
+                      subject: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: ExpressionType.REFERENCE,
+                        properties: { path: ['@scope', '0'] },
+                      },
+                      condition: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: FunctionType.CONDITION,
+                        properties: { name: 'isRequired', arguments: [] },
+                      },
+                      negate: false,
+                    },
+                  },
+                  message: 'Item is required',
+                },
+              },
+            ],
+          },
+        }),
+      )
+      const ctx = createCtx({
+        data: { items: ['', 'Ada'] },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [], [], [iterateNode])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].message).toBe('Item is required')
+    })
+
+    it('should compile iterator validation over object maps with Item().key()', () => {
+      // Arrange
+      const step = createStep()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'items']),
+        createTemplateValue({
+          type: ASTNodeType.BLOCK,
+          variant: 'text-input',
+          blockType: BlockType.FIELD,
+          properties: {
+            code: {
+              type: ASTNodeType.EXPRESSION,
+              expressionType: ExpressionType.FORMAT,
+              properties: {
+                template: 'item_%1',
+                arguments: [
+                  {
+                    type: ASTNodeType.EXPRESSION,
+                    expressionType: ExpressionType.REFERENCE,
+                    properties: { path: ['@scope', '0', '@key'] },
+                  },
+                ],
+              },
+            },
+            validWhen: [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.VALIDATION,
+                properties: {
+                  condition: {
+                    type: ASTNodeType.PREDICATE,
+                    predicateType: PredicateType.TEST,
+                    properties: {
+                      subject: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: ExpressionType.REFERENCE,
+                        properties: { path: ['answers', '@self'] },
+                      },
+                      condition: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: FunctionType.CONDITION,
+                        properties: { name: 'isRequired', arguments: [] },
+                      },
+                      negate: false,
+                    },
+                  },
+                  message: 'Required',
+                },
+              },
+            ],
+          },
+        }),
+      )
+      const ctx = createCtx({
+        data: { items: { alpha: 'a', beta: 'b' } },
+        answers: {
+          item_alpha: { current: 'filled' },
+          item_beta: { current: '' },
+        },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [], [], [iterateNode])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].blockCode).toBe('item_beta')
     })
 
     it('should compile iterator with Item().path() references in validation', () => {

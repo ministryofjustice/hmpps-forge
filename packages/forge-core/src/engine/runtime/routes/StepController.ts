@@ -3,6 +3,11 @@ import { ASTNodeType } from '../../types/enums'
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
+import {
+  buildCompiledAnswerPreparationContext,
+  buildCompiledBaseContext,
+  buildCompiledHookLifecycleContext,
+} from '../context/compiledEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
@@ -25,7 +30,6 @@ import {
   CompiledAccessHookResult,
   CompiledActionHookResult,
   CompiledSubmitHookResult,
-  HookLifecycleContext,
 } from '../../compilation/hooks/HookLifecycleCompiler'
 
 /**
@@ -184,7 +188,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(this.buildHookContext(context))
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
 
   private async executeActionHooks(context: RuntimeEvaluationContext): Promise<CompiledActionHookResult> {
@@ -196,7 +200,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(this.buildHookContext(context))
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
 
   private async executeSubmitHooks(context: RuntimeEvaluationContext): Promise<CompiledSubmitHookResult> {
@@ -208,35 +212,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(this.buildHookContext(context))
-  }
-
-  private buildHookContext(context: RuntimeEvaluationContext): HookLifecycleContext {
-    return {
-      answers: context.global.answers,
-      data: context.global.data,
-      validation: context.global.validation,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      post: context.request.getAllPost(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-      logger: this.dependencies.logger,
-      effectContext: {
-        global: context.global,
-        request: context.request,
-        response: context.response,
-      },
-    }
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
 
   private async evaluateValidation(context: RuntimeEvaluationContext): Promise<StepValidityResult> {
@@ -248,25 +224,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    const validationCtx = {
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-    }
-
-    const result = await compiledValidation(validationCtx, true)
+    const result = await compiledValidation(buildCompiledBaseContext(context, this.dependencies.functionRegistry), true)
 
     // Remap iterator validation failures to use the same "compiled:" + fieldCode
     // ID scheme that the render compiler uses for iterator-generated blocks.
@@ -295,9 +253,7 @@ export default class StepController<TRequest, TResponse> {
    * Calls the compiled answer preparation function, which resolves all field
    * answers — POST extraction, formatters, dependentWhen, and default values.
    * Sync-only compilations return immediately; async user functions return a
-   * Promise. Mutates context.global.answers in place. Same ctx assembly pattern
-   * as evaluateCompiledRender/evaluateCompiledReachability, plus `post` from
-   * request.getAllPost().
+   * Promise. Mutates context.global.answers in place.
    */
   private async prepareAnswers(context: RuntimeEvaluationContext): Promise<void> {
     const compiledFn = this.compiledForm.compiledAnswerPreparation
@@ -308,24 +264,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    await compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-      post: context.request.getAllPost(),
-    })
+    await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
   }
 
   /**
@@ -380,8 +319,8 @@ export default class StepController<TRequest, TResponse> {
   }
 
   /**
-   * Calls the compiled render function, assembling the RenderCompilationContext
-   * from the current request state. Same pattern as evaluateCompiledReachability().
+   * Calls the compiled render function with the shared compiled-function
+   * context snapshot.
    */
   private async evaluateCompiledRender(context: RuntimeEvaluationContext): Promise<CompiledRenderResult> {
     const compiledFn = this.compiledForm.compiledRender
@@ -392,23 +331,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-    })
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
   }
 
   private resolveStepMetadata(
@@ -456,33 +379,12 @@ export default class StepController<TRequest, TResponse> {
       throw new Error('[Forge] Field inventory compilation is required — compiledFieldInventory is missing from plan')
     }
 
-    return compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-      scope: context.scope,
-    })
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
   }
 
   /**
-   * Calls the compiled reachability function if available, assembling the
-   * ReachabilityContext from the current request state. Hybrid compiled
+   * Calls the compiled reachability function if available. Hybrid compiled
    * functions may be sync or async, so callers always await this helper.
-   *
-   * The context is assembled here (not in NavigationAnalyzer) because the
-   * compiled function needs the FunctionRegistry from JourneyInstanceDependencies,
-   * which the analyzer doesn't own.
    */
   private async evaluateCompiledReachability(context: RuntimeEvaluationContext): Promise<CompiledReachabilityResult> {
     const compiledFn = this.compiledForm.reachabilityPlan.compiledReachability
@@ -491,22 +393,7 @@ export default class StepController<TRequest, TResponse> {
       throw new Error('[Forge] Reachability fallback is disabled — compiledReachability function is missing from plan')
     }
 
-    return compiledFn({
-      answers: context.global.answers,
-      data: context.global.data,
-      session: (context.request.getSession() ?? {}) as Record<string, unknown>,
-      params: context.request.getParams(),
-      query: context.request.getAllQuery(),
-      request: {
-        url: context.request.url,
-        path: context.request.location.pathname,
-        method: context.request.method,
-        headers: context.request.getAllHeaders(),
-        cookies: context.request.getAllCookies(),
-        state: context.request.getAllState(),
-      },
-      conditions: this.dependencies.functionRegistry,
-    })
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
   }
 }
 

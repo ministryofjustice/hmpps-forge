@@ -1,6 +1,7 @@
 export interface IteratorScopeFrame {
   itemVar: string
   indexVar: string
+  rawItemExpr: string
   codeVar?: string
 }
 

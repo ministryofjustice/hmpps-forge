@@ -35,7 +35,6 @@ export interface RenderCompilationContext {
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  scope: Record<string, unknown>[]
 }
 
 /** Single evaluated block in the compiled render output. */
@@ -245,6 +244,7 @@ export default class StepRenderCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -257,8 +257,8 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         for (const templateBlock of templateBlocks) {
-          const codeVar = this.compileTemplateBlockCode(templateBlock, indexVar, itemVar, emitter)
-          const frame: IteratorScopeFrame = { itemVar, indexVar, codeVar }
+          const codeVar = this.compileTemplateBlockCode(templateBlock, indexVar, itemVar, rawItemExpr, emitter)
+          const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr, codeVar }
 
           this.expr.pushIteratorFrame(frame)
           this.compileTemplateBlock(templateBlock, codeVar, emitter)
@@ -278,6 +278,7 @@ export default class StepRenderCompiler {
     block: TemplateNode,
     indexVar: string,
     itemVar: string,
+    rawItemExpr: string,
     emitter: CodeEmitter,
   ): string | undefined {
     const code = block.properties?.code
@@ -288,7 +289,7 @@ export default class StepRenderCompiler {
 
     if (this.expr.isTemplateNode(code)) {
       const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar }
+      const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
       this.expr.pushIteratorFrame(frame)
       const codeExpr = this.expr.compileTemplateExpression(code)
@@ -621,7 +622,7 @@ export default class StepRenderCompiler {
 
   /**
    * Property-level iterators compile inline so dynamic options and conditional
-   * values share the same @item/@scope semantics as block-yielding MAP iterators.
+   * values share the same scoped item semantics as block-yielding MAP iterators.
    */
   private compileIterateExpression(node: IterateASTNode, emitter: CodeEmitter, resultVar: string): void {
     const iterType = node.properties.iterator.type
@@ -642,6 +643,7 @@ export default class StepRenderCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
     const arrVar = emitter.nextVar('_marr')
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
@@ -656,7 +658,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const yieldTemplate = node.properties.iterator.yieldTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 
@@ -681,6 +683,7 @@ export default class StepRenderCompiler {
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
     const arrVar = emitter.nextVar('_farr')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -694,7 +697,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 
@@ -723,6 +726,7 @@ export default class StepRenderCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -735,7 +739,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 

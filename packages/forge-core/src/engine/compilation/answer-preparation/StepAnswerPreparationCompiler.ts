@@ -25,7 +25,6 @@ export interface AnswerPreparationContext {
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  scope: Record<string, unknown>[]
   post: Record<string, string | string[]>
 }
 
@@ -254,7 +253,7 @@ export default class StepAnswerPreparationCompiler {
 
   /**
    * MAP-yielded fields are prepared inside the same loop that render and
-   * validation use, so dynamic field codes and @item/@scope references resolve
+   * validation use, so dynamic field codes and scoped item references resolve
    * without request-time node registration.
    */
   private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter): void {
@@ -278,6 +277,7 @@ export default class StepAnswerPreparationCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
     emitNormalizeIteratorInput(emitter, inputVar)
@@ -290,8 +290,8 @@ export default class StepAnswerPreparationCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         for (const templateField of templateFields) {
-          const codeVar = this.compileTemplateFieldCode(templateField, indexVar, itemVar, emitter)
-          const frame: IteratorScopeFrame = { itemVar, indexVar, codeVar }
+          const codeVar = this.compileTemplateFieldCode(templateField, indexVar, itemVar, rawItemExpr, emitter)
+          const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr, codeVar }
 
           this.expr.pushIteratorFrame(frame)
           this.compileTemplateField(templateField, codeVar, emitter)
@@ -305,6 +305,7 @@ export default class StepAnswerPreparationCompiler {
     field: TemplateNode,
     indexVar: string,
     itemVar: string,
+    rawItemExpr: string,
     emitter: CodeEmitter,
   ): string | undefined {
     const code = field.properties?.code
@@ -315,7 +316,7 @@ export default class StepAnswerPreparationCompiler {
 
     if (this.expr.isTemplateNode(code)) {
       const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar }
+      const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
       this.expr.pushIteratorFrame(frame)
       const codeExpr = this.expr.compileTemplateExpression(code)

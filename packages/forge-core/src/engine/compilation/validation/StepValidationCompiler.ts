@@ -25,6 +25,7 @@ import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodeEmitter from '../codegen/CodeEmitter'
 import NodeCompilationDispatcher, { IteratorScopeFrame } from '../codegen/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
+import { emitIteratorItemScope, emitNormalizeIteratorInput } from '../codegen/iteratorCodegen'
 
 export interface ValidationContext {
   answers: Record<string, { current: unknown }>
@@ -34,7 +35,6 @@ export interface ValidationContext {
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  scope: Record<string, unknown>[]
 }
 
 type SyncCompiledValidationFunction = (ctx: ValidationContext, isSubmission: boolean) => StepValidityResult
@@ -144,17 +144,21 @@ export default class StepValidationCompiler {
     const inputVar = emitter.nextVar('_input')
     const indexVar = emitter.nextVar('_idx')
     const itemVar = emitter.nextVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
 
     emitter.emit(`var ${inputVar} = ${inputExpr};`)
+    emitNormalizeIteratorInput(emitter, inputVar)
+
     emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
       emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emit(
-          `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? ${inputVar}[${indexVar}] : { "@value": ${inputVar}[${indexVar}] };`,
-        )
+        emitter.emitBlock(`if (${rawItemExpr} == null)`, () => {
+          emitter.emit('continue;')
+        })
+        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         for (const templateField of templateFields) {
-          const codeVar = this.compileTemplateFieldCode(templateField, indexVar, itemVar, emitter)
-          const frame: IteratorScopeFrame = { itemVar, indexVar, codeVar }
+          const codeVar = this.compileTemplateFieldCode(templateField, indexVar, itemVar, rawItemExpr, emitter)
+          const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr, codeVar }
 
           this.expr.pushIteratorFrame(frame)
           this.compileTemplateFieldValidations(templateField, codeVar, emitter)
@@ -168,6 +172,7 @@ export default class StepValidationCompiler {
     field: TemplateNode,
     indexVar: string,
     itemVar: string,
+    rawItemExpr: string,
     emitter: CodeEmitter,
   ): string | undefined {
     const code = field.properties?.code
@@ -178,7 +183,7 @@ export default class StepValidationCompiler {
 
     if (this.expr.isTemplateNode(code)) {
       const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar }
+      const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
 
       this.expr.pushIteratorFrame(frame)
       const codeExpr = this.expr.compileTemplateExpression(code)

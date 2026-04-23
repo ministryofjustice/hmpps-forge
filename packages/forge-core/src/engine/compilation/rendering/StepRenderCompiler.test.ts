@@ -72,7 +72,6 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
     conditions: {
       get: vi.fn(() => ({ evaluate: () => undefined })),
     } as unknown as RenderCompilationContext['conditions'],
-    scope: [],
     ...overrides,
   }
 }
@@ -172,6 +171,7 @@ describe('StepRenderCompiler', () => {
       const field = createFieldBlock('memberName_0', createReference(['@scope', '0']))
       const iterateNode = createIterateNode(createTemplate([field]))
       const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const source = compiler.generateSource(createStep(), [], [iterateNode])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -185,6 +185,8 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.value).toBe(member)
       expect(result.blocks[0].properties.value).not.toHaveProperty('@index')
       expect(result.blocks[0].properties.value).not.toHaveProperty('@item')
+      expect(source).not.toContain('"@type"')
+      expect(source).not.toContain('"@item"')
     })
 
     it('should evaluate generator expressions when rendering block properties', () => {

@@ -79,7 +79,6 @@ function createContext(
     post: {},
     request: { url: request.url, path: request.location.pathname, method: request.method },
     conditions: functionRegistry,
-    scope: [],
     logger: {
       debug: vi.fn(),
       info: vi.fn(),
