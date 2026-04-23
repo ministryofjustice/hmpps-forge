@@ -2,7 +2,7 @@
 title: Defining blocks and fields
 section: building-journeys
 path: building-journeys/defining-blocks-and-fields
-teaches: [block, field, variant, visibleWhen, BlockDefinition, FieldBlockDefinition, blocks-array, component-registry, code, defaultValue, validWhen, formatters, dependentWhen, multiple]
+teaches: [block, field, variant, visibleWhen, BlockDefinition, FieldBlockDefinition, blocks-array, component-registry, code, defaultValue, validWhen, formatters, parsers, dependentWhen, multiple]
 prerequisites: [step, StepDefinition]
 ---
 
@@ -71,9 +71,9 @@ field({
 ```
 
 A field is a block with extra capabilities: it has a `code` that identifies the
-answer, and it supports `validWhen`, `defaultValue`, `formatters`, `dependentWhen`,
-and `multiple`. Everything else (variant resolution, visibility, metadata) works
-the same way for both.
+answer, and it supports `validWhen`, `defaultValue`, `formatters`, `parsers`,
+`dependentWhen`, and `multiple`. Everything else (variant resolution, visibility,
+metadata) works the same way for both.
 
 ---
 
@@ -230,6 +230,23 @@ case.
 ```typescript
 formatters: [Transformer.String.Trim(), Transformer.String.ToLowerCase()]
 ```
+
+### `parsers` (Optional)
+
+Transformers applied to a stored value when loading it back into the
+field for display. Parsers are the inverse of formatters: they convert
+the canonical stored form back to what the component needs to render.
+Most fields do not need parsers. They are only required when a
+formatter changes data into a shape the component cannot render, such
+as collapsing a multi-part date into an ISO string.
+
+```typescript
+parsers: [Transformer.Object.FromISO({ year: 'year', month: 'month', day: 'day' })]
+```
+
+Parsers do not modify the stored answer. Conditions and other
+references to the answer always see the canonical form. See
+[Transformers](authoring-language/transformers) for details.
 
 ### `validWhen` (Optional)
 

@@ -31,10 +31,10 @@ describe('govukDateInputVariants', () => {
         expect(params.items[0].name).toBe('custom-name[day]')
       })
 
-      it('parses ISO date string correctly', async () => {
+      it('should render date parts from object value', async () => {
         const params = await helper.getParams({
           code: 'test-date',
-          value: '1980-03-31',
+          value: { day: '31', month: '03', year: '1980' },
         })
         expect(params.items[0].value).toBe('31') // day
         expect(params.items[1].value).toBe('03') // month
@@ -214,7 +214,7 @@ describe('govukDateInputVariants', () => {
           variant: 'govukDateInputFull',
           label: 'Date of birth',
           hint: 'For example, 31 3 1980',
-          value: '1980-03-31',
+          value: { day: '31', month: '03', year: '1980' },
           errors: [{ message: 'Enter a valid date' }],
         })
 
@@ -243,10 +243,10 @@ describe('govukDateInputVariants', () => {
         expect(params.items[1].label).toBe('Year')
       })
 
-      it('parses year-month ISO string correctly', async () => {
+      it('should render date parts from object value', async () => {
         const params = await helper.getParams({
           code: 'expiry-date',
-          value: '2025-03',
+          value: { month: '03', year: '2025' },
         })
         expect(params.items[0].value).toBe('03')
         expect(params.items[1].value).toBe('2025')
@@ -296,7 +296,7 @@ describe('govukDateInputVariants', () => {
           variant: 'govukDateInputYearMonth',
           label: 'Card expiry date',
           hint: 'For example, 03 2025',
-          value: '2025-03',
+          value: { month: '03', year: '2025' },
         })
 
         expect(html).toContainText('govuk-date-input')
@@ -323,19 +323,10 @@ describe('govukDateInputVariants', () => {
         expect(params.items[1].label).toBe('Month')
       })
 
-      it('parses month-day string correctly', async () => {
+      it('should render date parts from object value', async () => {
         const params = await helper.getParams({
           code: 'anniversary',
-          value: '12-25',
-        })
-        expect(params.items[0].value).toBe('25')
-        expect(params.items[1].value).toBe('12')
-      })
-
-      it('parses ISO 8601 recurring date format', async () => {
-        const params = await helper.getParams({
-          code: 'anniversary',
-          value: '--12-25',
+          value: { day: '25', month: '12' },
         })
         expect(params.items[0].value).toBe('25')
         expect(params.items[1].value).toBe('12')
@@ -386,7 +377,7 @@ describe('govukDateInputVariants', () => {
           variant: 'govukDateInputMonthDay',
           label: 'Birthday',
           hint: 'For example, 25 12 for Christmas',
-          value: '12-25',
+          value: { day: '25', month: '12' },
         })
 
         expect(html).toContainText('govuk-date-input')

@@ -18,6 +18,7 @@ import { BlockType } from '../../../../authoring/types/enums'
  * Validation properties are skipped because validation runs via ValidationExecutor.
  * dependentWhen properties are skipped because answer processing and validation own that logic.
  * Formatters are also skipped here because they are applied during submission.
+ * Parsers are also skipped here because they are applied during answer resolution (GET path).
  *
  * Synchronous when all nested AST nodes in properties are sync.
  * Asynchronous when any nested AST node is async.
@@ -32,7 +33,7 @@ export default class BlockHandler implements ThunkHandler {
     private readonly node: BlockASTNode,
   ) {}
 
-  private static readonly SKIP_PROPS = new Set(['formatters', 'validWhen', 'dependentWhen'])
+  private static readonly SKIP_PROPS = new Set(['formatters', 'parsers', 'validWhen', 'dependentWhen'])
 
   computeIsAsync(deps: MetadataComputationDependencies): void {
     const propertiesWithNodes = new Set<string>()
@@ -127,7 +128,7 @@ export default class BlockHandler implements ThunkHandler {
       return
     }
 
-    evaluatedProperties.value = history?.current ?? evaluatedProperties.defaultValue
+    evaluatedProperties.value = history?.parsed ?? history?.current ?? evaluatedProperties.defaultValue
   }
 
   private evaluateBlockPropertiesSync(
@@ -138,7 +139,11 @@ export default class BlockHandler implements ThunkHandler {
     const result: Record<string, unknown> = {}
 
     Object.entries(properties).forEach(([key, value]) => {
-      if (key === 'formatters' || (this.propertiesWithNodes && !this.propertiesWithNodes.has(key))) {
+      if (
+        key === 'formatters' ||
+        key === 'parsers' ||
+        (this.propertiesWithNodes && !this.propertiesWithNodes.has(key))
+      ) {
         result[key] = value
         return
       }
@@ -161,7 +166,11 @@ export default class BlockHandler implements ThunkHandler {
 
     await Promise.all(
       Object.entries(properties).map(async ([key, value]) => {
-        if (key === 'formatters' || (this.propertiesWithNodes && !this.propertiesWithNodes.has(key))) {
+        if (
+          key === 'formatters' ||
+          key === 'parsers' ||
+          (this.propertiesWithNodes && !this.propertiesWithNodes.has(key))
+        ) {
           result[key] = value
           return
         }

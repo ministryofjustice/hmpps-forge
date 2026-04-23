@@ -2,7 +2,7 @@
 title: Transformers
 section: authoring-language
 path: authoring-language/transformers
-teaches: [Transformer, pipe, formatters]
+teaches: [Transformer, pipe, formatters, parsers]
 prerequisites: [Answer, Data, Generator]
 ---
 
@@ -11,10 +11,11 @@ prerequisites: [Answer, Data, Generator]
 # Transformers
 
 Transformers convert values from one form to another. They are
-applied through `.pipe()` on references and generators, and through
-the `formatters` property on fields. Forge ships with transformers
-for strings, dates, numbers, arrays, and objects, and you can
-define your own.
+applied through `.pipe()` on references and generators, through
+the `formatters` property on fields for submission, and through the
+`parsers` property on fields for display. Forge ships with
+transformers for strings, dates, numbers, arrays, and objects, and
+you can define your own.
 
 {{slot:toc}}
 
@@ -32,17 +33,20 @@ import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 Answer('email').pipe(Transformer.String.Trim(), Transformer.String.ToLowerCase())
 ```
 
-Transformers are used in two places:
+Transformers are used in three places:
 
 - **`.pipe()`** on references and generators, where they transform
   values for display, conditions, or block properties
 - **`formatters`** on fields, where they normalise submitted values
   before validation runs
+- **`parsers`** on fields, where they convert stored values back to
+  the form a component needs for display
 
 The distinction matters. `.pipe()` transforms values at evaluation
 time, whenever the expression is resolved. `formatters` only run
 during the submission pipeline, after the raw value is captured from
-the POST body but before validation.
+the POST body but before validation. `parsers` only run when loading
+a stored value back into a field for display.
 
 ---
 
@@ -87,6 +91,52 @@ GovUKTextInput({
 Without the trim, a value of `"   "` would pass `IsRequired()`.
 The formatter strips whitespace before validation runs, so empty
 input is correctly caught.
+
+### Parsers
+
+The `parsers` property is the inverse of `formatters`. Where
+formatters transform submitted input into a canonical stored form,
+parsers transform that stored form back into what the component
+needs for display.
+
+Most fields do not need parsers. A formatter that trims whitespace
+or lowercases a string does not change the shape of the data, so
+the component can display the stored value directly. Parsers are
+only needed when a formatter changes the data into a shape the
+component cannot render. In practice, this means multi-part
+components like date inputs where the formatter collapses several
+inputs into a single stored value.
+
+For example, a date input submits `{ day, month, year }` and a
+formatter collapses that into an ISO string like `"1990-03-27"`.
+When the user returns to that page, the date input needs the 3
+parts back, not the ISO string. Without a parser, the component
+would receive a value it cannot display.
+
+```typescript
+// GovUKDateInputFull adds these automatically — no need to specify them
+GovUKDateInputFull({
+  code: 'dateOfBirth',
+  fieldset: { legend: { text: 'Date of birth', isPageHeading: true } },
+})
+
+// For custom components, you would add them explicitly:
+field({
+  variant: 'myCustomDateInput',
+  code: 'startDate',
+  formatters: [Transformer.Object.ToISO({ year: 'year', month: 'month', day: 'day' })],
+  parsers: [Transformer.Object.FromISO({ year: 'year', month: 'month', day: 'day' })],
+})
+```
+
+Parsers run when loading a stored value for display. They do not
+run on submission, and they do not change the stored answer.
+Conditions, remote references, and any other code that reads the
+answer always see the canonical stored form.
+
+Like formatters, parsers accept one or more transformers and apply
+them in sequence. Each parser receives the output of the previous
+one.
 
 ### Type bridging
 
@@ -198,10 +248,15 @@ Transformer.String.Replace(Answer('search'), 'fixed') // dynamic
 
 ## Best practices
 
-- **Use `formatters` for normalising input, `.pipe()` for
-  transforming output.** Formatters run on submission only and
-  affect what validation sees. `.pipe()` runs at evaluation time
-  and affects what blocks display.
+- **Use `formatters` for normalising input, `parsers` for
+  reversing it, `.pipe()` for transforming output.** Formatters
+  run on submission only and affect what validation sees. Parsers
+  run on display only and affect what the component receives.
+  `.pipe()` runs at evaluation time and affects what blocks display.
+- **Add `parsers` when formatters change the shape of data.** If
+  a formatter converts `{ day, month, year }` to `"1990-03-27"`,
+  the component needs a parser to get the parts back. If a
+  formatter just trims whitespace, no parser is needed.
 - **Chain transformers in logical order.** Each transformer receives
   the output of the previous one. `Trim` before `ToLowerCase`,
   `ToDate` before `Date.Format`.
@@ -291,3 +346,4 @@ Transformer.String.Replace(Answer('search'), 'fixed') // dynamic
 | Transformer | Description |
 |---|---|
 | `ToISO(paths)` | Converts an object with date parts (`{ year, month, day }`) to an ISO date string |
+| `FromISO(paths)` | Converts an ISO date string back to an object with date parts (inverse of `ToISO`) |

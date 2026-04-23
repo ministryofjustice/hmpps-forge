@@ -91,6 +91,14 @@ export interface FieldBlockProps extends BasicBlockProps {
   formatters?: TransformerFunctionExpr[]
 
   /**
+   * Array of parsers to transform stored values back to display form on GET.
+   * Parsers are the inverse of formatters: they run when loading a stored value
+   * for rendering, converting canonical form back to what the component needs.
+   * Parsers do NOT modify the stored answer.
+   */
+  parsers?: TransformerFunctionExpr[]
+
+  /**
    * Array of validation rules for this field.
    * The field is valid when all conditions pass.
    *

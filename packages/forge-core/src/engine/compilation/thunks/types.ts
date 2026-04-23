@@ -54,6 +54,7 @@ export interface AnswerMutation {
  */
 export interface AnswerHistory {
   current: unknown
+  parsed?: unknown
   mutations: AnswerMutation[]
 }
 
