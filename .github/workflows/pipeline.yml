@@ -91,6 +91,7 @@ jobs:
     with:
       environment: 'dev'
       app_version: '${{ needs.build.outputs.app_version }}'
-      helm_chart_name: hmpps-forge-examples-app
+      helm_chart_name: 'hmpps-forge-examples-app'
+      k8s_deployment_name: 'hmpps-forge-examples-app'
       helm_timeout: '10m'
       slack_notification: 'false'
