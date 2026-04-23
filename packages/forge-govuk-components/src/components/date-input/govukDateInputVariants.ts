@@ -6,19 +6,21 @@ import {
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { field as buildField, Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Props for GOV.UK Date Input Components.
  *
  * These components provide specialized date input patterns following the GOV.UK Design System.
- * Unlike the standard GOV.UK date input, these variants support specific date formats:
- * - Full dates (YYYY-MM-DD) - use `GovUKDateInputFullProps`
- * - Year-Month combinations (YYYY-MM) - use `GovUKDateInputYearMonthProps`
- * - Month-Day combinations (MM-DD) for recurring dates - use `GovUKDateInputMonthDayProps`
+ * Three variants are available:
+ * - Full dates (YYYY-MM-DD) - use `GovUKDateInputFull`
+ * - Year-Month combinations (YYYY-MM) - use `GovUKDateInputYearMonth`
+ * - Month-Day combinations (MM-DD) for recurring dates - use `GovUKDateInputMonthDay`
  *
- * All variants automatically parse ISO date strings and provide enhanced error handling
- * with field-specific error targeting via the `details.field` property.
+ * The wrapper functions automatically add formatters (to convert submitted date parts
+ * to an ISO string for storage) and parsers (to convert the stored ISO string back to
+ * date parts for display). Enhanced error handling with field-specific error targeting
+ * is supported via the `details.field` property.
  *
  * @see https://design-system.service.gov.uk/components/date-input/
  * @example
@@ -178,79 +180,6 @@ export interface GovUKDateInputMonthDay extends FieldBlockDefinition, GovUKDateI
 }
 
 /**
- * Parse date values back to individual date parts.
- * Handles both ISO strings and raw objects (when ToISO formatter fails):
- * - Full dates: YYYY-MM-DD (e.g., "1980-03-31")
- * - Year-Month: YYYY-MM (e.g., "2025-03")
- * - Month-Day: MM-DD (e.g., "12-25") or --MM-DD (ISO 8601 recurring format)
- * - Year only: YYYY (e.g., "2024")
- * - Raw object: { day, month, year } (when formatter fails)
- */
-function parseISOToDateParts(value: string | Record<string, string> | undefined): {
-  year?: string
-  month?: string
-  day?: string
-} {
-  if (!value) {
-    return {}
-  }
-
-  // Handle raw object (when ToISO formatter failed)
-  if (typeof value === 'object' && value !== null) {
-    return {
-      year: value.year || undefined,
-      month: value.month || undefined,
-      day: value.day || undefined,
-    }
-  }
-
-  if (typeof value !== 'string') {
-    return {}
-  }
-
-  const iso = value
-
-  // Full date: YYYY-MM-DD
-  const fullDateMatch = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (fullDateMatch) {
-    return {
-      year: fullDateMatch[1],
-      month: fullDateMatch[2],
-      day: fullDateMatch[3],
-    }
-  }
-
-  // Year-Month: YYYY-MM
-  const yearMonthMatch = iso.match(/^(\d{4})-(\d{2})$/)
-  if (yearMonthMatch) {
-    return {
-      year: yearMonthMatch[1],
-      month: yearMonthMatch[2],
-    }
-  }
-
-  // Month-Day: MM-DD or --MM-DD (ISO 8601 recurring date format)
-  const monthDayMatch = iso.match(/^(?:--)?(\d{2})-(\d{2})$/)
-  if (monthDayMatch) {
-    return {
-      month: monthDayMatch[1],
-      day: monthDayMatch[2],
-    }
-  }
-
-  // Year only: YYYY (when month/day are empty)
-  const yearOnlyMatch = iso.match(/^(\d{4})$/)
-  if (yearOnlyMatch) {
-    return {
-      year: yearOnlyMatch[1],
-    }
-  }
-
-  // Return empty object for invalid formats to allow graceful degradation
-  return {}
-}
-
-/**
  * Supports field-specific error targeting through validation `details.field` property.
  */
 function shouldHaveError(itemName: string, hasErrors: boolean, errorDetails?: Record<string, any>): boolean {
@@ -280,7 +209,7 @@ function combineClasses(...classes: (string | undefined)[]): string | undefined 
 function buildItems(
   fields: Array<{ name: 'day' | 'month' | 'year'; label: string; classes: string }>,
   block: EvaluatedBlock<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
-  dateParts: ReturnType<typeof parseISOToDateParts>,
+  dateParts: { year?: string; month?: string; day?: string },
   errorDetails?: Record<string, any>,
 ) {
   const namePrefix = block.namePrefix || block.code
@@ -333,7 +262,7 @@ function buildParams(
 export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
   'govukDateInputFull',
   (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
+    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
@@ -360,7 +289,7 @@ export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
 export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYearMonth>(
   'govukDateInputYearMonth',
   (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
+    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
@@ -386,7 +315,7 @@ export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYear
 export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonthDay>(
   'govukDateInputMonthDay',
   (block, nunjucksEnv) => {
-    const dateParts = parseISOToDateParts(block.value as string | Record<string, string> | undefined)
+    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
     const errorDetails = block.errors?.[0]?.details
 
     const items = buildItems(
@@ -405,9 +334,14 @@ export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonth
   },
 )
 
+const fullDatePaths = { year: 'year', month: 'month', day: 'day' }
+const yearMonthPaths = { year: 'year', month: 'month' }
+const monthDayPaths = { month: 'month', day: 'day' }
+
 /**
  * Creates a GOV.UK Date Input field with day, month, and year.
- * Expects and outputs ISO date strings in YYYY-MM-DD format.
+ * Stores the value as an ISO date string in YYYY-MM-DD format.
+ * Automatically adds formatters and parsers for the ISO conversion.
  *
  * @see https://design-system.service.gov.uk/components/date-input/
  * @example
@@ -420,12 +354,18 @@ export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonth
  * ```
  */
 export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFull {
-  return buildField<GovUKDateInputFull>({ ...props, variant: 'govukDateInputFull' })
+  return buildField<GovUKDateInputFull>({
+    ...props,
+    variant: 'govukDateInputFull',
+    formatters: [Transformer.Object.ToISO(fullDatePaths), ...(props.formatters ?? [])],
+    parsers: [Transformer.Object.FromISO(fullDatePaths), ...(props.parsers ?? [])],
+  })
 }
 
 /**
  * Creates a GOV.UK Date Input field with month and year only.
- * Expects and outputs ISO date strings in YYYY-MM format.
+ * Stores the value as an ISO date string in YYYY-MM format.
+ * Automatically adds formatters and parsers for the ISO conversion.
  * Useful for credit card expiry dates, employment periods, etc.
  *
  * @see https://design-system.service.gov.uk/components/date-input/
@@ -439,12 +379,18 @@ export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFu
  * ```
  */
 export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateInputYearMonth {
-  return buildField<GovUKDateInputYearMonth>({ ...props, variant: 'govukDateInputYearMonth' })
+  return buildField<GovUKDateInputYearMonth>({
+    ...props,
+    variant: 'govukDateInputYearMonth',
+    formatters: [Transformer.Object.ToISO(yearMonthPaths), ...(props.formatters ?? [])],
+    parsers: [Transformer.Object.FromISO(yearMonthPaths), ...(props.parsers ?? [])],
+  })
 }
 
 /**
  * Creates a GOV.UK Date Input field with day and month only.
- * Expects and outputs ISO date strings in MM-DD format.
+ * Stores the value as an ISO date string in MM-DD format.
+ * Automatically adds formatters and parsers for the ISO conversion.
  * Useful for recurring dates like birthdays or anniversaries.
  *
  * @see https://design-system.service.gov.uk/components/date-input/
@@ -458,5 +404,10 @@ export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateIn
  * ```
  */
 export function GovUKDateInputMonthDay(props: GovUKDateInputProps): GovUKDateInputMonthDay {
-  return buildField<GovUKDateInputMonthDay>({ ...props, variant: 'govukDateInputMonthDay' })
+  return buildField<GovUKDateInputMonthDay>({
+    ...props,
+    variant: 'govukDateInputMonthDay',
+    formatters: [Transformer.Object.ToISO(monthDayPaths), ...(props.formatters ?? [])],
+    parsers: [Transformer.Object.FromISO(monthDayPaths), ...(props.parsers ?? [])],
+  })
 }

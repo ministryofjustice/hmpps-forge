@@ -1,10 +1,25 @@
 {
   "name": "@ministryofjustice/hmpps-forge",
-  "version": "0.0.1",
+  "version": "0.1.0-alpha.3",
   "description": "HMPPS Forge",
+  "keywords": [
+    "hmpps",
+    "forge",
+    "govuk",
+    "nunjucks",
+    "forms"
+  ],
   "author": "hmpps-developers",
   "license": "MIT",
-  "private": true,
+  "homepage": "https://github.com/ministryofjustice/hmpps-forge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ministryofjustice/hmpps-forge.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
   "exports": {
     "./core": {
       "types": "./dist/core/index.d.ts",
@@ -43,13 +58,14 @@
     }
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "*.md"
   ],
   "engines": {
     "node": "20 || 22 || 24"
   },
   "scripts": {
-    "build": "rolldown -c rolldown.config.mjs",
+    "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md .",
     "clean": "rm -rf ./dist/",
     "test": "vitest run",
     "lint": "eslint . --cache --max-warnings 0",

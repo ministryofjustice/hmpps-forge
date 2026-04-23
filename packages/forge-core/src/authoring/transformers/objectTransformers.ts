@@ -32,6 +32,21 @@ export interface ObjectTransformerGroup {
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
   ToISO: (paths: DateParts) => TransformerFunctionExpr
+
+  /**
+   * Converts an ISO 8601 date string back to an object with date parts.
+   * The inverse of ToISO. Objects are passed through unchanged.
+   *
+   * @param paths - Object mapping date components to output property names
+   * @example
+   * // Full date: "2024-03-15" becomes {year: "2024", month: "03", day: "15"}
+   * FromISO({year: 'year', month: 'month', day: 'day'})
+   *
+   * @example
+   * // Year-month: "2024-03" becomes {year: "2024", month: "03"}
+   * FromISO({year: 'year', month: 'month'})
+   */
+  FromISO: (paths: DateParts) => TransformerFunctionExpr
 }
 
 const { transformers: ObjectTransformers, implementations } = defineTransformerFunctions<ObjectTransformerGroup>({
@@ -104,6 +119,71 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
     }
 
     throw new Error('Transformer.Object.ToISO: No valid date components found in object')
+  },
+
+  FromISO: () => (value: any, paths: DateParts) => {
+    if (typeof value === 'object' && value !== null) {
+      return value
+    }
+
+    if (!paths || typeof paths !== 'object') {
+      throw new Error('Transformer.Object.FromISO requires a paths configuration object')
+    }
+
+    if (typeof value !== 'string' || !value) {
+      return {}
+    }
+
+    const result: Record<string, string> = {}
+    const hasYear = Boolean(paths.year)
+    const hasMonth = Boolean(paths.month)
+    const hasDay = Boolean(paths.day)
+
+    if (hasYear && hasMonth && hasDay) {
+      const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+      if (match) {
+        result[paths.year!] = match[1]
+        result[paths.month!] = match[2]
+        result[paths.day!] = match[3]
+
+        return result
+      }
+    }
+
+    if (hasYear && hasMonth && !hasDay) {
+      const match = value.match(/^(\d{4})-(\d{2})$/)
+
+      if (match) {
+        result[paths.year!] = match[1]
+        result[paths.month!] = match[2]
+
+        return result
+      }
+    }
+
+    if (hasMonth && hasDay && !hasYear) {
+      const match = value.match(/^(?:--)?(\d{2})-(\d{2})$/)
+
+      if (match) {
+        result[paths.month!] = match[1]
+        result[paths.day!] = match[2]
+
+        return result
+      }
+    }
+
+    if (hasYear && !hasMonth && !hasDay) {
+      const match = value.match(/^(\d{4})$/)
+
+      if (match) {
+        result[paths.year!] = match[1]
+
+        return result
+      }
+    }
+
+    return {}
   },
 })
 
