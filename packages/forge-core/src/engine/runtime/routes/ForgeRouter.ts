@@ -11,7 +11,7 @@ import getAncestorChain from '../../utils/getAncestorChain'
 import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type JourneyInstance from '../../JourneyInstance'
-import { JourneyRouteTemplateCatalog, RouteMapEntry } from './routes.type'
+import { JourneyRouteTemplateCatalog, RouteMapEntry } from '../types/routes.type'
 
 interface StepRouteContext {
   stepId: NodeId
@@ -103,7 +103,7 @@ export default class ForgeRouter<TRouter> {
 
   private createJourneyRouters(journeyIndex: JourneyIndex, artefact: CompilationArtefact): void {
     journeyIndex.forEach((_, journeyId) => {
-      const chain = getAncestorChain(journeyId, artefact.metadataRegistry)
+      const chain = getAncestorChain(journeyId, artefact.astNodeTree)
         .map(id => artefact.nodeRegistry.get(id))
         .filter(isJourneyStructNode)
 
@@ -216,7 +216,7 @@ export default class ForgeRouter<TRouter> {
   // ── Helpers ───────────────────────────────────────────────────────
 
   private getJourneyAncestry(stepId: NodeId, artefact: CompilationArtefact): JourneyASTNode[] {
-    return getAncestorChain(stepId, artefact.metadataRegistry)
+    return getAncestorChain(stepId, artefact.astNodeTree)
       .filter(nodeId => nodeId !== stepId)
       .map(nodeId => artefact.nodeRegistry.get(nodeId))
       .filter(isJourneyStructNode)

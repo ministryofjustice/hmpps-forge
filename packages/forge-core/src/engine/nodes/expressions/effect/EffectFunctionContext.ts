@@ -1,8 +1,9 @@
-import ThunkEvaluationContext from '../../../compilation/thunks/ThunkEvaluationContext'
-import { AnswerHistory, HookType } from '../../../compilation/thunks/types'
-import type { CookieMutation, CookieOptions } from '../../../../framework/types/response.type'
+import { AnswerHistory, HookType } from '../../../runtime/types/AnswerHistory.type'
+import { JourneyReachabilityState } from '../../../runtime/context/RuntimeEvaluationContext'
+import type { StepRequest } from '../../../../framework/types/request.type'
+import type { CookieMutation, CookieOptions, StepResponse } from '../../../../framework/types/response.type'
 import { assertSerializable } from '../../../../shared/utils/asserts'
-import FieldsToClearResolver from '../../../runtime/navigation/FieldsToClearResolver'
+import FieldsToClearResolver from '../../../runtime/reachability/FieldsToClearResolver'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {
@@ -10,9 +11,19 @@ function assertStringParam(value: unknown, method: string, param: string): void 
   }
 }
 
+export interface EffectEvaluationContext {
+  global: {
+    data: Record<string, unknown>
+    answers: Record<string, AnswerHistory>
+    reachability?: JourneyReachabilityState
+  }
+  request: StepRequest
+  response: StepResponse
+}
+
 /**
  * User-friendly context object provided to effect functions.
- * Wraps the low-level ThunkEvaluationContext with a cleaner API.
+ * Wraps the request/evaluation state with a cleaner API.
  *
  * Provides access to:
  * - Answers (get, set, check, clear) with mutation history tracking
@@ -64,7 +75,7 @@ class EffectFunctionContext<
 
   /** @internal */
   constructor(
-    private readonly context: ThunkEvaluationContext,
+    private readonly context: EffectEvaluationContext,
     private readonly hookType: HookType,
   ) {}
 

@@ -1,7 +1,7 @@
 import { AstNodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
-import { StepValidationFailure } from '../../compilation/thunks/ThunkEvaluationContext'
+import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
 import { BlockASTNode } from '../../types/structures.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
 import { Evaluated, JourneyAncestor, JourneyMetadata, StepMetadata } from '../../../framework/rendering/types'

@@ -102,7 +102,7 @@ export class NodeFactory {
 
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {
     this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this, this.category)
     this.stepFactory = new StepFactory(this.nodeIDGenerator, this, this.category)

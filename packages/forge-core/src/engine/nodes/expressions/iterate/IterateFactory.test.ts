@@ -174,7 +174,7 @@ describe('IterateFactory', () => {
         properties: { value?: unknown }
       }
 
-      // Assert — value is NOT set; AddSelfValueToFields runs at runtime in registerRuntimeNodesBatch
+      // Assert — value is NOT set; compiled iterator expansion adds @self at runtime
       expect(instantiatedTemplate.properties.value).toBeUndefined()
     })
 
@@ -204,7 +204,7 @@ describe('IterateFactory', () => {
         properties: { label: { properties: { path: unknown[] } } }
       }
 
-      // Assert — @self is preserved; ResolveSelfReferences runs at runtime in registerRuntimeNodesBatch
+      // Assert — @self is preserved; compiled iterator expansion resolves self references at runtime
       expect(instantiatedTemplate.properties.label.properties.path).toEqual(['answers', '@self'])
     })
 

@@ -1,20 +1,21 @@
 import getAncestorChain from './getAncestorChain'
-import MetadataRegistry from '../compilation/registries/MetadataRegistry'
+import ASTNodeTree from '../compilation/node-tree/ASTNodeTree'
 import { NodeId } from '../types/engine.type'
 
 describe('getAncestorChain()', () => {
-  let metadataRegistry: MetadataRegistry
+  let astNodeTree: ASTNodeTree
 
   beforeEach(() => {
-    metadataRegistry = new MetadataRegistry()
+    astNodeTree = new ASTNodeTree()
   })
 
   it('should return array with just the starting node when it has no parent', () => {
     // Arrange
     const nodeId: NodeId = 'compile_ast:1'
+    astNodeTree.addNode(nodeId)
 
     // Act
-    const result = getAncestorChain(nodeId, metadataRegistry)
+    const result = getAncestorChain(nodeId, astNodeTree)
 
     // Assert
     expect(result).toEqual([nodeId])
@@ -27,11 +28,12 @@ describe('getAncestorChain()', () => {
     const stepId: NodeId = 'compile_ast:2'
     const blockId: NodeId = 'compile_ast:3'
 
-    metadataRegistry.set(stepId, 'attachedToParentNode', journeyId)
-    metadataRegistry.set(blockId, 'attachedToParentNode', stepId)
+    astNodeTree.addNode(journeyId)
+    astNodeTree.addNode(stepId, journeyId)
+    astNodeTree.addNode(blockId, stepId)
 
     // Act
-    const result = getAncestorChain(blockId, metadataRegistry)
+    const result = getAncestorChain(blockId, astNodeTree)
 
     // Assert
     expect(result).toEqual([journeyId, stepId, blockId])
@@ -42,10 +44,11 @@ describe('getAncestorChain()', () => {
     const parentId: NodeId = 'compile_ast:10'
     const childId: NodeId = 'compile_ast:11'
 
-    metadataRegistry.set(childId, 'attachedToParentNode', parentId)
+    astNodeTree.addNode(parentId)
+    astNodeTree.addNode(childId, parentId)
 
     // Act
-    const result = getAncestorChain(childId, metadataRegistry)
+    const result = getAncestorChain(childId, astNodeTree)
 
     // Assert
     expect(result).toEqual([parentId, childId])
@@ -60,13 +63,14 @@ describe('getAncestorChain()', () => {
     const nodeD: NodeId = 'compile_ast:23'
     const nodeE: NodeId = 'compile_ast:24'
 
-    metadataRegistry.set(nodeB, 'attachedToParentNode', nodeA)
-    metadataRegistry.set(nodeC, 'attachedToParentNode', nodeB)
-    metadataRegistry.set(nodeD, 'attachedToParentNode', nodeC)
-    metadataRegistry.set(nodeE, 'attachedToParentNode', nodeD)
+    astNodeTree.addNode(nodeA)
+    astNodeTree.addNode(nodeB, nodeA)
+    astNodeTree.addNode(nodeC, nodeB)
+    astNodeTree.addNode(nodeD, nodeC)
+    astNodeTree.addNode(nodeE, nodeD)
 
     // Act
-    const result = getAncestorChain(nodeE, metadataRegistry)
+    const result = getAncestorChain(nodeE, astNodeTree)
 
     // Assert
     expect(result).toEqual([nodeA, nodeB, nodeC, nodeD, nodeE])
@@ -78,10 +82,11 @@ describe('getAncestorChain()', () => {
     const journeyId: NodeId = 'compile_ast:30'
     const stepId: NodeId = 'compile_ast:31'
 
-    metadataRegistry.set(stepId, 'attachedToParentNode', journeyId)
+    astNodeTree.addNode(journeyId)
+    astNodeTree.addNode(stepId, journeyId)
 
     // Act
-    const result = getAncestorChain(journeyId, metadataRegistry)
+    const result = getAncestorChain(journeyId, astNodeTree)
 
     // Assert
     expect(result).toEqual([journeyId])
@@ -93,11 +98,12 @@ describe('getAncestorChain()', () => {
     const innerJourneyId: NodeId = 'compile_ast:41'
     const stepId: NodeId = 'compile_ast:42'
 
-    metadataRegistry.set(innerJourneyId, 'attachedToParentNode', outerJourneyId)
-    metadataRegistry.set(stepId, 'attachedToParentNode', innerJourneyId)
+    astNodeTree.addNode(outerJourneyId)
+    astNodeTree.addNode(innerJourneyId, outerJourneyId)
+    astNodeTree.addNode(stepId, innerJourneyId)
 
     // Act
-    const result = getAncestorChain(stepId, metadataRegistry)
+    const result = getAncestorChain(stepId, astNodeTree)
 
     // Assert
     expect(result).toEqual([outerJourneyId, innerJourneyId, stepId])

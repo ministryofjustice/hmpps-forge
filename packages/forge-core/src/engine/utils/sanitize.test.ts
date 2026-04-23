@@ -1,4 +1,4 @@
-import { escapeHtmlEntities, sanitizeValue } from '../../shared/utils/sanitize'
+import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
 describe('sanitize', () => {
   describe('escapeHtmlEntities()', () => {
@@ -99,85 +99,6 @@ describe('sanitize', () => {
 
       // Assert
       expect(result).toBe('&lt;img src=x onerror=&quot;alert(&#39;XSS&#39;)&quot;&gt;')
-    })
-  })
-
-  describe('sanitizeValue()', () => {
-    it('should sanitize string values', () => {
-      // Arrange
-      const input = '<b>bold</b>'
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toBe('&lt;b&gt;bold&lt;/b&gt;')
-    })
-
-    it('should return numbers unchanged', () => {
-      // Arrange
-      const input = 42
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toBe(42)
-    })
-
-    it('should return booleans unchanged', () => {
-      // Arrange
-      const input = true
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toBe(true)
-    })
-
-    it('should return null unchanged', () => {
-      // Arrange
-      const input: unknown = null
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toBeNull()
-    })
-
-    it('should return undefined unchanged', () => {
-      // Arrange
-      const input: unknown = undefined
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toBeUndefined()
-    })
-
-    it('should return arrays unchanged', () => {
-      // Arrange
-      const input = ['<a>', '<b>']
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toEqual(['<a>', '<b>'])
-    })
-
-    it('should return objects unchanged', () => {
-      // Arrange
-      const input = { key: '<value>' }
-
-      // Act
-      const result = sanitizeValue(input)
-
-      // Assert
-      expect(result).toEqual({ key: '<value>' })
     })
   })
 })

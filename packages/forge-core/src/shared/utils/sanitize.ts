@@ -25,20 +25,3 @@ const HTML_ENTITY_MAP: Record<string, string> = {
 export function escapeHtmlEntities(value: string): string {
   return value.replace(/[<>&"']/g, char => HTML_ENTITY_MAP[char])
 }
-
-/**
- * Sanitize a value if it is a string, otherwise return unchanged.
- *
- * Only string values are sanitized. Arrays, numbers, booleans, null,
- * undefined, and objects are returned as-is.
- *
- * @param value - The value to potentially sanitize
- * @returns The sanitized value (if string) or original value
- */
-export function sanitizeValue(value: unknown): unknown {
-  if (typeof value !== 'string') {
-    return value
-  }
-
-  return escapeHtmlEntities(value)
-}

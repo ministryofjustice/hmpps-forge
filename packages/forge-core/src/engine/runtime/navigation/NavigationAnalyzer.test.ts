@@ -1,11 +1,14 @@
 import { joinPaths } from '../../../framework/path/routePath'
 import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../compilation/RuntimePlanBuilder'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { ThunkInvocationAdapter, ThunkResult } from '../../compilation/thunks/types'
+import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
+import { CompiledValidationFunction } from '../../compilation/validation/StepValidationCompiler'
+import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { NodeId } from '../../types/engine.type'
-import StepValidityAnalyzer, { StepValidityResult } from '../validation/StepValidityAnalyzer'
-import { JourneyRouteTemplateCatalog } from '../routes/routes.type'
-import NavigationAnalyzer from './NavigationAnalyzer'
+import FunctionRegistry from '../../registries/FunctionRegistry'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import NavigationAnalyzer, { resolveJourneyRootRedirect, resolveStepRequestRedirect } from './NavigationAnalyzer'
+import { pickTieBreakerWinner, resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
+import { NavigationStepState } from '../types/NavigationEvaluation.type'
 
 function createEntry(options: {
   stepId: NodeId
@@ -31,10 +34,6 @@ function createEntry(options: {
   }
 }
 
-function successResult<T>(value: T): ThunkResult<T> {
-  return { value, metadata: { source: 'test', timestamp: Date.now() } }
-}
-
 function createRouteTemplateCatalog(entries: ReachabilityStepEntry[]): JourneyRouteTemplateCatalog {
   const routeTemplatePathByStepId = new Map<NodeId, string>()
   const stepIdByRouteTemplatePath = new Map<string, NodeId>()
@@ -52,45 +51,92 @@ function createRouteTemplateCatalog(entries: ReachabilityStepEntry[]): JourneyRo
   }
 }
 
+function createCompiledResult(
+  plan: ReachabilityRuntimePlan,
+  overrides: {
+    entryResults?: Record<number, boolean>
+    outcomeValues?: Record<number, string[]>
+    tieBreakerPriorities?: Record<number, number>
+    resumeActive?: boolean
+  } = {},
+): CompiledReachabilityResult {
+  const count = plan.entries.length
+
+  return {
+    entryResults: Array.from({ length: count }, (_, i) => overrides.entryResults?.[i]),
+    outcomeValues: Array.from({ length: count }, (_, i) => overrides.outcomeValues?.[i] ?? []),
+    tieBreakerPriorities: Array.from({ length: count }, (_, i) => overrides.tieBreakerPriorities?.[i]),
+    resumeActive: overrides.resumeActive ?? false,
+  }
+}
+
+function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
+  return {
+    stepId: 'compile_ast:500',
+    routeTemplatePath: '/journey/current',
+    declarationIndex: 0,
+    isEntryPoint: false,
+    isConditionalEntry: false,
+    hasValidation: false,
+    isReachable: true,
+    isValid: true,
+    forwardRouteTemplatePaths: [],
+    predecessorRouteTemplatePaths: [],
+    ...overrides,
+  }
+}
+
 describe('NavigationAnalyzer', () => {
-  let evaluator: NavigationAnalyzer
-  let context: Mocked<ThunkEvaluationContext>
-  let invoker: Mocked<ThunkInvocationAdapter>
-  let mockStepValidityAnalyzer: Mocked<StepValidityAnalyzer>
+  let analyzer: NavigationAnalyzer
+  let context: Mocked<RuntimeEvaluationContext>
+  let mockFunctionRegistry: FunctionRegistry
 
   beforeEach(() => {
-    evaluator = new NavigationAnalyzer()
-    mockStepValidityAnalyzer = {
-      execute: vi.fn().mockResolvedValue({
-        isValid: true,
-        fieldFailures: [],
-        domainFailures: [],
-      } satisfies StepValidityResult),
-    } as unknown as Mocked<StepValidityAnalyzer>
+    analyzer = new NavigationAnalyzer()
+    mockFunctionRegistry = {} as FunctionRegistry
 
     context = {
       global: {
         answers: {},
         data: {},
       },
+      request: {
+        url: 'http://localhost/forms/journey/',
+        method: 'GET',
+        location: {
+          origin: 'http://localhost',
+          pathname: '/forms/journey/',
+          href: 'http://localhost/forms/journey/',
+          basePath: '/forms/journey',
+        },
+        getParams: vi.fn().mockReturnValue({}),
+        getSession: vi.fn().mockReturnValue(undefined),
+        getAllQuery: vi.fn().mockReturnValue({}),
+        getAllHeaders: vi.fn().mockReturnValue({}),
+        getAllCookies: vi.fn().mockReturnValue({}),
+        getAllState: vi.fn().mockReturnValue({}),
+      },
+      scope: [],
       nodeRegistry: {
         findByType: vi.fn().mockReturnValue([]),
       },
-      metadataRegistry: {},
-    } as unknown as Mocked<ThunkEvaluationContext>
-
-    invoker = {
-      invoke: vi.fn().mockResolvedValue(successResult(undefined)),
-      invokeSync: vi.fn(),
-    } as unknown as Mocked<ThunkInvocationAdapter>
+    } as unknown as Mocked<RuntimeEvaluationContext>
   })
 
-  function mockValidityByStepId(validStepIds: NodeId[]): void {
-    mockStepValidityAnalyzer.execute.mockImplementation(async runtimePlan => ({
-      isValid: validStepIds.includes(runtimePlan.stepId),
-      fieldFailures: [],
-      domainFailures: [],
-    }))
+  function setStepValidities(plan: ReachabilityRuntimePlan, validStepIds: NodeId[]): void {
+    const validations = new Map<NodeId, CompiledValidationFunction>()
+
+    for (const entry of plan.entries) {
+      if (!entry.hasValidation) {
+        continue
+      }
+
+      const isValid = validStepIds.includes(entry.stepId)
+
+      validations.set(entry.stepId, () => ({ isValid, fieldFailures: [], domainFailures: [] }))
+    }
+
+    plan.resolveStepValidations = () => validations
   }
 
   it('should seed unconditional and conditional entry points without inventing a fallback reachable step', async () => {
@@ -105,23 +151,16 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:99') {
-        return successResult(true)
-      }
-
-      return successResult(undefined)
-    })
+    const compiledResult = createCompiledResult(plan, { entryResults: { 1: true } })
 
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:3',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -151,23 +190,18 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:5') {
-        return successResult('next?tab=current#focus')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['next?tab=current#focus'] },
     })
 
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:6',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -194,24 +228,21 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId([])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:11') {
-        return successResult('question')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['question'] },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, [])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:10',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -241,24 +272,21 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:20'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:21') {
-        return successResult('next')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['next'] },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, ['compile_ast:20'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:20',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -294,28 +322,21 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:30'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:31') {
-        return successResult('your-role')
-      }
-
-      if (nodeId === 'compile_ast:33') {
-        return successResult('check-answers')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['your-role'], 1: ['check-answers'] },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, ['compile_ast:30'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:30',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -345,24 +366,21 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:40'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:41') {
-        return successResult('your-role')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['your-role'] },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, ['compile_ast:40'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:42',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -397,24 +415,22 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:51', 'compile_ast:53'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:52') {
-        return successResult('confirmation')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 1: ['confirmation'] },
+      tieBreakerPriorities: { 1: 100 },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, ['compile_ast:51', 'compile_ast:53'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       undefined,
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -452,24 +468,22 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:60', 'compile_ast:62', 'compile_ast:63'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:61') {
-        return successResult('after-low')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['after-low'] },
+      tieBreakerPriorities: { 0: 10, 1: 50 },
+      resumeActive: true,
     })
 
+    setStepValidities(plan, ['compile_ast:60', 'compile_ast:62', 'compile_ast:63'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       undefined,
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -512,32 +526,21 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-
-    mockValidityByStepId(['compile_ast:73', 'compile_ast:75', 'compile_ast:77'])
-    invoker.invoke.mockImplementation(async nodeId => {
-      if (nodeId === 'compile_ast:71') {
-        return successResult('branch-a')
-      }
-
-      if (nodeId === 'compile_ast:72') {
-        return successResult('branch-b')
-      }
-
-      if (nodeId === 'compile_ast:74' || nodeId === 'compile_ast:76') {
-        return successResult('merge')
-      }
-
-      return successResult(undefined)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['branch-a', 'branch-b'], 1: ['merge'], 2: ['merge'] },
+      tieBreakerPriorities: { 1: 10, 2: 100 },
     })
 
+    setStepValidities(plan, ['compile_ast:73', 'compile_ast:75', 'compile_ast:77'])
+
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:77',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -555,15 +558,16 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const compiledResult = createCompiledResult(plan)
 
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:81',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
@@ -583,21 +587,145 @@ describe('NavigationAnalyzer', () => {
       reachabilityDisabled: true,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const compiledResult = createCompiledResult(plan)
 
     // Act
-    const result = await evaluator.evaluate(
+    const result = await analyzer.evaluate(
       plan,
       'compile_ast:91',
       routeTemplateCatalog,
-      invoker,
       context,
-      mockStepValidityAnalyzer,
+      compiledResult,
+      mockFunctionRegistry,
     )
 
     // Assert
     expect(result.steps.every(step => step.isReachable)).toBe(true)
     expect(result.defaultEntryRouteTemplatePath).toBe('/journey/page-one')
     expect(result.resumeOutcome).toBe('no-op')
-    expect(invoker.invoke).not.toHaveBeenCalled()
+  })
+
+  it('should await async compiled validation during reachability graph walking', async () => {
+    // Arrange
+    const plan: ReachabilityRuntimePlan = {
+      entries: [
+        createEntry({
+          stepId: 'compile_ast:100',
+          path: 'entry',
+          isEntryPoint: true,
+          hasValidation: true,
+          forwardOutcomeIds: ['compile_ast:101'],
+        }),
+        createEntry({
+          stepId: 'compile_ast:102',
+          path: 'next',
+        }),
+      ],
+      resumeAlways: true,
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['next'] },
+      resumeActive: true,
+    })
+    const validationSpy: CompiledValidationFunction = vi.fn(async () => {
+      await Promise.resolve()
+
+      return { isValid: true, fieldFailures: [], domainFailures: [] }
+    })
+
+    plan.resolveStepValidations = () => new Map([[plan.entries[0].stepId, validationSpy]])
+
+    // Act
+    const result = await analyzer.evaluate(
+      plan,
+      'compile_ast:100',
+      routeTemplateCatalog,
+      context,
+      compiledResult,
+      mockFunctionRegistry,
+    )
+
+    // Assert
+    expect(validationSpy).toHaveBeenCalledTimes(1)
+    expect(result.steps.find(step => step.routeTemplatePath === '/journey/next')?.isReachable).toBe(true)
+  })
+})
+
+describe('navigation policy helpers', () => {
+  it('should resolve step redirects from resume and reachability state', () => {
+    // Arrange
+    const reachable = createNavigationStep()
+    const unreachable = createNavigationStep({ isReachable: false })
+
+    // Act / Assert
+    expect(
+      resolveStepRequestRedirect({
+        currentStepId: reachable.stepId,
+        steps: [reachable],
+        defaultEntryRouteTemplatePath: '/journey/entry',
+        frontierRouteTemplatePath: '/journey/frontier',
+        canonicalPathRouteTemplatePaths: [],
+        progressExists: true,
+        resumeActive: true,
+        resumeOutcome: 'redirect',
+      }),
+    ).toBe('/journey/frontier')
+
+    expect(
+      resolveStepRequestRedirect({
+        currentStepId: unreachable.stepId,
+        steps: [unreachable],
+        defaultEntryRouteTemplatePath: '/journey/entry',
+        frontierRouteTemplatePath: undefined,
+        canonicalPathRouteTemplatePaths: [],
+        progressExists: false,
+        resumeActive: false,
+        resumeOutcome: 'no-op',
+      }),
+    ).toBe('/journey/entry')
+  })
+
+  it('should resolve journey root redirects from resume and default entry state', () => {
+    // Arrange
+    const evaluation = {
+      currentStepId: undefined,
+      steps: [],
+      defaultEntryRouteTemplatePath: '/journey/entry',
+      frontierRouteTemplatePath: '/journey/frontier',
+      canonicalPathRouteTemplatePaths: [],
+      progressExists: true,
+      resumeActive: true,
+      resumeOutcome: 'redirect' as const,
+    }
+
+    // Act / Assert
+    expect(resolveJourneyRootRedirect(evaluation)).toBe('/journey/frontier')
+    expect(resolveJourneyRootRedirect({ ...evaluation, resumeOutcome: 'no-op' })).toBe('/journey/entry')
+  })
+
+  it('should resolve backlinks from the canonical path', () => {
+    // Arrange
+    const current = createNavigationStep({ routeTemplatePath: '/journey/converge' })
+
+    // Act / Assert
+    expect(
+      resolveBacklinkRouteTemplatePathForStep(current, ['/journey/start', '/journey/branch-b', '/journey/converge']),
+    ).toBe('/journey/branch-b')
+    expect(resolveBacklinkRouteTemplatePathForStep(current, ['/journey/start'])).toBeUndefined()
+  })
+
+  it('should pick tie-breaker winners by priority then declaration order', () => {
+    // Arrange
+    const first = createNavigationStep({ stepId: 'compile_ast:510', tieBreakerPriority: 5 })
+    const second = createNavigationStep({ stepId: 'compile_ast:511', tieBreakerPriority: 10 })
+    const unmatched = createNavigationStep({ stepId: 'compile_ast:512' })
+
+    // Act / Assert
+    expect(pickTieBreakerWinner([first, second])).toBe(second)
+    expect(pickTieBreakerWinner([first, { ...second, tieBreakerPriority: 5 }])).toBe(first)
+    expect(pickTieBreakerWinner([unmatched, first])).toBe(first)
+    expect(pickTieBreakerWinner([])).toBeUndefined()
   })
 })

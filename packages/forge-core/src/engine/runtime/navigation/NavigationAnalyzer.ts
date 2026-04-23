@@ -1,12 +1,12 @@
 import { ReachabilityRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
+import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { NodeId } from '../../types/ast.type'
-import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
 import NavigationPathAnalyzer from './NavigationPathAnalyzer'
-import { NavigationEvaluation, ResumeOutcome } from './NavigationEvaluation.type'
-import { JourneyRouteTemplateCatalog } from '../routes/routes.type'
-import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
+import { NavigationEvaluation, ResumeOutcome } from '../types/NavigationEvaluation.type'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import ReachabilityGraphBuilder from '../reachability/ReachabilityGraphBuilder'
+import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 
 export default class NavigationAnalyzer {
   private readonly reachabilityGraphBuilder = new ReachabilityGraphBuilder()
@@ -17,20 +17,21 @@ export default class NavigationAnalyzer {
     plan: ReachabilityRuntimePlan,
     currentStepId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-    stepValidityAnalyzer: StepValidityAnalyzer,
+    context: RuntimeEvaluationContext,
+    compiledResult: CompiledReachabilityResult,
+    functionRegistry: FunctionRegistry,
   ): Promise<NavigationEvaluation> {
     const steps = await this.reachabilityGraphBuilder.build(
       plan,
       currentStepId,
       routeTemplateCatalog,
-      invoker,
       context,
-      stepValidityAnalyzer,
+      compiledResult,
+      functionRegistry,
     )
     const defaultEntryRouteTemplatePath = this.reachabilityGraphBuilder.resolveDefaultEntryRouteTemplatePath(steps)
-    const resumeActive = await this.evaluateResumeCondition(plan, invoker, context)
+
+    const resumeActive = compiledResult.resumeActive
     const pathAnalysis = this.navigationPathAnalyzer.analyze(
       steps,
       currentStepId,
@@ -57,24 +58,6 @@ export default class NavigationAnalyzer {
     }
   }
 
-  private async evaluateResumeCondition(
-    plan: ReachabilityRuntimePlan,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): Promise<boolean> {
-    if (plan.resumeAlways) {
-      return true
-    }
-
-    if (plan.resumeWhenNodeId === undefined) {
-      return false
-    }
-
-    const result = await invoker.invoke(plan.resumeWhenNodeId, context)
-
-    return !result.error && Boolean(result.value)
-  }
-
   private resolveResumeOutcome(
     steps: NavigationEvaluation['steps'],
     currentStepId: NodeId | undefined,
@@ -98,4 +81,44 @@ export default class NavigationAnalyzer {
 
     return currentStep.routeTemplatePath === frontierRouteTemplatePath ? 'no-op' : 'redirect'
   }
+}
+
+export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
+  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+
+  if (!currentStep) {
+    return undefined
+  }
+
+  if (evaluation.resumeOutcome === 'redirect') {
+    return evaluation.frontierRouteTemplatePath
+  }
+
+  if (currentStep.isReachable) {
+    return undefined
+  }
+
+  return evaluation.defaultEntryRouteTemplatePath
+}
+
+export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
+  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+
+  if (!currentStep) {
+    return undefined
+  }
+
+  if (currentStep.isReachable) {
+    return undefined
+  }
+
+  return evaluation.defaultEntryRouteTemplatePath
+}
+
+export function resolveJourneyRootRedirect(evaluation: NavigationEvaluation): string | undefined {
+  if (evaluation.resumeOutcome === 'redirect') {
+    return evaluation.frontierRouteTemplatePath
+  }
+
+  return evaluation.defaultEntryRouteTemplatePath
 }

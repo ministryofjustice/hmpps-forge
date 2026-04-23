@@ -35,7 +35,7 @@ export interface ForgeOptions {
   strictRegistration?: boolean
 
   /**
-   * Defer per-step compilation (thunk handlers, linked closures, runtime plans)
+   * Defer per-step compilation (quick functions, linked closures, runtime plans)
    * until the step is first accessed.
    *
    * When `true` (default), each step compiles on first request — faster startup,
