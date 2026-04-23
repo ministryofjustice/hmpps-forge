@@ -312,7 +312,9 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   /** Wrap a step handler to catch async errors */
   private wrapHandler(handler: StepHandler<express.Request, express.Response>): express.RequestHandler {
     return (req, res, next) => {
-      this.logger.debug(`${req.method} request to step at path ${req.path}`)
+      const requestPath = extractPathname(req.originalUrl ?? req.path)
+
+      this.logger.debug(`${req.method} request to step at path ${requestPath}`)
       handler(req, res).catch(next)
     }
   }

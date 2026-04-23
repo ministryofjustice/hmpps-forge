@@ -1,15 +1,21 @@
 import { normalizeRelativePath } from '../../framework/path/routePath'
 import { NodeId } from '../types/ast.type'
+import type { CompiledAnswerPreparationFunction } from './answer-preparation/StepAnswerPreparationCompiler'
+import type { CompiledFieldInventoryFunction } from './field-inventory/StepFieldInventoryCompiler'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledActionHooksFunction,
+  CompiledSubmitHooksFunction,
+} from './hooks/HookLifecycleCompiler'
+import type { CompiledReachabilityFunction } from './reachability/ReachabilityCompiler'
+import type { CompiledValidationFunction } from './validation/StepValidationCompiler'
 import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
 import ASTNodeTree from './node-tree/ASTNodeTree'
-import MetadataRegistry from './registries/MetadataRegistry'
 import NodeRegistry from './registries/NodeRegistry'
 import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
-
-// ── Step runtime plan ───────────────────────────────────────────────
 
 export interface StepRuntimePlan {
   stepId: NodeId
@@ -25,15 +31,26 @@ export interface StepRuntimePlan {
   renderStepId: NodeId
   hasValidatingSubmitHook: boolean
   hasDomainValidation: boolean
+  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
+  compiledActionHooks?: CompiledActionHooksFunction
+  compiledSubmitHooks?: CompiledSubmitHooksFunction
 }
-
-// ── Reachability runtime plan ───────────────────────────────────────
 
 export interface ReachabilityRuntimePlan {
   entries: ReachabilityStepEntry[]
   resumeAlways: boolean
   resumeWhenNodeId?: NodeId
   reachabilityDisabled: boolean
+  /**
+   * Generated function that pre-computes entry predicates, forward outcomes,
+   * tie-breaker priorities, and the resume condition in a single call.
+   *
+   * The plan is shared across every direct step in a journey, so this function is
+   * compiled once and reused for GET, POST, and journey-root navigation checks.
+   */
+  compiledReachability?: CompiledReachabilityFunction
+  compiledFieldInventory?: CompiledFieldInventoryFunction
+  resolveStepValidations?: () => Map<NodeId, CompiledValidationFunction>
 }
 
 export interface ReachabilityStepEntry {
@@ -52,21 +69,19 @@ export interface ReachabilityStepEntry {
 }
 
 /**
- * Runtime shape of a tie-breaker rule. `whenNodeId` is the compiled
- * predicate thunk; when absent, the rule is a catch-all.
+ * Runtime shape of a tie-breaker rule. `whenNodeId` points to the predicate
+ * expression compiled into the reachability quick function; when absent, the
+ * rule is a catch-all.
  */
 export interface ReachabilityTieBreakerEntry {
   priority: number
   whenNodeId?: NodeId
 }
 
-// ── Journey runtime plan ────────────────────────────────────────────
-
 /**
  * Runtime plan for a journey as a whole, used when handling the journey root
- * (e.g. resume). Bundles the journey's access ancestor chain, the field
- * iterate nodes across every direct step (so answers can be prepared before
- * reachability runs), and the reachability plan shared by the journey's steps.
+ * (for example resume). It carries the journey access chain, the MAP iterator
+ * nodes for its direct steps, and the shared reachability plan for those steps.
  */
 export interface JourneyRuntimePlan {
   journeyId: NodeId
@@ -74,19 +89,21 @@ export interface JourneyRuntimePlan {
   accessAncestorIds: NodeId[]
   iterateNodeIds: NodeId[]
   reachabilityPlan: ReachabilityRuntimePlan
+  /**
+   * Compiled answer preparation for the journey root. This covers the journey's
+   * direct steps so resume/reachability can evaluate with prepared answers
+   * without pretending that a specific step is currently being rendered.
+   */
+  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
+  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
 }
 
-// ── Builder ─────────────────────────────────────────────────────────
-
 /**
- * RuntimePlanBuilder - Builds both step runtime plans and reachability plans
+ * Builds the small immutable plan objects consumed by controllers and compilers.
  *
- * Constructed once from the shared compilation and reused for all steps.
- * The node-finding logic (field iterators, validation blocks, etc.) is shared
- * between both plan types and operates on the shared AST via ASTNodeTree.
- *
- * - Reachability plans are built during shared compilation for all steps at once.
- * - Step runtime plans are built per-step during lazy compilation.
+ * Plans deliberately store node IDs and topology, not generated source. Compilers
+ * later use those IDs to pull AST nodes from the shared registry and attach the
+ * generated functions back onto the same plan objects.
  */
 export default class RuntimePlanBuilder {
   private readonly allIterateNodes: IterateASTNode[]
@@ -95,7 +112,6 @@ export default class RuntimePlanBuilder {
 
   constructor(
     private readonly nodeRegistry: NodeRegistry,
-    private readonly metadataRegistry: MetadataRegistry,
     private readonly astNodeTree: ASTNodeTree,
   ) {
     this.allIterateNodes = nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
@@ -106,9 +122,9 @@ export default class RuntimePlanBuilder {
    * Build reachability and journey runtime plans in a single pass.
    *
    * Groups steps by parent journey. For each journey that owns direct steps,
-   * builds one immutable `ReachabilityRuntimePlan` (with resume config baked
-   * in) and one `JourneyRuntimePlan`. Returns both as step-keyed and
-   * journey-keyed maps respectively.
+   * builds one `ReachabilityRuntimePlan` and one `JourneyRuntimePlan`.
+   * The reachability map is step-keyed for fast lookup, but all direct steps in
+   * the same journey share the same plan instance.
    */
   buildAllPlans(
     stepIndex: Map<NodeId, StepASTNode>,
@@ -122,7 +138,7 @@ export default class RuntimePlanBuilder {
     const journeyRuntimePlans = new Map<NodeId, JourneyRuntimePlan>()
 
     stepIndex.forEach((stepNode, stepId) => {
-      const ancestors = getAncestorChain(stepId, this.metadataRegistry)
+      const ancestors = getAncestorChain(stepId, this.astNodeTree)
       const parentJourneyId = ancestors[ancestors.length - 2]
 
       if (parentJourneyId) {
@@ -156,7 +172,7 @@ export default class RuntimePlanBuilder {
     return {
       journeyId: journeyNode.id,
       path: normalizeRelativePath(journeyNode.properties.path),
-      accessAncestorIds: getAncestorChain(journeyNode.id, this.metadataRegistry),
+      accessAncestorIds: getAncestorChain(journeyNode.id, this.astNodeTree),
       iterateNodeIds: reachabilityPlan.entries.flatMap(entry => entry.iterateNodeIds),
       reachabilityPlan,
     }
@@ -192,7 +208,7 @@ export default class RuntimePlanBuilder {
       return ownSetting
     }
 
-    const ancestors = getAncestorChain(journeyNode.id, this.metadataRegistry)
+    const ancestors = getAncestorChain(journeyNode.id, this.astNodeTree)
 
     for (let i = ancestors.length - 2; i >= 0; i--) {
       const ancestorJourney = journeyIndex.get(ancestors[i])
@@ -240,13 +256,10 @@ export default class RuntimePlanBuilder {
     }
   }
 
-  /**
-   * Build a step runtime plan for a single step.
-   */
   buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
     const stepId = stepNode.id
 
-    const accessAncestorIds = getAncestorChain(stepId, this.metadataRegistry)
+    const accessAncestorIds = getAncestorChain(stepId, this.astNodeTree)
     const actionHookIds = (stepNode.properties.onAction ?? []).map(hook => hook.id)
     const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
     const iterateNodeIds = this.findIterateNodeIds(stepId)
@@ -271,8 +284,6 @@ export default class RuntimePlanBuilder {
     }
   }
 
-  // ── Shared node-finding helpers ─────────────────────────────────
-
   private findIterateNodeIds(stepId: NodeId): NodeId[] {
     return this.allIterateNodes
       .filter(node => this.astNodeTree.isDescendantOf(node.id, stepId))
@@ -290,8 +301,6 @@ export default class RuntimePlanBuilder {
   private findDomainValidationNodeIds(stepNode: StepASTNode): NodeId[] {
     return (stepNode.properties.validWhen ?? []).map(node => node.id)
   }
-
-  // ── Forward navigation extraction ──────────────────────────────
 
   private extractForwardNavigation(stepNode: StepASTNode): {
     forwardOutcomeIds: NodeId[]

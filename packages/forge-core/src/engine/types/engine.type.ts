@@ -5,17 +5,7 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionImplementations, FunctionShapeMap } from '../../authoring/utils/defineFunction.type'
 import { ComponentRegistryEntry } from '../../components/types/components.type'
 
-export type {
-  ASTNode,
-  AstNodeId,
-  CompileAstNodeId,
-  CompilePseudoNodeId,
-  NodeId,
-  PseudoNodeId,
-  RuntimeAstNodeId,
-  RuntimePseudoNodeId,
-  TemplateNodeId,
-} from './ast.type'
+export type { ASTNode, AstNodeId, CompileAstNodeId, NodeId, TemplateNodeId } from './ast.type'
 
 export interface JourneyInstanceDependencies {
   componentRegistry: ComponentRegistry

@@ -1,7 +1,6 @@
 import { ASTNode, NodeId } from '../../types/engine.type'
 import { NodeIDCategory, NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import NodeRegistry from '../registries/NodeRegistry'
-import MetadataRegistry from '../registries/MetadataRegistry'
 import { FieldBlockASTNode } from '../../types/structures.type'
 import { ASTNodeType } from '../../types/enums'
 import { isASTNode, isTemplateNode } from '../../typeguards/nodes'
@@ -12,28 +11,23 @@ import InvalidNodeError from '../../errors/InvalidNodeError'
 import ASTNodeTree from '../node-tree/ASTNodeTree'
 
 /**
- * Single-pass walker that replaces structural traversal passes
- * (assignIds + ResolveSelfReferences + Registration + Metadata)
- * with one recursive descent.
+ * Normalises and indexes an AST subtree in one recursive descent.
  *
- * No context objects, no array copies, no sibling tracking.
- * Just a mutable field stack and parent tracking via the call stack.
+ * The walker assigns any missing compile IDs, resolves `Self()` references in
+ * ordinary AST nodes, registers nodes by ID, and records parent/child edges in
+ * ASTNodeTree. Template nodes are not registered because generated functions
+ * evaluate iterator templates inline instead of materialising runtime AST nodes.
  */
 export default class NodeRegistrationWalker {
   constructor(
     private readonly nodeIdGenerator: NodeIDGenerator,
-    private readonly idCategory: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly idCategory: NodeIDCategory.COMPILE_AST,
     private readonly nodeRegistry: NodeRegistry,
-    private readonly metadataRegistry: MetadataRegistry,
-    private readonly markAsDescendantOfStep: boolean,
     private readonly astNodeTree: ASTNodeTree,
   ) {}
 
   /**
-   * Walk an AST subtree: assign IDs, normalize, register, and set metadata in one pass.
-   *
-   * For compile-time: call without parentNodeId (root journey has no parent).
-   * For runtime: call with parentNodeId (the iterate node that owns these runtime nodes).
+   * Register a root AST node and every non-template descendant.
    */
   register(root: ASTNode, parentNodeId?: NodeId, parentProperty?: string): void {
     this.walk(root, parentNodeId, parentProperty, [], undefined)
@@ -72,36 +66,24 @@ export default class NodeRegistrationWalker {
 
     const node = value
 
-    // 1. Assign ID if missing (replaces assignIdsToClonedValue)
+    // Cloned @self expressions can arrive without IDs, but every registered AST
+    // node needs a stable compile ID for runtime plans and source generation.
     if (!node.id) {
       ;(node as { id: string }).id = this.nodeIdGenerator.next(this.idCategory)
     }
 
     const isField = isFieldBlockStructNode(node)
 
-    // 2. Resolve @self references (replaces ResolveSelfReferencesNormalizer)
+    // Resolve Self() to a cloned copy of the containing field code while the
+    // field stack still tells us which field owns the current expression.
     if (isReferenceExprNode(node)) {
       this.resolveSelfReference(node, fieldStack, codeOwnerFieldId)
     }
 
-    // 4. Register (replaces RegistrationTraverser)
     this.nodeRegistry.register(node.id, node)
     this.astNodeTree.addNode(node.id, parentNodeId, propertyKey, node.type)
 
-    // 5. Set metadata (replaces MetadataTraverser)
-    if (parentNodeId) {
-      this.metadataRegistry.set(node.id, 'attachedToParentNode', parentNodeId)
-
-      if (propertyKey) {
-        this.metadataRegistry.set(node.id, 'attachedToParentProperty', propertyKey)
-      }
-    }
-
-    if (this.markAsDescendantOfStep) {
-      this.metadataRegistry.set(node.id, 'isDescendantOfStep', true)
-    }
-
-    // 6. Walk children — field blocks push onto stack for @self resolution
+    // Field blocks push onto the stack only while their descendants are scanned.
     if (isField) {
       fieldStack.push(node)
     }
@@ -186,7 +168,11 @@ export default class NodeRegistrationWalker {
     Object.values(value as Record<string, unknown>).forEach(v => this.assignIdsRecursive(v))
   }
 
-  /** Scan a template node for block-type descendants and mark the parent's property edge */
+  /**
+   * Template block descendants are not registered, but the tree still needs to
+   * know that this property can yield blocks so render-time nested-block checks
+   * include iterator-generated blocks.
+   */
   private scanTemplateForBlockTypes(
     value: { originalType: string; properties?: Record<string, unknown> },
     parentNodeId: NodeId,
@@ -205,7 +191,6 @@ export default class NodeRegistrationWalker {
     }
   }
 
-  /** Recursively scan template values for block-type template nodes */
   private scanTemplateValueForBlocks(value: unknown, parentNodeId: NodeId, propertyKey: string): void {
     if (value === null || value === undefined || typeof value !== 'object') {
       return

@@ -1,40 +1,30 @@
-import { AstNodeId, NodeId, PseudoNodeId, TemplateNodeId } from '../../types/engine.type'
+import { AstNodeId, NodeId, TemplateNodeId } from '../../types/engine.type'
 
 /**
- * Categories for node IDs
- * Determines prefix and counter namespace
+ * Separate ID namespaces make it obvious whether a node is part of the shared
+ * compiled AST or a frozen iterator template.
  */
 export enum NodeIDCategory {
   COMPILE_AST = 'compile_ast',
-  COMPILE_PSEUDO = 'compile_pseudo',
-  RUNTIME_AST = 'runtime_ast',
-  RUNTIME_PSEUDO = 'runtime_pseudo',
   TEMPLATE = 'template',
 }
 
 /**
- * Generates unique string IDs for nodes
- * Maintains separate counters per category
+ * Generates deterministic compile-time IDs for the shared AST and templates.
  */
 export class NodeIDGenerator {
   private readonly counters = new Map<NodeIDCategory, number>([
     [NodeIDCategory.COMPILE_AST, 0],
-    [NodeIDCategory.COMPILE_PSEUDO, 0],
-    [NodeIDCategory.RUNTIME_AST, 0],
-    [NodeIDCategory.RUNTIME_PSEUDO, 0],
     [NodeIDCategory.TEMPLATE, 0],
   ])
 
   /**
-   * Generate next ID in category
-   * @param category - Which counter to use
-   * @returns String ID like "compile_ast:1" or "runtime_ast:1"
+   * Each category advances independently so template creation cannot perturb the
+   * IDs used by registered AST nodes and runtime plans.
    */
   next(category: NodeIDCategory.TEMPLATE): TemplateNodeId
 
-  next(category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST): AstNodeId
-
-  next(category: NodeIDCategory.COMPILE_PSEUDO | NodeIDCategory.RUNTIME_PSEUDO): PseudoNodeId
+  next(category: NodeIDCategory.COMPILE_AST): AstNodeId
 
   next(category: NodeIDCategory): NodeId | TemplateNodeId {
     const current = this.counters.get(category)!
@@ -46,32 +36,8 @@ export class NodeIDGenerator {
   }
 
   /**
-   * Get current counter value (for debugging)
-   * @param category - Which counter to check
-   * @returns Current counter value
-   */
-  getCurrentCount(category: NodeIDCategory): number {
-    return this.counters.get(category) ?? 0
-  }
-
-  /**
-   * Reset counter(s) - primarily for testing
-   * @param category - Specific category to reset, or undefined for all
-   */
-  reset(category?: NodeIDCategory): void {
-    if (category) {
-      this.counters.set(category, 0)
-    } else {
-      this.counters.forEach((_, key) => {
-        this.counters.set(key, 0)
-      })
-    }
-  }
-
-  /**
-   * Create a shallow copy of this ID generator with the same counter state
-   * Counters are copied so each generator can increment independently
-   * @returns A new NodeIDGenerator with the same counter values
+   * Clones keep branch-local compilation deterministic while allowing each clone
+   * to continue assigning IDs independently.
    */
   clone(): NodeIDGenerator {
     const cloned = Object.create(Object.getPrototypeOf(this)) as NodeIDGenerator
@@ -79,24 +45,5 @@ export class NodeIDGenerator {
     return Object.assign(cloned, {
       counters: new Map(this.counters),
     })
-  }
-
-  /**
-   * Sync counter values from another generator
-   * Used to propagate counter state back after a pending view flushes
-   * @param source - The generator to sync from
-   */
-  syncFrom(source: NodeIDGenerator): void {
-    source.getCounterEntries().forEach(([category, value]) => {
-      this.counters.set(category, value)
-    })
-  }
-
-  /**
-   * Get counter entries for syncing
-   * Override in subclasses that delegate to internal generators
-   */
-  getCounterEntries(): [NodeIDCategory, number][] {
-    return Array.from(this.counters.entries())
   }
 }

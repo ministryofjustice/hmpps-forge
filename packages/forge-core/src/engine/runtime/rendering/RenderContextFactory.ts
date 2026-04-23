@@ -1,6 +1,6 @@
 import { NodeId } from '../../types/engine.type'
-import { DomainValidationFailure, StepValidationFailure } from '../../compilation/thunks/ThunkEvaluationContext'
-import { ValidationResult } from '../../nodes/expressions/validation/ValidationHandler'
+import { DomainValidationFailure, StepValidationFailure } from '../context/RuntimeEvaluationContext'
+import { ValidationResult } from '../types/ValidationResult.type'
 import { isBlockStructNode } from '../../typeguards/structure-nodes'
 import { BlockASTNode } from '../../types/structures.type'
 import { BlockType } from '../../../authoring/types/enums'

@@ -114,6 +114,36 @@ describe('ExpressFrameworkAdapter', () => {
       expect(mockNext).toHaveBeenCalledWith(error)
     })
 
+    it('should log the full original path when the route is mounted below a parent router', async () => {
+      // Arrange
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
+      const mockNext = vi.fn()
+      const mockReq = {
+        method: 'GET',
+        originalUrl: '/patterns/branching/demo/check-answers?from=task-list',
+        path: '/check-answers',
+      } as unknown as express.Request
+      const mockRes = {} as express.Response
+
+      let capturedHandler: express.RequestHandler | undefined
+
+      const mockRouter = {
+        get: vi.fn((path: string, h: express.RequestHandler) => {
+          capturedHandler = h
+        }),
+      } as unknown as express.Router
+
+      adapter.get(mockRouter, '/check-answers', handler)
+
+      // Act
+      await capturedHandler!(mockReq, mockRes, mockNext)
+
+      // Assert
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'GET request to step at path /patterns/branching/demo/check-answers',
+      )
+    })
+
     it('should convert request to StepRequest before calling handler', async () => {
       // Arrange
       const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)

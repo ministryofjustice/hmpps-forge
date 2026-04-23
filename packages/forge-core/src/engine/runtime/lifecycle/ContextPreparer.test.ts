@@ -1,10 +1,9 @@
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { NodeId, AstNodeId } from '../../types/engine.type'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
+import { NodeId, AstNodeId, JourneyInstanceDependencies } from '../../types/engine.type'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import type { StepRequest, StepResponse } from '../../../framework'
+import { CompilationDependencies } from '../../compilation/CompilationDependencies'
 import ContextPreparer from './ContextPreparer'
 
 function createStep(data?: Record<string, unknown>): StepASTNode {
@@ -29,42 +28,29 @@ function createJourney(data?: Record<string, unknown>): JourneyASTNode {
 
 function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
   preparer: ContextPreparer
-  evaluator: Mocked<ThunkEvaluator>
-  mockContext: Mocked<ThunkEvaluationContext>
+  compilationDependencies: CompilationDependencies
+  journeyInstanceDependencies: JourneyInstanceDependencies
   runtimePlan: StepRuntimePlan
   request: StepRequest
   response: StepResponse
 } {
   const accessAncestorIds = ancestors.map(a => a.id) as AstNodeId[]
-
-  const mockContext = {
-    metadataRegistry: {
-      get: vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
-        if (key === 'attachedToParentNode') {
-          const index = accessAncestorIds.indexOf(nodeId as AstNodeId)
-
-          if (index > 0) {
-            return accessAncestorIds[index - 1]
-          }
-        }
-
-        return undefined
-      }),
-    },
+  const compilationDependencies = {
     nodeRegistry: {
       get: vi.fn().mockImplementation((nodeId: NodeId) => {
         return ancestors.find(a => a.id === nodeId)
       }),
     },
-    global: {
-      answers: {},
-      data: {},
+  } as unknown as CompilationDependencies
+  const journeyInstanceDependencies = {
+    logger: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
     },
-  } as unknown as Mocked<ThunkEvaluationContext>
-
-  const evaluator = {
-    createContext: vi.fn().mockReturnValue(mockContext),
-  } as unknown as Mocked<ThunkEvaluator>
+    functionRegistry: {},
+  } as unknown as JourneyInstanceDependencies
 
   const runtimePlan: StepRuntimePlan = {
     stepId: ancestors.at(-1)!.id,
@@ -85,7 +71,7 @@ function setupMocks(ancestors: (JourneyASTNode | StepASTNode)[]): {
   const response = {} as StepResponse
   const preparer = new ContextPreparer()
 
-  return { preparer, evaluator, mockContext, runtimePlan, request, response }
+  return { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response }
 }
 
 describe('ContextPreparer', () => {
@@ -94,55 +80,84 @@ describe('ContextPreparer', () => {
   })
 
   describe('prepare()', () => {
-    it('should create context via evaluator and return it', () => {
+    it('should create context from compilation and journey dependencies', () => {
       // Arrange
       const step = createStep()
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([step])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([step])
 
       // Act
-      const result = preparer.prepare(runtimePlan, evaluator, request, response)
+      const result = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(evaluator.createContext).toHaveBeenCalledWith(request, response)
-      expect(result).toBe(mockContext)
+      expect(result.request).toBe(request)
+      expect(result.response).toBe(response)
+      expect(result.nodeRegistry).toBe(compilationDependencies.nodeRegistry)
     })
 
     it('should not modify data when no ancestors have static data', () => {
       // Arrange
       const step = createStep()
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([step])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([step])
 
       // Act
-      preparer.prepare(runtimePlan, evaluator, request, response)
+      const context = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(mockContext.global.data).toEqual({})
+      expect(context.global.data).toEqual({})
     })
 
     it('should merge journey static data into context', () => {
       // Arrange
       const journey = createJourney({ apiUrl: 'https://api.test', timeout: 5000 })
       const step = createStep()
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([journey, step])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([journey, step])
 
       // Act
-      preparer.prepare(runtimePlan, evaluator, request, response)
+      const context = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(mockContext.global.data).toEqual({ apiUrl: 'https://api.test', timeout: 5000 })
+      expect(context.global.data).toEqual({ apiUrl: 'https://api.test', timeout: 5000 })
     })
 
     it('should merge all ancestors with inner overriding outer', () => {
       // Arrange
       const journey = createJourney({ env: 'production', apiUrl: 'https://journey-api' })
       const step = createStep({ apiUrl: 'https://step-api', stepKey: 'value' })
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([journey, step])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([journey, step])
 
       // Act
-      preparer.prepare(runtimePlan, evaluator, request, response)
+      const context = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(mockContext.global.data).toEqual({
+      expect(context.global.data).toEqual({
         env: 'production',
         apiUrl: 'https://step-api',
         stepKey: 'value',
@@ -154,17 +169,20 @@ describe('ContextPreparer', () => {
       const outerJourney = createJourney({ level: 'outer', shared: 'outer-value' })
       const innerJourney = createJourney({ shared: 'inner-value', innerKey: 'inner' })
       const step = createStep({ stepOnly: 'step' })
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([
-        outerJourney,
-        innerJourney,
-        step,
-      ])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([outerJourney, innerJourney, step])
 
       // Act
-      preparer.prepare(runtimePlan, evaluator, request, response)
+      const context = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(mockContext.global.data).toEqual({
+      expect(context.global.data).toEqual({
         level: 'outer',
         shared: 'inner-value',
         innerKey: 'inner',
@@ -176,16 +194,20 @@ describe('ContextPreparer', () => {
       // Arrange
       const journey = createJourney({ journeyKey: 'value' })
       const stepWithoutData = createStep()
-      const { preparer, evaluator, mockContext, runtimePlan, request, response } = setupMocks([
-        journey,
-        stepWithoutData,
-      ])
+      const { preparer, compilationDependencies, journeyInstanceDependencies, runtimePlan, request, response } =
+        setupMocks([journey, stepWithoutData])
 
       // Act
-      preparer.prepare(runtimePlan, evaluator, request, response)
+      const context = preparer.prepare(
+        runtimePlan,
+        compilationDependencies,
+        journeyInstanceDependencies,
+        request,
+        response,
+      )
 
       // Assert
-      expect(mockContext.global.data).toEqual({ journeyKey: 'value' })
+      expect(context.global.data).toEqual({ journeyKey: 'value' })
     })
   })
 })

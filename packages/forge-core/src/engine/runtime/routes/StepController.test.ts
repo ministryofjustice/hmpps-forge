@@ -4,22 +4,32 @@ import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engine.type'
-import { AccessHookResult } from '../../nodes/hooks/access/AccessHandler'
-import { SubmitHookResult } from '../../nodes/hooks/submit/SubmitHandler'
-import { ActionHookResult } from '../../nodes/hooks/action/ActionHandler'
+import {
+  CompiledAccessHookResult as AccessHookResult,
+  CompiledActionHookResult as ActionHookResult,
+  CompiledSubmitHookResult as SubmitHookResult,
+} from '../../compilation/hooks/HookLifecycleCompiler'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import { JourneyMetadata } from '../../../framework/rendering/types'
-import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { PseudoNodeType } from '../../types/pseudoNodes.type'
+import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import RuntimeExpansionService from '../expansion/RuntimeExpansionService'
-import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
-import RenderProjector from '../rendering/RenderProjector'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
-import { JourneyRouteTemplateCatalog } from './routes.type'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+
+type MockInvocationResult<T> = { value: T; error?: undefined } | { value?: undefined; error: unknown }
+type MockLifecycleInvoke = (<T>(
+  nodeId: NodeId,
+  context: RuntimeEvaluationContext,
+) => Promise<MockInvocationResult<T>>) &
+  ReturnType<typeof vi.fn>
+
+interface MockLifecycleInvoker {
+  invoke: MockLifecycleInvoke
+  invokeSync: ReturnType<typeof vi.fn>
+}
 
 const createMockRequest = (
   overrides: Partial<{
@@ -89,40 +99,16 @@ const createMockResponse = (): StepResponse => {
   }
 }
 
-vi.mock('../../compilation/thunks/ThunkEvaluator')
+const mockContextPreparerPrepare = vi.fn()
 
-const mockRenderProjectorBuild = vi.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-const mockStepValidityAnalyzerExecute = vi.fn().mockResolvedValue({
-  isValid: true,
-  fieldFailures: [],
-  domainFailures: [],
-})
-
-vi.mock('../validation/StepValidityAnalyzer', () => {
-  return {
-    __esModule: true,
-    default: vi.fn(function MockStepValidityAnalyzer() {
-      return {
-        execute(...args: unknown[]) {
-          return mockStepValidityAnalyzerExecute(...args)
-        },
-      }
-    }),
-  }
-})
-
-vi.mock('../rendering/RenderProjector', () => {
-  return {
-    __esModule: true,
-    default: vi.fn(function MockRenderProjector() {
-      return {
-        build(...args: unknown[]) {
-          return mockRenderProjectorBuild(...args)
-        },
-      }
-    }),
-  }
-})
+vi.mock('../lifecycle/ContextPreparer', () => ({
+  __esModule: true,
+  default: vi.fn(function MockContextPreparer() {
+    return {
+      prepare: (...args: unknown[]) => mockContextPreparerPrepare(...args),
+    }
+  }),
+}))
 
 describe('StepController', () => {
   let mockCompiledForm: CompiledForm[number]
@@ -132,21 +118,13 @@ describe('StepController', () => {
   let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
   let mockRes: unknown
-  let mockEvaluator: Mocked<ThunkEvaluator>
-  let mockContext: Mocked<ThunkEvaluationContext>
+  let mockEvaluator: MockLifecycleInvoker
+  let mockContext: Mocked<RuntimeEvaluationContext>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    mockRenderProjectorBuild.mockClear()
-    mockStepValidityAnalyzerExecute.mockClear()
-    ;(StepValidityAnalyzer as unknown as Mock).mockClear()
-    ;(RenderProjector as unknown as Mock).mockClear()
-    mockRenderProjectorBuild.mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-    mockStepValidityAnalyzerExecute.mockResolvedValue({
-      isValid: true,
-      fieldFailures: [],
-      domainFailures: [],
-    })
+    mockContextPreparerPrepare.mockReset()
+    ;(ContextPreparer as unknown as Mock).mockClear()
 
     mockCurrentStepPath = '/journey/step-1'
     mockNavigationMetadata = []
@@ -177,11 +155,21 @@ describe('StepController', () => {
 
     mockContext = {
       request: {
+        url: 'http://localhost/forms/journey/step-1',
+        method: 'GET',
+        location: {
+          origin: 'http://localhost',
+          pathname: '/forms/journey/step-1',
+          href: 'http://localhost/forms/journey/step-1',
+          basePath: '/forms/journey',
+        },
         getParams: vi.fn().mockReturnValue({}),
-      },
-      metadataRegistry: {
-        get: vi.fn(),
-        findNodesWhere: vi.fn().mockReturnValue([]),
+        getSession: vi.fn().mockReturnValue(undefined),
+        getAllQuery: vi.fn().mockReturnValue({}),
+        getAllHeaders: vi.fn().mockReturnValue({}),
+        getAllCookies: vi.fn().mockReturnValue({}),
+        getAllState: vi.fn().mockReturnValue({}),
+        getAllPost: vi.fn().mockReturnValue({}),
       },
       nodeRegistry: {
         get: vi.fn(),
@@ -196,22 +184,17 @@ describe('StepController', () => {
         data: {},
         validation: undefined,
       },
-      runtimeExpansionState: {
-        preparedIterators: new Map(),
-        expandedIteratorIds: new Set(),
+      astNodeTree: {
+        getNodeType: vi.fn().mockReturnValue(undefined),
+        hasDescendantOfType: vi.fn().mockReturnValue(false),
       },
-      runtimeCompilationDependencies: {
-        nodeRegistry: { get: vi.fn() },
-        metadataRegistry: { get: vi.fn() },
-      },
-    } as unknown as Mocked<ThunkEvaluationContext>
+    } as unknown as Mocked<RuntimeEvaluationContext>
 
     mockEvaluator = {
-      createContext: vi.fn().mockReturnValue(mockContext),
       invoke: vi.fn(),
       invokeSync: vi.fn(),
-    } as unknown as Mocked<ThunkEvaluator>
-    ;(ThunkEvaluator.withRuntimeOverlay as Mock).mockReturnValue(mockEvaluator)
+    } as unknown as MockLifecycleInvoker
+    mockContextPreparerPrepare.mockReturnValue(mockContext)
   })
 
   function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
@@ -231,6 +214,47 @@ describe('StepController', () => {
         (t: SubmitHookASTNode) => t.properties.validate === true,
       ),
       hasDomainValidation: false,
+      compiledAccessLifecycle: async () => {
+        for (const ancestorId of runtimePlan.accessAncestorIds) {
+          const ancestor = mockContext.nodeRegistry.get(ancestorId) as JourneyASTNode | StepASTNode | undefined
+
+          for (const hook of ancestor?.properties.onAccess ?? []) {
+            const result = await mockEvaluator.invoke<AccessHookResult>(hook.id, mockContext)
+
+            if (result.error || !result.value?.executed) {
+              continue
+            }
+
+            if (result.value.outcome === 'redirect' || result.value.outcome === 'error') {
+              return result.value
+            }
+          }
+        }
+
+        return { executed: true, outcome: 'continue' }
+      },
+      compiledActionHooks: async () => {
+        for (const hookId of runtimePlan.actionHookIds) {
+          const result = await mockEvaluator.invoke<ActionHookResult>(hookId, mockContext)
+
+          if (!result.error && result.value?.executed) {
+            return result.value
+          }
+        }
+
+        return { executed: false }
+      },
+      compiledSubmitHooks: async () => {
+        for (const hookId of runtimePlan.submitHookIds) {
+          const result = await mockEvaluator.invoke<SubmitHookResult>(hookId, mockContext)
+
+          if (!result.error && result.value?.executed) {
+            return result.value
+          }
+        }
+
+        return { executed: false, validated: false, outcome: 'continue' }
+      },
     }
 
     const routeTemplatePath = `/journey/${stepNode.properties.path.replace(/^\//, '')}`
@@ -251,12 +275,16 @@ describe('StepController', () => {
             return (stepNode.properties.onSubmission ?? []).find(hook => hook.id === nodeId)
           }),
         },
-        metadataRegistry: {
-          get: vi.fn(),
-        },
       } as any,
       currentStepId: stepNode.id,
       runtimePlan,
+      compiledAnswerPreparation: () => {},
+      compiledValidation: () => ({ isValid: true, fieldFailures: [], domainFailures: [] }),
+      compiledRender: () => ({
+        blocks: [],
+        step: { path: stepNode.properties.path, title: stepNode.properties.title },
+        ancestors: [],
+      }),
       reachabilityPlan: {
         entries: [
           {
@@ -276,6 +304,19 @@ describe('StepController', () => {
         ],
         resumeAlways: false,
         reachabilityDisabled: false,
+        compiledReachability: () => ({
+          entryResults: [undefined],
+          outcomeValues: [[]],
+          tieBreakerPriorities: [undefined],
+          resumeActive: false,
+        }),
+        compiledFieldInventory: () => [
+          {
+            stepId: stepNode.id,
+            fieldCodes: [],
+            cleardownFieldCodes: [],
+          },
+        ],
       },
     }
   }
@@ -318,18 +359,6 @@ describe('StepController', () => {
       mockCompiledForm.runtimePlan.accessAncestorIds = ancestorIds
       mockCompiledForm.runtimePlan.renderAncestorIds = ancestorIds.slice(0, -1)
     }
-
-    mockContext.metadataRegistry.get = vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
-      if (key === 'attachedToParentNode') {
-        const index = ancestorIds.indexOf(nodeId as AstNodeId)
-
-        if (index > 0) {
-          return ancestorIds[index - 1]
-        }
-      }
-
-      return undefined
-    })
 
     mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
       return ancestors.find(a => a.id === nodeId)
@@ -509,7 +538,7 @@ describe('StepController', () => {
     })
 
     describe('rendering', () => {
-      it('should call render projector and render after passing access checks', async () => {
+      it('should render after passing access checks', async () => {
         // Arrange
         const step = createStepWithHooks({})
         mockCompiledForm = createCompiledForm(step)
@@ -528,7 +557,6 @@ describe('StepController', () => {
         await controller.get(mockReq, mockRes)
 
         // Assert
-        expect(mockRenderProjectorBuild).toHaveBeenCalledTimes(1)
         expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
     })
@@ -598,64 +626,16 @@ describe('StepController', () => {
         await expect(controller.post(mockReq, mockRes)).rejects.toThrow('Access denied')
       })
 
-      it('should evaluate dynamic answer pseudo nodes after iterator expansion on POST', async () => {
+      it('should call compiled answer preparation function on POST', async () => {
         // Arrange
-        const dynamicAnswerNode: { id: NodeId; type: PseudoNodeType.ANSWER_LOCAL } = {
-          id: 'runtime_pseudo:1',
-          type: PseudoNodeType.ANSWER_LOCAL,
-        }
-
         const step = createStepWithHooks({})
         mockCompiledForm = createCompiledForm(step)
-        mockCompiledForm.runtimePlan.iterateNodeIds = ['compile_ast:iterate' as NodeId]
 
-        let expansionCalled = false
+        setupAncestorChain([step])
 
-        mockContext.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
-          if (type === PseudoNodeType.ANSWER_LOCAL && expansionCalled) {
-            return [dynamicAnswerNode]
-          }
+        const answerPrepSpy = vi.fn()
 
-          return []
-        })
-
-        Object.defineProperty(mockContext, 'runtimeExpansionState', {
-          value: {
-            preparedIterators: new Map(),
-            expandedIteratorIds: new Set(),
-          },
-          writable: true,
-        })
-
-        mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
-          if (nodeId === step.id) {
-            return step
-          }
-
-          return undefined
-        })
-
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
-          if (nodeId === dynamicAnswerNode.id) {
-            return {
-              value: 'dynamic answer',
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
-          return {
-            value: { executed: false },
-            metadata: { source: 'test', timestamp: Date.now() },
-          }
-        })
-
-        // Simulate expansion registering ANSWER_LOCAL nodes
-        const originalExpandIteratorRoots = RuntimeExpansionService.prototype.expandIteratorRoots
-        RuntimeExpansionService.prototype.expandIteratorRoots = async function expandIteratorRoots() {
-          expansionCalled = true
-
-          return []
-        }
+        mockCompiledForm.compiledAnswerPreparation = answerPrepSpy
 
         const controller = new StepController(
           mockCompiledForm,
@@ -669,11 +649,51 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(expansionCalled).toBe(true)
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(dynamicAnswerNode.id, mockContext)
+        expect(answerPrepSpy).toHaveBeenCalledTimes(1)
+        const ctx = answerPrepSpy.mock.calls[0][0]
 
-        // Restore
-        RuntimeExpansionService.prototype.expandIteratorRoots = originalExpandIteratorRoots
+        expect(ctx.answers).toBeDefined()
+        expect(ctx.post).toBeDefined()
+        expect(ctx.conditions).toBeDefined()
+      })
+
+      it('should await async compiled answer preparation before reachability evaluation on POST', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        const compiledReachabilitySpy = vi.fn(ctx => {
+          expect(ctx.answers.prepared.current).toBe('yes')
+
+          return {
+            entryResults: [undefined],
+            outcomeValues: [[]],
+            tieBreakerPriorities: [undefined],
+            resumeActive: false,
+          }
+        })
+
+        mockCompiledForm.compiledAnswerPreparation = async ctx => {
+          await Promise.resolve()
+          ctx.answers.prepared = { current: 'yes', mutations: [] }
+        }
+        mockCompiledForm.reachabilityPlan.compiledReachability = compiledReachabilitySpy
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(compiledReachabilitySpy).toHaveBeenCalledTimes(1)
       })
 
       it('should expose journey reachability to submit hooks after answers are prepared', async () => {
@@ -703,9 +723,22 @@ describe('StepController', () => {
           ],
           resumeAlways: false,
           reachabilityDisabled: false,
+          compiledReachability: () => ({
+            entryResults: [undefined],
+            outcomeValues: [[]],
+            tieBreakerPriorities: [undefined],
+            resumeActive: false,
+          }),
+          compiledFieldInventory: () => [
+            {
+              stepId: step.id,
+              fieldCodes: [],
+              cleardownFieldCodes: [],
+            },
+          ],
         }
 
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {
+        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: RuntimeEvaluationContext) => {
           if (nodeId === submitHook.id) {
             expect(context?.global.reachability).toEqual({
               reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
@@ -817,7 +850,8 @@ describe('StepController', () => {
     })
 
     describe('submit hooks', () => {
-      it('should run StepValidityAnalyzer before submit hooks when a submit hook requires validation', async () => {
+      it('should run compiled validation before submit hooks when a submit hook requires validation', async () => {
+        // Arrange
         const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
           .withProperty('validate', true)
           .build() as SubmitHookASTNode
@@ -826,17 +860,11 @@ describe('StepController', () => {
 
         setupAncestorChain([step])
 
-        const submitResult: SubmitHookResult = {
-          executed: true,
-          validated: true,
-          isValid: false,
-          outcome: 'continue',
-        }
-        mockStepValidityAnalyzerExecute.mockResolvedValue({
+        mockCompiledForm.compiledValidation = async () => ({
           isValid: false,
           fieldFailures: [
             {
-              blockId: 'compile_ast:999',
+              blockId: 'compile_ast:999' as NodeId,
               blockCode: 'email',
               passed: false,
               message: 'Enter an email address',
@@ -845,6 +873,13 @@ describe('StepController', () => {
           ],
           domainFailures: [],
         })
+
+        const submitResult: SubmitHookResult = {
+          executed: true,
+          validated: true,
+          isValid: false,
+          outcome: 'continue',
+        }
         mockEvaluator.invoke.mockResolvedValue({
           value: submitResult,
           metadata: { source: 'test', timestamp: Date.now() },
@@ -858,15 +893,10 @@ describe('StepController', () => {
           mockRouteTemplateCatalog,
         )
 
+        // Act
         await controller.post(mockReq, mockRes)
 
-        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledTimes(1)
-        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledWith(
-          mockCompiledForm.runtimePlan,
-          mockEvaluator,
-          mockContext,
-          true,
-        )
+        // Assert
         expect(mockContext.global.validation).toEqual({
           stepId: mockCompiledForm.runtimePlan.stepId,
           validated: true,
@@ -1200,7 +1230,10 @@ describe('StepController', () => {
       await controller.post(mockReq, mockRes)
 
       // Assert
-      expect(mockEvaluator.createContext).toHaveBeenCalledWith(
+      expect(mockContextPreparerPrepare).toHaveBeenCalledWith(
+        mockCompiledForm.runtimePlan,
+        mockCompiledForm.artefact,
+        mockDependencies,
         customRequest,
         expect.objectContaining({
           setHeader: expect.any(Function),

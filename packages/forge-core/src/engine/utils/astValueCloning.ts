@@ -1,5 +1,4 @@
-import { NodeIDCategory, NodeIDGenerator } from '../compilation/id-generators/NodeIDGenerator'
-import { isASTNode, isTemplateNode } from '../typeguards/nodes'
+import { isASTNode } from '../typeguards/nodes'
 
 /**
  * Deep clone a value with special handling for AST nodes.
@@ -51,35 +50,4 @@ export function cloneASTValue<T>(value: T): T {
   })
 
   return cloned as T
-}
-
-/**
- * Recursively assign IDs to AST nodes in a cloned value tree.
- */
-export function assignIdsToClonedValue(
-  value: unknown,
-  nodeIdGenerator: NodeIDGenerator,
-  category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
-): void {
-  if (value === null || value === undefined || typeof value !== 'object') {
-    return
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach(item => assignIdsToClonedValue(item, nodeIdGenerator, category))
-
-    return
-  }
-
-  if (isTemplateNode(value)) {
-    return
-  }
-
-  if (isASTNode(value) && !value.id) {
-    ;(value as { id?: string }).id = nodeIdGenerator.next(category)
-  }
-
-  Object.values(value).forEach(entryValue => {
-    assignIdsToClonedValue(entryValue, nodeIdGenerator, category)
-  })
 }

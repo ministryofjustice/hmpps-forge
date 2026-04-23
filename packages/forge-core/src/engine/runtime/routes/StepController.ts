@@ -1,26 +1,36 @@
 import createHttpError from 'http-errors'
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { ASTNodeType } from '../../types/enums'
+import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompiledForm } from '../../compilation/CompilationFactory'
-import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import { ThunkInvocationAdapter } from '../../compilation/thunks/types'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
+import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
+import {
+  buildCompiledAnswerPreparationContext,
+  buildCompiledBaseContext,
+  buildCompiledHookLifecycleContext,
+} from '../context/compiledEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
-import { JourneyMetadata } from '../../../framework/rendering/types'
+import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../navigation/redirectTarget'
 import ContextPreparer from '../lifecycle/ContextPreparer'
-import RuntimeExpansionService from '../expansion/RuntimeExpansionService'
-import AnswerPreparer from '../lifecycle/AnswerPreparer'
-import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
-import StepFieldInventoryAnalyzer from '../validation/StepFieldInventoryAnalyzer'
-import HookExecutor from '../lifecycle/HookExecutor'
-import StepValidityAnalyzer from '../validation/StepValidityAnalyzer'
-import NavigationDecisionResolver from '../navigation/NavigationDecisionResolver'
-import ReachabilityStateProjector from '../navigation/ReachabilityStateProjector'
-import ValidationStateProjector from '../validation/ValidationStateProjector'
-import RenderProjector from '../rendering/RenderProjector'
-import RuntimeArtifacts from '../RuntimeArtifacts'
-import { JourneyRouteTemplateCatalog } from './routes.type'
+import NavigationAnalyzer, {
+  resolvePostRequestRedirect,
+  resolveStepRequestRedirect,
+} from '../navigation/NavigationAnalyzer'
+import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
+import { resolveBacklinkRouteTemplatePath } from '../navigation/NavigationPathAnalyzer'
+import ReachabilityStateProjector from '../reachability/ReachabilityStateProjector'
+import RenderContextFactory from '../rendering/RenderContextFactory'
+import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
+import { CompiledRenderResult } from '../../compilation/rendering/StepRenderCompiler'
+import { StepFieldInventory } from '../types/StepFieldInventory.type'
+import { StepValidityResult } from '../types/StepValidityResult.type'
+import {
+  CompiledAccessHookResult,
+  CompiledActionHookResult,
+  CompiledSubmitHookResult,
+} from '../../compilation/hooks/HookLifecycleCompiler'
 
 /**
  * Handles the full request lifecycle for steps.
@@ -34,27 +44,15 @@ import { JourneyRouteTemplateCatalog } from './routes.type'
 export default class StepController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
 
-  private readonly hookExecutor: HookExecutor
-
-  private readonly runtimeExpansionService: RuntimeExpansionService
-
-  private readonly validationExecutor: StepValidityAnalyzer
-
-  private readonly answerPreparer: AnswerPreparer
-
   private readonly navigationEvaluator: NavigationAnalyzer
-
-  private readonly stepFieldInventoryAnalyzer: StepFieldInventoryAnalyzer
-
-  private readonly navigationDecisionResolver: NavigationDecisionResolver
 
   private readonly reachabilityStateProjector: ReachabilityStateProjector
 
-  private readonly validationStateProjector: ValidationStateProjector
-
-  private readonly renderProjector: RenderProjector
-
   private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
+
+  private readonly navigationMetadata: JourneyMetadata[]
+
+  private readonly currentRouteTemplatePath: string
 
   constructor(
     private readonly compiledForm: CompiledForm[number],
@@ -64,24 +62,17 @@ export default class StepController<TRequest, TResponse> {
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ) {
     this.routeTemplateCatalog = routeTemplateCatalog
+    this.navigationMetadata = navigationMetadata
+    this.currentRouteTemplatePath = currentRouteTemplatePath
     this.contextPreparer = new ContextPreparer()
-    this.hookExecutor = new HookExecutor(this.dependencies.logger)
-    this.runtimeExpansionService = new RuntimeExpansionService()
-    this.validationExecutor = new StepValidityAnalyzer()
-    this.answerPreparer = new AnswerPreparer()
     this.navigationEvaluator = new NavigationAnalyzer()
-    this.stepFieldInventoryAnalyzer = new StepFieldInventoryAnalyzer()
-    this.navigationDecisionResolver = new NavigationDecisionResolver()
     this.reachabilityStateProjector = new ReachabilityStateProjector()
-    this.validationStateProjector = new ValidationStateProjector()
-    this.renderProjector = new RenderProjector(navigationMetadata, currentRouteTemplatePath)
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
-    const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
-    const plan = this.compiledForm.runtimePlan
+    const { request, context } = this.prepareRequest(req, res)
 
-    const accessResult = await this.hookExecutor.executeAccessLifecycle(plan, evaluator, context)
+    const accessResult = await this.executeAccessLifecycle(context)
 
     if (accessResult.outcome === 'redirect') {
       return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
@@ -91,27 +82,25 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    await this.runtimeExpansionService.expandAllForPlan(this.compiledForm.reachabilityPlan.entries, context, evaluator)
-    await this.answerPreparer.prepare(evaluator, context)
+    await this.prepareAnswers(context)
 
-    await this.evaluateNavigation(artifacts, evaluator, context)
-    const navigationEvaluation = artifacts.requireNavigation()
-    const reachabilityRedirect = this.navigationDecisionResolver.resolveStepRequestRedirect(navigationEvaluation)
+    const navigationEvaluation = await this.evaluateNavigation(context)
+    const reachabilityRedirect = resolveStepRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
-    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, request)
+    const renderContext = await this.buildRenderContext(context, navigationEvaluation, request)
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
-    const { request, evaluator, context, artifacts } = this.prepareRequest(req, res)
+    const { request, context } = this.prepareRequest(req, res)
     const plan = this.compiledForm.runtimePlan
 
-    const accessResult = await this.hookExecutor.executeAccessLifecycle(plan, evaluator, context)
+    const accessResult = await this.executeAccessLifecycle(context)
 
     if (accessResult.outcome === 'redirect') {
       return this.redirect(res, request, this.getRedirectTarget(accessResult.redirect))
@@ -121,26 +110,24 @@ export default class StepController<TRequest, TResponse> {
       throw createHttpError(this.getErrorStatus(accessResult.status), accessResult.message || 'Access denied')
     }
 
-    await this.runtimeExpansionService.expandAllForPlan(this.compiledForm.reachabilityPlan.entries, context, evaluator)
-    await this.answerPreparer.prepare(evaluator, context)
+    await this.prepareAnswers(context)
 
-    await this.evaluateNavigation(artifacts, evaluator, context)
-    const navigationEvaluation = artifacts.requireNavigation()
-    const reachabilityRedirect = this.navigationDecisionResolver.resolvePostRequestRedirect(navigationEvaluation)
+    const navigationEvaluation = await this.evaluateNavigation(context)
+    const reachabilityRedirect = resolvePostRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
-    await this.hookExecutor.executeActionHooks(plan, evaluator, context)
+    await this.executeActionHooks(context)
 
-    await this.runtimeExpansionService.refreshExpansion(plan.iterateNodeIds, context, evaluator)
+    let validation: StepValidityResult | undefined
 
     if (plan.hasValidatingSubmitHook) {
-      await this.evaluateValidation(artifacts, evaluator, context)
+      validation = await this.evaluateValidation(context)
     }
 
-    const submitResult = await this.hookExecutor.executeSubmitHooks(plan, evaluator, context)
+    const submitResult = await this.executeSubmitHooks(context)
 
     if (submitResult.outcome === 'error') {
       throw createHttpError(this.getErrorStatus(submitResult.status), submitResult.message || 'Submission error')
@@ -150,9 +137,9 @@ export default class StepController<TRequest, TResponse> {
       return this.redirect(res, request, this.getRedirectTarget(submitResult.redirect))
     }
 
-    const renderOptions = submitResult.validated ? { showValidationFailures: true } : {}
-
-    const renderContext = await this.renderProjector.build(plan, evaluator, context, artifacts, request, renderOptions)
+    const renderContext = await this.buildRenderContext(context, navigationEvaluation, request, validation, {
+      showValidationFailures: submitResult.validated,
+    })
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
@@ -160,11 +147,14 @@ export default class StepController<TRequest, TResponse> {
   private prepareRequest(req: TRequest, res: TResponse) {
     const request = this.dependencies.frameworkAdapter.toStepRequest(req)
     const response = this.dependencies.frameworkAdapter.toStepResponse(res)
-    const evaluator = ThunkEvaluator.withRuntimeOverlay(this.compiledForm.artefact, this.dependencies)
-    const context = this.contextPreparer.prepare(this.compiledForm.runtimePlan, evaluator, request, response)
-    const artifacts = new RuntimeArtifacts()
-
-    return { request, evaluator, context, artifacts }
+    const context = this.contextPreparer.prepare(
+      this.compiledForm.runtimePlan,
+      this.compiledForm.artefact,
+      this.dependencies,
+      request,
+      response,
+    )
+    return { request, context }
   }
 
   private redirect(res: TResponse, request: StepRequest, redirect: string): void {
@@ -189,37 +179,244 @@ export default class StepController<TRequest, TResponse> {
     return status ?? 500
   }
 
-  private async evaluateValidation(
-    artifacts: RuntimeArtifacts,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): Promise<void> {
-    const result = await this.validationExecutor.execute(this.compiledForm.runtimePlan, invoker, context, true)
+  private async executeAccessLifecycle(context: RuntimeEvaluationContext): Promise<CompiledAccessHookResult> {
+    const compiledFn = this.compiledForm.runtimePlan.compiledAccessLifecycle
 
-    artifacts.setStepValidity(result)
-    this.validationStateProjector.project(this.compiledForm.runtimePlan.stepId, artifacts, context)
+    if (!compiledFn) {
+      throw new Error(
+        `[Forge] Hook fallback is disabled — compiledAccessLifecycle is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
+
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
 
-  private async evaluateNavigation(
-    artifacts: RuntimeArtifacts,
-    invoker: ThunkInvocationAdapter,
-    context: ThunkEvaluationContext,
-  ): Promise<void> {
-    artifacts.setStepFieldInventory(
-      this.stepFieldInventoryAnalyzer.analyze(this.compiledForm.reachabilityPlan, context),
-    )
+  private async executeActionHooks(context: RuntimeEvaluationContext): Promise<CompiledActionHookResult> {
+    const compiledFn = this.compiledForm.runtimePlan.compiledActionHooks
 
-    artifacts.setNavigation(
-      await this.navigationEvaluator.evaluate(
-        this.compiledForm.reachabilityPlan,
-        this.compiledForm.runtimePlan.stepId,
-        this.routeTemplateCatalog,
-        invoker,
-        context,
-        this.validationExecutor,
-      ),
-    )
+    if (!compiledFn) {
+      throw new Error(
+        `[Forge] Hook fallback is disabled — compiledActionHooks is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
 
-    this.reachabilityStateProjector.projectToContext(artifacts, context)
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
   }
+
+  private async executeSubmitHooks(context: RuntimeEvaluationContext): Promise<CompiledSubmitHookResult> {
+    const compiledFn = this.compiledForm.runtimePlan.compiledSubmitHooks
+
+    if (!compiledFn) {
+      throw new Error(
+        `[Forge] Hook fallback is disabled — compiledSubmitHooks is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
+
+    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
+  }
+
+  private async evaluateValidation(context: RuntimeEvaluationContext): Promise<StepValidityResult> {
+    const compiledValidation = this.compiledForm.compiledValidation
+
+    if (!compiledValidation) {
+      throw new Error(
+        `[Forge] Validation fallback is disabled — compiledValidation is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
+
+    const result = await compiledValidation(buildCompiledBaseContext(context, this.dependencies.functionRegistry), true)
+
+    // Remap iterator validation failures to use the same "compiled:" + fieldCode
+    // ID scheme that the render compiler uses for iterator-generated blocks.
+    // This lets RenderContextFactory.attachValidationToBlocks() match failures
+    // to rendered blocks by ID without depending on runtime expansion.
+    result.fieldFailures = result.fieldFailures.map(failure => {
+      if (failure.blockId === ('iterator' as NodeId) && failure.blockCode) {
+        return { ...failure, blockId: `compiled:${failure.blockCode}` as NodeId }
+      }
+
+      return failure
+    })
+
+    context.global.validation = {
+      stepId: this.compiledForm.runtimePlan.stepId,
+      validated: true,
+      isValid: result.isValid,
+      fieldFailures: result.fieldFailures,
+      domainFailures: result.domainFailures,
+    }
+
+    return result
+  }
+
+  /**
+   * Calls the compiled answer preparation function, which resolves all field
+   * answers — POST extraction, formatters, dependentWhen, and default values.
+   * Sync-only compilations return immediately; async user functions return a
+   * Promise. Mutates context.global.answers in place.
+   */
+  private async prepareAnswers(context: RuntimeEvaluationContext): Promise<void> {
+    const compiledFn = this.compiledForm.compiledAnswerPreparation
+
+    if (!compiledFn) {
+      throw new Error(
+        `[Forge] Answer preparation compilation is required — compiledAnswerPreparation is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
+
+    await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
+  }
+
+  /**
+   * Builds the final RenderContext by calling the compiled render function,
+   * enriching step metadata with backlink resolution, and assembling via
+   * RenderContextFactory. Render has no interpreted fallback, so missing compiled
+   * functions fail fast before this method runs.
+   */
+  private async buildRenderContext(
+    context: RuntimeEvaluationContext,
+    navigationEvaluation: NavigationEvaluation,
+    request: StepRequest,
+    validation?: StepValidityResult,
+    options?: { showValidationFailures?: boolean },
+  ): Promise<RenderContext> {
+    const renderResult = await this.evaluateCompiledRender(context)
+    const step = this.resolveStepMetadata(renderResult.step as RenderContext['step'], request, navigationEvaluation)
+
+    return RenderContextFactory.build(
+      {
+        step,
+        ancestors: renderResult.ancestors as RenderContext['ancestors'],
+        blocks: renderResult.blocks as unknown as RenderContext['blocks'],
+        answers: context.global.answers,
+        data: context.global.data,
+        fieldValidationFailures: validation?.fieldFailures ?? [],
+        domainValidationFailures: validation?.domainFailures ?? [],
+        hasNestedBlocks: blockId => {
+          if (context.astNodeTree.getNodeType(blockId) === undefined) {
+            return true
+          }
+
+          if (context.astNodeTree.hasDescendantOfType(blockId, ASTNodeType.BLOCK)) {
+            return true
+          }
+
+          // The AST tree doesn't track iterator-produced blocks (they're compiled
+          // inline, not registered via the walker). Scan the actual block properties
+          // as a fallback to catch nested blocks generated by MAP iterators.
+          const block = renderResult.blocks.find(b => b.id === blockId)
+
+          return block !== undefined && propertiesContainBlock(block.properties)
+        },
+      },
+      {
+        navigationMetadata: this.navigationMetadata,
+        currentStepPath: this.currentRouteTemplatePath,
+        showValidationFailures: options?.showValidationFailures,
+        params: request.getParams(),
+      },
+    )
+  }
+
+  /**
+   * Calls the compiled render function with the shared compiled-function
+   * context snapshot.
+   */
+  private async evaluateCompiledRender(context: RuntimeEvaluationContext): Promise<CompiledRenderResult> {
+    const compiledFn = this.compiledForm.compiledRender
+
+    if (!compiledFn) {
+      throw new Error(
+        `[Forge] Render compilation is required — compiledRender function is missing for step "${this.compiledForm.runtimePlan.path}"`,
+      )
+    }
+
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+  }
+
+  private resolveStepMetadata(
+    step: RenderContext['step'],
+    request: StepRequest,
+    navigationEvaluation: NavigationEvaluation,
+  ): RenderContext['step'] {
+    if (step.backlink !== undefined) {
+      return step
+    }
+
+    const backPath = resolveBacklinkRouteTemplatePath(navigationEvaluation)
+
+    if (!backPath) {
+      return step
+    }
+
+    return {
+      ...step,
+      backlink: resolvePathParams(backPath, request.getParams()),
+    }
+  }
+
+  private async evaluateNavigation(context: RuntimeEvaluationContext): Promise<NavigationEvaluation> {
+    const fieldInventory = await this.evaluateCompiledFieldInventory(context)
+    const compiledResult = await this.evaluateCompiledReachability(context)
+    const navigationEvaluation = await this.navigationEvaluator.evaluate(
+      this.compiledForm.reachabilityPlan,
+      this.compiledForm.runtimePlan.stepId,
+      this.routeTemplateCatalog,
+      context,
+      compiledResult,
+      this.dependencies.functionRegistry,
+    )
+
+    this.reachabilityStateProjector.projectToContext(navigationEvaluation, fieldInventory, context)
+
+    return navigationEvaluation
+  }
+
+  private async evaluateCompiledFieldInventory(context: RuntimeEvaluationContext): Promise<StepFieldInventory[]> {
+    const compiledFn = this.compiledForm.reachabilityPlan.compiledFieldInventory
+
+    if (!compiledFn) {
+      throw new Error('[Forge] Field inventory compilation is required — compiledFieldInventory is missing from plan')
+    }
+
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+  }
+
+  /**
+   * Calls the compiled reachability function if available. Hybrid compiled
+   * functions may be sync or async, so callers always await this helper.
+   */
+  private async evaluateCompiledReachability(context: RuntimeEvaluationContext): Promise<CompiledReachabilityResult> {
+    const compiledFn = this.compiledForm.reachabilityPlan.compiledReachability
+
+    if (!compiledFn) {
+      throw new Error('[Forge] Reachability fallback is disabled — compiledReachability function is missing from plan')
+    }
+
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+  }
+}
+
+/**
+ * Recursively checks whether any value in a properties object is a block node.
+ * Used as a fallback when the AST tree can't detect iterator-produced nested blocks.
+ */
+function propertiesContainBlock(properties: Record<string, unknown>): boolean {
+  return Object.values(properties).some(valueContainsBlock)
+}
+
+function valueContainsBlock(value: unknown): boolean {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return false
+  }
+
+  if ('type' in value && (value as Record<string, unknown>).type === ASTNodeType.BLOCK) {
+    return true
+  }
+
+  if (Array.isArray(value)) {
+    return value.some(valueContainsBlock)
+  }
+
+  return Object.values(value as Record<string, unknown>).some(valueContainsBlock)
 }

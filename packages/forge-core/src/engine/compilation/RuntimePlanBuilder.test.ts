@@ -157,13 +157,6 @@ describe('RuntimePlanBuilder', () => {
       dependencies.nodeRegistry.register(iterateA.id, iterateA)
       dependencies.nodeRegistry.register(iterateB.id, iterateB)
 
-      dependencies.metadataRegistry.set(step.id, 'attachedToParentNode', journey.id)
-      dependencies.metadataRegistry.set(block.id, 'attachedToParentNode', step.id)
-      dependencies.metadataRegistry.set(staticValidatingField.id, 'attachedToParentNode', step.id)
-      dependencies.metadataRegistry.set(iterateA.id, 'attachedToParentNode', block.id)
-      dependencies.metadataRegistry.set(iterateB.id, 'attachedToParentNode', block.id)
-      dependencies.metadataRegistry.set(externalBlock.id, 'attachedToParentNode', journey.id)
-
       dependencies.astNodeTree.addNode(journey.id)
       dependencies.astNodeTree.addNode(step.id, journey.id)
       dependencies.astNodeTree.addNode(block.id, step.id)
@@ -172,11 +165,7 @@ describe('RuntimePlanBuilder', () => {
       dependencies.astNodeTree.addNode(iterateB.id, block.id)
       dependencies.astNodeTree.addNode(externalBlock.id, journey.id)
 
-      const builder = new RuntimePlanBuilder(
-        dependencies.nodeRegistry,
-        dependencies.metadataRegistry,
-        dependencies.astNodeTree,
-      )
+      const builder = new RuntimePlanBuilder(dependencies.nodeRegistry, dependencies.astNodeTree)
 
       // Act
       const result = builder.buildStepRuntimePlan(step)

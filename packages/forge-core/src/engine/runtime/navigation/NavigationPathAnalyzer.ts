@@ -1,6 +1,5 @@
-import { pickTieBreakerWinner } from './tieBreakerSelection'
 import { NodeId } from '../../types/ast.type'
-import { NavigationStepState } from './NavigationEvaluation.type'
+import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
 
 export interface NavigationPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]
@@ -12,6 +11,48 @@ interface ProgressPathCandidate {
   entry: NavigationStepState
   path: NavigationStepState[]
   progressDepth: number
+}
+
+/**
+ * Picks the winning candidate according to reachability tie-breakers.
+ *
+ * Candidates must be supplied in journey declaration order. The highest
+ * compiled priority wins; unmatched candidates fall back to declaration order.
+ */
+export function pickTieBreakerWinner(candidates: NavigationStepState[]): NavigationStepState | undefined {
+  if (candidates.length === 0) {
+    return undefined
+  }
+
+  return candidates.reduce((best, candidate) => {
+    const bestPriority = best.tieBreakerPriority ?? -Infinity
+    const candidatePriority = candidate.tieBreakerPriority ?? -Infinity
+
+    return candidatePriority > bestPriority ? candidate : best
+  })
+}
+
+export function resolveBacklinkRouteTemplatePath(evaluation: NavigationEvaluation): string | undefined {
+  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+
+  return resolveBacklinkRouteTemplatePathForStep(currentStep, evaluation.canonicalPathRouteTemplatePaths)
+}
+
+export function resolveBacklinkRouteTemplatePathForStep(
+  step: NavigationStepState | undefined,
+  canonicalPathRouteTemplatePaths: string[],
+): string | undefined {
+  if (!step) {
+    return undefined
+  }
+
+  const currentIndex = canonicalPathRouteTemplatePaths.indexOf(step.routeTemplatePath)
+
+  if (currentIndex <= 0) {
+    return undefined
+  }
+
+  return canonicalPathRouteTemplatePaths[currentIndex - 1]
 }
 
 export default class NavigationPathAnalyzer {
