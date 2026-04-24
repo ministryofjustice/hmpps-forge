@@ -2,7 +2,7 @@
 title: Validation
 section: building-journeys
 path: building-journeys/validation
-teaches: [validWhen, validation, ValidationExpr, submissionOnly, Self, formatters, Transformer, dependentWhen, cross-field-validation]
+teaches: [validWhen, validation, ValidationExpr, submissionOnly, groups, validation-groups, Self, formatters, Transformer, dependentWhen, cross-field-validation, validateOnEntry]
 prerequisites: [step, StepDefinition, block, field, FieldBlockDefinition, onSubmission, submit]
 ---
 
@@ -69,17 +69,20 @@ POST received
  |    1. Capture       Raw value from the POST body
  |    2. Format        Run the field's formatters in sequence
  |    3. Dependency    Evaluate dependentWhen; clear value if false
- |    4. Validate      Evaluate the field's validWhen rules
  |
- |-- Step validation   Evaluate the step's validWhen rules
- |
- +-- Submit hook       Read the combined result, branch accordingly
+ +-- Submit hook
+      |
+      1. onAlways      Run effects that should always execute
+      2. Validate      Evaluate validWhen rules for the requested groups
+      3. Branch        Run onValid or onInvalid based on the result
 ```
 
 Each stage feeds into the next. Formatters clean the value before
 validation sees it. `dependentWhen` can remove a field from
-validation entirely. And the submit hook receives the combined
-result of all field and step rules to decide what happens next.
+validation entirely. Validation runs inside the matched submit
+hook, after `onAlways` effects but before `onValid`/`onInvalid`
+branching. This means effects in `onAlways` can set up data that
+validation depends on.
 
 ### When validation runs
 
@@ -89,9 +92,10 @@ reach it. These traversal checks use the same rules with one
 difference: rules marked `submissionOnly: true` are skipped.
 
 Validation of the current page only runs on POST, and only when the
-matched submit hook has `validate: true`. This is the full pipeline
-shown above - capturing values, formatting, evaluating dependencies,
-and checking the field and step rules.
+matched submit hook has `validate` set to `true` or
+`{ groups: [...] }`. This is the full pipeline shown above -
+capturing values, formatting, evaluating dependencies, and checking
+the field and step rules for the requested groups.
 
 For more on how Forge determines reachability, see
 [Routing and entry points](routing-and-entry-points).
@@ -172,6 +176,25 @@ This is useful for:
   submission, such as collecting individual fields into a different
   structure, where traversal would re-validate the now-empty
   originals and block access to later steps
+
+### groups (Optional)
+
+Assigns the rule to one or more named validation groups. When
+omitted, the rule belongs to the `'default'` group.
+
+```typescript
+validation({
+  condition: Self().match(Condition.IsRequired()),
+  message: 'Enter a postcode',
+  groups: ['find-postcode'],
+})
+```
+
+Groups let you validate subsets of a step's fields independently.
+A submit hook chooses which groups to validate by passing
+`validate: { groups: ['group-name'] }`. Only rules belonging to
+one of the requested groups will run. See
+[Validation groups](#validation-groups) for the full pattern.
 
 ### details (Optional)
 
@@ -425,6 +448,127 @@ be empty" is a field-level concern.
 
 ---
 
+## Validation groups
+
+By default, every validation rule belongs to the `'default'`
+group. When a submit hook sets `validate: true`, Forge validates
+the `'default'` group - which means every rule that does not
+specify a `groups` property.
+
+You can assign rules to named groups and have different submit
+hooks validate different groups. This is useful when a single
+step has multiple buttons that should each validate a different
+subset of fields.
+
+### Assigning rules to groups
+
+Add a `groups` array to a validation rule to place it in one or
+more named groups:
+
+```typescript
+validation({
+  condition: Self().match(Condition.IsRequired()),
+  message: 'Enter a postcode',
+  groups: ['lookup'],
+})
+```
+
+A rule can belong to multiple groups:
+
+```typescript
+validation({
+  condition: Self().match(Condition.IsRequired()),
+  message: 'Enter your email',
+  groups: ['contact', 'newsletter'],
+})
+```
+
+Rules without a `groups` property belong to `'default'`. Rules
+with an explicit `groups` array do **not** belong to `'default'`
+unless you include it:
+
+```typescript
+// Only in 'lookup' — not validated by validate: true
+groups: ['lookup']
+
+// In both 'lookup' and 'default'
+groups: ['lookup', 'default']
+```
+
+### Validating groups in submit hooks
+
+Pass `validate: { groups: [...] }` to tell a submit hook which
+groups to validate:
+
+```typescript
+onSubmission: [
+  submit({
+    when: Post('action').match(Condition.Equals('find-address')),
+    validate: { groups: ['find-postcode'] },
+    onValid: {
+      effects: [MyEffects.LookupAddress()],
+    },
+  }),
+  submit({
+    when: Post('action').match(Condition.Equals('continue')),
+    validate: { groups: ['address'] },
+    onValid: {
+      effects: [MyEffects.SaveAnswers()],
+      next: [redirect({ goto: 'next-step' })],
+    },
+  }),
+]
+```
+
+When the user presses "Find address", only rules in the
+`'find-postcode'` group run. When they press "Continue", only
+rules in the `'address'` group run. Neither button triggers
+validation of the other group's fields.
+
+`validate: true` is equivalent to
+`validate: { groups: ['default'] }`.
+
+### When to use groups
+
+Groups work well when a step has multiple actions that each need
+their own validation scope:
+
+- **Lookup + continue** — validate the search input on lookup,
+  validate the result fields on continue.
+- **Save draft + submit** — validate required fields only on
+  final submission, skip them on draft save.
+- **Multi-section forms** — validate each section independently
+  with its own button.
+
+For steps with a single submit button that validates everything,
+groups are unnecessary. Leave `groups` off your rules and use
+`validate: true`.
+
+### Entry validation
+
+Steps can validate specific groups when the page loads using
+`validateOnEntry`. This runs validation on GET requests and
+renders the page with any failures visible immediately, without
+the user having to submit first.
+
+```typescript
+step({
+  path: '/confirm',
+  title: 'Confirm details',
+  validateOnEntry: [
+    { groups: ['eligibility'], when: true },
+  ],
+  blocks: [/* ... */],
+  onSubmission: [/* ... */],
+})
+```
+
+The `when` property controls whether entry validation runs. Set
+it to `true` to always validate on entry, or pass a predicate to
+validate conditionally.
+
+---
+
 ## Complex conditions
 
 Conditions can be composed using `and`, `or`, `not`, and `xor`
@@ -484,7 +628,8 @@ MOJDatePicker({
 ## Validation and submit hooks
 
 Validation results are consumed by submit hooks. For validation to
-run at all, the matched submit hook must set `validate: true`:
+run, the matched submit hook must set `validate` to `true` or to a
+group list:
 
 ```typescript
 onSubmission: [
@@ -504,10 +649,12 @@ onSubmission: [
 ]
 ```
 
-When `validate` is true, the hook branches on the result:
+When `validate` is `true` or `{ groups: [...] }`, the hook runs
+`onAlways` first, then validates the requested groups and branches
+on the result:
 
-- `onAlways` runs regardless of the outcome
-- `onValid` runs when every rule passed
+- `onAlways` runs before validation
+- `onValid` runs when every rule in the requested groups passed
 - `onInvalid` runs when any rule failed
 
 Effects in each branch run before `next` outcomes are evaluated, so
@@ -543,3 +690,10 @@ For full details on submit hooks, see
 - **Extract reusable rule arrays.** Common patterns like "required
   valid date" can be shared across fields by spreading a
   validation rule arrays into `validWhen`.
+- **Use validation groups when a step has multiple actions.** If
+  each button should validate a different set of fields, assign
+  rules to named groups and use `validate: { groups: [...] }` on
+  each submit hook.
+- **Keep ungrouped rules for simple steps.** If you have a single
+  submit button that validates everything, `validate: true` and
+  no `groups` property is clearer than explicitly naming a group.
