@@ -32,7 +32,6 @@ export interface EffectEvaluationContext {
  * - Response mutations (headers, cookies)
  *
  * The hookType parameter determines the source recorded when setting answers.
- * This enables precedence logic: action-set answers are protected from POST override.
  *
  * @typeParam TData - Type for stored data (accessed via getData/setData)
  * @typeParam TAnswers - Type for form answers (accessed via getAnswer/setAnswer)

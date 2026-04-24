@@ -2,7 +2,7 @@
 title: Add another
 section: patterns
 path: patterns/add-another
-teaches: [CollectionBlock, Iterator.Map, Item, action, onAction, onAccess, query-param-removal, query-param-edit, validWhen-step, LoadItemForEdit, EditItemInCollection]
+teaches: [CollectionBlock, Iterator.Map, Item, submit, onSubmission, onAccess, query-param-removal, query-param-edit, validWhen-step, LoadItemForEdit, EditItemInCollection]
 prerequisites: [journey, step, Answer, submit, effects, validation]
 ---
 
@@ -338,23 +338,27 @@ sends the user back to the list page where the updated card appears.
 
 ---
 
-### Saving state with an action hook
+### Saving state before redirecting
 
 When the user clicks "Add another", the step saves draft answers
-before redirecting. An `onAction` hook handles this:
+before redirecting. A non-validating submit hook handles this:
 
 ```typescript
-onAction: [
-  action({
+onSubmission: [
+  submit({
     when: Post('action').match(Condition.Equals('add-another')),
-    effects: [PatternEffects.SaveDraftAnswers('add-another')],
+    validate: false,
+    onAlways: {
+      effects: [PatternEffects.SaveDraftAnswers('add-another')],
+      next: [redirect({ goto: 'add-contact' })],
+    },
   }),
 ]
 ```
 
-`onAction` runs after the POST body is parsed but before
-`onSubmission`. This ensures the collection state is persisted to the
-session before the redirect clears the form context.
+`onAlways` runs before any redirect outcome, so the collection state
+is persisted to the session before the redirect clears the form
+context.
 
 ---
 
@@ -467,5 +471,5 @@ have legitimately reached that part of the journey.
   a validation message. For example, requiring at least one contact
   before allowing the user to proceed.
 - **Reorder items.** Add move-up and move-down links to each card
-  that swap adjacent items in the array via an action hook and
+  that swap adjacent items in the array via a submit hook and
   effect.

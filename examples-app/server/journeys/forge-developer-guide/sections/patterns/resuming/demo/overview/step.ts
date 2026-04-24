@@ -1,4 +1,4 @@
-import { action, Post, Condition, tieBreaker } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { submit, Post, Condition, tieBreaker } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'
 import {
@@ -41,26 +41,35 @@ export const overviewStep = patternStep({
   // Demo aid: seed or clear saved answers so you can try different resume
   // states without filling in every form. Each button posts an action value
   // that triggers the matching handler below.
-  onAction: [
-    action({
+  onSubmission: [
+    submit({
       when: Post('action').match(Condition.Equals('seed-partial')),
-      effects: [PatternEffects.SeedDraftAnswers('resuming', { fullName: 'Ada Lovelace' })],
+      validate: false,
+      onAlways: {
+        effects: [PatternEffects.SeedDraftAnswers('resuming', { fullName: 'Ada Lovelace' })],
+      },
     }),
-    action({
+    submit({
       when: Post('action').match(Condition.Equals('seed-complete')),
-      effects: [
-        PatternEffects.SeedDraftAnswers('resuming', {
-          fullName: 'Ada Lovelace',
-          role: 'Developer',
-        }),
-      ],
+      validate: false,
+      onAlways: {
+        effects: [
+          PatternEffects.SeedDraftAnswers('resuming', {
+            fullName: 'Ada Lovelace',
+            role: 'Developer',
+          }),
+        ],
+      },
     }),
-    action({
+    submit({
       when: Post('action').match(Condition.Equals('clear')),
-      effects: [
-        PatternEffects.ClearAnswers('resuming'),
-        PatternEffects.ClearDraftAnswers('resuming'),
-      ],
+      validate: false,
+      onAlways: {
+        effects: [
+          PatternEffects.ClearAnswers('resuming'),
+          PatternEffects.ClearDraftAnswers('resuming'),
+        ],
+      },
     }),
   ],
   sourceBase: 'resuming/demo',

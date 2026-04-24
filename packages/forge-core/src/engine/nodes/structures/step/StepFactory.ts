@@ -56,10 +56,6 @@ export default class StepFactory {
       properties.code = dataProperties.code
     }
 
-    if (dataProperties.onAction !== undefined) {
-      properties.onAction = this.nodeFactory.transformValue(dataProperties.onAction)
-    }
-
     if (dataProperties.onSubmission !== undefined) {
       properties.onSubmission = this.nodeFactory.transformValue(dataProperties.onSubmission)
     }

@@ -1,6 +1,5 @@
 import {
   submit,
-  action,
   access,
   redirect,
   validation,
@@ -40,14 +39,6 @@ export const yourContactsStep = patternStep({
       next: [redirect({ goto: 'your-contacts' })],
     }),
   ],
-  // Saves the collection to the session before the add-another redirect,
-  // so the new item persists even though the redirect clears form context.
-  onAction: [
-    action({
-      when: Post('action').match(Condition.Equals('add-another')),
-      effects: [PatternEffects.SaveDraftAnswers('add-another')],
-    }),
-  ],
   onSubmission: [
     // "Add another" skips validation so the user is never blocked from
     // adding their first contact when the collection is empty.
@@ -55,6 +46,7 @@ export const yourContactsStep = patternStep({
       when: Post('action').match(Condition.Equals('add-another')),
       validate: false,
       onAlways: {
+        effects: [PatternEffects.SaveDraftAnswers('add-another')],
         next: [redirect({ goto: 'add-contact' })],
       },
     }),

@@ -3,7 +3,7 @@ title: Custom effects
 section: building-functions-and-components
 path: building-functions-and-components/custom-effects
 teaches: [defineEffectFunctions, EffectFunctionExpr, EffectFunctionContext, custom-effect-shape, effect-implementation, typed-context]
-prerequisites: [onAccess, onAction, onSubmission, access, action, submit, Data, Answer, createForgePackage]
+prerequisites: [onAccess, onSubmission, access, submit, Data, Answer, createForgePackage]
 ---
 
 <p class="govuk-caption-xl">Functions</p>

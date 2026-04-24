@@ -1,7 +1,7 @@
 import { CompilationDependencies } from './CompilationDependencies'
 import { ASTNode, AstNodeId } from '../types/engine.type'
 import { ASTNodeType } from '../types/enums'
-import { AccessHookASTNode, ActionHookASTNode, IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { BasicBlockASTNode, FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { TemplateValue } from '../types/template.type'
 import { BlockType, ExpressionType, IteratorType, HookType } from '../../authoring/types/enums'
@@ -12,14 +12,6 @@ function createAccessHook(id: AstNodeId): AccessHookASTNode {
   return ASTTestFactory.hook(HookType.ACCESS)
     .withId(id)
     .build() as AccessHookASTNode
-}
-
-function createActionHook(id: AstNodeId): ActionHookASTNode {
-  return ASTTestFactory.hook(HookType.ACTION)
-    .withId(id)
-    .withProperty('when', { id: 'compile_ast:99', type: ASTNodeType.EXPRESSION })
-    .withProperty('effects', [])
-    .build() as ActionHookASTNode
 }
 
 function createSubmitHook(id: AstNodeId): SubmitHookASTNode {
@@ -43,7 +35,6 @@ function createStep(
   id: AstNodeId,
   options: {
     onAccess?: AccessHookASTNode[]
-    onAction?: ActionHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
   } = {},
 ): StepASTNode {
@@ -54,10 +45,6 @@ function createStep(
 
   if (options.onAccess) {
     step.withProperty('onAccess', options.onAccess)
-  }
-
-  if (options.onAction) {
-    step.withProperty('onAction', options.onAction)
   }
 
   if (options.onSubmission) {
@@ -117,12 +104,10 @@ describe('RuntimePlanBuilder', () => {
       const dependencies = new CompilationDependencies()
       const journeyAccess = createAccessHook('compile_ast:1')
       const stepAccess = createAccessHook('compile_ast:2')
-      const action = createActionHook('compile_ast:3')
       const submit = createSubmitHook('compile_ast:4')
       const journey = createJourney('compile_ast:5', [journeyAccess])
       const step = createStep('compile_ast:6', {
         onAccess: [stepAccess],
-        onAction: [action],
         onSubmission: [submit],
       })
       const block = createBlock('compile_ast:7')
@@ -176,7 +161,6 @@ describe('RuntimePlanBuilder', () => {
         path: 'step',
         code: undefined,
         accessAncestorIds: [journey.id, step.id],
-        actionHookIds: [action.id],
         submitHookIds: [submit.id],
         iterateNodeIds: [iterateA.id, iterateB.id],
         validationBlockIds: [staticValidatingField.id],

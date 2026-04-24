@@ -1,7 +1,7 @@
 /**
  * Hook types that can set answers.
  */
-export type HookType = 'access' | 'action' | 'submit'
+export type HookType = 'access' | 'submit'
 
 /**
  * Sources that can provide answer values.

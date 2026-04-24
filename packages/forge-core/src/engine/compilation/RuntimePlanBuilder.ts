@@ -2,11 +2,7 @@ import { normalizeRelativePath } from '../../framework/path/routePath'
 import { NodeId } from '../types/ast.type'
 import type { CompiledAnswerPreparationFunction } from './answer-preparation/StepAnswerPreparationCompiler'
 import type { CompiledFieldInventoryFunction } from './field-inventory/StepFieldInventoryCompiler'
-import type {
-  CompiledAccessLifecycleFunction,
-  CompiledActionHooksFunction,
-  CompiledSubmitHooksFunction,
-} from './hooks/HookLifecycleCompiler'
+import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hooks/HookLifecycleCompiler'
 import type { CompiledReachabilityFunction } from './reachability/ReachabilityCompiler'
 import type { CompiledValidationFunction } from './validation/StepValidationCompiler'
 import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
@@ -22,7 +18,6 @@ export interface StepRuntimePlan {
   path: string
   code?: string
   accessAncestorIds: NodeId[]
-  actionHookIds: NodeId[]
   submitHookIds: NodeId[]
   iterateNodeIds: NodeId[]
   validationBlockIds: NodeId[]
@@ -32,7 +27,6 @@ export interface StepRuntimePlan {
   hasValidatingSubmitHook: boolean
   hasDomainValidation: boolean
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledActionHooks?: CompiledActionHooksFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
 }
 
@@ -260,7 +254,6 @@ export default class RuntimePlanBuilder {
     const stepId = stepNode.id
 
     const accessAncestorIds = getAncestorChain(stepId, this.astNodeTree)
-    const actionHookIds = (stepNode.properties.onAction ?? []).map(hook => hook.id)
     const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
     const iterateNodeIds = this.findIterateNodeIds(stepId)
     const validationBlockIds = this.findValidationBlockIds(stepId)
@@ -272,7 +265,6 @@ export default class RuntimePlanBuilder {
       path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
       accessAncestorIds,
-      actionHookIds,
       submitHookIds,
       iterateNodeIds,
       validationBlockIds,

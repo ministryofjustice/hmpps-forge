@@ -3,7 +3,7 @@ title: Effects
 section: authoring-language
 path: authoring-language/effects
 teaches: [effects, effect-references-in-hooks, effect-arguments]
-prerequisites: [onAccess, onAction, onSubmission, access, action, submit, Data, Answer]
+prerequisites: [onAccess, onSubmission, access, submit, Data, Answer]
 ---
 
 <p class="govuk-caption-xl">Functions</p>
@@ -100,11 +100,14 @@ onAccess: [
   }),
 ]
 
-// Action hook: handle an in-page lookup
-onAction: [
-  action({
+// Submit hook: handle an in-page lookup
+onSubmission: [
+  submit({
     when: Post('action').match(Condition.Equals('lookup')),
-    effects: [MyEffects.LookupPostcode(Post('postcode'))],
+    validate: false,
+    onAlways: {
+      effects: [MyEffects.LookupPostcode(Post('postcode'))],
+    },
   }),
 ]
 

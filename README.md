@@ -20,9 +20,8 @@ manages page flow - so you focus on what to ask, not how to wire it up.
 - **Validation pipeline** - field-level and step-level rules with formatters, 
   conditional validation, cross-field checks, and error summaries wired to the 
   right fields automatically.
-- **Hooks and lifecycle** - three hook types (`onAccess`, `onAction`, 
-  `onSubmission`) let you load data, handle in-page actions, and control what 
-  happens on form submission.
+- **Hooks and lifecycle** - `onAccess` and `onSubmission` let you load data,
+  handle POST intents, and control what happens on form submission.
 - **Reachability** - prevents users skipping ahead, clears stale answers when 
   the path changes, and supports resuming partially-completed journeys.
 - **Navigation tree** - automatically built from your journey definitions and 

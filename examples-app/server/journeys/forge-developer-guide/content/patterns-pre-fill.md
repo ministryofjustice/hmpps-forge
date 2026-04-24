@@ -195,5 +195,5 @@ navigates to check-your-answers.
   `context.setData()` to surface an error message through an
   `InsetText` or `ErrorSummary` block, rather than throwing.
 - **Clearing pre-filled values.** Add a "Clear" button as another
-  action that resets the address fields, letting the user enter an
-  address manually.
+  submit intent that resets the address fields, letting the user
+  enter an address manually.

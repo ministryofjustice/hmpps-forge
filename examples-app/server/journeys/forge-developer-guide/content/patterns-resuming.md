@@ -157,17 +157,20 @@ from the right place.
 
 ### Clearing answers
 
-Clearing stored answers can be handled by an `onAction` hook on
-any step. The overview page in this demo includes a button that clears
-both committed and draft answers, then re-renders the page:
+Clearing stored answers can be handled by a non-validating submit hook
+on any step. The overview page in this demo includes a button that
+clears both committed and draft answers, then re-renders the page:
 
 ```typescript
-action({
+submit({
   when: Post('action').match(Condition.Equals('clear')),
-  effects: [
-    PatternEffects.ClearAnswers('resuming'),
-    PatternEffects.ClearDraftAnswers('resuming'),
-  ],
+  validate: false,
+  onAlways: {
+    effects: [
+      PatternEffects.ClearAnswers('resuming'),
+      PatternEffects.ClearDraftAnswers('resuming'),
+    ],
+  },
 })
 ```
 

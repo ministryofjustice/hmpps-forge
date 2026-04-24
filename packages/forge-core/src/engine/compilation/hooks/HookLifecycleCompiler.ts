@@ -4,7 +4,6 @@ import { ASTNode } from '../../types/ast.type'
 import { ASTNodeType } from '../../types/enums'
 import {
   AccessHookASTNode,
-  ActionHookASTNode,
   FunctionASTNode,
   RedirectOutcomeASTNode,
   SubmitHookASTNode,
@@ -45,10 +44,6 @@ export interface CompiledAccessHookResult {
   message?: string
 }
 
-export interface CompiledActionHookResult {
-  executed: boolean
-}
-
 export interface CompiledSubmitHookResult {
   executed: boolean
   validated: boolean
@@ -63,10 +58,6 @@ export type CompiledAccessLifecycleFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
 
-export type CompiledActionHooksFunction = (
-  ctx: HookLifecycleContext,
-) => CompiledActionHookResult | Promise<CompiledActionHookResult>
-
 export type CompiledSubmitHooksFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
@@ -76,18 +67,13 @@ type GeneratedAccessLifecycleFunction = (
   EffectFunctionContext: typeof EffectFunctionContextCtor,
 ) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
 
-type GeneratedActionHooksFunction = (
-  ctx: HookLifecycleContext,
-  EffectFunctionContext: typeof EffectFunctionContextCtor,
-) => CompiledActionHookResult | Promise<CompiledActionHookResult>
-
 type GeneratedSubmitHooksFunction = (
   ctx: HookLifecycleContext,
   EffectFunctionContext: typeof EffectFunctionContextCtor,
 ) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
 
 /**
- * Compiles access, action, and submit hook lifecycles into generated functions.
+ * Compiles access and submit hook lifecycles into generated functions.
  *
  * Hook ordering and branching are fixed by the AST, so the compiler emits that
  * control flow directly: when/guard predicates, effect calls, validation branch
@@ -107,25 +93,6 @@ export default class HookLifecycleCompiler {
       ['ctx', 'EffectFunctionContext'],
       functionRegistry,
       () => this.buildAccessSource(accessAncestors),
-      { forceAsync: true },
-    )
-
-    if (generated === undefined) {
-      return undefined
-    }
-
-    return ctx => generated(ctx, EffectFunctionContextCtor)
-  }
-
-  compileActionHooks(
-    hooks: ActionHookASTNode[],
-    functionRegistry: FunctionRegistry,
-  ): CompiledActionHooksFunction | undefined {
-    const generated = compileGeneratedFunction<GeneratedActionHooksFunction>(
-      this.expr,
-      ['ctx', 'EffectFunctionContext'],
-      functionRegistry,
-      () => this.buildActionSource(hooks),
       { forceAsync: true },
     )
 
@@ -159,10 +126,6 @@ export default class HookLifecycleCompiler {
     return buildGeneratedSource(this.expr, functionRegistry, () => this.buildAccessSource(accessAncestors))
   }
 
-  generateActionSource(hooks: ActionHookASTNode[], functionRegistry?: FunctionRegistry): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildActionSource(hooks))
-  }
-
   generateSubmitSource(hooks: SubmitHookASTNode[], functionRegistry?: FunctionRegistry): string {
     return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSubmitSource(hooks))
   }
@@ -178,19 +141,6 @@ export default class HookLifecycleCompiler {
     })
 
     emitter.emit('return { executed: true, outcome: "continue" };')
-
-    return emitter.toString()
-  }
-
-  private buildActionSource(hooks: ActionHookASTNode[]): string {
-    const emitter = this.createEmitter()
-
-    hooks.forEach(hook => {
-      this.compileActionHook(hook, emitter)
-      emitter.emitBlank()
-    })
-
-    emitter.emit('return { executed: false };')
 
     return emitter.toString()
   }
@@ -230,18 +180,6 @@ export default class HookLifecycleCompiler {
       })
       emitter.emitBlock(`else`, () => {
         this.compileOutcomeReturns(hook.properties.next, emitter, 'executed: true, ')
-      })
-    })
-  }
-
-  private compileActionHook(hook: ActionHookASTNode, emitter: CodeEmitter): void {
-    const whenVar = this.compilePredicate(hook.properties.when, false, emitter)
-
-    emitter.emitBlock(`if (${whenVar})`, () => {
-      const failedVar = this.compileEffects(hook.properties.effects, HookType.ACTION, emitter)
-
-      emitter.emitBlock(`if (!${failedVar})`, () => {
-        emitter.emit('return { executed: true };')
       })
     })
   }
@@ -527,8 +465,6 @@ export default class HookLifecycleCompiler {
 
   private toRuntimeHookType(hookType: HookType): RuntimeHookType {
     switch (hookType) {
-      case HookType.ACTION:
-        return 'action'
       case HookType.SUBMIT:
         return 'submit'
       case HookType.ACCESS:

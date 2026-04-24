@@ -107,40 +107,31 @@ export default class StepAnswerPreparationCompiler {
 
   private compilePostPath(block: FieldBlockASTNode, emitter: CodeEmitter, codeExpr: string): void {
     const histVar = emitter.nextVar('_hist')
-    const lastSrcVar = emitter.nextVar('_lastSrc')
 
-    // Action hooks can intentionally set an answer before POST processing. In
-    // that case the posted body must not immediately overwrite it.
     emitter.emit(`var ${histVar} = ctx.answers[${codeExpr}];`)
-    emitter.emit(
-      `var ${lastSrcVar} = ${histVar} && ${histVar}.mutations && ${histVar}.mutations.length > 0 ? ${histVar}.mutations[${histVar}.mutations.length - 1].source : undefined;`,
-    )
+    this.emitEnsureHistory(emitter, codeExpr, histVar)
 
-    emitter.emitBlock(`if (${lastSrcVar} !== "action")`, () => {
-      this.emitEnsureHistory(emitter, codeExpr, histVar)
+    const rawVar = emitter.nextVar('_raw')
 
-      const rawVar = emitter.nextVar('_raw')
+    emitter.emit(`var ${rawVar} = ctx.post[${codeExpr}];`)
+    this.compileMultipleBehavior(block, emitter, rawVar)
 
-      emitter.emit(`var ${rawVar} = ctx.post[${codeExpr}];`)
-      this.compileMultipleBehavior(block, emitter, rawVar)
+    this.emitPushMutation(emitter, histVar, rawVar, 'post')
 
-      this.emitPushMutation(emitter, histVar, rawVar, 'post')
+    const formatters = block.properties.formatters
 
-      const formatters = block.properties.formatters
+    if (Array.isArray(formatters) && formatters.length > 0) {
+      const fmtVar = emitter.nextVar('_fv')
 
-      if (Array.isArray(formatters) && formatters.length > 0) {
-        const fmtVar = emitter.nextVar('_fv')
+      emitter.emit(`var ${fmtVar} = ${rawVar};`)
+      this.compileFormatterPipeline(formatters, emitter, fmtVar)
 
-        emitter.emit(`var ${fmtVar} = ${rawVar};`)
-        this.compileFormatterPipeline(formatters, emitter, fmtVar)
+      emitter.emitBlock(`if (${fmtVar} !== ${rawVar})`, () => {
+        this.emitPushMutation(emitter, histVar, fmtVar, 'processed')
+      })
+    }
 
-        emitter.emitBlock(`if (${fmtVar} !== ${rawVar})`, () => {
-          this.emitPushMutation(emitter, histVar, fmtVar, 'processed')
-        })
-      }
-
-      this.compileDependentWhen(block.properties.dependentWhen, emitter, codeExpr, histVar)
-    })
+    this.compileDependentWhen(block.properties.dependentWhen, emitter, codeExpr, histVar)
   }
 
   private compileGetPath(block: FieldBlockASTNode, emitter: CodeEmitter, codeExpr: string): void {
@@ -346,63 +337,55 @@ export default class StepAnswerPreparationCompiler {
     const histVar = emitter.nextVar('_thist')
 
     emitter.emit(`var ${histVar} = ctx.answers[${codeExpr}];`)
-    const lastSrcVar = emitter.nextVar('_tlastSrc')
+    this.emitEnsureHistory(emitter, codeExpr, histVar)
 
-    emitter.emit(
-      `var ${lastSrcVar} = ${histVar} && ${histVar}.mutations && ${histVar}.mutations.length > 0 ? ${histVar}.mutations[${histVar}.mutations.length - 1].source : undefined;`,
-    )
+    const rawVar = emitter.nextVar('_traw')
 
-    emitter.emitBlock(`if (${lastSrcVar} !== "action")`, () => {
-      this.emitEnsureHistory(emitter, codeExpr, histVar)
+    emitter.emit(`var ${rawVar} = ctx.post[${codeExpr}];`)
 
-      const rawVar = emitter.nextVar('_traw')
+    const isMultiple = field.properties?.multiple === true
 
-      emitter.emit(`var ${rawVar} = ctx.post[${codeExpr}];`)
+    if (isMultiple) {
+      emitter.emitBlock(`if (!Array.isArray(${rawVar}))`, () => {
+        emitter.emit(`${rawVar} = ${rawVar} !== undefined && ${rawVar} !== null ? [${rawVar}] : [];`)
+      })
+    } else {
+      emitter.emitBlock(`if (Array.isArray(${rawVar}))`, () => {
+        const foundVar = emitter.nextVar('_tfirst')
+        const tfiVar = emitter.nextVar('_tfi')
 
-      const isMultiple = field.properties?.multiple === true
+        emitter.emit(`var ${foundVar} = undefined;`)
+        emitter.emitBlock(`for (var ${tfiVar} = 0; ${tfiVar} < ${rawVar}.length; ${tfiVar}++)`, () => {
+          const valVar = emitter.nextVar('_tfval')
 
-      if (isMultiple) {
-        emitter.emitBlock(`if (!Array.isArray(${rawVar}))`, () => {
-          emitter.emit(`${rawVar} = ${rawVar} !== undefined && ${rawVar} !== null ? [${rawVar}] : [];`)
+          emitter.emit(`var ${valVar} = ${rawVar}[${tfiVar}];`)
+          emitter.emitBlock(
+            `if (${valVar} !== undefined && ${valVar} !== null && (typeof ${valVar} !== "string" || ${valVar}.trim() !== ""))`,
+            () => {
+              emitter.emit(`${foundVar} = ${valVar}; break;`)
+            },
+          )
         })
-      } else {
-        emitter.emitBlock(`if (Array.isArray(${rawVar}))`, () => {
-          const foundVar = emitter.nextVar('_tfirst')
-          const tfiVar = emitter.nextVar('_tfi')
+        emitter.emit(`${rawVar} = ${foundVar};`)
+      })
+    }
 
-          emitter.emit(`var ${foundVar} = undefined;`)
-          emitter.emitBlock(`for (var ${tfiVar} = 0; ${tfiVar} < ${rawVar}.length; ${tfiVar}++)`, () => {
-            const valVar = emitter.nextVar('_tfval')
+    this.emitPushMutation(emitter, histVar, rawVar, 'post')
 
-            emitter.emit(`var ${valVar} = ${rawVar}[${tfiVar}];`)
-            emitter.emitBlock(
-              `if (${valVar} !== undefined && ${valVar} !== null && (typeof ${valVar} !== "string" || ${valVar}.trim() !== ""))`,
-              () => {
-                emitter.emit(`${foundVar} = ${valVar}; break;`)
-              },
-            )
-          })
-          emitter.emit(`${rawVar} = ${foundVar};`)
-        })
-      }
+    const formatters = field.properties?.formatters
 
-      this.emitPushMutation(emitter, histVar, rawVar, 'post')
+    if (Array.isArray(formatters) && formatters.length > 0) {
+      const fmtVar = emitter.nextVar('_tfv')
 
-      const formatters = field.properties?.formatters
+      emitter.emit(`var ${fmtVar} = ${rawVar};`)
+      this.compileFormatterPipeline(formatters, emitter, fmtVar)
 
-      if (Array.isArray(formatters) && formatters.length > 0) {
-        const fmtVar = emitter.nextVar('_tfv')
+      emitter.emitBlock(`if (${fmtVar} !== ${rawVar})`, () => {
+        this.emitPushMutation(emitter, histVar, fmtVar, 'processed')
+      })
+    }
 
-        emitter.emit(`var ${fmtVar} = ${rawVar};`)
-        this.compileFormatterPipeline(formatters, emitter, fmtVar)
-
-        emitter.emitBlock(`if (${fmtVar} !== ${rawVar})`, () => {
-          this.emitPushMutation(emitter, histVar, fmtVar, 'processed')
-        })
-      }
-
-      this.compileDependentWhen(field.properties?.dependentWhen, emitter, codeExpr, histVar)
-    })
+    this.compileDependentWhen(field.properties?.dependentWhen, emitter, codeExpr, histVar)
   }
 
   private compileTemplateGetPath(field: TemplateNode, emitter: CodeEmitter, codeExpr: string): void {

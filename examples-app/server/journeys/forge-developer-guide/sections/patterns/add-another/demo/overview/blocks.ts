@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'An "Add another" button that loops back to the form without validation',
     'Change links that pre-fill the edit page from the existing item',
     'Remove links on each card that delete items via a query parameter',
-    'Action hooks that route "add another" and "continue" to different steps',
+    'Submit hooks that route "add another" and "continue" to different steps',
     'A fallback message when the collection is empty',
   ]),
   type: 'bullet',

@@ -3,7 +3,7 @@ title: Post
 section: authoring-language
 path: authoring-language/post
 teaches: [Post, post-body, form-submission-data]
-prerequisites: [step, StepDefinition, onAction, onSubmission, submit, action]
+prerequisites: [step, StepDefinition, onSubmission, submit]
 ---
 
 <p class="govuk-caption-xl">References</p>
@@ -68,7 +68,7 @@ onSubmission: [
 When Forge evaluates `Post('action')`, it reads the value from the
 parsed request body. On GET requests, there is no body, so `Post()`
 references resolve to `undefined`. This makes `Post()` only
-meaningful in `onAction` and `onSubmission` hooks, which run on POST
+meaningful in `onSubmission` hooks, which run on POST
 requests.
 
 The framework adapter parses the request body and makes values
@@ -122,13 +122,16 @@ onSubmission: [
 
 ### In-page actions
 
-Action hooks use `Post()` the same way. A secondary button might
-trigger a lookup without leaving the page:
+Non-validating submit hooks use `Post()` the same way. A secondary
+button might trigger a lookup without leaving the page:
 
 ```typescript
-action({
+submit({
   when: Post('action').match(Condition.Equals('lookup')),
-  effects: [MyEffects.LookupPostcode(Post('postcode'))],
+  validate: false,
+  onAlways: {
+    effects: [MyEffects.LookupPostcode(Post('postcode'))],
+  },
 })
 ```
 
@@ -141,9 +144,12 @@ When buttons encode information in their values, string conditions
 can extract meaning without parsing:
 
 ```typescript
-action({
+submit({
   when: Post('action').match(Condition.String.StartsWith('remove_')),
-  effects: [MyEffects.RemoveItem()],
+  validate: false,
+  onAlways: {
+    effects: [MyEffects.RemoveItem()],
+  },
 })
 ```
 

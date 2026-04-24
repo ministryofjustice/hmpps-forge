@@ -22,7 +22,7 @@ export const shows = GovUKHeading({ text: 'What this pattern shows', size: 's' }
 
 export const showsList = GovUKList({
   items: Literal([
-    'An action hook that triggers an API call on a button press without leaving the page',
+    'A grouped submit hook that triggers an API call on a button press without leaving the page',
     'Pre-filling form fields with the API response using setAnswer()',
     'Letting the user review and override pre-filled values before continuing',
     'Separating the lookup trigger from the main form submission',

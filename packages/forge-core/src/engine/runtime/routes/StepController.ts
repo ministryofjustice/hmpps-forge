@@ -26,17 +26,13 @@ import { CompiledReachabilityResult } from '../../compilation/reachability/Reach
 import { CompiledRenderResult } from '../../compilation/rendering/StepRenderCompiler'
 import { StepFieldInventory } from '../types/StepFieldInventory.type'
 import { StepValidityResult } from '../types/StepValidityResult.type'
-import {
-  CompiledAccessHookResult,
-  CompiledActionHookResult,
-  CompiledSubmitHookResult,
-} from '../../compilation/hooks/HookLifecycleCompiler'
+import { CompiledAccessHookResult, CompiledSubmitHookResult } from '../../compilation/hooks/HookLifecycleCompiler'
 
 /**
  * Handles the full request lifecycle for steps.
  *
  * GET: access lifecycle → evaluate → render
- * POST: access lifecycle → action hooks → validation → submit hooks → render/redirect
+ * POST: access lifecycle → submit hooks → render/redirect
  *
  * Access lifecycle runs onAccess hooks for each ancestor (outer → inner).
  * Any hook can halt with a redirect or error.
@@ -125,8 +121,6 @@ export default class StepController<TRequest, TResponse> {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
-    await this.executeActionHooks(context)
-
     const submitResult = await this.executeSubmitHooks(context)
 
     if (submitResult.outcome === 'error') {
@@ -191,18 +185,6 @@ export default class StepController<TRequest, TResponse> {
     if (!compiledFn) {
       throw new Error(
         `[Forge] Hook fallback is disabled — compiledAccessLifecycle is missing for step "${this.compiledForm.runtimePlan.path}"`,
-      )
-    }
-
-    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
-  }
-
-  private async executeActionHooks(context: RuntimeEvaluationContext): Promise<CompiledActionHookResult> {
-    const compiledFn = this.compiledForm.runtimePlan.compiledActionHooks
-
-    if (!compiledFn) {
-      throw new Error(
-        `[Forge] Hook fallback is disabled — compiledActionHooks is missing for step "${this.compiledForm.runtimePlan.path}"`,
       )
     }
 
