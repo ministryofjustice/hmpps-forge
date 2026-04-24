@@ -154,6 +154,55 @@ describe('ValidationFactory', () => {
       expect(result.properties.submissionOnly).toBe(false)
     })
 
+    it('should default groups to default when omitted', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.VALIDATION,
+        message: 'Error',
+        condition: {
+          type: PredicateType.TEST,
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          negate: false,
+          condition: {
+            type: FunctionType.CONDITION,
+            name: 'IsTrue',
+            arguments: [] as ValueExpr[],
+          } satisfies ConditionFunctionExpr,
+        } satisfies PredicateTestExpr,
+      } satisfies ValidationExpr
+
+      // Act
+      const result = validationFactory.create(json)
+
+      // Assert
+      expect(result.properties.groups).toEqual(['default'])
+    })
+
+    it('should set groups when provided', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.VALIDATION,
+        message: 'Error',
+        condition: {
+          type: PredicateType.TEST,
+          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          negate: false,
+          condition: {
+            type: FunctionType.CONDITION,
+            name: 'IsTrue',
+            arguments: [] as ValueExpr[],
+          } satisfies ConditionFunctionExpr,
+        } satisfies PredicateTestExpr,
+        groups: ['lookup', 'default'],
+      } satisfies ValidationExpr
+
+      // Act
+      const result = validationFactory.create(json)
+
+      // Assert
+      expect(result.properties.groups).toEqual(['lookup', 'default'])
+    })
+
     it('should set details when provided', () => {
       // Arrange
       const json = {

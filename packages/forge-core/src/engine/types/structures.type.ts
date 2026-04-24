@@ -20,6 +20,11 @@ export interface StepReachabilityAST {
   tieBreakers?: TieBreakerASTNode[]
 }
 
+export interface StepEntryValidationAST {
+  groups: string[]
+  when: true | ASTNode
+}
+
 export interface JourneyASTNode extends ASTNode {
   type: ASTNodeType.JOURNEY
   properties: {
@@ -46,6 +51,7 @@ export interface StepASTNode extends ASTNode {
     onAccess?: AccessHookASTNode[]
     onAction?: ActionHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
+    validateOnEntry?: StepEntryValidationAST[]
     blocks?: BlockASTNode[]
     title: string
     description?: string

@@ -758,10 +758,11 @@ export interface SubmitHook {
 
   /**
    * Whether to validate form fields before proceeding.
-   * When true, routes to onValid or onInvalid based on validation result.
+   * When true, validates the default validation group and routes to onValid or onInvalid based on validation result.
+   * When passed a group list, validates those groups instead.
    * When false (default), skips validation and uses onAlways.
    */
-  validate?: boolean
+  validate?: boolean | { groups: string[] }
 
   /**
    * Actions to execute regardless of validation result.

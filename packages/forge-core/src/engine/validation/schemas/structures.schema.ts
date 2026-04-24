@@ -33,6 +33,7 @@ export const ValidationExprSchema = z.looseObject({
   condition: PredicateExprSchema,
   message: z.string().trim().min(1, { message: 'Validation message must not be empty' }),
   submissionOnly: z.boolean().optional(),
+  groups: z.array(z.string().trim().min(1)).optional(),
   details: z.record(z.string(), z.any()).optional(),
 })
 
@@ -107,7 +108,14 @@ export const SubmitHookSchema = z.object({
   type: z.literal(HookType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
-  validate: z.boolean().optional(),
+  validate: z
+    .union([
+      z.boolean(),
+      z.object({
+        groups: z.array(z.string().trim().min(1)).min(1),
+      }),
+    ])
+    .optional(),
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
@@ -141,6 +149,11 @@ const StepReachabilitySchema = z
   })
   .optional()
 
+const StepEntryValidationSchema = z.object({
+  groups: z.array(z.string().trim().min(1)).min(1),
+  when: z.union([z.literal(true), PredicateExprSchema]),
+})
+
 const JourneyReachabilitySchema = z
   .object({
     resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
@@ -158,6 +171,7 @@ export const StepSchema = z.looseObject({
   onAccess: z.array(AccessHookSchema).optional(),
   onAction: z.array(ActionHookSchema).optional(),
   onSubmission: z.array(SubmitHookSchema).optional(),
+  validateOnEntry: z.array(StepEntryValidationSchema).optional(),
   title: z.string(),
   view: ViewConfigSchema.optional(),
   reachability: StepReachabilitySchema,
