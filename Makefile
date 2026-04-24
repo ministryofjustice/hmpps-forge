@@ -2,7 +2,7 @@ SHELL = '/bin/bash'
 
 PROJECT_NAME = hmpps-forge-examples-app
 
-SERVICE_NAME = app
+SERVICE_NAME = ui
 
 APP_VERSION ?= local
 NODE_MODULES_LAYOUT_VERSION = standalone-layout-v1
@@ -28,15 +28,15 @@ build: build-packages ## Builds packages and installs into examples-app.
 	@cd examples-app && npm install
 
 prod-build: ## Builds a production image of the app.
-	@docker compose ${PROD_COMPOSE_FILES} build app
+	@docker compose ${PROD_COMPOSE_FILES} build ${SERVICE_NAME}
 
 prod-up: ## Starts/restarts the app in a production container.
-	@docker compose ${PROD_COMPOSE_FILES} down app
-	@docker compose ${PROD_COMPOSE_FILES} up app --wait --no-recreate
+	@docker compose ${PROD_COMPOSE_FILES} down ${SERVICE_NAME}
+	@docker compose ${PROD_COMPOSE_FILES} up ${SERVICE_NAME} --wait --no-recreate
 
 dev-build: ## Builds a development image of the app and installs Node dependencies.
 	@make install-node-modules
-	@docker compose ${DEV_COMPOSE_FILES} build app
+	@docker compose ${DEV_COMPOSE_FILES} build ${SERVICE_NAME}
 
 dev-up: ## Starts/restarts a development container. A remote debugger can be attached on port 9229.
 	@make install-node-modules

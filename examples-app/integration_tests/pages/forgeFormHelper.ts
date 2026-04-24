@@ -50,6 +50,13 @@ export default class ForgeFormHelper {
     await expect(errorSummary.locator('a', { hasText: text })).toBeVisible()
   }
 
+  async expectStepError(text: string): Promise<void> {
+    const errorSummary = this.page.locator('.govuk-error-summary')
+
+    await expect(errorSummary).toBeVisible()
+    await expect(errorSummary).toContainText(text)
+  }
+
   async expectNoValidationErrors(): Promise<void> {
     await expect(this.page.locator('.govuk-error-summary')).not.toBeVisible()
   }
@@ -64,6 +71,23 @@ export default class ForgeFormHelper {
     const row = this.page.locator('.govuk-summary-list__row', { hasText: rowLabel })
 
     await row.getByRole('link', { name: /change/i }).click()
+  }
+
+  getSummaryCard(title: string): Locator {
+    return this.page.locator('.govuk-summary-card', {
+      has: this.page.locator('.govuk-summary-card__title', { hasText: title }),
+    })
+  }
+
+  getSummaryCardValue(title: string, rowLabel: string): Locator {
+    const card = this.getSummaryCard(title)
+    const row = card.locator('.govuk-summary-list__row', { hasText: rowLabel })
+
+    return row.locator('.govuk-summary-list__value')
+  }
+
+  async expectSummaryCardCount(count: number): Promise<void> {
+    await expect(this.page.locator('.govuk-summary-card')).toHaveCount(count)
   }
 
   async expectInsetText(text: string): Promise<void> {
