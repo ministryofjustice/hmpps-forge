@@ -110,15 +110,20 @@ test.describe('Pre-fill journey', () => {
     test('should show error when lookup postcode is invalid', async ({ page }) => {
       // Arrange
       await fillLookupPostcode(page, 'NOTAPOSTCODE')
-      await form.fillTextInput('Address line 1', '10 Downing Street')
-      await form.fillTextInput('Town or city', 'London')
-      await page.locator('#addressPostcode').fill('SW1A 2AA')
 
       // Act
-      await form.clickButton('Continue')
+      await form.clickButton('Find address')
 
       // Assert
       await form.expectValidationError('Enter a valid postcode')
+    })
+
+    test('should show error when lookup postcode is empty', async () => {
+      // Act
+      await form.clickButton('Find address')
+
+      // Assert
+      await form.expectValidationError('Enter a postcode')
     })
 
     test('should not validate lookup postcode when left empty', async ({ page }) => {
@@ -131,6 +136,22 @@ test.describe('Pre-fill journey', () => {
       await form.clickButton('Continue')
 
       // Assert — proceeds without lookup postcode error
+      await form.expectHeading('Check your answers')
+    })
+
+    test('should not validate lookup postcode when invalid and address fields are complete', async ({
+      page,
+    }) => {
+      // Arrange
+      await fillLookupPostcode(page, 'NOTAPOSTCODE')
+      await form.fillTextInput('Address line 1', '10 Downing Street')
+      await form.fillTextInput('Town or city', 'London')
+      await page.locator('#addressPostcode').fill('SW1A 2AA')
+
+      // Act
+      await form.clickButton('Continue')
+
+      // Assert
       await form.expectHeading('Check your answers')
     })
   })

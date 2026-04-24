@@ -1,10 +1,4 @@
-import {
-  submit,
-  action,
-  redirect,
-  Post,
-  Condition,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { submit, redirect, Post, Condition } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'
 import {
@@ -35,16 +29,17 @@ export const findAddressStep = patternStep({
     addressPostcodeField,
     buttonGroup,
   ],
-  onAction: [
-    action({
-      when: Post('action').match(Condition.Equals('find-address')),
-      effects: [PatternEffects.LookupAddress()],
-    }),
-  ],
   onSubmission: [
     submit({
+      when: Post('action').match(Condition.Equals('find-address')),
+      validate: { groups: ['find-postcode'] },
+      onValid: {
+        effects: [PatternEffects.LookupAddress()],
+      },
+    }),
+    submit({
       when: Post('action').match(Condition.Equals('continue')),
-      validate: true,
+      validate: { groups: ['address'] },
       onValid: {
         effects: [PatternEffects.SaveDraftAnswers('pre-fill')],
         next: [redirect({ goto: 'check-answers' })],
