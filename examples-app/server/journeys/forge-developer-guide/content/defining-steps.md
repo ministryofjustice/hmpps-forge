@@ -309,10 +309,10 @@ through the journey. Supports exact field codes and regex patterns.
 cleardownFieldCodes: ['tripCountry', 'tripDepartureDate', '^trip.*$']
 ```
 
-### `onAccess`, `onAction`, `onSubmission` (Optional)
+### `onAccess`, `onSubmission` (Optional)
 
 Lifecycle hooks that run at different points in the request cycle.
-These control data loading, in-page actions, and form submission.
+These control data loading, POST actions, and form submission.
 See [Hooks and lifecycle](hooks-and-lifecycle) for full details.
 
 ### `validWhen` (Optional)

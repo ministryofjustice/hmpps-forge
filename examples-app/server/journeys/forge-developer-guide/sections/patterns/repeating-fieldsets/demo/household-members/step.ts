@@ -1,6 +1,5 @@
 import {
   submit,
-  action,
   access,
   redirect,
   Post,
@@ -29,17 +28,21 @@ export const householdMembersStep = patternStep({
       ],
     }),
   ],
-  onAction: [
-    action({
-      when: Post('action').match(Condition.Equals('add-another')),
-      effects: [PatternEffects.AddRepeatingItem(patternCode, collectionCode, fieldCodes)],
-    }),
-    action({
-      when: Post('action').match(Condition.String.StartsWith('remove_')),
-      effects: [PatternEffects.RemoveRepeatingItem(patternCode, collectionCode, fieldCodes)],
-    }),
-  ],
   onSubmission: [
+    submit({
+      when: Post('action').match(Condition.Equals('add-another')),
+      validate: false,
+      onAlways: {
+        effects: [PatternEffects.AddRepeatingItem(patternCode, collectionCode, fieldCodes)],
+      },
+    }),
+    submit({
+      when: Post('action').match(Condition.String.StartsWith('remove_')),
+      validate: false,
+      onAlways: {
+        effects: [PatternEffects.RemoveRepeatingItem(patternCode, collectionCode, fieldCodes)],
+      },
+    }),
     submit({
       when: Post('action').match(Condition.Equals('continue')),
       validate: true,

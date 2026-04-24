@@ -24,8 +24,8 @@ export const shows = GovUKHeading({ text: 'What this pattern shows', size: 's' }
 export const showsList = GovUKList({
   items: Literal([
     'Form inputs inside an Iterator.Map with dynamic field codes',
-    'An action hook that appends an empty item and re-renders the page',
-    'A remove action that splices an item and re-indexes the remaining fields',
+    'A non-validating submit hook that appends an empty item and re-renders the page',
+    'A remove submit hook that splices an item and re-indexes the remaining fields',
     'Session-backed collection state that survives page reloads',
   ]),
   type: 'bullet',

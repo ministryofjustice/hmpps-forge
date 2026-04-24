@@ -2,7 +2,7 @@
 title: Hooks and lifecycle
 section: building-journeys
 path: building-journeys/hooks-and-lifecycle
-teaches: [onAccess, onAction, onSubmission, access, action, submit, redirect, throwError, hook-when, hook-execution, hook-composition, validation-groups]
+teaches: [onAccess, onSubmission, access, submit, redirect, throwError, hook-when, hook-execution, hook-composition, validation-groups]
 prerequisites: [step, StepDefinition, journey, JourneyDefinition]
 ---
 
@@ -28,19 +28,17 @@ what they do.
 
 ## What are hooks?
 
-There are three hook types, each running at a different point in the
+There are two hook types, each running at a different point in the
 request lifecycle:
 
 | Hook | Builder | Runs on | Purpose |
 |---|---|---|---|
 | `onAccess` | `access()` | GET and POST | Load data, check permissions, redirect or return errors |
-| `onAction` | `action()` | POST only | Handle in-page actions like lookups or adding items |
-| `onSubmission` | `submit()` | POST only | Validate, save, and navigate |
+| `onSubmission` | `submit()` | POST only | Handle POST intents, validate, save, and navigate |
 
 ```typescript
 import {
   access,
-  action,
   submit,
   redirect,
   throwError,
@@ -51,9 +49,9 @@ import {
 ```
 
 Each hook type has different execution semantics. Access hooks run
-sequentially: every hook in the array gets a chance to execute. Action
-and submit hooks use first-match semantics, where only the first
-matching hook runs.
+sequentially: every hook in the array gets a chance to execute. Submit
+hooks use first-match semantics, where only the first matching hook
+runs.
 
 ---
 
@@ -77,16 +75,15 @@ lifecycle is different for GET and POST requests.
 1. Access lifecycle    Run onAccess hooks (journey then step)
 2. Prepare answers     Bind POST values to fields, run formatters
 3. Check navigation    Evaluate reachability, redirect if unreachable
-4. Action hooks        Run onAction array (first match)
-5. Submit hooks        Run onSubmission array (first match)
-   5a. onAlways        Run effects that should always execute
-   5b. Validate        Run validation for the requested groups
-   5c. Branch          Run onValid or onInvalid based on the result
-6. Render              If no redirect, display page with any validation errors
+4. Submit hooks        Run onSubmission array (first match)
+   4a. onAlways        Run effects that should always execute
+   4b. Validate        Run validation for the requested groups
+   4c. Branch          Run onValid or onInvalid based on the result
+5. Render              If no redirect, display page with any validation errors
 ```
 
 At any point, a redirect or error outcome stops processing immediately.
-If an access hook redirects, action and submit hooks never run.
+If an access hook redirects, submit hooks never run.
 
 The access lifecycle runs first on both GET and POST. This makes it
 the right place for work that must happen on every request: loading
@@ -123,17 +120,19 @@ access({
 })
 ```
 
-### Action hooks: first match
+### Non-validating submit hooks
 
-Forge evaluates each hook in order and runs the first one whose `when`
-matches. The rest are skipped. Action effects run before blocks
-render, so values set by effects appear immediately when the page
-re-renders.
+Use `validate: false` for POST buttons that should run effects without
+showing validation errors. If the hook has no redirect, the page
+re-renders and values set by effects appear immediately.
 
 ```typescript
-action({
+submit({
   when: Post('action').match(Condition.Equals('lookup')),
-  effects: [MyEffects.lookupPostcode(Post('postcode'))],
+  validate: false,
+  onAlways: {
+    effects: [MyEffects.lookupPostcode(Post('postcode'))],
+  },
 })
 ```
 
@@ -247,7 +246,7 @@ acts as a fallback.
 ## Journey-level and step-level hooks
 
 Journeys can define `onAccess` hooks that run for every step and
-nested journey within them. Steps can define all three hook types.
+nested journey within them. Steps can define both hook types.
 
 ### Composition order
 
@@ -269,11 +268,10 @@ stops immediately. Later hooks do not run.
 | Hook | Journey | Step |
 |---|---|---|
 | `onAccess` | Yes | Yes |
-| `onAction` | No | Yes |
 | `onSubmission` | No | Yes |
 
-Action and submit hooks only apply at the step level because they
-respond to form submissions, which happen on individual pages.
+Submit hooks only apply at the step level because they respond to form
+submissions, which happen on individual pages.
 
 ---
 

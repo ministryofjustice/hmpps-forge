@@ -2,7 +2,7 @@
 title: Repeating fieldsets
 section: patterns
 path: patterns/repeating-fieldsets
-teaches: [repeating-fieldsets, iterator-fields, dynamic-field-codes, onAction]
+teaches: [repeating-fieldsets, iterator-fields, dynamic-field-codes, onSubmission]
 prerequisites: [step, effects, answers, data, iterator]
 ---
 
@@ -48,12 +48,12 @@ age. Following the flow shows:
 - **Form inputs inside an iterator** that create dynamic field
   codes like `memberName_0`, `memberName_1` using
   `Format()` and `Item().index()`.
-- **An "Add another" action hook** that appends an empty item to
+- **An "Add another" submit hook** that appends an empty item to
   the collection and re-renders the page with a new row.
-- **A "Remove" action hook** that splices an item from the
+- **A "Remove" submit hook** that splices an item from the
   collection and re-indexes the remaining fields.
 - **Session-backed state** that preserves in-progress edits
-  across action hooks and page reloads.
+  across submissions and page reloads.
 
 ---
 
@@ -67,8 +67,8 @@ age. Following the flow shows:
 └── /confirmation         → Submission panel
 ```
 
-The household-members step does all the work. The collection
-lives in the session. Action hooks mutate it and the page
+The household-members step does all the work. The collection lives
+in the session. Non-validating submit hooks mutate it and the page
 re-renders with the updated rows.
 
 ---
@@ -135,19 +135,22 @@ always renders with at least one row of fields.
 ### Adding an item
 
 The "Add another" button posts with `action=add-another`. An
-action hook catches it and runs the effect. Because no submit
-hook matches this action, the page re-renders with the updated
+non-validating submit hook catches it and runs the effect. Because
+the hook has no redirect, the page re-renders with the updated
 collection:
 
 ```typescript
-onAction: [
-  action({
+onSubmission: [
+  submit({
     when: Post('action').match(Condition.Equals('add-another')),
-    effects: [
-      PatternEffects.AddRepeatingItem(
-        patternCode, collectionCode, fieldCodes,
-      ),
-    ],
+    validate: false,
+    onAlways: {
+      effects: [
+        PatternEffects.AddRepeatingItem(
+          patternCode, collectionCode, fieldCodes,
+        ),
+      ],
+    },
   }),
 ],
 ```
@@ -171,16 +174,19 @@ GovUKButton({
 })
 ```
 
-A second action hook matches any value starting with `remove_`:
+A second submit hook matches any value starting with `remove_`:
 
 ```typescript
-action({
+submit({
   when: Post('action').match(Condition.String.StartsWith('remove_')),
-  effects: [
-    PatternEffects.RemoveRepeatingItem(
-      patternCode, collectionCode, fieldCodes,
-    ),
-  ],
+  validate: false,
+  onAlways: {
+    effects: [
+      PatternEffects.RemoveRepeatingItem(
+        patternCode, collectionCode, fieldCodes,
+      ),
+    ],
+  },
 }),
 ```
 
@@ -219,8 +225,8 @@ failed.
 
 ## Variations
 
-- **Reordering.** Add up and down buttons per row. The action
-  hook swaps adjacent items in the array and re-indexes answers.
+- **Reordering.** Add up and down buttons per row. A submit hook
+  swaps adjacent items in the array and re-indexes answers.
 - **Minimum or maximum items.** Use `validWhen` on the step to
   enforce a minimum count, and disable "Add another" when the
   maximum is reached using a `visibleWhen` condition.

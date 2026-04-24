@@ -2,8 +2,8 @@
 title: Loading, saving and redirecting
 section: building-journeys
 path: building-journeys/loading-saving-and-redirecting
-teaches: [access-patterns, action-patterns, submit-patterns, conditional-redirect, effects-only, reusable-guards, validate-and-continue, multiple-buttons, onValid, onInvalid, onAlways]
-prerequisites: [access, action, submit, redirect, throwError, hook-execution]
+teaches: [access-patterns, submit-patterns, conditional-redirect, effects-only, reusable-guards, validate-and-continue, multiple-buttons, onValid, onInvalid, onAlways]
+prerequisites: [access, submit, redirect, throwError, hook-execution]
 ---
 
 <p class="govuk-caption-xl">Working with data</p>
@@ -142,11 +142,11 @@ onAccess: [
 
 ---
 
-## In-page actions
+## In-page POST actions
 
-Action hooks handle interactions that stay on the current step:
-address lookups, adding items to a collection, or removing rows
-from a list.
+Non-validating submit hooks handle interactions that stay on the
+current step: address lookups, adding items to a collection, or
+removing rows from a list.
 
 ### Lookup pattern
 
@@ -174,14 +174,14 @@ step({
     GovUKButton({ text: 'Continue', name: 'action', value: 'continue' }),
   ],
 
-  onAction: [
-    action({
-      when: Post('action').match(Condition.Equals('lookup')),
-      effects: [MyEffects.lookupPostcode(Post('postcode'))],
-    }),
-  ],
-
   onSubmission: [
+    submit({
+      when: Post('action').match(Condition.Equals('lookup')),
+      validate: false,
+      onAlways: {
+        effects: [MyEffects.lookupPostcode(Post('postcode'))],
+      },
+    }),
     submit({
       when: Post('action').match(Condition.Equals('continue')),
       validate: true,
@@ -194,23 +194,30 @@ step({
 })
 ```
 
-The "Find address" button triggers the action hook. The "Continue"
-button skips the action (no match) and triggers the submit hook
-instead.
+The "Find address" button triggers the lookup submit hook. The
+"Continue" button skips that hook (no match) and triggers the
+validating submit hook instead.
 
 ### Adding and removing collection items
 
-A common pattern uses actions to manage dynamic lists:
+A common pattern uses non-validating submit hooks to manage dynamic
+lists:
 
 ```typescript
-onAction: [
-  action({
+onSubmission: [
+  submit({
     when: Post('action').match(Condition.Equals('addItem')),
-    effects: [MyEffects.addItemToSession()],
+    validate: false,
+    onAlways: {
+      effects: [MyEffects.addItemToSession()],
+    },
   }),
-  action({
+  submit({
     when: Post('action').match(Condition.String.StartsWith('remove_')),
-    effects: [MyEffects.removeItemFromSession()],
+    validate: false,
+    onAlways: {
+      effects: [MyEffects.removeItemFromSession()],
+    },
   }),
 ]
 ```
@@ -375,8 +382,8 @@ onInvalid: {
 - **Include a fallback submit hook when using multiple buttons.** If
   every `submit()` has a `when` and none match, nothing happens. Add
   a final hook without `when` to handle unexpected submissions.
-- **Keep action hooks focused.** Each action should do one thing: look
-  up an address, add an item, remove a row.
+- **Keep submit intents focused.** Each POST action should do one
+  thing: look up an address, add an item, remove a row.
 - **Use `onAlways` for work that should happen regardless of
   validation.** Draft saves, audit events, and session cleanup belong
   in `onAlways` because they should run whether the form is valid or
