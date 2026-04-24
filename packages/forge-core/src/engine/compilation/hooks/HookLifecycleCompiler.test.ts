@@ -4,7 +4,6 @@ import FunctionRegistry from '../../registries/FunctionRegistry'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { TestPredicateASTNode } from '../../types/predicates.type'
-import { NodeId } from '../../types/ast.type'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse } from '../../../framework/types/response.type'
 import HookLifecycleCompiler, { HookLifecycleContext } from './HookLifecycleCompiler'
@@ -85,6 +84,11 @@ function createContext(
       warn: vi.fn(),
       error: vi.fn(),
     },
+    validate: vi.fn(async () => ({
+      isValid: overrides.validation?.isValid ?? true,
+      fieldFailures: overrides.validation?.fieldFailures ?? [],
+      domainFailures: overrides.validation?.domainFailures ?? [],
+    })),
     effectContext: {
       global: {
         answers,
@@ -222,13 +226,7 @@ describe('HookLifecycleCompiler', () => {
         .build() as SubmitHookASTNode
       const fn = compiler.compileSubmitHooks([hook], functionRegistry)
       const ctx = createContext(functionRegistry, {
-        validation: {
-          stepId: 'compile_ast:step' as NodeId,
-          validated: true,
-          isValid: true,
-          fieldFailures: [],
-          domainFailures: [],
-        },
+        validate: vi.fn(async () => ({ isValid: true, fieldFailures: [], domainFailures: [] })),
       })
 
       // Act
@@ -238,11 +236,11 @@ describe('HookLifecycleCompiler', () => {
       expect(ctx.data.submit).toBe('ran')
       expect(result).toEqual({
         executed: true,
-        validated: true,
-        isValid: true,
+        validated: false,
         outcome: 'redirect',
         redirect: '/always',
       })
+      expect(ctx.validate).not.toHaveBeenCalled()
     })
 
     it('should evaluate throwError outcomes for invalid submissions', async () => {
@@ -259,13 +257,7 @@ describe('HookLifecycleCompiler', () => {
         .build() as SubmitHookASTNode
       const fn = compiler.compileSubmitHooks([hook], functionRegistry)
       const ctx = createContext(functionRegistry, {
-        validation: {
-          stepId: 'compile_ast:step' as NodeId,
-          validated: true,
-          isValid: false,
-          fieldFailures: [],
-          domainFailures: [],
-        },
+        validate: vi.fn(async () => ({ isValid: false, fieldFailures: [], domainFailures: [] })),
       })
 
       // Act
@@ -280,6 +272,51 @@ describe('HookLifecycleCompiler', () => {
         status: 422,
         message: 'Invalid submission',
       })
+    })
+
+    it('should call validation callback with hook validation groups', async () => {
+      // Arrange
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
+        .withProperty('validate', true)
+        .withProperty('validationGroups', ['lookup'])
+        .build() as SubmitHookASTNode
+      const validate = vi.fn(async () => ({ isValid: true, fieldFailures: [], domainFailures: [] }))
+      const fn = compiler.compileSubmitHooks([hook], functionRegistry)
+      const ctx = createContext(functionRegistry, { validate })
+
+      // Act
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(validate).toHaveBeenCalledWith(['lookup'])
+      expect(result).toEqual({
+        executed: true,
+        validated: true,
+        isValid: true,
+        outcome: 'continue',
+      })
+    })
+
+    it('should run onAlways effects before validation', async () => {
+      // Arrange
+      const hook = ASTTestFactory.hook(HookType.SUBMIT)
+        .withProperty('validate', true)
+        .withProperty('validationGroups', ['default'])
+        .withProperty('onAlways', {
+          effects: [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'submitEffect')],
+        })
+        .build() as SubmitHookASTNode
+      const validate = vi.fn(async () => ({ isValid: true, fieldFailures: [], domainFailures: [] }))
+      const fn = compiler.compileSubmitHooks([hook], functionRegistry)
+      const ctx = createContext(functionRegistry, { validate })
+
+      // Act
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(validate).toHaveBeenCalledTimes(1)
+      expect(ctx.data.submit).toBe('ran')
+      expect(result).toMatchObject({ executed: true, validated: true, isValid: true })
     })
   })
 

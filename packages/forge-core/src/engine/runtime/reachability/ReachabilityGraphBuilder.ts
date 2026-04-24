@@ -197,7 +197,7 @@ export default class ReachabilityGraphBuilder {
           throw new Error(`[Forge] Compiled validation missing for step "${current.stepId}"`)
         }
 
-        const validationResult = await compiledValidation(validationCtx, false)
+        const validationResult = await compiledValidation(validationCtx, false, ['default'])
 
         current.isValid = validationResult.isValid
       }

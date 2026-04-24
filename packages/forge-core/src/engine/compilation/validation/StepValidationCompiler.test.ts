@@ -68,7 +68,7 @@ function createValidation(
     | NotPredicateASTNode
     | XorPredicateASTNode,
   message: string,
-  options: { submissionOnly?: boolean; details?: Record<string, unknown> } = {},
+  options: { submissionOnly?: boolean; details?: Record<string, unknown>; groups?: string[] } = {},
 ): ValidationASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
@@ -79,6 +79,7 @@ function createValidation(
       message,
       submissionOnly: options.submissionOnly,
       details: options.details,
+      groups: options.groups,
     },
   } as ValidationASTNode
 }
@@ -380,6 +381,122 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures[0].message).toBe('Required on submit')
     })
 
+    it('should run default group validations when groups are omitted', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const ref = createReference(['answers', 'name'])
+      const validation = createValidation(createTestPredicate(ref, createConditionFunction('isRequired')), 'Required')
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({ answers: { name: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures[0].message).toBe('Required')
+    })
+
+    it('should skip named group validations when the group is inactive', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('postcode')
+      const ref = createReference(['answers', 'postcode'])
+      const validation = createValidation(
+        createTestPredicate(ref, createConditionFunction('isRequired')),
+        'Enter postcode',
+        { groups: ['address'] },
+      )
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({ answers: { postcode: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+      const result = fn!(ctx, false, ['contact'])
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(result.fieldFailures).toHaveLength(0)
+    })
+
+    it('should run named group validations when the group is active', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('postcode')
+      const ref = createReference(['answers', 'postcode'])
+      const validation = createValidation(
+        createTestPredicate(ref, createConditionFunction('isRequired')),
+        'Enter postcode',
+        { groups: ['address'] },
+      )
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({ answers: { postcode: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+      const result = fn!(ctx, false, ['address'])
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures[0].message).toBe('Enter postcode')
+    })
+
+    it('should run multi-group validations when any group is active', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('postcode')
+      const ref = createReference(['answers', 'postcode'])
+      const validation = createValidation(
+        createTestPredicate(ref, createConditionFunction('isRequired')),
+        'Enter postcode',
+        { groups: ['lookup', 'continue'] },
+      )
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({ answers: { postcode: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+      const result = fn!(ctx, false, ['lookup'])
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures[0].message).toBe('Enter postcode')
+    })
+
+    it('should skip submissionOnly validations on entry validation even when group matches', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const ref = createReference(['answers', 'name'])
+      const validation = createValidation(
+        createTestPredicate(ref, createConditionFunction('isRequired')),
+        'Required on submit',
+        { groups: ['contact'], submissionOnly: true },
+      )
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({ answers: { name: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+      const result = fn!(ctx, false, ['contact'])
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(result.fieldFailures).toHaveLength(0)
+    })
+
     it('should treat condition errors as validation failures', () => {
       // Arrange
       const step = createStep()
@@ -630,6 +747,27 @@ describe('StepValidationCompiler', () => {
       expect(result.domainFailures[0].message).toBe('Password is required')
       expect(result.fieldFailures).toHaveLength(0)
     })
+
+    it('should only run domain validations for active groups', () => {
+      // Arrange
+      const step = createStep()
+      const ref = createReference(['answers', 'password'])
+      const pred = createTestPredicate(ref, createConditionFunction('isRequired'))
+      const domainValidation = createValidation(pred, 'Password is required', { groups: ['security'] })
+
+      const ctx = createCtx({ answers: { password: { current: '' } } })
+
+      // Act
+      const fn = compiler.compile(step, [], [domainValidation])
+      const inactiveResult = fn!(ctx, false, ['default'])
+      const activeResult = fn!(ctx, false, ['security'])
+
+      // Assert
+      expect(inactiveResult.isValid).toBe(true)
+      expect(inactiveResult.domainFailures).toHaveLength(0)
+      expect(activeResult.isValid).toBe(false)
+      expect(activeResult.domainFailures[0].message).toBe('Password is required')
+    })
   })
 
   describe('generateSource()', () => {
@@ -749,6 +887,65 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures).toHaveLength(2)
       expect(result.fieldFailures[0].message).toBe('Enter a name')
       expect(result.fieldFailures[1].message).toBe('Enter a name')
+    })
+
+    it('should only run iterator validations for active groups', () => {
+      // Arrange
+      const step = createStep()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'items']),
+        createTemplateValue({
+          type: ASTNodeType.BLOCK,
+          variant: 'text-input',
+          blockType: BlockType.FIELD,
+          properties: {
+            code: 'name',
+            validWhen: [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.VALIDATION,
+                properties: {
+                  groups: ['items'],
+                  condition: {
+                    type: ASTNodeType.PREDICATE,
+                    predicateType: PredicateType.TEST,
+                    properties: {
+                      subject: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: ExpressionType.REFERENCE,
+                        properties: { path: ['answers', '@self'] },
+                      },
+                      condition: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: FunctionType.CONDITION,
+                        properties: { name: 'isRequired', arguments: [] },
+                      },
+                      negate: false,
+                    },
+                  },
+                  message: 'Enter a name',
+                },
+              },
+            ],
+          },
+        }),
+      )
+
+      const ctx = createCtx({
+        data: { items: [{ id: 1 }] },
+        answers: { name: { current: '' } },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [], [], [iterateNode])
+      const inactiveResult = fn!(ctx, false, ['default'])
+      const activeResult = fn!(ctx, false, ['items'])
+
+      // Assert
+      expect(inactiveResult.isValid).toBe(true)
+      expect(inactiveResult.fieldFailures).toHaveLength(0)
+      expect(activeResult.isValid).toBe(false)
+      expect(activeResult.fieldFailures[0].message).toBe('Enter a name')
     })
 
     it('should compile iterator with dynamic field code using Item().index()', () => {

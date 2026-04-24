@@ -17,6 +17,7 @@ import EffectFunctionContextCtor, {
   EffectEvaluationContext,
 } from '../../nodes/expressions/effect/EffectFunctionContext'
 import { StepValidationState } from '../../runtime/context/RuntimeEvaluationContext'
+import { StepValidityResult } from '../../runtime/types/StepValidityResult.type'
 import NodeCompilationDispatcher from '../codegen/NodeCompilationDispatcher'
 import CodeEmitter from '../codegen/CodeEmitter'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
@@ -33,6 +34,7 @@ export interface HookLifecycleContext {
   conditions: FunctionRegistry
   logger: JourneyInstanceDependencies['logger']
   effectContext: EffectEvaluationContext
+  validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
 }
 
 export interface CompiledAccessHookResult {
@@ -255,19 +257,7 @@ export default class HookLifecycleCompiler {
         const validVar = emitter.nextVar('_valid')
 
         if (validate) {
-          emitter.emit(`var ${validVar};`)
-          emitter.emitBlock('if (!ctx.validation || !ctx.validation.validated)', () => {
-            emitter.emit(`${validVar} = undefined;`)
-          })
-          emitter.emitBlock('else', () => {
-            emitter.emit(`${validVar} = ctx.validation.isValid;`)
-          })
-          emitter.emitBlock(`if (${validVar} === undefined)`, () => {
-            emitter.emit('/* Skip this hook: validating submit hook ran before validation state existed. */')
-          })
-          emitter.emitBlock('else', () => {
-            this.compileValidatedSubmitBranches(hook, validVar, emitter)
-          })
+          this.compileValidatedSubmitBranches(hook, validVar, emitter)
         } else {
           this.compileNonValidatingSubmitBranch(hook, emitter)
         }
@@ -278,18 +268,40 @@ export default class HookLifecycleCompiler {
   private compileValidatedSubmitBranches(hook: SubmitHookASTNode, validVar: string, emitter: CodeEmitter): void {
     const alwaysOutcomeVar = this.compileBranch(hook.properties.onAlways, HookType.SUBMIT, emitter)
     const branchOutcomeVar = emitter.nextVar('_branchOutcome')
+    const validationResultVar = emitter.nextVar('_validationResult')
+    const validationGroups =
+      hook.properties.validationGroups !== undefined && hook.properties.validationGroups.length > 0
+        ? hook.properties.validationGroups
+        : ['default']
 
-    emitter.emit(`var ${branchOutcomeVar};`)
-    emitter.emitBlock(`if (${alwaysOutcomeVar} === undefined && ${validVar})`, () => {
-      emitter.emit(`${branchOutcomeVar} = undefined;`)
-      this.compileBranchIntoExistingOutcome(hook.properties.onValid, HookType.SUBMIT, branchOutcomeVar, emitter)
+    emitter.emitBlock(`if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "skip")`, () => {
+      emitter.emit('/* Skip this hook after an onAlways effect failure so later hooks still get a chance to run. */')
     })
-    emitter.emitBlock(`if (${alwaysOutcomeVar} === undefined && !${validVar})`, () => {
-      emitter.emit(`${branchOutcomeVar} = undefined;`)
-      this.compileBranchIntoExistingOutcome(hook.properties.onInvalid, HookType.SUBMIT, branchOutcomeVar, emitter)
+    emitter.emitBlock(`else if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "redirect")`, () => {
+      emitter.emit(
+        `return { executed: true, validated: false, outcome: "redirect", redirect: ${alwaysOutcomeVar}.value };`,
+      )
     })
-    emitter.emit(`var _submitOutcome = ${alwaysOutcomeVar} !== undefined ? ${alwaysOutcomeVar} : ${branchOutcomeVar};`)
-    this.emitSubmitReturn(true, validVar, '_submitOutcome', emitter)
+    emitter.emitBlock(`else if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "error")`, () => {
+      emitter.emit(
+        `return { executed: true, validated: false, outcome: "error", status: ${alwaysOutcomeVar}.value.status, message: ${alwaysOutcomeVar}.value.message };`,
+      )
+    })
+    emitter.emitBlock('else', () => {
+      emitter.emit('if (!ctx.validate) { throw new Error("[Forge] Submit validation callback is missing"); }')
+      emitter.emit(`var ${validationResultVar} = await ctx.validate(${JSON.stringify(validationGroups)});`)
+      emitter.emit(`var ${validVar} = ${validationResultVar}.isValid;`)
+      emitter.emit(`var ${branchOutcomeVar};`)
+      emitter.emitBlock(`if (${validVar})`, () => {
+        emitter.emit(`${branchOutcomeVar} = undefined;`)
+        this.compileBranchIntoExistingOutcome(hook.properties.onValid, HookType.SUBMIT, branchOutcomeVar, emitter)
+      })
+      emitter.emitBlock(`if (!${validVar})`, () => {
+        emitter.emit(`${branchOutcomeVar} = undefined;`)
+        this.compileBranchIntoExistingOutcome(hook.properties.onInvalid, HookType.SUBMIT, branchOutcomeVar, emitter)
+      })
+      this.emitSubmitReturn(true, validVar, branchOutcomeVar, emitter)
+    })
   }
 
   private compileNonValidatingSubmitBranch(hook: SubmitHookASTNode, emitter: CodeEmitter): void {

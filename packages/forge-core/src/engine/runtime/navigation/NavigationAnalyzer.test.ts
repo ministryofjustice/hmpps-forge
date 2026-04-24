@@ -648,6 +648,7 @@ describe('NavigationAnalyzer', () => {
 
     // Assert
     expect(validationSpy).toHaveBeenCalledTimes(1)
+    expect(validationSpy).toHaveBeenCalledWith(expect.anything(), false, ['default'])
     expect(result.steps.find(step => step.routeTemplatePath === '/journey/next')?.isReachable).toBe(true)
   })
 })

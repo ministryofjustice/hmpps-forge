@@ -3,6 +3,7 @@ import type { HookLifecycleContext } from '../../compilation/hooks/HookLifecycle
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { JourneyInstanceDependencies } from '../../types/engine.type'
 import RuntimeEvaluationContext, { RuntimeEvaluationGlobalState } from './RuntimeEvaluationContext'
+import type { StepValidityResult } from '../types/StepValidityResult.type'
 
 type CompiledRequestSnapshot = Record<string, unknown> & {
   url: string
@@ -70,12 +71,14 @@ export function buildCompiledAnswerPreparationContext(
 export function buildCompiledHookLifecycleContext(
   context: RuntimeEvaluationContext,
   dependencies: JourneyInstanceDependencies,
+  validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
 ): HookLifecycleContext {
   return {
     ...buildCompiledBaseContext(context, dependencies.functionRegistry),
     validation: context.global.validation,
     post: context.request.getAllPost(),
     logger: dependencies.logger,
+    validate,
     effectContext: {
       global: context.global,
       request: context.request,
