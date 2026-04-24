@@ -152,7 +152,6 @@ describe('ForgeRouter', () => {
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
-          actionHookIds: [],
           submitHookIds: [],
           iterateNodeIds: [],
           validationBlockIds: [],

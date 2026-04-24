@@ -71,7 +71,7 @@ export default class StepRenderCompiler {
   private static readonly BLOCK_SKIP_PROPS = new Set(['formatters', 'parsers', 'validWhen', 'dependentWhen'])
 
   // Hooks, blocks, and reachability are executable structure, not render metadata.
-  private static readonly STEP_SKIP_PROPS = new Set(['onAccess', 'onAction', 'onSubmission', 'blocks', 'reachability'])
+  private static readonly STEP_SKIP_PROPS = new Set(['onAccess', 'onSubmission', 'blocks', 'reachability'])
 
   // Child structure and access hooks are route/lifecycle concerns, not metadata.
   private static readonly JOURNEY_SKIP_PROPS = new Set(['onAccess', 'children', 'steps', 'reachability'])

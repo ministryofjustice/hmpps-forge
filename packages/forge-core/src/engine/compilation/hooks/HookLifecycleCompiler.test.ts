@@ -2,7 +2,7 @@ import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../authoring/types/enums'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
+import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { TestPredicateASTNode } from '../../types/predicates.type'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse } from '../../../framework/types/response.type'
@@ -181,31 +181,6 @@ describe('HookLifecycleCompiler', () => {
       // Assert
       expect(ctx.data.action).toBe('ran')
       expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/login' })
-    })
-  })
-
-  describe('action hooks', () => {
-    it('should use first-match semantics for action hooks', async () => {
-      // Arrange
-      const skipped = ASTTestFactory.hook(HookType.ACTION)
-        .withProperty('when', createPredicate('missing'))
-        .withProperty('effects', [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')])
-        .build() as ActionHookASTNode
-      const matched = ASTTestFactory.hook(HookType.ACTION)
-        .withProperty('when', createPredicate('clicked'))
-        .withProperty('effects', [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')])
-        .build() as ActionHookASTNode
-      const fn = compiler.compileActionHooks([skipped, matched], functionRegistry)
-      const ctx = createContext(functionRegistry, {
-        answers: { clicked: { current: 'yes', mutations: [] } },
-      })
-
-      // Act
-      const result = await fn!(ctx)
-
-      // Assert
-      expect(result).toEqual({ executed: true })
-      expect(ctx.data.action).toBe('ran')
     })
   })
 

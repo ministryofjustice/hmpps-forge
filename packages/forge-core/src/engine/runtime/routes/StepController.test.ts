@@ -2,11 +2,10 @@ import { ASTNodeType } from '../../types/enums'
 import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
+import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engine.type'
 import {
   CompiledAccessHookResult as AccessHookResult,
-  CompiledActionHookResult as ActionHookResult,
   CompiledSubmitHookResult as SubmitHookResult,
 } from '../../compilation/hooks/HookLifecycleCompiler'
 import { CompiledForm } from '../../compilation/CompilationFactory'
@@ -203,7 +202,6 @@ describe('StepController', () => {
       path: stepNode.properties.path.replace(/^\//, ''),
       code: stepNode.properties.code,
       accessAncestorIds: [stepNode.id],
-      actionHookIds: (stepNode.properties.onAction ?? []).map(hook => hook.id),
       submitHookIds: (stepNode.properties.onSubmission ?? []).map(hook => hook.id),
       iterateNodeIds: [],
       validationBlockIds: [],
@@ -232,17 +230,6 @@ describe('StepController', () => {
         }
 
         return { executed: true, outcome: 'continue' }
-      },
-      compiledActionHooks: async () => {
-        for (const hookId of runtimePlan.actionHookIds) {
-          const result = await mockEvaluator.invoke<ActionHookResult>(hookId, mockContext)
-
-          if (!result.error && result.value?.executed) {
-            return result.value
-          }
-        }
-
-        return { executed: false }
       },
       compiledSubmitHooks: async () => {
         for (const hookId of runtimePlan.submitHookIds) {
@@ -324,7 +311,6 @@ describe('StepController', () => {
   function createStepWithHooks(options: {
     code?: string
     onAccess?: AccessHookASTNode[]
-    onAction?: ActionHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
   }): StepASTNode {
     return {
@@ -871,73 +857,6 @@ describe('StepController', () => {
       })
     })
 
-    describe('action hooks', () => {
-      it('should run action hooks after access passes', async () => {
-        // Arrange
-        const actionHook = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const step = createStepWithHooks({ onAction: [actionHook] })
-        mockCompiledForm = createCompiledForm(step)
-
-        setupAncestorChain([step])
-
-        const actionResult: ActionHookResult = { executed: true }
-        mockEvaluator.invoke.mockResolvedValue({
-          value: actionResult,
-          metadata: { source: 'test', timestamp: Date.now() },
-        })
-
-        const controller = new StepController(
-          mockCompiledForm,
-          mockDependencies,
-          mockNavigationMetadata,
-          mockCurrentStepPath,
-          mockRouteTemplateCatalog,
-        )
-
-        // Act
-        await controller.post(mockReq, mockRes)
-
-        // Assert
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(actionHook.id, mockContext)
-      })
-
-      it('should stop at first executing action (first-match semantics)', async () => {
-        // Arrange
-        const action1 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const action2 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const step = createStepWithHooks({ onAction: [action1, action2] })
-        mockCompiledForm = createCompiledForm(step)
-
-        setupAncestorChain([step])
-
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
-          if (nodeId === action1.id) {
-            return {
-              value: { executed: true },
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
-          return { value: { executed: false }, metadata: { source: 'test', timestamp: Date.now() } }
-        })
-
-        const controller = new StepController(
-          mockCompiledForm,
-          mockDependencies,
-          mockNavigationMetadata,
-          mockCurrentStepPath,
-          mockRouteTemplateCatalog,
-        )
-
-        // Act
-        await controller.post(mockReq, mockRes)
-
-        // Assert - Only first action should be invoked
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(action1.id, mockContext)
-        expect(mockEvaluator.invoke).not.toHaveBeenCalledWith(action2.id, expect.anything())
-      })
-    })
-
     describe('submit hooks', () => {
       it('should expose validation callback to submit hooks when validation is required', async () => {
         // Arrange
@@ -1399,37 +1318,6 @@ describe('StepController', () => {
 
       // Assert - Access hook was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessHook.id, mockContext)
-    })
-
-    it('should invoke action hooks which execute effects internally', async () => {
-      // Arrange
-      const actionHook = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-      const step = createStepWithHooks({ onAction: [actionHook] })
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      const actionResult: ActionHookResult = { executed: true }
-
-      mockEvaluator.invoke.mockResolvedValue({
-        value: actionResult,
-        metadata: { source: 'test', timestamp: Date.now() },
-      })
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(createMockRequest({ method: 'POST' }))
-
-      const controller = new StepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-        mockRouteTemplateCatalog,
-      )
-
-      // Act
-      await controller.post(mockReq, mockRes)
-
-      // Assert - Action hook was invoked (effects execute internally)
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(actionHook.id, mockContext)
     })
 
     it('should invoke submit hooks which execute effects internally', async () => {

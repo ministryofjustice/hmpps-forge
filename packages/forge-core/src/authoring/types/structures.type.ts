@@ -1,4 +1,4 @@
-import { SubmitHook, AccessHook, ActionHook, PredicateExpr } from './expressions.type'
+import { SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { BlockDefinition, ConditionalString } from '../../components/types/structures.type'
@@ -153,7 +153,6 @@ export interface StepDefinition {
   code?: string
   blocks?: BlockDefinition[]
   onAccess?: AccessHook[]
-  onAction?: ActionHook[]
   onSubmission?: SubmitHook[]
   validateOnEntry?: StepEntryValidation[]
   title: string

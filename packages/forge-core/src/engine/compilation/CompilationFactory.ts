@@ -2,7 +2,7 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ASTNodeType } from '../types/enums'
 import { BlockType, ExpressionType, HookType, IteratorType } from '../../authoring/types/enums'
-import { ActionHookASTNode, IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
 import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.type'
 import { CompilationDependencies } from './CompilationDependencies'
@@ -293,12 +293,6 @@ export default class CompilationFactory {
         (node): node is JourneyASTNode | StepASTNode =>
           node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP,
       )
-    const actionHooks = runtimePlan.actionHookIds
-      .map(nodeId => compilationDependencies.nodeRegistry.get(nodeId))
-      .filter(
-        (node): node is ActionHookASTNode =>
-          node?.type === ASTNodeType.HOOK && (node as { hookType?: unknown }).hookType === HookType.ACTION,
-      )
     const submitHooks = runtimePlan.submitHookIds
       .map(nodeId => compilationDependencies.nodeRegistry.get(nodeId))
       .filter(
@@ -308,10 +302,6 @@ export default class CompilationFactory {
 
     runtimePlan.compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(
       accessAncestors,
-      this.journeyInstanceDependencies.functionRegistry,
-    )
-    runtimePlan.compiledActionHooks = hookCompiler.compileActionHooks(
-      actionHooks,
       this.journeyInstanceDependencies.functionRegistry,
     )
     runtimePlan.compiledSubmitHooks = hookCompiler.compileSubmitHooks(

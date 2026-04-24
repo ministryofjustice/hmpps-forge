@@ -93,15 +93,6 @@ export const AccessHookSchema = z.object({
 })
 
 /**
- * @see {@link ActionHook}
- */
-export const ActionHookSchema = z.object({
-  type: z.literal(HookType.ACTION),
-  when: PredicateExprSchema,
-  effects: z.array(EffectFunctionExprSchema),
-})
-
-/**
  * @see {@link SubmitHook}
  */
 export const SubmitHookSchema = z.object({
@@ -169,7 +160,6 @@ export const StepSchema = z.looseObject({
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
   onAccess: z.array(AccessHookSchema).optional(),
-  onAction: z.array(ActionHookSchema).optional(),
   onSubmission: z.array(SubmitHookSchema).optional(),
   validateOnEntry: z.array(StepEntryValidationSchema).optional(),
   title: z.string(),

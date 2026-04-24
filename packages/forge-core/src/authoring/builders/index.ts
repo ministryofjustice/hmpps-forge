@@ -15,7 +15,6 @@ import {
 } from '../types/structures.type'
 import {
   AccessHook,
-  ActionHook,
   FormatExpr,
   RedirectOutcome,
   SubmitHook,
@@ -133,15 +132,6 @@ export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
  */
 export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
   return finaliseBuilders({ ...definition, type: HookType.ACCESS }) as AccessHook
-}
-
-/**
- * Creates an action hook for in-page actions.
- * Use this in the onAction array for buttons that trigger effects
- * without navigating away (e.g., "Find address", "Add item").
- */
-export function action(definition: Omit<ActionHook, 'type'>): ActionHook {
-  return finaliseBuilders({ ...definition, type: HookType.ACTION }) as ActionHook
 }
 
 /**

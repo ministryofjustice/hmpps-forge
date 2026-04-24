@@ -7,7 +7,6 @@ import {
   PipelineASTNode,
   ReferenceASTNode,
   AccessHookASTNode,
-  ActionHookASTNode,
   SubmitHookASTNode,
   RedirectOutcomeASTNode,
   ThrowErrorOutcomeASTNode,
@@ -456,7 +455,7 @@ export class HookBuilder {
     return this
   }
 
-  build(): AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode {
+  build(): AccessHookASTNode | SubmitHookASTNode {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
@@ -464,6 +463,6 @@ export class HookBuilder {
       id: nodeId,
       hookType: this.hookType,
       properties: this.properties,
-    } as AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode
+    } as AccessHookASTNode | SubmitHookASTNode
   }
 }

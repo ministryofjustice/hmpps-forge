@@ -335,30 +335,6 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.tags.current).toEqual(['single'])
     })
 
-    it('should skip POST processing for action-protected answers', () => {
-      // Arrange
-      const block = createFieldBlock('town')
-      const ctx = createCtx({
-        post: { town: 'Manchester' },
-        answers: {
-          town: {
-            current: 'Birmingham',
-            mutations: [{ value: 'Birmingham', source: 'action' }],
-          },
-        },
-      })
-
-      // Act
-      const source = compiler.generateSource([block])
-      const fn = new Function('ctx', source)
-
-      fn(ctx)
-
-      // Assert
-      expect(ctx.answers.town.current).toBe('Birmingham')
-      expect(ctx.answers.town.mutations).toHaveLength(1)
-    })
-
     it('should push mutation with undefined when field not in POST data', () => {
       // Arrange
       const block = createFieldBlock('missing')

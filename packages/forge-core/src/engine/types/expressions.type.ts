@@ -199,17 +199,6 @@ export interface AccessHookASTNode extends HookASTNode {
 }
 
 /**
- * Action Hook AST node
- */
-export interface ActionHookASTNode extends HookASTNode {
-  hookType: HookType.ACTION
-  properties: {
-    when: ASTNode
-    effects: ASTNode[]
-  }
-}
-
-/**
  * Submit Hook AST node
  */
 export interface SubmitHookASTNode extends HookASTNode {
