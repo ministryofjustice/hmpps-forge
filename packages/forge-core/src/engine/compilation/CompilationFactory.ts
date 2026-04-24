@@ -9,6 +9,7 @@ import { CompilationDependencies } from './CompilationDependencies'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
 import RuntimePlanBuilder, { JourneyRuntimePlan, StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
 import StepValidationCompiler, { CompiledValidationFunction } from './validation/StepValidationCompiler'
+import EntryValidationCompiler, { CompiledEntryValidationFunction } from './validation/EntryValidationCompiler'
 import ReachabilityCompiler from './reachability/ReachabilityCompiler'
 import StepRenderCompiler, { CompiledRenderFunction } from './rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler, {
@@ -37,6 +38,7 @@ export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   reachabilityPlan: ReachabilityRuntimePlan
   compiledValidation?: CompiledValidationFunction
+  compiledEntryValidation?: CompiledEntryValidationFunction
   compiledRender?: CompiledRenderFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined
 }
@@ -349,6 +351,11 @@ export default class CompilationFactory {
       iterateNodes,
       this.journeyInstanceDependencies.functionRegistry,
     )
+    const entryValidationCompiler = new EntryValidationCompiler()
+    const compiledEntryValidation = entryValidationCompiler.compile(
+      stepNode.properties.validateOnEntry,
+      this.journeyInstanceDependencies.functionRegistry,
+    )
 
     // Render evaluates step metadata, journey ancestor metadata, block properties,
     // and field values. All iterator types are passed because FILTER/FIND can be
@@ -370,6 +377,7 @@ export default class CompilationFactory {
       currentStepId: stepNode.id,
       runtimePlan,
       compiledValidation,
+      compiledEntryValidation,
       compiledRender,
       compiledAnswerPreparation,
     }

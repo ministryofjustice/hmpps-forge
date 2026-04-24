@@ -91,14 +91,20 @@ export default class StepController<TRequest, TResponse> {
       return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
     }
 
-    const renderContext = await this.buildRenderContext(context, navigationEvaluation, request)
+    const entryValidationGroups = await this.evaluateEntryValidationGroups(context)
+    const validation =
+      entryValidationGroups.length > 0
+        ? await this.evaluateValidation(context, false, entryValidationGroups)
+        : undefined
+    const renderContext = await this.buildRenderContext(context, navigationEvaluation, request, validation, {
+      showValidationFailures: validation !== undefined,
+    })
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
     const { request, context } = this.prepareRequest(req, res)
-    const plan = this.compiledForm.runtimePlan
 
     const accessResult = await this.executeAccessLifecycle(context)
 
@@ -121,12 +127,6 @@ export default class StepController<TRequest, TResponse> {
 
     await this.executeActionHooks(context)
 
-    let validation: StepValidityResult | undefined
-
-    if (plan.hasValidatingSubmitHook) {
-      validation = await this.evaluateValidation(context)
-    }
-
     const submitResult = await this.executeSubmitHooks(context)
 
     if (submitResult.outcome === 'error') {
@@ -137,9 +137,15 @@ export default class StepController<TRequest, TResponse> {
       return this.redirect(res, request, this.getRedirectTarget(submitResult.redirect))
     }
 
-    const renderContext = await this.buildRenderContext(context, navigationEvaluation, request, validation, {
-      showValidationFailures: submitResult.validated,
-    })
+    const renderContext = await this.buildRenderContext(
+      context,
+      navigationEvaluation,
+      request,
+      context.global.validation,
+      {
+        showValidationFailures: submitResult.validated,
+      },
+    )
 
     return this.dependencies.frameworkAdapter.render(renderContext, req, res)
   }
@@ -212,10 +218,28 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
+    return compiledFn(
+      buildCompiledHookLifecycleContext(context, this.dependencies, groups =>
+        this.evaluateValidation(context, true, groups),
+      ),
+    )
   }
 
-  private async evaluateValidation(context: RuntimeEvaluationContext): Promise<StepValidityResult> {
+  private async evaluateEntryValidationGroups(context: RuntimeEvaluationContext): Promise<string[]> {
+    const compiledEntryValidation = this.compiledForm.compiledEntryValidation
+
+    if (!compiledEntryValidation) {
+      return []
+    }
+
+    return compiledEntryValidation(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+  }
+
+  private async evaluateValidation(
+    context: RuntimeEvaluationContext,
+    isSubmission: boolean,
+    groups: string[],
+  ): Promise<StepValidityResult> {
     const compiledValidation = this.compiledForm.compiledValidation
 
     if (!compiledValidation) {
@@ -224,7 +248,11 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    const result = await compiledValidation(buildCompiledBaseContext(context, this.dependencies.functionRegistry), true)
+    const result = await compiledValidation(
+      buildCompiledBaseContext(context, this.dependencies.functionRegistry),
+      isSubmission,
+      groups,
+    )
 
     // Remap iterator validation failures to use the same "compiled:" + fieldCode
     // ID scheme that the render compiler uses for iterator-generated blocks.
@@ -241,6 +269,8 @@ export default class StepController<TRequest, TResponse> {
     context.global.validation = {
       stepId: this.compiledForm.runtimePlan.stepId,
       validated: true,
+      groups,
+      isSubmission,
       isValid: result.isValid,
       fieldFailures: result.fieldFailures,
       domainFailures: result.domainFailures,

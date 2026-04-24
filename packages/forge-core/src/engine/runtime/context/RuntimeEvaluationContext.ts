@@ -14,6 +14,8 @@ export type DomainValidationFailure = ValidationResult
 export interface StepValidationState {
   stepId: NodeId
   validated: boolean
+  groups?: string[]
+  isSubmission?: boolean
   isValid: boolean
   fieldFailures: StepValidationFailure[]
   domainFailures: DomainValidationFailure[]

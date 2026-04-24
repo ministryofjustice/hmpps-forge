@@ -1,8 +1,15 @@
 import { ASTNodeType } from '../../../types/enums'
-import { BlockType, HookType, StructureType } from '../../../../authoring/types/enums'
+import {
+  BlockType,
+  ExpressionType,
+  FunctionType,
+  HookType,
+  PredicateType,
+  StructureType,
+} from '../../../../authoring/types/enums'
 import type { StepDefinition } from '../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type { AccessHook, SubmitHook, HookOutcome } from '../../../../authoring/types/expressions.type'
+import type { AccessHook, SubmitHook, HookOutcome, ValueExpr } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '../../../types/structures.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -139,6 +146,40 @@ describe('StepFactory', () => {
 
       // Assert
       expect(result.properties.cleardownFieldCodes).toEqual(['fieldA', '^task_\\d+$'])
+    })
+
+    it('should transform validateOnEntry predicates', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        validateOnEntry: [
+          {
+            groups: ['contact'],
+            when: true,
+          },
+          {
+            groups: ['address'],
+            when: {
+              type: PredicateType.TEST,
+              negate: false,
+              subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
+              condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] as ValueExpr[] },
+            },
+          },
+        ],
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+
+      // Assert
+      expect(result.properties.validateOnEntry).toHaveLength(2)
+      expect(result.properties.validateOnEntry?.[0]).toEqual({ groups: ['contact'], when: true })
+      expect(result.properties.validateOnEntry?.[1].groups).toEqual(['address'])
+      expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ type: ASTNodeType.PREDICATE })
     })
 
     it('should omit cleardownFieldCodes when not specified', () => {

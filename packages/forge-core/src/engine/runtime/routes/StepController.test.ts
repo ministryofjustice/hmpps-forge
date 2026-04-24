@@ -559,6 +559,95 @@ describe('StepController', () => {
         // Assert
         expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
+
+      it('should render entry validation errors when validateOnEntry groups are active', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledEntryValidation = vi.fn().mockReturnValue(['contact'])
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [
+            {
+              blockId: 'compile_ast:999' as NodeId,
+              blockCode: 'email',
+              passed: false,
+              message: 'Enter your email',
+              submissionOnly: false,
+            },
+          ],
+          domainFailures: [],
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.get(mockReq, mockRes)
+
+        // Assert
+        expect(mockCompiledForm.compiledValidation).toHaveBeenCalledWith(expect.anything(), false, ['contact'])
+        expect(mockContext.global.validation).toMatchObject({
+          stepId: mockCompiledForm.runtimePlan.stepId,
+          validated: true,
+          groups: ['contact'],
+          isSubmission: false,
+          isValid: false,
+        })
+        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalledWith(
+          expect.objectContaining({
+            showValidationFailures: true,
+            fieldValidationErrors: [
+              {
+                blockCode: 'email',
+                passed: false,
+                message: 'Enter your email',
+                submissionOnly: false,
+              },
+            ],
+          }),
+          mockReq,
+          mockRes,
+        )
+      })
+
+      it('should not run entry validation when no validateOnEntry groups are active', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledEntryValidation = vi.fn().mockReturnValue([])
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [],
+          domainFailures: [],
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.get(mockReq, mockRes)
+
+        // Assert
+        expect(mockCompiledForm.compiledValidation).not.toHaveBeenCalled()
+        expect(mockContext.global.validation).toBeUndefined()
+      })
     })
   })
 
@@ -850,7 +939,7 @@ describe('StepController', () => {
     })
 
     describe('submit hooks', () => {
-      it('should run compiled validation before submit hooks when a submit hook requires validation', async () => {
+      it('should expose validation callback to submit hooks when validation is required', async () => {
         // Arrange
         const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
           .withProperty('validate', true)
@@ -873,17 +962,16 @@ describe('StepController', () => {
           ],
           domainFailures: [],
         })
+        mockCompiledForm.runtimePlan.compiledSubmitHooks = async hookContext => {
+          const validation = await hookContext.validate?.(['default'])
 
-        const submitResult: SubmitHookResult = {
-          executed: true,
-          validated: true,
-          isValid: false,
-          outcome: 'continue',
+          return {
+            executed: true,
+            validated: true,
+            isValid: validation?.isValid,
+            outcome: 'continue',
+          }
         }
-        mockEvaluator.invoke.mockResolvedValue({
-          value: submitResult,
-          metadata: { source: 'test', timestamp: Date.now() },
-        })
 
         const controller = new StepController(
           mockCompiledForm,
@@ -900,6 +988,8 @@ describe('StepController', () => {
         expect(mockContext.global.validation).toEqual({
           stepId: mockCompiledForm.runtimePlan.stepId,
           validated: true,
+          groups: ['default'],
+          isSubmission: true,
           isValid: false,
           fieldFailures: [
             {
@@ -912,6 +1002,43 @@ describe('StepController', () => {
           ],
           domainFailures: [],
         })
+      })
+
+      it('should not pre-validate before submit hooks', async () => {
+        // Arrange
+        const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
+          .withProperty('validate', true)
+          .build() as SubmitHookASTNode
+        const step = createStepWithHooks({ onSubmission: [submitHook] })
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [],
+          domainFailures: [],
+        })
+        mockCompiledForm.runtimePlan.compiledSubmitHooks = async () => ({
+          executed: true,
+          validated: false,
+          outcome: 'continue',
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(mockCompiledForm.compiledValidation).not.toHaveBeenCalled()
+        expect(mockContext.global.validation).toBeUndefined()
       })
 
       it('should run submit hooks after actions', async () => {

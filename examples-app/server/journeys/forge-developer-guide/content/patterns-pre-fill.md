@@ -2,7 +2,7 @@
 title: Pre-fill from an external system
 section: patterns
 path: patterns/pre-fill
-teaches: [pre-fill, action-hook, onAction, setAnswer]
+teaches: [pre-fill, onSubmission, validation-groups, setAnswer]
 prerequisites: [step, effects, answers]
 ---
 
@@ -45,14 +45,14 @@ which runs an access hook before the page renders.
 The live demo implements a "Find address" flow. Following it
 shows:
 
-- **An action hook** that runs on a button press without leaving
-  the page.
+- **A grouped submit hook** that validates only the lookup input
+  before calling the external API.
 - **An effect that calls an external API** and writes the response
   into form field answers using `setAnswer()`.
 - **Pre-filled form fields** that the user can review and edit
   before continuing.
-- **Separation of concerns** between the lookup trigger
-  (`onAction`) and the main form submission (`onSubmission`).
+- **Separation of concerns** between the lookup validation group
+  and the main form submission.
 
 ---
 
@@ -67,8 +67,9 @@ shows:
 ```
 
 The find-address step is the core of this pattern. It has a
-postcode input and a "Find address" button that triggers an action
-hook. The hook calls the API, and the effect populates the address
+postcode input and a "Find address" button that triggers a submit
+hook for the `find-postcode` validation group. When that group is
+valid, the hook calls the API and the effect populates the address
 fields. The page re-renders with the pre-filled values, and the
 user can edit them before pressing "Continue".
 
@@ -76,28 +77,31 @@ user can edit them before pressing "Continue".
 
 ## How it works
 
-### The action hook
+### The lookup submit hook
 
-The step registers an `onAction` hook that fires when the user
-presses the "Find address" button. The button posts with
-`action=find-address`, and the hook's `when` condition matches
-that value:
+The step registers a submit hook that fires when the user presses
+the "Find address" button. The button posts with
+`action=find-address`, and the hook validates only the
+`find-postcode` group before running the lookup effect:
 
 ```typescript
-onAction: [
-  action({
+onSubmission: [
+  submit({
     when: Post('action').match(Condition.Equals('find-address')),
-    effects: [PatternEffects.LookupAddress()],
+    validate: { groups: ['find-postcode'] },
+    onValid: {
+      effects: [PatternEffects.LookupAddress()],
+    },
   }),
 ],
 ```
 
-Action hooks run after the POST data is parsed but before
-validation and submit hooks. Because no submit hook matches the
-`find-address` action, the page re-renders instead of
-redirecting. The effect's `setAnswer()` calls populate the fields
+The lookup hook has no redirect, so a valid lookup re-renders the
+same page. The effect's `setAnswer()` calls populate the fields
 before the re-render, so the user sees the pre-filled values
-immediately.
+immediately. If the lookup postcode is blank or badly formatted,
+Forge renders validation errors for that group without validating
+the address fields.
 
 ### The effect implementation
 
@@ -131,7 +135,7 @@ so the effect never imports services directly.
 ### The "Find address" button
 
 The button is a standard `GovUKButton` with `name` and `value`
-set so the POST data triggers the action hook. It uses the
+set so the POST data triggers the lookup submit hook. It uses the
 `govuk-button--secondary` class to distinguish it from the
 primary "Continue" button:
 
@@ -146,15 +150,22 @@ export const findAddressButton = GovUKButton({
 
 ### Separating lookup from submission
 
-The step has two buttons that post different `action` values. Only
-the "Continue" button triggers the submit hook, which validates
-and redirects:
+The step has two buttons that post different `action` values. The
+"Find address" hook validates only `find-postcode`, while the
+"Continue" hook validates only `address` and redirects:
 
 ```typescript
 onSubmission: [
   submit({
+    when: Post('action').match(Condition.Equals('find-address')),
+    validate: { groups: ['find-postcode'] },
+    onValid: {
+      effects: [PatternEffects.LookupAddress()],
+    },
+  }),
+  submit({
     when: Post('action').match(Condition.Equals('continue')),
-    validate: true,
+    validate: { groups: ['address'] },
     onValid: {
       effects: [PatternEffects.SaveDraftAnswers('pre-fill')],
       next: [redirect({ goto: 'check-answers' })],
@@ -163,10 +174,10 @@ onSubmission: [
 ],
 ```
 
-When the user presses "Find address", the action hook runs but no
-submit hook matches, so the page re-renders with the populated
-fields. When they press "Continue", the submit hook validates
-the address fields and navigates to check-your-answers.
+When the user presses "Find address", Forge validates the lookup
+postcode and re-renders with populated fields if it is valid. When
+they press "Continue", Forge validates the address fields and
+navigates to check-your-answers.
 
 ---
 
@@ -174,8 +185,9 @@ the address fields and navigates to check-your-answers.
 
 - **Select from multiple results.** When the API returns several
   matches, present them in a `GovUKSelect` dropdown before
-  populating the fields. The action hook sets the options as data,
-  and a second action hook applies the selected one.
+  populating the fields. One grouped submit hook sets the options
+  as data, and a second grouped submit hook applies the selected
+  one.
 - **Progressive disclosure.** Hide the address fields until the
   lookup returns results. Use a `visibleWhen` condition that
   checks whether the first address field has a value.

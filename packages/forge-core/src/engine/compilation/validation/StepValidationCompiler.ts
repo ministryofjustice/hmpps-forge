@@ -37,11 +37,16 @@ export interface ValidationContext {
   conditions: FunctionRegistry
 }
 
-type SyncCompiledValidationFunction = (ctx: ValidationContext, isSubmission: boolean) => StepValidityResult
+type SyncCompiledValidationFunction = (
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups?: string[],
+) => StepValidityResult
 
 export type CompiledValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
+  groups?: string[],
 ) => StepValidityResult | Promise<StepValidityResult>
 
 export default class StepValidationCompiler {
@@ -71,7 +76,7 @@ export default class StepValidationCompiler {
   ): CompiledValidationFunction | SyncCompiledValidationFunction | undefined {
     return compileGeneratedFunction<CompiledValidationFunction>(
       this.expr,
-      ['ctx', 'isSubmission'],
+      ['ctx', 'isSubmission', 'groups'],
       functionRegistry,
       () => this.buildSource(fieldBlocks, domainValidationNodes, iterateNodes),
     )
@@ -97,6 +102,11 @@ export default class StepValidationCompiler {
     const emitter = new CodeEmitter()
 
     emitter.emit('"use strict";')
+    emitter.emit('var _activeGroups = Array.isArray(groups) && groups.length > 0 ? groups : ["default"];')
+    emitter.emit('var _activeGroupSet = Object.create(null);')
+    emitter.emitBlock('for (var _groupIndex = 0; _groupIndex < _activeGroups.length; _groupIndex++)', () => {
+      emitter.emit('_activeGroupSet[String(_activeGroups[_groupIndex])] = true;')
+    })
     emitter.emit('var errors = [];')
     emitter.emit('var domainErrors = [];')
     emitter.emitBlank()
@@ -234,14 +244,90 @@ export default class StepValidationCompiler {
 
   private compileTemplateValidationNode(node: TemplateNode, blockCodeExpr: string, emitter: CodeEmitter): void {
     const submissionOnly = node.properties?.submissionOnly === true
+    const groupGuard = this.compileGroupsGuard(readTemplateGroups(node))
 
-    if (submissionOnly) {
-      emitter.emitBlock('if (isSubmission)', () => {
-        this.emitTemplateValidationCheck(node, blockCodeExpr, emitter)
-      })
-    } else {
+    emitter.emitBlock(`if (${groupGuard})`, () => {
+      if (submissionOnly) {
+        emitter.emitBlock('if (isSubmission)', () => {
+          this.emitTemplateValidationCheck(node, blockCodeExpr, emitter)
+        })
+
+        return
+      }
+
       this.emitTemplateValidationCheck(node, blockCodeExpr, emitter)
-    }
+    })
+  }
+
+  private compileGroupsGuard(groups: string[] | undefined): string {
+    return normalizeGroups(groups)
+      .map(group => `_activeGroupSet[${JSON.stringify(group)}] === true`)
+      .join(' || ')
+  }
+
+  private compileValidationNode(
+    node: ValidationASTNode,
+    block: FieldBlockASTNode,
+    blockCode: string | undefined,
+    emitter: CodeEmitter,
+  ): void {
+    const groupGuard = this.compileGroupsGuard(node.properties.groups)
+
+    emitter.emitBlock(`if (${groupGuard})`, () => {
+      if (node.properties.submissionOnly === true) {
+        emitter.emitBlock('if (isSubmission)', () => {
+          this.emitValidationCheck(node, block, blockCode, emitter)
+        })
+
+        return
+      }
+
+      this.emitValidationCheck(node, block, blockCode, emitter)
+    })
+  }
+
+  private emitValidationCheck(
+    node: ValidationASTNode,
+    block: FieldBlockASTNode,
+    blockCode: string | undefined,
+    emitter: CodeEmitter,
+  ): void {
+    const condVar = emitter.nextVar('_cond')
+    const condExpr = this.expr.compileExpression(node.properties.condition)
+
+    emitter.emit(`var ${condVar};`)
+    emitter.emitBlock('try', () => {
+      emitter.emit(`${condVar} = ${condExpr};`)
+    })
+    emitter.emitBlock('catch(e)', () => {
+      emitter.emit(`${condVar} = false;`)
+    })
+
+    const messageExpr = this.compileMessage(node.properties.message)
+    const resolvedBlockCode = this.compileResolvedBlockCode(node, blockCode)
+    const detailsExpr = this.compileDetails(node.properties.details)
+
+    emitter.emitBlock(`if (!${condVar})`, () => {
+      emitter.emit(
+        `errors.push({ blockId: ${JSON.stringify(block.id)}, blockCode: ${resolvedBlockCode}, passed: false, message: ${messageExpr}, submissionOnly: ${isSubmissionOnlyStr(node)}, details: ${detailsExpr} });`,
+      )
+    })
+  }
+
+  private compileDomainValidation(node: ValidationASTNode, emitter: CodeEmitter): void {
+    const groupGuard = this.compileGroupsGuard(node.properties.groups)
+
+    emitter.emitBlock(`if (${groupGuard})`, () => {
+      if (node.properties.submissionOnly === true) {
+        emitter.emitBlock('if (isSubmission)', () => {
+          this.emitDomainValidationCheck(node, emitter)
+        })
+
+        return
+      }
+
+      this.emitDomainValidationCheck(node, emitter)
+    })
   }
 
   private emitTemplateValidationCheck(node: TemplateNode, blockCodeExpr: string, emitter: CodeEmitter): void {
@@ -317,50 +403,7 @@ export default class StepValidationCompiler {
     }
   }
 
-  private compileValidationNode(
-    node: ValidationASTNode,
-    block: FieldBlockASTNode,
-    blockCode: string | undefined,
-    emitter: CodeEmitter,
-  ): void {
-    if (node.properties.submissionOnly === true) {
-      emitter.emitBlock('if (isSubmission)', () => {
-        this.emitValidationCheck(node, block, blockCode, emitter)
-      })
-    } else {
-      this.emitValidationCheck(node, block, blockCode, emitter)
-    }
-  }
-
-  private emitValidationCheck(
-    node: ValidationASTNode,
-    block: FieldBlockASTNode,
-    blockCode: string | undefined,
-    emitter: CodeEmitter,
-  ): void {
-    const condVar = emitter.nextVar('_cond')
-    const condExpr = this.expr.compileExpression(node.properties.condition)
-
-    emitter.emit(`var ${condVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${condVar} = ${condExpr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${condVar} = false;`)
-    })
-
-    const messageExpr = this.compileMessage(node.properties.message)
-    const resolvedBlockCode = this.compileResolvedBlockCode(node, blockCode)
-    const detailsExpr = this.compileDetails(node.properties.details)
-
-    emitter.emitBlock(`if (!${condVar})`, () => {
-      emitter.emit(
-        `errors.push({ blockId: ${JSON.stringify(block.id)}, blockCode: ${resolvedBlockCode}, passed: false, message: ${messageExpr}, submissionOnly: ${isSubmissionOnlyStr(node)}, details: ${detailsExpr} });`,
-      )
-    })
-  }
-
-  private compileDomainValidation(node: ValidationASTNode, emitter: CodeEmitter): void {
+  private emitDomainValidationCheck(node: ValidationASTNode, emitter: CodeEmitter): void {
     const condVar = emitter.nextVar('_dcond')
     const condExpr = this.expr.compileExpression(node.properties.condition)
 
@@ -472,4 +515,18 @@ export default class StepValidationCompiler {
 
 function isSubmissionOnlyStr(node: ValidationASTNode): string {
   return node.properties.submissionOnly === true ? 'true' : 'false'
+}
+
+function normalizeGroups(groups: string[] | undefined): string[] {
+  return groups !== undefined && groups.length > 0 ? groups : ['default']
+}
+
+function readTemplateGroups(node: TemplateNode): string[] | undefined {
+  const groups = node.properties?.groups
+
+  if (!Array.isArray(groups)) {
+    return undefined
+  }
+
+  return groups.filter(group => typeof group === 'string')
 }

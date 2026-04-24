@@ -2,7 +2,7 @@
 title: Hooks and lifecycle
 section: building-journeys
 path: building-journeys/hooks-and-lifecycle
-teaches: [onAccess, onAction, onSubmission, access, action, submit, redirect, throwError, hook-when, hook-execution, hook-composition]
+teaches: [onAccess, onAction, onSubmission, access, action, submit, redirect, throwError, hook-when, hook-execution, hook-composition, validation-groups]
 prerequisites: [step, StepDefinition, journey, JourneyDefinition]
 ---
 
@@ -78,9 +78,11 @@ lifecycle is different for GET and POST requests.
 2. Prepare answers     Bind POST values to fields, run formatters
 3. Check navigation    Evaluate reachability, redirect if unreachable
 4. Action hooks        Run onAction array (first match)
-5. Validation          Run field and step validations if needed
-6. Submit hooks        Run onSubmission array (first match)
-7. Render              If no redirect, display page with any validation errors
+5. Submit hooks        Run onSubmission array (first match)
+   5a. onAlways        Run effects that should always execute
+   5b. Validate        Run validation for the requested groups
+   5c. Branch          Run onValid or onInvalid based on the result
+6. Render              If no redirect, display page with any validation errors
 ```
 
 At any point, a redirect or error outcome stops processing immediately.
@@ -145,12 +147,22 @@ hook, what happens next depends on `validate`:
 
 Only `onAlways` runs. No validation is performed.
 
-**When `validate` is `true`:**
+**When `validate` is `true` or `{ groups: [...] }`:**
 
 1. Run `onAlways` effects first, if present.
-2. Check the validation result.
+2. Validate the requested groups (`'default'` when `true`, or the
+   named groups).
 3. If valid: run `onValid` effects, then evaluate `onValid.next`.
 4. If invalid: run `onInvalid` effects, then evaluate `onInvalid.next`.
+
+Validation runs inside the submit hook, after `onAlways`. This
+means `onAlways` effects can set up data that validation or later
+branches depend on.
+
+Using `validate: { groups: [...] }` lets different submit hooks on
+the same step validate different subsets of fields. See
+[Validation groups](validation#validation-groups) for the full
+pattern.
 
 Effects always run before outcomes are evaluated. Data set by an
 effect is available in the `next` outcomes that follow.

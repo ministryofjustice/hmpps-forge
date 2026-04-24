@@ -64,6 +64,13 @@ export default class StepFactory {
       properties.onSubmission = this.nodeFactory.transformValue(dataProperties.onSubmission)
     }
 
+    if (dataProperties.validateOnEntry !== undefined) {
+      properties.validateOnEntry = dataProperties.validateOnEntry.map(entry => ({
+        groups: entry.groups,
+        when: entry.when === true ? true : this.nodeFactory.createNode(entry.when),
+      }))
+    }
+
     if (dataProperties.blocks !== undefined) {
       properties.blocks = this.nodeFactory.transformValue(dataProperties.blocks)
     }

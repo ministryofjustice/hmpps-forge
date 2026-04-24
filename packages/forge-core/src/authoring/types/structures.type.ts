@@ -27,6 +27,8 @@ export interface ValidationExpr {
   message: ConditionalString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
+  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted. */
+  groups?: string[]
   /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
   details?: Record<string, any>
 }
@@ -136,6 +138,11 @@ export interface StepReachability {
   tieBreakers?: TieBreaker[]
 }
 
+export interface StepEntryValidation {
+  groups: string[]
+  when: true | PredicateExpr | PredicateTestExprBuilder
+}
+
 /**
  * Definition for a single step within a journey.
  * Steps contain blocks and define navigation/hook logic.
@@ -148,6 +155,7 @@ export interface StepDefinition {
   onAccess?: AccessHook[]
   onAction?: ActionHook[]
   onSubmission?: SubmitHook[]
+  validateOnEntry?: StepEntryValidation[]
   title: string
   view?: ViewConfig
   reachability?: StepReachability

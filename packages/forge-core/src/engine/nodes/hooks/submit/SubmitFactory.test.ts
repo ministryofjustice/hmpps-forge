@@ -78,6 +78,7 @@ describe('SubmitFactory', () => {
 
       // Assert
       expect(result.properties.validate).toBe(true)
+      expect(result.properties.validationGroups).toEqual(['default'])
     })
 
     it('should set validate to false when explicitly false', () => {
@@ -92,6 +93,22 @@ describe('SubmitFactory', () => {
 
       // Assert
       expect(result.properties.validate).toBe(false)
+      expect(result.properties.validationGroups).toEqual([])
+    })
+
+    it('should set validate and validationGroups when group validation is provided', () => {
+      // Arrange
+      const json = {
+        type: HookType.SUBMIT,
+        validate: { groups: ['contact', 'address'] },
+      } satisfies SubmitHook
+
+      // Act
+      const result = submitFactory.create(json)
+
+      // Assert
+      expect(result.properties.validate).toBe(true)
+      expect(result.properties.validationGroups).toEqual(['contact', 'address'])
     })
 
     it('should set validate property correctly', () => {

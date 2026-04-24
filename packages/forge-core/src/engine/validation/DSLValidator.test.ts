@@ -39,6 +39,63 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate grouped validation and validateOnEntry schema', () => {
+      const postcodeBlock = {
+        type: StructureType.BLOCK,
+        blockType: BlockType.FIELD,
+        variant: 'TextInput',
+        code: 'postcode',
+        validWhen: [
+          {
+            type: ExpressionType.VALIDATION,
+            groups: ['address'],
+            condition: {
+              type: PredicateType.TEST,
+              negate: false,
+              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
+              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+            },
+            message: 'Enter your postcode',
+          },
+        ],
+      } satisfies FieldBlockDefinition
+
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/review',
+            title: 'Review',
+            validateOnEntry: [
+              { groups: ['contact'], when: true },
+              {
+                groups: ['address'],
+                when: {
+                  type: PredicateType.TEST,
+                  negate: false,
+                  subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
+                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+                },
+              },
+            ],
+            blocks: [postcodeBlock],
+            onSubmission: [
+              {
+                type: HookType.SUBMIT,
+                validate: { groups: ['contact', 'address'] },
+              },
+            ],
+          },
+        ],
+      } as JourneyDefinition
+
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
     it('should fail when type is missing with clear error path', () => {
       const invalidJourney = {
         // Missing type

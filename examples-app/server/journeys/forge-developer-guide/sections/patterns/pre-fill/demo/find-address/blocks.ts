@@ -27,12 +27,19 @@ export const postcodeField = GovUKTextInput({
   formatters: [Transformer.String.Trim()],
   validWhen: [
     validation({
+      condition: Self().match(Condition.IsRequired()),
+      message: 'Enter a postcode',
+      submissionOnly: true,
+      groups: ['find-postcode'],
+    }),
+    validation({
       condition: or(
         not(Self().match(Condition.IsRequired())),
         Self().match(Condition.Address.IsValidPostcode()),
       ),
       message: 'Enter a valid postcode',
       submissionOnly: true,
+      groups: ['find-postcode'],
     }),
   ],
 })
@@ -52,6 +59,7 @@ export const addressLine1Field = GovUKTextInput({
     validation({
       condition: Self().match(Condition.IsRequired()),
       message: 'Enter address line 1',
+      groups: ['address'],
     }),
   ],
 })
@@ -71,6 +79,7 @@ export const addressTownField = GovUKTextInput({
     validation({
       condition: Self().match(Condition.IsRequired()),
       message: 'Enter a town or city',
+      groups: ['address'],
     }),
   ],
 })
@@ -90,6 +99,7 @@ export const addressPostcodeField = GovUKTextInput({
     validation({
       condition: Self().match(Condition.IsRequired()),
       message: 'Enter a postcode',
+      groups: ['address'],
     }),
   ],
 })

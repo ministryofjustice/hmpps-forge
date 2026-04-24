@@ -159,6 +159,7 @@ export interface ValidationASTNode extends ExpressionASTNode {
     condition: ASTNode // Required: the predicate — truthy means validation passes
     message: ASTNode | string // Can be a plain string or a ConditionalString expression
     submissionOnly?: boolean
+    groups?: string[]
     details?: Record<string, any>
     resolvedBlockCode?: string | ASTNode // Computed during normalization
   }
@@ -217,6 +218,7 @@ export interface SubmitHookASTNode extends HookASTNode {
     when?: ASTNode
     guards?: ASTNode
     validate: boolean
+    validationGroups: string[]
     onAlways?: {
       effects?: ASTNode[]
       next?: ASTNode[]
