@@ -3,6 +3,8 @@ import {
   Condition,
   Transformer,
   validation,
+  or,
+  not,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   GovUKTextInput,
@@ -25,8 +27,12 @@ export const postcodeField = GovUKTextInput({
   formatters: [Transformer.String.Trim()],
   validWhen: [
     validation({
-      condition: Self().match(Condition.IsRequired()),
-      message: 'Enter a postcode',
+      condition: or(
+        not(Self().match(Condition.IsRequired())),
+        Self().match(Condition.Address.IsValidPostcode()),
+      ),
+      message: 'Enter a valid postcode',
+      submissionOnly: true,
     }),
   ],
 })

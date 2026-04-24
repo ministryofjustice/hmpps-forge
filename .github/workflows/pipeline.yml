@@ -1,6 +1,12 @@
 name: Pipeline [test -> build -> deploy]
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/pipeline.yml'
+      - 'Makefile'
+      - 'examples-app/**'
+      - 'packages/**'
   push:
     branches:
       - 'main'
@@ -25,13 +31,48 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
 
 jobs:
-  validate_packages:
-    name: validate packages
-    uses: ./.github/workflows/packages_pipeline.yml
-  validate_examples_app:
-    name: validate examples-app
-    uses: ./.github/workflows/examples_app_pipeline.yml
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Lint packages
+        working-directory: packages
+        run: npm run lint
+      - name: Typecheck packages
+        working-directory: packages
+        run: npm run typecheck
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
+      - name: Test packages
+        working-directory: packages
+        run: npm run test
+      - name: Install examples-app dependencies
+        working-directory: examples-app
+        run: npm ci
+      - name: Typecheck examples-app
+        working-directory: examples-app
+        run: npm run typecheck
+      - name: Lint examples-app
+        working-directory: examples-app
+        run: npm run lint
+      - name: Test examples-app
+        working-directory: examples-app
+        run: npm run test:ci
+      - name: Build examples-app
+        working-directory: examples-app
+        run: npm run build
+      - name: Run end-to-end tests
+        run: make e2e-ci
   helm_lint:
+    if: github.event_name != 'pull_request'
     strategy:
       matrix:
         environments: ['dev']
@@ -43,9 +84,9 @@ jobs:
       chart_name: hmpps-forge-examples-app
   build:
     name: Build and push docker image
+    if: github.event_name != 'pull_request'
     needs:
-      - validate_packages
-      - validate_examples_app
+      - validate
     runs-on: ubuntu-latest
     outputs:
       app_version: ${{ steps.version.outputs.version }}
@@ -83,6 +124,7 @@ jobs:
             GIT_BRANCH=${{ github.ref_name }}
   deploy_dev:
     name: Deploy to the development environment
+    if: github.event_name != 'pull_request'
     needs:
       - build
       - helm_lint
