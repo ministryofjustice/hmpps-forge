@@ -3,6 +3,7 @@ import {
   Format,
   Item,
   Iterator,
+  Loop,
   Self,
   Condition,
   Transformer,
@@ -33,7 +34,7 @@ export const heading = GovUKHeading({
 //         slots: {
 //           name: [
 //             GovUKTextInput({
-//               code: Format('memberName_%1', Item().index()),
+//               code: Format('memberName_%1', Loop.Index0()),
 //               label: { text: 'Name' },
 //               defaultValue: Item().path('memberName'),
 //               classes: GovukUtilityClasses.Input.Width20,
@@ -48,7 +49,7 @@ export const heading = GovUKHeading({
 //           ],
 //           age: [
 //             GovUKTextInput({
-//               code: Format('memberAge_%1', Item().index()),
+//               code: Format('memberAge_%1', Loop.Index0()),
 //               label: { text: 'Age' },
 //               defaultValue: Item().path('memberAge'),
 //               classes: GovukUtilityClasses.Input.Width5,
@@ -69,7 +70,7 @@ export const heading = GovUKHeading({
 //             GovUKButton({
 //               text: 'Remove',
 //               name: 'action',
-//               value: Format('remove_%1', Item().index()),
+//               value: Format('remove_%1', Loop.Index0()),
 //               classes: 'govuk-button--warning',
 //             }),
 //           ],
@@ -85,7 +86,7 @@ export const memberRows = CollectionBlock({
   collection: Data('members').each(
     Iterator.Map([
       GovUKTextInput({
-        code: Format('memberName_%1', Item().index()),
+        code: Format('memberName_%1', Loop.Index0()),
         label: { text: 'Name' },
         defaultValue: Item().path('memberName'),
         classes: GovukUtilityClasses.Input.Width20,
@@ -98,7 +99,7 @@ export const memberRows = CollectionBlock({
         ],
       }),
       GovUKTextInput({
-        code: Format('memberAge_%1', Item().index()),
+        code: Format('memberAge_%1', Loop.Index0()),
         label: { text: 'Age' },
         formatters: [Transformer.String.ToInt()],
         defaultValue: Item().path('memberAge'),
@@ -118,7 +119,7 @@ export const memberRows = CollectionBlock({
       GovUKButton({
         text: 'Remove',
         name: 'action',
-        value: Format('remove_%1', Item().index()),
+        value: Format('remove_%1', Loop.Index0()),
         classes: 'govuk-button--warning',
       }),
       GovUKSectionBreak({ size: 'l', visible: true }),

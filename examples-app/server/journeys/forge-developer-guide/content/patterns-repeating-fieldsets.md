@@ -47,7 +47,7 @@ age. Following the flow shows:
 
 - **Form inputs inside an iterator** that create dynamic field
   codes like `memberName_0`, `memberName_1` using
-  `Format()` and `Item().index()`.
+  `Format()` and `Loop.Index0()`.
 - **An "Add another" submit hook** that appends an empty item to
   the collection and re-renders the page with a new row.
 - **A "Remove" submit hook** that splices an item from the
@@ -91,7 +91,7 @@ CollectionBlock({
             width: 'one-third',
             blocks: [
               GovUKTextInput({
-                code: Format('memberName_%1', Item().index()),
+                code: Format('memberName_%1', Loop.Index0()),
                 label: { text: 'Name' },
                 defaultValue: Item().path('memberName'),
               }),
@@ -169,7 +169,7 @@ index:
 GovUKButton({
   text: 'Remove',
   name: 'action',
-  value: Format('remove_%1', Item().index()),
+  value: Format('remove_%1', Loop.Index0()),
   classes: 'govuk-button--warning',
 })
 ```
@@ -232,7 +232,7 @@ failed.
   maximum is reached using a `visibleWhen` condition.
 - **Mixed field types.** Replace text inputs with selects, radios,
   or date fields. The pattern works with any field component as
-  long as the `code` uses `Format()` with `Item().index()`.
+  long as the `code` uses `Format()` with `Loop.Index0()`.
 - **Nested collections.** Each item could itself contain a
   sub-collection, using nested `Iterator.Map` with
   `Item().parent` to access the outer scope.

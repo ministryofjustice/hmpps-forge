@@ -9,6 +9,11 @@ import { taskListDemoJourney } from '../task-list/demo/journey'
 import { loadReferenceDataDemoJourney } from '../load-reference-data/demo/journey'
 import { preFillDemoJourney } from '../pre-fill/demo/journey'
 import { repeatingFieldsetsDemoJourney } from '../repeating-fieldsets/demo/journey'
+import { editAndReturnDemoJourney } from '../edit-and-return/demo/journey'
+import { authRoleDemoJourney } from '../auth-role/demo/journey'
+import { readOnlyModeDemoJourney } from '../read-only-mode/demo/journey'
+import { searchAndSelectDemoJourney } from '../search-and-select/demo/journey'
+import { paginationDemoJourney } from '../pagination/demo/journey'
 
 export const patternDemosJourney = journey({
   code: 'pattern-demos',
@@ -28,5 +33,10 @@ export const patternDemosJourney = journey({
     loadReferenceDataDemoJourney,
     preFillDemoJourney,
     repeatingFieldsetsDemoJourney,
+    editAndReturnDemoJourney,
+    authRoleDemoJourney,
+    readOnlyModeDemoJourney,
+    searchAndSelectDemoJourney,
+    paginationDemoJourney,
   ],
 })

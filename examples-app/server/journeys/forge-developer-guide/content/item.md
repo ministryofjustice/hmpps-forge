@@ -1,14 +1,14 @@
 ---
-title: Item
+title: Item (Iterators)
 section: authoring-language
 path: authoring-language/item
-teaches: [Item, item-path, item-index, item-value, item-key, item-parent]
+teaches: [Item, item-path, item-value, item-key, item-parent]
 prerequisites: [Iterator, each, Iterator.Map, Iterator.Filter, Iterator.Find]
 ---
 
 <p class="govuk-caption-xl">References</p>
 
-# Item
+# Item (Iterators)
 
 `Item()` references the current item inside an `.each()` iteration.
 Where `Answer()` references a field and `Data()` references step
@@ -30,7 +30,6 @@ one, it has nothing to resolve to.
 import { Item } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 Item().path('country')
-Item().index()
 ```
 
 ---
@@ -45,6 +44,11 @@ whichever object the iterator is currently on.
 `Item()` is scoped to its iterator. In nested iterations,
 `Item()` always refers to the innermost one. Use `Item().parent`
 to reach the outer item.
+
+Iterator metadata is separate from item data. `Item()` reads values
+from the current item. Use [Loop](loop) when you need metadata about
+the current iterator, such as the current position, whether the item
+is first or last, or the total number of processed items.
 
 ---
 
@@ -74,27 +78,6 @@ Answer('trips').each(
     }),
   ),
 )
-```
-
-### Using the index
-
-`Item().index()` gives the zero-based position of the current item.
-This is useful for building dynamic field codes, URLs, and button
-values:
-
-```typescript
-// Dynamic field codes for each item
-GovUKSelectInput({
-  code: Format('step_actor_%1', Item().index()),
-  defaultValue: Item().path('actor'),
-})
-
-// Remove button with encoded index
-GovUKButton({
-  text: 'Remove',
-  name: 'action',
-  value: Format('remove_%1', Item().index()),
-})
 ```
 
 ### Primitive collections
@@ -130,6 +113,9 @@ Data('teams').each(
 )
 ```
 
+Use [Loop.Parent](loop) when you need metadata from the outer
+iterator.
+
 ---
 
 ## API surface
@@ -154,10 +140,6 @@ notation.
 Item().path('address.postcode')
 ```
 
-### `.index()`
-
-The zero-based position of the current item in the collection.
-
 ### `.value()`
 
 The current item's raw value. Useful when iterating over
@@ -170,10 +152,15 @@ than an array.
 
 ### `.parent`
 
-References the parent scope's item in nested iterations. Returns
-another scoped reference with the same methods.
+References the outer iterator's item in nested iterations. This is
+lowercase because it belongs to `Item()`:
 
----
+```typescript
+Item().parent.path('teamName')
+```
+
+Use `Loop.Parent` when you need metadata from the outer iterator
+instead.
 
 ## Best practices
 
@@ -181,9 +168,10 @@ another scoped reference with the same methods.
   primitives.** If each item is an object, navigate with `.path()`.
   If the collection is a flat array of strings or numbers, use
   `.value()`.
-- **Use `Item().index()` for dynamic field codes.** When a form
-  needs a field per item, `Format('field_%1', Item().index())`
-  produces unique codes for each.
-- **Avoid deep nesting.** If you find yourself reaching for
-  `Item().parent.parent`, consider restructuring the data in an
-  effect before passing it to the definition.
+- **Keep item data and loop metadata separate.** Use `Item()` for
+  properties on the current item and [Loop](loop) for iterator
+  metadata such as indexes, first/last, and length.
+- **Avoid deep item nesting.** If a block needs data from multiple
+  ancestor items, consider shaping the data in an effect before
+  passing it to the definition. The same applies to deeply nested
+  [Loop.Parent](loop) metadata.

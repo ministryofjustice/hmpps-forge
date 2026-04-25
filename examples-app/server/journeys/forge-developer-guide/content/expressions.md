@@ -70,7 +70,8 @@ request.
 - [Post](post) - form submission values
 - [Session](session) - server-side session
 - [Request](request) - request metadata
-- [Item](item) - current item in an iteration
+- [Item (Iterators)](item) - current item in an iteration
+- [Loop (Iterators)](loop) - metadata about the current iteration
 
 ### Expressions
 
@@ -95,4 +96,3 @@ packages.
 - [Conditions](conditions) - testing values and returning booleans
 - [Effects](effects) - side-effecting logic for loading, saving,
   and integrating
-

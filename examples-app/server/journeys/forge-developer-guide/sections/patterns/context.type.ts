@@ -10,6 +10,7 @@ import type { Session } from 'express-session'
 export type PatternSession = Session & {
   patternDrafts?: Record<string, Record<string, unknown>>
   patternSubmitted?: Record<string, boolean>
+  demoUser?: { name: string; role: string }
 }
 
 export type PatternEffectContext = EffectFunctionContext<
