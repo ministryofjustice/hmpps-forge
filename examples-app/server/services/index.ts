@@ -13,7 +13,8 @@ export const services = () => {
   const { applicationInfo } = dataAccess()
   const formDataStore = new FormDataStore()
   const appointmentApi = new AppointmentApi()
-  const embeddingIndex = new EmbeddingIndex()
+  const embeddingIndex =
+    process.env.GUIDE_SEMANTIC_SEARCH_ENABLED === 'false' ? undefined : new EmbeddingIndex()
   const guideContentStore = new GuideContentStore(
     join(__dirname, 'journeys', 'forge-developer-guide', 'content'),
   )
