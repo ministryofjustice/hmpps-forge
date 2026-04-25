@@ -19,13 +19,18 @@ import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, Ou
  * @example
  * // Reference to current collection item
  * { type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }
+ *
+ * @example
+ * // Reference to current loop metadata
+ * { type: 'ExpressionType.Reference', path: ['@loop', '0', 'index0'] }
  */
 export interface ReferenceExpr {
   type: ExpressionType.REFERENCE
 
   /**
    * Path segments to traverse to reach the target value.
-   * Special paths include '@self' (current field) and '@scope' (current iterator item).
+   * Special paths include '@self' (current field), '@scope' (current iterator item),
+   * and '@loop' (current iterator metadata).
    */
   path: string[]
 
