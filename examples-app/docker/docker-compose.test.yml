@@ -7,6 +7,7 @@ services:
     command: npm run start
     environment:
       NODE_ENV: production
+      GUIDE_SEMANTIC_SEARCH_ENABLED: false
       NO_HTTPS: true
       INGRESS_URL: http://ui:3000
 

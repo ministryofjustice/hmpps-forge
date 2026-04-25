@@ -19,6 +19,7 @@ import developerGuidePackage from './journeys/forge-developer-guide'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import llmsTxtRoutes from './routes/llmsTxt'
 import type { Services } from './services'
+import config from './config'
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -28,6 +29,7 @@ export default function createApp(services: Services): express.Application {
   const forge = new Forge({
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+    lazyStepCompilation: !config.production,
   })
     // FORGE-EXAMPLE: Register global component libraries so journeys can use GovUK/MOJ components
     .registerGlobalComponents(govukComponents)
@@ -56,6 +58,7 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpWebRequestParsing())
   app.use(setUpStaticResources())
   app.use(setUpCsrf())
+  app.get('/', (req, res) => res.redirect('/forge-developer-guide/get-started'))
   // FORGE-EXAMPLE: Mount the Forge router — this serves all registered journey routes
   app.use(forge.getRouter() as express.Router)
 
