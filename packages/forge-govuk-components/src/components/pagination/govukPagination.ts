@@ -2,6 +2,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalArray,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -26,6 +28,12 @@ export interface PaginationLink {
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
+
+  /**
+   * Conditional visibility for this link. When the evaluated value is `false`,
+   * the link is omitted from rendering. Defaults to showing the link.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -42,10 +50,10 @@ export interface PaginationItem {
   href?: ConditionalString
 
   /** Set to true to indicate the current page. */
-  current?: boolean
+  current?: ConditionalBoolean
 
   /** Set to true to render an ellipsis instead of a page number. */
-  ellipsis?: boolean
+  ellipsis?: ConditionalBoolean
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
@@ -78,7 +86,7 @@ export interface GovUKPaginationProps extends BasicBlockProps {
   next?: PaginationLink
 
   /** Numbered page items for multi-page navigation. */
-  items?: PaginationItem[]
+  items?: ConditionalArray<PaginationItem>
 
   /** Accessibility label for the navigation landmark. Defaults to "Pagination". */
   landmarkLabel?: ConditionalString
@@ -106,8 +114,8 @@ export interface GovUKPagination extends BlockDefinition, GovUKPaginationProps {
  */
 function paginationRenderer(block: EvaluatedBlock<GovUKPagination>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    previous: block.previous,
-    next: block.next,
+    previous: block.previous?.visibleWhen === false ? undefined : block.previous,
+    next: block.next?.visibleWhen === false ? undefined : block.next,
     items: block.items,
     landmarkLabel: block.landmarkLabel,
     classes: block.classes,

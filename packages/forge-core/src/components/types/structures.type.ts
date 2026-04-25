@@ -158,7 +158,7 @@ type DynamicExpression =
 
 export type ConditionalString = string | DynamicExpression | FormatExpr
 
-export type ConditionalBoolean = boolean | DynamicExpression
+export type ConditionalBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
 
 export type ConditionalNumber = number | DynamicExpression
 
@@ -171,7 +171,10 @@ export type RenderedBlock = {
   html: string
 }
 
-type Resolved<T> = Exclude<T, DynamicExpression | FormatExpr | ChainableIterable>
+type Resolved<T> = Exclude<
+  T,
+  DynamicExpression | FormatExpr | ChainableIterable | PredicateExpr | PredicateTestExprBuilder
+>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true> =
   Resolved<T> extends infer R

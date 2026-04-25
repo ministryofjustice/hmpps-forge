@@ -111,6 +111,46 @@ describe('GOV.UK Pagination Component', () => {
       expect(params.previous?.text).toBe('Go back')
       expect(params.next?.text).toBe('Continue')
     })
+
+    it('omits previous and next links where visibleWhen evaluates to false', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        previous: {
+          href: '/previous-page',
+          visibleWhen: false,
+        },
+        next: {
+          href: '/next-page',
+          visibleWhen: false,
+        },
+      })
+
+      // Assert
+      expect(params.previous).toBeUndefined()
+      expect(params.next).toBeUndefined()
+    })
+
+    it('keeps previous and next links where visibleWhen is undefined or true', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        previous: {
+          href: '/previous-page',
+        },
+        next: {
+          href: '/next-page',
+          visibleWhen: true,
+        },
+      })
+
+      // Assert
+      expect(params.previous).toEqual({
+        href: '/previous-page',
+      })
+      expect(params.next).toEqual({
+        href: '/next-page',
+        visibleWhen: true,
+      })
+    })
   })
 
   describe('Numbered pagination', () => {
