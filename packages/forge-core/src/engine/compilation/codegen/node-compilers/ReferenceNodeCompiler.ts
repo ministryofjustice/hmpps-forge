@@ -17,6 +17,10 @@ export default class ReferenceNodeCompiler {
       return this.compileIteratorScopeReference(path)
     }
 
+    if (namespace === '@loop') {
+      return this.compileIteratorLoopReference(path)
+    }
+
     if (namespace === 'answers') {
       return this.compileAnswerReference(path)
     }
@@ -89,10 +93,6 @@ export default class ReferenceNodeCompiler {
 
     const property = path[2] as string
 
-    if (property === '@index') {
-      return frame.indexVar
-    }
-
     if (property === '@key') {
       return `${frame.itemVar}["@key"]`
     }
@@ -112,5 +112,50 @@ export default class ReferenceNodeCompiler {
     }
 
     return expr
+  }
+
+  private compileIteratorLoopReference(path: (string | number | TemplateValue)[]): string {
+    if (path.length < 3) {
+      return 'undefined'
+    }
+
+    const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
+    const frame = this.ctx.iteratorStack[this.ctx.iteratorStack.length - 1 - level]
+
+    if (!frame) {
+      return 'undefined'
+    }
+
+    const property = path[2] as string
+
+    if (property === 'index') {
+      return `(${frame.indexVar} + 1)`
+    }
+
+    if (property === 'index0') {
+      return frame.indexVar
+    }
+
+    if (property === 'revindex') {
+      return `(${frame.inputLengthExpr} - ${frame.indexVar})`
+    }
+
+    if (property === 'revindex0') {
+      return `(${frame.inputLengthExpr} - ${frame.indexVar} - 1)`
+    }
+
+    if (property === 'first') {
+      return `${frame.indexVar} === 0`
+    }
+
+    if (property === 'last') {
+      return `${frame.indexVar} === ${frame.inputLengthExpr} - 1`
+    }
+
+    if (property === 'length') {
+      return frame.inputLengthExpr
+    }
+
+    return 'undefined'
   }
 }

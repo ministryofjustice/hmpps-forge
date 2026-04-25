@@ -46,13 +46,16 @@ function createTemplate(value: unknown): TemplateValue {
   return new TemplateFactory(new NodeIDGenerator()).compile(value)
 }
 
-function createIterateNode(yieldTemplate: TemplateValue): IterateASTNode {
+function createIterateNode(
+  yieldTemplate: TemplateValue,
+  input: ReferenceASTNode = createReference(['data', 'members']),
+): IterateASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.ITERATE,
     id: ASTTestFactory.getId(),
     properties: {
-      input: createReference(['data', 'members']),
+      input,
       iterator: {
         type: IteratorType.MAP,
         yieldTemplate,
@@ -345,6 +348,112 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.html).toBe('Ada<br>Member')
     })
 
+    it('should evaluate Loop metadata inside iterator blocks', () => {
+      // Arrange
+      const members = [{ memberName: 'Ada' }, null, { memberName: 'Grace' }, { memberName: 'Linus' }]
+      const templateBlock = ASTTestFactory.block('loop-row', BlockType.BASIC)
+        .withProperty('index', createReference(['@loop', '0', 'index']))
+        .withProperty('index0', createReference(['@loop', '0', 'index0']))
+        .withProperty('revIndex', createReference(['@loop', '0', 'revindex']))
+        .withProperty('revIndex0', createReference(['@loop', '0', 'revindex0']))
+        .withProperty('first', createReference(['@loop', '0', 'first']))
+        .withProperty('last', createReference(['@loop', '0', 'last']))
+        .withProperty('length', createReference(['@loop', '0', 'length']))
+        .withProperty('memberName', createReference(['@scope', '0', 'memberName']))
+        .build()
+      const iterateNode = createIterateNode(createTemplate([templateBlock]))
+      const compiled = compiler.compile(createStep(), [], [iterateNode])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(createCtx({ data: { members } }))
+
+      // Assert
+      expect(result.blocks.map(block => block.properties)).toMatchObject([
+        {
+          index: 1,
+          index0: 0,
+          revIndex: 3,
+          revIndex0: 2,
+          first: true,
+          last: false,
+          length: 3,
+          memberName: 'Ada',
+        },
+        {
+          index: 2,
+          index0: 1,
+          revIndex: 2,
+          revIndex0: 1,
+          first: false,
+          last: false,
+          length: 3,
+          memberName: 'Grace',
+        },
+        {
+          index: 3,
+          index0: 2,
+          revIndex: 1,
+          revIndex0: 0,
+          first: false,
+          last: true,
+          length: 3,
+          memberName: 'Linus',
+        },
+      ])
+    })
+
+    it('should evaluate parent Loop metadata inside nested iterator expressions', () => {
+      // Arrange
+      const teams = [
+        { name: 'Alpha', members: [{ name: 'Ada' }, { name: 'Grace' }] },
+        { name: 'Beta', members: [{ name: 'Linus' }] },
+      ]
+      const innerIterateNode: IterateASTNode = {
+        type: ASTNodeType.EXPRESSION,
+        expressionType: ExpressionType.ITERATE,
+        id: ASTTestFactory.getId(),
+        properties: {
+          input: createReference(['@scope', '0', 'members']),
+          iterator: {
+            type: IteratorType.MAP,
+            yieldTemplate: createTemplate({
+              teamIndex: createReference(['@loop', '1', 'index']),
+              teamIndex0: createReference(['@loop', '1', 'index0']),
+              memberIndex: createReference(['@loop', '0', 'index']),
+              teamName: createReference(['@scope', '1', 'name']),
+              memberName: createReference(['@scope', '0', 'name']),
+            }),
+          },
+        },
+      }
+      const templateBlock = ASTTestFactory.block('team-row', BlockType.BASIC)
+        .withProperty('teamName', createReference(['@scope', '0', 'name']))
+        .withProperty('members', innerIterateNode)
+        .build()
+      const iterateNode = createIterateNode(createTemplate([templateBlock]), createReference(['data', 'teams']))
+      const compiled = compiler.compile(createStep(), [], [iterateNode])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(createCtx({ data: { teams } }))
+
+      // Assert
+      expect(result.blocks[0].properties.members).toEqual([
+        { teamIndex: 1, teamIndex0: 0, memberIndex: 1, teamName: 'Alpha', memberName: 'Ada' },
+        { teamIndex: 1, teamIndex0: 0, memberIndex: 2, teamName: 'Alpha', memberName: 'Grace' },
+      ])
+      expect(result.blocks[1].properties.members).toEqual([
+        { teamIndex: 2, teamIndex0: 1, memberIndex: 1, teamName: 'Beta', memberName: 'Linus' },
+      ])
+    })
+
     it('should keep newly added inline iterator fields blank when existing rows have POST values', () => {
       // Arrange
       const collection = createCollectionBlock(
@@ -365,7 +474,7 @@ describe('StepRenderCompiler', () => {
                         type: ASTNodeType.EXPRESSION,
                         expressionType: ExpressionType.REFERENCE,
                         properties: {
-                          path: ['@scope', 0, '@index'],
+                          path: ['@loop', 0, 'index0'],
                         },
                       },
                     ],
@@ -508,6 +617,53 @@ describe('StepRenderCompiler', () => {
 
       // Assert
       expect(result.blocks[0].properties.text).toBe('Phone call')
+    })
+
+    it('should evaluate predicate expressions in boolean block properties', () => {
+      // Arrange
+      const block = ASTTestFactory.block('pagination', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            number: '1',
+            current: ASTTestFactory.predicate(PredicateType.TEST, {
+              subject: createReference(['data', 'currentPage']),
+              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [1]),
+            }),
+          },
+          {
+            number: '2',
+            current: ASTTestFactory.predicate(PredicateType.TEST, {
+              subject: createReference(['data', 'currentPage']),
+              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [2]),
+            }),
+          },
+        ])
+        .build()
+      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(
+        createCtx({
+          data: {
+            currentPage: 2,
+          },
+          conditions: {
+            get: vi.fn(() => ({
+              evaluate: (value: unknown, expected: unknown) => value === expected,
+            })),
+          } as unknown as RenderCompilationContext['conditions'],
+        }),
+      )
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        { number: '1', current: false },
+        { number: '2', current: true },
+      ])
     })
   })
 })
