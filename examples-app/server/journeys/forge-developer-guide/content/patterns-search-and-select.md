@@ -105,7 +105,7 @@ CollectionBlock({
         content: [
           GovUKHeading({ text: Item().path('name'), size: 's' }),
           GovUKBody({
-            text: Format('Lines: %1 — Zone %2',
+            text: Format('Lines: %1 - Zone %2',
               Item().path('lines'), Item().path('zone')),
           }),
           HtmlBlock({

@@ -15,6 +15,8 @@ import { authRolePatternStep } from './auth-role/step'
 import { readOnlyModePatternStep } from './read-only-mode/step'
 import { searchAndSelectPatternStep } from './search-and-select/step'
 import { paginationPatternStep } from './pagination/step'
+import { inlineFunctionsPatternStep } from './inline-functions/step'
+import { cmsContentPatternStep } from './cms-content/step'
 import { patternDemosJourney } from './demos/journey'
 
 export const patternsGuideJourney = journey({
@@ -41,6 +43,8 @@ export const patternsGuideJourney = journey({
     readOnlyModePatternStep,
     searchAndSelectPatternStep,
     paginationPatternStep,
+    inlineFunctionsPatternStep,
+    cmsContentPatternStep,
   ],
   children: [patternDemosJourney],
 })

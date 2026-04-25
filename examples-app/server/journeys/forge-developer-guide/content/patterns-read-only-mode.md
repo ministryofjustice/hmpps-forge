@@ -28,7 +28,7 @@ while a manager reviews it read-only.
 It fits well when:
 
 - The same page serves both read and write users.
-- The data structure is the same for both roles — only the
+- The data structure is the same for both roles - only the
   interaction differs.
 - You want a single step definition rather than separate read and
   edit pages.
@@ -144,7 +144,7 @@ blocks: [
   fields. The fields still participate in validation even when
   hidden, but since viewers have no submit button, validation never
   runs for them. If you need to suppress validation entirely for
-  hidden fields, use `dependentWhen` instead — but note that
+  hidden fields, use `dependentWhen` instead - but note that
   `dependentWhen` also clears the stored answer when false.
 - **Action links instead of a full form.** Instead of showing all
   fields at once, show the summary list to both roles but add

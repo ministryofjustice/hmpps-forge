@@ -1,5 +1,6 @@
 import { journey } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { getStartedOverviewStep } from './overview/step'
+import { whyUseForgeStep } from './why-use-forge/step'
 import { installingForgeStep } from './installing-forge/step'
 import { installFrontendLibrariesStep } from './install-frontend-libraries/step'
 import { usingForgeInYourAppStep } from './using-forge-in-your-app/step'
@@ -16,6 +17,7 @@ export const getStartedJourney = journey({
   },
   steps: [
     getStartedOverviewStep,
+    whyUseForgeStep,
     installingForgeStep,
     installFrontendLibrariesStep,
     usingForgeInYourAppStep,

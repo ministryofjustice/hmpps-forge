@@ -46,7 +46,7 @@ export const contactCards = CollectionBlock({
                 visuallyHiddenText: Item().path('contactName'),
               },
               {
-                href: Format('your-contacts?remove=%1', Loop.Index0()),
+                href: Format('delete-contact/%1', Loop.Index0()),
                 text: 'Remove',
                 visuallyHiddenText: Item().path('contactName'),
               },

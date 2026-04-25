@@ -1,18 +1,19 @@
 ---
-title: Add another
+title: Adding, editing and deleting from collections
 section: patterns
 path: patterns/add-another
-teaches: [CollectionBlock, Iterator.Map, Item, submit, onSubmission, onAccess, query-param-removal, query-param-edit, validWhen-step, LoadItemForEdit, EditItemInCollection]
+teaches: [CollectionBlock, Iterator.Map, Item, submit, onSubmission, onAccess, delete-confirmation, validWhen-step, LoadItemForEdit, EditItemInCollection, LoadItemForDelete, DeleteItemFromCollection]
 prerequisites: [journey, step, Answer, submit, effects, validation]
 ---
 
 <p class="govuk-caption-xl">Patterns</p>
 
-# Add another
+# Adding, editing and deleting from collections
 A list page that lets users build a collection one item at a time.
 Each item is collected on a separate form page, then displayed as a
-summary card with change and remove links. The user can edit existing
-items, keep adding, or continue when the list is complete.
+summary card with change and remove links. The user can add items,
+edit existing ones, remove items through a confirmation step, or
+continue when the list is complete.
 
 <p class="govuk-body"><a class="govuk-button" href="/forge-developer-guide/patterns/demos/add-another" data-module="govuk-button">Try the live demo</a></p>
 
@@ -52,7 +53,8 @@ per item can be cleaner.
 - An add page that validates and appends a new item to the collection.
 - An edit page that pre-fills from an existing item and replaces it on
   submission.
-- Removal via a query parameter handled in an `onAccess` hook.
+- A delete confirmation page that shows the item details and asks the
+  user to confirm before removing.
 - Step-level validation that requires at least one item before
   continuing.
 
@@ -66,15 +68,17 @@ per item can be cleaner.
 ├── /your-contacts            → List page: cards, add-another, continue
 ├── /add-contact              → Form: name, relationship, phone (appends)
 ├── /edit-contact/:index      → Form: pre-filled from item at index (replaces)
+├── /delete-contact/:index    → Confirmation: shows item details, confirms removal
 ├── /check-answers            → Summary of all contacts
 └── /confirmation             → Submission panel
 ```
 
-The list page, add page, and edit page form a loop. Each time the user
-submits the add form, the new item is appended to the collection. Each
-time they submit the edit form, the existing item is replaced. Both
-redirect back to the list page, where they can add another, edit or
-remove an item, or continue.
+The list page, add page, edit page, and delete page form a loop. Each
+time the user submits the add form, the new item is appended. Each
+time they submit the edit form, the existing item is replaced. The
+delete page shows the item details and asks for confirmation before
+removing. All three redirect back to the list page, where the user
+can add another, edit, remove, or continue.
 
 ---
 
@@ -126,7 +130,7 @@ const contactCards = CollectionBlock({
                 visuallyHiddenText: Item().path('contactName'),
               },
               {
-                href: Format('your-contacts?remove=%1', Loop.Index0()),
+                href: Format('delete-contact/%1', Loop.Index0()),
                 text: 'Remove',
                 visuallyHiddenText: Item().path('contactName'),
               },
@@ -153,7 +157,7 @@ const contactCards = CollectionBlock({
 Inside the iterator, `Item()` references the current element.
 `Item().path('contactName')` reads the `contactName` property.
 `Loop.Index0()` gives the zero-based position, used here to build
-the change and removal links.
+the change and remove links.
 
 The `fallback` array renders when the collection is empty or
 undefined, so the page always has meaningful content.
@@ -242,35 +246,71 @@ appears as a card.
 
 ---
 
-### Removing an item
+### Removing an item with confirmation
 
-Each summary card includes a remove link whose `href` points back to
-the list page with a `?remove=` query parameter carrying the item's
-index:
+Each summary card includes a remove link whose `href` navigates to
+a dedicated confirmation page, passing the item index as a route
+parameter:
 
 ```typescript
-href: Format('your-contacts?remove=%1', Loop.Index0())
+href: Format('delete-contact/%1', Loop.Index0())
 ```
 
-The list step's `onAccess` hook watches for that parameter. After
-removing the item and saving, the hook redirects back to the clean
-URL so the query parameter does not persist on refresh:
+The delete step follows the same `:index` route pattern as the edit
+step. Its `onAccess` hook loads the item details into `Data` so the
+confirmation page can display what is about to be removed:
 
 ```typescript
-onAccess: [
-  access({
-    when: Query('remove').match(Condition.IsRequired()),
-    effects: [
-      PatternEffects.RemoveItemFromCollection('contacts'),
-      PatternEffects.SaveDraftAnswers('add-another'),
-    ],
-    next: [redirect({ goto: 'your-contacts' })],
+step({
+  code: 'delete-contact',
+  path: '/delete-contact/:index',
+  title: 'Remove emergency contact',
+  reachability: { entryWhen: true },
+  onAccess: [
+    access({
+      effects: [PatternEffects.LoadItemForDelete('contacts', CONTACT_FIELD_CODES)],
+    }),
+  ],
+  ...
+})
+```
+
+`LoadItemForDelete` reads the `:index` route parameter, extracts the
+item from the collection, and sets each field as a `Data` value. The
+page renders these as a read-only summary so the user can see exactly
+which contact they are about to remove.
+
+Two submission hooks handle the user's choice. "Remove contact" uses a
+warning button to signal a destructive action. "Cancel" returns the
+user to the list page without changes:
+
+```typescript
+onSubmission: [
+  submit({
+    when: Post('action').match(Condition.Equals('confirm')),
+    validate: false,
+    onAlways: {
+      effects: [
+        PatternEffects.DeleteItemFromCollection('contacts'),
+        PatternEffects.SaveDraftAnswers('add-another'),
+      ],
+      next: [redirect({ goto: 'your-contacts' })],
+    },
+  }),
+  submit({
+    when: Post('action').match(Condition.Equals('cancel')),
+    validate: false,
+    onAlways: {
+      next: [redirect({ goto: 'your-contacts' })],
+    },
   }),
 ]
 ```
 
-The redirect strips the `?remove=` parameter from the URL. Without
-it, refreshing the page would re-trigger the removal.
+`DeleteItemFromCollection` reads the `:index` route parameter and
+splices the item from the array. Unlike the edit flow, the delete
+step does not need to store the index in the session because the
+route parameter is still available during the POST submission.
 
 ---
 

@@ -14,6 +14,8 @@ import { authRoleDemoJourney } from '../auth-role/demo/journey'
 import { readOnlyModeDemoJourney } from '../read-only-mode/demo/journey'
 import { searchAndSelectDemoJourney } from '../search-and-select/demo/journey'
 import { paginationDemoJourney } from '../pagination/demo/journey'
+import { inlineFunctionsDemoJourney } from '../inline-functions/demo/journey'
+import { cmsContentDemoJourney } from '../cms-content/demo/journey'
 
 export const patternDemosJourney = journey({
   code: 'pattern-demos',
@@ -38,5 +40,7 @@ export const patternDemosJourney = journey({
     readOnlyModeDemoJourney,
     searchAndSelectDemoJourney,
     paginationDemoJourney,
+    inlineFunctionsDemoJourney,
+    cmsContentDemoJourney,
   ],
 })

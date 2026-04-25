@@ -488,7 +488,7 @@ with an explicit `groups` array do **not** belong to `'default'`
 unless you include it:
 
 ```typescript
-// Only in 'lookup' — not validated by validate: true
+// Only in 'lookup' - not validated by validate: true
 groups: ['lookup']
 
 // In both 'lookup' and 'default'
@@ -533,11 +533,11 @@ validation of the other group's fields.
 Groups work well when a step has multiple actions that each need
 their own validation scope:
 
-- **Lookup + continue** — validate the search input on lookup,
+- **Lookup + continue** - validate the search input on lookup,
   validate the result fields on continue.
-- **Save draft + submit** — validate required fields only on
+- **Save draft + submit** - validate required fields only on
   final submission, skip them on draft save.
-- **Multi-section forms** — validate each section independently
+- **Multi-section forms** - validate each section independently
   with its own button.
 
 For steps with a single submit button that validates everything,

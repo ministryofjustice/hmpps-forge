@@ -86,7 +86,27 @@ test.describe('Add another journey', () => {
       )
     })
 
-    test('should remove a contact when clicking Remove on its card', async () => {
+    test('should show delete confirmation when clicking Remove', async () => {
+      // Arrange
+      await form.clickButton('Add another contact')
+      await form.fillTextInput('Full name', 'Jane Smith')
+      await form.selectOption('Relationship', 'partner')
+      await form.fillTextInput('Phone number', '020 7946 0958')
+      await form.clickButton('Save and continue')
+
+      // Act
+      await form
+        .getSummaryCard('Jane Smith')
+        .getByRole('link', { name: /remove/i })
+        .click()
+
+      // Assert
+      await form.expectHeading('Are you sure you want to remove this contact?')
+      await form.expectUrl(`${basePath}/delete-contact/0`)
+      await expect(form.getSummaryValue('Name')).toContainText('Jane Smith')
+    })
+
+    test('should remove a contact after confirming deletion', async () => {
       // Arrange — add two contacts
       await form.clickButton('Add another contact')
       await form.fillTextInput('Full name', 'Jane Smith')
@@ -100,19 +120,21 @@ test.describe('Add another journey', () => {
       await form.fillTextInput('Phone number', '07700900000')
       await form.clickButton('Save and continue')
 
-      // Act — remove first contact
+      // Act — remove first contact via confirmation
       await form
         .getSummaryCard('Jane Smith')
         .getByRole('link', { name: /remove/i })
         .click()
+      await form.clickButton('Remove contact')
 
       // Assert
+      await form.expectHeading('Your emergency contacts')
       await form.expectSummaryCardCount(1)
       await expect(form.getSummaryCard('John Doe')).toBeVisible()
       await expect(form.getSummaryCard('Jane Smith')).not.toBeVisible()
     })
 
-    test('should show empty state after removing all contacts', async () => {
+    test('should return to list when cancelling deletion', async () => {
       // Arrange
       await form.clickButton('Add another contact')
       await form.fillTextInput('Full name', 'Jane Smith')
@@ -125,6 +147,27 @@ test.describe('Add another journey', () => {
         .getSummaryCard('Jane Smith')
         .getByRole('link', { name: /remove/i })
         .click()
+      await form.clickButton('Cancel')
+
+      // Assert — contact still exists
+      await form.expectHeading('Your emergency contacts')
+      await expect(form.getSummaryCard('Jane Smith')).toBeVisible()
+    })
+
+    test('should show empty state after removing all contacts', async () => {
+      // Arrange
+      await form.clickButton('Add another contact')
+      await form.fillTextInput('Full name', 'Jane Smith')
+      await form.selectOption('Relationship', 'partner')
+      await form.fillTextInput('Phone number', '020 7946 0958')
+      await form.clickButton('Save and continue')
+
+      // Act — remove via confirmation
+      await form
+        .getSummaryCard('Jane Smith')
+        .getByRole('link', { name: /remove/i })
+        .click()
+      await form.clickButton('Remove contact')
 
       // Assert
       await form.expectInsetText('You have not added any emergency contacts yet.')
@@ -234,7 +277,7 @@ test.describe('Add another journey', () => {
       await form.clickButton('Restart pattern')
 
       // Assert
-      await form.expectHeading('Add another')
+      await form.expectHeading('Adding, editing and deleting from collections')
       await form.expectUrl(`${basePath}/overview`)
     })
   })

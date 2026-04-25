@@ -6,7 +6,7 @@ export const editAndReturnPatternStep = step({
   path: '/edit-and-return',
   title: 'Edit and return',
   reachability: { entryWhen: true },
-  metadata: { navGroup: 'Review and submit' },
+  metadata: { navGroup: 'Entry and routing' },
   onAccess: [
     access({
       effects: [GuideEffects.LoadContent('patterns-edit-and-return')],
