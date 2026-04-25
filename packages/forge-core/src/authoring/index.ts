@@ -8,6 +8,7 @@ export { defineConditionFunctions } from './utils/defineConditionFunctions'
 export { defineEffectFunctions } from './utils/defineEffectFunctions'
 export { defineGeneratorFunctions } from './utils/defineGeneratorFunctions'
 export { defineTransformerFunctions } from './utils/defineTransformerFunctions'
+export { createFunctionScope, type FunctionScope } from './utils/createFunctionScope'
 
 export { EffectFunctionContext } from '../engine/nodes/expressions/effect/EffectFunctionContext'
 
