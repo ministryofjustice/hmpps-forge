@@ -8,7 +8,17 @@
   <link rel="llms-full-txt" href="/llms-full.txt"/>
 {% endblock %}
 
-{% block pageTitle %}{{pageTitle | default(applicationName)}}{% endblock %}
+{% block pageTitle %}
+  {%- if pageTitle -%}
+    {{ pageTitle }}
+  {%- elif data and data.pageTitle -%}
+    {{ data.pageTitle }} - {{ applicationName }}
+  {%- elif step and step.title -%}
+    {{ step.title }} - {{ applicationName }}
+  {%- else -%}
+    {{ applicationName }}
+  {%- endif -%}
+{% endblock %}
 
 {% block govukHeader %}
   {% include "./header.njk" %}
