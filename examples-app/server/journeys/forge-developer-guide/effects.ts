@@ -25,11 +25,12 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
     LoadContent: (deps: GuideDeps) => async (context: EffectFunctionContext, slug: string) => {
       await deps.guideContentStore.load()
 
-      const markdown = deps.guideContentStore.getMarkdown(slug)
+      const entry = deps.guideContentStore.get(slug)
 
-      if (markdown) {
-        context.setData('content', markdown)
+      if (entry) {
+        context.setData('content', entry.markdown)
         context.setData('headings', deps.guideContentStore.getHeadings(slug))
+        context.setData('pageTitle', entry.title)
       }
     },
 
