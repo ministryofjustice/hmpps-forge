@@ -45,6 +45,12 @@ export interface PatternEffectShape {
   /** Removes an item from a collection array by its index, read from the 'remove' query parameter. */
   RemoveItemFromCollection: (collectionCode: string) => EffectFunctionExpr
 
+  /** Reads the ':index' route parameter, extracts the item at that position from the collection, and sets each field as Data for display on a confirmation page. */
+  LoadItemForDelete: (collectionCode: string, fieldCodes: string[]) => EffectFunctionExpr
+
+  /** Reads the ':index' route parameter and removes the item at that position from the collection. */
+  DeleteItemFromCollection: (collectionCode: string) => EffectFunctionExpr
+
   /** Sets a single answer value in the form context. Useful for status tracking or computed values that aren't form fields. */
   SetAnswer: (code: string, value: unknown) => EffectFunctionExpr
 
@@ -110,6 +116,15 @@ export interface PatternEffectShape {
 
   /** Reads the ?page query parameter, slices the station list into pages, and sets pagination Data. */
   LoadStationPage: () => EffectFunctionExpr
+
+  /** Loads case overview data and pre-computed derived values for the inline functions pattern demo. */
+  LoadCaseOverview: () => EffectFunctionExpr
+
+  /** Loads blog posts from the session and sets them as Data for the posts list. */
+  LoadBlogPosts: () => EffectFunctionExpr
+
+  /** Reads the title and body answers, creates a new blog post, and appends it to the session. */
+  SaveBlogPost: () => EffectFunctionExpr
 }
 
 export const { effects: PatternEffects, implementations: PatternEffectsImplementations } =
@@ -282,6 +297,49 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         updated.splice(index, 1)
         context.setAnswer(collectionCode, updated)
       }
+    },
+
+    LoadItemForDelete:
+      () => (context: PatternEffectContext, collectionCode: string, fieldCodes: string[]) => {
+        const indexStr = context.getRequestParam('index')
+
+        if (indexStr === undefined) {
+          return
+        }
+
+        const index = parseInt(indexStr, 10)
+        const collection = (context.getAnswer(collectionCode) ?? []) as Record<string, unknown>[]
+
+        if (Number.isNaN(index) || index < 0 || index >= collection.length) {
+          return
+        }
+
+        const item = collection[index]
+
+        for (const code of fieldCodes) {
+          if (item[code] !== undefined) {
+            context.setData(code, item[code])
+          }
+        }
+      },
+
+    DeleteItemFromCollection: () => (context: PatternEffectContext, collectionCode: string) => {
+      const indexStr = context.getRequestParam('index')
+
+      if (indexStr === undefined) {
+        return
+      }
+
+      const index = parseInt(indexStr, 10)
+      const collection = (context.getAnswer(collectionCode) ?? []) as unknown[]
+
+      if (Number.isNaN(index) || index < 0 || index >= collection.length) {
+        return
+      }
+
+      const updated = [...collection]
+      updated.splice(index, 1)
+      context.setAnswer(collectionCode, updated)
     },
 
     SetAnswer: () => (context: PatternEffectContext, code: string, value: unknown) => {
@@ -899,4 +957,97 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setData('currentPage', page)
       context.setData('pages', Array(totalPages).fill(0))
     },
+
+    LoadCaseOverview: () => (context: PatternEffectContext) => {
+      context.setData('case', caseOverviewData)
+
+      const { goals } = caseOverviewData
+      const achieved = goals.filter(g => g.status === 'ACHIEVED').length
+
+      context.setData('goalsAchieved', achieved)
+      context.setData('goalsTotal', goals.length)
+
+      const { attended, missed } = caseOverviewData.compliance
+      const total = attended + missed
+      const rate = total > 0 ? Math.round((attended / total) * 100) : 0
+
+      context.setData('complianceRate', rate)
+    },
+
+    LoadBlogPosts: () => (context: PatternEffectContext) => {
+      const session = context.getSession()
+      const posts = session?.blogPosts ?? []
+
+      context.setData('posts', posts)
+
+      if (posts.length > 0) {
+        context.setData('postCount', posts.length)
+      }
+    },
+
+    SaveBlogPost: () => (context: PatternEffectContext) => {
+      const session = context.getSession()
+
+      if (!session) {
+        return
+      }
+
+      const title = context.getAnswer('postTitle') as string | undefined
+      const body = context.getAnswer('postBody') as string | undefined
+
+      if (!title?.trim() || !body?.trim()) {
+        return
+      }
+
+      if (!session.blogPosts) {
+        session.blogPosts = []
+      }
+
+      session.blogPosts.unshift({
+        title: title.trim(),
+        body: body.trim(),
+        date: new Date().toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }),
+      })
+
+      context.setAnswer('postTitle', undefined)
+      context.setAnswer('postBody', undefined)
+    },
   })
+
+const caseOverviewData = {
+  name: { firstName: 'Sam', lastName: 'Jones' },
+  crn: 'X123456',
+  tier: 'A1',
+  status: 'ACTIVE',
+  riskScores: {
+    overall: 'HIGH',
+    selfHarm: 'LOW',
+    publicProtection: 'VERY_HIGH',
+    knownAdult: 'MEDIUM',
+    children: 'LOW',
+    staff: 'LOW',
+  },
+  sentence: {
+    type: 'Community Order',
+    startDate: '15 January 2025',
+    endDate: '14 January 2027',
+    requirements: ['40 hours unpaid work', 'Rehabilitation Activity Requirement'],
+  },
+  goals: [
+    { title: 'Find stable accommodation', status: 'ACHIEVED' },
+    { title: 'Enrol in education programme', status: 'IN_PROGRESS' },
+    { title: 'Attend substance misuse sessions', status: 'IN_PROGRESS' },
+    { title: 'Complete unpaid work hours', status: 'NOT_STARTED' },
+    { title: 'Secure part-time employment', status: 'NOT_STARTED' },
+  ],
+  compliance: {
+    attended: 8,
+    missed: 1,
+    acceptableAbsences: 1,
+    warningLetters: 0,
+  },
+}

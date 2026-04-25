@@ -4,12 +4,13 @@ import { overviewStep } from './overview/step'
 import { yourContactsStep } from './your-contacts/step'
 import { addContactStep } from './add-contact/step'
 import { editContactStep } from './edit-contact/step'
+import { deleteContactStep } from './delete-contact/step'
 import { checkAnswersStep } from './check-answers/step'
 import { confirmationStep } from './confirmation/step'
 
 export const addAnotherDemoJourney = journey({
   code: 'add-another-demo',
-  title: 'Add another',
+  title: 'Adding, editing and deleting from collections',
   path: '/add-another',
   onAccess: [
     access({
@@ -21,6 +22,7 @@ export const addAnotherDemoJourney = journey({
     yourContactsStep,
     addContactStep,
     editContactStep,
+    deleteContactStep,
     checkAnswersStep,
     confirmationStep,
   ],

@@ -4,7 +4,7 @@ import { content } from '../blocks/blocks'
 
 export const addAnotherPatternStep = step({
   path: '/add-another',
-  title: 'Add another',
+  title: 'Adding, editing and deleting from collections',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Collections' },
   onAccess: [

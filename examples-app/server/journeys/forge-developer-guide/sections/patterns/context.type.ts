@@ -7,10 +7,17 @@ import type { Session } from 'express-session'
  *
  * Each pattern owns a key under `session.patterns` so patterns cannot collide.
  */
+export interface BlogPost {
+  title: string
+  body: string
+  date: string
+}
+
 export type PatternSession = Session & {
   patternDrafts?: Record<string, Record<string, unknown>>
   patternSubmitted?: Record<string, boolean>
   demoUser?: { name: string; role: string }
+  blogPosts?: BlogPost[]
 }
 
 export type PatternEffectContext = EffectFunctionContext<

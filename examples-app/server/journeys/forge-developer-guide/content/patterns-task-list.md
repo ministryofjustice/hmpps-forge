@@ -49,7 +49,7 @@ The live demo works end-to-end. Following the flow shows:
   (`in-progress` or `completed`) on submission.
 - **`match()` expressions** that derive the entire tag object (text
   and classes) from a single status answer per section.
-- **Gated tasks** using dual items with `visibleWhen` and `not()` —
+- **Gated tasks** using dual items with `visibleWhen` and `not()` -
   one unlocked version with an `href`, one locked version with a
   grey "Cannot start yet" tag.
 - **Conditional `entryWhen`** on gated steps to block direct URL
@@ -126,7 +126,7 @@ submit({
 
 `SetAnswer` writes a value into the form context before
 `SaveDraftAnswers` persists it. The task list never needs to know
-which fields each section collects — it just reads the status answer.
+which fields each section collects - it just reads the status answer.
 
 Because sections live in child journeys, the final redirect uses
 `../tasks` to navigate up one level to the parent journey's hub step.
@@ -171,11 +171,11 @@ Each task item then passes the result directly to `status.tag`:
 
 Three states emerge from the status value:
 
-- **Completed** — the last step in the section was submitted;
+- **Completed** - the last step in the section was submitted;
   green tag.
-- **In progress** — the first step was submitted but the last was
+- **In progress** - the first step was submitted but the last was
   not; blue tag.
-- **Not yet started** — no status answer exists; grey tag.
+- **Not yet started** - no status answer exists; grey tag.
 
 Use `GovukUtilityClasses.Tag` for tag colours rather than raw CSS
 class strings. The available colours are `Blue`, `Green`, `Grey`,
@@ -194,7 +194,7 @@ const task2Done = Answer('visitPreferencesStatus').match(Condition.Equals('compl
 const prerequisitesMet = and(task1Done, task2Done)
 ```
 
-Use two items with opposite `visibleWhen` conditions — one for the
+Use two items with opposite `visibleWhen` conditions - one for the
 unlocked state (with an `href` and dynamic status tag) and one for
 the locked state (no `href`, grey tag):
 
@@ -281,7 +281,7 @@ submission. Because sections are child journeys, the redirect uses
 next: [redirect({ goto: '../tasks' })],
 ```
 
-Redirects within a child journey use plain step codes — for example,
+Redirects within a child journey use plain step codes - for example,
 `redirect({ goto: 'relationship' })` navigates to the next step
 in the same child journey. The `SaveDraftAnswers` effect persists
 the user's progress (including the updated status) so the task list
@@ -321,7 +321,7 @@ list since gated steps have no natural predecessor.
 
 The check-answers step clears draft answers on submission (the
 permanent answers are saved separately). This means answer-based
-`entryWhen` conditions on downstream steps would fail — the status
+`entryWhen` conditions on downstream steps would fail - the status
 answers no longer exist in the draft context.
 
 The confirmation step solves this by using a session-based condition

@@ -59,7 +59,12 @@ store answers, and retrieve data is entirely up to you.
 
 ## Where to start
 
-Work through these guides in order. Each one builds on the previous.
+If you are new to Forge, read [Why use Forge](why-use-forge) first.
+It compares a typical Express route with the equivalent Forge
+definition and explains where the framework helps.
+
+Then work through these guides in order. Each one builds on the
+previous.
 
 1. [Installing Forge](installing-forge) covers installing the core npm
    package and its dependencies.

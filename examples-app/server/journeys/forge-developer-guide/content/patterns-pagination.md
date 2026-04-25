@@ -57,7 +57,7 @@ five per page. Following the flow shows:
 ```
 
 The list page reads `?page` from the URL on each GET request. No
-session state is needed — the current page is encoded entirely in
+session state is needed - the current page is encoded entirely in
 the URL.
 
 ---

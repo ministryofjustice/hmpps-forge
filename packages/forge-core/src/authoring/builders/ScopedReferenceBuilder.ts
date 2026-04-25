@@ -8,11 +8,11 @@ import { ReferenceBuilder } from './ReferenceBuilder'
 const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
 
 /**
- * Immutable builder for creating references within collection contexts.
+ * Immutable builder for creating item references within iterator contexts.
  *
  * Provides methods to navigate hierarchical data structures and access
- * properties of items during collection iteration. This is primarily used
- * with the Item() reference to access data in collection blocks.
+ * properties of items during iteration. This is primarily used with the
+ * Item() reference to access item data in collection blocks.
  *
  * @example
  * // Access a property of the current item
@@ -21,7 +21,7 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * // Access the full item value
  * Item().value()  // -> ['@scope', '0']
  *
- * // Navigate to parent in nested collections
+ * // Navigate to the outer item in nested iterators
  * Item().parent.path('groupId')  // -> ['@scope', '1', 'groupId']
  *
  * // Chain with pipe and match
@@ -43,12 +43,12 @@ export class ScopedReferenceBuilder {
   }
 
   /**
-   * Navigate to the parent scope in nested collections.
-   * Returns a new builder at the next level up.
+   * Navigate to the outer iterator's item in nested iterators.
+   * Returns a new builder at the next item level up.
    *
    * @example
-   * Item().parent.path('groupId')  // Access parent item's groupId
-   * Item().parent.parent.path('orgId')  // Access grandparent's orgId
+   * Item().parent.path('groupId')  // Access the outer item's groupId
+   * Item().parent.parent.path('orgId')  // Access the next outer item's orgId
    */
   get parent(): ScopedReferenceBuilder {
     return new ScopedReferenceBuilder(this.level + 1)

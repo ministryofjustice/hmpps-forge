@@ -114,7 +114,7 @@ parts back, not the ISO string. Without a parser, the component
 would receive a value it cannot display.
 
 ```typescript
-// GovUKDateInputFull adds these automatically — no need to specify them
+// GovUKDateInputFull adds these automatically - no need to specify them
 GovUKDateInputFull({
   code: 'dateOfBirth',
   fieldset: { legend: { text: 'Date of birth', isPageHeading: true } },
