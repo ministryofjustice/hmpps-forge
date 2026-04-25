@@ -275,6 +275,42 @@ submissions, which happen on individual pages.
 
 ---
 
+## Deriving component data in hooks
+
+Forge expressions can derive quite a lot directly in blocks. That is
+useful for small, local rules: hiding a link, formatting a label, or
+marking the current item in an iterator.
+
+For larger components, it is often nicer to shape the data in an
+effect first. A `derive...` effect can take API, database, session, or
+query data and turn it into values that are ready for the blocks to
+render:
+
+```typescript
+onAccess: [
+  access({
+    effects: [
+      MyEffects.LoadStationPage(),
+      MyEffects.DeriveStationPagination(),
+    ],
+  }),
+]
+```
+
+For example, a pagination component can be authored entirely with
+`Data()`, `Loop`, `Format()`, and `visibleWhen` expressions. That works
+well when the rules are compact. If the same page needs several
+related values, such as `items`, `previous`, `next`, `pageInfo`, and
+other display state, a derive effect keeps that transformation named,
+tested, and close to the data loading boundary.
+
+Use expressions when the derivation belongs to a single prop. Use a
+derive effect when you are normalising external data, building a
+component-shaped object, or sharing the same derived shape across more
+than one block.
+
+---
+
 ## Best practices
 
 - **Combine effects and conditions in a single hook.** Effects run

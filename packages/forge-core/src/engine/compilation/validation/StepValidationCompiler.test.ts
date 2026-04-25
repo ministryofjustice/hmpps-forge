@@ -948,7 +948,7 @@ describe('StepValidationCompiler', () => {
       expect(activeResult.fieldFailures[0].message).toBe('Enter a name')
     })
 
-    it('should compile iterator with dynamic field code using Item().index()', () => {
+    it('should compile iterator with dynamic field code using Loop.Index0()', () => {
       // Arrange
       const step = createStep()
       const iterateNode = createIterateNode(
@@ -967,7 +967,7 @@ describe('StepValidationCompiler', () => {
                   {
                     type: ASTNodeType.EXPRESSION,
                     expressionType: ExpressionType.REFERENCE,
-                    properties: { path: ['@scope', '0', '@index'] },
+                    properties: { path: ['@loop', '0', 'index0'] },
                   },
                 ],
               },

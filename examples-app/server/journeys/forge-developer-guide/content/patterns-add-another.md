@@ -108,7 +108,7 @@ it with `Answer().each(Iterator.Map(...))` to transform each item in
 the collection into a summary card:
 
 ```typescript
-import { Answer, Item, Iterator, Format } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { Answer, Item, Iterator, Loop, Format } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { CollectionBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKSummaryList, GovUKInsetText } from '@ministryofjustice/hmpps-forge/govuk-components'
 
@@ -121,12 +121,12 @@ const contactCards = CollectionBlock({
           actions: {
             items: [
               {
-                href: Format('edit-contact/%1', Item().index()),
+                href: Format('edit-contact/%1', Loop.Index0()),
                 text: 'Change',
                 visuallyHiddenText: Item().path('contactName'),
               },
               {
-                href: Format('your-contacts?remove=%1', Item().index()),
+                href: Format('your-contacts?remove=%1', Loop.Index0()),
                 text: 'Remove',
                 visuallyHiddenText: Item().path('contactName'),
               },
@@ -152,7 +152,7 @@ const contactCards = CollectionBlock({
 
 Inside the iterator, `Item()` references the current element.
 `Item().path('contactName')` reads the `contactName` property.
-`Item().index()` gives the zero-based position, used here to build
+`Loop.Index0()` gives the zero-based position, used here to build
 the change and removal links.
 
 The `fallback` array renders when the collection is empty or
@@ -249,7 +249,7 @@ the list page with a `?remove=` query parameter carrying the item's
 index:
 
 ```typescript
-href: Format('your-contacts?remove=%1', Item().index())
+href: Format('your-contacts?remove=%1', Loop.Index0())
 ```
 
 The list step's `onAccess` hook watches for that parameter. After
@@ -280,7 +280,7 @@ Each summary card includes a change link whose `href` points to the
 edit page with the item's index as a path parameter:
 
 ```typescript
-href: Format('edit-contact/%1', Item().index())
+href: Format('edit-contact/%1', Loop.Index0())
 ```
 
 The edit step declares `:index` in its path, so Forge extracts the

@@ -16,6 +16,9 @@ export function emitNormalizeIteratorInput(emitter: CodeEmitter, inputVar: strin
       )
     },
   )
+  emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
+    emitter.emit(`${inputVar} = ${inputVar}.filter(function(item) { return item != null; });`)
+  })
 }
 
 /**
@@ -30,5 +33,4 @@ export function emitIteratorItemScope(emitter: CodeEmitter, inputVar: string, in
   emitter.emit(
     `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`,
   )
-  emitter.emit(`${itemVar}["@index"] = ${indexVar};`)
 }

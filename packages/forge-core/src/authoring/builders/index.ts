@@ -2,7 +2,8 @@ import { isFieldBlockDefinition } from '../typeguards/structures'
 import { ForgePackage } from '../../engine/types/engine.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
-import { ChainableExpr, ChainableRef, ChainableScopedRef } from './types'
+import { LoopReferenceBuilder } from './LoopReferenceBuilder'
+import { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef } from './types'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { BlockDefinition, ConditionalString, FieldBlockDefinition } from '../../components/types/structures.type'
 import {
@@ -25,12 +26,13 @@ import { ExpressionBuilder } from './ExpressionBuilder'
 import { BlockType, ExpressionType, OutcomeType, StructureType, HookType } from '../types/enums'
 
 // Re-export public interfaces (for type annotations)
-export type { ChainableExpr, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
+export type { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
 
 // Re-export builder classes (for advanced use cases)
 export { ExpressionBuilder } from './ExpressionBuilder'
 export { ReferenceBuilder } from './ReferenceBuilder'
 export { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
+export { LoopReferenceBuilder } from './LoopReferenceBuilder'
 export { IterableBuilder } from './IterableBuilder'
 
 // Re-export Iterator namespace for iterator configuration
@@ -317,12 +319,21 @@ export function Answer(target: FieldBlockDefinition | ConditionalString): Chaina
  * @example
  * Item().path('name')  // Access item.name
  * Item().value()  // Access the whole item
- * Item().index()  // Access iteration index
  * Item().parent.path('groupId')  // Access parent item's property
  */
 export function Item(): ChainableScopedRef {
   return ScopedReferenceBuilder.create(0)
 }
+
+/**
+ * References metadata for the current collection loop.
+ *
+ * @example
+ * Loop.Index()  // 1-based iteration position
+ * Loop.Index0()  // 0-based iteration index
+ * Loop.Parent.Index()  // Parent loop position in nested iterations
+ */
+export const Loop: ChainableLoopRef = LoopReferenceBuilder.create(0)
 
 /**
  * References the block/field it's in scope of.

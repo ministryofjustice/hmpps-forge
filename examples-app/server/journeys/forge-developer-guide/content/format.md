@@ -115,7 +115,7 @@ And to generate dynamic field codes inside iterators:
 
 ```typescript
 GovUKSelectInput({
-  code: Format('step_actor_%1', Item().index()),
+  code: Format('step_actor_%1', Loop.Index0()),
   defaultValue: Item().path('actor'),
 })
 ```

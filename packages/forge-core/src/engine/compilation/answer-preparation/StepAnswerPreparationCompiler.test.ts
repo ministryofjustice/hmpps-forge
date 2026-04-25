@@ -677,7 +677,7 @@ describe('StepAnswerPreparationCompiler', () => {
                 {
                   type: ASTNodeType.EXPRESSION,
                   expressionType: ExpressionType.REFERENCE,
-                  properties: { path: ['@scope', 0, '@index'] },
+                  properties: { path: ['@loop', 0, 'index0'] },
                 },
               ],
             },

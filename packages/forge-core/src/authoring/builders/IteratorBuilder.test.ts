@@ -30,7 +30,7 @@ describe('Iterator', () => {
         label: { type: 'ExpressionType.Reference', path: ['@scope', '0', 'name'] },
         value: { type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] },
         metadata: {
-          index: { type: 'ExpressionType.Reference', path: ['@scope', '0', '@index'] },
+          index: { type: 'ExpressionType.Reference', path: ['@loop', '0', 'index0'] },
         },
       }
 

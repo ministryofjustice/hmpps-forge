@@ -10,6 +10,11 @@ import { taskListPatternStep } from './task-list/step'
 import { loadReferenceDataPatternStep } from './load-reference-data/step'
 import { preFillPatternStep } from './pre-fill/step'
 import { repeatingFieldsetsPatternStep } from './repeating-fieldsets/step'
+import { editAndReturnPatternStep } from './edit-and-return/step'
+import { authRolePatternStep } from './auth-role/step'
+import { readOnlyModePatternStep } from './read-only-mode/step'
+import { searchAndSelectPatternStep } from './search-and-select/step'
+import { paginationPatternStep } from './pagination/step'
 import { patternDemosJourney } from './demos/journey'
 
 export const patternsGuideJourney = journey({
@@ -31,6 +36,11 @@ export const patternsGuideJourney = journey({
     loadReferenceDataPatternStep,
     preFillPatternStep,
     repeatingFieldsetsPatternStep,
+    editAndReturnPatternStep,
+    authRolePatternStep,
+    readOnlyModePatternStep,
+    searchAndSelectPatternStep,
+    paginationPatternStep,
   ],
   children: [patternDemosJourney],
 })

@@ -1,0 +1,96 @@
+import { LoopReferenceBuilder } from './LoopReferenceBuilder'
+import { ExpressionType } from '../types/enums'
+
+describe('LoopReferenceBuilder', () => {
+  describe('create()', () => {
+    it('should create builder at level 0', () => {
+      // Arrange & Act
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Assert
+      expect(builder.Index0().expr.path).toEqual(['@loop', '0', 'index0'])
+    })
+
+    it('should create builder at specified level', () => {
+      // Arrange & Act
+      const builder = LoopReferenceBuilder.create(2)
+
+      // Assert
+      expect(builder.Index0().expr.path).toEqual(['@loop', '2', 'index0'])
+    })
+  })
+
+  describe('Parent', () => {
+    it('should return builder at next level up', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const parent = builder.Parent
+
+      // Assert
+      expect(parent.Index().expr.path).toEqual(['@loop', '1', 'index'])
+    })
+
+    it('should support chaining multiple Parent calls', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const grandparent = builder.Parent.Parent
+
+      // Assert
+      expect(grandparent.Index0().expr.path).toEqual(['@loop', '2', 'index0'])
+    })
+
+    it('should be immutable', () => {
+      // Arrange
+      const original = LoopReferenceBuilder.create(0)
+
+      // Act
+      const parent = original.Parent
+
+      // Assert
+      expect(original.Index0().expr.path).toEqual(['@loop', '0', 'index0'])
+      expect(parent.Index0().expr.path).toEqual(['@loop', '1', 'index0'])
+    })
+  })
+
+  describe('metadata methods', () => {
+    it('should return loop reference paths for all metadata values', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const index = builder.Index()
+      const index0 = builder.Index0()
+      const revIndex = builder.RevIndex()
+      const revIndex0 = builder.RevIndex0()
+      const first = builder.First()
+      const last = builder.Last()
+      const length = builder.Length()
+
+      // Assert
+      expect(index.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'index'] })
+      expect(index0.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'index0'] })
+      expect(revIndex.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex'] })
+      expect(revIndex0.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex0'] })
+      expect(first.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'first'] })
+      expect(last.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'last'] })
+      expect(length.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'length'] })
+    })
+
+    it('should return ReferenceBuilder instances that support chaining', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Index0()
+
+      // Assert
+      expect(ref.expr.type).toBe(ExpressionType.REFERENCE)
+      expect(typeof ref.pipe).toBe('function')
+      expect(typeof ref.match).toBe('function')
+    })
+  })
+})

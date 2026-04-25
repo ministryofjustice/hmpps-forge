@@ -2,7 +2,7 @@
 title: Iterators
 section: authoring-language
 path: authoring-language/iterators
-teaches: [Iterator, Iterator.Map, Iterator.Filter, Iterator.Find, each, CollectionBlock]
+teaches: [Iterator, Iterator.Map, Iterator.Filter, Iterator.Find, each, CollectionBlock, Loop]
 prerequisites: [Item, Answer, Data]
 ---
 
@@ -13,7 +13,9 @@ prerequisites: [Item, Answer, Data]
 Iterators let you transform, filter, and search collections
 declaratively. You apply them with `.each()` on any reference that
 resolves to an array, and use `Item()` inside them to access each
-element.
+element. Use `Loop` inside the same iterator when you need metadata
+about the iteration itself, such as the current index or whether the
+current item is first or last.
 
 {{slot:toc}}
 
@@ -64,7 +66,7 @@ you can navigate the result with `.path()`.
 
 Map transforms each item into a new shape. The template can be a
 plain object, a block definition, or any value containing
-[Item()](item) references.
+[Item()](item) or [Loop](loop) references.
 
 Building select items from data:
 
@@ -80,6 +82,30 @@ GovUKSelectInput({
   ),
 })
 ```
+
+### Loop metadata
+
+`Item()` represents the current item. [Loop](loop) represents
+metadata about the current iterator:
+
+```typescript
+import { Iterator, Item, Loop, Format } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+Data('members').each(
+  Iterator.Map({
+    code: Format('memberName_%1', Loop.Index0()),
+    label: Format('Member %1 of %2', Loop.Index(), Loop.Length()),
+    name: Item().path('name'),
+    first: Loop.First(),
+    last: Loop.Last(),
+  }),
+)
+```
+
+`Loop.Index()` is one-based. `Loop.Index0()` is zero-based and is
+usually the right choice for dynamic field codes. In nested iterators,
+use `Loop.Parent.Index()` or `Loop.Parent.Index0()` to read metadata
+from the outer loop.
 
 Rendering a collection of summary cards:
 

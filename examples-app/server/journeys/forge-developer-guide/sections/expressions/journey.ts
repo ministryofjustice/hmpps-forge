@@ -8,6 +8,7 @@ import { postStep } from './post/step'
 import { sessionStep } from './session/step'
 import { requestStep } from './request/step'
 import { itemStep } from './item/step'
+import { loopStep } from './loop/step'
 import { iteratorsStep } from './item-and-iterators/step'
 import { formatStep } from './format/step'
 import { literalStep } from './literal/step'
@@ -35,6 +36,7 @@ export const expressionsJourney = journey({
     sessionStep,
     requestStep,
     itemStep,
+    loopStep,
     iteratorsStep,
     formatStep,
     literalStep,

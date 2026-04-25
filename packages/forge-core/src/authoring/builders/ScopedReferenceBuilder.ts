@@ -21,9 +21,6 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * // Access the full item value
  * Item().value()  // -> ['@scope', '0']
  *
- * // Access the current iteration index
- * Item().index()  // -> ['@scope', '0', '@index']
- *
  * // Navigate to parent in nested collections
  * Item().parent.path('groupId')  // -> ['@scope', '1', 'groupId']
  *
@@ -77,17 +74,6 @@ export class ScopedReferenceBuilder {
    */
   value(): ReferenceBuilder {
     return ReferenceBuilder.create(['@scope', this.level.toString()])
-  }
-
-  /**
-   * Get the current iteration index (0-based).
-   *
-   * @example
-   * Item().index()  // Returns 0, 1, 2, etc.
-   * Format('Item %1', Item().index())  // "Item 0", "Item 1", etc.
-   */
-  index(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@scope', this.level.toString(), '@index'])
   }
 
   /**

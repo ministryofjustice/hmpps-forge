@@ -167,8 +167,21 @@ export default class StepValidationCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         for (const templateField of templateFields) {
-          const codeVar = this.compileTemplateFieldCode(templateField, indexVar, itemVar, rawItemExpr, emitter)
-          const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr, codeVar }
+          const codeVar = this.compileTemplateFieldCode(
+            templateField,
+            indexVar,
+            itemVar,
+            `${inputVar}.length`,
+            rawItemExpr,
+            emitter,
+          )
+          const frame: IteratorScopeFrame = {
+            itemVar,
+            indexVar,
+            inputLengthExpr: `${inputVar}.length`,
+            rawItemExpr,
+            codeVar,
+          }
 
           this.expr.pushIteratorFrame(frame)
           this.compileTemplateFieldValidations(templateField, codeVar, emitter)
@@ -182,6 +195,7 @@ export default class StepValidationCompiler {
     field: TemplateNode,
     indexVar: string,
     itemVar: string,
+    inputLengthExpr: string,
     rawItemExpr: string,
     emitter: CodeEmitter,
   ): string | undefined {
@@ -193,7 +207,7 @@ export default class StepValidationCompiler {
 
     if (this.expr.isTemplateNode(code)) {
       const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+      const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr, rawItemExpr }
 
       this.expr.pushIteratorFrame(frame)
       const codeExpr = this.expr.compileTemplateExpression(code)

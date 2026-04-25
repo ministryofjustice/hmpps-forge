@@ -257,8 +257,21 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         for (const templateBlock of templateBlocks) {
-          const codeVar = this.compileTemplateBlockCode(templateBlock, indexVar, itemVar, rawItemExpr, emitter)
-          const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr, codeVar }
+          const codeVar = this.compileTemplateBlockCode(
+            templateBlock,
+            indexVar,
+            itemVar,
+            `${inputVar}.length`,
+            rawItemExpr,
+            emitter,
+          )
+          const frame: IteratorScopeFrame = {
+            itemVar,
+            indexVar,
+            inputLengthExpr: `${inputVar}.length`,
+            rawItemExpr,
+            codeVar,
+          }
 
           this.expr.pushIteratorFrame(frame)
           this.compileTemplateBlock(templateBlock, codeVar, emitter)
@@ -271,13 +284,14 @@ export default class StepRenderCompiler {
   /**
    * Compiles the field code for a template block. Static string codes return undefined
    * (the code is inlined as a property). Dynamic codes (template expressions like
-   * Format("person_%1", Item().index())) return the JS variable name holding the
+   * Format("person_%1", Loop.Index0())) return the JS variable name holding the
    * computed code at runtime.
    */
   private compileTemplateBlockCode(
     block: TemplateNode,
     indexVar: string,
     itemVar: string,
+    inputLengthExpr: string,
     rawItemExpr: string,
     emitter: CodeEmitter,
   ): string | undefined {
@@ -289,7 +303,7 @@ export default class StepRenderCompiler {
 
     if (this.expr.isTemplateNode(code)) {
       const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+      const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr, rawItemExpr }
 
       this.expr.pushIteratorFrame(frame)
       const codeExpr = this.expr.compileTemplateExpression(code)
@@ -658,7 +672,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const yieldTemplate = node.properties.iterator.yieldTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 
@@ -697,7 +711,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 
@@ -739,7 +753,7 @@ export default class StepRenderCompiler {
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
         const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
 
@@ -796,6 +810,15 @@ export default class StepRenderCompiler {
 
       if (templateNode.originalType === ASTNodeType.BLOCK) {
         this.compileTemplateNestedBlock(templateNode, emitter, resultVar)
+
+        return
+      }
+
+      if (
+        templateNode.originalType === ASTNodeType.EXPRESSION &&
+        templateNode.expressionType === ExpressionType.ITERATE
+      ) {
+        this.compileIterateExpression(templateNode as unknown as IterateASTNode, emitter, resultVar)
 
         return
       }

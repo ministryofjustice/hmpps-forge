@@ -110,7 +110,7 @@ describe('StepFieldInventoryCompiler', () => {
     it('should compile MAP iterator template field codes without runtime expansion', () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
-      const dynamicCode = createGeneratorFunction('memberCode', [createReference(['@scope', '0', '@index'])])
+      const dynamicCode = createGeneratorFunction('memberCode', [createReference(['@loop', '0', 'index0'])])
       const template = createTemplate([createFieldBlock(dynamicCode)])
       const iterateNode = createIterateNode(createReference(['data', 'members']), template)
       const steps: FieldInventoryStepSource[] = [
@@ -152,7 +152,7 @@ describe('StepFieldInventoryCompiler', () => {
     it('should await async dynamic iterator field codes', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
-      const dynamicCode = createGeneratorFunction('memberCode', [createReference(['@scope', '0', '@index'])])
+      const dynamicCode = createGeneratorFunction('memberCode', [createReference(['@loop', '0', 'index0'])])
       const template = createTemplate([createFieldBlock(dynamicCode)])
       const iterateNode = createIterateNode(createReference(['data', 'members']), template)
       const steps: FieldInventoryStepSource[] = [

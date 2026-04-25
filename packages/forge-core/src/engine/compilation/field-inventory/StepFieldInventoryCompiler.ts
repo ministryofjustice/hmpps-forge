@@ -118,7 +118,7 @@ export default class StepFieldInventoryCompiler {
           emitter.emit('continue;')
         })
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-        this.expr.pushIteratorFrame({ itemVar, indexVar, rawItemExpr })
+        this.expr.pushIteratorFrame({ itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr })
         this.compileTemplateInventory(template, codesVar, emitter)
         this.expr.popIteratorFrame()
       })
@@ -185,7 +185,7 @@ export default class StepFieldInventoryCompiler {
         })
         emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
 
-        const frame: IteratorScopeFrame = { itemVar, indexVar, rawItemExpr }
+        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
 
         this.expr.pushIteratorFrame(frame)
         this.compileTemplateInventory(iterator.yieldTemplate as TemplateValue, codesVar, emitter)

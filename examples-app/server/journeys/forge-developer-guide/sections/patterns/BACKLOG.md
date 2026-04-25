@@ -10,13 +10,14 @@ guide's Patterns section. Tick items off as they land.
 - [x] Resuming a partially-completed journey
 - [ ] Deep-linking into a specific step with guards
 
-## Collecting input
+## Searching and results
 
 - [x] Single question per page
 - [x] Branching based on an earlier answer
 - [x] Reveal fields (radio/checkbox with conditional inputs)
 - [x] Multi-part composite fields (date, address, price + currency)
-- [ ] Search and select (postcode lookup, user picker)
+- [x] Search and select (postcode lookup, user picker)
+- [x] Pagination
 
 ## Collections and repetition
 
@@ -29,7 +30,7 @@ guide's Patterns section. Tick items off as they land.
 ## Review and submit
 
 - [ ] Check your answers (standalone, beyond the SQPP flow)
-- [ ] Edit and return (change link jumps to a step, returns to summary)
+- [x] Edit and return (change link jumps to a step, returns to summary)
 - [ ] Declaration / confirm before submit
 - [ ] Confirmation panel after submission
 
@@ -49,8 +50,8 @@ guide's Patterns section. Tick items off as they land.
 
 ## Access and permissions
 
-- [ ] Require authentication / role
-- [ ] Read-only mode for a journey
+- [x] Require authentication / role
+- [x] Read-only mode for a journey
 - [ ] Feature-flagging a journey
 
 ## Cross-cutting
