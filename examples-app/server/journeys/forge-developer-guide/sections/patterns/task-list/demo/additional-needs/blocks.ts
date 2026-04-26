@@ -4,7 +4,7 @@ import {
   GovUKButton,
   GovUKHeading,
   GovUKBody,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -20,7 +20,7 @@ export const additionalNeedsField = GovUKTextareaInput({
   code: 'additionalNeeds',
   label: {
     text: 'Additional needs',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   rows: 4,
   validWhen: [

@@ -1,0 +1,23 @@
+.live-example {
+  border: 1px solid govuk-functional-colour(border);
+  background-color: govuk-colour('white');
+  margin-bottom: govuk-spacing(4);
+  @include govuk-responsive-padding(3);
+
+  &::before {
+    @include govuk-font($size: 16, $weight: 'bold');
+    content: 'Example';
+    display: block;
+    margin: govuk-spacing(-3) govuk-spacing(-3) govuk-spacing(3);
+    padding: govuk-spacing(1) govuk-spacing(3);
+    border-bottom: 1px solid govuk-functional-colour(border);
+    background-color: govuk-colour('light-grey');
+    color: govuk-colour('dark-grey');
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  > *:last-child {
+    margin-bottom: 0;
+  }
+}

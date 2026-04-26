@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const cmsContentPatternStep = step({
@@ -7,10 +7,6 @@ export const cmsContentPatternStep = step({
   title: 'CMS content',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Data and integrations' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-cms-content')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-cms-content')],
   blocks: [content],
 })

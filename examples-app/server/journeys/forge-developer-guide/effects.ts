@@ -1,4 +1,5 @@
 import {
+  access,
   defineEffectFunctions,
   EffectFunctionContext,
   EffectFunctionExpr,
@@ -48,3 +49,9 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
       }
     },
   })
+
+export function loadContent(slug: string) {
+  return access({
+    effects: [GuideEffects.LoadContent(slug)],
+  })
+}

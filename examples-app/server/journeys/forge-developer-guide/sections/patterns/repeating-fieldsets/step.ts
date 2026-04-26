@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const repeatingFieldsetsPatternStep = step({
@@ -7,10 +7,6 @@ export const repeatingFieldsetsPatternStep = step({
   title: 'Repeating fieldsets',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Collections' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-repeating-fieldsets')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-repeating-fieldsets')],
   blocks: [content],
 })

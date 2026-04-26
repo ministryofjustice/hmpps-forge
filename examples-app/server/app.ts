@@ -17,7 +17,7 @@ import setUpWebSession from './middleware/setUpWebSession'
 import logger from './logger'
 import developerGuidePackage from './journeys/forge-developer-guide'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
-import llmsTxtRoutes from './routes/llmsTxt'
+import llmsTxtRouter from './routes/llmsTxt'
 import type { Services } from './services'
 import config from './config'
 
@@ -25,18 +25,14 @@ export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
 
-  // FORGE-EXAMPLE: Initialize Forge with a logger and the Express/Nunjucks framework adapter
   const forge = new Forge({
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
     lazyStepCompilation: !config.production,
   })
-    // FORGE-EXAMPLE: Register global component libraries so journeys can use GovUK/MOJ components
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
-    // FORGE-EXAMPLE: Register global functions so journeys can use them
     .registerGlobalFunctions(nunjucksFunctions)
-    // FORGE-EXAMPLE: Register a package, passing runtime dependencies (e.g. data stores, API clients)
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,
@@ -59,16 +55,9 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpStaticResources())
   app.use(setUpCsrf())
   app.get('/', (req, res) => res.redirect('/forge-developer-guide/get-started'))
-  // FORGE-EXAMPLE: Mount the Forge router — this serves all registered journey routes
   app.use(forge.getRouter() as express.Router)
 
-  const llms = llmsTxtRoutes({
-    contentStore: services.guideContentStore,
-    patternSources: services.patternSourceStore,
-  })
-  app.get('/llms.txt', llms.index)
-  app.get('/llms-full.txt', llms.full)
-  app.get('/llms/content/:slug', llms.content)
+  app.use(llmsTxtRouter(services.guideContentStore, services.llmsTextGenerator))
 
   app.use((req, res, next) => next(createError(404, 'Not found')))
   app.use(errorHandler(process.env.NODE_ENV === 'production'))

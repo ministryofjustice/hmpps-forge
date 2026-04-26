@@ -1,8 +1,8 @@
 import {
   GovUKDateInputFull,
   GovUKButton,
-  GovukUtilityClasses,
-  GovukValidations,
+  GovUKUtilityClasses,
+  GovUKValidations,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const dateOfBirthField = GovUKDateInputFull({
@@ -10,13 +10,13 @@ export const dateOfBirthField = GovUKDateInputFull({
   fieldset: {
     legend: {
       text: 'What is your date of birth?',
-      classes: GovukUtilityClasses.Fieldset.LargeLabel,
+      classes: GovUKUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },
   hint: { text: 'For example, 27 3 1990' },
   validWhen: [
-    ...GovukValidations.DateInputFull({
+    ...GovUKValidations.DateInputFull({
       empty: { message: 'Enter your date of birth' },
       missingDay: { message: 'Date of birth must include a day' },
       missingMonth: { message: 'Date of birth must include a month' },

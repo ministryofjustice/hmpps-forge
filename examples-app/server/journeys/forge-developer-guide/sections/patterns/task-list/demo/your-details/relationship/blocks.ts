@@ -3,7 +3,7 @@ import {
   GovUKSelectInput,
   GovUKButton,
   GovUKHeading,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -15,7 +15,7 @@ export const relationshipField = GovUKSelectInput({
   code: 'relationship',
   label: {
     text: 'Relationship',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   items: [
     { value: '', text: 'Choose a relationship' },

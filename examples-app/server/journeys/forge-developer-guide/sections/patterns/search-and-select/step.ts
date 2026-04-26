@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const searchAndSelectPatternStep = step({
@@ -7,10 +7,6 @@ export const searchAndSelectPatternStep = step({
   title: 'Search and select',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Searching and results' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-search-and-select')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-search-and-select')],
   blocks: [content],
 })

@@ -2,7 +2,7 @@ import { Self, Condition, validation } from '@ministryofjustice/hmpps-forge/core
 import {
   GovUKRadioInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const contactPreferenceField = GovUKRadioInput({
@@ -10,7 +10,7 @@ export const contactPreferenceField = GovUKRadioInput({
   fieldset: {
     legend: {
       text: 'How would you prefer to be contacted?',
-      classes: GovukUtilityClasses.Fieldset.LargeLabel,
+      classes: GovUKUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },

@@ -7,18 +7,18 @@ import {
 import {
   GovUKTextInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const roleField = GovUKTextInput({
   code: 'role',
   label: {
     text: 'What is your role?',
-    classes: GovukUtilityClasses.Label.Large,
+    classes: GovUKUtilityClasses.Label.Large,
     isPageHeading: true,
   },
   hint: { text: 'For example, developer, designer, or product manager.' },
-  classes: GovukUtilityClasses.Input.Width30,
+  classes: GovUKUtilityClasses.Input.Width30,
   formatters: [Transformer.String.Trim()],
   validWhen: [
     validation({

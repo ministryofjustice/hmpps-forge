@@ -3,7 +3,7 @@ import {
   GovUKHeading,
   GovUKTaskList,
   GovUKBody,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 // Completion predicates for gating tasks and the submit button
@@ -13,11 +13,11 @@ const task3Done = Answer('additionalNeedsStatus').match(Condition.Equals('comple
 const prerequisitesMet = and(task1Done, task2Done)
 const allComplete = and(prerequisitesMet, task3Done)
 
-// Tag objects using GovukUtilityClasses.Tag for colour constants
-const lockedTag = { text: 'Cannot start yet', classes: GovukUtilityClasses.Tag.Grey }
-const notStartedTag = { text: 'Not yet started', classes: GovukUtilityClasses.Tag.Grey }
-const inProgressTag = { text: 'In progress', classes: GovukUtilityClasses.Tag.Blue }
-const completedTag = { text: 'Completed', classes: GovukUtilityClasses.Tag.Green }
+// Tag objects using GovUKUtilityClasses.Tag for colour constants
+const lockedTag = { text: 'Cannot start yet', classes: GovUKUtilityClasses.Tag.Grey }
+const notStartedTag = { text: 'Not yet started', classes: GovUKUtilityClasses.Tag.Grey }
+const inProgressTag = { text: 'In progress', classes: GovUKUtilityClasses.Tag.Blue }
+const completedTag = { text: 'Completed', classes: GovUKUtilityClasses.Tag.Green }
 
 // Maps a status answer to a complete tag object (text + colour)
 const statusTag = (code: string) =>

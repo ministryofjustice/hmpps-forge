@@ -2,6 +2,7 @@ import path from 'path'
 import nunjucks from 'nunjucks'
 import express from 'express'
 import fs from 'fs'
+import mojFilters from '@ministryofjustice/frontend/moj/filters/all'
 import { initialiseName } from './utils'
 import config from '../config'
 import logger from '../logger'
@@ -49,6 +50,10 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
       express: app,
     },
   )
+
+  for (const [name, filter] of Object.entries(mojFilters())) {
+    njkEnv.addFilter(name, filter)
+  }
 
   njkEnv.addFilter('initialiseName', initialiseName)
   njkEnv.addFilter('assetMap', (url: string) => assetManifest[url] || url)

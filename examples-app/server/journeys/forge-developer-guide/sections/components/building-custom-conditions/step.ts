@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const buildingCustomConditionsStep = step({
@@ -7,10 +7,6 @@ export const buildingCustomConditionsStep = step({
   title: 'Custom conditions',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('building-custom-conditions')],
-    }),
-  ],
+  onAccess: [loadContent('building-custom-conditions')],
   blocks: [content],
 })

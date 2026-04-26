@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const installingForgeStep = step({
@@ -7,10 +7,6 @@ export const installingForgeStep = step({
   title: 'Installing Forge',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('installing-forge')],
-    }),
-  ],
+  onAccess: [loadContent('installing-forge')],
   blocks: [content],
 })

@@ -2,18 +2,18 @@ import { Self, Condition, validation } from '@ministryofjustice/hmpps-forge/core
 import {
   GovUKTextInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const emailField = GovUKTextInput({
   code: 'emailAddress',
   label: {
     text: 'What is your email address?',
-    classes: GovukUtilityClasses.Label.Large,
+    classes: GovUKUtilityClasses.Label.Large,
     isPageHeading: true,
   },
   autocomplete: 'email',
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   validWhen: [
     validation({
       condition: Self().match(Condition.IsRequired()),

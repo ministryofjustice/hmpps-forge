@@ -15,7 +15,7 @@ import {
   GovUKTextInput,
   GovUKButton,
   GovUKLinkButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 const isAdmin = Session('demoUser.role').match(Condition.Equals('admin'))
@@ -59,7 +59,7 @@ export const editHeading = GovUKHeading({
 export const nameField = GovUKTextInput({
   code: 'recordName',
   label: { text: 'Name' },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   formatters: [Transformer.String.Trim()],
   visibleWhen: isAdmin,
   validWhen: [
@@ -73,7 +73,7 @@ export const nameField = GovUKTextInput({
 export const emailField = GovUKTextInput({
   code: 'recordEmail',
   label: { text: 'Email' },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   visibleWhen: isAdmin,
   validWhen: [
     validation({
@@ -86,7 +86,7 @@ export const emailField = GovUKTextInput({
 export const departmentField = GovUKTextInput({
   code: 'recordDepartment',
   label: { text: 'Department' },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   visibleWhen: isAdmin,
   validWhen: [
     validation({

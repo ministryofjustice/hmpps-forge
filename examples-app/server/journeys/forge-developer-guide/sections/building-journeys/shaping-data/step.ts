@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const shapingDataStep = step({
@@ -7,10 +7,6 @@ export const shapingDataStep = step({
   title: 'Shaping data for rendering',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('shaping-data')],
-    }),
-  ],
+  onAccess: [loadContent('shaping-data')],
   blocks: [content],
 })
