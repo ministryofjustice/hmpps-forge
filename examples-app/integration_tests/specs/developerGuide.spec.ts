@@ -9,7 +9,7 @@ test.describe('Developer guide', () => {
       await page.goto('/forge-developer-guide/get-started/creating-your-first-journey')
 
       // Assert
-      await expect(page).toHaveTitle('Creating your first journey - HMPPS Forge Developer Guide')
+      await expect(page).toHaveTitle('Creating your first journey - Forge Developer Guide')
     })
   })
 })
