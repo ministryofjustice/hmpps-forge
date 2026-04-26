@@ -116,4 +116,4 @@ for the shape interface, implementation, and registration details.
 For the full reference of every built-in generator with detailed
 descriptions and examples, see the Forge Core package pages:
 
-- [Date generators](/forge-developer-guide/packages/forge-core/generators-date) — `Now()`, `Today()`
+- [Date generators](/forge-developer-guide/packages/forge-core/generators-date) - `Now()`, `Today()`

@@ -220,12 +220,12 @@ Answer('date').not.match(Condition.Date.IsFutureDate())
 For the full reference of every built-in condition with detailed
 descriptions and examples, see the Forge Core package pages:
 
-- [General conditions](/forge-developer-guide/packages/forge-core/conditions-general) — `IsRequired`, `Equals`
-- [String conditions](/forge-developer-guide/packages/forge-core/conditions-string) — length, pattern matching, character sets
-- [Number conditions](/forge-developer-guide/packages/forge-core/conditions-number) — comparisons, ranges, type checks
-- [Date conditions](/forge-developer-guide/packages/forge-core/conditions-date) — validity, comparisons, past/future
-- [Array conditions](/forge-developer-guide/packages/forge-core/conditions-array) — membership, containment
-- [Object conditions](/forge-developer-guide/packages/forge-core/conditions-object) — structure, property checks
-- [Email conditions](/forge-developer-guide/packages/forge-core/conditions-email) — format validation
-- [Phone conditions](/forge-developer-guide/packages/forge-core/conditions-phone) — UK and international
-- [Address conditions](/forge-developer-guide/packages/forge-core/conditions-address) — postcode validation
+- [General conditions](/forge-developer-guide/packages/forge-core/conditions-general) - `IsRequired`, `Equals`
+- [String conditions](/forge-developer-guide/packages/forge-core/conditions-string) - length, pattern matching, character sets
+- [Number conditions](/forge-developer-guide/packages/forge-core/conditions-number) - comparisons, ranges, type checks
+- [Date conditions](/forge-developer-guide/packages/forge-core/conditions-date) - validity, comparisons, past/future
+- [Array conditions](/forge-developer-guide/packages/forge-core/conditions-array) - membership, containment
+- [Object conditions](/forge-developer-guide/packages/forge-core/conditions-object) - structure, property checks
+- [Email conditions](/forge-developer-guide/packages/forge-core/conditions-email) - format validation
+- [Phone conditions](/forge-developer-guide/packages/forge-core/conditions-phone) - UK and international
+- [Address conditions](/forge-developer-guide/packages/forge-core/conditions-address) - postcode validation

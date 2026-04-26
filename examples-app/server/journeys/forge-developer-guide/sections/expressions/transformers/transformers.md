@@ -271,8 +271,8 @@ Transformer.String.Replace(Answer('search'), 'fixed') // dynamic
 For the full reference of every built-in transformer with detailed
 descriptions and examples, see the Forge Core package pages:
 
-- [String transformers](/forge-developer-guide/packages/forge-core/transformers-string) — trim, case, substring, conversion, escaping
-- [Date transformers](/forge-developer-guide/packages/forge-core/transformers-date) — formatting, arithmetic, boundaries
-- [Number transformers](/forge-developer-guide/packages/forge-core/transformers-number) — arithmetic, rounding, clamping
-- [Array transformers](/forge-developer-guide/packages/forge-core/transformers-array) — slicing, joining, mapping, filtering
-- [Object transformers](/forge-developer-guide/packages/forge-core/transformers-object) — date part conversion
+- [String transformers](/forge-developer-guide/packages/forge-core/transformers-string) - trim, case, substring, conversion, escaping
+- [Date transformers](/forge-developer-guide/packages/forge-core/transformers-date) - formatting, arithmetic, boundaries
+- [Number transformers](/forge-developer-guide/packages/forge-core/transformers-number) - arithmetic, rounding, clamping
+- [Array transformers](/forge-developer-guide/packages/forge-core/transformers-array) - slicing, joining, mapping, filtering
+- [Object transformers](/forge-developer-guide/packages/forge-core/transformers-object) - date part conversion

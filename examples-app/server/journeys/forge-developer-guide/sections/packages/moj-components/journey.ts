@@ -21,6 +21,7 @@ export const mojComponentsJourney = journey({
   code: 'moj-components',
   title: 'MOJ Components',
   path: '/moj-components',
+  metadata: { navGroup: 'Component Libraries' },
   view: {
     locals: { showBackToTop: true },
   },
