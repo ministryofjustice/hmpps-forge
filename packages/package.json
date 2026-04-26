@@ -24,36 +24,43 @@
     "./core": {
       "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.mjs",
+      "require": "./dist/core/index.cjs",
       "default": "./dist/core/index.mjs"
     },
     "./core/authoring": {
       "types": "./dist/core/authoring/index.d.ts",
       "import": "./dist/core/authoring/index.mjs",
+      "require": "./dist/core/authoring/index.cjs",
       "default": "./dist/core/authoring/index.mjs"
     },
     "./core/components": {
       "types": "./dist/core/components/index.d.ts",
       "import": "./dist/core/components/index.mjs",
+      "require": "./dist/core/components/index.cjs",
       "default": "./dist/core/components/index.mjs"
     },
     "./core/framework": {
       "types": "./dist/core/framework/index.d.ts",
       "import": "./dist/core/framework/index.mjs",
+      "require": "./dist/core/framework/index.cjs",
       "default": "./dist/core/framework/index.mjs"
     },
     "./express-nunjucks": {
       "types": "./dist/express-nunjucks/index.d.ts",
       "import": "./dist/express-nunjucks/index.mjs",
+      "require": "./dist/express-nunjucks/index.cjs",
       "default": "./dist/express-nunjucks/index.mjs"
     },
     "./govuk-components": {
       "types": "./dist/govuk-components/index.d.ts",
       "import": "./dist/govuk-components/index.mjs",
+      "require": "./dist/govuk-components/index.cjs",
       "default": "./dist/govuk-components/index.mjs"
     },
     "./moj-components": {
       "types": "./dist/moj-components/index.d.ts",
       "import": "./dist/moj-components/index.mjs",
+      "require": "./dist/moj-components/index.cjs",
       "default": "./dist/moj-components/index.mjs"
     }
   },

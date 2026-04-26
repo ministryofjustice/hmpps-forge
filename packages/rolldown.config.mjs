@@ -14,6 +14,10 @@ const subpaths = {
 
 const packageName = '@ministryofjustice/hmpps-forge'
 const entries = Object.entries(subpaths)
+const jsFormats = [
+  { extension: 'mjs', format: 'esm' },
+  { extension: 'cjs', format: 'cjs' },
+]
 
 const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
 const externalPrefixes = [
@@ -122,14 +126,14 @@ const createDtsConfig = () => ({
   ],
 })
 
-const createJsConfig = ([name, input]) => ({
+const createJsConfig = ([name, input], { extension, format }) => ({
   input: { index: input },
   output: {
     dir: `dist/${name}`,
-    format: 'esm',
+    format,
     sourcemap: true,
-    entryFileNames: '[name].mjs',
-    chunkFileNames: '[name]-[hash].mjs',
+    entryFileNames: `[name].${extension}`,
+    chunkFileNames: `[name]-[hash].${extension}`,
   },
   external: isExternal,
   resolve: { tsconfigFilename: './tsconfig.json' },
@@ -140,4 +144,4 @@ const createJsConfig = ([name, input]) => ({
   ],
 })
 
-export default [...entries.map(createJsConfig), createDtsConfig()]
+export default [...entries.flatMap(entry => jsFormats.map(format => createJsConfig(entry, format))), createDtsConfig()]
