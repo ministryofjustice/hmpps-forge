@@ -313,6 +313,9 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   private wrapHandler(handler: StepHandler<express.Request, express.Response>): express.RequestHandler {
     return (req, res, next) => {
       const requestPath = extractPathname(req.originalUrl ?? req.path)
+      const reqWithState = req as RequestWithState
+
+      reqWithState.state = { ...res.locals, ...reqWithState.state }
 
       this.logger.debug(`${req.method} request to step at path ${requestPath}`)
       handler(req, res).catch(next)

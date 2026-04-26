@@ -177,6 +177,77 @@ describe('ExpressFrameworkAdapter', () => {
       // Assert
       expect(handler).toHaveBeenCalledWith(mockReq, mockRes)
     })
+
+    it('should merge res.locals into req.state before calling handler', async () => {
+      // Arrange
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
+      const mockNext = vi.fn()
+      const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        path: '/step',
+        originalUrl: '/step',
+      } as unknown as express.Request
+      const mockRes = {
+        locals: { csrfToken: 'abc123', userName: 'Alice' },
+      } as unknown as express.Response
+
+      let capturedHandler: express.RequestHandler | undefined
+
+      const mockRouter = {
+        get: vi.fn((_path: string, h: express.RequestHandler) => {
+          capturedHandler = h
+        }),
+      } as unknown as express.Router
+
+      adapter.get(mockRouter, '/step', handler)
+
+      // Act
+      await capturedHandler!(mockReq, mockRes, mockNext)
+
+      // Assert
+      const reqWithState = mockReq as express.Request & { state: Record<string, unknown> }
+      expect(reqWithState.state.csrfToken).toBe('abc123')
+      expect(reqWithState.state.userName).toBe('Alice')
+    })
+
+    it('should let req.state values take precedence over res.locals', async () => {
+      // Arrange
+      const handler: StepHandler<express.Request, express.Response> = vi.fn().mockResolvedValue(undefined)
+      const mockNext = vi.fn()
+      const mockReq = {
+        method: 'GET',
+        body: {},
+        query: {},
+        params: {},
+        path: '/step',
+        originalUrl: '/step',
+        state: { userName: 'FromState' },
+      } as unknown as express.Request
+      const mockRes = {
+        locals: { csrfToken: 'abc123', userName: 'FromLocals' },
+      } as unknown as express.Response
+
+      let capturedHandler: express.RequestHandler | undefined
+
+      const mockRouter = {
+        get: vi.fn((_path: string, h: express.RequestHandler) => {
+          capturedHandler = h
+        }),
+      } as unknown as express.Router
+
+      adapter.get(mockRouter, '/step', handler)
+
+      // Act
+      await capturedHandler!(mockReq, mockRes, mockNext)
+
+      // Assert
+      const reqWithState = mockReq as express.Request & { state: Record<string, unknown> }
+      expect(reqWithState.state.csrfToken).toBe('abc123')
+      expect(reqWithState.state.userName).toBe('FromState')
+    })
   })
 
   describe('post()', () => {
