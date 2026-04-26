@@ -37,12 +37,16 @@ import { MOJBanner } from '@ministryofjustice/hmpps-forge/moj-components'
 
 ## Available packages
 
-- [Forge Core](forge-core) — the engine, authoring builders,
+- [Forge Core](forge-core) - the engine, authoring builders,
   compilation, and runtime. Everything you need to define and run
   journeys.
-- [GOV.UK Components](govuk-components) — pre-built blocks for the
+- [Express-Nunjucks Adapter](express-nunjucks) - the framework adapter
+  that connects Forge to Express.js and the Nunjucks template engine.
+  Handles routing, state merging, template resolution, and block
+  rendering.
+- [GOV.UK Components](govuk-components) - pre-built blocks for the
   GOV.UK Design System: text inputs, radios, checkboxes, date inputs,
   summary lists, panels, and more.
-- [MOJ Components](moj-components) — pre-built blocks for the
+- [MOJ Components](moj-components) - pre-built blocks for the
   Ministry of Justice Design System: banners, badges, filters, and
   other MOJ-specific patterns.

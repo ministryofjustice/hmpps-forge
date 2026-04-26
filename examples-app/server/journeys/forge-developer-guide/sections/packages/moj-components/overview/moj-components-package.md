@@ -46,11 +46,11 @@ import {
 
 The package currently provides:
 
-- **Messages and status** — alert, badge, banner, messages, progress
+- **Messages and status** - alert, badge, banner, messages, progress
   bar, ticket panel, and timeline
-- **Navigation** — side navigation and sub navigation
-- **Actions and layout** — button menu, card, and card group
-- **Forms and lists** — date picker, filter, multi-select, and
+- **Navigation** - side navigation and sub navigation
+- **Actions and layout** - button menu, card, and card group
+- **Forms and lists** - date picker, filter, multi-select, and
   sortable table
 
 Each component accepts the same properties as the corresponding MOJ

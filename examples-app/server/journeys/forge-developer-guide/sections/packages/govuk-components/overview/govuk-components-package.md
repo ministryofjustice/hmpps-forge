@@ -51,13 +51,13 @@ import {
 The package covers form inputs, content blocks, and layout
 components from the GOV.UK Design System:
 
-- **Form inputs** — text input, textarea, radios, checkboxes,
+- **Form inputs** - text input, textarea, radios, checkboxes,
   select, date input
-- **Buttons** — standard button, link-styled button
-- **Content** — heading, body text, list, inset text, warning text,
+- **Buttons** - standard button, link-styled button
+- **Content** - heading, body text, list, inset text, warning text,
   details (disclosure), notification banner, panel
-- **Data display** — summary list, table, tag
-- **Utilities** — `GovUKUtilityClasses` provides common class
+- **Data display** - summary list, table, tag
+- **Utilities** - `GovUKUtilityClasses` provides common class
   constants for sizing and spacing
 
 Each component accepts the same properties as the corresponding

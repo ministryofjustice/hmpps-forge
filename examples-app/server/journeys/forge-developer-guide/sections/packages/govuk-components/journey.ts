@@ -36,6 +36,7 @@ export const govukComponentsJourney = journey({
   code: 'govuk-components',
   title: 'GOV.UK Components',
   path: '/govuk-components',
+  metadata: { navGroup: 'Component Libraries' },
   view: {
     locals: { showBackToTop: true },
   },

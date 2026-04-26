@@ -1,5 +1,6 @@
 import { journey } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { forgeCoreOverviewStep } from './overview/step'
+import { forgeClassStep } from './forge-class/step'
 import { collectionBlockStep } from './collection-block/step'
 import { htmlBlockStep } from './html-block/step'
 import { templateWrapperStep } from './template-wrapper/step'
@@ -23,11 +24,13 @@ export const forgeCoreJourney = journey({
   code: 'forge-core',
   title: 'Forge Core',
   path: '/forge-core',
+  metadata: { navGroup: 'Frameworks' },
   view: {
     locals: { showBackToTop: true },
   },
   steps: [
     forgeCoreOverviewStep,
+    forgeClassStep,
     collectionBlockStep,
     htmlBlockStep,
     templateWrapperStep,
