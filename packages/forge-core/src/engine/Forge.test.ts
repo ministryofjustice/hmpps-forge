@@ -5,6 +5,7 @@ import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/types/adapter.type'
+import { StructureType } from '../authoring/types/enums'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 import JourneyInstance from './JourneyInstance'
 import Forge from './Forge'
@@ -78,6 +79,7 @@ describe('Forge', () => {
     mockJourneyInstance = {
       getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
       getJourneyCode: vi.fn().mockReturnValue('test-form'),
+      compileAllRouteArtefacts: vi.fn(),
       getCompiledForm: vi.fn().mockReturnValue([]),
       getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
     } as any
@@ -210,6 +212,42 @@ describe('Forge', () => {
         { journey: 'test-form', routes: 3 },
         "Forge: Registered journey 'Test Form' with 3 routes",
       )
+    })
+
+    it('should compile all route artefacts during registration when lazy step compilation is disabled', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ lazyStepCompilation: false }))
+
+      // Act
+      engine.register({
+        type: StructureType.JOURNEY,
+        path: '/test-form',
+        code: 'test-form',
+        title: 'Test Form',
+        steps: [],
+      })
+
+      // Assert
+      expect(mockJourneyInstance.compileAllRouteArtefacts).toHaveBeenCalledTimes(1)
+      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
+    })
+
+    it('should keep route artefacts lazy during registration by default', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+
+      // Act
+      engine.register({
+        type: StructureType.JOURNEY,
+        path: '/test-form',
+        code: 'test-form',
+        title: 'Test Form',
+        steps: [],
+      })
+
+      // Assert
+      expect(mockJourneyInstance.compileAllRouteArtefacts).not.toHaveBeenCalled()
+      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
     })
 
     it('should successfully register a journey from JourneyDefinition object', () => {

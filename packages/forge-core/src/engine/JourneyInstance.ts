@@ -49,10 +49,13 @@ export default class JourneyInstance {
     return new JourneyInstance(configurationAsObject, dependencies)
   }
 
-  compileAllSteps(): void {
+  compileAllRouteArtefacts(): void {
     this.sharedCompilation.stepIndex.forEach((_, stepId) => {
       this.getOrCompileStep(stepId)
     })
+
+    this.getJourneyCompilationArtefact()
+    this.compileReachabilityValidationPlans()
   }
 
   getCompiledForm(): CompiledForm {
@@ -120,5 +123,13 @@ export default class JourneyInstance {
     this.stepCache.set(stepId, compiledStep)
 
     return compiledStep
+  }
+
+  private compileReachabilityValidationPlans(): void {
+    const reachabilityPlans = new Set(this.sharedCompilation.reachabilityPlans.values())
+
+    reachabilityPlans.forEach(plan => {
+      plan.resolveStepValidations?.()
+    })
   }
 }

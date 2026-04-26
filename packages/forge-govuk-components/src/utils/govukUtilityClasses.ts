@@ -6,7 +6,7 @@
  *
  * @see https://design-system.service.gov.uk/
  */
-export const GovukUtilityClasses = {
+export const GovUKUtilityClasses = {
   /** Hide content visually while keeping it accessible to screen readers */
   VisuallyHidden: 'govuk-visually-hidden',
 

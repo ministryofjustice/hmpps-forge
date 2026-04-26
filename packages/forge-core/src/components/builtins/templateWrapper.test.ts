@@ -189,6 +189,53 @@ describe('templateWrapper component', () => {
       expect(result).toBe('<div class="custom-class" data-test="value"><p>Content</p></div>')
     })
 
+    it('should render with custom tag when tag is provided', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<p>Content</p>',
+        tag: 'section',
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<section><p>Content</p></section>')
+    })
+
+    it('should render with custom tag and classes', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<p>Content</p>',
+        tag: 'aside',
+        classes: 'app-sidebar',
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<aside class="app-sidebar"><p>Content</p></aside>')
+    })
+
+    it('should render with custom tag, classes and attributes', async () => {
+      // Arrange
+      const block = mockBlock({
+        template: '<p>Content</p>',
+        tag: 'nav',
+        classes: 'app-nav',
+        attributes: {
+          'aria-label': 'Main navigation',
+        },
+      })
+
+      // Act
+      const result = await templateWrapper.render(block)
+
+      // Assert
+      expect(result).toBe('<nav class="app-nav" aria-label="Main navigation"><p>Content</p></nav>')
+    })
+
     it('should render template without modification when no slots or values provided', async () => {
       // Arrange
       const block = mockBlock({

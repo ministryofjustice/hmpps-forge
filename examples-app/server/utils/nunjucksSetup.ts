@@ -12,7 +12,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
   const { locals } = app
 
   locals.asset_path = '/assets/'
-  locals.applicationName = 'HMPPS Forge Developer Guide'
+  locals.applicationName = 'Forge Developer Guide'
   locals.environmentName = config.environmentName
 
   let assetManifest: Record<string, string> = {}

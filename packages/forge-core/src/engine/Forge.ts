@@ -35,14 +35,14 @@ export interface ForgeOptions {
   strictRegistration?: boolean
 
   /**
-   * Defer per-step compilation (quick functions, linked closures, runtime plans)
-   * until the step is first accessed.
+   * Defer route compilation (quick functions, linked closures, runtime plans)
+   * until the route is first accessed.
    *
    * When `true` (default), each step compiles on first request — faster startup,
    * but the first user to hit a step pays the compilation cost.
    *
-   * When `false`, all steps compile at registration time — slower startup,
-   * but zero compilation overhead on any request.
+   * When `false`, route artefacts compile at registration time — slower startup,
+   * but first requests do not pay generated-function compilation costs.
    *
    * @default true
    */
@@ -260,7 +260,7 @@ export default class Forge {
     const routesBefore = this.forgeRouter.getRegisteredRoutes().length
 
     if (!this.options.lazyStepCompilation) {
-      instance.compileAllSteps()
+      instance.compileAllRouteArtefacts()
     }
 
     this.forgeRouter.mount(instance, dependencies)
