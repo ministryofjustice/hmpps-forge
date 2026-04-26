@@ -8,7 +8,7 @@ import {
   GovUKBody,
   GovUKHeading,
   GovUKInsetText,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -44,7 +44,7 @@ export const searchResults = CollectionBlock({
         content: [
           HtmlBlock({
             tag: 'a',
-            classes: `govuk-link govuk-link--no-visited-state ${GovukUtilityClasses.FontSize.Size27}`,
+            classes: `govuk-link govuk-link--no-visited-state ${GovUKUtilityClasses.FontSize.Size27}`,
             attributes: { href: Item().path('href') },
             content: Item().path('title'),
           }),

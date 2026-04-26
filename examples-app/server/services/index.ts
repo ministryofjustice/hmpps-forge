@@ -5,6 +5,7 @@ import AppointmentApi from '../data/appointmentApi'
 import EmbeddingIndex from '../data/embeddings/embeddingIndex'
 import GuideContentStore from '../data/guideContentStore'
 import GuideSearch from '../data/guideSearch'
+import LlmsTextGenerator from '../data/llmsTextGenerator'
 import PatternSourceStore from '../data/patternSourceStore'
 import MocksApi from '../data/mocksApi'
 import logger from '../logger'
@@ -16,9 +17,10 @@ export const services = () => {
   const embeddingIndex =
     process.env.GUIDE_SEMANTIC_SEARCH_ENABLED === 'false' ? undefined : new EmbeddingIndex()
   const guideContentStore = new GuideContentStore(
-    join(__dirname, 'journeys', 'forge-developer-guide', 'content'),
+    join(__dirname, 'journeys', 'forge-developer-guide'),
   )
   const patternSourceStore = new PatternSourceStore()
+  const llmsTextGenerator = new LlmsTextGenerator(patternSourceStore)
   const mocksApi = new MocksApi()
   const guideSearch = new GuideSearch(guideContentStore, embeddingIndex)
 
@@ -31,6 +33,7 @@ export const services = () => {
     guideContentStore,
     guideSearch,
     patternSourceStore,
+    llmsTextGenerator,
     mocksApi,
   }
 }

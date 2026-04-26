@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const registeringAJourneyStep = step({
@@ -7,10 +7,6 @@ export const registeringAJourneyStep = step({
   title: 'Registering a journey',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Building flows and content' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('registering-a-journey')],
-    }),
-  ],
+  onAccess: [loadContent('registering-a-journey')],
   blocks: [content],
 })

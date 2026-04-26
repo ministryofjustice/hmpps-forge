@@ -11,7 +11,7 @@ import {
   GovUKButton,
   GovUKButtonGroup,
   GovUKHeading,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -23,7 +23,7 @@ export const postcodeField = GovUKTextInput({
   code: 'postcode',
   label: { text: 'Postcode' },
   hint: { text: 'Try SW1A 1AA, SW1A 2AA, or LS1 2BJ' },
-  classes: GovukUtilityClasses.Input.Width10,
+  classes: GovUKUtilityClasses.Input.Width10,
   formatters: [Transformer.String.Trim()],
   validWhen: [
     validation({
@@ -74,7 +74,7 @@ export const addressTownField = GovUKTextInput({
   code: 'addressTown',
   label: { text: 'Town or city' },
   autocomplete: 'address-level2',
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   validWhen: [
     validation({
       condition: Self().match(Condition.IsRequired()),
@@ -87,14 +87,14 @@ export const addressTownField = GovUKTextInput({
 export const addressCountyField = GovUKTextInput({
   code: 'addressCounty',
   label: { text: 'County (optional)' },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
 })
 
 export const addressPostcodeField = GovUKTextInput({
   code: 'addressPostcode',
   label: { text: 'Postcode' },
   autocomplete: 'postal-code',
-  classes: GovukUtilityClasses.Input.Width10,
+  classes: GovUKUtilityClasses.Input.Width10,
   validWhen: [
     validation({
       condition: Self().match(Condition.IsRequired()),

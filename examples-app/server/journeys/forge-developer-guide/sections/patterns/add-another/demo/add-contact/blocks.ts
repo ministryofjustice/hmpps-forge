@@ -4,7 +4,7 @@ import {
   GovUKSelectInput,
   GovUKButton,
   GovUKHeading,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -16,7 +16,7 @@ export const nameField = GovUKTextInput({
   code: 'contactName',
   label: {
     text: 'Full name',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   validWhen: [
     validation({
@@ -31,7 +31,7 @@ export const relationshipField = GovUKSelectInput({
   code: 'contactRelationship',
   label: {
     text: 'Relationship',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   items: [
     { value: '', text: 'Choose a relationship' },
@@ -56,7 +56,7 @@ export const phoneField = GovUKTextInput({
   code: 'contactPhone',
   label: {
     text: 'Phone number',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   validWhen: [
     validation({

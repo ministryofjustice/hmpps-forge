@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const loopStep = step({
@@ -7,10 +7,6 @@ export const loopStep = step({
   title: 'Loop (Iterators)',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('loop')],
-    }),
-  ],
+  onAccess: [loadContent('loop')],
   blocks: [content],
 })

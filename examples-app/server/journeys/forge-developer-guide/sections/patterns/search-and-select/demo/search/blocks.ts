@@ -12,7 +12,7 @@ import {
   GovUKTextInput,
   GovUKButton,
   GovUKInsetText,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({ text: 'Search stations', size: 'l' })
@@ -21,7 +21,7 @@ export const searchInput = GovUKTextInput({
   code: 'searchQuery',
   label: { text: 'Station name' },
   hint: { text: 'Try searching for King, Brixton, or Piccadilly' },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
 })
 
 export const searchButton = GovUKButton({ text: 'Search' })

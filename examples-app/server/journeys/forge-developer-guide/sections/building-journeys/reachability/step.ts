@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const reachabilityStep = step({
@@ -7,10 +7,6 @@ export const reachabilityStep = step({
   title: 'Reachability',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Routing, reachability and navigation' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('reachability')],
-    }),
-  ],
+  onAccess: [loadContent('reachability')],
   blocks: [content],
 })

@@ -16,7 +16,7 @@ import {
   GovUKButtonGroup,
   GovUKHeading,
   GovUKInsetText,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
   GovUKSectionBreak,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
@@ -37,7 +37,7 @@ export const heading = GovUKHeading({
 //               code: Format('memberName_%1', Loop.Index0()),
 //               label: { text: 'Name' },
 //               defaultValue: Item().path('memberName'),
-//               classes: GovukUtilityClasses.Input.Width20,
+//               classes: GovUKUtilityClasses.Input.Width20,
 //               formatters: [Transformer.String.Trim()],
 //               validWhen: [
 //                 validation({
@@ -52,7 +52,7 @@ export const heading = GovUKHeading({
 //               code: Format('memberAge_%1', Loop.Index0()),
 //               label: { text: 'Age' },
 //               defaultValue: Item().path('memberAge'),
-//               classes: GovukUtilityClasses.Input.Width5,
+//               classes: GovUKUtilityClasses.Input.Width5,
 //               inputMode: 'numeric',
 //               validWhen: [
 //                 validation({
@@ -89,7 +89,7 @@ export const memberRows = CollectionBlock({
         code: Format('memberName_%1', Loop.Index0()),
         label: { text: 'Name' },
         defaultValue: Item().path('memberName'),
-        classes: GovukUtilityClasses.Input.Width20,
+        classes: GovUKUtilityClasses.Input.Width20,
         formatters: [Transformer.String.Trim()],
         validWhen: [
           validation({
@@ -103,7 +103,7 @@ export const memberRows = CollectionBlock({
         label: { text: 'Age' },
         formatters: [Transformer.String.ToInt()],
         defaultValue: Item().path('memberAge'),
-        classes: GovukUtilityClasses.Input.Width5,
+        classes: GovUKUtilityClasses.Input.Width5,
         inputMode: 'numeric',
         validWhen: [
           validation({

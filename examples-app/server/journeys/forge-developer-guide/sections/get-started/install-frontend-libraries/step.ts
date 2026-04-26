@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const installFrontendLibrariesStep = step({
@@ -7,10 +7,6 @@ export const installFrontendLibrariesStep = step({
   title: 'Install frontend libraries',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('install-frontend-libraries')],
-    }),
-  ],
+  onAccess: [loadContent('install-frontend-libraries')],
   blocks: [content],
 })

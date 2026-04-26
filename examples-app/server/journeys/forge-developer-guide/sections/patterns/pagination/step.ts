@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const paginationPatternStep = step({
@@ -7,10 +7,6 @@ export const paginationPatternStep = step({
   title: 'Pagination',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Searching and results' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-pagination')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-pagination')],
   blocks: [content],
 })

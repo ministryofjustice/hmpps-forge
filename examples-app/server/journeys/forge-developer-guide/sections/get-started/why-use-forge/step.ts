@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const whyUseForgeStep = step({
@@ -7,10 +7,6 @@ export const whyUseForgeStep = step({
   title: 'Why use Forge',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('why-use-forge')],
-    }),
-  ],
+  onAccess: [loadContent('why-use-forge')],
   blocks: [content],
 })

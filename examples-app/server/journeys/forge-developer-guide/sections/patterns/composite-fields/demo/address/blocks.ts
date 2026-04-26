@@ -8,7 +8,7 @@ import {
   GovUKHeading,
   GovUKTextInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 // This is the author-owned flavour of composite field. There is no single
@@ -22,9 +22,9 @@ export const addressLine1Field = GovUKTextInput({
   code: 'addressLine1',
   label: {
     text: 'Address line 1',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
-  classes: GovukUtilityClasses.Input.Width30,
+  classes: GovUKUtilityClasses.Input.Width30,
   autocomplete: 'address-line1',
   formatters: [Transformer.String.Trim()],
   validWhen: [
@@ -41,9 +41,9 @@ export const addressLine2Field = GovUKTextInput({
   code: 'addressLine2',
   label: {
     text: 'Address line 2 (optional)',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
-  classes: GovukUtilityClasses.Input.Width30,
+  classes: GovUKUtilityClasses.Input.Width30,
   autocomplete: 'address-line2',
   formatters: [Transformer.String.Trim()],
 })
@@ -52,9 +52,9 @@ export const addressTownField = GovUKTextInput({
   code: 'addressTown',
   label: {
     text: 'Town or city',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   autocomplete: 'address-level2',
   formatters: [Transformer.String.Trim()],
   validWhen: [
@@ -73,9 +73,9 @@ export const addressPostcodeField = GovUKTextInput({
   code: 'addressPostcode',
   label: {
     text: 'Postcode',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
-  classes: GovukUtilityClasses.Input.Width10,
+  classes: GovUKUtilityClasses.Input.Width10,
   autocomplete: 'postal-code',
   formatters: [Transformer.String.Trim(), Transformer.String.ToUpperCase()],
   validWhen: [

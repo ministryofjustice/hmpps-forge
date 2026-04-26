@@ -2,7 +2,7 @@ import { Self, Condition, validation } from '@ministryofjustice/hmpps-forge/core
 import {
   GovUKRadioInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 // A plain radio with three options. The selected value drives the redirect in
@@ -12,7 +12,7 @@ export const visitTypeField = GovUKRadioInput({
   fieldset: {
     legend: {
       text: 'How would you like to meet?',
-      classes: GovukUtilityClasses.Fieldset.LargeLabel,
+      classes: GovUKUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },

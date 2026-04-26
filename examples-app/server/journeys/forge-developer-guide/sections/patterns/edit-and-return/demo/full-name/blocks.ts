@@ -7,18 +7,18 @@ import {
 import {
   GovUKTextInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const fullNameField = GovUKTextInput({
   code: 'fullName',
   label: {
     text: 'What is your full name?',
-    classes: GovukUtilityClasses.Label.Large,
+    classes: GovUKUtilityClasses.Label.Large,
     isPageHeading: true,
   },
   autocomplete: 'name',
-  classes: GovukUtilityClasses.Input.Width20,
+  classes: GovUKUtilityClasses.Input.Width20,
   formatters: [Transformer.String.Trim()],
   validWhen: [
     validation({

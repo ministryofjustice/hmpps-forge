@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const readOnlyModePatternStep = step({
@@ -7,10 +7,6 @@ export const readOnlyModePatternStep = step({
   title: 'Read-only mode',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Access and permissions' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-read-only-mode')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-read-only-mode')],
   blocks: [content],
 })
