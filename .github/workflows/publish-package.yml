@@ -1,0 +1,77 @@
+name: Publish package to NPM
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Lint packages
+        working-directory: packages
+        run: npm run lint
+      - name: Typecheck packages
+        working-directory: packages
+        run: npm run typecheck
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
+      - name: Test packages
+        working-directory: packages
+        run: npm run test
+
+  publish:
+    name: Publish package
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@ministryofjustice'
+      - name: Update npm
+        run: npm install -g npm@10 && npm install -g npm@latest
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
+      - name: Publish package
+        working-directory: packages
+        run: |
+          name=$(jq -r .name package.json)
+          version=$(jq -r .version package.json)
+
+          if latest_version=$(npm view "${name}" version --silent 2>/dev/null); then
+            :
+          else
+            latest_version="unpublished"
+          fi
+
+          if [ "${version}" = "${latest_version}" ]; then
+            echo "Package ${name} has already published latest version: ${version}, skipping..."
+          else
+            echo "Publishing ${name} v${version} to npmjs.com..."
+            npm publish --provenance --access public
+          fi
