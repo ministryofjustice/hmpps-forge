@@ -10,7 +10,7 @@ import FormatNodeCompiler from './node-compilers/FormatNodeCompiler'
 import ConditionalNodeCompiler from './node-compilers/ConditionalNodeCompiler'
 import MatchNodeCompiler from './node-compilers/MatchNodeCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import { isASTNode } from "../../typeguards/nodes";
+import { isASTNode } from '../../typeguards/nodes'
 
 export type { IteratorScopeFrame } from './node-compilers/types'
 
