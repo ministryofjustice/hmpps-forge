@@ -10,6 +10,7 @@ import FormatNodeCompiler from './node-compilers/FormatNodeCompiler'
 import ConditionalNodeCompiler from './node-compilers/ConditionalNodeCompiler'
 import MatchNodeCompiler from './node-compilers/MatchNodeCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import { isASTNode } from "../../typeguards/nodes";
 
 export type { IteratorScopeFrame } from './node-compilers/types'
 
@@ -189,12 +190,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   }
 
   isCompilableNode(value: unknown): value is ASTNode {
-    return value !== null &&
-      value !== undefined &&
-      typeof value === 'object' &&
-      'type' in (value as Record<string, unknown>) &&
-      'id' in (value as Record<string, unknown>) &&
-      (value as Record<string, unknown>).type !== ASTNodeType.TEMPLATE
+    return isASTNode(value) && 'id' in value
   }
 
   isTemplateNode(value: unknown): value is TemplateNode {
