@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const editAndReturnPatternStep = step({
@@ -7,10 +7,6 @@ export const editAndReturnPatternStep = step({
   title: 'Edit and return',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Entry and routing' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-edit-and-return')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-edit-and-return')],
   blocks: [content],
 })

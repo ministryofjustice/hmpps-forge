@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const inlineFunctionsPatternStep = step({
@@ -7,10 +7,6 @@ export const inlineFunctionsPatternStep = step({
   title: 'Shaping data inline',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Data and integrations' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-inline-functions')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-inline-functions')],
   blocks: [content],
 })

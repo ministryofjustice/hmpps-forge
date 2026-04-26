@@ -2,7 +2,7 @@ import { Self, Condition, validation } from '@ministryofjustice/hmpps-forge/core
 import {
   GovUKRadioInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const locationField = GovUKRadioInput({
@@ -10,7 +10,7 @@ export const locationField = GovUKRadioInput({
   fieldset: {
     legend: {
       text: 'Which office would you like to visit?',
-      classes: GovukUtilityClasses.Fieldset.LargeLabel,
+      classes: GovUKUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },
