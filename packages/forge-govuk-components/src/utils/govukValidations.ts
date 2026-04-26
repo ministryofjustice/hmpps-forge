@@ -1,5 +1,5 @@
 import { DateInputFull } from './validations/dateInputFull'
 
-export const GovukValidations = {
+export const GovUKValidations = {
   DateInputFull,
 }
