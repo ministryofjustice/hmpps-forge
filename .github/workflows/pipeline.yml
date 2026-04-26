@@ -31,8 +31,50 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
 
 jobs:
-  validate:
-    name: Validate
+  static_checks:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint packages
+            working_directory: packages
+            command: npm run lint
+            build_packages: false
+          - name: Typecheck packages
+            working_directory: packages
+            command: npm run typecheck
+            build_packages: false
+          - name: Lint examples-app
+            working_directory: examples-app
+            command: npm run lint
+            build_packages: true
+          - name: Typecheck examples-app
+            working_directory: examples-app
+            command: npm run typecheck
+            build_packages: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependency
+        if: matrix.build_packages
+        working-directory: packages
+        run: npm ci
+      - name: Build packages dependency
+        if: matrix.build_packages
+        working-directory: packages
+        run: npm run build
+      - name: Install dependencies
+        working-directory: ${{ matrix.working_directory }}
+        run: npm ci
+      - name: Run check
+        working-directory: ${{ matrix.working_directory }}
+        run: ${{ matrix.command }}
+  packages_tests:
+    name: Test packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -42,27 +84,29 @@ jobs:
       - name: Install packages dependencies
         working-directory: packages
         run: npm ci
-      - name: Lint packages
-        working-directory: packages
-        run: npm run lint
-      - name: Typecheck packages
-        working-directory: packages
-        run: npm run typecheck
       - name: Build packages
         working-directory: packages
         run: npm run build
       - name: Test packages
         working-directory: packages
         run: npm run test
+  examples_app_tests:
+    name: Test examples-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
       - name: Install examples-app dependencies
         working-directory: examples-app
         run: npm ci
-      - name: Typecheck examples-app
-        working-directory: examples-app
-        run: npm run typecheck
-      - name: Lint examples-app
-        working-directory: examples-app
-        run: npm run lint
       - name: Test examples-app
         working-directory: examples-app
         run: npm run test:ci
@@ -71,6 +115,20 @@ jobs:
         run: npm run build
       - name: Run end-to-end tests
         run: make e2e-ci
+  validate:
+    name: Validate
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - static_checks
+      - packages_tests
+      - examples_app_tests
+    steps:
+      - name: Check validation jobs
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            exit 1
+          fi
   helm_lint:
     if: github.event_name != 'pull_request'
     strategy:
