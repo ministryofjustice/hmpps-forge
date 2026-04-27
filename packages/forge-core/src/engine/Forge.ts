@@ -1,15 +1,25 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import JourneyInstance from './JourneyInstance'
-import { JourneyInstanceDependencies, ForgePackage } from './types/engine.type'
+import { JourneyInstanceDependencies } from './types/engine.type'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
-import { ComponentRegistryEntry } from '../components/types/components.type'
-import { FunctionRegistryObject } from '../authoring/types/functions.type'
+import type { ComponentRegistryEntry } from '../components/types/components.type'
+import type { BlockDefinition } from '../components/types/structures.type'
+import type { FunctionEvaluator } from '../authoring/types/functions.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
 import ForgeRouter from './runtime/routes/ForgeRouter'
+
+type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) => FunctionEvaluator<unknown>>
+
+interface ForgePackageRegistration<TDeps = Record<string, never>> {
+  journey: string | JourneyDefinition
+  functions?: ForgeFunctionImplementations<TDeps>
+  components?: ComponentRegistryEntry<BlockDefinition>[]
+  enabled?: boolean
+}
 
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
@@ -172,8 +182,10 @@ export default class Forge {
   }
 
   /** Add functions to the global registry, making them available to all journeys. */
-  registerGlobalFunctions(functions: FunctionRegistryObject): this {
-    this.functionRegistry.register(functions)
+  registerGlobalFunctions<TDeps>(functions: ForgeFunctionImplementations<TDeps>, deps?: TDeps): this {
+    const resolvedDeps = (deps ?? {}) as TDeps
+
+    this.functionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
 
     return this
   }
@@ -213,7 +225,7 @@ export default class Forge {
    * }))
    * ```
    */
-  registerPackage<TDeps>(pkg: ForgePackage<TDeps>, deps?: TDeps): this {
+  registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, deps?: TDeps): this {
     if (pkg.enabled === false) {
       return this
     }

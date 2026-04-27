@@ -14,7 +14,7 @@ export type FunctionShapeMap = Record<string, FunctionEvaluator<unknown>>
 type PublicFunctionArguments<TFunction> = TFunction extends (...args: infer TArgs) => unknown ? TArgs : never
 
 type FunctionGroup<T, TExpr> = {
-  [K in keyof T]: (...args: never[]) => TExpr
+  [K in keyof T]: (...args: PublicFunctionArguments<T[K]>) => TExpr
 }
 
 export type ConditionFunctionGroup<T> = FunctionGroup<T, ConditionFunctionExpr<ValueExpr[]>>
@@ -61,7 +61,7 @@ type RuntimeReturn = {
   generator: ValueExpr | Promise<ValueExpr>
 }
 
-type ImplementationShapes<
+export type ImplementationShapes<
   TKind extends keyof RuntimeContext,
   TFunctions extends Record<string, (...args: never[]) => unknown>,
 > = {

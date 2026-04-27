@@ -9,6 +9,7 @@
     "noEmit": false,
     "allowJs": false,
     "strict": false,
+    "skipLibCheck": false,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": true,

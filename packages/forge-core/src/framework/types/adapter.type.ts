@@ -1,4 +1,5 @@
-import type ComponentRegistry from '../../engine/registries/ComponentRegistry'
+import type { ComponentRegistryEntry } from '../../components/types/components.type'
+import type { BlockDefinition } from '../../components/types/structures.type'
 import type { RenderContext } from '../rendering/types'
 import type { StepRequest } from './request.type'
 import type { StepResponse } from './response.type'
@@ -11,6 +12,11 @@ export interface Logger {
   error(...args: unknown[]): void
   warn(...args: unknown[]): void
   debug(...args: unknown[]): void
+}
+
+export interface ComponentRegistry {
+  get<T extends BlockDefinition>(variant: string): ComponentRegistryEntry<T> | undefined
+  getAll(): ReadonlyMap<string, ComponentRegistryEntry<BlockDefinition>>
 }
 
 /**

@@ -8,6 +8,7 @@ import type {
   GeneratorFunctionGroup,
   GeneratorFunctions,
   GeneratorImplementations,
+  ImplementationShapes,
   NoDeps,
 } from './defineFunction.type'
 
@@ -64,7 +65,7 @@ export function defineGeneratorFunctions<TGenerators extends GeneratorFunctionGr
   factories: GeneratorImplementations<TGenerators, TDeps>,
 ): {
   generators: TGenerators
-  implementations: FunctionImplementations<{ [K in keyof TGenerators]: TGenerators[K] }, TDeps>
+  implementations: FunctionImplementations<ImplementationShapes<'generator', TGenerators>, TDeps>
 }
 export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
   factories: Record<string, unknown>,

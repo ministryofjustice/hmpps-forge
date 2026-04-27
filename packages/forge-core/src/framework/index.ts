@@ -1,5 +1,5 @@
-export { default as ComponentRegistry } from '../engine/registries/ComponentRegistry'
 export type {
+  ComponentRegistry,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,

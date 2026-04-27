@@ -169,17 +169,35 @@ describe('Forge', () => {
   })
 
   describe('registerGlobalFunctions', () => {
-    it('should register a function registry object', () => {
+    it('should register function implementations', () => {
       const engine = new Forge(createDefaultOptions())
-      const mockRegistry = {
-        Function1: { name: 'Function1', evaluate: () => true, isAsync: false },
-        Function2: { name: 'Function2', evaluate: (x: any) => x, isAsync: false },
+      const functions = {
+        Function1: () => () => true,
+        Function2: () => (value: unknown) => value,
       }
 
-      engine.registerGlobalFunctions(mockRegistry)
+      engine.registerGlobalFunctions(functions)
 
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(mockRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
+        Function1: { name: 'Function1', evaluate: expect.any(Function), isAsync: false },
+        Function2: { name: 'Function2', evaluate: expect.any(Function), isAsync: false },
+      })
+    })
+
+    it('should inject dependencies into global function implementations', () => {
+      const engine = new Forge(createDefaultOptions())
+      const functions = {
+        WithSuffix: (deps: { suffix: string }) => (value: unknown) => `${String(value)}${deps.suffix}`,
+      }
+
+      engine.registerGlobalFunctions(functions, { suffix: '!' })
+
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const registerMock = vi.mocked(mockFunctionRegistry.register)
+      const registeredFunctions = registerMock.mock.calls.at(-1)?.[0]
+
+      expect(registeredFunctions?.WithSuffix.evaluate('hello')).toBe('hello!')
     })
   })
 
@@ -581,10 +599,10 @@ describe('Forge', () => {
       const component1 = buildComponent('comp-1', () => '<div>1</div>')
       const component2 = buildComponent('comp-2', () => '<div>2</div>')
       const functions1 = {
-        Func1: { name: 'Func1', evaluate: () => true, isAsync: false },
+        Func1: () => () => true,
       }
       const functions2 = {
-        Func2: { name: 'Func2', evaluate: (x: any) => x, isAsync: false },
+        Func2: () => (value: unknown) => value,
       }
 
       const result = engine
@@ -623,11 +641,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions())
       const customComponent = buildComponent('custom-input', () => '<input />')
       const customFunctions = {
-        CustomValidator: {
-          name: 'CustomValidator',
-          evaluate: (value: any) => value !== null,
-          isAsync: false,
-        },
+        CustomValidator: () => (value: unknown) => value !== null,
       }
 
       const result = engine
@@ -643,7 +657,9 @@ describe('Forge', () => {
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(customFunctions)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
+        CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
+      })
       expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
     })
   })

@@ -3,6 +3,7 @@ import { buildExpressionFunctions, extractFactories } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
+  ImplementationShapes,
   NoDeps,
   TransformerFunctionGroup,
   TransformerFunctions,
@@ -48,7 +49,7 @@ export function defineTransformerFunctions<
   factories: TransformerImplementations<TTransformers, TDeps>,
 ): {
   transformers: TTransformers
-  implementations: FunctionImplementations<{ [K in keyof TTransformers]: TTransformers[K] }, TDeps>
+  implementations: FunctionImplementations<ImplementationShapes<'transformer', TTransformers>, TDeps>
 }
 export function defineTransformerFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
   factories: Record<string, unknown>,

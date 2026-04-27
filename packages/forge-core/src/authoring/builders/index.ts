@@ -1,5 +1,4 @@
 import { isFieldBlockDefinition } from '../typeguards/structures'
-import { ForgePackage } from '../../engine/types/engine.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
 import { LoopReferenceBuilder } from './LoopReferenceBuilder'
@@ -14,6 +13,7 @@ import {
   ValidationExpr,
   ValidationProps,
 } from '../types/structures.type'
+import { ForgePackage } from '../types/package.type'
 import {
   AccessHook,
   FormatExpr,

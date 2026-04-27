@@ -7,10 +7,12 @@ import {
   FormatExpr,
   ConditionalExpr,
   MatchExpr,
+  ValueExpr,
 } from '../../authoring/types/expressions.type'
 import { PredicateTestExprBuilder } from '../../authoring/builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../../authoring/builders/ConditionalExprBuilder'
 import { MatchExprBuilder } from '../../authoring/builders/MatchExprBuilder'
+import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
 import { ChainableExpr, ChainableIterable, ChainableRef } from '../../authoring/builders/types'
 import { BlockType, StructureType } from '../../authoring/types/enums'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
@@ -29,7 +31,7 @@ export interface BasicBlockProps {
    * @example false // Always hidden
    * @example Answer('contactMethod').match(Condition.Equals('email')) // Visible when email selected
    */
-  visibleWhen?: boolean | PredicateExpr | PredicateTestExprBuilder
+  visibleWhen?: ConditionalBoolean
 
   /**
    * Optional metadata for the field.
@@ -153,6 +155,7 @@ type DynamicExpression =
   | MatchExpr
   | ConditionalExprBuilder
   | MatchExprBuilder
+  | GeneratorBuilder<ValueExpr[]>
   | ChainableRef
   | ChainableExpr<any>
 

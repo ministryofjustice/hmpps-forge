@@ -6,6 +6,7 @@ import type {
   ConditionImplementations,
   FunctionImplementations,
   FunctionShapeMap,
+  ImplementationShapes,
   NoDeps,
 } from './defineFunction.type'
 
@@ -46,7 +47,7 @@ export function defineConditionFunctions<TConditions extends ConditionFunctionGr
   factories: ConditionImplementations<TConditions, TDeps>,
 ): {
   conditions: TConditions
-  implementations: FunctionImplementations<{ [K in keyof TConditions]: TConditions[K] }, TDeps>
+  implementations: FunctionImplementations<ImplementationShapes<'condition', TConditions>, TDeps>
 }
 export function defineConditionFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
   factories: Record<string, unknown>,
