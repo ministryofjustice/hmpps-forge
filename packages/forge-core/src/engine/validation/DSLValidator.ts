@@ -1,31 +1,30 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import { FunctionType, StructureType } from '../../authoring/types/enums'
 import type FunctionRegistry from '../registries/FunctionRegistry'
 import type ComponentRegistry from '../registries/ComponentRegistry'
 import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
 import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
-import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
-import UnregisteredComponentError from '../errors/UnregisteredComponentError'
 import { JourneySchema } from './schemas/structures.schema'
+import { formatDSLPath } from './formatDSLPath'
+import { walkAndValidate } from './walkAndValidate'
+import { referenceScopeRule } from './rules/validateReferenceScopes'
+import { createFunctionRegistrationRule } from './rules/validateRegisteredFunctions'
+import { createComponentRegistrationRule } from './rules/validateRegisteredComponents'
+import { effectScopeRule } from './rules/validateEffectScope'
+import type { ValidationRule } from './rules/types'
 
-const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionType))
-
-/**
- * Form configuration validator that checks JSON and schema validity
- */
 export class DSLValidator {
-  /**
-   * Validate schema
-   */
   static validateSchema(input: JourneyDefinition): void {
     const result = JourneySchema.safeParse(input)
 
     if (!result.success) {
       const schemaErrors = result.error.issues.map(issue => {
+        const path = issue.path.map(pathPart => (typeof pathPart === 'symbol' ? pathPart.toString() : pathPart))
+
         return new FormConfigurationSchemaError({
-          path: issue.path as (string | number)[],
+          path,
           message: issue.message,
-          expected: 'expected' in issue ? (issue as any).expected : undefined,
+          formattedPath: formatDSLPath(input, path),
+          expected: 'expected' in issue && typeof issue.expected === 'string' ? issue.expected : undefined,
           code: issue.code,
         })
       })
@@ -34,8 +33,26 @@ export class DSLValidator {
     }
   }
 
+  static validateTree(
+    input: JourneyDefinition,
+    functionRegistry: FunctionRegistry,
+    componentRegistry: ComponentRegistry,
+  ): void {
+    const rules: readonly ValidationRule[] = [
+      referenceScopeRule,
+      effectScopeRule,
+      createFunctionRegistrationRule(functionRegistry),
+      createComponentRegistrationRule(componentRegistry),
+    ]
+
+    const errors = walkAndValidate(input, rules)
+
+    if (errors.length > 0) {
+      throw new AggregateError(errors, 'Tree validation failed')
+    }
+  }
+
   /**
-   * Validate that input is valid JSON
    * //TODO: This is probably poorly named, as it doesnt actually validate pure JSON, it validates
    *    that an object CAN be serialised into JSON without any issue.
    */
@@ -44,6 +61,7 @@ export class DSLValidator {
       throw new FormConfigurationSerialisationError({
         path: [],
         message: 'Input is undefined (not valid JSON)',
+        formattedPath: 'root',
         type: 'non_serializable',
       })
     }
@@ -61,129 +79,48 @@ export class DSLValidator {
       throw new FormConfigurationSerialisationError({
         path: [],
         message: `JSON serialization failed: ${(error as Error).message}`,
+        formattedPath: formatDSLPath(input, []),
         type: 'json_error',
       })
     }
   }
 
-  /**
-   * Validate that all functions referenced in the journey configuration are registered
-   */
-  static validateFunctions(input: JourneyDefinition, functionRegistry: FunctionRegistry): void {
-    const errors: UnregisteredFunctionError[] = []
-
-    this.walkForFunctionReferences(input, [], (path, name, type) => {
-      if (!functionRegistry.has(name)) {
-        errors.push(new UnregisteredFunctionError({ path, functionName: name, functionType: type }))
-      }
-    })
-
-    if (errors.length > 0) {
-      throw new AggregateError(
-        errors,
-        'Function validation failed: unregistered functions found in journey configuration',
-      )
-    }
-  }
-
-  /**
-   * Validate that all component variants referenced in the journey configuration are registered
-   */
-  static validateComponents(input: JourneyDefinition, componentRegistry: ComponentRegistry): void {
-    const errors: UnregisteredComponentError[] = []
-
-    this.walkForBlockReferences(input, [], (path, variant) => {
-      if (!componentRegistry.has(variant)) {
-        errors.push(new UnregisteredComponentError({ path, variant }))
-      }
-    })
-
-    if (errors.length > 0) {
-      throw new AggregateError(
-        errors,
-        'Component validation failed: unregistered component variants found in journey configuration',
-      )
-    }
-  }
-
-  /**
-   * Recursively walk an object tree, invoking the callback for each block reference found
-   */
-  private static walkForBlockReferences(
-    obj: unknown,
-    path: (string | number)[],
-    onBlock: (path: (string | number)[], variant: string) => void,
-  ): void {
-    if (!obj || typeof obj !== 'object') {
-      return
-    }
-
-    if (Array.isArray(obj)) {
-      obj.forEach((item, i) => this.walkForBlockReferences(item, [...path, i], onBlock))
-
-      return
-    }
-
-    const record = obj as Record<string, unknown>
-
-    if (record.type === StructureType.BLOCK && typeof record.variant === 'string') {
-      onBlock(path, record.variant)
-    }
-
-    Object.entries(record).forEach(([key, value]) => {
-      this.walkForBlockReferences(value, [...path, key], onBlock)
-    })
-  }
-
-  /**
-   * Recursively walk an object tree, invoking the callback for each function reference found
-   */
-  private static walkForFunctionReferences(
-    obj: unknown,
-    path: (string | number)[],
-    onFunction: (path: (string | number)[], name: string, type: string) => void,
-  ): void {
-    if (!obj || typeof obj !== 'object') {
-      return
-    }
-
-    if (Array.isArray(obj)) {
-      obj.forEach((item, i) => this.walkForFunctionReferences(item, [...path, i], onFunction))
-
-      return
-    }
-
-    const record = obj as Record<string, unknown>
-
-    if (typeof record.type === 'string' && FUNCTION_TYPE_VALUES.has(record.type) && typeof record.name === 'string') {
-      onFunction(path, record.name, record.type)
-    }
-
-    Object.entries(record).forEach(([key, value]) => {
-      this.walkForFunctionReferences(value, [...path, key], onFunction)
-    })
-  }
-
-  /**
-   * Check for non-serializable types
-   */
   private static checkSerializableTypes(
-    obj: any,
-    path: string[] = [],
+    obj: unknown,
+    path: (string | number)[] = [],
+    root: unknown = obj,
     seen = new WeakSet(),
   ): FormConfigurationSerialisationError[] {
     const errors: FormConfigurationSerialisationError[] = []
 
     if (obj === undefined) {
-      errors.push(new FormConfigurationSerialisationError({ type: 'Undefined value', path }))
+      errors.push(
+        new FormConfigurationSerialisationError({
+          type: 'Undefined value',
+          path,
+          formattedPath: formatDSLPath(root, path),
+        }),
+      )
     } else if (typeof obj === 'function') {
-      errors.push(new FormConfigurationSerialisationError({ type: 'Function', path }))
+      errors.push(
+        new FormConfigurationSerialisationError({ type: 'Function', path, formattedPath: formatDSLPath(root, path) }),
+      )
     } else if (typeof obj === 'symbol') {
-      errors.push(new FormConfigurationSerialisationError({ type: 'Symbol', path }))
+      errors.push(
+        new FormConfigurationSerialisationError({ type: 'Symbol', path, formattedPath: formatDSLPath(root, path) }),
+      )
     } else if (typeof obj === 'bigint') {
-      errors.push(new FormConfigurationSerialisationError({ type: 'BigInt', path }))
+      errors.push(
+        new FormConfigurationSerialisationError({ type: 'BigInt', path, formattedPath: formatDSLPath(root, path) }),
+      )
     } else if (obj instanceof Date) {
-      errors.push(new FormConfigurationSerialisationError({ type: 'Date object', path }))
+      errors.push(
+        new FormConfigurationSerialisationError({
+          type: 'Date object',
+          path,
+          formattedPath: formatDSLPath(root, path),
+        }),
+      )
     } else if (obj && typeof obj === 'object') {
       if (seen.has(obj)) {
         return errors
@@ -193,15 +130,22 @@ export class DSLValidator {
 
       if (Array.isArray(obj)) {
         obj.forEach((item, i) => {
-          errors.push(...this.checkSerializableTypes(item, [...path, String(i)], seen))
+          errors.push(...this.checkSerializableTypes(item, [...path, i], root, seen))
         })
-      } else if (obj.constructor !== Object) {
+      } else if (Object.getPrototypeOf(obj) !== Object.prototype) {
+        const constructorName =
+          typeof obj.constructor === 'function' && obj.constructor.name ? obj.constructor.name : 'unknown'
+
         errors.push(
-          new FormConfigurationSerialisationError({ type: `Non-plain object (${obj.constructor.name})`, path }),
+          new FormConfigurationSerialisationError({
+            type: `Non-plain object (${constructorName})`,
+            path,
+            formattedPath: formatDSLPath(root, path),
+          }),
         )
       } else {
         Object.entries(obj).forEach(([key, value]) => {
-          errors.push(...this.checkSerializableTypes(value, [...path, key], seen))
+          errors.push(...this.checkSerializableTypes(value, [...path, key], root, seen))
         })
       }
     }

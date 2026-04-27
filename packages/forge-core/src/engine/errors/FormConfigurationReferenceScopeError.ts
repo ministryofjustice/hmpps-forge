@@ -1,42 +1,36 @@
 import formatFields from '../../shared/utils/utils'
 
-interface FormConfigurationSchemaErrorOptions {
-  /** Path to the invalid field */
+interface FormConfigurationReferenceScopeErrorOptions {
+  /** Path to the invalid reference expression */
   path: (string | number)[]
   /** Human-readable error message */
   message: string
-  /** Expected value type/format */
-  expected?: string
   /** Error code for programmatic handling */
-  code?: string
+  code: string
   /** Human-readable path through the journey DSL */
-  formattedPath?: string
+  formattedPath: string
 }
 
-export default class FormConfigurationSchemaError extends Error {
-  readonly code?: string
-
-  readonly expected?: string
+export default class FormConfigurationReferenceScopeError extends Error {
+  readonly code: string
 
   readonly path: (string | number)[]
 
-  readonly formattedPath?: string
+  readonly formattedPath: string
 
-  constructor(options: FormConfigurationSchemaErrorOptions) {
+  constructor(options: FormConfigurationReferenceScopeErrorOptions) {
     super(options.message)
     this.name = new.target.name
     this.message = options.message
     this.code = options.code
     this.path = options.path
-    this.expected = options.expected
     this.formattedPath = options.formattedPath
   }
 
   toString() {
     const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
+      { label: 'Path', value: this.formattedPath },
       { label: 'Code', value: this.code },
-      { label: 'Expected', value: this.expected },
     ]
 
     return `${this.name}: ${this.message} [${formatFields(fields)}]`

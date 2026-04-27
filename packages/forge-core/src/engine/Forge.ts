@@ -21,6 +21,18 @@ interface ForgePackageRegistration<TDeps = Record<string, never>> {
   enabled?: boolean
 }
 
+type DiagnosticError = {
+  readonly name?: unknown
+  readonly message?: unknown
+  readonly formattedPath?: unknown
+  readonly path?: unknown
+  readonly code?: unknown
+  readonly expected?: unknown
+  readonly functionName?: unknown
+  readonly functionType?: unknown
+  readonly variant?: unknown
+}
+
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
   disableBuiltInFunctions?: boolean
@@ -295,14 +307,83 @@ export default class Forge {
 
   private logRegistrationError(e: unknown): void {
     if (e instanceof AggregateError) {
-      this.dependencies.logger.error(`${e.message}:`)
-
-      e.errors.forEach(error => {
-        this.dependencies.logger.error(error?.toString ? error.toString() : String(error))
-      })
+      this.dependencies.logger.error(this.formatAggregateRegistrationError(e))
     } else {
       this.dependencies.logger.error(e)
     }
+  }
+
+  private formatAggregateRegistrationError(error: AggregateError): string {
+    const entries = error.errors.map((entry, index) => this.formatRegistrationErrorEntry(entry, index))
+
+    return [`Forge registration failed: ${error.message}`, '', ...entries].join('\n')
+  }
+
+  private formatRegistrationErrorEntry(error: unknown, index: number): string {
+    const diagnostic = this.toDiagnosticError(error)
+    const title = this.formatErrorTitle(diagnostic, error)
+    const fields = this.formatErrorFields(diagnostic)
+
+    return [`${index + 1}. ${title}`, ...fields.map(field => `   ${field}`)].join('\n')
+  }
+
+  private formatErrorTitle(diagnostic: DiagnosticError | undefined, error: unknown): string {
+    const name = this.formatValue(diagnostic?.name)
+    const message = this.formatValue(diagnostic?.message)
+
+    if (name && message) {
+      return `${name}: ${message}`
+    }
+
+    if (message) {
+      return message
+    }
+
+    return this.formatValue(error) ?? String(error)
+  }
+
+  private formatErrorFields(diagnostic: DiagnosticError | undefined): string[] {
+    if (!diagnostic) {
+      return []
+    }
+
+    const path = this.formatValue(diagnostic.formattedPath) ?? this.formatPathValue(diagnostic.path)
+    const fields = [
+      { label: 'Path', value: path },
+      { label: 'Code', value: this.formatValue(diagnostic.code) },
+      { label: 'Expected', value: this.formatValue(diagnostic.expected) },
+      { label: 'Function', value: this.formatValue(diagnostic.functionName) },
+      { label: 'Type', value: this.formatValue(diagnostic.functionType) },
+      { label: 'Variant', value: this.formatValue(diagnostic.variant) },
+    ]
+
+    return fields
+      .filter(field => field.value !== undefined)
+      .map(field => `${field.label}: ${field.value}`)
+  }
+
+  private toDiagnosticError(error: unknown): DiagnosticError | undefined {
+    if (!error || typeof error !== 'object') {
+      return undefined
+    }
+
+    return error as DiagnosticError
+  }
+
+  private formatPathValue(value: unknown): string | undefined {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.map(pathPart => String(pathPart)).join('.') : 'root'
+    }
+
+    return this.formatValue(value)
+  }
+
+  private formatValue(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined
+    }
+
+    return String(value)
   }
 
   /**
