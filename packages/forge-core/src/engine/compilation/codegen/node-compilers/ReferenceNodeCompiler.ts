@@ -6,9 +6,18 @@ export default class ReferenceNodeCompiler {
 
   compile(properties: Record<string, unknown>): string {
     const path = (properties.path ?? []) as (string | number | TemplateValue)[]
+    const base = properties.base
 
     if (path.length === 0) {
+      if (base !== undefined) {
+        return this.ctx.compileOperand(base)
+      }
+
       return 'undefined'
+    }
+
+    if (base !== undefined) {
+      return this.compileBaseReference(base, path)
     }
 
     const namespace = path[0] as string
@@ -19,6 +28,10 @@ export default class ReferenceNodeCompiler {
 
     if (namespace === '@loop') {
       return this.compileIteratorLoopReference(path)
+    }
+
+    if (namespace === '@self') {
+      return this.compileSelfAnswerReference(['answers', ...path])
     }
 
     if (namespace === 'answers') {
@@ -33,6 +46,12 @@ export default class ReferenceNodeCompiler {
     }
 
     return remaining.reduce<string>((acc, segment) => `${acc}?.[${JSON.stringify(String(segment))}]`, ctxNamespace)
+  }
+
+  private compileBaseReference(base: unknown, path: (string | number | TemplateValue)[]): string {
+    const baseExpr = this.ctx.compileOperand(base)
+
+    return path.reduce<string>((acc, segment) => `${acc}?.[${JSON.stringify(String(segment))}]`, `(${baseExpr})`)
   }
 
   private compileAnswerReference(path: (string | number | TemplateValue)[]): string {

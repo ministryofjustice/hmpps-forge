@@ -108,11 +108,15 @@ export default class NodeRegistrationWalker {
   ): void {
     const refPath = (node as any).properties?.path
 
-    if (!Array.isArray(refPath) || refPath.length < 2) {
+    if (!Array.isArray(refPath)) {
       return
     }
 
-    if (refPath[0] !== 'answers' || refPath[1] !== '@self') {
+    if (refPath[0] === '@self') {
+      refPath.unshift('answers')
+    }
+
+    if (refPath.length < 2 || refPath[0] !== 'answers' || refPath[1] !== '@self') {
       return
     }
 

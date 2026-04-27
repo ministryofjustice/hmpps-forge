@@ -477,6 +477,7 @@ export default class StepRenderCompiler {
 
         return
       }
+
     }
 
     if (node.type === ASTNodeType.BLOCK) {
