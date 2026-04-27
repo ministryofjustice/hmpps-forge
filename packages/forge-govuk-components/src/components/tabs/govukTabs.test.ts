@@ -89,6 +89,35 @@ describe('GOV.UK Tabs Component', () => {
         'data-track': 'tab-clicked',
       })
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        {
+          id: 'overview',
+          label: 'Overview',
+          panel: { text: 'Overview content' },
+        },
+        {
+          id: 'admin',
+          label: 'Admin',
+          panel: { text: 'Admin content' },
+          visibleWhen: false,
+        },
+        {
+          id: 'timeline',
+          label: 'Timeline',
+          panel: { text: 'Timeline content' },
+          visibleWhen: true,
+        },
+      ]
+
+      // Act
+      const params = await helper.getParams({ id: 'tabs-default', items })
+
+      // Assert
+      expect(params.items.map((item: { id: string }) => item.id)).toEqual(['overview', 'timeline'])
+    })
   })
 
   describe('Panel content', () => {

@@ -130,6 +130,12 @@ export interface MOJButtonMenuItem {
    * @example true
    */
   preventDoubleClick?: ConditionalBoolean
+
+  /**
+   * Conditional visibility for this menu item.
+   * When the evaluated value is `false`, the item is omitted from rendering.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -213,7 +219,7 @@ function buttonMenuRenderer(block: EvaluatedBlock<MOJButtonMenu>, nunjucksEnv: n
   const params = {
     button: block.button,
     alignMenu: block.alignMenu,
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     classes: block.classes,
     attributes: block.attributes,
   }

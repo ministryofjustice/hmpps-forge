@@ -2,7 +2,7 @@
 title: Ticket Panel
 section: packages
 path: packages/moj-components/ticket-panel
-teaches: [MOJTicketPanel, ticket-panel, moj-ticket-panel]
+teaches: [MOJTicketPanel, ticket-panel, moj-ticket-panel, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -55,6 +55,30 @@ MOJTicketPanel({
     },
     {
       text: 'We will email you within 24 hours to confirm your application.',
+    },
+  ],
+})
+```
+
+---
+
+## Conditional sections
+
+Use `visibleWhen` on an item to omit a ticket panel section from
+rendering.
+
+```typescript
+MOJTicketPanel({
+  attributes: { 'aria-label': 'Application summary' },
+  items: [
+    {
+      text: 'Application submitted',
+      classes: 'moj-ticket-panel__content--green',
+    },
+    {
+      text: 'Security review required',
+      classes: 'moj-ticket-panel__content--yellow',
+      visibleWhen: Data('requiresSecurityReview'),
     },
   ],
 })

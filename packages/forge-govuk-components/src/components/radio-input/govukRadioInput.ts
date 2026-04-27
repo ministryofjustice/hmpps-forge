@@ -232,6 +232,9 @@ interface GovUKRadioInputItem {
    * @example someConditionalField // A field definition that appears when this radio is selected
    */
   block?: BlockDefinition | BlockDefinition[]
+
+  /** Conditional visibility for this radio item */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -245,10 +248,15 @@ interface GovUKRadioInputDivider {
    * @example 'Alternative options'
    */
   divider: ConditionalString
+
+  /** Conditional visibility for this divider */
+  visibleWhen?: ConditionalBoolean
 }
 
 export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRadioInput', (block, nunjucksEnv) => {
-  const items = block.items.map(option => makeOption(option, block.value as string))
+  const items = block.items
+    .filter(option => option.visibleWhen !== false)
+    .map(option => makeOption(option, block.value as string))
 
   const params = {
     fieldset: block.fieldset || {

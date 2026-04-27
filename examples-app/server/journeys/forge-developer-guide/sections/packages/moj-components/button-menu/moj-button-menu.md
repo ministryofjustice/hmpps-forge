@@ -2,7 +2,7 @@
 title: Button Menu
 section: packages
 path: packages/moj-components/button-menu
-teaches: [MOJButtonMenu, button-menu, moj-button-menu]
+teaches: [MOJButtonMenu, button-menu, moj-button-menu, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -69,6 +69,28 @@ MOJButtonMenu({
   items: [
     { text: 'Save and continue', name: 'action', value: 'continue' },
     { text: 'Save as draft', name: 'action', value: 'draft' },
+  ],
+})
+```
+
+---
+
+## Conditional items
+
+Use `visibleWhen` on a menu item to omit actions the current user or
+journey state should not show.
+
+```typescript
+MOJButtonMenu({
+  button: { text: 'Actions' },
+  items: [
+    { text: 'Print', href: '#print' },
+    {
+      text: 'Delete',
+      href: '#delete',
+      classes: 'govuk-button--warning',
+      visibleWhen: Session('role').match(Condition.Equals('admin')),
+    },
   ],
 })
 ```

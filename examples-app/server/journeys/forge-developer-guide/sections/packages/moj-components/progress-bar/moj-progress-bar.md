@@ -2,7 +2,7 @@
 title: Progress Bar
 section: packages
 path: packages/moj-components/progress-bar
-teaches: [MOJProgressBar, progress-bar, moj-progress-bar]
+teaches: [MOJProgressBar, progress-bar, moj-progress-bar, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -71,6 +71,28 @@ MOJProgressBar({
     { label: { text: 'Prepare', classes: 'govuk-!-font-weight-bold' }, complete: true },
     { label: 'Review', active: true },
     { label: 'Submit' },
+  ],
+})
+```
+
+---
+
+## Conditional steps
+
+Use `visibleWhen` on an item to omit steps that do not apply to the
+current journey.
+
+```typescript
+MOJProgressBar({
+  label: 'Application progress',
+  items: [
+    { label: 'Personal details', complete: true },
+    {
+      label: 'Security review',
+      active: true,
+      visibleWhen: Data('requiresSecurityReview'),
+    },
+    { label: 'Review and submit' },
   ],
 })
 ```

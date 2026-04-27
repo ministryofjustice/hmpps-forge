@@ -2,7 +2,7 @@
 title: Sub Navigation
 section: packages
 path: packages/moj-components/sub-navigation
-teaches: [MOJSubNavigation, sub-navigation, moj-sub-navigation]
+teaches: [MOJSubNavigation, sub-navigation, moj-sub-navigation, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -52,6 +52,27 @@ MOJSubNavigation({
   items: [
     { text: 'Overview', href: '#overview' },
     { text: 'Documents', href: '#documents', active: true },
+    { text: 'Timeline', href: '#timeline' },
+  ],
+})
+```
+
+---
+
+## Conditional items
+
+Use `visibleWhen` on an item to omit it from rendering.
+
+```typescript
+MOJSubNavigation({
+  label: 'Case sections',
+  items: [
+    { text: 'Overview', href: '#overview', active: true },
+    {
+      text: 'Documents',
+      href: '#documents',
+      visibleWhen: Data('canViewDocuments'),
+    },
     { text: 'Timeline', href: '#timeline' },
   ],
 })

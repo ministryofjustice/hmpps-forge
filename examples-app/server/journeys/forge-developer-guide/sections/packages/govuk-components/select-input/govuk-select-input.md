@@ -2,7 +2,7 @@
 title: Select
 section: packages
 path: packages/govuk-components/select-input
-teaches: [GovUKSelectInput, select-input, govuk-select-input]
+teaches: [GovUKSelectInput, select-input, govuk-select-input, visibleWhen]
 prerequisites: [govuk-components-package, block, validation]
 ---
 
@@ -102,6 +102,27 @@ items: [
   { value: 'uk', text: 'United Kingdom' },
   { value: 'fr', text: 'France' },
 ]
+```
+
+---
+
+## Conditional items
+
+Use `visibleWhen` on an item to omit it from rendering. This only
+controls presentation. It does not clear or reject a previously stored
+answer; use `dependentWhen`, validation, or a hook when the answer
+itself should no longer apply.
+
+```typescript
+GovUKSelectInput({
+  code: 'country',
+  label: 'Country',
+  items: [
+    { value: '', text: 'Choose a country' },
+    { value: 'uk', text: 'United Kingdom' },
+    { value: 'fr', text: 'France', visibleWhen: Data('showEuropeanCountries') },
+  ],
+})
 ```
 
 ---

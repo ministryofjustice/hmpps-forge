@@ -2,7 +2,7 @@
 title: Pagination
 section: packages
 path: packages/govuk-components/pagination
-teaches: [GovUKPagination, pagination, govuk-pagination]
+teaches: [GovUKPagination, pagination, govuk-pagination, visibleWhen]
 prerequisites: [govuk-components-package, block]
 ---
 
@@ -98,7 +98,7 @@ GovUKPagination({
 
 ## Conditional visibility
 
-Hide previous or next links when at the first or last page.
+Hide previous, next, or numbered links when they should not be shown.
 
 ```typescript
 GovUKPagination({
@@ -112,5 +112,13 @@ GovUKPagination({
       Condition.Number.LessThan(Data('totalPages')),
     ),
   },
+  items: [
+    { number: '1', href: '?page=1' },
+    {
+      number: '2',
+      href: '?page=2',
+      visibleWhen: Data('totalPages').match(Condition.Number.GreaterThanOrEqual(2)),
+    },
+  ],
 })
 ```

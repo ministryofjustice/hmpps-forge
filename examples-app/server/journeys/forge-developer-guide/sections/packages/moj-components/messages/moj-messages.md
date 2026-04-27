@@ -2,7 +2,7 @@
 title: Messages
 section: packages
 path: packages/moj-components/messages
-teaches: [MOJMessages, messages, moj-messages]
+teaches: [MOJMessages, messages, moj-messages, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -86,6 +86,33 @@ MOJMessages({
       type: 'received',
       sender: 'Risk team',
       timestamp: '2026-04-24T11:00:00.000Z',
+    },
+  ],
+})
+```
+
+---
+
+## Conditional messages
+
+Use `visibleWhen` on an item to omit a message from rendering.
+
+```typescript
+MOJMessages({
+  label: 'Case correspondence',
+  items: [
+    {
+      text: 'The visitor confirmed 2pm.',
+      type: 'received',
+      sender: 'Visits team',
+      timestamp: '2026-04-24T10:15:00.000Z',
+    },
+    {
+      text: 'Internal note: security review complete.',
+      type: 'received',
+      sender: 'Security team',
+      timestamp: '2026-04-24T10:30:00.000Z',
+      visibleWhen: Session('role').match(Condition.Equals('admin')),
     },
   ],
 })

@@ -3,6 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -48,6 +49,9 @@ export interface MOJTicketPanelItem {
    * @example { 'aria-label': 'Application summary' }
    */
   attributes?: Record<string, ConditionalString>
+
+  /** Conditional visibility for this ticket panel item */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -117,7 +121,7 @@ export interface MOJTicketPanel extends BlockDefinition, MOJTicketPanelProps {
  */
 function ticketPanelRenderer(block: EvaluatedBlock<MOJTicketPanel>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     classes: block.classes,
     attributes: block.attributes,
   }

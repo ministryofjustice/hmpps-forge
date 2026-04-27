@@ -26,6 +26,9 @@ export interface MOJSubNavigationItem {
   /** Flag to mark the navigation item as active (aria-current="page") */
   active?: ConditionalBoolean
 
+  /** Conditional visibility for this navigation item */
+  visibleWhen?: ConditionalBoolean
+
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
 }
@@ -82,7 +85,7 @@ export interface MOJSubNavigation extends BlockDefinition, MOJSubNavigationProps
 function subNavigationRenderer(block: EvaluatedBlock<MOJSubNavigation>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
     label: block.label,
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     classes: block.classes,
     attributes: block.attributes,
   }
