@@ -1,14 +1,14 @@
-import { ASTNodeType } from '../../types/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../authoring/types/enums'
+import { ExpressionType, FunctionType } from '../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../types/structures.type'
 import { IterateASTNode } from '../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../types/template.type'
 import { isASTNode } from '../../typeguards/nodes'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodeEmitter from '../codegen/CodeEmitter'
-import NodeCompilationDispatcher, { IteratorScopeFrame } from '../codegen/NodeCompilationDispatcher'
+import NodeCompilationDispatcher from '../codegen/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
-import { emitIteratorItemScope, emitNormalizeIteratorInput } from '../codegen/iteratorCodegen'
+import ScopedTemplateCompiler, { isTemplateFieldNode } from '../codegen/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../codegen/RuntimeValueCompiler'
 
 /**
  * Runtime context passed to the compiled answer preparation function.
@@ -49,6 +49,13 @@ export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) 
  */
 export default class StepAnswerPreparationCompiler {
   private readonly expr = new NodeCompilationDispatcher()
+
+  private readonly values = new RuntimeValueCompiler(this.expr, {
+    expressionErrorFallback: 'undefined',
+    omitUndefinedArrayItems: false,
+  })
+
+  private readonly templates = new ScopedTemplateCompiler(this.expr)
 
   compile(
     fieldBlocks: FieldBlockASTNode[],
@@ -206,11 +213,8 @@ export default class StepAnswerPreparationCompiler {
     const dwVar = emitter.nextVar('_dw')
 
     emitter.emit(`var ${dwVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${dwVar} = ${this.expr.compileOperand(dependentWhen)};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${dwVar} = true;`)
+    this.values.compileValue(dependentWhen, emitter, dwVar, {
+      expressionErrorFallback: 'true',
     })
     emitter.emitBlock(`if (!${dwVar})`, () => {
       this.emitPushMutation(emitter, histVar, 'undefined', 'dependentWhen')
@@ -218,23 +222,12 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileDefaultValue(defaultValue: unknown, emitter: CodeEmitter, histVar: string): void {
-    if (defaultValue !== undefined && (isASTNode(defaultValue) || this.expr.isTemplateNode(defaultValue))) {
+    if (defaultValue !== undefined) {
       const defVar = emitter.nextVar('_def')
 
       emitter.emit(`var ${defVar};`)
-      emitter.emitBlock('try', () => {
-        emitter.emit(`${defVar} = ${this.expr.compileOperand(defaultValue)};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${defVar} = undefined;`)
-      })
+      this.values.compileValue(defaultValue, emitter, defVar)
       this.emitPushMutation(emitter, histVar, defVar, 'default')
-
-      return
-    }
-
-    if (defaultValue !== undefined) {
-      this.emitPushMutation(emitter, histVar, JSON.stringify(defaultValue), 'default')
 
       return
     }
@@ -248,10 +241,6 @@ export default class StepAnswerPreparationCompiler {
    * without request-time node registration.
    */
   private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter): void {
-    if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
-      return
-    }
-
     const template = iterateNode.properties.iterator.yieldTemplate
 
     if (template === undefined) {
@@ -264,86 +253,23 @@ export default class StepAnswerPreparationCompiler {
       return
     }
 
-    const inputExpr = this.expr.compileOperand(iterateNode.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
+    this.templates.compileMapIterator(iterateNode, emitter, () => {
+      templateFields.forEach(templateField => {
+        const codeExpr = this.templates.compileTemplateCodeExpression(templateField, emitter)
 
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        for (const templateField of templateFields) {
-          const codeVar = this.compileTemplateFieldCode(
-            templateField,
-            indexVar,
-            itemVar,
-            `${inputVar}.length`,
-            rawItemExpr,
-            emitter,
-          )
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: `${inputVar}.length`,
-            rawItemExpr,
-            codeVar,
-          }
-
-          this.expr.pushIteratorFrame(frame)
-          this.compileTemplateField(templateField, codeVar, emitter)
-          this.expr.popIteratorFrame()
-        }
+        this.compileTemplateField(templateField, codeExpr, emitter)
       })
     })
   }
 
-  private compileTemplateFieldCode(
-    field: TemplateNode,
-    indexVar: string,
-    itemVar: string,
-    inputLengthExpr: string,
-    rawItemExpr: string,
-    emitter: CodeEmitter,
-  ): string | undefined {
-    const code = field.properties?.code
-
-    if (typeof code === 'string') {
-      return undefined
-    }
-
-    if (this.expr.isTemplateNode(code)) {
-      const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr, rawItemExpr }
-
-      this.expr.pushIteratorFrame(frame)
-      const codeExpr = this.expr.compileTemplateExpression(code)
-
-      this.expr.popIteratorFrame()
-      emitter.emit(`var ${codeVar} = String(${codeExpr});`)
-
-      return codeVar
-    }
-
-    return undefined
-  }
-
-  private compileTemplateField(field: TemplateNode, codeVar: string | undefined, emitter: CodeEmitter): void {
-    const staticCode = typeof field.properties?.code === 'string' ? (field.properties.code as string) : undefined
-    const codeExpr = codeVar ?? JSON.stringify(staticCode)
+  private compileTemplateField(field: TemplateNode, codeExpr: string | undefined, emitter: CodeEmitter): void {
+    const resolvedCodeExpr = codeExpr ?? 'undefined'
 
     emitter.emitBlock('if (_isPost)', () => {
-      this.compileTemplatePostPath(field, emitter, codeExpr)
+      this.compileTemplatePostPath(field, emitter, resolvedCodeExpr)
     })
     emitter.emitBlock('else', () => {
-      this.compileTemplateGetPath(field, emitter, codeExpr)
+      this.compileTemplateGetPath(field, emitter, resolvedCodeExpr)
     })
   }
 
@@ -470,42 +396,6 @@ export default class StepAnswerPreparationCompiler {
    * answer prep walks the whole yield template before emitting the iterator loop.
    */
   private findTemplateFields(template: TemplateValue): TemplateNode[] {
-    const results: TemplateNode[] = []
-
-    this.walkTemplate(template, results)
-
-    return results
-  }
-
-  private walkTemplate(value: TemplateValue, results: TemplateNode[]): void {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      if (value.originalType === ASTNodeType.BLOCK && value.blockType === BlockType.FIELD) {
-        results.push(value)
-      }
-
-      if (value.properties) {
-        Object.values(value.properties).forEach(child => {
-          this.walkTemplate(child as TemplateValue, results)
-        })
-      }
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(item => {
-        this.walkTemplate(item, results)
-      })
-
-      return
-    }
-
-    Object.values(value).forEach(item => {
-      this.walkTemplate(item, results)
-    })
+    return this.templates.findTemplateNodes(template, isTemplateFieldNode)
   }
 }

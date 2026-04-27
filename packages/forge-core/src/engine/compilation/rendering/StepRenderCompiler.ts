@@ -10,17 +10,18 @@
  * into the render result. FILTER/FIND/MAP iterators used as property values are
  * compiled inline as expressions. No runtime node expansion is required.
  */
-import { ASTNode, NodeId } from '../../types/ast.type'
+import { NodeId } from '../../types/ast.type'
 import { ASTNodeType } from '../../types/enums'
-import { BlockType, ExpressionType, IteratorType } from '../../../authoring/types/enums'
+import { BlockType, IteratorType } from '../../../authoring/types/enums'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import { ConditionalASTNode, IterateASTNode, MatchASTNode } from '../../types/expressions.type'
+import { IterateASTNode } from '../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../types/template.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodeEmitter from '../codegen/CodeEmitter'
-import NodeCompilationDispatcher, { IteratorScopeFrame } from '../codegen/NodeCompilationDispatcher'
+import NodeCompilationDispatcher from '../codegen/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
-import { emitIteratorItemScope, emitNormalizeIteratorInput } from '../codegen/iteratorCodegen'
+import ScopedTemplateCompiler, { isTemplateBlockNode } from '../codegen/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../codegen/RuntimeValueCompiler'
 
 /**
  * Runtime context passed to the compiled render function.
@@ -59,14 +60,15 @@ export type CompiledRenderFunction = (
   ctx: RenderCompilationContext,
 ) => CompiledRenderResult | Promise<CompiledRenderResult>
 
+interface RenderBlockValue {
+  readonly id?: unknown
+  readonly type: ASTNodeType.BLOCK
+  readonly variant: string
+  readonly blockType: string
+  readonly properties?: Record<string, unknown>
+}
+
 export default class StepRenderCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
-
-  // Iterates used as property values are compiled at that property site. Track
-  // them so block-yielding MAP iterators are not emitted a second time as
-  // top-level blocks.
-  private readonly inlineIterateIds = new Set<string>()
-
   // These properties affect answer prep or validation, not rendered block props.
   private static readonly BLOCK_SKIP_PROPS = new Set(['formatters', 'parsers', 'validWhen', 'dependentWhen'])
 
@@ -75,6 +77,25 @@ export default class StepRenderCompiler {
 
   // Child structure and access hooks are route/lifecycle concerns, not metadata.
   private static readonly JOURNEY_SKIP_PROPS = new Set(['onAccess', 'children', 'steps', 'reachability'])
+
+  private readonly expr = new NodeCompilationDispatcher()
+
+  private readonly templates = new ScopedTemplateCompiler(this.expr)
+
+  private readonly values = new RuntimeValueCompiler(this.expr, {
+    expressionErrorFallback: 'undefined',
+    omitUndefinedArrayItems: true,
+    isStructuralValue: value => this.isRenderBlockValue(value),
+    compileStructuralValue: (value, emitter, targetVar) => this.compileRenderBlockValue(value, emitter, targetVar),
+    noteInlineIterator: nodeId => {
+      this.inlineIterateIds.add(nodeId)
+    },
+  })
+
+  // Iterates used as property values are compiled at that property site. Track
+  // them so block-yielding MAP iterators are not emitted a second time as
+  // top-level blocks.
+  private readonly inlineIterateIds = new Set<string>()
 
   compile(
     stepNode: StepASTNode,
@@ -240,81 +261,13 @@ export default class StepRenderCompiler {
     templateBlocks: TemplateNode[],
     emitter: CodeEmitter,
   ): void {
-    const inputExpr = this.expr.compileOperand(iterateNode.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
+    this.templates.compileMapIterator(iterateNode, emitter, () => {
+      templateBlocks.forEach(templateBlock => {
+        const codeExpr = this.templates.compileTemplateCodeExpression(templateBlock, emitter)
 
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        for (const templateBlock of templateBlocks) {
-          const codeVar = this.compileTemplateBlockCode(
-            templateBlock,
-            indexVar,
-            itemVar,
-            `${inputVar}.length`,
-            rawItemExpr,
-            emitter,
-          )
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: `${inputVar}.length`,
-            rawItemExpr,
-            codeVar,
-          }
-
-          this.expr.pushIteratorFrame(frame)
-          this.compileTemplateBlock(templateBlock, codeVar, emitter)
-          this.expr.popIteratorFrame()
-        }
+        this.compileTemplateBlock(templateBlock, codeExpr, emitter)
       })
     })
-  }
-
-  /**
-   * Compiles the field code for a template block. Static string codes return undefined
-   * (the code is inlined as a property). Dynamic codes (template expressions like
-   * Format("person_%1", Loop.Index0())) return the JS variable name holding the
-   * computed code at runtime.
-   */
-  private compileTemplateBlockCode(
-    block: TemplateNode,
-    indexVar: string,
-    itemVar: string,
-    inputLengthExpr: string,
-    rawItemExpr: string,
-    emitter: CodeEmitter,
-  ): string | undefined {
-    const code = block.properties?.code
-
-    if (typeof code === 'string') {
-      return undefined
-    }
-
-    if (this.expr.isTemplateNode(code)) {
-      const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr, rawItemExpr }
-
-      this.expr.pushIteratorFrame(frame)
-      const codeExpr = this.expr.compileTemplateExpression(code)
-
-      this.expr.popIteratorFrame()
-      emitter.emit(`var ${codeVar} = String(${codeExpr});`)
-
-      return codeVar
-    }
-
-    return undefined
   }
 
   /**
@@ -322,9 +275,9 @@ export default class StepRenderCompiler {
    * as the block ID — this deterministic scheme lets the validation compiler's failures
    * (which also use blockCode) match up in RenderContextFactory.attachValidationToBlocks().
    */
-  private compileTemplateBlock(block: TemplateNode, codeVar: string | undefined, emitter: CodeEmitter): void {
+  private compileTemplateBlock(block: TemplateNode, codeExpr: string | undefined, emitter: CodeEmitter): void {
     const propsVar = emitter.nextVar('_tprops')
-    const blockType = block.blockType as string
+    const blockType = block.blockType
 
     emitter.emit(`var ${propsVar} = {};`)
 
@@ -335,14 +288,17 @@ export default class StepRenderCompiler {
         continue
       }
 
-      this.compileTemplatePropertyAssignment(value, emitter, propsVar, key)
+      this.compilePropertyAssignment(value, emitter, propsVar, key)
     }
 
     if (blockType === BlockType.FIELD && properties.value === undefined) {
       this.compileFieldValueResolution(emitter, propsVar)
     }
 
-    const idExpr = codeVar ? `"compiled:" + ${codeVar}` : JSON.stringify(`compiled:${String(block.id)}`)
+    const idExpr =
+      blockType === BlockType.FIELD && codeExpr !== undefined
+        ? `"compiled:" + ${codeExpr}`
+        : JSON.stringify(`compiled:${String(block.id)}`)
 
     emitter.emit(
       `blocks.push({ id: ${idExpr}, type: ${JSON.stringify(ASTNodeType.BLOCK)}, variant: ${JSON.stringify(block.variant)}, blockType: ${JSON.stringify(blockType)}, properties: ${propsVar} });`,
@@ -394,506 +350,71 @@ export default class StepRenderCompiler {
     })
   }
 
-  /** Assigns a compiled property value to a target object key. */
   private compilePropertyAssignment(value: unknown, emitter: CodeEmitter, targetObj: string, key: string): void {
-    if (this.isStaticValue(value)) {
-      emitter.emit(`${targetObj}[${JSON.stringify(key)}] = ${JSON.stringify(value)};`)
-
-      return
-    }
-
-    const resultVar = emitter.nextVar('_v')
-
-    emitter.emit(`var ${resultVar};`)
-    this.compilePropertyValue(value, emitter, resultVar)
-    emitter.emit(`${targetObj}[${JSON.stringify(key)}] = ${resultVar};`)
-  }
-
-  /** Recursive property compilation — dispatches on value type. */
-  private compilePropertyValue(value: unknown, emitter: CodeEmitter, resultVar: string): void {
-    if (value === null || value === undefined) {
-      emitter.emit(`${resultVar} = ${JSON.stringify(value)};`)
-
-      return
-    }
-
-    if (this.expr.isCompilableNode(value)) {
-      this.compileASTNodeValue(value as ASTNode, emitter, resultVar)
-
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      this.compileExpressionWithCatch(this.expr.compileTemplateExpression(value as TemplateNode), emitter, resultVar)
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      this.compileArrayValue(value, emitter, resultVar)
-
-      return
-    }
-
-    if (typeof value === 'object') {
-      if (this.isBlockNode(value)) {
-        this.compileNestedBlock(value as BlockASTNode, emitter, resultVar)
-
-        return
-      }
-
-      this.compileObjectValue(value as Record<string, unknown>, emitter, resultVar)
-
-      return
-    }
-
-    emitter.emit(`${resultVar} = ${JSON.stringify(value)};`)
-  }
-
-  /**
-   * Handles AST nodes that need statement-level compilation (CONDITIONAL, MATCH,
-   * ITERATE, nested blocks). Other expression types delegate to the shared node
-   * dispatcher for inline compilation wrapped in try/catch.
-   */
-  private compileASTNodeValue(node: ASTNode, emitter: CodeEmitter, resultVar: string): void {
-    if (node.type === ASTNodeType.EXPRESSION) {
-      const exprNode = node as { expressionType?: string }
-
-      if (exprNode.expressionType === ExpressionType.CONDITIONAL) {
-        this.compileConditionalStatement(node as ConditionalASTNode, emitter, resultVar)
-
-        return
-      }
-
-      if (exprNode.expressionType === ExpressionType.MATCH) {
-        this.compileMatchStatement(node as MatchASTNode, emitter, resultVar)
-
-        return
-      }
-
-      if (exprNode.expressionType === ExpressionType.ITERATE) {
-        this.inlineIterateIds.add(node.id)
-        this.compileIterateExpression(node as IterateASTNode, emitter, resultVar)
-
-        return
-      }
-
-    }
-
-    if (node.type === ASTNodeType.BLOCK) {
-      this.compileNestedBlock(node as BlockASTNode, emitter, resultVar)
-
-      return
-    }
-
-    this.compileExpressionWithCatch(this.expr.compileExpression(node), emitter, resultVar)
-  }
-
-  /** Wraps optional render expressions so one bad property resolves to undefined. */
-  private compileExpressionWithCatch(exprStr: string, emitter: CodeEmitter, resultVar: string): void {
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${resultVar} = ${exprStr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${resultVar} = undefined;`)
-    })
-  }
-
-  /** Compiles an array — each element compiled individually, undefined results filtered out. */
-  private compileArrayValue(value: unknown[], emitter: CodeEmitter, resultVar: string): void {
-    const arrVar = emitter.nextVar('_arr')
-
-    emitter.emit(`var ${arrVar} = [];`)
-
-    for (const element of value) {
-      if (this.isStaticValue(element)) {
-        emitter.emit(`${arrVar}.push(${JSON.stringify(element)});`)
-
-        continue
-      }
-
-      const elemVar = emitter.nextVar('_elem')
-
-      emitter.emit(`var ${elemVar};`)
-      this.compilePropertyValue(element, emitter, elemVar)
-      emitter.emitBlock(`if (${elemVar} !== undefined)`, () => {
-        emitter.emit(`${arrVar}.push(${elemVar});`)
-      })
-    }
-
-    emitter.emit(`${resultVar} = ${arrVar};`)
-  }
-
-  private compileObjectValue(obj: Record<string, unknown>, emitter: CodeEmitter, resultVar: string): void {
-    const objVar = emitter.nextVar('_obj')
-
-    emitter.emit(`var ${objVar} = {};`)
-
-    for (const [key, val] of Object.entries(obj)) {
-      this.compilePropertyAssignment(val, emitter, objVar, key)
-    }
-
-    emitter.emit(`${resultVar} = ${objVar};`)
+    this.values.compileAssignment(value, emitter, targetObj, key)
   }
 
   /** Compiles a block nested inside another block's properties (e.g. radio conditional reveals). */
-  private compileNestedBlock(block: BlockASTNode, emitter: CodeEmitter, resultVar: string): void {
+  private compileRenderBlockValue(value: unknown, emitter: CodeEmitter, resultVar: string): boolean {
+    if (this.expr.isTemplateNode(value)) {
+      if (value.originalType !== ASTNodeType.BLOCK) {
+        return false
+      }
+
+      this.compileTemplateNestedBlock(value, emitter, resultVar)
+
+      return true
+    }
+
+    if (!this.isRenderBlockObject(value)) {
+      return false
+    }
+
+    this.compileNestedBlock(value, emitter, resultVar)
+
+    return true
+  }
+
+  private compileNestedBlock(block: RenderBlockValue, emitter: CodeEmitter, resultVar: string): void {
     const propsVar = emitter.nextVar('_nprops')
+    const properties = block.properties ?? {}
+    const blockType = block.blockType
 
     emitter.emit(`var ${propsVar} = {};`)
 
-    for (const [key, value] of Object.entries(block.properties)) {
+    Object.entries(properties).forEach(([key, value]) => {
       if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
-        continue
+        return
       }
 
       this.compilePropertyAssignment(value, emitter, propsVar, key)
-    }
+    })
 
-    if (block.blockType === BlockType.FIELD && block.properties.value === undefined) {
+    if (blockType === BlockType.FIELD && properties.value === undefined) {
       this.compileFieldValueResolution(emitter, propsVar)
     }
 
     emitter.emit(
-      `${resultVar} = { id: ${JSON.stringify(block.id)}, type: ${JSON.stringify(ASTNodeType.BLOCK)}, variant: ${JSON.stringify(block.variant)}, blockType: ${JSON.stringify(block.blockType)}, properties: ${propsVar} };`,
+      `${resultVar} = { id: ${JSON.stringify(block.id)}, type: ${JSON.stringify(ASTNodeType.BLOCK)}, variant: ${JSON.stringify(block.variant)}, blockType: ${JSON.stringify(blockType)}, properties: ${propsVar} };`,
     )
-  }
-
-  /**
-   * Render conditionals sometimes return whole block-property objects. Statement
-   * emission lets each branch recurse through property compilation before the
-   * selected value is assigned.
-   */
-  private compileConditionalStatement(node: ConditionalASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const predVar = emitter.nextVar('_pred')
-
-    emitter.emit(`var ${predVar};`)
-    this.compileExpressionWithCatch(this.expr.compileExpression(node.properties.predicate), emitter, predVar)
-
-    emitter.emitBlock(`if (${predVar})`, () => {
-      if (this.isStaticValue(node.properties.thenValue)) {
-        emitter.emit(`${resultVar} = ${JSON.stringify(node.properties.thenValue)};`)
-      } else {
-        this.compilePropertyValue(node.properties.thenValue, emitter, resultVar)
-      }
-    })
-    emitter.emitBlock('else', () => {
-      if (this.isStaticValue(node.properties.elseValue)) {
-        emitter.emit(`${resultVar} = ${JSON.stringify(node.properties.elseValue)};`)
-      } else {
-        this.compilePropertyValue(node.properties.elseValue, emitter, resultVar)
-      }
-    })
-  }
-
-  /**
-   * MATCH preserves authoring order because later branch predicates may only be
-   * meaningful when earlier predicates did not match.
-   */
-  private compileMatchStatement(node: MatchASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const branches = node.properties.branches
-    const predicateVars = branches.map(() => emitter.nextVar('_mpred'))
-
-    for (let i = 0; i < branches.length; i++) {
-      const branch = branches[i]
-      const predVar = predicateVars[i]
-
-      emitter.emit(`var ${predVar};`)
-      this.compileExpressionWithCatch(this.expr.compileExpression(branch.predicate), emitter, predVar)
-    }
-
-    for (let i = 0; i < branches.length; i++) {
-      const branch = branches[i]
-      const predVar = predicateVars[i]
-      const keyword = i === 0 ? `if (${predVar})` : `else if (${predVar})`
-
-      emitter.emitBlock(keyword, () => {
-        if (this.isStaticValue(branch.value)) {
-          emitter.emit(`${resultVar} = ${JSON.stringify(branch.value)};`)
-        } else {
-          this.compilePropertyValue(branch.value, emitter, resultVar)
-        }
-      })
-    }
-
-    if (node.properties.otherwise !== undefined) {
-      if (branches.length === 0) {
-        if (this.isStaticValue(node.properties.otherwise)) {
-          emitter.emit(`${resultVar} = ${JSON.stringify(node.properties.otherwise)};`)
-        } else {
-          this.compilePropertyValue(node.properties.otherwise, emitter, resultVar)
-        }
-      } else {
-        emitter.emitBlock('else', () => {
-          if (this.isStaticValue(node.properties.otherwise)) {
-            emitter.emit(`${resultVar} = ${JSON.stringify(node.properties.otherwise)};`)
-          } else {
-            this.compilePropertyValue(node.properties.otherwise, emitter, resultVar)
-          }
-        })
-      }
-    }
-  }
-
-  /**
-   * Property-level iterators compile inline so dynamic options and conditional
-   * values share the same scoped item semantics as block-yielding MAP iterators.
-   */
-  private compileIterateExpression(node: IterateASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const iterType = node.properties.iterator.type
-
-    if (iterType === IteratorType.MAP) {
-      this.compileMapExpression(node, emitter, resultVar)
-    } else if (iterType === IteratorType.FILTER) {
-      this.compileFilterExpression(node, emitter, resultVar)
-    } else if (iterType === IteratorType.FIND) {
-      this.compileFindExpression(node, emitter, resultVar)
-    } else {
-      emitter.emit(`${resultVar} = undefined;`)
-    }
-  }
-
-  private compileMapExpression(node: IterateASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const inputExpr = this.expr.compileOperand(node.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-    const arrVar = emitter.nextVar('_marr')
-
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-    emitter.emit(`var ${arrVar} = [];`)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        const yieldTemplate = node.properties.iterator.yieldTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
-
-        this.expr.pushIteratorFrame(frame)
-
-        const yieldVar = emitter.nextVar('_yield')
-
-        emitter.emit(`var ${yieldVar};`)
-        this.compileTemplatePropertyValue(yieldTemplate, emitter, yieldVar)
-        emitter.emitBlock(`if (${yieldVar} !== undefined)`, () => {
-          emitter.emit(`${arrVar}.push(${yieldVar});`)
-        })
-
-        this.expr.popIteratorFrame()
-      })
-    })
-
-    emitter.emit(`${resultVar} = ${arrVar};`)
-  }
-
-  private compileFilterExpression(node: IterateASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const inputExpr = this.expr.compileOperand(node.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const arrVar = emitter.nextVar('_farr')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-    emitter.emit(`var ${arrVar} = [];`)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
-
-        this.expr.pushIteratorFrame(frame)
-
-        const predVar = emitter.nextVar('_fpred')
-
-        emitter.emit(`var ${predVar};`)
-        emitter.emitBlock('try', () => {
-          emitter.emit(`${predVar} = ${this.expr.compileOperand(predTemplate)};`)
-        })
-        emitter.emitBlock('catch(e)', () => {
-          emitter.emit(`${predVar} = false;`)
-        })
-        emitter.emitBlock(`if (${predVar})`, () => {
-          emitter.emit(`${arrVar}.push(${inputVar}[${indexVar}]);`)
-        })
-
-        this.expr.popIteratorFrame()
-      })
-    })
-
-    emitter.emit(`${resultVar} = ${arrVar};`)
-  }
-
-  private compileFindExpression(node: IterateASTNode, emitter: CodeEmitter, resultVar: string): void {
-    const inputExpr = this.expr.compileOperand(node.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        const predTemplate = node.properties.iterator.predicateTemplate
-        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
-
-        this.expr.pushIteratorFrame(frame)
-
-        const predVar = emitter.nextVar('_fpred')
-
-        emitter.emit(`var ${predVar};`)
-        emitter.emitBlock('try', () => {
-          emitter.emit(`${predVar} = ${this.expr.compileOperand(predTemplate)};`)
-        })
-        emitter.emitBlock('catch(e)', () => {
-          emitter.emit(`${predVar} = false;`)
-        })
-        emitter.emitBlock(`if (${predVar})`, () => {
-          emitter.emit(`${resultVar} = ${inputVar}[${indexVar}]; break;`)
-        })
-
-        this.expr.popIteratorFrame()
-      })
-    })
-  }
-
-  /**
-   * Template nodes keep their authored shape inside yieldTemplate. They resolve
-   * through the active iterator scope instead of being registered as AST nodes.
-   */
-  private compileTemplatePropertyAssignment(
-    value: TemplateValue,
-    emitter: CodeEmitter,
-    targetObj: string,
-    key: string,
-  ): void {
-    if (this.isStaticValue(value)) {
-      emitter.emit(`${targetObj}[${JSON.stringify(key)}] = ${JSON.stringify(value)};`)
-
-      return
-    }
-
-    const resultVar = emitter.nextVar('_tv')
-
-    emitter.emit(`var ${resultVar};`)
-    this.compileTemplatePropertyValue(value, emitter, resultVar)
-    emitter.emit(`${targetObj}[${JSON.stringify(key)}] = ${resultVar};`)
-  }
-
-  private compileTemplatePropertyValue(value: TemplateValue, emitter: CodeEmitter, resultVar: string): void {
-    if (value === null || value === undefined) {
-      emitter.emit(`${resultVar} = ${JSON.stringify(value)};`)
-
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      const templateNode = value as TemplateNode
-
-      if (templateNode.originalType === ASTNodeType.BLOCK) {
-        this.compileTemplateNestedBlock(templateNode, emitter, resultVar)
-
-        return
-      }
-
-      if (
-        templateNode.originalType === ASTNodeType.EXPRESSION &&
-        templateNode.expressionType === ExpressionType.ITERATE
-      ) {
-        this.compileIterateExpression(templateNode as unknown as IterateASTNode, emitter, resultVar)
-
-        return
-      }
-
-      this.compileExpressionWithCatch(this.expr.compileTemplateExpression(templateNode), emitter, resultVar)
-
-      return
-    }
-
-    if (this.expr.isCompilableNode(value)) {
-      this.compileASTNodeValue(value as unknown as ASTNode, emitter, resultVar)
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      const arrVar = emitter.nextVar('_tarr')
-
-      emitter.emit(`var ${arrVar} = [];`)
-
-      for (const element of value as TemplateValue[]) {
-        if (this.isStaticValue(element)) {
-          emitter.emit(`${arrVar}.push(${JSON.stringify(element)});`)
-
-          continue
-        }
-
-        const elemVar = emitter.nextVar('_telem')
-
-        emitter.emit(`var ${elemVar};`)
-        this.compileTemplatePropertyValue(element, emitter, elemVar)
-        emitter.emitBlock(`if (${elemVar} !== undefined)`, () => {
-          emitter.emit(`${arrVar}.push(${elemVar});`)
-        })
-      }
-
-      emitter.emit(`${resultVar} = ${arrVar};`)
-
-      return
-    }
-
-    if (typeof value === 'object') {
-      const objVar = emitter.nextVar('_tobj')
-
-      emitter.emit(`var ${objVar} = {};`)
-
-      for (const [key, val] of Object.entries(value as Record<string, TemplateValue>)) {
-        this.compileTemplatePropertyAssignment(val, emitter, objVar, key)
-      }
-
-      emitter.emit(`${resultVar} = ${objVar};`)
-
-      return
-    }
-
-    emitter.emit(`${resultVar} = ${JSON.stringify(value)};`)
   }
 
   /** Compiles a template node that represents a nested block inside an iterator yield. */
   private compileTemplateNestedBlock(block: TemplateNode, emitter: CodeEmitter, resultVar: string): void {
     const propsVar = emitter.nextVar('_tnprops')
-    const blockType = block.blockType as string
+    const blockType = block.blockType
 
     emitter.emit(`var ${propsVar} = {};`)
 
     const properties = block.properties ?? {}
 
-    for (const [key, value] of Object.entries(properties)) {
+    Object.entries(properties).forEach(([key, value]) => {
       if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
-        continue
+        return
       }
 
-      this.compileTemplatePropertyAssignment(value, emitter, propsVar, key)
-    }
+      this.compilePropertyAssignment(value, emitter, propsVar, key)
+    })
 
     if (blockType === BlockType.FIELD && properties.value === undefined) {
       this.compileFieldValueResolution(emitter, propsVar)
@@ -909,32 +430,15 @@ export default class StepRenderCompiler {
     )
   }
 
-  /**
-   * Static values can be emitted as one JSON literal. Anything containing AST or
-   * template nodes must stay on the recursive path so references, async calls,
-   * and iterator scope are compiled correctly.
-   */
-  private isStaticValue(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return true
+  private isRenderBlockValue(value: unknown): boolean {
+    if (this.expr.isTemplateNode(value)) {
+      return value.originalType === ASTNodeType.BLOCK
     }
 
-    if (typeof value !== 'object') {
-      return true
-    }
-
-    if (this.expr.isCompilableNode(value) || this.expr.isTemplateNode(value)) {
-      return false
-    }
-
-    if (Array.isArray(value)) {
-      return value.every(item => this.isStaticValue(item))
-    }
-
-    return Object.values(value as Record<string, unknown>).every(val => this.isStaticValue(val))
+    return this.isRenderBlockObject(value)
   }
 
-  private isBlockNode(value: unknown): value is BlockASTNode {
+  private isRenderBlockObject(value: unknown): value is RenderBlockValue {
     if (value === null || value === undefined || typeof value !== 'object') {
       return false
     }
@@ -946,46 +450,6 @@ export default class StepRenderCompiler {
 
   /** Yield templates can nest blocks below arrays or objects, so render scans before emitting loops. */
   private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
-    const blocks: TemplateNode[] = []
-
-    this.walkTemplateForBlocks(template, blocks)
-
-    return blocks
-  }
-
-  private walkTemplateForBlocks(value: TemplateValue, blocks: TemplateNode[]): void {
-    if (value == null || typeof value !== 'object') {
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      const node = value as TemplateNode
-
-      if (node.originalType === ASTNodeType.BLOCK) {
-        blocks.push(node)
-
-        return
-      }
-
-      if (node.properties) {
-        for (const val of Object.values(node.properties)) {
-          this.walkTemplateForBlocks(val, blocks)
-        }
-      }
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        this.walkTemplateForBlocks(item, blocks)
-      }
-
-      return
-    }
-
-    for (const val of Object.values(value as Record<string, TemplateValue>)) {
-      this.walkTemplateForBlocks(val, blocks)
-    }
+    return this.templates.findTemplateNodes(template, isTemplateBlockNode, { descendIntoMatches: false })
   }
 }

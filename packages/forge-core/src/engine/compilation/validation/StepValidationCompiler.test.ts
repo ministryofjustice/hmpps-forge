@@ -889,6 +889,61 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures[1].message).toBe('Enter a name')
     })
 
+    it('should resolve Self references for iterator fields with static field code', () => {
+      // Arrange
+      const step = createStep()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'items']),
+        createTemplateValue({
+          type: ASTNodeType.BLOCK,
+          variant: 'text-input',
+          blockType: BlockType.FIELD,
+          properties: {
+            code: 'name',
+            validWhen: [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.VALIDATION,
+                properties: {
+                  condition: {
+                    type: ASTNodeType.PREDICATE,
+                    predicateType: PredicateType.TEST,
+                    properties: {
+                      subject: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: ExpressionType.REFERENCE,
+                        properties: { path: ['@self'] },
+                      },
+                      condition: {
+                        type: ASTNodeType.EXPRESSION,
+                        expressionType: FunctionType.CONDITION,
+                        properties: { name: 'isRequired', arguments: [] },
+                      },
+                      negate: false,
+                    },
+                  },
+                  message: 'Enter a name',
+                },
+              },
+            ],
+          },
+        }),
+      )
+
+      const ctx = createCtx({
+        data: { items: [{ id: 1 }, { id: 2 }] },
+        answers: { name: { current: 'Ada' } },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [], [], [iterateNode])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(result.fieldFailures).toHaveLength(0)
+    })
+
     it('should only run iterator validations for active groups', () => {
       // Arrange
       const step = createStep()
@@ -1200,6 +1255,126 @@ describe('StepValidationCompiler', () => {
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures).toHaveLength(1)
       expect(result.fieldFailures[0].message).toBe('Name is required')
+    })
+
+    it('should compile field validWhen rules yielded by an iterator', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const iterateNode = createIterateNode(
+        createReference(['data', 'requirements']),
+        createTemplateValue(
+          createValidation(
+            createTestPredicate(createReference(['@self']), createConditionFunction('isRequired')),
+            'Enter a name',
+          ),
+        ),
+      )
+
+      block.properties.validWhen = iterateNode
+
+      const ctx = createCtx({
+        data: { requirements: [{ id: 'first' }, { id: 'second' }] },
+        answers: { name: { current: '' } },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [block], [], [])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(2)
+      expect(result.fieldFailures[0].blockId).toBe(block.id)
+      expect(result.fieldFailures[0].blockCode).toBe('name')
+      expect(result.fieldFailures[0].message).toBe('Enter a name')
+    })
+
+    it('should resolve Self references inside field validWhen iterators', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const iterateNode = createIterateNode(
+        createReference(['data', 'requirements']),
+        createTemplateValue(
+          createValidation(
+            createTestPredicate(createReference(['@self']), createConditionFunction('isRequired')),
+            'Enter a name',
+          ),
+        ),
+      )
+
+      block.properties.validWhen = iterateNode
+
+      const ctx = createCtx({
+        data: { requirements: [{ id: 'first' }, { id: 'second' }] },
+        answers: { name: { current: 'Ada' } },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [block], [], [])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(result.fieldFailures).toHaveLength(0)
+    })
+
+    it('should compile field validWhen iterator rules with Item references', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('status')
+      const iterateNode = createIterateNode(
+        createReference(['data', 'checks']),
+        createTemplateValue(
+          createValidation(
+            createTestPredicate(createReference(['@scope', '0', 'enabled']), createConditionFunction('equals', [true])),
+            'Check must be enabled',
+          ),
+        ),
+      )
+
+      block.properties.validWhen = [iterateNode]
+
+      const ctx = createCtx({
+        data: { checks: [{ enabled: true }, { enabled: false }] },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [block], [], [])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].message).toBe('Check must be enabled')
+    })
+
+    it('should compile step validWhen rules yielded by an iterator', () => {
+      // Arrange
+      const step = createStep()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'checks']),
+        createTemplateValue(
+          createValidation(
+            createTestPredicate(createReference(['@scope', '0', 'passed']), createConditionFunction('equals', [true])),
+            'All checks must pass',
+          ),
+        ),
+      )
+
+      const ctx = createCtx({
+        data: { checks: [{ passed: true }, { passed: false }] },
+      })
+
+      // Act
+      const fn = compiler.compile(step, [], [iterateNode], [])
+      const result = fn!(ctx, false)
+
+      // Assert
+      expect(result.isValid).toBe(false)
+      expect(result.domainFailures).toHaveLength(1)
+      expect(result.domainFailures[0].message).toBe('All checks must pass')
     })
 
     it('should generate source with iterator loop', () => {

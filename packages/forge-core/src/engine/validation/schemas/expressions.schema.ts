@@ -84,10 +84,8 @@ export const IteratorConfigSchema = z.union([
 /**
  * @see {@link IterateExpr}
  */
-export const IterateExprSchema: z.ZodType<any> = z.lazy(() =>
-  z.looseObject({
-    type: z.literal(ExpressionType.ITERATE),
-    input: ValueExprSchema,
-    iterator: IteratorConfigSchema,
-  }),
-)
+export const IterateExprSchema = z.looseObject({
+  type: z.literal(ExpressionType.ITERATE),
+  input: ValueExprSchema,
+  iterator: IteratorConfigSchema,
+})

@@ -1,6 +1,7 @@
-import { SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
+import { IterateExpr, SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
+import type { ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ConditionalString } from '../../components/types/structures.type'
 
 /**
@@ -34,6 +35,8 @@ export interface ValidationExpr {
 }
 
 export type ValidationProps = Omit<ValidationExpr, 'type'>
+
+export type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
 
 /**
  * A prioritised rule that participates in tie-breaking during reachability,
@@ -174,6 +177,6 @@ export interface StepDefinition {
    *   }),
    * ]
    */
-  validWhen?: (ValidationExpr | unknown)[]
+  validWhen?: ValidWhenInput[] | IterateExpr | ChainableIterable
   cleardownFieldCodes?: string[]
 }
