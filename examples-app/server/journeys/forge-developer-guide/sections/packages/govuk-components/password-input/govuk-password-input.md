@@ -74,6 +74,23 @@ GovUKPasswordInput({
 
 ---
 
+## Additional descriptions
+
+Use `describedBy` to add extra element IDs to the password input's
+`aria-describedby` attribute. This is useful when another element on
+the page provides guidance that should be announced by screen readers.
+
+```typescript
+GovUKPasswordInput({
+  code: 'newPassword',
+  label: 'Create a password',
+  describedBy: 'password-requirements',
+  autocomplete: 'new-password',
+})
+```
+
+---
+
 ## Validation
 
 ```typescript

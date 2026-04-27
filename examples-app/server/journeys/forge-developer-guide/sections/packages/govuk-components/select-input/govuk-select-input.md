@@ -91,6 +91,26 @@ GovUKSelectInput({
 
 ---
 
+## Additional descriptions
+
+Use `describedBy` to add extra element IDs to the select's
+`aria-describedby` attribute. This is useful when another element on
+the page provides guidance that should be announced by screen readers.
+
+```typescript
+GovUKSelectInput({
+  code: 'country',
+  label: 'Country',
+  describedBy: 'country-guidance',
+  items: [
+    { value: '', text: 'Choose a country' },
+    { value: 'uk', text: 'United Kingdom' },
+  ],
+})
+```
+
+---
+
 ## Disabled options
 
 Disable individual items to prevent selection while keeping them

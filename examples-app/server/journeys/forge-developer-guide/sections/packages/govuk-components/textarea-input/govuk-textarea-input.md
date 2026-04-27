@@ -69,6 +69,22 @@ GovUKTextareaInput({
 
 ---
 
+## Additional descriptions
+
+Use `describedBy` to add extra element IDs to the textarea's
+`aria-describedby` attribute. This is useful when another element on
+the page provides guidance that should be announced by screen readers.
+
+```typescript
+GovUKTextareaInput({
+  code: 'description',
+  label: 'Describe the incident',
+  describedBy: 'description-guidance',
+})
+```
+
+---
+
 ## Rows
 
 Set the initial height of the textarea with the `rows` property.

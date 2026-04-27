@@ -166,6 +166,22 @@ Common values: `'name'`, `'given-name'`, `'family-name'`, `'email'`,
 
 ---
 
+## Additional descriptions
+
+Use `describedBy` to add extra element IDs to the input's
+`aria-describedby` attribute. This is useful when another element on
+the page provides guidance that should be announced by screen readers.
+
+```typescript
+GovUKTextInput({
+  code: 'email',
+  label: 'Email address',
+  describedBy: 'email-guidance',
+})
+```
+
+---
+
 ## Prefix and suffix
 
 Add a prefix or suffix to provide context - for example, a currency
