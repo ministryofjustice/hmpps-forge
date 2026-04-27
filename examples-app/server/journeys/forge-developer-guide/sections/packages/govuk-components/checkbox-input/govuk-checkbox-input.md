@@ -2,7 +2,7 @@
 title: Checkboxes
 section: packages
 path: packages/govuk-components/checkbox-input
-teaches: [GovUKCheckboxInput, checkbox-input, govuk-checkbox-input, exclusive-checkbox]
+teaches: [GovUKCheckboxInput, checkbox-input, govuk-checkbox-input, exclusive-checkbox, visibleWhen]
 prerequisites: [govuk-components-package, block, validation]
 ---
 
@@ -138,6 +138,34 @@ items: [
   { divider: 'or' },
   { value: 'none', text: 'None of the above', behaviour: 'exclusive' },
 ]
+```
+
+---
+
+## Conditional items
+
+Use `visibleWhen` on an item or divider to omit it from rendering.
+This only controls presentation. It does not clear or reject a
+previously stored answer; use `dependentWhen`, validation, or a hook
+when the answer itself should no longer apply.
+
+```typescript
+GovUKCheckboxInput({
+  code: 'contactMethods',
+  fieldset: {
+    legend: { text: 'How would you like to be contacted?' },
+  },
+  items: [
+    { value: 'email', text: 'Email' },
+    {
+      value: 'sms',
+      text: 'Text message',
+      visibleWhen: Data('smsContactEnabled'),
+    },
+    { divider: 'or', visibleWhen: Data('showNoContactOption') },
+    { value: 'none', text: 'I do not want to be contacted', behaviour: 'exclusive' },
+  ],
+})
 ```
 
 ---

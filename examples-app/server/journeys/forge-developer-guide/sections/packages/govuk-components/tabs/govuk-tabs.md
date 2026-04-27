@@ -2,7 +2,7 @@
 title: Tabs
 section: packages
 path: packages/govuk-components/tabs
-teaches: [GovUKTabs, tabs, govuk-tabs]
+teaches: [GovUKTabs, tabs, govuk-tabs, visibleWhen]
 prerequisites: [govuk-components-package, block]
 ---
 
@@ -94,6 +94,32 @@ Use `panel.blocks` to render Forge blocks inside a tab panel.
     ],
   },
 }
+```
+
+---
+
+## Conditional tabs
+
+Use `visibleWhen` on a tab item to omit the tab and its panel from
+rendering.
+
+```typescript
+GovUKTabs({
+  id: 'case-tabs',
+  items: [
+    {
+      id: 'overview',
+      label: 'Overview',
+      panel: { text: 'Case overview' },
+    },
+    {
+      id: 'admin',
+      label: 'Admin',
+      panel: { text: 'Admin-only details' },
+      visibleWhen: Session('role').match(Condition.Equals('admin')),
+    },
+  ],
+})
 ```
 
 ---

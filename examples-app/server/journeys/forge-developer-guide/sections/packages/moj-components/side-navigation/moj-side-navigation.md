@@ -2,7 +2,7 @@
 title: Side Navigation
 section: packages
 path: packages/moj-components/side-navigation
-teaches: [MOJSideNavigation, side-navigation, moj-side-navigation]
+teaches: [MOJSideNavigation, side-navigation, moj-side-navigation, visibleWhen]
 prerequisites: [moj-components-package, block]
 ---
 
@@ -69,3 +69,33 @@ MOJSideNavigation({
 
 Set `active: true` on the current link so users can see where they
 are in the section.
+
+---
+
+## Conditional items and sections
+
+Use `visibleWhen` on an item or section to omit it from rendering.
+
+```typescript
+MOJSideNavigation({
+  label: 'Case navigation',
+  sections: [
+    {
+      heading: { text: 'Case' },
+      items: [
+        { text: 'Overview', href: '#overview', active: true },
+        {
+          text: 'Timeline',
+          href: '#timeline',
+          visibleWhen: Data('canViewTimeline'),
+        },
+      ],
+    },
+    {
+      heading: { text: 'Manage' },
+      visibleWhen: Session('role').match(Condition.Equals('admin')),
+      items: [{ text: 'Documents', href: '#documents' }],
+    },
+  ],
+})
+```

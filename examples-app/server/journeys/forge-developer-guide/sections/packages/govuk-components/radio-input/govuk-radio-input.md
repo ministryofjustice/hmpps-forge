@@ -2,7 +2,7 @@
 title: Radios
 section: packages
 path: packages/govuk-components/radio-input
-teaches: [GovUKRadioInput, radio-input, govuk-radio-input, conditional-reveal]
+teaches: [GovUKRadioInput, radio-input, govuk-radio-input, conditional-reveal, visibleWhen]
 prerequisites: [govuk-components-package, block, validation]
 ---
 
@@ -146,6 +146,34 @@ GovUKRadioInput({
     { value: 'northern-ireland', text: 'Northern Ireland' },
     { divider: 'or' },
     { value: 'abroad', text: 'I live abroad' },
+  ],
+})
+```
+
+---
+
+## Conditional items
+
+Use `visibleWhen` on an item or divider to omit it from rendering.
+This only controls presentation. It does not clear or reject a
+previously stored answer; use `dependentWhen`, validation, or a hook
+when the answer itself should no longer apply.
+
+```typescript
+GovUKRadioInput({
+  code: 'contactMethod',
+  fieldset: {
+    legend: { text: 'How would you prefer to be contacted?' },
+  },
+  items: [
+    { value: 'email', text: 'Email' },
+    {
+      value: 'phone',
+      text: 'Phone',
+      visibleWhen: Data('phoneContactEnabled'),
+    },
+    { divider: 'or', visibleWhen: Data('showPostalOption') },
+    { value: 'post', text: 'Post', visibleWhen: Data('showPostalOption') },
   ],
 })
 ```
