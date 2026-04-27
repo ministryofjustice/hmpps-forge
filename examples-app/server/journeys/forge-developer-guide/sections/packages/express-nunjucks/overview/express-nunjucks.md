@@ -26,7 +26,6 @@ import {
   ExpressFrameworkAdapter,
   buildNunjucksComponent,
   NunjucksGenerators,
-  nunjucksGeneratorImplementations,
   nunjucksFunctions,
 } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 ```

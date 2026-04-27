@@ -6,6 +6,7 @@ import type {
   EffectImplementations,
   FunctionImplementations,
   FunctionShapeMap,
+  ImplementationShapes,
   NoDeps,
 } from './defineFunction.type'
 
@@ -49,7 +50,7 @@ export function defineEffectFunctions<TEffects extends EffectFunctionGroup<TEffe
   factories: EffectImplementations<TEffects, TDeps>,
 ): {
   effects: TEffects
-  implementations: FunctionImplementations<{ [K in keyof TEffects]: TEffects[K] }, TDeps>
+  implementations: FunctionImplementations<ImplementationShapes<'effect', TEffects>, TDeps>
 }
 export function defineEffectFunctions<TShapes extends FunctionShapeMap, TDeps = NoDeps>(
   factories: Record<string, unknown>,

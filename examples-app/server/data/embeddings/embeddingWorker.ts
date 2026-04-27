@@ -1,6 +1,7 @@
 import { parentPort } from 'node:worker_threads'
 import { createEmbeddingBatchPlan } from './embeddingBatchPlanner'
 import { configureTransformersLocalModelSource } from './embeddingRuntimeConfig'
+import type { TransformersRuntimeEnvironment } from './embeddingRuntimeConfig'
 
 interface EmbedMessage {
   type: 'embed'
@@ -14,11 +15,34 @@ interface QueryMessage {
 
 type WorkerMessage = EmbedMessage | QueryMessage
 
+interface FeatureExtractionOutput {
+  data: Float32Array
+  dims: number[]
+  dispose(): void
+}
+
+interface FeatureExtractionPipeline {
+  (
+    texts: string | string[],
+    options: { pooling: 'mean'; normalize: boolean },
+  ): Promise<FeatureExtractionOutput>
+}
+
+interface TransformersModule {
+  env: TransformersRuntimeEnvironment
+  pipeline(
+    task: 'feature-extraction',
+    model: string,
+    options: { dtype: 'q8' },
+  ): Promise<FeatureExtractionPipeline>
+}
+
 const MAX_BATCH_SIZE = 8
 const MAX_BATCH_CHARACTERS = 5_000
+const TRANSFORMERS_PACKAGE = '@huggingface/transformers'
 
 async function createPipeline() {
-  const { env, pipeline } = await import('@huggingface/transformers')
+  const { env, pipeline } = (await import(TRANSFORMERS_PACKAGE)) as unknown as TransformersModule
 
   configureTransformersLocalModelSource(env)
 
@@ -35,7 +59,7 @@ async function embedBatch(
   texts: string[],
 ): Promise<number[][]> {
   const output = await extractor(texts, { pooling: 'mean', normalize: true })
-  const data = output.data as Float32Array
+  const { data } = output
   const dimensions = output.dims[output.dims.length - 1]
 
   const vectors = texts.map((_, i) => {
@@ -71,7 +95,7 @@ async function embedTexts(texts: string[]): Promise<number[][]> {
 async function embedSingle(text: string): Promise<number[]> {
   const extractor = await extractorPromise
   const output = await extractor(text, { pooling: 'mean', normalize: true })
-  const vector = Array.from(output.data as Float32Array)
+  const vector = Array.from(output.data)
 
   output.dispose()
 

@@ -241,6 +241,23 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         }
       }
     },
+
+    SeedAnswers:
+      (deps: GuideDeps) =>
+      async (
+        context: PatternEffectContext,
+        patternCode: string,
+        answers: Record<string, unknown>,
+      ) => {
+        const sessionId = context.getSession()?.id
+
+        if (sessionId) {
+          await deps.formDataStore.set(sessionId, patternCode, answers)
+        }
+
+        Object.entries(answers).forEach(([code, value]) => context.setAnswer(code, value))
+      },
+
     SeedDraftAnswers:
       () =>
       (context: PatternEffectContext, patternCode: string, answers: Record<string, unknown>) => {
