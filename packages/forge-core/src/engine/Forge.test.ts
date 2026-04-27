@@ -326,10 +326,15 @@ describe('Forge', () => {
       engine.register('invalid-config')
 
       // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith('Multiple validation errors:')
-      expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 1')
-      expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 2')
-      expect(mockLogger.error).toHaveBeenCalledTimes(3)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        [
+          'Forge registration failed: Multiple validation errors',
+          '',
+          '1. Error: Validation error 1',
+          '2. Error: Validation error 2',
+        ].join('\n'),
+      )
+      expect(mockLogger.error).toHaveBeenCalledTimes(1)
     })
 
     it('should handle errors without toString method in AggregateError', () => {
@@ -346,9 +351,9 @@ describe('Forge', () => {
       engine.register('invalid-config')
 
       // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith('Mixed errors:')
-      expect(mockLogger.error).toHaveBeenCalledWith('[object Object]')
-      expect(mockLogger.error).toHaveBeenCalledWith('null')
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        ['Forge registration failed: Mixed errors', '', '1. Object error', '2. null'].join('\n'),
+      )
     })
   })
 

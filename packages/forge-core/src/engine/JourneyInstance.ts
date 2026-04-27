@@ -43,8 +43,7 @@ export default class JourneyInstance {
     }
 
     DSLValidator.validateSchema(configurationAsObject)
-    DSLValidator.validateFunctions(configurationAsObject, dependencies.functionRegistry)
-    DSLValidator.validateComponents(configurationAsObject, dependencies.componentRegistry)
+    DSLValidator.validateTree(configurationAsObject, dependencies.functionRegistry, dependencies.componentRegistry)
 
     return new JourneyInstance(configurationAsObject, dependencies)
   }

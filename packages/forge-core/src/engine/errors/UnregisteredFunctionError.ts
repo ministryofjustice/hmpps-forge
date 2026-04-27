@@ -7,6 +7,8 @@ interface UnregisteredFunctionErrorOptions {
   functionName: string
   /** Type of the function (e.g. FunctionType.Effect) */
   functionType: string
+  /** Human-readable path through the journey DSL */
+  formattedPath?: string
 }
 
 export default class UnregisteredFunctionError extends Error {
@@ -16,17 +18,20 @@ export default class UnregisteredFunctionError extends Error {
 
   readonly functionType: string
 
+  readonly formattedPath?: string
+
   constructor(options: UnregisteredFunctionErrorOptions) {
     super(`Function "${options.functionName}" (${options.functionType}) is not registered`)
     this.name = new.target.name
     this.path = options.path
     this.functionName = options.functionName
     this.functionType = options.functionType
+    this.formattedPath = options.formattedPath
   }
 
   toString() {
     const fields = [
-      { label: 'Path', value: this.path.length > 0 ? this.path.join('.') : 'root' },
+      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
       { label: 'Function', value: this.functionName },
       { label: 'Type', value: this.functionType },
     ]
