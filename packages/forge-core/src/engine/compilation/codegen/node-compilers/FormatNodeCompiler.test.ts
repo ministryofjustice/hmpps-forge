@@ -8,6 +8,7 @@ function createCompiler(): FormatNodeCompiler {
     compileFunctionCall: (funcName: string, argExprs: string[]) => `${funcName}(${argExprs.join(', ')})`,
     namespaceToCtx: (namespace: string) => `ctx.${namespace}`,
     iteratorStack: [],
+    selfCodeExpr: undefined,
   }
 
   return new FormatNodeCompiler(ctx)

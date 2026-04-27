@@ -4,6 +4,78 @@ import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
 import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
+const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
+const DEFAULT_FORMAT_DATE_OPTIONS: StringDateFormatOptions = {
+  dateStyle: 'long',
+}
+
+type StringDateFormatOptions = Readonly<
+  Intl.DateTimeFormatOptions & {
+    locale?: string
+  }
+>
+
+const assertStringDateFormatOptions: (
+  value: unknown,
+  functionName: string,
+) => asserts value is StringDateFormatOptions | undefined = (value, functionName) => {
+  if (value === undefined) {
+    return
+  }
+
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError(`${functionName} expects an options object but received ${typeof value}.`)
+  }
+}
+
+const parseDateString = (value: string, functionName: string): Date => {
+  const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    throw new Error(`${functionName}: "${value}" is not a valid date`)
+  }
+
+  const ukMatch = UK_DATE_RE.exec(trimmed)
+
+  if (ukMatch) {
+    const day = Number(ukMatch[1])
+    const month = Number(ukMatch[2])
+    const year = Number(ukMatch[3])
+
+    const date = new Date(year, month - 1, day)
+
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      throw new Error(`${functionName}: "${value}" is not a valid date`)
+    }
+
+    return date
+  }
+
+  if (ISO_DATE_RE.test(trimmed)) {
+    const [datePart] = trimmed.split('T')
+    const [yearStr, monthStr, dayStr] = datePart.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr)
+    const day = Number(dayStr)
+
+    const date = new Date(trimmed)
+
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(`${functionName}: "${value}" is not a valid ISO date`)
+    }
+
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      throw new Error(`${functionName}: "${value}" is not a valid date`)
+    }
+
+    return date
+  }
+
+  throw new Error(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
+}
+
 /**
  * String transformation functions for data processing
  *
@@ -142,6 +214,18 @@ export interface StringTransformerGroup {
    * // ToDate() on "" throws Error
    */
   ToDate: () => TransformerFunctionExpr
+
+  /**
+   * Formats a date string using Intl.DateTimeFormat options.
+   * Defaults to UK long date formatting when no options are supplied.
+   *
+   * @param options - Intl.DateTimeFormat options plus optional locale, which defaults to en-GB
+   * @example
+   * // FormatDate() on "2024-03-15" returns "15 March 2024"
+   * // FormatDate({ dateStyle: 'short' }) on "2024-03-15" returns "15/03/2024"
+   * // FormatDate({ locale: 'en-US', dateStyle: 'long' }) on "2024-03-15" returns "March 15, 2024"
+   */
+  FormatDate: (options?: StringDateFormatOptions) => TransformerFunctionExpr
 
   /**
    * Converts a UK-formatted date string (DD/MM/YYYY) to ISO-8601 format (YYYY-MM-DD).
@@ -289,54 +373,23 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
   },
 
   // TODO: This probably needs to support supplying/choosing a format.
-  ToDate: () => (value: any) => {
-    const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
-    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
+  ToDate: () => (value: unknown) => {
     assertString(value, 'Transformer.String.ToDate')
 
-    const trimmed = value.trim()
+    return parseDateString(value, 'Transformer.String.ToDate')
+  },
 
-    if (!trimmed) {
-      throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
-    }
+  FormatDate: () => (value: unknown, options?: StringDateFormatOptions) => {
+    assertString(value, 'Transformer.String.FormatDate')
+    assertStringDateFormatOptions(options, 'Transformer.String.FormatDate')
 
-    const ukMatch = UK_DATE_RE.exec(trimmed)
+    const { locale = DEFAULT_FORMAT_DATE_LOCALE, ...dateTimeFormatOptions } = options ?? DEFAULT_FORMAT_DATE_OPTIONS
 
-    if (ukMatch) {
-      const day = Number(ukMatch[1])
-      const month = Number(ukMatch[2])
-      const year = Number(ukMatch[3])
+    assertString(locale, 'Transformer.String.FormatDate (locale)')
 
-      const date = new Date(year, month - 1, day)
+    const date = parseDateString(value, 'Transformer.String.FormatDate')
 
-      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
-      }
-
-      return date
-    }
-
-    if (ISO_DATE_RE.test(trimmed)) {
-      const [datePart] = trimmed.split('T')
-      const [yearStr, monthStr, dayStr] = datePart.split('-')
-      const year = Number(yearStr)
-      const month = Number(monthStr)
-      const day = Number(dayStr)
-
-      const date = new Date(trimmed)
-
-      if (Number.isNaN(date.getTime())) {
-        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid ISO date`)
-      }
-
-      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-        throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date`)
-      }
-
-      return date
-    }
-
-    throw new Error(`Transformer.String.ToDate: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
+    return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(date)
   },
 
   ToISODate: () => (value: any) => {

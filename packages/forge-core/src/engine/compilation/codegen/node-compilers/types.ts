@@ -3,7 +3,6 @@ export interface IteratorScopeFrame {
   indexVar: string
   inputLengthExpr: string
   rawItemExpr: string
-  codeVar?: string
 }
 
 export interface NodeCompilationContext {
@@ -11,4 +10,5 @@ export interface NodeCompilationContext {
   compileFunctionCall(funcName: string, argExprs: string[]): string
   namespaceToCtx(namespace: string): string
   readonly iteratorStack: readonly IteratorScopeFrame[]
+  readonly selfCodeExpr: string | undefined
 }

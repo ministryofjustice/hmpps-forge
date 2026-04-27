@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
-import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
+import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
@@ -37,6 +37,21 @@ export const ValidationExprSchema = z.looseObject({
   details: z.record(z.string(), z.any()).optional(),
 })
 
+const ValidWhenItemSchema = z.discriminatedUnion('type', [ValidationExprSchema, IterateExprSchema])
+const ValidWhenSchema = z.preprocess(value => {
+  if (
+    value !== null &&
+    value !== undefined &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    (value as { type?: unknown }).type === ExpressionType.ITERATE
+  ) {
+    return [value]
+  }
+
+  return value
+}, z.array(ValidWhenItemSchema))
+
 /**
  * @see {@link BlockDefinition}
  */
@@ -61,7 +76,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
         }),
       )
       .optional(),
-    validWhen: z.array(ValidationExprSchema).optional(),
+    validWhen: ValidWhenSchema.optional(),
     dependentWhen: PredicateExprSchema.optional(),
     multiple: z.boolean().optional(),
     sanitize: z.boolean().optional(),
@@ -168,6 +183,7 @@ export const StepSchema = z.looseObject({
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
+  validWhen: ValidWhenSchema.optional(),
 })
 
 /**

@@ -286,12 +286,12 @@ export default class RuntimePlanBuilder {
   private findValidationBlockIds(stepId: NodeId): NodeId[] {
     return this.allFieldBlocks
       .filter(block => this.astNodeTree.isDescendantOf(block.id, stepId))
-      .filter(block => Array.isArray(block.properties.validWhen) && block.properties.validWhen.length > 0)
+      .filter(block => hasConfiguredValue(block.properties.validWhen))
       .map(block => block.id)
   }
 
   private findDomainValidationNodeIds(stepNode: StepASTNode): NodeId[] {
-    return (stepNode.properties.validWhen ?? []).map(node => node.id)
+    return collectNodeIds(stepNode.properties.validWhen)
   }
 
   private extractForwardNavigation(stepNode: StepASTNode): {
@@ -326,4 +326,32 @@ export default class RuntimePlanBuilder {
   private computeHasValidatingSubmitHook(stepNode: StepASTNode): boolean {
     return (stepNode.properties.onSubmission ?? []).some((hook: SubmitHookASTNode) => hook.properties.validate)
   }
+}
+
+function hasConfiguredValue(value: unknown): boolean {
+  if (value === undefined) {
+    return false
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  return true
+}
+
+function collectNodeIds(value: unknown): NodeId[] {
+  if (value === undefined) {
+    return []
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(item => collectNodeIds(item))
+  }
+
+  if (value !== null && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string') {
+    return [(value as { id: NodeId }).id]
+  }
+
+  return []
 }

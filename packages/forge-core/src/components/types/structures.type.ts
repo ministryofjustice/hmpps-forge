@@ -1,5 +1,6 @@
 import {
   FunctionExpr,
+  IterateExpr,
   PipelineExpr,
   PredicateExpr,
   ReferenceExpr,
@@ -116,7 +117,7 @@ export interface FieldBlockProps extends BasicBlockProps {
    *   }),
    * ]
    */
-  validWhen?: ValidationExpr[]
+  validWhen?: (ValidationExpr | IterateExpr | ChainableIterable)[] | IterateExpr | ChainableIterable
 
   /**
    * Marks field as dependent on other fields.
