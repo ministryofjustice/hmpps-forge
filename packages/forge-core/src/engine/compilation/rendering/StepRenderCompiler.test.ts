@@ -665,5 +665,297 @@ describe('StepRenderCompiler', () => {
         { number: '2', current: true },
       ])
     })
+
+    it('should evaluate format expressions in nested array item properties', () => {
+      // Arrange
+      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Goals to work on now (%1)')
+        .withProperty('arguments', [createReference(['data', 'activeGoalsCount'])])
+        .build()
+      const futureText = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Future goals (%1)')
+        .withProperty('arguments', [createReference(['data', 'futureGoalsCount'])])
+        .build()
+      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            text: currentText,
+            href: 'overview?type=current',
+          },
+          {
+            text: futureText,
+            href: 'overview?type=future',
+          },
+        ])
+        .build()
+      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(
+        createCtx({
+          data: {
+            activeGoalsCount: 2,
+            futureGoalsCount: 3,
+          },
+        }),
+      )
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        {
+          text: 'Goals to work on now (2)',
+          href: 'overview?type=current',
+        },
+        {
+          text: 'Future goals (3)',
+          href: 'overview?type=future',
+        },
+      ])
+    })
+
+    it('should evaluate filtered iterator pipelines inside nested format arguments', async () => {
+      // Arrange
+      const activeGoals = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+        .withProperty('input', createReference(['data', 'goals']))
+        .withProperty('iterator', {
+          type: IteratorType.FILTER,
+          predicateTemplate: createTemplate(
+            ASTTestFactory.predicate(PredicateType.TEST, {
+              subject: createReference(['@scope', '0', 'status']),
+              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['ACTIVE']),
+            }),
+          ),
+        })
+        .build()
+      const activeGoalsCount = ASTTestFactory.pipelineExpression({
+        input: activeGoals,
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+      })
+      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Goals to work on now (%1)')
+        .withProperty('arguments', [activeGoalsCount])
+        .build()
+      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            text: currentText,
+            href: 'overview?type=current',
+          },
+        ])
+        .build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        Equals: {
+          name: 'Equals',
+          isAsync: false,
+          evaluate: (value: unknown, expected: unknown) => value === expected,
+        },
+        Length: {
+          name: 'Length',
+          isAsync: false,
+          evaluate: (value: unknown) => {
+            if (!Array.isArray(value)) {
+              throw new Error('Expected array')
+            }
+
+            return value.length
+          },
+        },
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          conditions: functionRegistry,
+          data: {
+            goals: [{ status: 'ACTIVE' }, { status: 'FUTURE' }, { status: 'ACTIVE' }],
+          },
+        }),
+      )
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        {
+          text: 'Goals to work on now (2)',
+          href: 'overview?type=current',
+        },
+      ])
+    })
+
+    it('should evaluate find iterator base references inside nested format arguments', async () => {
+      // Arrange
+      const selectedArea = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+        .withProperty('input', createReference(['data', 'areas']))
+        .withProperty('iterator', {
+          type: IteratorType.FIND,
+          predicateTemplate: createTemplate(
+            ASTTestFactory.predicate(PredicateType.TEST, {
+              subject: createReference(['@scope', '0', 'slug']),
+              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [
+                createReference(['params', 'area']),
+              ]),
+            }),
+          ),
+        })
+        .build()
+      const goalsInArea = ASTTestFactory.expression<ReferenceASTNode>(ExpressionType.REFERENCE)
+        .withProperty('base', selectedArea)
+        .withProperty('path', ['goals'])
+        .build()
+      const goalCount = ASTTestFactory.pipelineExpression({
+        input: goalsInArea,
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+      })
+      const text = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Goals in area (%1)')
+        .withProperty('arguments', [goalCount])
+        .build()
+      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            text,
+            href: 'overview',
+          },
+        ])
+        .build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        Equals: {
+          name: 'Equals',
+          isAsync: false,
+          evaluate: (value: unknown, expected: unknown) => value === expected,
+        },
+        Length: {
+          name: 'Length',
+          isAsync: false,
+          evaluate: (value: unknown) => {
+            if (!Array.isArray(value)) {
+              throw new Error('Expected array')
+            }
+
+            return value.length
+          },
+        },
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          conditions: functionRegistry,
+          params: {
+            area: 'health',
+          },
+          data: {
+            areas: [
+              { slug: 'work', goals: [{ id: 'a' }] },
+              { slug: 'health', goals: [{ id: 'b' }, { id: 'c' }] },
+            ],
+          },
+        }),
+      )
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        {
+          text: 'Goals in area (2)',
+          href: 'overview',
+        },
+      ])
+    })
+
+    it('should keep surrounding format text when nested array item argument resolves to undefined', () => {
+      // Arrange
+      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Goals to work on now (%1)')
+        .withProperty('arguments', [createReference(['data', 'activeGoalsCount'])])
+        .build()
+      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            text: currentText,
+            href: 'overview?type=current',
+          },
+        ])
+        .build()
+      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(createCtx())
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        {
+          text: 'Goals to work on now ()',
+          href: 'overview?type=current',
+        },
+      ])
+    })
+
+    it('should resolve nested array item text to undefined when format argument evaluation throws', async () => {
+      // Arrange
+      const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
+      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', 'Goals to work on now (%1)')
+        .withProperty('arguments', [throwingCount])
+        .build()
+      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+        .withProperty('items', [
+          {
+            text: currentText,
+            href: 'overview?type=current',
+          },
+        ])
+        .build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        throwingCount: {
+          name: 'throwingCount',
+          isAsync: false,
+          evaluate: () => {
+            throw new Error('Count failed')
+          },
+        },
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(createCtx({ conditions: functionRegistry }))
+
+      // Assert
+      expect(result.blocks[0].properties.items).toEqual([
+        {
+          text: undefined,
+          href: 'overview?type=current',
+        },
+      ])
+    })
   })
 })

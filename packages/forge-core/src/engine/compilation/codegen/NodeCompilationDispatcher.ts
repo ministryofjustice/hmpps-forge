@@ -1,6 +1,6 @@
 import { ASTNode } from '../../types/ast.type'
 import { ASTNodeType } from '../../types/enums'
-import { ExpressionType, FunctionType } from '../../../authoring/types/enums'
+import { ExpressionType, FunctionType, IteratorType } from '../../../authoring/types/enums'
 import { TemplateNode } from '../../types/template.type'
 import { IteratorScopeFrame, NodeCompilationContext } from './node-compilers/types'
 import ReferenceNodeCompiler from './node-compilers/ReferenceNodeCompiler'
@@ -20,6 +20,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   private usedAwait = false
 
   private readonly iteratorFrames: IteratorScopeFrame[] = []
+
+  private localVarCounter = 0
 
   private readonly references = new ReferenceNodeCompiler(this)
 
@@ -52,6 +54,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   reset(): void {
     this.iteratorFrames.length = 0
     this.usedAwait = false
+    this.localVarCounter = 0
   }
 
   pushIteratorFrame(frame: IteratorScopeFrame): void {
@@ -109,6 +112,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
         return this.pipelines.compilePipeline(properties)
       case ExpressionType.FORMAT:
         return this.formats.compile(properties)
+      case ExpressionType.ITERATE:
+        return this.compileIterate(properties)
       case FunctionType.CONDITION:
       case FunctionType.TRANSFORMER:
       case FunctionType.GENERATOR:
@@ -152,6 +157,144 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     }
 
     return JSON.stringify(value)
+  }
+
+  private compileIterate(properties: Record<string, unknown>): string {
+    const iterator = properties.iterator as
+      | {
+          type?: unknown
+          yieldTemplate?: unknown
+          predicateTemplate?: unknown
+        }
+      | undefined
+
+    if (iterator?.type === IteratorType.MAP) {
+      return this.compileMapIterator(properties.input, iterator.yieldTemplate)
+    }
+
+    if (iterator?.type === IteratorType.FILTER) {
+      return this.compileFilterIterator(properties.input, iterator.predicateTemplate)
+    }
+
+    if (iterator?.type === IteratorType.FIND) {
+      return this.compileFindIterator(properties.input, iterator.predicateTemplate)
+    }
+
+    return 'undefined'
+  }
+
+  private compileMapIterator(input: unknown, yieldTemplate: unknown): string {
+    const inputExpr = this.compileOperand(input)
+    const inputVar = this.nextLocalVar('_input')
+    const resultVar = this.nextLocalVar('_result')
+    const indexVar = this.nextLocalVar('_idx')
+    const itemVar = this.nextLocalVar('_item')
+    const yieldVar = this.nextLocalVar('_yield')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
+    const frame: IteratorScopeFrame = {
+      itemVar,
+      indexVar,
+      inputLengthExpr: `${inputVar}.length`,
+      rawItemExpr,
+    }
+
+    this.pushIteratorFrame(frame)
+    const yieldExpr = yieldTemplate !== undefined ? this.compileOperand(yieldTemplate) : 'undefined'
+
+    this.popIteratorFrame()
+
+    return this.wrapIteratorIife([
+      `var ${inputVar} = ${inputExpr};`,
+      this.compileNormalizeIteratorInput(inputVar),
+      `var ${resultVar} = [];`,
+      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} var ${yieldVar} = ${yieldExpr}; if (${yieldVar} !== undefined) { ${resultVar}.push(${yieldVar}); } } }`,
+      `return ${resultVar};`,
+    ])
+  }
+
+  private compileFilterIterator(input: unknown, predicateTemplate: unknown): string {
+    const inputExpr = this.compileOperand(input)
+    const inputVar = this.nextLocalVar('_input')
+    const resultVar = this.nextLocalVar('_result')
+    const indexVar = this.nextLocalVar('_idx')
+    const itemVar = this.nextLocalVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
+    const frame: IteratorScopeFrame = {
+      itemVar,
+      indexVar,
+      inputLengthExpr: `${inputVar}.length`,
+      rawItemExpr,
+    }
+
+    this.pushIteratorFrame(frame)
+    const predicateExpr = predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false'
+
+    this.popIteratorFrame()
+
+    return this.wrapIteratorIife([
+      `var ${inputVar} = ${inputExpr};`,
+      this.compileNormalizeIteratorInput(inputVar),
+      `var ${resultVar} = [];`,
+      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} if (${predicateExpr}) { ${resultVar}.push(${rawItemExpr}); } } }`,
+      `return ${resultVar};`,
+    ])
+  }
+
+  private compileFindIterator(input: unknown, predicateTemplate: unknown): string {
+    const inputExpr = this.compileOperand(input)
+    const inputVar = this.nextLocalVar('_input')
+    const resultVar = this.nextLocalVar('_result')
+    const indexVar = this.nextLocalVar('_idx')
+    const itemVar = this.nextLocalVar('_item')
+    const rawItemExpr = `${inputVar}[${indexVar}]`
+    const frame: IteratorScopeFrame = {
+      itemVar,
+      indexVar,
+      inputLengthExpr: `${inputVar}.length`,
+      rawItemExpr,
+    }
+
+    this.pushIteratorFrame(frame)
+    const predicateExpr = predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false'
+
+    this.popIteratorFrame()
+
+    return this.wrapIteratorIife([
+      `var ${inputVar} = ${inputExpr};`,
+      this.compileNormalizeIteratorInput(inputVar),
+      `var ${resultVar} = undefined;`,
+      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} if (${predicateExpr}) { ${resultVar} = ${rawItemExpr}; break; } } }`,
+      `return ${resultVar};`,
+    ])
+  }
+
+  private compileNormalizeIteratorInput(inputVar: string): string {
+    return [
+      `if (${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object") { ${inputVar} = Object.entries(${inputVar}).map(function(e) { return typeof e[1] === "object" && e[1] !== null ? Object.assign({"@key": e[0]}, e[1]) : {"@key": e[0], "@value": e[1]}; }); }`,
+      `if (Array.isArray(${inputVar})) { ${inputVar} = ${inputVar}.filter(function(item) { return item != null; }); }`,
+    ].join(' ')
+  }
+
+  private compileIteratorItemScope(inputVar: string, indexVar: string, itemVar: string): string {
+    return `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`
+  }
+
+  private wrapIteratorIife(statements: string[]): string {
+    const body = statements.join(' ')
+
+    if (this.usedAwait) {
+      return `(await (async function() { ${body} })())`
+    }
+
+    return `(function() { ${body} })()`
+  }
+
+  private nextLocalVar(prefix: string): string {
+    const suffix = this.localVarCounter
+
+    this.localVarCounter += 1
+
+    return `${prefix}${suffix}`
   }
 
   compileFunctionCall(funcName: string, argExprs: string[]): string {
