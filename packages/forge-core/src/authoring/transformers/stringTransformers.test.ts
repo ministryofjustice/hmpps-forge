@@ -637,6 +637,110 @@ describe('String Transformers', () => {
     })
   })
 
+  describe('FormatDate', () => {
+    const { evaluate } = StringTransformersRegistry.FormatDate
+
+    it('should format ISO date as UK long date when options are omitted', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('15 March 2024')
+    })
+
+    it('should format UK date as UK long date when locale is omitted', () => {
+      // Arrange
+      const input = '15/03/2024'
+
+      // Act
+      const result = evaluate(input, { dateStyle: 'long' })
+
+      // Assert
+      expect(result).toBe('15 March 2024')
+    })
+
+    it('should format date with supplied locale', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input, { locale: 'en-US', dateStyle: 'long' })
+
+      // Assert
+      expect(result).toBe('March 15, 2024')
+    })
+
+    it('should format date with supplied Intl options', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+
+      // Assert
+      expect(result).toBe('15/03/2024')
+    })
+
+    it('should throw for invalid date string', () => {
+      // Arrange
+      const input = 'not a date'
+
+      // Act
+      const act = () => evaluate(input)
+
+      // Assert
+      expect(act).toThrow('Transformer.String.FormatDate: "not a date" is not a valid date')
+    })
+
+    it('should throw error for non-string values', () => {
+      // Arrange
+      const input = 123
+
+      // Act
+      const act = () => evaluate(input)
+
+      // Assert
+      expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
+    })
+
+    it('should return a function expression when called without options', () => {
+      // Arrange
+      const expr = StringTransformers.FormatDate()
+
+      // Act
+      const result = expr
+
+      // Assert
+      expect(result).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'FormatDate',
+        arguments: [],
+      })
+    })
+
+    it('should return a function expression when called with options', () => {
+      // Arrange
+      const options: Intl.DateTimeFormatOptions = { dateStyle: 'long' }
+
+      // Act
+      const result = StringTransformers.FormatDate(options)
+
+      // Assert
+      expect(result).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'FormatDate',
+        arguments: [options],
+      })
+    })
+  })
+
   describe('ToISODate', () => {
     const { evaluate } = StringTransformersRegistry.ToISODate
 

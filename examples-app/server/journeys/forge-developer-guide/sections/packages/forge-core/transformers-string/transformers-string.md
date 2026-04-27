@@ -234,6 +234,25 @@ Answer('startDate').pipe(Transformer.String.ToDate())
 // "2024-03-15" -> Date(2024-03-15)
 ```
 
+### FormatDate
+
+Formats a date string using native `Intl.DateTimeFormat` options.
+The locale defaults to `en-GB`; when no options are supplied, the
+output defaults to a UK long date.
+
+```typescript
+Answer('dob').pipe(Transformer.String.FormatDate())
+// "2024-03-15" -> "15 March 2024"
+
+Answer('dob').pipe(Transformer.String.FormatDate({ dateStyle: 'short' }))
+// "2024-03-15" -> "15/03/2024"
+
+Answer('dob').pipe(
+  Transformer.String.FormatDate({ locale: 'en-US', dateStyle: 'long' }),
+)
+// "2024-03-15" -> "March 15, 2024"
+```
+
 ### ToISODate
 
 Converts a UK-formatted date string (DD/MM/YYYY) to ISO-8601 format
