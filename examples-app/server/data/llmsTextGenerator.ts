@@ -6,7 +6,7 @@ const GUIDE_PATH = 'forge-developer-guide'
 const INDEX_PREAMBLE = [
   '# Forge Developer Guide',
   'Forge is a stateless, declarative framework for building multi-page journeys in GOV.UK services. You define journeys, steps, blocks, and fields as data structures and Forge handles routing, rendering, validation, and navigation.',
-  'Documentation is organised into sections following a learning progression. Each page is self-contained but later sections build on earlier ones. Fetch individual pages at `/llms/content/forge-developer-guide/{path}` for full markdown, or `/llms-full.txt` for everything.',
+  'Documentation is organised into sections following a learning progression. Each page is self-contained but later sections build on earlier ones. Fetch individual pages at `/llms/forge-developer-guide/{path}` for full markdown, or `/llms-full.txt` for everything.',
   'Pattern pages include complete working demo source code showing the pattern implemented as a real Forge journey.',
 ]
 
