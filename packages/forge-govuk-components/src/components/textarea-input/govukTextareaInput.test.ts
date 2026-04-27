@@ -112,6 +112,7 @@ describe('govukTextareaInput', () => {
         rows: '10',
         spellcheck: false,
         autocomplete: 'off',
+        describedBy: 'textarea-guidance',
         formGroup: {
           classes: 'custom-form-group',
           attributes: { 'data-test': 'value' },
@@ -130,6 +131,7 @@ describe('govukTextareaInput', () => {
       expect(params.rows).toBe('10')
       expect(params.spellcheck).toBe(false)
       expect(params.autocomplete).toBe('off')
+      expect(params.describedBy).toBe('textarea-guidance')
       expect(params.formGroup).toEqual({
         classes: 'custom-form-group',
         attributes: { 'data-test': 'value' },

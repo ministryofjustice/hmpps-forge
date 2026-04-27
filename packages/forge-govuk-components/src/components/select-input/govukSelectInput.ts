@@ -110,6 +110,14 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
   disabled?: ConditionalBoolean
 
   /**
+   * One or more element IDs to add to the `aria-describedby` attribute.
+   * Used to provide additional descriptive information for screenreader users.
+   *
+   * @example 'country-select-help'
+   */
+  describedBy?: ConditionalString
+
+  /**
    * Additional options for the form group containing the select component.
    */
   formGroup?: {
@@ -155,6 +163,7 @@ export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>('govukS
     hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     value: block.value,
     disabled: block.disabled,
+    describedBy: block.describedBy,
     formGroup: block.formGroup,
     classes: block.classes,
     attributes: block.attributes,

@@ -224,6 +224,21 @@ describe('govukSelectInput', () => {
       expect(params.disabled).toBe(true)
     })
 
+    it('passes through describedBy', async () => {
+      // Arrange
+      const block = {
+        code: 'test-select',
+        describedBy: 'select-guidance',
+        items: [] as { value: string; text: string }[],
+      }
+
+      // Act
+      const params = await helper.getParams(block)
+
+      // Assert
+      expect(params.describedBy).toBe('select-guidance')
+    })
+
     it('passes through classes', async () => {
       // Arrange
       const block = {

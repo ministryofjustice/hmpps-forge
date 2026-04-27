@@ -286,10 +286,12 @@ describe('govukCheckboxInput', () => {
     it('passes through classes and attributes', async () => {
       const params = await helper.getParams({
         code: 'test-checkbox',
+        describedBy: 'checkbox-guidance',
         classes: 'custom-checkbox-class',
         attributes: { 'data-module': 'custom-module' },
         items: [],
       })
+      expect(params.describedBy).toBe('checkbox-guidance')
       expect(params.classes).toBe('custom-checkbox-class')
       expect(params.attributes).toEqual({ 'data-module': 'custom-module' })
     })
