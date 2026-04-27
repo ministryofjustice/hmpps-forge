@@ -1,14 +1,14 @@
 import { ASTNodeType } from '../../types/enums'
-import { BlockType, ExpressionType, IteratorType } from '../../../authoring/types/enums'
+import { BlockType, ExpressionType } from '../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../types/structures.type'
 import { IterateASTNode } from '../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../types/template.type'
 import { StepFieldInventory } from '../../runtime/types/StepFieldInventory.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodeEmitter from '../codegen/CodeEmitter'
-import NodeCompilationDispatcher, { IteratorScopeFrame } from '../codegen/NodeCompilationDispatcher'
+import NodeCompilationDispatcher from '../codegen/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
-import { emitIteratorItemScope, emitNormalizeIteratorInput } from '../codegen/iteratorCodegen'
+import ScopedTemplateCompiler, { isTemplateFieldNode } from '../codegen/ScopedTemplateCompiler'
 
 export interface FieldInventoryContext {
   answers: Record<string, { current: unknown }>
@@ -41,6 +41,8 @@ export type CompiledFieldInventoryFunction = (
  */
 export default class StepFieldInventoryCompiler {
   private readonly expr = new NodeCompilationDispatcher()
+
+  private readonly templates = new ScopedTemplateCompiler(this.expr)
 
   compile(
     steps: FieldInventoryStepSource[],
@@ -93,35 +95,14 @@ export default class StepFieldInventoryCompiler {
   }
 
   private compileMapIterator(iterateNode: IterateASTNode, codesVar: string, emitter: CodeEmitter): void {
-    if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
-      return
-    }
-
     const template = iterateNode.properties.iterator.yieldTemplate
 
     if (template === undefined || !this.containsTemplateField(template)) {
       return
     }
 
-    const inputExpr = this.expr.compileOperand(iterateNode.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-        this.expr.pushIteratorFrame({ itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr })
-        this.compileTemplateInventory(template, codesVar, emitter)
-        this.expr.popIteratorFrame()
-      })
+    this.templates.compileMapIterator(iterateNode, emitter, yieldTemplate => {
+      this.compileTemplateInventory(yieldTemplate, codesVar, emitter)
     })
   }
 
@@ -162,76 +143,22 @@ export default class StepFieldInventoryCompiler {
   }
 
   private compileTemplateMapIterator(templateNode: TemplateNode, codesVar: string, emitter: CodeEmitter): void {
-    const properties = templateNode.properties ?? {}
-    const iterator = properties.iterator as { type?: unknown; yieldTemplate?: TemplateValue } | undefined
-
-    if (iterator?.type !== IteratorType.MAP || iterator.yieldTemplate === undefined) {
-      return
-    }
-
-    const inputExpr = this.expr.compileOperand(properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${inputVar}[${indexVar}] == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr: `${inputVar}.length`, rawItemExpr }
-
-        this.expr.pushIteratorFrame(frame)
-        this.compileTemplateInventory(iterator.yieldTemplate as TemplateValue, codesVar, emitter)
-        this.expr.popIteratorFrame()
-      })
+    this.templates.compileTemplateMapIterator(templateNode, emitter, yieldTemplate => {
+      this.compileTemplateInventory(yieldTemplate, codesVar, emitter)
     })
   }
 
   private compileTemplateFieldCode(field: TemplateNode, codesVar: string, emitter: CodeEmitter): void {
-    const code = field.properties?.code
+    const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
 
-    if (typeof code === 'string') {
-      emitter.emit(`${codesVar}.push(${JSON.stringify(code)});`)
-
+    if (codeExpr === undefined) {
       return
     }
 
-    if (!this.expr.isTemplateNode(code)) {
-      return
-    }
-
-    const codeVar = emitter.nextVar('_code')
-    const codeExpr = this.expr.compileTemplateExpression(code)
-
-    emitter.emit(`var ${codeVar} = String(${codeExpr});`)
-    emitter.emit(`${codesVar}.push(${codeVar});`)
+    emitter.emit(`${codesVar}.push(${codeExpr});`)
   }
 
   private containsTemplateField(template: TemplateValue): boolean {
-    if (template === null || template === undefined || typeof template !== 'object') {
-      return false
-    }
-
-    if (this.expr.isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
-        return true
-      }
-
-      return Object.values(template.properties ?? {}).some(child => this.containsTemplateField(child as TemplateValue))
-    }
-
-    if (Array.isArray(template)) {
-      return template.some(item => this.containsTemplateField(item))
-    }
-
-    return Object.values(template as Record<string, TemplateValue>).some(item => this.containsTemplateField(item))
+    return this.templates.containsTemplateNode(template, isTemplateFieldNode)
   }
-
 }

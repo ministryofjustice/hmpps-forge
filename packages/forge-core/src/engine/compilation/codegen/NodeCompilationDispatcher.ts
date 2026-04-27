@@ -21,6 +21,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
   private readonly iteratorFrames: IteratorScopeFrame[] = []
 
+  private readonly selfCodeExprs: string[] = []
+
   private localVarCounter = 0
 
   private readonly references = new ReferenceNodeCompiler(this)
@@ -43,6 +45,10 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     return this.iteratorFrames.length
   }
 
+  get selfCodeExpr(): string | undefined {
+    return this.selfCodeExprs[this.selfCodeExprs.length - 1]
+  }
+
   get usesAwait(): boolean {
     return this.usedAwait
   }
@@ -53,6 +59,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
   reset(): void {
     this.iteratorFrames.length = 0
+    this.selfCodeExprs.length = 0
     this.usedAwait = false
     this.localVarCounter = 0
   }
@@ -63,6 +70,38 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
   popIteratorFrame(): void {
     this.iteratorFrames.pop()
+  }
+
+  withIteratorFrame<T>(frame: IteratorScopeFrame, compile: () => T): T {
+    this.pushIteratorFrame(frame)
+
+    try {
+      return compile()
+    } finally {
+      this.popIteratorFrame()
+    }
+  }
+
+  pushSelfCodeExpression(codeExpr: string): void {
+    this.selfCodeExprs.push(codeExpr)
+  }
+
+  popSelfCodeExpression(): void {
+    this.selfCodeExprs.pop()
+  }
+
+  withSelfCodeExpression<T>(codeExpr: string | undefined, compile: () => T): T {
+    if (codeExpr === undefined) {
+      return compile()
+    }
+
+    this.pushSelfCodeExpression(codeExpr)
+
+    try {
+      return compile()
+    } finally {
+      this.popSelfCodeExpression()
+    }
   }
 
   /**
@@ -114,6 +153,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
         return this.formats.compile(properties)
       case ExpressionType.ITERATE:
         return this.compileIterate(properties)
+      case ExpressionType.VALIDATION:
+        return this.compileValidation(properties)
       case FunctionType.CONDITION:
       case FunctionType.TRANSFORMER:
       case FunctionType.GENERATOR:
@@ -183,6 +224,26 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     return 'undefined'
   }
 
+  private compileValidation(properties: Record<string, unknown>): string {
+    const condition = properties.condition
+
+    if (condition === undefined) {
+      return 'undefined'
+    }
+
+    const conditionExpr = this.compileOperand(condition)
+    const messageExpr = properties.message !== undefined ? this.compileOperand(properties.message) : JSON.stringify('')
+    const submissionOnlyExpr = properties.submissionOnly === true ? 'true' : 'false'
+    const groupsExpr = properties.groups !== undefined ? this.compileOperand(properties.groups) : 'undefined'
+    const detailsExpr = properties.details !== undefined ? this.compileOperand(properties.details) : 'undefined'
+    const resolvedBlockCodeExpr =
+      properties.resolvedBlockCode !== undefined ? this.compileOperand(properties.resolvedBlockCode) : 'undefined'
+    const conditionVar = this.nextLocalVar('_valid')
+    const functionPrefix = this.usedAwait ? 'async ' : ''
+
+    return `({ evaluate: ${functionPrefix}function() { var ${conditionVar}; try { ${conditionVar} = ${conditionExpr}; } catch(e) { ${conditionVar} = false; } return !!${conditionVar}; }, message: ${functionPrefix}function() { return ${messageExpr}; }, submissionOnly: ${submissionOnlyExpr}, groups: ${groupsExpr}, details: ${functionPrefix}function() { return ${detailsExpr}; }, resolvedBlockCode: ${functionPrefix}function() { return ${resolvedBlockCodeExpr}; } })`
+  }
+
   private compileMapIterator(input: unknown, yieldTemplate: unknown): string {
     const inputExpr = this.compileOperand(input)
     const inputVar = this.nextLocalVar('_input')
@@ -202,12 +263,13 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     const yieldExpr = yieldTemplate !== undefined ? this.compileOperand(yieldTemplate) : 'undefined'
 
     this.popIteratorFrame()
+    const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar)
 
-    return this.wrapIteratorIife([
+    return this.wrapIife([
       `var ${inputVar} = ${inputExpr};`,
       this.compileNormalizeIteratorInput(inputVar),
       `var ${resultVar} = [];`,
-      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} var ${yieldVar} = ${yieldExpr}; if (${yieldVar} !== undefined) { ${resultVar}.push(${yieldVar}); } } }`,
+      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} var ${yieldVar} = ${scopedYieldExpr}; if (${yieldVar} !== undefined) { ${resultVar}.push(${yieldVar}); } } }`,
       `return ${resultVar};`,
     ])
   }
@@ -231,7 +293,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
     this.popIteratorFrame()
 
-    return this.wrapIteratorIife([
+    return this.wrapIife([
       `var ${inputVar} = ${inputExpr};`,
       this.compileNormalizeIteratorInput(inputVar),
       `var ${resultVar} = [];`,
@@ -259,7 +321,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
     this.popIteratorFrame()
 
-    return this.wrapIteratorIife([
+    return this.wrapIife([
       `var ${inputVar} = ${inputExpr};`,
       this.compileNormalizeIteratorInput(inputVar),
       `var ${resultVar} = undefined;`,
@@ -279,7 +341,15 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     return `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`
   }
 
-  private wrapIteratorIife(statements: string[]): string {
+  private compileScopedIteratorExpression(expr: string, itemVar: string, indexVar: string): string {
+    if (this.usedAwait) {
+      return `(await (async function(${itemVar}, ${indexVar}) { return ${expr}; })(${itemVar}, ${indexVar}))`
+    }
+
+    return `(function(${itemVar}, ${indexVar}) { return ${expr}; })(${itemVar}, ${indexVar})`
+  }
+
+  private wrapIife(statements: string[]): string {
     const body = statements.join(' ')
 
     if (this.usedAwait) {

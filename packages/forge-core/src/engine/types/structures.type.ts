@@ -1,7 +1,7 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ASTNode } from './ast.type'
-import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode, ValidationASTNode } from './expressions.type'
+import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
 export interface JourneyReachabilityAST {
@@ -53,7 +53,7 @@ export interface StepASTNode extends ASTNode {
     backlink?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>
-    validWhen?: ASTNode[]
+    validWhen?: unknown
     cleardownFieldCodes?: string[]
   }
 }
@@ -87,7 +87,7 @@ export interface FieldBlockASTNode extends ASTNode {
     formatters?: ASTNode[]
     parsers?: ASTNode[]
     visibleWhen?: ASTNode
-    validWhen?: ValidationASTNode[]
+    validWhen?: unknown
     dependentWhen?: ASTNode
     metadata?: Record<string, any>
     multiple?: boolean

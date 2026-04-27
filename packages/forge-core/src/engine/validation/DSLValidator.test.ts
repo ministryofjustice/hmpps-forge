@@ -99,6 +99,49 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate field validWhen supplied by an iterator', () => {
+      const block = {
+        type: StructureType.BLOCK,
+        blockType: BlockType.FIELD,
+        variant: 'TextInput',
+        code: 'status',
+        validWhen: {
+          type: ExpressionType.ITERATE,
+          input: { type: ExpressionType.REFERENCE, path: ['data', 'checks'] },
+          iterator: {
+            type: IteratorType.MAP,
+            yield: {
+              type: ExpressionType.VALIDATION,
+              condition: {
+                type: PredicateType.TEST,
+                negate: false,
+                subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'enabled'] },
+                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+              },
+              message: 'Check must be enabled',
+            },
+          },
+        },
+      } satisfies FieldBlockDefinition
+
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/review',
+            title: 'Review',
+            blocks: [block],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
     it('should fail when type is missing with clear error path', () => {
       const invalidJourney = {
         // Missing type

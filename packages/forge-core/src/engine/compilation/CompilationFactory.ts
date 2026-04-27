@@ -258,15 +258,14 @@ export default class CompilationFactory {
 
         const fieldBlocks = allFieldBlocks
           .filter(block => sharedDependencies.astNodeTree.isDescendantOf(block.id, stepNode.id))
-          .filter(block => Array.isArray(block.properties.validWhen) && block.properties.validWhen.length > 0)
-        const domainValidationNodes = stepNode.properties.validWhen ?? []
+          .filter(block => hasConfiguredValue(block.properties.validWhen))
         const iterateNodes = allIterateNodes
           .filter(node => sharedDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
 
         const compiled = compiler.compile(
           stepNode,
           fieldBlocks,
-          domainValidationNodes,
+          stepNode.properties.validWhen,
           iterateNodes,
           this.journeyInstanceDependencies.functionRegistry,
         )
@@ -329,15 +328,14 @@ export default class CompilationFactory {
     const validationCompiler = new StepValidationCompiler()
     const fieldBlocks = compilationDependencies.nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
       .filter(block => compilationDependencies.astNodeTree.isDescendantOf(block.id, stepNode.id))
-      .filter(block => Array.isArray(block.properties.validWhen) && block.properties.validWhen.length > 0)
-    const domainValidationNodes = stepNode.properties.validWhen ?? []
+      .filter(block => hasConfiguredValue(block.properties.validWhen))
     const iterateNodes = compilationDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
       .filter(node => node.properties.iterator.type === IteratorType.MAP)
     const compiledValidation = validationCompiler.compile(
       stepNode,
       fieldBlocks,
-      domainValidationNodes,
+      stepNode.properties.validWhen,
       iterateNodes,
       this.journeyInstanceDependencies.functionRegistry,
     )
@@ -376,3 +374,15 @@ export default class CompilationFactory {
 
 export type CompiledForm = CompiledStep[]
 export type CompilationArtefact = CompiledStep['artefact']
+
+function hasConfiguredValue(value: unknown): boolean {
+  if (value === undefined) {
+    return false
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  return true
+}
