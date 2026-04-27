@@ -97,6 +97,29 @@ GovUKCheckboxInput({
 
 ---
 
+## Additional descriptions
+
+Use `describedBy` to add extra element IDs to the checkbox group's
+`aria-describedby` attribute. With the usual fieldset wrapper, this
+describes the fieldset. If you set `fieldset.describedBy`, GOV.UK
+Frontend uses that value instead.
+
+```typescript
+GovUKCheckboxInput({
+  code: 'contactMethods',
+  fieldset: {
+    legend: { text: 'How would you like to be contacted?' },
+  },
+  describedBy: 'contact-methods-guidance',
+  items: [
+    { value: 'email', text: 'Email' },
+    { value: 'phone', text: 'Phone' },
+  ],
+})
+```
+
+---
+
 ## Exclusive behaviour
 
 Add a "none of the above" option using `behaviour: 'exclusive'`.

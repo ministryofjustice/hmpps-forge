@@ -139,6 +139,14 @@ export interface GovUKCheckboxInputProps extends FieldBlockProps {
   name?: ConditionalString
 
   /**
+   * One or more element IDs to add to the input `aria-describedby` attribute without a fieldset.
+   * Used to provide additional descriptive information for screenreader users.
+   *
+   * @example 'contact-methods-guidance'
+   */
+  describedBy?: ConditionalString
+
+  /**
    * Additional CSS classes to add to the checkboxes container.
    *
    * @example 'govuk-checkboxes--small' // Smaller checkboxes
@@ -314,6 +322,7 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
       },
       idPrefix: block.idPrefix || block.code,
       name: block.name || block.code,
+      describedBy: block.describedBy,
       formGroup: block.formGroup,
       hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
       items,

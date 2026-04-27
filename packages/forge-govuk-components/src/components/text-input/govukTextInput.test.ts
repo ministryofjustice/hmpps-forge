@@ -112,6 +112,7 @@ describe('govukTextInput', () => {
         pattern: '[0-9]*',
         spellcheck: false,
         autocomplete: 'email',
+        describedBy: 'email-requirements',
         disabled: true,
         autocapitalize: 'words',
         prefix: { text: '£' },
@@ -134,6 +135,7 @@ describe('govukTextInput', () => {
       expect(params.pattern).toBe('[0-9]*')
       expect(params.spellcheck).toBe(false)
       expect(params.autocomplete).toBe('email')
+      expect(params.describedBy).toBe('email-requirements')
       expect(params.disabled).toBe(true)
       expect(params.autocapitalize).toBe('words')
       expect(params.prefix).toEqual({ text: '£' })

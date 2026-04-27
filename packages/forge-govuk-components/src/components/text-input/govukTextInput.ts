@@ -104,6 +104,14 @@ export interface GovUKTextInputProps extends FieldBlockProps {
   autocomplete?: ConditionalString
 
   /**
+   * One or more element IDs to add to the `aria-describedby` attribute.
+   * Used to provide additional descriptive information for screenreader users.
+   *
+   * @example 'email-requirements'
+   */
+  describedBy?: ConditionalString
+
+  /**
    * Attribute to provide a regular expression pattern for input validation.
    * Used to match allowed character combinations for the input value.
    *
@@ -239,6 +247,7 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextI
     inputmode: block.inputMode,
     disabled: block.disabled,
     autocomplete: block.autocomplete,
+    describedBy: block.describedBy,
     pattern: block.pattern,
     spellcheck: block.spellcheck,
     autocapitalize: block.autocapitalize,
