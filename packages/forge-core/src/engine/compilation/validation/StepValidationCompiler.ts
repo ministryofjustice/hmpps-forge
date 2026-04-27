@@ -1,9 +1,12 @@
 /**
  * Compiles a step's field and domain validation into one generated function.
  *
+ * Validation rules are ordinary compiled AST values. The `validWhen` slot
+ * evaluates those values, recursively flattens arrays produced by iterators,
+ * and turns failing validation results into field or domain failures.
+ *
  * Static fields are already present in the shared AST, while fields inside MAP
- * iterators remain as template nodes. Static field validation compiles directly
- * from registered FieldBlockASTNodes. Iterator field validation emits loops over
+ * iterators remain as template nodes. Iterator field validation emits loops over
  * the iterator input and evaluates the yield template in-place, so no runtime AST
  * nodes or overlays are created.
  *
@@ -14,18 +17,16 @@
  * If source generation fails, compile() returns undefined and controllers fail
  * fast. There is no secondary validation execution path.
  */
-import { ASTNode } from '../../types/ast.type'
-import { ASTNodeType } from '../../types/enums'
-import { BlockType, IteratorType } from '../../../authoring/types/enums'
 import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
-import { IterateASTNode, ValidationASTNode } from '../../types/expressions.type'
+import { IterateASTNode } from '../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../types/template.type'
 import { StepValidityResult } from '../../runtime/types/StepValidityResult.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodeEmitter from '../codegen/CodeEmitter'
-import NodeCompilationDispatcher, { IteratorScopeFrame } from '../codegen/NodeCompilationDispatcher'
+import NodeCompilationDispatcher from '../codegen/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../codegen/GeneratedFunctionCompiler'
-import { emitIteratorItemScope, emitNormalizeIteratorInput } from '../codegen/iteratorCodegen'
+import ScopedTemplateCompiler, { isTemplateFieldNode } from '../codegen/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../codegen/RuntimeValueCompiler'
 
 export interface ValidationContext {
   answers: Record<string, { current: unknown }>
@@ -52,17 +53,24 @@ export type CompiledValidationFunction = (
 export default class StepValidationCompiler {
   private readonly expr = new NodeCompilationDispatcher()
 
+  private readonly values = new RuntimeValueCompiler(this.expr, {
+    expressionErrorFallback: 'undefined',
+    omitUndefinedArrayItems: false,
+  })
+
+  private readonly templates = new ScopedTemplateCompiler(this.expr)
+
   compile(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
-    domainValidationNodes: ASTNode[],
+    domainValidWhen: unknown,
     iterateNodes?: IterateASTNode[],
   ): SyncCompiledValidationFunction | undefined
 
   compile(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
-    domainValidationNodes: ASTNode[],
+    domainValidWhen: unknown,
     iterateNodes: IterateASTNode[],
     functionRegistry: FunctionRegistry,
   ): CompiledValidationFunction | undefined
@@ -70,7 +78,7 @@ export default class StepValidationCompiler {
   compile(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
-    domainValidationNodes: ASTNode[],
+    domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
     functionRegistry?: FunctionRegistry,
   ): CompiledValidationFunction | SyncCompiledValidationFunction | undefined {
@@ -78,25 +86,25 @@ export default class StepValidationCompiler {
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
       functionRegistry,
-      () => this.buildSource(fieldBlocks, domainValidationNodes, iterateNodes),
+      () => this.buildSource(fieldBlocks, domainValidWhen, iterateNodes),
     )
   }
 
   generateSource(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
-    domainValidationNodes: ASTNode[],
+    domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
     functionRegistry?: FunctionRegistry,
   ): string {
     return buildGeneratedSource(this.expr, functionRegistry, () =>
-      this.buildSource(fieldBlocks, domainValidationNodes, iterateNodes),
+      this.buildSource(fieldBlocks, domainValidWhen, iterateNodes),
     )
   }
 
   private buildSource(
     fieldBlocks: FieldBlockASTNode[],
-    domainValidationNodes: ASTNode[],
+    domainValidWhen: unknown,
     iterateNodes: IterateASTNode[],
   ): string {
     const emitter = new CodeEmitter()
@@ -107,6 +115,7 @@ export default class StepValidationCompiler {
     emitter.emitBlock('for (var _groupIndex = 0; _groupIndex < _activeGroups.length; _groupIndex++)', () => {
       emitter.emit('_activeGroupSet[String(_activeGroups[_groupIndex])] = true;')
     })
+    this.emitValidationRuntimeHelpers(emitter)
     emitter.emit('var errors = [];')
     emitter.emit('var domainErrors = [];')
     emitter.emitBlank()
@@ -121,10 +130,8 @@ export default class StepValidationCompiler {
       emitter.emitBlank()
     }
 
-    for (const node of domainValidationNodes) {
-      this.compileDomainValidation(node as ValidationASTNode, emitter)
-      emitter.emitBlank()
-    }
+    this.compileDomainValidationSlot(domainValidWhen, emitter)
+    emitter.emitBlank()
 
     emitter.emit(
       'return { isValid: errors.length === 0 && domainErrors.length === 0, fieldFailures: errors, domainFailures: domainErrors };',
@@ -133,11 +140,19 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
-  private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter): void {
-    if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
-      return
-    }
+  private emitValidationRuntimeHelpers(emitter: CodeEmitter): void {
+    emitter.emitBlock('function _validationGroupsActive(value)', () => {
+      emitter.emit('var validationGroups = Array.isArray(value) && value.length > 0 ? value : ["default"];')
+      emitter.emitBlock('for (var i = 0; i < validationGroups.length; i++)', () => {
+        emitter.emitBlock('if (_activeGroupSet[String(validationGroups[i])] === true)', () => {
+          emitter.emit('return true;')
+        })
+      })
+      emitter.emit('return false;')
+    })
+  }
 
+  private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter): void {
     const template = iterateNode.properties.iterator.yieldTemplate
 
     if (template === undefined) {
@@ -150,238 +165,42 @@ export default class StepValidationCompiler {
       return
     }
 
-    const inputExpr = this.expr.compileOperand(iterateNode.properties.input)
-    const inputVar = emitter.nextVar('_input')
-    const indexVar = emitter.nextVar('_idx')
-    const itemVar = emitter.nextVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
+    this.templates.compileMapIterator(iterateNode, emitter, () => {
+      templateFields.forEach(templateField => {
+        const codeExpr = this.templates.compileTemplateCodeExpression(templateField, emitter)
 
-    emitter.emit(`var ${inputVar} = ${inputExpr};`)
-    emitNormalizeIteratorInput(emitter, inputVar)
-
-    emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
-      emitter.emitBlock(`for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++)`, () => {
-        emitter.emitBlock(`if (${rawItemExpr} == null)`, () => {
-          emitter.emit('continue;')
-        })
-        emitIteratorItemScope(emitter, inputVar, indexVar, itemVar)
-
-        for (const templateField of templateFields) {
-          const codeVar = this.compileTemplateFieldCode(
-            templateField,
-            indexVar,
-            itemVar,
-            `${inputVar}.length`,
-            rawItemExpr,
-            emitter,
-          )
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: `${inputVar}.length`,
-            rawItemExpr,
-            codeVar,
-          }
-
-          this.expr.pushIteratorFrame(frame)
-          this.compileTemplateFieldValidations(templateField, codeVar, emitter)
-          this.expr.popIteratorFrame()
-        }
+        this.compileTemplateFieldValidations(templateField, codeExpr, emitter)
       })
     })
-  }
-
-  private compileTemplateFieldCode(
-    field: TemplateNode,
-    indexVar: string,
-    itemVar: string,
-    inputLengthExpr: string,
-    rawItemExpr: string,
-    emitter: CodeEmitter,
-  ): string | undefined {
-    const code = field.properties?.code
-
-    if (typeof code === 'string') {
-      return undefined
-    }
-
-    if (this.expr.isTemplateNode(code)) {
-      const codeVar = emitter.nextVar('_code')
-      const frame: IteratorScopeFrame = { itemVar, indexVar, inputLengthExpr, rawItemExpr }
-
-      this.expr.pushIteratorFrame(frame)
-      const codeExpr = this.expr.compileTemplateExpression(code)
-
-      this.expr.popIteratorFrame()
-      emitter.emit(`var ${codeVar} = String(${codeExpr});`)
-
-      return codeVar
-    }
-
-    return undefined
   }
 
   private compileTemplateFieldValidations(
     field: TemplateNode,
-    codeVar: string | undefined,
+    codeExpr: string | undefined,
     emitter: CodeEmitter,
   ): void {
     const validWhen = field.properties?.validWhen
 
-    if (!Array.isArray(validWhen)) {
+    if (!hasConfiguredValue(validWhen)) {
       return
     }
 
-    const staticCode = typeof field.properties?.code === 'string' ? (field.properties.code as string) : undefined
-    const blockCodeExpr = codeVar ?? (staticCode ? JSON.stringify(staticCode) : 'undefined')
+    const blockCodeExpr = codeExpr ?? 'undefined'
 
-    const dependentWhen = field.properties?.dependentWhen
+    this.expr.withSelfCodeExpression(codeExpr, () => {
+      const dependentWhen = field.properties?.dependentWhen
 
-    if (this.expr.isTemplateNode(dependentWhen)) {
-      const guardExpr = this.expr.compileTemplateExpression(dependentWhen)
+      if (dependentWhen !== undefined) {
+        const guardExpr = this.expr.compileOperand(dependentWhen)
 
-      emitter.emitBlock(`if (${guardExpr})`, () => {
-        for (const validation of validWhen) {
-          if (this.expr.isTemplateNode(validation)) {
-            this.compileTemplateValidationNode(validation, blockCodeExpr, emitter)
-          }
-        }
-      })
-    } else {
-      for (const validation of validWhen) {
-        if (this.expr.isTemplateNode(validation)) {
-          this.compileTemplateValidationNode(validation, blockCodeExpr, emitter)
-        }
-      }
-    }
-  }
-
-  private compileTemplateValidationNode(node: TemplateNode, blockCodeExpr: string, emitter: CodeEmitter): void {
-    const submissionOnly = node.properties?.submissionOnly === true
-    const groupGuard = this.compileGroupsGuard(readTemplateGroups(node))
-
-    emitter.emitBlock(`if (${groupGuard})`, () => {
-      if (submissionOnly) {
-        emitter.emitBlock('if (isSubmission)', () => {
-          this.emitTemplateValidationCheck(node, blockCodeExpr, emitter)
+        emitter.emitBlock(`if (${guardExpr})`, () => {
+          this.compileFieldValidationSlot(validWhen, JSON.stringify('iterator'), blockCodeExpr, emitter)
         })
 
         return
       }
 
-      this.emitTemplateValidationCheck(node, blockCodeExpr, emitter)
-    })
-  }
-
-  private compileGroupsGuard(groups: string[] | undefined): string {
-    return normalizeGroups(groups)
-      .map(group => `_activeGroupSet[${JSON.stringify(group)}] === true`)
-      .join(' || ')
-  }
-
-  private compileValidationNode(
-    node: ValidationASTNode,
-    block: FieldBlockASTNode,
-    blockCode: string | undefined,
-    emitter: CodeEmitter,
-  ): void {
-    const groupGuard = this.compileGroupsGuard(node.properties.groups)
-
-    emitter.emitBlock(`if (${groupGuard})`, () => {
-      if (node.properties.submissionOnly === true) {
-        emitter.emitBlock('if (isSubmission)', () => {
-          this.emitValidationCheck(node, block, blockCode, emitter)
-        })
-
-        return
-      }
-
-      this.emitValidationCheck(node, block, blockCode, emitter)
-    })
-  }
-
-  private emitValidationCheck(
-    node: ValidationASTNode,
-    block: FieldBlockASTNode,
-    blockCode: string | undefined,
-    emitter: CodeEmitter,
-  ): void {
-    const condVar = emitter.nextVar('_cond')
-    const condExpr = this.expr.compileExpression(node.properties.condition)
-
-    emitter.emit(`var ${condVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${condVar} = ${condExpr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${condVar} = false;`)
-    })
-
-    const messageExpr = this.compileMessage(node.properties.message)
-    const resolvedBlockCode = this.compileResolvedBlockCode(node, blockCode)
-    const detailsExpr = this.compileDetails(node.properties.details)
-
-    emitter.emitBlock(`if (!${condVar})`, () => {
-      emitter.emit(
-        `errors.push({ blockId: ${JSON.stringify(block.id)}, blockCode: ${resolvedBlockCode}, passed: false, message: ${messageExpr}, submissionOnly: ${isSubmissionOnlyStr(node)}, details: ${detailsExpr} });`,
-      )
-    })
-  }
-
-  private compileDomainValidation(node: ValidationASTNode, emitter: CodeEmitter): void {
-    const groupGuard = this.compileGroupsGuard(node.properties.groups)
-
-    emitter.emitBlock(`if (${groupGuard})`, () => {
-      if (node.properties.submissionOnly === true) {
-        emitter.emitBlock('if (isSubmission)', () => {
-          this.emitDomainValidationCheck(node, emitter)
-        })
-
-        return
-      }
-
-      this.emitDomainValidationCheck(node, emitter)
-    })
-  }
-
-  private emitTemplateValidationCheck(node: TemplateNode, blockCodeExpr: string, emitter: CodeEmitter): void {
-    const condVar = emitter.nextVar('_cond')
-    const condition = node.properties?.condition
-
-    if (!condition) {
-      return
-    }
-
-    const condExpr = this.expr.isTemplateNode(condition)
-      ? this.expr.compileTemplateExpression(condition)
-      : this.expr.compileOperand(condition)
-
-    emitter.emit(`var ${condVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${condVar} = ${condExpr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${condVar} = false;`)
-    })
-
-    const message = node.properties?.message
-    let messageExpr: string
-
-    if (typeof message === 'string') {
-      messageExpr = JSON.stringify(message)
-    } else if (this.expr.isTemplateNode(message)) {
-      messageExpr = this.expr.compileTemplateExpression(message)
-    } else {
-      messageExpr = JSON.stringify('')
-    }
-    const submissionOnly = node.properties?.submissionOnly === true ? 'true' : 'false'
-    const details = node.properties?.details
-    const detailsExpr = details !== undefined ? JSON.stringify(details) : 'undefined'
-
-    emitter.emitBlock(`if (!${condVar})`, () => {
-      emitter.emit(
-        `errors.push({ blockId: "iterator", blockCode: ${blockCodeExpr}, passed: false, message: ${messageExpr}, submissionOnly: ${submissionOnly}, details: ${detailsExpr} });`,
-      )
+      this.compileFieldValidationSlot(validWhen, JSON.stringify('iterator'), blockCodeExpr, emitter)
     })
   }
 
@@ -390,157 +209,163 @@ export default class StepValidationCompiler {
    * matching the request-time rule that hidden dependent fields should not fail.
    */
   private compileFieldBlock(block: FieldBlockASTNode, emitter: CodeEmitter): void {
-    const validations = (block.properties.validWhen ?? []).filter(
-      (v): v is ValidationASTNode => this.expr.isCompilableNode(v) && (v as ASTNode).type === ASTNodeType.EXPRESSION,
-    )
+    const validWhen = block.properties.validWhen
 
-    if (validations.length === 0) {
+    if (!hasConfiguredValue(validWhen)) {
       return
     }
 
-    const blockCode = typeof block.properties.code === 'string' ? block.properties.code : undefined
+    const selfCodeExpr = this.compileFieldCodeExpression(block.properties.code)
+    const blockCodeExpr = selfCodeExpr ?? 'undefined'
     const hasDependentWhen =
       block.properties.dependentWhen !== undefined && this.expr.isCompilableNode(block.properties.dependentWhen)
 
-    if (hasDependentWhen) {
-      const guardExpr = this.expr.compileExpression(block.properties.dependentWhen!)
+    this.expr.withSelfCodeExpression(selfCodeExpr, () => {
+      if (hasDependentWhen) {
+        const guardExpr = this.expr.compileExpression(block.properties.dependentWhen!)
 
-      emitter.emitBlock(`if (${guardExpr})`, () => {
-        for (const validation of validations) {
-          this.compileValidationNode(validation, block, blockCode, emitter)
-        }
-      })
-    } else {
-      for (const validation of validations) {
-        this.compileValidationNode(validation, block, blockCode, emitter)
+        emitter.emitBlock(`if (${guardExpr})`, () => {
+          this.compileFieldValidationSlot(validWhen, JSON.stringify(block.id), blockCodeExpr, emitter)
+        })
+
+        return
       }
-    }
+
+      this.compileFieldValidationSlot(validWhen, JSON.stringify(block.id), blockCodeExpr, emitter)
+    })
   }
 
-  private emitDomainValidationCheck(node: ValidationASTNode, emitter: CodeEmitter): void {
-    const condVar = emitter.nextVar('_dcond')
-    const condExpr = this.expr.compileExpression(node.properties.condition)
+  private compileFieldCodeExpression(code: unknown): string | undefined {
+    if (typeof code === 'string') {
+      return JSON.stringify(code)
+    }
 
-    emitter.emit(`var ${condVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${condVar} = ${condExpr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${condVar} = false;`)
-    })
+    if (this.expr.isCompilableNode(code) || this.expr.isTemplateNode(code)) {
+      return this.expr.compileOperand(code)
+    }
 
-    const messageExpr = this.compileMessage(node.properties.message)
-    const detailsExpr = this.compileDetails(node.properties.details)
+    return undefined
+  }
 
-    emitter.emitBlock(`if (!${condVar})`, () => {
+  private compileFieldValidationSlot(
+    value: unknown,
+    blockIdExpr: string,
+    fallbackBlockCodeExpr: string,
+    emitter: CodeEmitter,
+  ): void {
+    const resultsVar = emitter.nextVar('_vresults')
+
+    emitter.emit(`var ${resultsVar};`)
+    this.values.compileValue(value, emitter, resultsVar)
+    this.emitValidationResultLoop(resultsVar, '_v', emitter, (resultVar, messageVar, detailsVar) => {
+      const blockCodeVar = emitter.nextVar('_vblockCode')
+      const awaitKeyword = this.expr.usesAwait ? 'await ' : ''
+
       emitter.emit(
-        `domainErrors.push({ passed: false, message: ${messageExpr}, submissionOnly: ${isSubmissionOnlyStr(node)}, details: ${detailsExpr} });`,
+        `var ${blockCodeVar} = typeof ${resultVar}.resolvedBlockCode === "function" ? ${resultVar}.resolvedBlockCode() : ${resultVar}.resolvedBlockCode;`,
+      )
+
+      if (awaitKeyword) {
+        emitter.emit(`${blockCodeVar} = await ${blockCodeVar};`)
+      }
+
+      emitter.emitBlock(`if (${blockCodeVar} === undefined)`, () => {
+        emitter.emit(`${blockCodeVar} = ${fallbackBlockCodeExpr};`)
+      })
+      emitter.emit(
+        `errors.push({ blockId: ${blockIdExpr}, blockCode: ${blockCodeVar}, passed: false, message: ${messageVar}, submissionOnly: ${resultVar}.submissionOnly === true, details: ${detailsVar} });`,
       )
     })
   }
 
-  /**
-   * Validation messages and resolved block codes can themselves be expressions,
-   * so helpers route them back through the shared dispatcher instead of treating
-   * them as render-only data.
-   */
-  private compileMessage(message: ASTNode | string): string {
-    if (typeof message === 'string') {
-      return JSON.stringify(message)
+  private compileDomainValidationSlot(value: unknown, emitter: CodeEmitter): void {
+    if (!hasConfiguredValue(value)) {
+      return
     }
 
-    if (this.expr.isCompilableNode(message)) {
-      return this.expr.compileExpression(message)
-    }
+    const resultsVar = emitter.nextVar('_dresults')
 
-    return JSON.stringify(String(message ?? ''))
+    emitter.emit(`var ${resultsVar};`)
+    this.values.compileValue(value, emitter, resultsVar)
+    this.emitValidationResultLoop(resultsVar, '_d', emitter, (resultVar, messageVar, detailsVar) => {
+      emitter.emit(
+        `domainErrors.push({ passed: false, message: ${messageVar}, submissionOnly: ${resultVar}.submissionOnly === true, details: ${detailsVar} });`,
+      )
+    })
   }
 
-  private compileResolvedBlockCode(node: ValidationASTNode, blockCode: string | undefined): string {
-    const resolved = node.properties.resolvedBlockCode
+  private emitValidationResultLoop(
+    resultsVar: string,
+    varPrefix: string,
+    emitter: CodeEmitter,
+    emitFailure: (resultVar: string, messageVar: string, detailsVar: string) => void,
+  ): void {
+    const awaitKeyword = this.expr.usesAwait ? 'await ' : ''
+    const stackVar = emitter.nextVar(`${varPrefix}stack`)
+    const resultVar = emitter.nextVar(`${varPrefix}result`)
+    const indexVar = emitter.nextVar(`${varPrefix}index`)
+    const passedVar = emitter.nextVar(`${varPrefix}passed`)
+    const messageVar = emitter.nextVar(`${varPrefix}message`)
+    const detailsVar = emitter.nextVar(`${varPrefix}details`)
 
-    if (typeof resolved === 'string') {
-      return JSON.stringify(resolved)
-    }
+    emitter.emit(`var ${stackVar} = [${resultsVar}];`)
+    emitter.emitBlock(`while (${stackVar}.length > 0)`, () => {
+      emitter.emit(`var ${resultVar} = ${stackVar}.pop();`)
+      emitter.emitBlock(`if (${resultVar} == null)`, () => {
+        emitter.emit('continue;')
+      })
+      emitter.emitBlock(`if (Array.isArray(${resultVar}))`, () => {
+        emitter.emitBlock(`for (var ${indexVar} = ${resultVar}.length - 1; ${indexVar} >= 0; ${indexVar}--)`, () => {
+          emitter.emit(`${stackVar}.push(${resultVar}[${indexVar}]);`)
+        })
+        emitter.emit('continue;')
+      })
+      emitter.emit(`if (${resultVar}.submissionOnly === true && !isSubmission) { continue; }`)
+      emitter.emit(`if (!_validationGroupsActive(${resultVar}.groups)) { continue; }`)
+      emitter.emit(
+        `var ${passedVar} = typeof ${resultVar}.evaluate === "function" ? ${resultVar}.evaluate() : ${resultVar}.passed;`,
+      )
 
-    if (resolved !== undefined && this.expr.isCompilableNode(resolved)) {
-      return this.expr.compileExpression(resolved)
-    }
+      if (awaitKeyword) {
+        emitter.emit(`${passedVar} = await ${passedVar};`)
+      }
 
-    if (blockCode !== undefined) {
-      return JSON.stringify(blockCode)
-    }
+      emitter.emit(`if (${passedVar}) { continue; }`)
+      emitter.emit(
+        `var ${messageVar} = typeof ${resultVar}.message === "function" ? ${resultVar}.message() : ${resultVar}.message;`,
+      )
+      emitter.emit(
+        `var ${detailsVar} = typeof ${resultVar}.details === "function" ? ${resultVar}.details() : ${resultVar}.details;`,
+      )
 
-    return 'undefined'
-  }
+      if (awaitKeyword) {
+        emitter.emit(`${messageVar} = await ${messageVar};`)
+        emitter.emit(`${detailsVar} = await ${detailsVar};`)
+      }
 
-  private compileDetails(details: Record<string, unknown> | undefined): string {
-    if (details === undefined) {
-      return 'undefined'
-    }
-
-    return JSON.stringify(details)
+      emitter.emitBlock(`if (${messageVar} === undefined)`, () => {
+        emitter.emit(`${messageVar} = "";`)
+      })
+      emitFailure(resultVar, messageVar, detailsVar)
+    })
   }
 
   private findTemplateFieldsWithValidation(template: TemplateValue): TemplateNode[] {
-    const results: TemplateNode[] = []
-
-    this.walkTemplate(template, results)
-
-    return results
-  }
-
-  private walkTemplate(value: TemplateValue, results: TemplateNode[]): void {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      if (value.originalType === ASTNodeType.BLOCK && value.blockType === BlockType.FIELD) {
-        const validWhen = value.properties?.validWhen
-
-        if (Array.isArray(validWhen) && validWhen.length > 0) {
-          results.push(value)
-        }
-      }
-
-      if (value.properties) {
-        Object.values(value.properties).forEach(child => {
-          this.walkTemplate(child as TemplateValue, results)
-        })
-      }
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(item => {
-        this.walkTemplate(item, results)
-      })
-
-      return
-    }
-
-    Object.values(value).forEach(item => {
-      this.walkTemplate(item, results)
-    })
+    return this.templates.findTemplateNodes(
+      template,
+      node => isTemplateFieldNode(node) && hasConfiguredValue(node.properties?.validWhen),
+    )
   }
 }
 
-function isSubmissionOnlyStr(node: ValidationASTNode): string {
-  return node.properties.submissionOnly === true ? 'true' : 'false'
-}
-
-function normalizeGroups(groups: string[] | undefined): string[] {
-  return groups !== undefined && groups.length > 0 ? groups : ['default']
-}
-
-function readTemplateGroups(node: TemplateNode): string[] | undefined {
-  const groups = node.properties?.groups
-
-  if (!Array.isArray(groups)) {
-    return undefined
+function hasConfiguredValue(value: unknown): boolean {
+  if (value === undefined) {
+    return false
   }
 
-  return groups.filter(group => typeof group === 'string')
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  return true
 }

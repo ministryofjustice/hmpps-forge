@@ -65,11 +65,8 @@ export default class ReferenceNodeCompiler {
       return this.compileSelfAnswerReference(path)
     }
 
-    if (typeof fieldCode !== 'string') {
-      return 'undefined'
-    }
-
-    let expr = `ctx.answers[${JSON.stringify(fieldCode)}]?.current`
+    const fieldCodeExpr = typeof fieldCode === 'string' ? JSON.stringify(fieldCode) : this.ctx.compileOperand(fieldCode)
+    let expr = `ctx.answers[${fieldCodeExpr}]?.current`
 
     for (let i = 2; i < path.length; i++) {
       expr += `?.[${JSON.stringify(String(path[i]))}]`
@@ -79,10 +76,10 @@ export default class ReferenceNodeCompiler {
   }
 
   private compileSelfAnswerReference(path: (string | number | TemplateValue)[]): string {
-    const frame = this.ctx.iteratorStack[this.ctx.iteratorStack.length - 1]
+    const selfCodeExpr = this.ctx.selfCodeExpr
 
-    if (frame?.codeVar) {
-      let expr = `ctx.answers[${frame.codeVar}]?.current`
+    if (selfCodeExpr !== undefined) {
+      let expr = `ctx.answers[${selfCodeExpr}]?.current`
 
       for (let i = 2; i < path.length; i++) {
         expr += `?.[${JSON.stringify(String(path[i]))}]`

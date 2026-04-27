@@ -39,6 +39,7 @@ export type {
   FormatExpr,
   FunctionExpr,
   GeneratorFunctionExpr,
+  IterateExpr,
   MatchExpr,
   PipelineExpr,
   PredicateExpr,

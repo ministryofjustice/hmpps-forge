@@ -12,6 +12,18 @@ export default class CodeEmitter {
 
   private varCounter = 0
 
+  constructor(varCounter = 0) {
+    this.varCounter = varCounter
+  }
+
+  fork(): CodeEmitter {
+    return new CodeEmitter(this.varCounter)
+  }
+
+  syncVariablesFrom(other: CodeEmitter): void {
+    this.varCounter = Math.max(this.varCounter, other.varCounter)
+  }
+
   /**
    * Prefixes are chosen by each compiler so the emitted source tells you which
    * part of the journey evaluation produced a temporary value.
