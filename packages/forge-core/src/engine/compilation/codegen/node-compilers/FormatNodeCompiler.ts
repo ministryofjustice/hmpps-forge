@@ -8,14 +8,11 @@ export default class FormatNodeCompiler {
     const formatArgs = (properties.arguments ?? []) as unknown[]
     const compiled = formatArgs.map(arg => this.ctx.compileOperand(arg))
 
-    let result = JSON.stringify(template)
-
-    compiled.forEach((argExpr, i) => {
+    return compiled.reduce((result, argExpr, i) => {
       const placeholder = `%${i + 1}`
+      const placeholderPattern = `${placeholder}(?!\\d)`
 
-      result = `${result}.replace(${JSON.stringify(placeholder)}, String(${argExpr} ?? ""))`
-    })
-
-    return result
+      return `${result}.replace(${new RegExp(placeholderPattern, 'g').toString()}, () => String(${argExpr} ?? ""))`
+    }, JSON.stringify(template))
   }
 }
