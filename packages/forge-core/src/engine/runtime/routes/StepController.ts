@@ -7,6 +7,7 @@ import {
   buildCompiledAnswerPreparationContext,
   buildCompiledBaseContext,
   buildCompiledHookLifecycleContext,
+  buildCompiledRenderContext,
 } from '../context/compiledEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
 import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
@@ -343,7 +344,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+    return compiledFn(buildCompiledRenderContext(context, this.dependencies.functionRegistry))
   }
 
   private resolveStepMetadata(

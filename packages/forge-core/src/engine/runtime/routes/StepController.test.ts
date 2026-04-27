@@ -732,6 +732,38 @@ describe('StepController', () => {
         expect(ctx.conditions).toBeDefined()
       })
 
+      it('should pass post values to compiled render on POST', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        const compiledRenderSpy = vi.fn(() => ({
+          blocks: [],
+          step: { path: step.properties.path, title: step.properties.title },
+          ancestors: [],
+        }))
+
+        mockContext.request.getAllPost = vi.fn().mockReturnValue({ fieldName: 'value' })
+        mockCompiledForm.compiledRender = compiledRenderSpy
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(compiledRenderSpy).toHaveBeenCalledTimes(1)
+        expect(compiledRenderSpy).toHaveBeenCalledWith(expect.objectContaining({ post: { fieldName: 'value' } }))
+      })
+
       it('should await async compiled answer preparation before reachability evaluation on POST', async () => {
         // Arrange
         const step = createStepWithHooks({})

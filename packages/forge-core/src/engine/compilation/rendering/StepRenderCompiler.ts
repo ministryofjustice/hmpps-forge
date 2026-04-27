@@ -33,6 +33,7 @@ export interface RenderCompilationContext {
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
+  post: Record<string, string | string[]>
   request: Record<string, unknown>
   conditions: FunctionRegistry
 }

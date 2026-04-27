@@ -28,6 +28,10 @@ export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
   post: ReturnType<StepRequest['getAllPost']>
 }
 
+export interface CompiledRenderContext extends CompiledBaseContext {
+  post: ReturnType<StepRequest['getAllPost']>
+}
+
 /**
  * Compiled functions deliberately receive a small serialisable-ish snapshot of
  * request state instead of the full RuntimeEvaluationContext. That keeps the
@@ -62,6 +66,16 @@ export function buildCompiledAnswerPreparationContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
 ): CompiledAnswerPreparationContext {
+  return {
+    ...buildCompiledBaseContext(context, functionRegistry),
+    post: context.request.getAllPost(),
+  }
+}
+
+export function buildCompiledRenderContext(
+  context: RuntimeEvaluationContext,
+  functionRegistry: FunctionRegistry,
+): CompiledRenderContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     post: context.request.getAllPost(),
