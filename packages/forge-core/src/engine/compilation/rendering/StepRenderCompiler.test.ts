@@ -71,6 +71,7 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
     session: {},
     params: {},
     query: {},
+    post: {},
     request: { method: 'GET' },
     conditions: {
       get: vi.fn(() => ({ evaluate: () => undefined })),
@@ -238,6 +239,24 @@ describe('StepRenderCompiler', () => {
 
       // Assert
       expect(result.blocks[0].properties.html).toBe('123 Example Street<br>London')
+    })
+
+    it('should evaluate post references when rendering block properties', () => {
+      // Arrange
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('content', createReference(['post', 'action']))
+        .build()
+      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = compiled(createCtx({ post: { action: 'find-address' }, request: { method: 'POST' } }))
+
+      // Assert
+      expect(result.blocks[0].properties.content).toBe('find-address')
     })
 
     it('should render action-set field values after POST preparation', () => {
