@@ -4,6 +4,7 @@ import {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
+  ConditionalBoolean,
   ConditionalArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -41,6 +42,9 @@ export interface MOJFilterTagItem {
 
   /** Display text for the filter tag */
   text: ConditionalString
+
+  /** Conditional visibility for this filter tag */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -52,6 +56,9 @@ export interface MOJFilterCategory {
 
   /** Array of filter tag items in this category */
   items: ConditionalArray<MOJFilterTagItem>
+
+  /** Conditional visibility for this filter category */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -166,9 +173,21 @@ export interface MOJFilter extends BlockDefinition, MOJFilterProps {
  * Renders an MOJ Filter component using Nunjucks template
  */
 function filterRenderer(block: EvaluatedBlock<MOJFilter>, nunjucksEnv: nunjucks.Environment): string {
+  const selectedFilters = block.selectedFilters
+    ? {
+        ...block.selectedFilters,
+        categories: block.selectedFilters.categories
+          .filter(category => category.visibleWhen !== false)
+          .map(category => ({
+            ...category,
+            items: category.items.filter(item => item.visibleWhen !== false),
+          })),
+      }
+    : undefined
+
   const params = {
     heading: block.heading,
-    selectedFilters: block.selectedFilters,
+    selectedFilters,
     submit: block.submit,
     optionsHtml: block.optionsHtml,
     classes: block.classes,

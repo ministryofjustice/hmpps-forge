@@ -156,6 +156,28 @@ describe('govukRadioInput', () => {
       expect(params.items[1]).toEqual({ divider: 'or' })
     })
 
+    it('should omit items and dividers when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { value: 'email', text: 'Email' },
+        { value: 'phone', text: 'Phone', visibleWhen: false },
+        { divider: 'or', visibleWhen: false },
+        { value: 'post', text: 'Post', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({
+        code: 'test-radio',
+        items,
+      })
+
+      // Assert
+      expect(params.items.map((item: { text?: string; divider?: string }) => item.text ?? item.divider)).toEqual([
+        'Email',
+        'Post',
+      ])
+    })
+
     it('marks item as checked based on value', async () => {
       const params = await helper.getParams({
         code: 'test-radio',

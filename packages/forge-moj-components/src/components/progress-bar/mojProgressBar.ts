@@ -66,6 +66,9 @@ export interface MOJProgressBarItem {
 
   /** Additional HTML attributes for the item element */
   attributes?: Record<string, ConditionalString>
+
+  /** Conditional visibility for this progress item */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -150,14 +153,16 @@ function progressBarRenderer(block: EvaluatedBlock<MOJProgressBar>, nunjucksEnv:
   const params = {
     id: block.id,
     label: block.label,
-    items: block.items.map(item => ({
-      id: item.id,
-      label: typeof item.label === 'object' ? item.label : { text: item.label },
-      active: item.active,
-      complete: item.complete,
-      classes: item.classes,
-      attributes: item.attributes,
-    })),
+    items: block.items
+      .filter(item => item.visibleWhen !== false)
+      .map(item => ({
+        id: item.id,
+        label: typeof item.label === 'object' ? item.label : { text: item.label },
+        active: item.active,
+        complete: item.complete,
+        classes: item.classes,
+        attributes: item.attributes,
+      })),
     classes: block.classes,
     attributes: block.attributes,
   }

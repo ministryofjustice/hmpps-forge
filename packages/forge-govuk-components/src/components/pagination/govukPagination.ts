@@ -57,6 +57,12 @@ export interface PaginationItem {
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
+
+  /**
+   * Conditional visibility for this item. When the evaluated value is `false`,
+   * the item is omitted from rendering. Defaults to showing the item.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -116,7 +122,7 @@ function paginationRenderer(block: EvaluatedBlock<GovUKPagination>, nunjucksEnv:
   const params: Record<string, any> = {
     previous: block.previous?.visibleWhen === false ? undefined : block.previous,
     next: block.next?.visibleWhen === false ? undefined : block.next,
-    items: block.items,
+    items: block.items?.filter(item => item.visibleWhen !== false),
     landmarkLabel: block.landmarkLabel,
     classes: block.classes,
     attributes: block.attributes,

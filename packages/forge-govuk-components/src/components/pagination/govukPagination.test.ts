@@ -181,6 +181,21 @@ describe('GOV.UK Pagination Component', () => {
       expect(params.items).toHaveLength(3)
       expect(params.items[1]).toEqual({ ellipsis: true })
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { number: '1', href: '/page/1' },
+        { number: '2', href: '/page/2', visibleWhen: false },
+        { number: '3', href: '/page/3', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { number: string }) => item.number)).toEqual(['1', '3'])
+    })
   })
 
   describe('Optional attributes', () => {

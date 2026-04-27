@@ -277,6 +277,9 @@ interface GovUKCheckboxInputItem {
    * @example someConditionalField // A field definition that appears when this checkbox is selected
    */
   block?: BlockDefinition | BlockDefinition[]
+
+  /** Conditional visibility for this checkbox item */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -289,6 +292,9 @@ interface GovUKCheckboxInputDivider {
    * @example 'or'
    */
   divider: ConditionalString
+
+  /** Conditional visibility for this divider */
+  visibleWhen?: ConditionalBoolean
 }
 
 export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
@@ -296,7 +302,9 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
   (block, nunjucksEnv) => {
     // At render time, items has been evaluated (Collection expressions resolved to arrays)
     const evaluatedItems = block.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
-    const items = evaluatedItems.map(option => makeOption(option, block.value))
+    const items = evaluatedItems
+      .filter(option => option.visibleWhen !== false)
+      .map(option => makeOption(option, block.value))
 
     const params = {
       fieldset: block.fieldset || {

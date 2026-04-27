@@ -76,6 +76,25 @@ describe('govukSelectInput', () => {
       // Assert
       expect(params.items).toEqual(items)
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { value: '', text: 'Choose an option' },
+        { value: 'uk', text: 'United Kingdom', visibleWhen: false },
+        { value: 'fr', text: 'France', visibleWhen: true },
+      ]
+      const block = {
+        code: 'test-select',
+        items,
+      }
+
+      // Act
+      const params = await helper.getParams(block)
+
+      // Assert
+      expect(params.items.map((item: { text: string }) => item.text)).toEqual(['Choose an option', 'France'])
+    })
   })
 
   describe('Label transformation', () => {

@@ -22,6 +22,8 @@ export interface SelectItem {
   disabled?: ConditionalBoolean
   /** HTML attributes to add to the option. */
   attributes?: Record<string, any>
+  /** Conditional visibility for this option. */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -148,7 +150,7 @@ export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>('govukS
   const params = {
     id: block.id ?? block.code,
     name: block.code,
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
     hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     value: block.value,

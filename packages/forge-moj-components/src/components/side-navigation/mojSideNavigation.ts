@@ -47,6 +47,9 @@ export interface MOJSideNavigationItem {
   /** Flag to mark the navigation item as active */
   active?: ConditionalBoolean
 
+  /** Conditional visibility for this navigation item */
+  visibleWhen?: ConditionalBoolean
+
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
 }
@@ -60,6 +63,9 @@ export interface MOJSideNavigationSection {
 
   /** Array of navigation items in this section */
   items: ConditionalArray<MOJSideNavigationItem>
+
+  /** Conditional visibility for this navigation section */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -150,10 +156,18 @@ export interface MOJSideNavigation extends BlockDefinition, MOJSideNavigationPro
  * Renders an MOJ Side Navigation component using Nunjucks template
  */
 function sideNavigationRenderer(block: EvaluatedBlock<MOJSideNavigation>, nunjucksEnv: nunjucks.Environment): string {
+  const items = block.items?.filter(item => item.visibleWhen !== false)
+  const sections = block.sections
+    ?.filter(section => section.visibleWhen !== false)
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => item.visibleWhen !== false),
+    }))
+
   const params = {
     label: block.label,
-    items: block.items,
-    sections: block.sections,
+    items,
+    sections,
     classes: block.classes,
     attributes: block.attributes,
   }
