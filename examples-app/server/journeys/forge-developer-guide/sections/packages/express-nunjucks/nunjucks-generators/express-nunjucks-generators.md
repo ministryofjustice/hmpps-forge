@@ -2,7 +2,7 @@
 title: Nunjucks Generators
 section: packages
 path: packages/express-nunjucks/nunjucks-generators
-teaches: [NunjucksGenerators, NunjucksGenerators.String, nunjucksFunctions, nunjucksGeneratorImplementations]
+teaches: [NunjucksGenerators, NunjucksGenerators.String, nunjucksFunctions]
 prerequisites: [express-nunjucks]
 ---
 
