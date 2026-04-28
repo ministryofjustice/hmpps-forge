@@ -34,7 +34,7 @@ const parseDateString = (value: string, functionName: string): Date => {
   const trimmed = value.trim()
 
   if (!trimmed) {
-    throw new Error(`${functionName}: "${value}" is not a valid date`)
+    throw new TypeError(`${functionName}: "${value}" is not a valid date`)
   }
 
   const ukMatch = UK_DATE_RE.exec(trimmed)
@@ -47,7 +47,7 @@ const parseDateString = (value: string, functionName: string): Date => {
     const date = new Date(year, month - 1, day)
 
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`${functionName}: "${value}" is not a valid date`)
+      throw new TypeError(`${functionName}: "${value}" is not a valid date`)
     }
 
     return date
@@ -63,17 +63,17 @@ const parseDateString = (value: string, functionName: string): Date => {
     const date = new Date(trimmed)
 
     if (Number.isNaN(date.getTime())) {
-      throw new Error(`${functionName}: "${value}" is not a valid ISO date`)
+      throw new TypeError(`${functionName}: "${value}" is not a valid ISO date`)
     }
 
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`${functionName}: "${value}" is not a valid date`)
+      throw new TypeError(`${functionName}: "${value}" is not a valid date`)
     }
 
     return date
   }
 
-  throw new Error(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
+  throw new TypeError(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
 }
 
 /**
@@ -344,7 +344,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const parsed = Number(trimmed)
 
     if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-      throw new Error(`Transformer.String.ToInt: "${value}" is not a valid number`)
+      throw new TypeError(`Transformer.String.ToInt: "${value}" is not a valid number`)
     }
 
     return Math.trunc(parsed)
@@ -357,7 +357,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const parsed = Number(trimmed)
 
     if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-      throw new Error(`Transformer.String.ToFloat: "${value}" is not a valid number`)
+      throw new TypeError(`Transformer.String.ToFloat: "${value}" is not a valid number`)
     }
 
     return parsed
@@ -399,13 +399,13 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const trimmed = value.trim()
 
     if (!trimmed) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid date`)
     }
 
     const match = UK_DATE_RE.exec(trimmed)
 
     if (!match) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
     }
 
     const day = Number(match[1])
@@ -415,7 +415,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const date = new Date(year, month - 1, day)
 
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid date`)
     }
 
     const paddedYear = String(year).padStart(4, '0')
@@ -429,19 +429,19 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     assertString(value, 'Transformer.String.ToTimestampDate')
 
     if (!/^\d+$/.test(value)) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
     }
 
     const epoch = Number(value)
 
     if (!Number.isSafeInteger(epoch)) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a valid timestamp`)
     }
 
     const date = new Date(epoch)
 
     if (Number.isNaN(date.getTime())) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid epoch timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a valid epoch timestamp`)
     }
 
     return date
