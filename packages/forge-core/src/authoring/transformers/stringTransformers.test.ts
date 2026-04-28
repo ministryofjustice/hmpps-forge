@@ -587,8 +587,21 @@ describe('String Transformers', () => {
       expect(result.getDate()).toBe(15)
     })
 
+    it('should parse ISO timestamp that crosses local date boundary', () => {
+      // Arrange
+      const input = '2026-04-27T23:05:36.647Z'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBeInstanceOf(Date)
+      expect(result.toISOString()).toBe(input)
+    })
+
     it('should throw for non realistic ISO dates that js would silently roll over', () => {
       expect(() => evaluate('2026-02-30')).toThrow('is not a valid date')
+      expect(() => evaluate('2026-02-30T12:00:00Z')).toThrow('is not a valid date')
       expect(() => evaluate('2024-04-31')).toThrow('is not a valid date')
       expect(() => evaluate('2023-02-29')).toThrow('is not a valid date')
     })
@@ -651,6 +664,17 @@ describe('String Transformers', () => {
       expect(result).toBe('15 March 2024')
     })
 
+    it('should format ISO timestamp using UK timezone when timestamp crosses UTC date boundary', () => {
+      // Arrange
+      const input = '2026-04-27T23:30:00.000Z'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('28 April 2026')
+    })
+
     it('should format UK date as UK long date when locale is omitted', () => {
       // Arrange
       const input = '15/03/2024'
@@ -671,6 +695,121 @@ describe('String Transformers', () => {
 
       // Assert
       expect(result).toBe('March 15, 2024')
+    })
+
+    it('should format date with supplied Intl options', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+
+      // Assert
+      expect(result).toBe('15/03/2024')
+    })
+
+    it('should throw for invalid date string', () => {
+      // Arrange
+      const input = 'not a date'
+
+      // Act
+      const act = () => evaluate(input)
+
+      // Assert
+      expect(act).toThrow('Transformer.String.FormatDate: "not a date" is not a valid date')
+    })
+
+    it('should throw error for non-string values', () => {
+      // Arrange
+      const input = 123
+
+      // Act
+      const act = () => evaluate(input)
+
+      // Assert
+      expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
+    })
+
+    it('should return a function expression when called without options', () => {
+      // Arrange
+      const expr = StringTransformers.FormatDate()
+
+      // Act
+      const result = expr
+
+      // Assert
+      expect(result).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'FormatDate',
+        arguments: [],
+      })
+    })
+
+    it('should return a function expression when called with options', () => {
+      // Arrange
+      const options: Intl.DateTimeFormatOptions = { dateStyle: 'long' }
+
+      // Act
+      const result = StringTransformers.FormatDate(options)
+
+      // Assert
+      expect(result).toEqual({
+        type: FunctionType.TRANSFORMER,
+        name: 'FormatDate',
+        arguments: [options],
+      })
+    })
+  })
+
+  describe('FormatDate', () => {
+    const { evaluate } = StringTransformersRegistry.FormatDate
+
+    it('should format ISO date as UK long date when options are omitted', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('15 March 2024')
+    })
+
+    it('should format UK date as UK long date when locale is omitted', () => {
+      // Arrange
+      const input = '15/03/2024'
+
+      // Act
+      const result = evaluate(input, { dateStyle: 'long' })
+
+      // Assert
+      expect(result).toBe('15 March 2024')
+    })
+
+    it('should format date with supplied locale', () => {
+      // Arrange
+      const input = '2024-03-15'
+
+      // Act
+      const result = evaluate(input, { locale: 'en-US', dateStyle: 'long' })
+
+      // Assert
+      expect(result).toBe('March 15, 2024')
+    })
+
+    it('should format ISO timestamp that crosses local date boundary', () => {
+      // Arrange
+      const input = '2026-04-27T23:05:36.647Z'
+
+      // Act
+      const result = evaluate(input)
+
+      // Assert
+      expect(result).toBe('28 April 2026')
     })
 
     it('should format date with supplied Intl options', () => {
