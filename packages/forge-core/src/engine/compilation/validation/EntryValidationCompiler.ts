@@ -19,8 +19,12 @@ export default class EntryValidationCompiler {
       return undefined
     }
 
-    return compileGeneratedFunction<CompiledEntryValidationFunction>(this.expr, ['ctx'], functionRegistry, () =>
-      this.buildSource(entries),
+    return compileGeneratedFunction<CompiledEntryValidationFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(entries),
+      { phase: 'entry-validation' },
     )
   }
 
@@ -68,12 +72,7 @@ export default class EntryValidationCompiler {
     const predicateExpr = this.expr.compileExpression(when)
 
     emitter.emit(`var ${predicateVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${predicateVar} = !!(${predicateExpr});`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${predicateVar} = false;`)
-    })
+    emitter.emit(`${predicateVar} = !!(${predicateExpr});`)
 
     return predicateVar
   }

@@ -85,6 +85,7 @@ export default class StepRenderCompiler {
 
   private readonly values = new RuntimeValueCompiler(this.expr, {
     expressionErrorFallback: 'undefined',
+    expressionErrorMode: 'throw',
     omitUndefinedArrayItems: true,
     isStructuralValue: value => this.isRenderBlockValue(value),
     compileStructuralValue: (value, emitter, targetVar) => this.compileRenderBlockValue(value, emitter, targetVar),
@@ -117,8 +118,12 @@ export default class StepRenderCompiler {
     iterateNodes: IterateASTNode[] = [],
     functionRegistry?: FunctionRegistry,
   ): CompiledRenderFunction | SyncCompiledRenderFunction | undefined {
-    return compileGeneratedFunction<CompiledRenderFunction>(this.expr, ['ctx'], functionRegistry, () =>
-      this.buildSource(stepNode, ancestorNodes, iterateNodes),
+    return compileGeneratedFunction<CompiledRenderFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(stepNode, ancestorNodes, iterateNodes),
+      { phase: 'render' },
     )
   }
 

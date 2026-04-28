@@ -1,4 +1,5 @@
 import { ASTNodeType } from './enums'
+import type { DSLPathSegment } from '../diagnostics/sourceMetadata'
 
 /**
  * Template literal types for enforcing NodeID structure
@@ -24,4 +25,6 @@ export interface ASTNode {
   id: AstNodeId
   properties?: Record<string, any>
   raw?: any
+  dslPath?: readonly DSLPathSegment[]
+  formattedDslPath?: string
 }

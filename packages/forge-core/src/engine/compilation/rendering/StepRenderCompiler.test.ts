@@ -8,6 +8,7 @@ import { TemplateValue } from '../../types/template.type'
 import TemplateFactory from '../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
 import StepRenderCompiler, { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -932,9 +933,11 @@ describe('StepRenderCompiler', () => {
       ])
     })
 
-    it('should resolve nested array item text to undefined when format argument evaluation throws', async () => {
+    it('should throw runtime errors when nested array item text evaluation throws', () => {
       // Arrange
       const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
+      throwingCount.dslPath = ['steps', 0, 'blocks', 0, 'items', 0, 'text']
+      throwingCount.formattedDslPath = 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text'
       const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', 'Goals to work on now (%1)')
         .withProperty('arguments', [throwingCount])
@@ -966,15 +969,21 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = await compiled(createCtx({ conditions: functionRegistry }))
+      let thrown: unknown
+
+      try {
+        compiled(createCtx({ conditions: functionRegistry }))
+      } catch (error) {
+        thrown = error
+      }
 
       // Assert
-      expect(result.blocks[0].properties.items).toEqual([
-        {
-          text: undefined,
-          href: 'overview?type=current',
-        },
-      ])
+      expect(thrown).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect((thrown as ForgeRuntimeEvaluationError).phase).toBe('render')
+      expect((thrown as ForgeRuntimeEvaluationError).functionName).toBe('throwingCount')
+      expect((thrown as ForgeRuntimeEvaluationError).formattedPath).toBe(
+        'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+      )
     })
   })
 })

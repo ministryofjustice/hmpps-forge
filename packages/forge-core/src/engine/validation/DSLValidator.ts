@@ -1,8 +1,8 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type FunctionRegistry from '../registries/FunctionRegistry'
 import type ComponentRegistry from '../registries/ComponentRegistry'
-import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
-import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
+import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
+import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
 import { formatDSLPath } from './formatDSLPath'
 import { walkAndValidate } from './walkAndValidate'
@@ -20,7 +20,7 @@ export class DSLValidator {
       const schemaErrors = result.error.issues.map(issue => {
         const path = issue.path.map(pathPart => (typeof pathPart === 'symbol' ? pathPart.toString() : pathPart))
 
-        return new FormConfigurationSchemaError({
+        return new ForgeConfigurationSchemaError({
           path,
           message: issue.message,
           formattedPath: formatDSLPath(input, path),
@@ -58,7 +58,7 @@ export class DSLValidator {
    */
   static validateJSON(input: unknown): void {
     if (input === undefined) {
-      throw new FormConfigurationSerialisationError({
+      throw new ForgeConfigurationSerialisationError({
         path: [],
         message: 'Input is undefined (not valid JSON)',
         formattedPath: 'root',
@@ -76,7 +76,7 @@ export class DSLValidator {
       const serialized = JSON.stringify(input)
       JSON.parse(serialized)
     } catch (error) {
-      throw new FormConfigurationSerialisationError({
+      throw new ForgeConfigurationSerialisationError({
         path: [],
         message: `JSON serialization failed: ${(error as Error).message}`,
         formattedPath: formatDSLPath(input, []),
@@ -90,12 +90,12 @@ export class DSLValidator {
     path: (string | number)[] = [],
     root: unknown = obj,
     seen = new WeakSet(),
-  ): FormConfigurationSerialisationError[] {
-    const errors: FormConfigurationSerialisationError[] = []
+  ): ForgeConfigurationSerialisationError[] {
+    const errors: ForgeConfigurationSerialisationError[] = []
 
     if (obj === undefined) {
       errors.push(
-        new FormConfigurationSerialisationError({
+        new ForgeConfigurationSerialisationError({
           type: 'Undefined value',
           path,
           formattedPath: formatDSLPath(root, path),
@@ -103,19 +103,19 @@ export class DSLValidator {
       )
     } else if (typeof obj === 'function') {
       errors.push(
-        new FormConfigurationSerialisationError({ type: 'Function', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({ type: 'Function', path, formattedPath: formatDSLPath(root, path) }),
       )
     } else if (typeof obj === 'symbol') {
       errors.push(
-        new FormConfigurationSerialisationError({ type: 'Symbol', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({ type: 'Symbol', path, formattedPath: formatDSLPath(root, path) }),
       )
     } else if (typeof obj === 'bigint') {
       errors.push(
-        new FormConfigurationSerialisationError({ type: 'BigInt', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({ type: 'BigInt', path, formattedPath: formatDSLPath(root, path) }),
       )
     } else if (obj instanceof Date) {
       errors.push(
-        new FormConfigurationSerialisationError({
+        new ForgeConfigurationSerialisationError({
           type: 'Date object',
           path,
           formattedPath: formatDSLPath(root, path),
@@ -137,7 +137,7 @@ export class DSLValidator {
           typeof obj.constructor === 'function' && obj.constructor.name ? obj.constructor.name : 'unknown'
 
         errors.push(
-          new FormConfigurationSerialisationError({
+          new ForgeConfigurationSerialisationError({
             type: `Non-plain object (${constructorName})`,
             path,
             formattedPath: formatDSLPath(root, path),

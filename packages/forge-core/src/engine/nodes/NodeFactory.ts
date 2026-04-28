@@ -26,6 +26,7 @@ import UnknownNodeTypeError from '../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../errors/InvalidNodeError'
 import { ASTNode } from '../types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '../compilation/id-generators/NodeIDGenerator'
+import type { DSLSourceMap } from '../diagnostics/sourceMetadata'
 import JourneyFactory from './structures/journey/JourneyFactory'
 import StepFactory from './structures/step/StepFactory'
 import BlockFactory from './structures/block/BlockFactory'
@@ -97,6 +98,8 @@ export class NodeFactory {
 
   private readonly throwErrorOutcomeFactory: ThrowErrorOutcomeFactory
 
+  private sourceMap: DSLSourceMap | undefined
+
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly category: NodeIDCategory.COMPILE_AST,
@@ -124,6 +127,10 @@ export class NodeFactory {
     this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this, this.category)
   }
 
+  setSourceMap(sourceMap: DSLSourceMap): void {
+    this.sourceMap = sourceMap
+  }
+
   /**
    * Main entry point for transformation
    * Sets up error boundary and routes to appropriate factory
@@ -140,91 +147,91 @@ export class NodeFactory {
 
     // Structure nodes: Journey, Step, Block
     if (isJourneyDefinition(json)) {
-      return this.journeyFactory.create(json)
+      return this.withSourceMetadata(this.journeyFactory.create(json), json)
     }
 
     if (isStepDefinition(json)) {
-      return this.stepFactory.create(json)
+      return this.withSourceMetadata(this.stepFactory.create(json), json)
     }
 
     if (isBlockDefinition(json)) {
-      return this.blockFactory.create(json)
+      return this.withSourceMetadata(this.blockFactory.create(json), json)
     }
 
     // Logic nodes: Conditionals and Predicates
     if (isConditionalExpr(json)) {
-      return this.conditionalFactory.create(json)
+      return this.withSourceMetadata(this.conditionalFactory.create(json), json)
     }
 
     if (isMatchExpr(json)) {
-      return this.matchFactory.create(json)
+      return this.withSourceMetadata(this.matchFactory.create(json), json)
     }
 
     if (isPredicateTestExpr(json)) {
-      return this.testFactory.create(json)
+      return this.withSourceMetadata(this.testFactory.create(json), json)
     }
 
     if (isPredicateNotExpr(json)) {
-      return this.notFactory.create(json)
+      return this.withSourceMetadata(this.notFactory.create(json), json)
     }
 
     if (isPredicateAndExpr(json)) {
-      return this.andFactory.create(json)
+      return this.withSourceMetadata(this.andFactory.create(json), json)
     }
 
     if (isPredicateOrExpr(json)) {
-      return this.orFactory.create(json)
+      return this.withSourceMetadata(this.orFactory.create(json), json)
     }
 
     if (isPredicateXorExpr(json)) {
-      return this.xorFactory.create(json)
+      return this.withSourceMetadata(this.xorFactory.create(json), json)
     }
 
     // Expression nodes: References, Format, Pipelines, Iterate, Validations, Functions, Next
     if (isReferenceExpr(json)) {
-      return this.referenceFactory.create(json)
+      return this.withSourceMetadata(this.referenceFactory.create(json), json)
     }
 
     if (isFormatExpr(json)) {
-      return this.formatFactory.create(json)
+      return this.withSourceMetadata(this.formatFactory.create(json), json)
     }
 
     if (isPipelineExpr(json)) {
-      return this.pipelineFactory.create(json)
+      return this.withSourceMetadata(this.pipelineFactory.create(json), json)
     }
 
     if (isIterateExpr(json)) {
-      return this.iterateFactory.create(json)
+      return this.withSourceMetadata(this.iterateFactory.create(json), json)
     }
 
     if (isValidationExpr(json)) {
-      return this.validationFactory.create(json)
+      return this.withSourceMetadata(this.validationFactory.create(json), json)
     }
 
     if (isTieBreaker(json)) {
-      return this.tieBreakerFactory.create(json)
+      return this.withSourceMetadata(this.tieBreakerFactory.create(json), json)
     }
 
     if (isFunctionExpr(json)) {
-      return this.functionFactory.create(json)
+      return this.withSourceMetadata(this.functionFactory.create(json), json)
     }
 
     // Outcome nodes: Redirect, ThrowError
     if (isRedirectOutcome(json)) {
-      return this.redirectOutcomeFactory.create(json)
+      return this.withSourceMetadata(this.redirectOutcomeFactory.create(json), json)
     }
 
     if (isThrowErrorOutcome(json)) {
-      return this.throwErrorOutcomeFactory.create(json)
+      return this.withSourceMetadata(this.throwErrorOutcomeFactory.create(json), json)
     }
 
     // Hook nodes: Access, Submit
     if (isAccessHook(json)) {
-      return this.accessFactory.create(json)
+      return this.withSourceMetadata(this.accessFactory.create(json), json)
     }
 
     if (isSubmitHook(json)) {
-      return this.submitFactory.create(json)
+      return this.withSourceMetadata(this.submitFactory.create(json), json)
     }
 
     throw new UnknownNodeTypeError({
@@ -271,6 +278,19 @@ export class NodeFactory {
     })
 
     return result
+  }
+
+  private withSourceMetadata<TNode extends ASTNode>(node: TNode, source: object): TNode {
+    const metadata = this.sourceMap?.get(source)
+
+    if (metadata === undefined) {
+      return node
+    }
+
+    node.dslPath = metadata.dslPath
+    node.formattedDslPath = metadata.formattedDslPath
+
+    return node
   }
 
   /**

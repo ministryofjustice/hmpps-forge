@@ -9,6 +9,7 @@ import { TemplateValue } from '../../types/template.type'
 import TemplateFactory from '../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
 import StepAnswerPreparationCompiler, { AnswerPreparationContext } from './StepAnswerPreparationCompiler'
 
 function createFieldBlock(code: string, props: Record<string, unknown> = {}): FieldBlockASTNode {
@@ -422,6 +423,28 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.name.current).toBe('original')
     })
 
+    it('should throw runtime errors when formatter evaluation fails', () => {
+      // Arrange
+      const formatter = createTransformerFunction('explode')
+      const block = createFieldBlock('name', { formatters: [formatter] })
+      const ctx = createCtx({
+        post: { name: 'original' },
+        conditions: {
+          get: vi.fn(() => ({
+            evaluate: () => {
+              throw new Error('Formatter failed')
+            },
+          })),
+        } as unknown as AnswerPreparationContext['conditions'],
+      })
+
+      // Act
+      const fn = compiler.compile([block])
+
+      // Assert
+      expect(() => fn!(ctx)).toThrow(ForgeRuntimeEvaluationError)
+    })
+
     it('should pass additional arguments to formatter', () => {
       // Arrange
       const truncate = createTransformerFunction('truncate', [3])
@@ -486,7 +509,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(lastMutation.source).toBe('dependentWhen')
     })
 
-    it('should fail-open when dependentWhen expression throws', () => {
+    it('should throw runtime errors when dependentWhen expression throws', () => {
       // Arrange
       const ref = createReference(['answers', 'nonexistent', 'deep', 'path'])
       const cond = createConditionFunction('willThrow')
@@ -504,13 +527,10 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
-      const fn = new Function('ctx', source)
-
-      fn(ctx)
+      const fn = compiler.compile([block])
 
       // Assert
-      expect(ctx.answers.email.current).toBe('test@example.com')
+      expect(() => fn!(ctx)).toThrow(ForgeRuntimeEvaluationError)
     })
   })
 

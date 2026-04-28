@@ -1,6 +1,6 @@
 import formatFields from '../../shared/utils/utils'
 
-interface FormConfigurationReferenceScopeErrorOptions {
+interface ForgeConfigurationReferenceScopeErrorOptions {
   /** Path to the invalid reference expression */
   path: (string | number)[]
   /** Human-readable error message */
@@ -11,14 +11,14 @@ interface FormConfigurationReferenceScopeErrorOptions {
   formattedPath: string
 }
 
-export default class FormConfigurationReferenceScopeError extends Error {
+export default class ForgeConfigurationReferenceScopeError extends Error {
   readonly code: string
 
   readonly path: (string | number)[]
 
   readonly formattedPath: string
 
-  constructor(options: FormConfigurationReferenceScopeErrorOptions) {
+  constructor(options: ForgeConfigurationReferenceScopeErrorOptions) {
     super(options.message)
     this.name = new.target.name
     this.message = options.message

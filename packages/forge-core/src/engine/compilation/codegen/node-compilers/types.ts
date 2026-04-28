@@ -7,7 +7,7 @@ export interface IteratorScopeFrame {
 
 export interface NodeCompilationContext {
   compileOperand(value: unknown): string
-  compileFunctionCall(funcName: string, argExprs: string[]): string
+  compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string
   namespaceToCtx(namespace: string): string
   readonly iteratorStack: readonly IteratorScopeFrame[]
   readonly selfCodeExpr: string | undefined

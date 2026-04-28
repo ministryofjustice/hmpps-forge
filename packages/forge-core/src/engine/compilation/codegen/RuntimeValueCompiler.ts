@@ -8,16 +8,20 @@ import ScopedTemplateCompiler, { IteratorCompileScope } from './ScopedTemplateCo
 
 export interface RuntimeValueCompileOptions {
   readonly expressionErrorFallback?: string
+  readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems?: boolean
 }
 
 export interface RuntimeValueCompilerPolicy {
   readonly expressionErrorFallback: string
+  readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems: boolean
   readonly isStructuralValue?: (value: unknown) => boolean
   readonly compileStructuralValue?: (value: unknown, emitter: CodeEmitter, targetVar: string) => boolean
   readonly noteInlineIterator?: (nodeId: string) => void
 }
+
+type RuntimeValueErrorMode = 'fallback' | 'throw'
 
 interface MatchBranch {
   readonly predicate?: unknown
@@ -173,6 +177,14 @@ export default class RuntimeValueCompiler {
     targetVar: string,
     options: RuntimeValueCompileOptions,
   ): void {
+    const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
+
+    if (errorMode === 'throw') {
+      emitter.emit(`${targetVar} = ${expression};`)
+
+      return
+    }
+
     const fallback = options.expressionErrorFallback ?? this.policy.expressionErrorFallback
 
     emitter.emitBlock('try', () => {

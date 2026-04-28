@@ -11,8 +11,17 @@ import ConditionalNodeCompiler from './node-compilers/ConditionalNodeCompiler'
 import MatchNodeCompiler from './node-compilers/MatchNodeCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import { isASTNode } from '../../typeguards/nodes'
+import type { DSLPathSegment } from '../../diagnostics/sourceMetadata'
 
 export type { IteratorScopeFrame } from './node-compilers/types'
+
+interface DiagnosticMetadata {
+  readonly nodeId?: string
+  readonly path?: readonly DSLPathSegment[]
+  readonly formattedPath?: string
+  readonly functionName?: string
+  readonly functionType?: string
+}
 
 export default class NodeCompilationDispatcher implements NodeCompilationContext {
   private functionRegistry: FunctionRegistry | undefined
@@ -115,35 +124,35 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     }
 
     const properties = (node as unknown as { properties: Record<string, unknown> }).properties ?? {}
+    let expression = 'undefined'
 
     if (node.type === ASTNodeType.PREDICATE) {
       const predicateType = (node as unknown as { predicateType: string }).predicateType
 
-      return this.predicates.compile(predicateType, properties)
+      expression = this.predicates.compile(predicateType, properties)
+    } else if (node.type === ASTNodeType.EXPRESSION) {
+      const expressionType = (node as unknown as { expressionType: string }).expressionType
+
+      expression = this.dispatchExpression(expressionType, properties, node)
     }
 
-    if (node.type === ASTNodeType.EXPRESSION) {
-      return this.dispatchExpression((node as unknown as { expressionType: string }).expressionType, properties)
-    }
-
-    return 'undefined'
+    return this.compileTrackedExpression(node, expression)
   }
 
   compileTemplateExpression(node: TemplateNode): string {
     const properties = (node.properties ?? {}) as Record<string, unknown>
+    let expression = 'undefined'
 
     if (node.originalType === ASTNodeType.PREDICATE) {
-      return this.predicates.compile(node.predicateType as string, properties)
+      expression = this.predicates.compile(node.predicateType as string, properties)
+    } else if (node.originalType === ASTNodeType.EXPRESSION) {
+      expression = this.dispatchExpression(node.expressionType as string, properties, node)
     }
 
-    if (node.originalType === ASTNodeType.EXPRESSION) {
-      return this.dispatchExpression(node.expressionType as string, properties)
-    }
-
-    return 'undefined'
+    return this.compileTrackedExpression(node, expression)
   }
 
-  private dispatchExpression(expressionType: string, properties: Record<string, unknown>): string {
+  private dispatchExpression(expressionType: string, properties: Record<string, unknown>, source?: unknown): string {
     switch (expressionType) {
       case ExpressionType.REFERENCE:
         return this.references.compile(properties)
@@ -158,7 +167,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       case FunctionType.CONDITION:
       case FunctionType.TRANSFORMER:
       case FunctionType.GENERATOR:
-        return this.pipelines.compileFunction(properties)
+        return this.pipelines.compileFunction(properties, source)
       case ExpressionType.CONDITIONAL:
         return this.conditionals.compile(properties)
       case ExpressionType.MATCH:
@@ -241,7 +250,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     const conditionVar = this.nextLocalVar('_valid')
     const functionPrefix = this.usedAwait ? 'async ' : ''
 
-    return `({ evaluate: ${functionPrefix}function() { var ${conditionVar}; try { ${conditionVar} = ${conditionExpr}; } catch(e) { ${conditionVar} = false; } return !!${conditionVar}; }, message: ${functionPrefix}function() { return ${messageExpr}; }, submissionOnly: ${submissionOnlyExpr}, groups: ${groupsExpr}, details: ${functionPrefix}function() { return ${detailsExpr}; }, resolvedBlockCode: ${functionPrefix}function() { return ${resolvedBlockCodeExpr}; } })`
+    return `({ evaluate: ${functionPrefix}function() { var ${conditionVar}; try { ${conditionVar} = ${conditionExpr}; } catch(e) { if (e instanceof TypeError || (e && e.cause instanceof TypeError && e.functionType === ${JSON.stringify(FunctionType.CONDITION)})) { ${conditionVar} = false; } else { throw e; } } return !!${conditionVar}; }, message: ${functionPrefix}function() { return ${messageExpr}; }, submissionOnly: ${submissionOnlyExpr}, groups: ${groupsExpr}, details: ${functionPrefix}function() { return ${detailsExpr}; }, resolvedBlockCode: ${functionPrefix}function() { return ${resolvedBlockCodeExpr}; } })`
   }
 
   private compileMapIterator(input: unknown, yieldTemplate: unknown): string {
@@ -367,20 +376,209 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     return `${prefix}${suffix}`
   }
 
-  compileFunctionCall(funcName: string, argExprs: string[]): string {
-    const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argExprs.join(', ')})`
+  compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
+    const callIsAsync = this.functionRegistry !== undefined && (this.functionRegistry.get(funcName)?.isAsync ?? true)
 
     // Registry metadata is the source of truth for async user functions. Source
     // generation without a registry is used by narrow unit tests and preserves
     // sync output. With a registry, unknown entries are emitted as awaitable so
     // missing journey functions still fail at runtime lookup time.
-    if (this.functionRegistry !== undefined && (this.functionRegistry.get(funcName)?.isAsync ?? true)) {
+    if (callIsAsync) {
       this.usedAwait = true
-
-      return `(await ${callExpr})`
     }
 
-    return callExpr
+    const metadata = this.getDiagnosticMetadata(source, funcName)
+
+    if (metadata === undefined) {
+      const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argExprs.join(', ')})`
+
+      if (callIsAsync) {
+        return `(await ${callExpr})`
+      }
+
+      return callExpr
+    }
+
+    const argVars = argExprs.map(() => this.nextLocalVar('_arg'))
+    const argAssignments = argExprs.map((argExpr, index) => `var ${argVars[index]} = ${argExpr};`)
+    const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argVars.join(', ')})`
+    const returnStatement = callIsAsync ? `return await ${callExpr};` : `return ${callExpr};`
+
+    return this.wrapTrackedIife(metadata, argAssignments, returnStatement)
+  }
+
+  private compileTrackedExpression(source: unknown, expression: string): string {
+    const metadata = this.getDiagnosticMetadata(source)
+
+    if (metadata === undefined) {
+      return expression
+    }
+
+    const returnStatement = this.usedAwait ? `return await (${expression});` : `return (${expression});`
+
+    return this.wrapTrackedIife(metadata, [], returnStatement)
+  }
+
+  private wrapTrackedIife(
+    metadata: DiagnosticMetadata,
+    setupStatements: readonly string[],
+    returnStatement: string,
+  ): string {
+    const prevNodeIdVar = this.nextLocalVar('_prevForgeNodeId')
+    const prevDslPathVar = this.nextLocalVar('_prevForgeDslPath')
+    const prevFormattedPathVar = this.nextLocalVar('_prevForgeFormattedPath')
+    const prevFunctionNameVar = this.nextLocalVar('_prevForgeFunctionName')
+    const prevFunctionTypeVar = this.nextLocalVar('_prevForgeFunctionType')
+    const prevDiagnosticsVar = this.nextLocalVar('_prevForgeDiagnostics')
+    const setup = setupStatements.length > 0 ? `${setupStatements.join(' ')} ` : ''
+    const body = [
+      setup,
+      `var ${prevNodeIdVar} = typeof _forgeNodeId === "undefined" ? undefined : _forgeNodeId;`,
+      `var ${prevDslPathVar} = typeof _forgeDslPath === "undefined" ? undefined : _forgeDslPath;`,
+      `var ${prevFormattedPathVar} = typeof _forgeFormattedPath === "undefined" ? undefined : _forgeFormattedPath;`,
+      `var ${prevFunctionNameVar} = typeof _forgeFunctionName === "undefined" ? undefined : _forgeFunctionName;`,
+      `var ${prevFunctionTypeVar} = typeof _forgeFunctionType === "undefined" ? undefined : _forgeFunctionType;`,
+      `var ${prevDiagnosticsVar} = typeof _forgeRuntimeDiagnostics === "undefined" ? undefined : _forgeRuntimeDiagnostics.current;`,
+      this.compileDiagnosticAssignments(metadata),
+      `try { ${returnStatement} } catch(e) { ${this.compileDiagnosticThrow(metadata)} } finally { ${this.compileDiagnosticRestore(
+        prevNodeIdVar,
+        prevDslPathVar,
+        prevFormattedPathVar,
+        prevFunctionNameVar,
+        prevFunctionTypeVar,
+        prevDiagnosticsVar,
+      )} }`,
+    ].join(' ')
+
+    if (this.usedAwait) {
+      return `(await (async function() { ${body} })())`
+    }
+
+    return `(function() { ${body} })()`
+  }
+
+  private compileDiagnosticAssignments(metadata: DiagnosticMetadata): string {
+    return [
+      `if (typeof _forgeNodeId !== "undefined") { _forgeNodeId = ${this.toSourceLiteral(metadata.nodeId)}; }`,
+      `if (typeof _forgeDslPath !== "undefined") { _forgeDslPath = ${this.toSourceLiteral(metadata.path)}; }`,
+      `if (typeof _forgeFormattedPath !== "undefined") { _forgeFormattedPath = ${this.toSourceLiteral(metadata.formattedPath)}; }`,
+      `if (typeof _forgeFunctionName !== "undefined") { _forgeFunctionName = ${this.toSourceLiteral(metadata.functionName)}; }`,
+      `if (typeof _forgeFunctionType !== "undefined") { _forgeFunctionType = ${this.toSourceLiteral(metadata.functionType)}; }`,
+      `if (typeof _forgeRuntimeDiagnostics !== "undefined") { _forgeRuntimeDiagnostics.current = { nodeId: ${this.toSourceLiteral(
+        metadata.nodeId,
+      )}, path: ${this.toSourceLiteral(metadata.path)}, formattedPath: ${this.toSourceLiteral(
+        metadata.formattedPath,
+      )}, functionName: ${this.toSourceLiteral(metadata.functionName)}, functionType: ${this.toSourceLiteral(
+        metadata.functionType,
+      )} }; }`,
+    ].join(' ')
+  }
+
+  private compileDiagnosticThrow(metadata: DiagnosticMetadata): string {
+    return `if (typeof _forgeRuntimeDiagnostics !== "undefined") { throw _forgeRuntimeDiagnostics.wrap(e, ${this.toSourceLiteral(
+      metadata.nodeId,
+    )}, ${this.toSourceLiteral(metadata.path)}, ${this.toSourceLiteral(
+      metadata.formattedPath,
+    )}, ${this.toSourceLiteral(metadata.functionName)}, ${this.toSourceLiteral(metadata.functionType)}); } throw e;`
+  }
+
+  private compileDiagnosticRestore(
+    prevNodeIdVar: string,
+    prevDslPathVar: string,
+    prevFormattedPathVar: string,
+    prevFunctionNameVar: string,
+    prevFunctionTypeVar: string,
+    prevDiagnosticsVar: string,
+  ): string {
+    return [
+      `if (typeof _forgeNodeId !== "undefined") { _forgeNodeId = ${prevNodeIdVar}; }`,
+      `if (typeof _forgeDslPath !== "undefined") { _forgeDslPath = ${prevDslPathVar}; }`,
+      `if (typeof _forgeFormattedPath !== "undefined") { _forgeFormattedPath = ${prevFormattedPathVar}; }`,
+      `if (typeof _forgeFunctionName !== "undefined") { _forgeFunctionName = ${prevFunctionNameVar}; }`,
+      `if (typeof _forgeFunctionType !== "undefined") { _forgeFunctionType = ${prevFunctionTypeVar}; }`,
+      `if (typeof _forgeRuntimeDiagnostics !== "undefined") { _forgeRuntimeDiagnostics.current = ${prevDiagnosticsVar}; }`,
+    ].join(' ')
+  }
+
+  private getDiagnosticMetadata(source: unknown, functionName?: string): DiagnosticMetadata | undefined {
+    const sourceMetadata = this.getSourceMetadata(source)
+    const resolvedFunctionName = functionName ?? this.getFunctionName(source)
+    const functionType = this.getFunctionType(source)
+
+    if (
+      sourceMetadata.nodeId === undefined &&
+      sourceMetadata.path === undefined &&
+      sourceMetadata.formattedPath === undefined &&
+      resolvedFunctionName === undefined &&
+      functionType === undefined
+    ) {
+      return undefined
+    }
+
+    return {
+      ...sourceMetadata,
+      functionName: resolvedFunctionName,
+      functionType,
+    }
+  }
+
+  private getSourceMetadata(source: unknown): DiagnosticMetadata {
+    if (!this.isRecord(source)) {
+      return {}
+    }
+
+    const dslPath = source.dslPath
+
+    return {
+      nodeId: typeof source.id === 'string' ? source.id : undefined,
+      path: this.isDSLPath(dslPath) ? dslPath : undefined,
+      formattedPath: typeof source.formattedDslPath === 'string' ? source.formattedDslPath : undefined,
+    }
+  }
+
+  private getFunctionName(source: unknown): string | undefined {
+    if (!this.isRecord(source)) {
+      return undefined
+    }
+
+    const properties = this.isRecord(source.properties) ? source.properties : source
+    const name = properties.name
+
+    return typeof name === 'string' ? name : undefined
+  }
+
+  private getFunctionType(source: unknown): string | undefined {
+    if (!this.isRecord(source)) {
+      return undefined
+    }
+
+    const expressionType = source.expressionType
+
+    switch (expressionType) {
+      case FunctionType.CONDITION:
+      case FunctionType.TRANSFORMER:
+      case FunctionType.GENERATOR:
+      case FunctionType.EFFECT:
+        return expressionType
+      default:
+        return undefined
+    }
+  }
+
+  private isDSLPath(value: unknown): value is readonly DSLPathSegment[] {
+    return Array.isArray(value) && value.every(segment => typeof segment === 'string' || typeof segment === 'number')
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
+  }
+
+  private toSourceLiteral(value: unknown): string {
+    if (value === undefined) {
+      return 'undefined'
+    }
+
+    return JSON.stringify(value) ?? 'undefined'
   }
 
   namespaceToCtx(namespace: string): string {
