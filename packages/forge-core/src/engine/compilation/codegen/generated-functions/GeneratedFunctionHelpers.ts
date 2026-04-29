@@ -53,6 +53,7 @@ export interface GeneratedFunctionHelpers {
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
+  formatString(template: string, args: readonly unknown[]): string
   evaluateFunction(
     ctx: FunctionEvaluationContext,
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
@@ -132,6 +133,15 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     }
 
     blockProps.value = resolveGetFieldValue(answerHistory, blockProps.defaultValue)
+  },
+
+  formatString(template, args) {
+    return args.reduce<string>((result, value, index) => {
+      const placeholder = `%${index + 1}`
+      const placeholderPattern = `${placeholder}(?!\\d)`
+
+      return result.replace(new RegExp(placeholderPattern, 'g'), () => String(value ?? ''))
+    }, template)
   },
 
   evaluateFunction(ctx, diagnostics, metadata, functionName, args) {
