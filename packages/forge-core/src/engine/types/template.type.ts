@@ -1,6 +1,5 @@
 import { ASTNodeType } from './enums'
 import { TemplateNodeId } from './ast.type'
-import type { DSLPathSegment } from '../diagnostics/sourceMetadata'
 
 /**
  * A template node preserves the shape of an AST node but with:
@@ -13,8 +12,6 @@ export interface TemplateNode {
   originalType: ASTNodeType
   id: TemplateNodeId
   properties?: Record<string, TemplateValue>
-  dslPath?: readonly DSLPathSegment[]
-  formattedDslPath?: string
   [key: string]: unknown
 }
 

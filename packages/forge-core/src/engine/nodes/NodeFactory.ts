@@ -26,7 +26,7 @@ import UnknownNodeTypeError from '../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../errors/InvalidNodeError'
 import { ASTNode } from '../types/engine.type'
 import { NodeIDGenerator, NodeIDCategory } from '../compilation/id-generators/NodeIDGenerator'
-import type { DSLSourceMap } from '../diagnostics/sourceMetadata'
+import { attachDSLSourceMetadata, type DSLSourceMap } from '../diagnostics/sourceMetadata'
 import JourneyFactory from './structures/journey/JourneyFactory'
 import StepFactory from './structures/step/StepFactory'
 import BlockFactory from './structures/block/BlockFactory'
@@ -287,8 +287,7 @@ export class NodeFactory {
       return node
     }
 
-    node.dslPath = metadata.dslPath
-    node.formattedDslPath = metadata.formattedDslPath
+    attachDSLSourceMetadata(node, metadata)
 
     return node
   }

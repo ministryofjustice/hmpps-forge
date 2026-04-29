@@ -5,6 +5,7 @@ import { isASTNode, isTemplateNode } from '../../typeguards/nodes'
 import { NodeIDCategory, NodeIDGenerator } from '../../compilation/id-generators/NodeIDGenerator'
 import { ExpressionType } from '../../../authoring/types/enums'
 import { isObjectValue } from '../../../shared/typeguards/primitives'
+import { attachDSLSourceMetadata, getDSLSourceMetadata } from '../../diagnostics/sourceMetadata'
 
 /**
  * TemplateFactory: Compiles AST value trees into reusable templates.
@@ -72,6 +73,12 @@ export default class TemplateFactory {
 
       compiled[key] = this.compile(value)
     })
+
+    const metadata = getDSLSourceMetadata(node)
+
+    if (metadata !== undefined) {
+      attachDSLSourceMetadata(compiled, metadata)
+    }
 
     return compiled
   }

@@ -11,7 +11,7 @@ import ConditionalNodeCompiler from './node-compilers/ConditionalNodeCompiler'
 import MatchNodeCompiler from './node-compilers/MatchNodeCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import { isASTNode } from '../../typeguards/nodes'
-import type { DSLPathSegment } from '../../diagnostics/sourceMetadata'
+import { getDSLSourceMetadata, type DSLPathSegment } from '../../diagnostics/sourceMetadata'
 
 export type { IteratorScopeFrame } from './node-compilers/types'
 
@@ -523,16 +523,24 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   }
 
   private getSourceMetadata(source: unknown): DiagnosticMetadata {
+    const sourceMetadata = getDSLSourceMetadata(source)
+
     if (!this.isRecord(source)) {
-      return {}
+      return {
+        path: sourceMetadata?.dslPath,
+        formattedPath: sourceMetadata?.formattedDslPath,
+      }
     }
 
     const dslPath = source.dslPath
+    const path = this.isDSLPath(dslPath) ? dslPath : sourceMetadata?.dslPath
+    const formattedPath =
+      typeof source.formattedDslPath === 'string' ? source.formattedDslPath : sourceMetadata?.formattedDslPath
 
     return {
       nodeId: typeof source.id === 'string' ? source.id : undefined,
-      path: this.isDSLPath(dslPath) ? dslPath : undefined,
-      formattedPath: typeof source.formattedDslPath === 'string' ? source.formattedDslPath : undefined,
+      path,
+      formattedPath,
     }
   }
 

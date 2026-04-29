@@ -9,6 +9,7 @@ import TemplateFactory from '../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
+import { attachDSLSourceMetadata } from '../../diagnostics/sourceMetadata'
 import StepRenderCompiler, { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -936,8 +937,12 @@ describe('StepRenderCompiler', () => {
     it('should throw runtime errors when nested array item text evaluation throws', () => {
       // Arrange
       const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
-      throwingCount.dslPath = ['steps', 0, 'blocks', 0, 'items', 0, 'text']
-      throwingCount.formattedDslPath = 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text'
+
+      attachDSLSourceMetadata(throwingCount, {
+        dslPath: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
+        formattedDslPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+      })
+
       const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
         .withProperty('template', 'Goals to work on now (%1)')
         .withProperty('arguments', [throwingCount])

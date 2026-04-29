@@ -6,7 +6,7 @@ import type { TemplateNode } from '../types/template.type'
 import { NodeIDCategory, NodeIDGenerator } from '../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../nodes/NodeFactory'
 import { ASTNodeType } from '../types/enums'
-import { createDSLSourceMap } from './sourceMetadata'
+import { createDSLSourceMap, getDSLSourceMetadata } from './sourceMetadata'
 
 const createFactory = (journey: JourneyDefinition): NodeFactory => {
   const factory = new NodeFactory(new NodeIDGenerator(), NodeIDCategory.COMPILE_AST)
@@ -18,7 +18,7 @@ const createFactory = (journey: JourneyDefinition): NodeFactory => {
 
 describe('sourceMetadata', () => {
   describe('createDSLSourceMap()', () => {
-    it('should attach raw and formatted DSL paths to AST nodes', () => {
+    it('should attach diagnostic metadata to AST nodes', () => {
       // Arrange
       const journey = {
         type: StructureType.JOURNEY,
@@ -54,12 +54,15 @@ describe('sourceMetadata', () => {
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0] as FieldBlockASTNode
       const defaultValue = block.properties.defaultValue as FunctionASTNode
+      const metadata = getDSLSourceMetadata(defaultValue)
 
       // Assert
-      expect(defaultValue.dslPath).toEqual(['steps', 0, 'blocks', 0, 'defaultValue'])
-      expect(defaultValue.formattedDslPath).toBe(
+      expect(metadata?.dslPath).toEqual(['steps', 0, 'blocks', 0, 'defaultValue'])
+      expect(metadata?.formattedDslPath).toBe(
         'travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > defaultValue',
       )
+      expect(Object.keys(defaultValue)).not.toContain('dslPath')
+      expect(Object.keys(defaultValue)).not.toContain('formattedDslPath')
     })
 
     it('should preserve DSL paths on template nodes inside iterator yields', () => {
@@ -106,13 +109,16 @@ describe('sourceMetadata', () => {
       const block = step.properties.blocks![0]
       const iterate = block.properties.items as IterateASTNode
       const template = iterate.properties.iterator.yieldTemplate as TemplateNode
+      const metadata = getDSLSourceMetadata(template)
 
       // Assert
       expect(template.type).toBe(ASTNodeType.TEMPLATE)
-      expect(template.dslPath).toEqual(['steps', 0, 'blocks', 0, 'items', 'iterator', 'yield'])
-      expect(template.formattedDslPath).toBe(
+      expect(metadata?.dslPath).toEqual(['steps', 0, 'blocks', 0, 'items', 'iterator', 'yield'])
+      expect(metadata?.formattedDslPath).toBe(
         'travel-declaration > personal-details > blocks[0] (collection-block) > items > source > iterator > template',
       )
+      expect(Object.keys(template)).not.toContain('dslPath')
+      expect(Object.keys(template)).not.toContain('formattedDslPath')
     })
   })
 })
