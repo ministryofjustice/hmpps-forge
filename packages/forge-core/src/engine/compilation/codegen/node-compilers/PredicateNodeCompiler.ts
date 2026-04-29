@@ -35,7 +35,7 @@ export default class PredicateNodeCompiler {
     const funcName = conditionProps.name as string
     const funcArgs = (conditionProps.arguments ?? []) as unknown[]
     const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
-    const callExpr = this.ctx.compileFunctionCall(funcName, [subjectExpr, ...argExprs])
+    const callExpr = this.ctx.compileFunctionCall(funcName, [subjectExpr, ...argExprs], condition)
 
     if (negate) {
       return `!(${callExpr})`

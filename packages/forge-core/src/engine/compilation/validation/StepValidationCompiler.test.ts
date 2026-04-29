@@ -14,6 +14,7 @@ import {
   XorPredicateASTNode,
 } from '../../types/predicates.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
 import StepValidationCompiler, { ValidationContext } from './StepValidationCompiler'
 
 function createStep(): StepASTNode {
@@ -67,7 +68,7 @@ function createValidation(
     | OrPredicateASTNode
     | NotPredicateASTNode
     | XorPredicateASTNode,
-  message: string,
+  message: string | FunctionASTNode,
   options: { submissionOnly?: boolean; details?: Record<string, unknown>; groups?: string[] } = {},
 ): ValidationASTNode {
   return {
@@ -497,7 +498,7 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures).toHaveLength(0)
     })
 
-    it('should treat condition errors as validation failures', () => {
+    it('should treat condition TypeError as validation failures', () => {
       // Arrange
       const step = createStep()
       const block = createFieldBlock('age')
@@ -511,7 +512,7 @@ describe('StepValidationCompiler', () => {
         conditions: {
           get: vi.fn(() => ({
             evaluate: () => {
-              throw new Error('Type mismatch')
+              throw new TypeError('Type mismatch')
             },
           })),
         } as unknown as ValidationContext['conditions'],
@@ -524,6 +525,74 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures[0].message).toBe('Invalid age')
+    })
+
+    it('should throw runtime errors when validation conditions fail unexpectedly', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('age')
+      const ref = createReference(['answers', 'age'])
+      const throwingCond = createConditionFunction('throwingCondition')
+      const validation = createValidation(createTestPredicate(ref, throwingCond), 'Invalid age')
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({
+        answers: { age: { current: 'not-a-number' } },
+        conditions: {
+          get: vi.fn(() => ({
+            evaluate: () => {
+              throw new Error('Unexpected failure')
+            },
+          })),
+        } as unknown as ValidationContext['conditions'],
+      })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+
+      // Assert
+      expect(() => fn!(ctx, false)).toThrow(ForgeRuntimeEvaluationError)
+    })
+
+    it('should throw runtime errors when validation message evaluation fails', () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const ref = createReference(['answers', 'name'])
+      const messageGenerator: FunctionASTNode = {
+        type: ASTNodeType.EXPRESSION,
+        expressionType: FunctionType.GENERATOR,
+        id: ASTTestFactory.getId(),
+        properties: { name: 'messageGenerator', arguments: [] },
+      }
+      const validation = createValidation(
+        createTestPredicate(ref, createConditionFunction('isRequired')),
+        messageGenerator,
+      )
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({
+        answers: { name: { current: '' } },
+        conditions: {
+          get: vi.fn((name: string) => {
+            if (name === 'isRequired') {
+              return { evaluate: () => false }
+            }
+
+            return {
+              evaluate: () => {
+                throw new Error('Message failed')
+              },
+            }
+          }),
+        } as unknown as ValidationContext['conditions'],
+      })
+
+      // Act
+      const fn = compiler.compile(step, [block], [])
+
+      // Assert
+      expect(() => fn!(ctx, false)).toThrow(ForgeRuntimeEvaluationError)
     })
   })
 

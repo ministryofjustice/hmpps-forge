@@ -44,14 +44,15 @@ export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) 
  * sync-only functions as normal Functions and switches only async-dependent source
  * to AsyncFunction.
  *
- * compile() returns undefined only when source generation fails; runtime callers
- * fail fast when the generated function is unavailable.
+ * Generated-function construction failures throw ForgeCompilationError. Runtime
+ * callers still fail fast if defensive checks find a missing generated function.
  */
 export default class StepAnswerPreparationCompiler {
   private readonly expr = new NodeCompilationDispatcher()
 
   private readonly values = new RuntimeValueCompiler(this.expr, {
     expressionErrorFallback: 'undefined',
+    expressionErrorMode: 'throw',
     omitUndefinedArrayItems: false,
   })
 
@@ -62,8 +63,12 @@ export default class StepAnswerPreparationCompiler {
     iterateNodes: IterateASTNode[] = [],
     functionRegistry?: FunctionRegistry,
   ): CompiledAnswerPreparationFunction | undefined {
-    return compileGeneratedFunction<CompiledAnswerPreparationFunction>(this.expr, ['ctx'], functionRegistry, () =>
-      this.buildSource(fieldBlocks, iterateNodes),
+    return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(fieldBlocks, iterateNodes),
+      { phase: 'answer-preparation' },
     )
   }
 
@@ -180,6 +185,12 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileFormatterPipeline(formatters: unknown[], emitter: CodeEmitter, valueVar: string): void {
+    const originalValueVar = emitter.nextVar('_fov')
+    const failedVar = emitter.nextVar('_ff')
+
+    emitter.emit(`var ${originalValueVar} = ${valueVar};`)
+    emitter.emit(`var ${failedVar} = false;`)
+
     for (const formatter of formatters) {
       if (!isASTNode(formatter) && !this.expr.isTemplateNode(formatter)) {
         continue
@@ -188,15 +199,26 @@ export default class StepAnswerPreparationCompiler {
       const resultVar = emitter.nextVar('_fr')
       const callExpr = this.compileFormatterCall(formatter, valueVar)
 
-      emitter.emit(`var ${resultVar};`)
-      emitter.emitBlock('try', () => {
+      emitter.emitBlock(`if (!${failedVar})`, () => {
+        emitter.emit(`var ${resultVar};`)
+        emitter.emit('try {')
+        emitter.indent()
         emitter.emit(`${resultVar} = ${callExpr};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${resultVar} = undefined;`)
-      })
-      emitter.emitBlock(`if (${resultVar} !== undefined)`, () => {
-        emitter.emit(`${valueVar} = ${resultVar};`)
+        emitter.dedent()
+        emitter.emit('} catch (error) {')
+        emitter.indent()
+        emitter.emitBlock('if (error instanceof TypeError || (error && error.cause instanceof TypeError))', () => {
+          emitter.emit(`${valueVar} = ${originalValueVar};`)
+          emitter.emit(`${failedVar} = true;`)
+        })
+        emitter.emitBlock('else', () => {
+          emitter.emit('throw error;')
+        })
+        emitter.dedent()
+        emitter.emit('}')
+        emitter.emitBlock(`if (!${failedVar} && ${resultVar} !== undefined)`, () => {
+          emitter.emit(`${valueVar} = ${resultVar};`)
+        })
       })
     }
   }
@@ -353,7 +375,7 @@ export default class StepAnswerPreparationCompiler {
       const funcArgs = (properties.arguments ?? []) as unknown[]
       const argExprs = funcArgs.map(arg => this.expr.compileOperand(arg))
 
-      return this.expr.compileFunctionCall(funcName, [valueVar, ...argExprs])
+      return this.expr.compileFunctionCall(funcName, [valueVar, ...argExprs], formatterNode)
     }
 
     if (expressionType === ExpressionType.PIPELINE) {
@@ -374,7 +396,7 @@ export default class StepAnswerPreparationCompiler {
       const funcArgs = (stepProps.arguments ?? []) as unknown[]
       const argExprs = funcArgs.map(arg => this.expr.compileOperand(arg))
 
-      expr = this.expr.compileFunctionCall(funcName, [expr, ...argExprs])
+      expr = this.expr.compileFunctionCall(funcName, [expr, ...argExprs], step)
     }
 
     return expr

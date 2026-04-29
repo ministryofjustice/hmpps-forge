@@ -61,6 +61,10 @@ e2e-ci: ## Run Playwright tests in Docker container (for CI).
 	@docker compose $(CI_COMPOSE_FILES) up $(SERVICE_NAME) --wait $(if $(filter local,$(APP_VERSION)),--build) && \
 	docker compose $(CI_COMPOSE_FILES) run --rm playwright
 
+typecheck: ## Runs the typecheck.
+	@cd packages && npm run typecheck
+	@docker compose exec ${SERVICE_NAME} npm run typecheck
+
 lint: ## Runs the linter.
 	@cd packages && npm run lint
 	@docker compose exec ${SERVICE_NAME} npm run lint

@@ -48,8 +48,12 @@ export default class StepFieldInventoryCompiler {
     steps: FieldInventoryStepSource[],
     functionRegistry?: FunctionRegistry,
   ): CompiledFieldInventoryFunction | undefined {
-    return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], functionRegistry, () =>
-      this.buildSource(steps),
+    return compileGeneratedFunction<CompiledFieldInventoryFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(steps),
+      { phase: 'field-inventory' },
     )
   }
 

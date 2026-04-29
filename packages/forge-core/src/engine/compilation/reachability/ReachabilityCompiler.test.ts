@@ -7,6 +7,7 @@ import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../RuntimePlanBu
 import NodeRegistry from '../registries/NodeRegistry'
 import { NodeId } from '../../types/ast.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler, { ReachabilityContext } from './ReachabilityCompiler'
 
 function createReference(path: string[]): ReferenceASTNode {
@@ -545,7 +546,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('error handling', () => {
-    it('should treat predicate errors as false for entry predicates', () => {
+    it('should throw runtime errors for entry predicate failures', () => {
       // Arrange
       const pred = createTestPredicate(createReference(['data', 'value']), createConditionFunction('throwingCondition'))
 
@@ -567,10 +568,10 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const evaluate = () => fn!(ctx)
 
       // Assert
-      expect(result.entryResults[0]).toBe(false)
+      expect(evaluate).toThrow(ForgeRuntimeEvaluationError)
     })
   })
 

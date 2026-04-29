@@ -14,9 +14,9 @@ import type { BlockDefinition, FieldBlockDefinition } from '../../components/typ
 import FunctionRegistry from '../registries/FunctionRegistry'
 import ComponentRegistry from '../registries/ComponentRegistry'
 import { buildComponent } from '../../components/utils/buildComponent'
-import FormConfigurationSerialisationError from '../errors/FormConfigurationSerialisationError'
-import FormConfigurationSchemaError from '../errors/FormConfigurationSchemaError'
-import FormConfigurationReferenceScopeError from '../errors/FormConfigurationReferenceScopeError'
+import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
+import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
+import ForgeConfigurationReferenceScopeError from '../errors/ForgeConfigurationReferenceScopeError'
 import UnregisteredFunctionError from '../errors/UnregisteredFunctionError'
 import UnregisteredComponentError from '../errors/UnregisteredComponentError'
 import { DSLValidator } from './DSLValidator'
@@ -160,7 +160,7 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const typeError = error.errors.find(
-            e => e instanceof FormConfigurationSchemaError && e.path?.includes('type'),
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('type'),
           )
           expect(typeError).toBeDefined()
           expect(typeError?.message).toContain('Invalid input')
@@ -214,10 +214,11 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const schemaError = error.errors.find(
             e =>
-              e instanceof FormConfigurationSchemaError && e.path?.join('.') === 'steps.0.blocks.0.validWhen.0.message',
+              e instanceof ForgeConfigurationSchemaError &&
+              e.path?.join('.') === 'steps.0.blocks.0.validWhen.0.message',
           )
 
-          expect(schemaError).toBeInstanceOf(FormConfigurationSchemaError)
+          expect(schemaError).toBeInstanceOf(ForgeConfigurationSchemaError)
           expect(schemaError?.toString()).toContain(
             'Path=travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
           )
@@ -239,10 +240,10 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors.length).toBeGreaterThan(0)
-          expect(error.errors.some(e => e instanceof FormConfigurationSchemaError && e.path?.includes('code'))).toBe(
+          expect(error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('code'))).toBe(
             true,
           )
-          expect(error.errors.some(e => e instanceof FormConfigurationSchemaError && e.path?.includes('title'))).toBe(
+          expect(error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('title'))).toBe(
             true,
           )
         }
@@ -316,12 +317,12 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const codeError = error.errors.find(
-            e => e instanceof FormConfigurationSchemaError && e.path?.join('.') === 'children.0.code',
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'children.0.code',
           )
           expect(codeError).toBeDefined()
 
           const titleError = error.errors.find(
-            e => e instanceof FormConfigurationSchemaError && e.path?.join('.') === 'children.0.title',
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'children.0.title',
           )
           expect(titleError).toBeDefined()
         }
@@ -435,7 +436,7 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(FormConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
           expect(scopeError.code).toBe('self_outside_field')
           expect(scopeError.toString()).toContain(
             'Path=travel-declaration > confirm > validWhen[0] > condition > subject',
@@ -471,7 +472,7 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(FormConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
           expect(scopeError.code).toBe('self_inside_code')
           expect(scopeError.toString()).toContain(
             'Path=travel-declaration > personal-details > blocks[0] (GovUKInput) > code',
@@ -508,7 +509,7 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(FormConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
           expect(scopeError.code).toBe('item_outside_iterator_scope')
         }
       }
@@ -558,7 +559,7 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(FormConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
           expect(scopeError.code).toBe('item_outside_iterator_scope')
           expect(scopeError.toString()).toContain(
             'Path=travel-declaration > trips > blocks[0] (collection-block) > collection > source > iterator > template > blocks[0] (GovUKInput - country) > defaultValue',
@@ -611,7 +612,7 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(FormConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
           expect(scopeError.code).toBe('loop_invalid_property')
         }
       }
@@ -722,14 +723,14 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateJSON(validJSON)).not.toThrow()
     })
 
-    it('should throw FormConfigurationSerialisationError for undefined input', () => {
-      expect(() => DSLValidator.validateJSON(undefined)).toThrow(FormConfigurationSerialisationError)
+    it('should throw ForgeConfigurationSerialisationError for undefined input', () => {
+      expect(() => DSLValidator.validateJSON(undefined)).toThrow(ForgeConfigurationSerialisationError)
 
       try {
         DSLValidator.validateJSON(undefined)
       } catch (error) {
-        expect(error).toBeInstanceOf(FormConfigurationSerialisationError)
-        if (error instanceof FormConfigurationSerialisationError) {
+        expect(error).toBeInstanceOf(ForgeConfigurationSerialisationError)
+        if (error instanceof ForgeConfigurationSerialisationError) {
           expect(error.type).toBe('non_serializable')
           expect(error.message).toContain('undefined')
         }
@@ -756,7 +757,7 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors.length).toBe(4) // func, date, symbol, anotherFunc
-          expect(error.errors.every(e => e instanceof FormConfigurationSerialisationError)).toBe(true)
+          expect(error.errors.every(e => e instanceof ForgeConfigurationSerialisationError)).toBe(true)
           expect(error.message).toContain('JSON validation failed')
         }
       }
@@ -771,13 +772,13 @@ describe('FormValidator', () => {
       }
       circularObject.nested.parent = circularObject
 
-      expect(() => DSLValidator.validateJSON(circularObject)).toThrow(FormConfigurationSerialisationError)
+      expect(() => DSLValidator.validateJSON(circularObject)).toThrow(ForgeConfigurationSerialisationError)
 
       try {
         DSLValidator.validateJSON(circularObject)
       } catch (error) {
-        expect(error).toBeInstanceOf(FormConfigurationSerialisationError)
-        if (error instanceof FormConfigurationSerialisationError) {
+        expect(error).toBeInstanceOf(ForgeConfigurationSerialisationError)
+        if (error instanceof ForgeConfigurationSerialisationError) {
           expect(error.type).toBe('json_error')
           expect(error.message).toContain('Converting circular structure to JSON')
         }
@@ -812,8 +813,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(FormConfigurationSerialisationError)
-          if (err instanceof FormConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
+          if (err instanceof ForgeConfigurationSerialisationError) {
             expect(err.type).toBe('BigInt')
           }
         }
@@ -838,8 +839,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(FormConfigurationSerialisationError)
-          if (err instanceof FormConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
+          if (err instanceof ForgeConfigurationSerialisationError) {
             expect(err.type).toContain('Non-plain object')
             expect(err.type).toContain('CustomClass')
           }
@@ -1543,7 +1544,7 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeError = error.errors.find(
-            (e: FormConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
           )
 
           expect(scopeError).toBeDefined()

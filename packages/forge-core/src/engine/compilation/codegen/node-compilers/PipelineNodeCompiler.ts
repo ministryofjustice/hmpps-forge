@@ -13,17 +13,17 @@ export default class PipelineNodeCompiler {
       const funcArgs = (stepProps.arguments ?? []) as unknown[]
       const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
 
-      expr = this.ctx.compileFunctionCall(funcName, [expr, ...argExprs])
+      expr = this.ctx.compileFunctionCall(funcName, [expr, ...argExprs], step)
     }
 
     return expr
   }
 
-  compileFunction(properties: Record<string, unknown>): string {
+  compileFunction(properties: Record<string, unknown>, source?: unknown): string {
     const funcName = properties.name as string
     const funcArgs = (properties.arguments ?? []) as unknown[]
     const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
 
-    return this.ctx.compileFunctionCall(funcName, argExprs)
+    return this.ctx.compileFunctionCall(funcName, argExprs, source ?? properties)
   }
 }

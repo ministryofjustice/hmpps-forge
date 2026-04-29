@@ -17,6 +17,7 @@ import StepAnswerPreparationCompiler, {
 } from './answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './hooks/HookLifecycleCompiler'
 import StepFieldInventoryCompiler, { FieldInventoryStepSource } from './field-inventory/StepFieldInventoryCompiler'
+import { createDSLSourceMap } from '../diagnostics/sourceMetadata'
 
 export type StepIndex = Map<NodeId, StepASTNode>
 
@@ -64,6 +65,7 @@ export default class CompilationFactory {
     // The NodeFactory preserves the authoring structure while assigning AST node
     // shapes. NodeRegistrationWalker then fills in missing IDs, resolves @self
     // references, registers nodes, and records parent/child edges in ASTNodeTree.
+    sharedDependencies.nodeFactory.setSourceMap(createDSLSourceMap(journeyDef))
     const rootNode = sharedDependencies.nodeFactory.createNode(journeyDef) as JourneyASTNode
 
     const walker = new NodeRegistrationWalker(

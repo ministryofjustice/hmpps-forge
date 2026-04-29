@@ -351,6 +351,7 @@ describe('String Transformers', () => {
 
     it('should throw for empty string', () => {
       expect(() => evaluate('')).toThrow('is not a valid number')
+      expect(() => evaluate('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
@@ -413,6 +414,7 @@ describe('String Transformers', () => {
 
     it('should throw for empty string', () => {
       expect(() => evaluate('')).toThrow('is not a valid number')
+      expect(() => evaluate('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
@@ -565,6 +567,7 @@ describe('String Transformers', () => {
 
     it('should throw for empty string', () => {
       expect(() => evaluate('')).toThrow('is not a valid date')
+      expect(() => evaluate('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
@@ -721,6 +724,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(act).toThrow('Transformer.String.FormatDate: "not a date" is not a valid date')
+      expect(act).toThrow(TypeError)
     })
 
     it('should throw error for non-string values', () => {
@@ -910,6 +914,7 @@ describe('String Transformers', () => {
 
     it('should throw for empty string', () => {
       expect(() => evaluate('')).toThrow('is not a valid date')
+      expect(() => evaluate('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace only', () => {
@@ -918,6 +923,7 @@ describe('String Transformers', () => {
 
     it('should throw for ISO format input', () => {
       expect(() => evaluate('2024-03-15')).toThrow('is not a valid UK date')
+      expect(() => evaluate('2024-03-15')).toThrow(TypeError)
     })
 
     it('should throw for invalid day', () => {
@@ -953,6 +959,34 @@ describe('String Transformers', () => {
         name: 'ToISODate',
         arguments: [],
       })
+    })
+  })
+
+  describe('ToTimestampDate', () => {
+    const { evaluate } = StringTransformersRegistry.ToTimestampDate
+
+    it('should convert an epoch timestamp string to a Date', () => {
+      // Arrange
+      const timestamp = '1710460800000'
+
+      // Act
+      const result = evaluate(timestamp)
+
+      // Assert
+      expect(result).toBeInstanceOf(Date)
+      expect(result.toISOString()).toBe('2024-03-15T00:00:00.000Z')
+    })
+
+    it('should throw TypeError for invalid timestamp strings', () => {
+      // Arrange
+      const invalidTimestamp = 'not-a-timestamp'
+
+      // Act
+      const act = () => evaluate(invalidTimestamp)
+
+      // Assert
+      expect(act).toThrow('is not a timestamp')
+      expect(act).toThrow(TypeError)
     })
   })
 

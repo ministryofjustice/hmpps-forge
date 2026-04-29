@@ -10,8 +10,8 @@
  * generated function. This keeps generated code limited to expression evaluation
  * while navigation policy stays in ordinary TypeScript.
  *
- * If source generation fails, compile() returns undefined and controllers fail
- * fast. There is no secondary reachability execution path.
+ * Generated-function construction failures throw ForgeCompilationError. There is
+ * no secondary reachability execution path.
  */
 import { ASTNode } from '../../types/ast.type'
 import { ASTNodeType } from '../../types/enums'
@@ -76,8 +76,12 @@ export default class ReachabilityCompiler {
     nodeRegistry: NodeRegistry,
     functionRegistry?: FunctionRegistry,
   ): CompiledReachabilityFunction | SyncCompiledReachabilityFunction | undefined {
-    return compileGeneratedFunction<CompiledReachabilityFunction>(this.expr, ['ctx'], functionRegistry, () =>
-      this.buildSource(plan, nodeRegistry),
+    return compileGeneratedFunction<CompiledReachabilityFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(plan, nodeRegistry),
+      { phase: 'reachability' },
     )
   }
 
@@ -132,12 +136,7 @@ export default class ReachabilityCompiler {
       const condExpr = this.expr.compileExpression(node)
 
       emitter.emit(`var ${condVar};`)
-      emitter.emitBlock('try', () => {
-        emitter.emit(`${condVar} = ${condExpr};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${condVar} = false;`)
-      })
+      emitter.emit(`${condVar} = ${condExpr};`)
       emitter.emit(`entryResults[${index}] = !!${condVar};`)
       emitter.emitBlank()
     })
@@ -187,12 +186,7 @@ export default class ReachabilityCompiler {
           const whenExpr = this.expr.compileExpression(when)
 
           emitter.emit(`var ${whenVar};`)
-          emitter.emitBlock('try', () => {
-            emitter.emit(`${whenVar} = ${whenExpr};`)
-          })
-          emitter.emitBlock('catch(e)', () => {
-            emitter.emit(`${whenVar} = false;`)
-          })
+          emitter.emit(`${whenVar} = ${whenExpr};`)
 
           emitter.emitBlock(`if (${whenVar})`, () => {
             this.emitGotoResolution(goto, stepIndex, emitter)
@@ -209,8 +203,8 @@ export default class ReachabilityCompiler {
   /**
    * Emits the goto target evaluation and pushes the result to outcomeValues.
    * String literals are emitted as JSON constants. AST expressions are compiled
-   * through the shared dispatcher. A failing expression produces undefined, so
-   * that outcome simply contributes no forward edge to the graph.
+   * through the shared dispatcher. Expression failures throw contextual Forge
+   * runtime errors rather than silently removing a graph edge.
    */
   private emitGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
     const gotoVar = emitter.nextVar('_og')
@@ -221,12 +215,7 @@ export default class ReachabilityCompiler {
       const gotoExpr = this.expr.compileExpression(goto)
 
       emitter.emit(`var ${gotoVar};`)
-      emitter.emitBlock('try', () => {
-        emitter.emit(`${gotoVar} = ${gotoExpr};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${gotoVar} = undefined;`)
-      })
+      emitter.emit(`${gotoVar} = ${gotoExpr};`)
     } else {
       return
     }
@@ -272,12 +261,7 @@ export default class ReachabilityCompiler {
           const whenExpr = this.expr.compileExpression(node)
 
           emitter.emit(`var ${whenVar};`)
-          emitter.emitBlock('try', () => {
-            emitter.emit(`${whenVar} = ${whenExpr};`)
-          })
-          emitter.emitBlock('catch(e)', () => {
-            emitter.emit(`${whenVar} = false;`)
-          })
+          emitter.emit(`${whenVar} = ${whenExpr};`)
           emitter.emitBlock(`if (${resultVar} === undefined && ${whenVar})`, () => {
             emitter.emit(`${resultVar} = ${JSON.stringify(tieBreaker.priority)};`)
           })
@@ -318,12 +302,7 @@ export default class ReachabilityCompiler {
     const condExpr = this.expr.compileExpression(node)
 
     emitter.emit(`var ${condVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${condVar} = ${condExpr};`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${condVar} = false;`)
-    })
+    emitter.emit(`${condVar} = ${condExpr};`)
     emitter.emit(`var resumeActive = !!${condVar};`)
   }
 

@@ -14,8 +14,8 @@
  * provide those implementations. Registry metadata decides whether generated
  * source remains sync or becomes async; controllers await both shapes.
  *
- * If source generation fails, compile() returns undefined and controllers fail
- * fast. There is no secondary validation execution path.
+ * Generated-function construction failures throw ForgeCompilationError. There is
+ * no secondary validation execution path.
  */
 import { FieldBlockASTNode, StepASTNode } from '../../types/structures.type'
 import { IterateASTNode } from '../../types/expressions.type'
@@ -55,6 +55,7 @@ export default class StepValidationCompiler {
 
   private readonly values = new RuntimeValueCompiler(this.expr, {
     expressionErrorFallback: 'undefined',
+    expressionErrorMode: 'throw',
     omitUndefinedArrayItems: false,
   })
 
@@ -87,6 +88,7 @@ export default class StepValidationCompiler {
       ['ctx', 'isSubmission', 'groups'],
       functionRegistry,
       () => this.buildSource(fieldBlocks, domainValidWhen, iterateNodes),
+      { phase: 'validation' },
     )
   }
 

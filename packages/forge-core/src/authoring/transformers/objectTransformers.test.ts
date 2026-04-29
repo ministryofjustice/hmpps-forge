@@ -35,8 +35,11 @@ describe('Object Transformers', () => {
 
     it('should validate date component ranges', () => {
       expect(() => evaluate({ month: '13' }, { month: 'month' })).toThrow('Month must be between 1 and 12')
+      expect(() => evaluate({ month: '13' }, { month: 'month' })).toThrow(TypeError)
       expect(() => evaluate({ day: '32' }, { day: 'day' })).toThrow('Day must be between 1 and 31')
+      expect(() => evaluate({ day: '32' }, { day: 'day' })).toThrow(TypeError)
       expect(() => evaluate({ year: 'abc' }, { year: 'year' })).toThrow('Invalid year value')
+      expect(() => evaluate({ year: 'abc' }, { year: 'year' })).toThrow(TypeError)
     })
 
     it('should handle missing properties gracefully', () => {
@@ -52,6 +55,7 @@ describe('Object Transformers', () => {
       expect(() => evaluate('not-object', paths)).toThrow('expects an object')
       expect(() => evaluate({ year: '2024' }, null)).toThrow('requires a paths configuration')
       expect(() => evaluate({ other: 'value' }, { year: 'missing' })).toThrow('No valid date components found')
+      expect(() => evaluate({ other: 'value' }, { year: 'missing' })).toThrow(TypeError)
     })
 
     it('should return correct function expression', () => {

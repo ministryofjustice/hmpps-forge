@@ -8,6 +8,7 @@ import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/typ
 import { StructureType } from '../authoring/types/enums'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 import JourneyInstance from './JourneyInstance'
+import ForgeRuntimeEvaluationError from './errors/ForgeRuntimeEvaluationError'
 import Forge from './Forge'
 
 vi.mock('./JourneyInstance')
@@ -335,6 +336,42 @@ describe('Forge', () => {
         ].join('\n'),
       )
       expect(mockLogger.error).toHaveBeenCalledTimes(1)
+    })
+
+    it('should include Forge diagnostic fields in AggregateError logs', () => {
+      // Arrange
+      const diagnosticError = new ForgeRuntimeEvaluationError({
+        phase: 'render',
+        nodeId: 'compile_ast:1',
+        path: ['steps', 0, 'blocks', 0],
+        formattedPath: 'travel-declaration > personal-details > blocks[0]',
+        functionName: 'explode',
+        cause: new Error('boom'),
+      })
+      const aggregateError = new AggregateError([diagnosticError], 'Compilation failed')
+
+      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
+        throw aggregateError
+      })
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
+
+      // Act
+      engine.register('invalid-config')
+
+      // Assert
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        [
+          'Forge registration failed: Compilation failed',
+          '',
+          '1. ForgeRuntimeEvaluationError: Failed to evaluate compiled Forge render function',
+          '   Phase: render',
+          '   Path: travel-declaration > personal-details > blocks[0]',
+          '   Node: compile_ast:1',
+          '   Function: explode',
+          '   Cause: Error: boom',
+        ].join('\n'),
+      )
     })
 
     it('should handle errors without toString method in AggregateError', () => {

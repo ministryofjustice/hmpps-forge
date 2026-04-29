@@ -6,6 +6,7 @@ import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.ty
 import { TestPredicateASTNode } from '../../types/predicates.type'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse } from '../../../framework/types/response.type'
+import ForgeRuntimeEvaluationError from '../../errors/ForgeRuntimeEvaluationError'
 import HookLifecycleCompiler, { HookLifecycleContext } from './HookLifecycleCompiler'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
@@ -137,6 +138,13 @@ describe('HookLifecycleCompiler', () => {
           ctx.setData('submit', 'ran')
         },
       },
+      throwingEffect: {
+        name: 'throwingEffect',
+        isAsync: false,
+        evaluate: () => {
+          throw new Error('Effect failed')
+        },
+      },
     })
   })
 
@@ -181,6 +189,22 @@ describe('HookLifecycleCompiler', () => {
       // Assert
       expect(ctx.data.action).toBe('ran')
       expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/login' })
+    })
+
+    it('should throw runtime errors when access effects fail', async () => {
+      // Arrange
+      const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'throwingEffect')
+      const hook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('effects', [effect])
+        .build() as AccessHookASTNode
+      const fn = compiler.compileAccessLifecycle([createStep([hook])], functionRegistry)
+      const ctx = createContext(functionRegistry)
+
+      // Act
+      const result = fn!(ctx)
+
+      // Assert
+      await expect(result).rejects.toThrow(ForgeRuntimeEvaluationError)
     })
   })
 

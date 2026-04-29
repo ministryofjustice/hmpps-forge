@@ -93,12 +93,8 @@ export default class HookLifecycleCompiler {
       ['ctx', 'EffectFunctionContext'],
       functionRegistry,
       () => this.buildAccessSource(accessAncestors),
-      { forceAsync: true },
+      { forceAsync: true, phase: 'hooks' },
     )
-
-    if (generated === undefined) {
-      return undefined
-    }
 
     return ctx => generated(ctx, EffectFunctionContextCtor)
   }
@@ -112,12 +108,8 @@ export default class HookLifecycleCompiler {
       ['ctx', 'EffectFunctionContext'],
       functionRegistry,
       () => this.buildSubmitSource(hooks),
-      { forceAsync: true },
+      { forceAsync: true, phase: 'hooks' },
     )
-
-    if (generated === undefined) {
-      return undefined
-    }
 
     return ctx => generated(ctx, EffectFunctionContextCtor)
   }
@@ -171,16 +163,8 @@ export default class HookLifecycleCompiler {
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter)
 
     emitter.emitBlock(`if (${whenVar})`, () => {
-      const failedVar = this.compileEffects(hook.properties.effects, HookType.ACCESS, emitter)
-
-      emitter.emitBlock(`if (${failedVar})`, () => {
-        emitter.emit(
-          `if (ctx.logger && ctx.logger.warn) { ctx.logger.warn("Access hook error: " + String(${failedVar}.message || ${failedVar})); }`,
-        )
-      })
-      emitter.emitBlock(`else`, () => {
-        this.compileOutcomeReturns(hook.properties.next, emitter, 'executed: true, ')
-      })
+      this.compileEffects(hook.properties.effects, HookType.ACCESS, emitter)
+      this.compileOutcomeReturns(hook.properties.next, emitter, 'executed: true, ')
     })
   }
 
@@ -212,10 +196,7 @@ export default class HookLifecycleCompiler {
         ? hook.properties.validationGroups
         : ['default']
 
-    emitter.emitBlock(`if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "skip")`, () => {
-      emitter.emit('/* Skip this hook after an onAlways effect failure so later hooks still get a chance to run. */')
-    })
-    emitter.emitBlock(`else if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "redirect")`, () => {
+    emitter.emitBlock(`if (${alwaysOutcomeVar} && ${alwaysOutcomeVar}.type === "redirect")`, () => {
       emitter.emit(
         `return { executed: true, validated: false, outcome: "redirect", redirect: ${alwaysOutcomeVar}.value };`,
       )
@@ -271,14 +252,8 @@ export default class HookLifecycleCompiler {
       return
     }
 
-    const failedVar = this.compileEffects(branch.effects, hookType, emitter)
-
-    emitter.emitBlock(`if (${failedVar})`, () => {
-      emitter.emit(`${outcomeVar} = { type: "skip" };`)
-    })
-    emitter.emitBlock('else', () => {
-      this.compileOutcomeAssignment(branch.next, outcomeVar, emitter)
-    })
+    this.compileEffects(branch.effects, hookType, emitter)
+    this.compileOutcomeAssignment(branch.next, outcomeVar, emitter)
   }
 
   private compilePredicate(predicate: ASTNode | undefined, defaultValue: boolean, emitter: CodeEmitter): string {
@@ -294,23 +269,14 @@ export default class HookLifecycleCompiler {
     const predicateExpr = this.expr.compileExpression(predicate)
 
     emitter.emit(`var ${predicateVar};`)
-    emitter.emitBlock('try', () => {
-      emitter.emit(`${predicateVar} = !!(${predicateExpr});`)
-    })
-    emitter.emitBlock('catch(e)', () => {
-      emitter.emit(`${predicateVar} = false;`)
-    })
+    emitter.emit(`${predicateVar} = !!(${predicateExpr});`)
 
     return predicateVar
   }
 
-  private compileEffects(effects: ASTNode[] | undefined, hookType: HookType, emitter: CodeEmitter): string {
-    const failedVar = emitter.nextVar('_effectFailed')
-
-    emitter.emit(`var ${failedVar} = undefined;`)
-
+  private compileEffects(effects: ASTNode[] | undefined, hookType: HookType, emitter: CodeEmitter): void {
     if (effects === undefined || effects.length === 0) {
-      return failedVar
+      return
     }
 
     const effectCtxVar = emitter.nextVar('_effectCtx')
@@ -323,24 +289,15 @@ export default class HookLifecycleCompiler {
       .forEach(effect => {
         const callExpr = this.compileEffectCall(effect, effectCtxVar)
 
-        emitter.emitBlock(`if (!${failedVar})`, () => {
-          emitter.emitBlock('try', () => {
-            emitter.emit(`await ${callExpr};`)
-          })
-          emitter.emitBlock('catch(e)', () => {
-            emitter.emit(`${failedVar} = e;`)
-          })
-        })
+        emitter.emit(`await ${callExpr};`)
       })
-
-    return failedVar
   }
 
   private compileEffectCall(effect: FunctionASTNode, effectCtxVar: string): string {
     const funcName = effect.properties.name
     const argExprs = effect.properties.arguments.map(arg => this.expr.compileOperand(arg))
 
-    return `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${[effectCtxVar, ...argExprs].join(', ')})`
+    return this.expr.compileFunctionCall(funcName, [effectCtxVar, ...argExprs], effect)
   }
 
   private compileOutcomeReturns(next: ASTNode[] | undefined, emitter: CodeEmitter, prefix: string): void {
@@ -384,12 +341,7 @@ export default class HookLifecycleCompiler {
       const gotoVar = emitter.nextVar('_goto')
 
       emitter.emit(`var ${gotoVar};`)
-      emitter.emitBlock('try', () => {
-        emitter.emit(`${gotoVar} = ${gotoExpr};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${gotoVar} = undefined;`)
-      })
+      emitter.emit(`${gotoVar} = ${gotoExpr};`)
       emitter.emitBlock(`if (${gotoVar} !== undefined)`, () => {
         emitter.emit(`${outcomeVar} = { type: "redirect", value: String(${gotoVar}) };`)
       })
@@ -404,12 +356,7 @@ export default class HookLifecycleCompiler {
       const messageVar = emitter.nextVar('_message')
 
       emitter.emit(`var ${messageVar};`)
-      emitter.emitBlock('try', () => {
-        emitter.emit(`${messageVar} = ${messageExpr};`)
-      })
-      emitter.emitBlock('catch(e)', () => {
-        emitter.emit(`${messageVar} = undefined;`)
-      })
+      emitter.emit(`${messageVar} = ${messageExpr};`)
       emitter.emit(
         `${outcomeVar} = { type: "error", value: { status: ${JSON.stringify(outcome.properties.status)}, message: ${messageVar} !== undefined ? String(${messageVar}) : "" } };`,
       )
@@ -432,10 +379,7 @@ export default class HookLifecycleCompiler {
   ): void {
     const validPart = validVar === undefined ? '' : `, isValid: ${validVar}`
 
-    emitter.emitBlock(`if (${outcomeVar} && ${outcomeVar}.type === "skip")`, () => {
-      emitter.emit('/* Skip this hook after an effect failure so later hooks still get a chance to run. */')
-    })
-    emitter.emitBlock(`else if (${outcomeVar} && ${outcomeVar}.type === "redirect")`, () => {
+    emitter.emitBlock(`if (${outcomeVar} && ${outcomeVar}.type === "redirect")`, () => {
       emitter.emit(
         `return { executed: true, validated: ${JSON.stringify(validated)}${validPart}, outcome: "redirect", redirect: ${outcomeVar}.value };`,
       )
