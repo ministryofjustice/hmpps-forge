@@ -1,0 +1,442 @@
+import { FunctionType } from '../../../../../authoring/types/enums'
+import { FieldBlockASTNode } from '../../../../types/structures.type'
+import { IterateASTNode } from '../../../../types/expressions.type'
+import { TemplateNode, TemplateValue } from '../../../../types/template.type'
+import { isASTNode } from '../../../../typeguards/nodes'
+import FunctionRegistry from '../../../../registries/FunctionRegistry'
+import CodeEmitter from '../../emitters/CodeEmitter'
+import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
+import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../values/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+  GENERATED_FUNCTION_HELPERS_PARAM,
+} from '../../generated-functions/GeneratedFunctionCompiler'
+import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
+
+interface FormatterFunctionCall {
+  readonly name: string
+  readonly arguments: unknown[]
+}
+
+type AnswerPreparationMode = 'post' | 'get'
+
+/**
+ * Runtime context passed to the compiled answer preparation function.
+ *
+ * Answer preparation mutates ctx.answers in place. That is intentional: hooks,
+ * validation, reachability, and render all run against the same request context
+ * and need to observe the same answer history.
+ */
+export interface AnswerPreparationContext {
+  answers: Record<string, { current: unknown; mutations: { value: unknown; source: string }[] }>
+  data: Record<string, unknown>
+  session: Record<string, unknown>
+  params: Record<string, unknown>
+  query: Record<string, unknown>
+  request: Record<string, unknown>
+  conditions: FunctionRegistry
+  post: Record<string, string | string[]>
+}
+
+export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
+
+/**
+ * Compiles GET/POST answer preparation for a step or journey-root plan.
+ *
+ * The generated function is imperative because answer preparation is inherently
+ * sequential: raw POST value, multiple handling, formatter pipeline,
+ * dependentWhen, and defaultValue must update AnswerHistory in order. Formatter
+ * calls receive the current value as an explicit first argument, matching the
+ * author-facing formatter contract with no extra request-time wrapper state.
+ *
+ * Registered fields compile from FieldBlockASTNodes. MAP iterator fields compile
+ * from their templates and run inline over the iterator input. Registry metadata keeps
+ * sync-only functions as normal Functions and switches only async-dependent source
+ * to AsyncFunction.
+ *
+ * Generated-function construction failures throw ForgeCompilationError. Runtime
+ * callers still fail fast if defensive checks find a missing generated function.
+ */
+export default class StepAnswerPreparationCompiler {
+  private readonly expr = new NodeCompilationDispatcher()
+
+  private readonly fieldCodes = new FieldCodeEmitter(this.expr)
+
+  private readonly values = new RuntimeValueCompiler(this.expr, {
+    expressionErrorFallback: 'undefined',
+    expressionErrorMode: 'throw',
+    omitUndefinedArrayItems: false,
+  })
+
+  private readonly templates = new ScopedTemplateCompiler(this.expr)
+
+  /**
+   * Builds the generated answer-preparation function for a step.
+   */
+  compile(
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[] = [],
+    functionRegistry?: FunctionRegistry,
+  ): CompiledAnswerPreparationFunction | undefined {
+    return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
+      this.expr,
+      ['ctx'],
+      functionRegistry,
+      () => this.buildSource(fieldBlocks, iterateNodes),
+      { phase: 'answer-preparation' },
+    )
+  }
+
+  /**
+   * Produces inspectable generated source for tests and local debugging.
+   */
+  generateSource(
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[] = [],
+    functionRegistry?: FunctionRegistry,
+  ): string {
+    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSource(fieldBlocks, iterateNodes))
+  }
+
+  /**
+   * Emits the request-method split and delegates field preparation to the selected mode.
+   */
+  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+
+    emitter.comment('StepAnswerPreparationCompiler.buildSource')
+    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
+
+    if (fieldBlocks.length > 0 || iterateNodes.length > 0) {
+      emitter.if(
+        'isPost',
+        () => this.compileMode('post', fieldBlocks, iterateNodes, emitter),
+        () => this.compileMode('get', fieldBlocks, iterateNodes, emitter),
+      )
+    }
+
+    return emitter.toString()
+  }
+
+  /**
+   * Emits either the POST or GET side of answer preparation for all fields.
+   */
+  private compileMode(
+    mode: AnswerPreparationMode,
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[],
+    emitter: CodeEmitter,
+  ): void {
+    emitter.comment(`StepAnswerPreparationCompiler.compile${mode === 'post' ? 'Post' : 'Get'}Mode`)
+
+    for (const block of fieldBlocks) {
+      this.compileRegisteredField(block, emitter, mode)
+      emitter.emitBlank()
+    }
+
+    for (const iterateNode of iterateNodes) {
+      this.compileIterateBlock(iterateNode, emitter, mode)
+      emitter.emitBlank()
+    }
+  }
+
+  /**
+   * Emits one registered field block in the already-selected request mode.
+   */
+  private compileRegisteredField(block: FieldBlockASTNode, emitter: CodeEmitter, mode: AnswerPreparationMode): void {
+    emitter.comment('StepAnswerPreparationCompiler.compileRegisteredField')
+    emitter.scope(() => {
+      const codeExpr = this.fieldCodes.compileRegisteredExpression(block.properties.code, emitter)
+
+      if (codeExpr === undefined) {
+        return
+      }
+
+      this.compileFieldPath(block.properties, emitter, codeExpr, mode)
+    })
+  }
+
+  /**
+   * Emits the selected GET/POST path for a field's properties.
+   */
+  private compileFieldPath(
+    properties: Record<string, unknown>,
+    emitter: CodeEmitter,
+    codeExpr: string,
+    mode: AnswerPreparationMode,
+  ): void {
+    if (mode === 'post') {
+      this.compilePostPath(properties, emitter, codeExpr)
+
+      return
+    }
+
+    this.compileGetPath(properties, emitter, codeExpr)
+  }
+
+  /**
+   * Emits POST answer preparation: read submitted value, normalize it, run formatters, then dependentWhen.
+   */
+  private compilePostPath(properties: Record<string, unknown>, emitter: CodeEmitter, codeExpr: string): void {
+    emitter.comment('StepAnswerPreparationCompiler.compilePostPath')
+    const historyVar = emitter.const(
+      'answerHistory',
+      `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`,
+    )
+    const rawVar = emitter.let(
+      'rawValue',
+      `${GENERATED_FUNCTION_HELPERS_PARAM}.normalizePostValue(ctx.post[${codeExpr}], ${String(properties.multiple === true)})`,
+    )
+
+    this.emitPushMutationCall(emitter, historyVar, rawVar, 'post')
+
+    const formatters = properties.formatters
+
+    if (Array.isArray(formatters) && formatters.length > 0) {
+      const formattedVar = emitter.let('formattedValue', rawVar)
+
+      this.compileFormatterPipeline(formatters, emitter, formattedVar)
+
+      emitter.if(`${formattedVar} !== ${rawVar}`, () => {
+        this.emitPushMutationCall(emitter, historyVar, formattedVar, 'processed')
+      })
+    }
+
+    this.compileDependentWhen(properties.dependentWhen, emitter, codeExpr, historyVar)
+  }
+
+  /**
+   * Emits GET answer preparation: seed defaultValue only when no current answer exists.
+   */
+  private compileGetPath(properties: Record<string, unknown>, emitter: CodeEmitter, codeExpr: string): void {
+    emitter.comment('StepAnswerPreparationCompiler.compileGetPath')
+    const historyVar = emitter.let('answerHistory', `ctx.answers[${codeExpr}]`)
+
+    emitter.if(`!(${historyVar} && ${historyVar}.current !== undefined)`, () => {
+      emitter.assign(historyVar, `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`)
+      this.compileDefaultValue(properties.defaultValue, emitter, historyVar)
+    })
+  }
+
+  /**
+   * Emits sequential formatter execution, stopping after recoverable type coercion failures.
+   */
+  private compileFormatterPipeline(formatters: unknown[], emitter: CodeEmitter, valueVar: string): void {
+    const compilableFormatters = formatters.filter(
+      formatter => isASTNode(formatter) || this.expr.isTemplateNode(formatter),
+    )
+
+    if (compilableFormatters.length === 0) {
+      return
+    }
+
+    emitter.comment('StepAnswerPreparationCompiler.compileFormatterPipeline')
+    const failedVar = emitter.let('formatterFailed', 'false')
+
+    for (const formatter of compilableFormatters) {
+      const callExpr = this.compileFormatterCall(formatter, valueVar)
+
+      emitter.if(`!${failedVar}`, () => {
+        const resultVar = emitter.let('formatterResult')
+
+        emitter.tryCatch(
+          () => emitter.assign(resultVar, callExpr),
+          'formatterError',
+          errorVar => {
+            emitter.if(
+              `${errorVar} instanceof TypeError || (${errorVar} && ${errorVar}.cause instanceof TypeError)`,
+              () => {
+                emitter.assign(valueVar, 'undefined')
+                emitter.assign(failedVar, 'true')
+              },
+              () => emitter.code(`throw ${errorVar};`),
+            )
+          },
+        )
+        emitter.if(`!${failedVar} && ${resultVar} !== undefined`, () => emitter.assign(valueVar, resultVar))
+      })
+    }
+  }
+
+  /**
+   * Emits dependentWhen clearing after POST/default processing has produced a value.
+   */
+  private compileDependentWhen(
+    dependentWhen: unknown,
+    emitter: CodeEmitter,
+    codeExpr: string,
+    historyVar: string,
+  ): void {
+    if (!dependentWhen) {
+      return
+    }
+
+    if (!isASTNode(dependentWhen) && !this.expr.isTemplateNode(dependentWhen)) {
+      return
+    }
+
+    emitter.comment('StepAnswerPreparationCompiler.compileDependentWhen')
+    const dependentWhenVar = emitter.let('dependentWhenResult')
+
+    this.values.compileValue(dependentWhen, emitter, dependentWhenVar, {
+      expressionErrorFallback: 'true',
+    })
+    emitter.if(`!${dependentWhenVar}`, () => {
+      this.emitPushMutationCall(emitter, historyVar, 'undefined', 'dependentWhen')
+    })
+  }
+
+  /**
+   * Emits defaultValue resolution for GET requests with no existing answer.
+   */
+  private compileDefaultValue(defaultValue: unknown, emitter: CodeEmitter, historyVar: string): void {
+    emitter.comment('StepAnswerPreparationCompiler.compileDefaultValue')
+
+    if (defaultValue !== undefined) {
+      const defaultValueVar = emitter.let('defaultValue')
+
+      this.values.compileValue(defaultValue, emitter, defaultValueVar)
+      this.emitPushMutationCall(emitter, historyVar, defaultValueVar, 'default')
+
+      return
+    }
+
+    this.emitPushMutationCall(emitter, historyVar, 'undefined', 'default')
+  }
+
+  /**
+   * MAP-yielded fields are prepared inside the same loop that render and
+   * validation use, so dynamic field codes and scoped item references resolve
+   * without request-time node registration.
+   */
+  private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter, mode: AnswerPreparationMode): void {
+    const template = iterateNode.properties.iterator.yieldTemplate
+
+    if (template === undefined) {
+      return
+    }
+
+    const templateFields = this.findTemplateFields(template)
+
+    if (templateFields.length === 0) {
+      return
+    }
+
+    emitter.comment('StepAnswerPreparationCompiler.compileIterateBlock')
+    this.templates.compileMapIterator(iterateNode, emitter, () => {
+      templateFields.forEach(templateField => {
+        const codeExpr = this.templates.compileTemplateCodeExpression(templateField, emitter)
+
+        this.compileTemplateField(templateField, codeExpr, emitter, mode)
+      })
+    })
+  }
+
+  /**
+   * Emits one field block produced inside an iterator template in the selected request mode.
+   */
+  private compileTemplateField(
+    field: TemplateNode,
+    codeExpr: string | undefined,
+    emitter: CodeEmitter,
+    mode: AnswerPreparationMode,
+  ): void {
+    const resolvedCodeExpr = codeExpr ?? 'undefined'
+    const properties = field.properties ?? {}
+
+    emitter.comment('StepAnswerPreparationCompiler.compileTemplateField')
+    emitter.scope(() => {
+      this.compileFieldPath(properties, emitter, resolvedCodeExpr, mode)
+    })
+  }
+
+  /**
+   * Compiles one transformer from a field's formatter array.
+   *
+   * The formatter array is already the chain: each transformer receives the
+   * current answer value as its first argument, then the compiler threads the
+   * result into the next formatter.
+   */
+  private compileFormatterCall(formatterNode: unknown, valueVar: string): string {
+    const formatterCall = readFormatterTransformerCall(formatterNode)
+
+    if (formatterCall !== undefined) {
+      return this.compileFormatterFunctionCall(formatterCall, valueVar, formatterNode)
+    }
+
+    return this.expr.compileFunctionCall('unknown', [valueVar])
+  }
+
+  /**
+   * Emits the authored transformer call with the current formatted value as its first argument.
+   */
+  private compileFormatterFunctionCall(
+    formatterCall: FormatterFunctionCall,
+    valueVar: string,
+    source: unknown,
+  ): string {
+    const argExprs = formatterCall.arguments.map(arg => this.expr.compileOperand(arg))
+
+    return this.expr.compileFunctionCall(formatterCall.name, [valueVar, ...argExprs], source)
+  }
+
+  /**
+   * Emits the mutation/current update pair that keeps AnswerHistory in sync.
+   */
+  private emitPushMutationCall(emitter: CodeEmitter, historyVar: string, valueExpr: string, source: string): void {
+    emitter.code(
+      `${GENERATED_FUNCTION_HELPERS_PARAM}.pushAnswerMutation(${historyVar}, ${valueExpr}, ${JSON.stringify(source)});`,
+    )
+  }
+
+  /**
+   * Template fields can be nested below conditional reveals or child blocks, so
+   * answer prep walks the whole yield template before emitting the iterator loop.
+   */
+  private findTemplateFields(template: TemplateValue): TemplateNode[] {
+    return this.templates.findTemplateNodes(template, isTemplateFieldNode)
+  }
+}
+
+function readFormatterTransformerCall(value: unknown): FormatterFunctionCall | undefined {
+  if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
+    return undefined
+  }
+
+  const properties = readProperties(value) ?? (isRecord(value) ? value : undefined)
+
+  if (properties === undefined || typeof properties.name !== 'string') {
+    return undefined
+  }
+
+  const args = Array.isArray(properties.arguments) ? properties.arguments : []
+
+  return {
+    name: properties.name,
+    arguments: args,
+  }
+}
+
+function readExpressionType(value: unknown): unknown {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  return value.expressionType ?? value.type
+}
+
+function readProperties(value: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(value) || !isRecord(value.properties)) {
+    return undefined
+  }
+
+  return value.properties
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
+}

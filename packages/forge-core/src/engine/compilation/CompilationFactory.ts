@@ -8,15 +8,19 @@ import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.
 import { CompilationDependencies } from './CompilationDependencies'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
 import RuntimePlanBuilder, { JourneyRuntimePlan, StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
-import StepValidationCompiler, { CompiledValidationFunction } from './validation/StepValidationCompiler'
-import EntryValidationCompiler, { CompiledEntryValidationFunction } from './validation/EntryValidationCompiler'
-import ReachabilityCompiler from './reachability/ReachabilityCompiler'
-import StepRenderCompiler, { CompiledRenderFunction } from './rendering/StepRenderCompiler'
+import StepValidationCompiler, {
+  CompiledEntryValidationFunction,
+  CompiledValidationFunction,
+} from './codegen/phase-compilers/validation/StepValidationCompiler'
+import ReachabilityCompiler from './codegen/phase-compilers/reachability/ReachabilityCompiler'
+import StepRenderCompiler, { CompiledRenderFunction } from './codegen/phase-compilers/rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler, {
   CompiledAnswerPreparationFunction,
-} from './answer-preparation/StepAnswerPreparationCompiler'
-import HookLifecycleCompiler from './hooks/HookLifecycleCompiler'
-import StepFieldInventoryCompiler, { FieldInventoryStepSource } from './field-inventory/StepFieldInventoryCompiler'
+} from './codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
+import HookLifecycleCompiler from './codegen/phase-compilers/hooks/HookLifecycleCompiler'
+import StepFieldInventoryCompiler, {
+  FieldInventoryStepSource,
+} from './codegen/phase-compilers/field-inventory/StepFieldInventoryCompiler'
 import { createDSLSourceMap } from '../diagnostics/sourceMetadata'
 
 export type StepIndex = Map<NodeId, StepASTNode>
@@ -264,7 +268,7 @@ export default class CompilationFactory {
         const iterateNodes = allIterateNodes
           .filter(node => sharedDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
 
-        const compiled = compiler.compile(
+        const compiled = compiler.compileOnSubmitValidation(
           stepNode,
           fieldBlocks,
           stepNode.properties.validWhen,
@@ -334,15 +338,14 @@ export default class CompilationFactory {
     const iterateNodes = compilationDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
       .filter(node => node.properties.iterator.type === IteratorType.MAP)
-    const compiledValidation = validationCompiler.compile(
+    const compiledValidation = validationCompiler.compileOnSubmitValidation(
       stepNode,
       fieldBlocks,
       stepNode.properties.validWhen,
       iterateNodes,
       this.journeyInstanceDependencies.functionRegistry,
     )
-    const entryValidationCompiler = new EntryValidationCompiler()
-    const compiledEntryValidation = entryValidationCompiler.compile(
+    const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
       stepNode.properties.validateOnEntry,
       this.journeyInstanceDependencies.functionRegistry,
     )
