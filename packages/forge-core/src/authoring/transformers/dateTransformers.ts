@@ -1,6 +1,6 @@
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ResolvableValue } from '../types/expressions.type'
 import { assertDate, assertNumber, assertString } from '../../shared/utils/asserts'
 
 const formatDate = (date: Date, format: string): string => {
@@ -93,7 +93,7 @@ export interface DateTransformerGroup {
    * // Format("D M YYYY") returns "15 3 2024"
    * // Format("HH:mm:ss") returns "14:30:45"
    */
-  Format: (format: string | ValueExpr) => TransformerFunctionExpr
+  Format: (format: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Adds a number of days to a Date
@@ -102,7 +102,7 @@ export interface DateTransformerGroup {
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: (days: number | ValueExpr) => TransformerFunctionExpr
+  AddDays: (days: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Subtracts a number of days from a Date
@@ -110,7 +110,7 @@ export interface DateTransformerGroup {
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: (days: number | ValueExpr) => TransformerFunctionExpr
+  SubtractDays: (days: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Adds a number of months to a Date
@@ -119,7 +119,7 @@ export interface DateTransformerGroup {
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: (months: number | ValueExpr) => TransformerFunctionExpr
+  AddMonths: (months: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Adds a number of years to a Date
@@ -128,7 +128,7 @@ export interface DateTransformerGroup {
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: (years: number | ValueExpr) => TransformerFunctionExpr
+  AddYears: (years: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns the start of the day (midnight) for a Date
@@ -158,7 +158,7 @@ export interface DateTransformerGroup {
    * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: (locale?: string | ValueExpr) => TransformerFunctionExpr
+  ToLocaleString: (locale?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Converts a Date to UK long date format (e.g. "18 March 2026")
@@ -169,14 +169,14 @@ export interface DateTransformerGroup {
 }
 
 const { transformers: DateTransformers, implementations } = defineTransformerFunctions<DateTransformerGroup>({
-  Format: () => (value: any, format: string | ValueExpr) => {
+  Format: () => (value: any, format: string | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.Format')
     assertString(format, 'Transformer.Date.Format (format)')
 
     return formatDate(value, format)
   },
 
-  AddDays: () => (value: any, days: number | ValueExpr) => {
+  AddDays: () => (value: any, days: number | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.AddDays')
     assertNumber(days, 'Transformer.Date.AddDays (days)')
 
@@ -185,7 +185,7 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  SubtractDays: () => (value: any, days: number | ValueExpr) => {
+  SubtractDays: () => (value: any, days: number | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.SubtractDays')
     assertNumber(days, 'Transformer.Date.SubtractDays (days)')
 
@@ -194,7 +194,7 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  AddMonths: () => (value: any, months: number | ValueExpr) => {
+  AddMonths: () => (value: any, months: number | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.AddMonths')
     assertNumber(months, 'Transformer.Date.AddMonths (months)')
 
@@ -203,7 +203,7 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return result
   },
 
-  AddYears: () => (value: any, years: number | ValueExpr) => {
+  AddYears: () => (value: any, years: number | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.AddYears')
     assertNumber(years, 'Transformer.Date.AddYears (years)')
 
@@ -233,7 +233,7 @@ const { transformers: DateTransformers, implementations } = defineTransformerFun
     return value.toISOString()
   },
 
-  ToLocaleString: () => (value: any, locale?: string | ValueExpr) => {
+  ToLocaleString: () => (value: any, locale?: string | ResolvableValue) => {
     assertDate(value, 'Transformer.Date.ToLocaleString')
     if (locale === undefined) {
       return value.toLocaleString()

@@ -2,7 +2,7 @@ import { buildComponent } from '../utils/buildComponent'
 import { block as blockBuilder } from '../../authoring/builders'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
-import type { BasicBlockProps, BlockDefinition, ConditionalString } from '../types/structures.type'
+import type { BasicBlockProps, BlockDefinition, ResolvableString } from '../types/structures.type'
 
 /**
  * Props for the HtmlBlock component.
@@ -53,10 +53,10 @@ export interface HtmlBlockProps extends BasicBlockProps {
    *
    * **WARNING: Not sanitized.** Escape any untrusted data with `Transformer.String.EscapeHtml()`.
    */
-  content?: ConditionalString | BlockDefinition | BlockDefinition[]
+  content?: ResolvableString | BlockDefinition | BlockDefinition[]
 
   /** Additional CSS classes to apply to the element (optional) */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the element (optional) */
   attributes?: Record<string, any>

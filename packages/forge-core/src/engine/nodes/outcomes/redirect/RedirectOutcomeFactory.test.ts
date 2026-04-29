@@ -5,7 +5,7 @@ import type {
   PredicateTestExpr,
   RedirectOutcome,
   ReferenceExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
@@ -78,7 +78,7 @@ describe('RedirectOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies RedirectOutcome
@@ -106,7 +106,7 @@ describe('RedirectOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsNotEmpty',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies RedirectOutcome

@@ -1,4 +1,4 @@
-import { ValueExpr, ConditionFunctionExpr } from '../types/expressions.type'
+import { ResolvableValue, ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 import { assertNumber } from '../../shared/utils/asserts'
 
@@ -29,28 +29,28 @@ export interface NumberConditionGroup {
    * @param threshold - The threshold to compare against
    * @returns true if value > threshold
    */
-  GreaterThan: (threshold: ValueExpr) => ConditionFunctionExpr
+  GreaterThan: (threshold: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a number is greater than or equal to a threshold value
    * @param threshold - The threshold to compare against
    * @returns true if value >= threshold
    */
-  GreaterThanOrEqual: (threshold: ValueExpr) => ConditionFunctionExpr
+  GreaterThanOrEqual: (threshold: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a number is less than a threshold value
    * @param threshold - The threshold to compare against
    * @returns true if value < threshold
    */
-  LessThan: (threshold: ValueExpr) => ConditionFunctionExpr
+  LessThan: (threshold: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a number is less than or equal to a threshold value
    * @param threshold - The threshold to compare against
    * @returns true if value <= threshold
    */
-  LessThanOrEqual: (threshold: ValueExpr) => ConditionFunctionExpr
+  LessThanOrEqual: (threshold: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a number is between two values (inclusive)
@@ -58,7 +58,7 @@ export interface NumberConditionGroup {
    * @param max - The maximum value (inclusive)
    * @returns true if min <= value <= max
    */
-  Between: (min: ValueExpr, max: ValueExpr) => ConditionFunctionExpr
+  Between: (min: ResolvableValue, max: ResolvableValue) => ConditionFunctionExpr
 }
 
 export const { conditions: NumberConditions, implementations: NumberConditionsImplementations } =
@@ -71,35 +71,35 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
       return typeof value === 'number' && !Number.isNaN(value) && Number.isInteger(value)
     },
 
-    GreaterThan: () => (value: unknown, threshold: number | ValueExpr) => {
+    GreaterThan: () => (value: unknown, threshold: number | ResolvableValue) => {
       assertNumber(value, 'Condition.Number.GreaterThan')
       assertNumber(threshold, 'Condition.Number.GreaterThan (threshold)')
 
       return value > threshold
     },
 
-    GreaterThanOrEqual: () => (value: unknown, threshold: number | ValueExpr) => {
+    GreaterThanOrEqual: () => (value: unknown, threshold: number | ResolvableValue) => {
       assertNumber(value, 'Condition.Number.GreaterThanOrEqual')
       assertNumber(threshold, 'Condition.Number.GreaterThanOrEqual (threshold)')
 
       return value >= threshold
     },
 
-    LessThan: () => (value: unknown, threshold: number | ValueExpr) => {
+    LessThan: () => (value: unknown, threshold: number | ResolvableValue) => {
       assertNumber(value, 'Condition.Number.LessThan')
       assertNumber(threshold, 'Condition.Number.LessThan (threshold)')
 
       return value < threshold
     },
 
-    LessThanOrEqual: () => (value: unknown, threshold: number | ValueExpr) => {
+    LessThanOrEqual: () => (value: unknown, threshold: number | ResolvableValue) => {
       assertNumber(value, 'Condition.Number.LessThanOrEqual')
       assertNumber(threshold, 'Condition.Number.LessThanOrEqual (threshold)')
 
       return value <= threshold
     },
 
-    Between: () => (value: unknown, min: number | ValueExpr, max: number | ValueExpr) => {
+    Between: () => (value: unknown, min: number | ResolvableValue, max: number | ResolvableValue) => {
       assertNumber(value, 'Condition.Number.Between')
       assertNumber(min, 'Condition.Number.Between (min)')
       assertNumber(max, 'Condition.Number.Between (max)')

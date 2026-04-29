@@ -3,12 +3,12 @@ import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/autho
 import type {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalArray,
+  ResolvableArray,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import type { HeadingEntry } from '../../../data/guideContentStore'
 
 export interface TableOfContentsProps extends BasicBlockProps {
-  headings: ConditionalArray<HeadingEntry>
+  headings: ResolvableArray<HeadingEntry>
 }
 
 export interface TableOfContents extends BlockDefinition, TableOfContentsProps {

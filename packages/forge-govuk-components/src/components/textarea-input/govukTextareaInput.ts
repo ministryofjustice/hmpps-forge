@@ -1,7 +1,7 @@
 import {
-  ConditionalBoolean,
-  ConditionalNumber,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableNumber,
+  ResolvableString,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -28,7 +28,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    *
    * @example 'user-feedback'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Optional field to enable or disable the `spellcheck` attribute on the textarea.
@@ -36,7 +36,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    *
    * @example true // Enable spellcheck
    */
-  spellcheck?: ConditionalBoolean
+  spellcheck?: ResolvableBoolean
 
   /**
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
@@ -45,7 +45,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    * @example 8 // Taller textarea
    * @example 3 // Shorter textarea
    */
-  rows?: ConditionalNumber | ConditionalString
+  rows?: ResolvableNumber | ResolvableString
 
   /**
    * The label used by the textarea component.
@@ -55,19 +55,19 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    * @example { text: 'Feedback', classes: 'govuk-label--l' } // Object with styling
    */
   label?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the label */
-        text?: ConditionalString
+        text?: ResolvableString
 
         /** HTML content of the label (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
 
         /** Additional CSS classes for the label */
-        classes?: ConditionalString
+        classes?: ResolvableString
 
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ConditionalBoolean
+        isPageHeading?: ResolvableBoolean
 
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
@@ -81,19 +81,19 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    * @example { html: 'See <a href="/help">guidance</a> for examples' } // Rich HTML hint
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
 
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
 
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -102,7 +102,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
   /** Additional options for the form group containing the textarea component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ConditionalString
+    classes?: ResolvableString
 
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
@@ -110,31 +110,31 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
     /** Content to add before the textarea input */
     beforeInput?: {
       /** Text content to add before the textarea */
-      text?: ConditionalString
+      text?: ResolvableString
 
       /** HTML content to add before the textarea (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
 
     /** Content to add after the textarea input. */
     afterInput?: {
       /** Text content to add after the textarea */
-      text?: ConditionalString
+      text?: ResolvableString
 
       /** HTML content to add after the textarea (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
   }
 
   /** Additional CSS classes to add to the textarea element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * If `true`, textarea will be disabled and cannot be edited by the user.
    *
    * @example true // Disable the textarea
    */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /**
    * Attribute to meet WCAG success criterion 1.3.5: Identify input purpose.
@@ -145,7 +145,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    * @example 'street-address' // For address fields
    * @example 'off' // Disable autocomplete
    */
-  autocomplete?: ConditionalString
+  autocomplete?: ResolvableString
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -153,7 +153,7 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    *
    * @example 'comments-guidance'
    */
-  describedBy?: ConditionalString
+  describedBy?: ResolvableString
 
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>

@@ -2,7 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -34,14 +34,14 @@ export interface GovUKTagProps extends BasicBlockProps {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the tag.
    * Takes precedence over `text` if both are provided.
    * Use this when you need to include HTML elements within the tag.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Additional CSS classes to add to the tag.
@@ -56,7 +56,7 @@ export interface GovUKTagProps extends BasicBlockProps {
    * - `govuk-tag--orange` - Orange tag for warnings
    * - `govuk-tag--yellow` - Yellow tag for pending or attention states
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * HTML attributes (for example data attributes) to add to the tag.

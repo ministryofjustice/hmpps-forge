@@ -47,7 +47,7 @@ export interface ReferenceExpr {
    *   path: ['goals']
    * }
    */
-  base?: ValueExpr
+  base?: ResolvableValue
 }
 
 /**
@@ -87,7 +87,7 @@ export interface FormatExpr {
    * Array of expressions whose values will replace the placeholders.
    * The first argument replaces %1, second replaces %2, and so on.
    */
-  arguments: ValueExpr[]
+  arguments: ResolvableValue[]
 }
 
 /**
@@ -126,7 +126,7 @@ export interface PipelineExpr {
    * Initial value expression to be transformed.
    * This value is passed as input to the first step.
    */
-  input: ValueExpr
+  input: ResolvableValue
 
   /**
    * Ordered array of transformation steps.
@@ -139,7 +139,7 @@ export interface PipelineExpr {
  * Base interface for all function call expressions with typed arguments.
  * This serves as the foundation for specific function types like conditions and transformers.
  */
-export interface BaseFunctionExpr<A extends ValueExpr[]> {
+export interface BaseFunctionExpr<A extends ResolvableValue[]> {
   type: FunctionType
   /**
    * Name of the registered function.
@@ -179,7 +179,7 @@ export interface BaseFunctionExpr<A extends ValueExpr[]> {
  *   arguments: [10, 100]
  * }
  */
-export interface ConditionFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
+export interface ConditionFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   type: FunctionType.CONDITION
 }
 
@@ -187,7 +187,7 @@ export interface ConditionFunctionExpr<A extends ValueExpr[] = ValueExpr[]> exte
  * Generic function expression that can represent any function type.
  * Used when the specific function type is not known at compile time.
  */
-export type FunctionExpr<A extends ValueExpr[]> = BaseFunctionExpr<A>
+export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
 
 /**
  * Represents a transformer function call expression.
@@ -209,7 +209,7 @@ export type FunctionExpr<A extends ValueExpr[]> = BaseFunctionExpr<A>
  *   arguments: ['^item-(.+)$', 1]
  * }
  */
-export interface TransformerFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
+export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   type: FunctionType.TRANSFORMER
 }
 
@@ -237,7 +237,7 @@ export interface TransformerFunctionExpr<A extends ValueExpr[] = ValueExpr[]> ex
  *   ]
  * }
  */
-export interface EffectFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
+export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   type: FunctionType.EFFECT
 }
 
@@ -262,7 +262,7 @@ export interface EffectFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends
  *   arguments: ['prefix-']
  * }
  */
-export interface GeneratorFunctionExpr<A extends ValueExpr[] = ValueExpr[]> extends BaseFunctionExpr<A> {
+export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   type: FunctionType.GENERATOR
 }
 
@@ -342,7 +342,7 @@ export interface IterateExpr {
    * The input source expression (array or prior iterate result).
    * Can be a reference, pipeline, or another iterate expression for chaining.
    */
-  input: ValueExpr
+  input: ResolvableValue
 
   /**
    * The iterator configuration (Map, Filter, etc.) to apply per item.
@@ -354,14 +354,14 @@ export interface IterateExpr {
  * Represents any expression that evaluates to a value.
  * This is the base type for all expressions in the form system.
  */
-export type ValueExpr =
+export type ResolvableValue =
   | ReferenceExpr
   | FormatExpr
   | TransformerFunctionExpr
   | GeneratorFunctionExpr
   | PipelineExpr
   | IterateExpr
-  | ValueExpr[]
+  | ResolvableValue[]
   | string
   | number
   | boolean
@@ -393,7 +393,7 @@ export type ValueExpr =
 export interface PredicateTestExpr {
   type: PredicateType.TEST
   /** The value expression to test. */
-  subject: ValueExpr
+  subject: ResolvableValue
 
   /**
    * Whether to negate the condition result.
@@ -556,13 +556,13 @@ export interface ConditionalExpr {
    * The value to return when the predicate evaluates to true.
    * If omitted, defaults to true.
    */
-  thenValue?: ValueExpr
+  thenValue?: ResolvableValue
 
   /**
    * The value to return when the predicate evaluates to false.
    * If omitted, defaults to false.
    */
-  elseValue?: ValueExpr
+  elseValue?: ResolvableValue
 }
 
 /**
@@ -574,7 +574,7 @@ export interface MatchBranch {
   condition: ConditionFunctionExpr<any>
 
   /** The value to return when this branch's condition matches. */
-  value: ValueExpr
+  value: ResolvableValue
 }
 
 /**
@@ -597,7 +597,7 @@ export interface MatchExpr {
   type: ExpressionType.MATCH
 
   /** The value to test each branch's condition against. */
-  subject: ValueExpr
+  subject: ResolvableValue
 
   /** Ordered array of branches. The first matching branch's value is returned. */
   branches: MatchBranch[]
@@ -606,7 +606,7 @@ export interface MatchExpr {
    * The value to return when no branch matches.
    * If omitted, defaults to undefined.
    */
-  otherwise?: ValueExpr
+  otherwise?: ResolvableValue
 }
 
 /* ===== Hook Outcomes ===== */
@@ -631,7 +631,7 @@ export interface RedirectOutcome {
   /** Optional condition that must be true for this redirect to occur. */
   when?: PredicateExpr
   /** The path to redirect to. */
-  goto: string | ValueExpr
+  goto: string | ResolvableValue
 }
 
 /**
@@ -661,7 +661,7 @@ export interface ThrowErrorOutcome {
   /** HTTP status code to return. */
   status: number
   /** Error message to return. */
-  message: string | ValueExpr
+  message: string | ResolvableValue
 }
 
 /**

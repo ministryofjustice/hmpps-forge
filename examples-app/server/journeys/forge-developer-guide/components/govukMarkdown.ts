@@ -15,7 +15,7 @@ import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/autho
 import type {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
@@ -223,7 +223,7 @@ function renderGovUKMarkdown(markdown: string): string {
 // Component definition
 
 export interface GovUKMarkdownBlockProps extends BasicBlockProps {
-  content: ConditionalString
+  content: ResolvableString
   slots?: Record<string, BlockDefinition[]>
 }
 

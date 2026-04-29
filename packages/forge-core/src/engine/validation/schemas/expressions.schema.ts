@@ -3,9 +3,9 @@ import { ExpressionType, IteratorType } from '../../../authoring/types/enums'
 import { TransformerFunctionExprSchema, GeneratorFunctionExprSchema } from './base.schema'
 
 /**
- * @see {@link ValueExpr}
+ * @see {@link ResolvableValue}
  */
-export const ValueExprSchema: z.ZodType<any> = z.lazy(() =>
+export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
   z.union([
     ReferenceExprSchema,
     FormatExprSchema,
@@ -13,7 +13,7 @@ export const ValueExprSchema: z.ZodType<any> = z.lazy(() =>
     GeneratorFunctionExprSchema,
     PipelineExprSchema,
     IterateExprSchema,
-    z.array(ValueExprSchema),
+    z.array(ResolvableValueSchema),
     z.string(),
     z.number(),
     z.boolean(),
@@ -36,7 +36,7 @@ export const ReferenceExprSchema = z.looseObject({
 export const FormatExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(ExpressionType.FORMAT),
   template: z.string(),
-  arguments: z.array(ValueExprSchema),
+  arguments: z.array(ResolvableValueSchema),
 })
 
 /**
@@ -44,7 +44,7 @@ export const FormatExprSchema: z.ZodType<any> = z.looseObject({
  */
 export const PipelineExprSchema = z.looseObject({
   type: z.literal(ExpressionType.PIPELINE),
-  input: ValueExprSchema,
+  input: ResolvableValueSchema,
   steps: z.array(TransformerFunctionExprSchema),
 })
 
@@ -86,6 +86,6 @@ export const IteratorConfigSchema = z.union([
  */
 export const IterateExprSchema = z.looseObject({
   type: z.literal(ExpressionType.ITERATE),
-  input: ValueExprSchema,
+  input: ResolvableValueSchema,
   iterator: IteratorConfigSchema,
 })

@@ -2,7 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -28,26 +28,26 @@ export interface GovUKInsetTextProps extends BasicBlockProps {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the inset text.
    * Takes precedence over `text` if both are provided.
    * Use this when you need to include links or other HTML elements.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * ID attribute to add to the inset text container.
    * Useful for linking to this specific section or for testing.
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Additional CSS classes to add to the inset text container.
    * Use this to apply custom styling or spacing classes.
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * HTML attributes (for example data attributes) to add to the inset text container.

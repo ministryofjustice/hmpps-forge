@@ -3,7 +3,7 @@ import { ChainableExpr, block as blockBuilder } from '../../authoring/builders'
 import { StructureType } from '../../authoring/types/enums'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
-import type { BasicBlockProps, BlockDefinition, ConditionalString, RenderedBlock } from '../types/structures.type'
+import type { BasicBlockProps, BlockDefinition, ResolvableString, RenderedBlock } from '../types/structures.type'
 
 /**
  * Props for the CollectionBlock component.
@@ -49,7 +49,7 @@ export interface CollectionBlockProps<T = BlockDefinition, F = T> extends BasicB
    * Additional CSS classes to apply to the wrapper element.
    * @example 'govuk-!-margin-bottom-6'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Custom HTML attributes for the wrapper element.

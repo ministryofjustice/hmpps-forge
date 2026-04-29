@@ -1,6 +1,6 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { PredicateTestExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { PredicateTestExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { ExpressionASTNode } from '../../../types/expressions.type'
@@ -25,7 +25,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -47,7 +47,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -65,7 +65,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -83,7 +83,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: true,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -99,7 +99,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -114,7 +114,7 @@ describe('TestFactory', () => {
       const json = {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       }
 
       // Act
@@ -128,7 +128,7 @@ describe('TestFactory', () => {
       // Arrange
       const json = {
         type: PredicateType.TEST,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } as any
 
       // Act & Assert
@@ -154,7 +154,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: 'hello' as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -170,7 +170,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: 42 as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'GreaterThan', arguments: [0] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'GreaterThan', arguments: [0] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -187,7 +187,7 @@ describe('TestFactory', () => {
         type: PredicateType.TEST,
         subject: literalArray as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'HasLength', arguments: [3] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'HasLength', arguments: [3] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act

@@ -2,7 +2,7 @@ import { IterateExpr, SubmitHook, AccessHook, PredicateExpr } from './expression
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { ChainableIterable } from '../builders/types'
-import type { BlockDefinition, ConditionalString } from '../../components/types/structures.type'
+import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
 
 /**
  * View configuration for journeys and steps.
@@ -25,7 +25,7 @@ export interface ValidationExpr {
   /** A predicate that must be `true` for the field to be considered valid. */
   condition: PredicateExpr | PredicateTestExprBuilder
   /** The error message shown when the condition fails. Can be a plain string, a reference expression, or a format expression. */
-  message: ConditionalString
+  message: ResolvableString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
   /** Validation groups this rule belongs to. Defaults to `['default']` when omitted. */

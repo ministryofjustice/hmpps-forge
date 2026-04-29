@@ -3,8 +3,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -25,7 +25,7 @@ export interface MOJTicketPanelItem {
    *
    * @example 'Reference: ABC123'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the section.
@@ -33,7 +33,7 @@ export interface MOJTicketPanelItem {
    *
    * @example '<h2 class="govuk-heading-m">Application details</h2><p>Reference: ABC123</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Additional CSS classes for the section.
@@ -41,17 +41,17 @@ export interface MOJTicketPanelItem {
    *
    * @example 'moj-ticket-panel__content--blue'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the section.
    *
    * @example { 'aria-label': 'Application summary' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 
   /** Conditional visibility for this ticket panel item */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -95,14 +95,14 @@ export interface MOJTicketPanelProps extends BasicBlockProps {
    *
    * @example 'app-ticket-panel--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the ticket panel container.
    *
    * @example { 'aria-label': 'Application summary' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**

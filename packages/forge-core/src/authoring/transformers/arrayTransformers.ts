@@ -1,7 +1,7 @@
 import { assertArray, assertNumber, assertString } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * Array transformation functions for manipulating collections of data
@@ -45,7 +45,7 @@ export interface ArrayTransformerGroup {
    * @example
    * // Join(", ") applied to [1, 2, 3] returns "1, 2, 3"
    */
-  Join: (separator?: string | ValueExpr) => TransformerFunctionExpr
+  Join: (separator?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns a slice of the array from start to end index
@@ -54,7 +54,7 @@ export interface ArrayTransformerGroup {
    * @example
    * // Slice(1, 4) applied to [1, 2, 3, 4, 5] returns [2, 3, 4]
    */
-  Slice: (start: number | ValueExpr, end?: number | ValueExpr) => TransformerFunctionExpr
+  Slice: (start: number | ResolvableValue, end?: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Concatenates arrays together
@@ -62,7 +62,7 @@ export interface ArrayTransformerGroup {
    * @example
    * // Concat([3, 4]) applied to [1, 2] returns [1, 2, 3, 4]
    */
-  Concat: (...arrays: (ValueExpr[] | ValueExpr)[]) => TransformerFunctionExpr
+  Concat: (...arrays: (ResolvableValue[] | ResolvableValue)[]) => TransformerFunctionExpr
 
   /**
    * Returns unique elements from the array (removes duplicates)
@@ -84,7 +84,7 @@ export interface ArrayTransformerGroup {
    * @example
    * // Filter(2) applied to [1, 2, 2, 3] returns [2, 2]
    */
-  Filter: (filterValue: ValueExpr) => TransformerFunctionExpr
+  Filter: (filterValue: ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
@@ -93,7 +93,7 @@ export interface ArrayTransformerGroup {
    * // Map('name') applied to [{name: 'John'}, {name: 'Jane'}] returns ['John', 'Jane']
    * // Map(0) applied to [[1, 2], [3, 4]] returns [1, 3]
    */
-  Map: (property: string | number | ValueExpr) => TransformerFunctionExpr
+  Map: (property: string | number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Flattens a nested array by one level
@@ -126,13 +126,13 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
 
   Join:
     () =>
-    (value: any, separator: string | ValueExpr = ',') => {
+    (value: any, separator: string | ResolvableValue = ',') => {
       assertArray(value, 'Transformer.Array.Join')
       assertString(separator, 'Transformer.Array.Join (separator)')
       return value.join(separator)
     },
 
-  Slice: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
+  Slice: () => (value: any, start: number | ResolvableValue, end?: number | ResolvableValue) => {
     assertArray(value, 'Transformer.Array.Slice')
     assertNumber(start, 'Transformer.Array.Slice (start)')
     if (end !== undefined) {
@@ -144,7 +144,7 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
 
   Concat:
     () =>
-    (value: any, ...arrays: (any[] | ValueExpr)[]) => {
+    (value: any, ...arrays: (any[] | ResolvableValue)[]) => {
       assertArray(value, 'Transformer.Array.Concat')
       arrays.forEach((arr, index) => {
         assertArray(arr, `Transformer.Array.Concat (array at position ${index + 1})`)
@@ -167,12 +167,12 @@ const { transformers: ArrayTransformers, implementations } = defineTransformerFu
     })
   },
 
-  Filter: () => (value: any, filterValue: any | ValueExpr) => {
+  Filter: () => (value: any, filterValue: any | ResolvableValue) => {
     assertArray(value, 'Transformer.Array.Filter')
     return value.filter((item: any) => item === filterValue)
   },
 
-  Map: () => (value: any, property: string | number | ValueExpr) => {
+  Map: () => (value: any, property: string | number | ResolvableValue) => {
     assertArray(value, 'Transformer.Array.Map')
     if (typeof property !== 'string' && typeof property !== 'number') {
       throw new Error(`Transformer.Array.Map (property) expects a string or number but received ${typeof property}.`)

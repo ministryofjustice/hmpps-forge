@@ -1,7 +1,7 @@
 import {
-  ConditionalArray,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -14,17 +14,17 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  */
 export interface SelectItem {
   /** Value for the option. If omitted, the value is taken from the text content. */
-  value?: ConditionalString
+  value?: ResolvableString
   /** Text for the option item. */
-  text: ConditionalString
+  text: ResolvableString
   /** Whether the option should be selected when the page loads. */
-  selected?: ConditionalBoolean
+  selected?: ResolvableBoolean
   /** Sets the option item as disabled. */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
   /** HTML attributes to add to the option. */
   attributes?: Record<string, any>
   /** Conditional visibility for this option. */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -48,7 +48,7 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    * The ID of the select. Defaults to the value of `code` if not provided.
    * @example 'country-select'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * The items within the select component.
@@ -56,7 +56,7 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    *
    * @example [{ value: '', text: 'Choose an option' }, { value: 'uk', text: 'United Kingdom' }]
    */
-  items: SelectItem[] | ConditionalArray<SelectItem>
+  items: SelectItem[] | ResolvableArray<SelectItem>
 
   /**
    * The label used by the select component.
@@ -66,18 +66,18 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    * @example { text: 'Country', classes: 'govuk-label--l' }
    */
   label:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the label */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the label (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the label */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** For attribute - automatically set if not provided */
-        for?: ConditionalString
+        for?: ResolvableString
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ConditionalBoolean
+        isPageHeading?: ResolvableBoolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -89,16 +89,16 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    * @example 'Select the country where you currently live'
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -108,7 +108,7 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    * Use the `disabled` option on each individual item to only disable certain options.
    * @example true
    */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -116,29 +116,29 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    *
    * @example 'country-select-help'
    */
-  describedBy?: ConditionalString
+  describedBy?: ResolvableString
 
   /**
    * Additional options for the form group containing the select component.
    */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ConditionalString
+    classes?: ResolvableString
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /** Content to add before the select element. */
     beforeInput?: {
       /** Text content to add before the select */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add before the select (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
     /** Content to add after the select element. */
     afterInput?: {
       /** Text content to add after the select */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add after the select (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
   }
 
@@ -146,7 +146,7 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
    * Additional CSS classes to add to the select element.
    * @example 'govuk-!-width-one-half'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes to add to the select element.

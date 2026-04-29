@@ -2,9 +2,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalArray,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
   RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -17,13 +17,13 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface AccordionItemHeading {
   /** Plain text content for the heading. Required unless html is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the heading. Takes precedence over text.
    * Note: The header is inside a `<button>` element, so only phrasing content is allowed.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 }
 
 /**
@@ -32,13 +32,13 @@ export interface AccordionItemHeading {
  */
 export interface AccordionItemSummary {
   /** Plain text content for the summary line. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the summary line. Takes precedence over text.
    * Note: The summary line is inside a `<button>` element, so only phrasing content is allowed.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 }
 
 /**
@@ -47,10 +47,10 @@ export interface AccordionItemSummary {
  */
 export interface AccordionItemContent {
   /** Plain text content for the section. Required unless html or blocks is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the section. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Child blocks to render in the section. Takes precedence over text/html. */
   blocks?: BlockDefinition[]
@@ -70,13 +70,13 @@ export interface AccordionItem {
   content: AccordionItemContent
 
   /** Whether the section should be expanded when the page loads. Defaults to false. */
-  expanded?: ConditionalBoolean
+  expanded?: ResolvableBoolean
 
   /**
    * Conditional visibility for this section. When the evaluated value is `false`,
    * the section is omitted from rendering. Defaults to showing the section.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -108,10 +108,10 @@ export interface GovUKAccordionProps extends BasicBlockProps {
    * Must be unique across the domain if `rememberExpanded` is true, as the expanded state
    * persists across page loads using session storage.
    */
-  id: ConditionalString
+  id: ResolvableString
 
   /** The sections within the accordion. Required. Supports dynamic expressions. */
-  items: ConditionalArray<AccordionItem>
+  items: ResolvableArray<AccordionItem>
 
   /** Heading level for section headings, from 1 to 6. Defaults to 2. */
   headingLevel?: number
@@ -120,28 +120,28 @@ export interface GovUKAccordionProps extends BasicBlockProps {
    * Whether the expanded/collapsed state should persist across page loads.
    * Uses session storage. Defaults to true.
    */
-  rememberExpanded?: ConditionalBoolean
+  rememberExpanded?: ResolvableBoolean
 
   /** Text for the "Hide all sections" button when all sections are expanded. */
-  hideAllSectionsText?: ConditionalString
+  hideAllSectionsText?: ResolvableString
 
   /** Text for the "Show all sections" button when at least one section is collapsed. */
-  showAllSectionsText?: ConditionalString
+  showAllSectionsText?: ResolvableString
 
   /** Text for the "Hide" button within each expanded section. */
-  hideSectionText?: ConditionalString
+  hideSectionText?: ResolvableString
 
   /** Text for the "Show" button within each collapsed section. */
-  showSectionText?: ConditionalString
+  showSectionText?: ResolvableString
 
   /** Accessible label text when section is expanded. Defaults to "Hide this section". */
-  hideSectionAriaLabelText?: ConditionalString
+  hideSectionAriaLabelText?: ResolvableString
 
   /** Accessible label text when section is collapsed. Defaults to "Show this section". */
-  showSectionAriaLabelText?: ConditionalString
+  showSectionAriaLabelText?: ResolvableString
 
   /** Additional CSS classes for the accordion element. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the accordion element. */
   attributes?: Record<string, any>
@@ -166,7 +166,7 @@ type EvaluatedAccordionItem = EvaluatedBlock<AccordionItem, false>
  */
 function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: nunjucks.Environment): string {
   // Process items, handling child blocks in content
-  // NOTE: items is typed as ConditionalArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
+  // NOTE: items is typed as ResolvableArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
   const items = block.items as EvaluatedAccordionItem[]
   const processedItems = items
     .filter(item => item.visibleWhen !== false)

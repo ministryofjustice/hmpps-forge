@@ -2,7 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -29,14 +29,14 @@ export interface GovUKPanelProps extends BasicBlockProps {
    * Required unless `titleHtml` is provided.
    * If `titleHtml` is provided, this option will be ignored.
    */
-  titleText?: ConditionalString
+  titleText?: ResolvableString
 
   /**
    * HTML to use within the panel title.
    * Takes precedence over `titleText`.
    * If `titleHtml` is provided, the `titleText` option will be ignored.
    */
-  titleHtml?: ConditionalString
+  titleHtml?: ResolvableString
 
   /**
    * Heading level for the panel title, from 1 to 6.
@@ -49,19 +49,19 @@ export interface GovUKPanelProps extends BasicBlockProps {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the panel body.
    * Takes precedence over `text`.
    * If `html` is provided, the `text` option will be ignored.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Additional CSS classes for the panel container.
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Custom HTML attributes (for example data attributes) to add to the panel container.

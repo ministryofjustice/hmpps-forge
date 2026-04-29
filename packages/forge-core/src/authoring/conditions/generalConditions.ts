@@ -1,4 +1,4 @@
-import { ConditionFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 
 export interface GeneralConditionGroup {
@@ -15,7 +15,7 @@ export interface GeneralConditionGroup {
    * @param expected - The expected value to compare against
    * @returns true if value === expected
    */
-  Equals: (expected: ValueExpr) => ConditionFunctionExpr
+  Equals: (expected: ResolvableValue) => ConditionFunctionExpr
 }
 
 export const { conditions: GeneralConditions, implementations: GeneralConditionsImplementations } =
@@ -28,7 +28,7 @@ export const { conditions: GeneralConditions, implementations: GeneralConditions
         (Array.isArray(value) && value.length === 0)
       ),
 
-    Equals: () => (value: unknown, expected: ValueExpr) => value === expected,
+    Equals: () => (value: unknown, expected: ResolvableValue) => value === expected,
   })
 
 export const GeneralConditionsRegistry = GeneralConditionsImplementations

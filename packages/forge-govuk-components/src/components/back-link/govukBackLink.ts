@@ -2,7 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -27,27 +27,27 @@ export interface GovUKBackLinkProps extends BasicBlockProps {
    * The value of the link's `href` attribute.
    * This is the URL that the user will be taken to when they click the back link.
    */
-  href: ConditionalString
+  href: ResolvableString
 
   /**
    * Plain text content for the back link.
    * Defaults to "Back" if neither `text` nor `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the back link.
    * Takes precedence over `text` if both are provided.
    * Defaults to "Back" if neither `text` nor `html` is provided.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Additional CSS classes to add to the anchor tag.
    * Use this to apply custom styling or modifier classes.
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * HTML attributes (for example data attributes) to add to the anchor tag.

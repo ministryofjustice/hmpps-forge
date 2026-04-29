@@ -3,8 +3,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -76,7 +76,7 @@ export interface MOJCardGroupItem {
    * Conditional visibility for this card. When the evaluated value is `false`,
    * the card is omitted from rendering. Defaults to showing the card.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -101,7 +101,7 @@ export interface MOJCardGroupProps extends BasicBlockProps {
   columns?: 2 | 3 | 4
 
   /** Additional CSS classes for the card group container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>

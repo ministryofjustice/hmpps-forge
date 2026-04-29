@@ -8,7 +8,7 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
@@ -33,7 +33,7 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * - Type-safe: Full TypeScript inference throughout chains
  * - Buildable: Implements build() for automatic finalization via finaliseBuilders()
  */
-export class ExpressionBuilder<T extends ValueExpr> {
+export class ExpressionBuilder<T extends ResolvableValue> {
   private readonly expression: T
 
   private readonly negate: boolean
@@ -46,14 +46,14 @@ export class ExpressionBuilder<T extends ValueExpr> {
   /**
    * Create a builder from any value expression.
    */
-  static from<E extends ValueExpr>(expr: E): ExpressionBuilder<E> {
+  static from<E extends ResolvableValue>(expr: E): ExpressionBuilder<E> {
     return new ExpressionBuilder(expr, false)
   }
 
   /**
    * Create a builder wrapping a pipeline expression.
    */
-  static pipeline(input: ValueExpr, steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
+  static pipeline(input: ResolvableValue, steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return new ExpressionBuilder(
       {
         type: ExpressionType.PIPELINE,

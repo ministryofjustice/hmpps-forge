@@ -4,21 +4,21 @@ import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import type { FunctionImplementations, FunctionShapeMap, NoDeps } from './defineFunction.type'
 
 type ScopedFunctionFactory<TDeps> = (deps: TDeps) => (...args: never[]) => unknown
-type ScopedConditionFactory<TDeps, TValue, TArgs extends ValueExpr[]> = (
+type ScopedConditionFactory<TDeps, TValue, TArgs extends ResolvableValue[]> = (
   deps: TDeps,
 ) => (value: TValue, ...args: TArgs) => boolean | Promise<boolean>
-type ScopedTransformerFactory<TDeps, TValue, TArgs extends ValueExpr[]> = (
+type ScopedTransformerFactory<TDeps, TValue, TArgs extends ResolvableValue[]> = (
   deps: TDeps,
 ) => (value: TValue, ...args: TArgs) => unknown
-type ScopedEffectFactory<TDeps, TContext, TArgs extends ValueExpr[]> = (
+type ScopedEffectFactory<TDeps, TContext, TArgs extends ResolvableValue[]> = (
   deps: TDeps,
 ) => (context: TContext, ...args: TArgs) => void | Promise<void>
-type ScopedGeneratorFactory<TDeps, TArgs extends ValueExpr[]> = (deps: TDeps) => (...args: TArgs) => unknown
+type ScopedGeneratorFactory<TDeps, TArgs extends ResolvableValue[]> = (deps: TDeps) => (...args: TArgs) => unknown
 
 /**
  * Package-local collector for inline function definitions.
@@ -29,25 +29,25 @@ type ScopedGeneratorFactory<TDeps, TArgs extends ValueExpr[]> = (deps: TDeps) =>
 export interface FunctionScope<TDeps = NoDeps> {
   readonly implementations: FunctionImplementations<FunctionShapeMap, TDeps>
 
-  condition<TValue, TArgs extends ValueExpr[]>(
+  condition<TValue, TArgs extends ResolvableValue[]>(
     name: string,
     factory: ScopedConditionFactory<TDeps, TValue, TArgs>,
     ...args: TArgs
   ): ConditionFunctionExpr<TArgs>
 
-  transformer<TValue, TArgs extends ValueExpr[]>(
+  transformer<TValue, TArgs extends ResolvableValue[]>(
     name: string,
     factory: ScopedTransformerFactory<TDeps, TValue, TArgs>,
     ...args: TArgs
   ): TransformerFunctionExpr<TArgs>
 
-  effect<TContext, TArgs extends ValueExpr[]>(
+  effect<TContext, TArgs extends ResolvableValue[]>(
     name: string,
     factory: ScopedEffectFactory<TDeps, TContext, TArgs>,
     ...args: TArgs
   ): EffectFunctionExpr<TArgs>
 
-  generator<TArgs extends ValueExpr[]>(
+  generator<TArgs extends ResolvableValue[]>(
     name: string,
     factory: ScopedGeneratorFactory<TDeps, TArgs>,
     ...args: TArgs
@@ -101,7 +101,7 @@ export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
   return {
     implementations,
 
-    condition: <TValue, TArgs extends ValueExpr[]>(
+    condition: <TValue, TArgs extends ResolvableValue[]>(
       name: string,
       factory: ScopedConditionFactory<TDeps, TValue, TArgs>,
       ...args: TArgs
@@ -115,7 +115,7 @@ export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
       }
     },
 
-    transformer: <TValue, TArgs extends ValueExpr[]>(
+    transformer: <TValue, TArgs extends ResolvableValue[]>(
       name: string,
       factory: ScopedTransformerFactory<TDeps, TValue, TArgs>,
       ...args: TArgs
@@ -129,7 +129,7 @@ export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
       }
     },
 
-    effect: <TContext, TArgs extends ValueExpr[]>(
+    effect: <TContext, TArgs extends ResolvableValue[]>(
       name: string,
       factory: ScopedEffectFactory<TDeps, TContext, TArgs>,
       ...args: TArgs
@@ -143,7 +143,7 @@ export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
       }
     },
 
-    generator: <TArgs extends ValueExpr[]>(
+    generator: <TArgs extends ResolvableValue[]>(
       name: string,
       factory: ScopedGeneratorFactory<TDeps, TArgs>,
       ...args: TArgs

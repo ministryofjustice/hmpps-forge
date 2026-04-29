@@ -2,7 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -24,16 +24,16 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface GovUKWarningTextProps extends BasicBlockProps {
   /** Plain text content for the warning. Required unless html is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the warning. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Fallback text for the warning icon (for screen readers). Defaults to "Warning". */
-  iconFallbackText?: ConditionalString
+  iconFallbackText?: ResolvableString
 
   /** Additional CSS classes for the warning text container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the warning text container */
   attributes?: Record<string, any>

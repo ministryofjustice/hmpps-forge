@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
 import { ConditionalASTNode } from '../../../types/expressions.type'
-import type { ConditionalExpr, PredicateTestExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { ConditionalExpr, PredicateTestExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
@@ -28,7 +28,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',
@@ -53,7 +53,7 @@ describe('ConditionalFactory', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       const json = {
@@ -80,7 +80,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'literalThen',
         elseValue: 'literalElse',
@@ -102,7 +102,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: { type: ExpressionType.REFERENCE, path: ['answers', 'thenField'] },
         elseValue: { type: ExpressionType.REFERENCE, path: ['answers', 'elseField'] },
@@ -124,7 +124,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         elseValue: 'no',
       }
@@ -146,7 +146,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
       }
@@ -168,7 +168,7 @@ describe('ConditionalFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',

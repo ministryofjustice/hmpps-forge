@@ -5,7 +5,7 @@ import {
   PipelineExpr,
   PredicateTestExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
 
@@ -29,7 +29,7 @@ import { ExpressionBuilder } from './ExpressionBuilder'
  *
  * @template A - The argument types for the generator function
  */
-export class GeneratorBuilder<A extends ValueExpr[]> {
+export class GeneratorBuilder<A extends ResolvableValue[]> {
   private readonly expression: GeneratorFunctionExpr<A>
 
   private readonly negated: boolean
@@ -45,7 +45,7 @@ export class GeneratorBuilder<A extends ValueExpr[]> {
    * @param name - The name of the generator function (must be registered)
    * @param args - Arguments to pass to the generator function
    */
-  static create<A extends ValueExpr[]>(name: string, args: A): GeneratorBuilder<A> {
+  static create<A extends ResolvableValue[]>(name: string, args: A): GeneratorBuilder<A> {
     return new GeneratorBuilder(
       {
         type: FunctionType.GENERATOR,

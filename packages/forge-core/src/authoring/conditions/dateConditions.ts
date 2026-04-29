@@ -1,6 +1,6 @@
 import { assertString } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { ConditionFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * Helper function to parse and validate ISO-8601 date format (YYYY-MM-DD)
@@ -60,14 +60,14 @@ export interface DateConditionGroup {
    * @param dateStr - The comparison ISO date string
    * @returns true if value is before the comparison date
    */
-  IsBefore: (dateStr: ValueExpr) => ConditionFunctionExpr
+  IsBefore: (dateStr: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if an ISO date string is after another ISO date string
    * @param dateStr - The comparison ISO date string
    * @returns true if value is after the comparison date
    */
-  IsAfter: (dateStr: ValueExpr) => ConditionFunctionExpr
+  IsAfter: (dateStr: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if an ISO date string is in the future (after today)
@@ -149,7 +149,7 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
       return day >= 1 && day <= daysInMonth
     },
 
-    IsBefore: () => (value: unknown, dateStr: ValueExpr) => {
+    IsBefore: () => (value: unknown, dateStr: ResolvableValue) => {
       assertString(value, 'Condition.Date.IsBefore')
       assertString(dateStr, 'Condition.Date.IsBefore (dateStr)')
 
@@ -169,7 +169,7 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
       return valueDate < compareDate
     },
 
-    IsAfter: () => (value: unknown, dateStr: ValueExpr) => {
+    IsAfter: () => (value: unknown, dateStr: ResolvableValue) => {
       assertString(value, 'Condition.Date.IsAfter')
       assertString(dateStr, 'Condition.Date.IsAfter (dateStr)')
 

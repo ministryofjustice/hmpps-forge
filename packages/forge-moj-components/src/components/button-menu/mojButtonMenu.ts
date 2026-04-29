@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalArray,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -26,14 +26,14 @@ export interface MOJButtonMenuButton {
    * @example 'Actions'
    * @example 'Options'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * Additional CSS classes for the toggle button.
    *
    * @example 'govuk-button--secondary'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 }
 
 /**
@@ -50,7 +50,7 @@ export interface MOJButtonMenuItem {
    * @example 'button'
    * @example 'a'
    */
-  element?: 'input' | 'button' | 'a' | ConditionalString
+  element?: 'input' | 'button' | 'a' | ResolvableString
 
   /**
    * Text content for the button or link.
@@ -59,7 +59,7 @@ export interface MOJButtonMenuItem {
    * @example 'Archive'
    * @example 'Delete'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the button or link.
@@ -67,7 +67,7 @@ export interface MOJButtonMenuItem {
    *
    * @example '<span class="icon">+</span> Add item'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Name attribute for input or button elements.
@@ -75,7 +75,7 @@ export interface MOJButtonMenuItem {
    *
    * @example 'action'
    */
-  name?: ConditionalString
+  name?: ResolvableString
 
   /**
    * Type attribute for input or button elements.
@@ -84,7 +84,7 @@ export interface MOJButtonMenuItem {
    *
    * @example 'button'
    */
-  type?: 'button' | 'submit' | 'reset' | ConditionalString
+  type?: 'button' | 'submit' | 'reset' | ResolvableString
 
   /**
    * Value attribute for button elements.
@@ -92,14 +92,14 @@ export interface MOJButtonMenuItem {
    *
    * @example 'archive'
    */
-  value?: ConditionalString
+  value?: ResolvableString
 
   /**
    * Whether the button should be disabled.
    *
    * @example true
    */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /**
    * URL that the button should link to.
@@ -108,34 +108,34 @@ export interface MOJButtonMenuItem {
    * @example '/actions/archive'
    * @example '#archive'
    */
-  href?: ConditionalString
+  href?: ResolvableString
 
   /**
    * Additional CSS classes for the button.
    *
    * @example 'govuk-button--warning'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the button.
    *
    * @example { 'data-action': 'archive' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 
   /**
    * Prevent accidental double clicks from submitting forms multiple times.
    *
    * @example true
    */
-  preventDoubleClick?: ConditionalBoolean
+  preventDoubleClick?: ResolvableBoolean
 
   /**
    * Conditional visibility for this menu item.
    * When the evaluated value is `false`, the item is omitted from rendering.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -176,7 +176,7 @@ export interface MOJButtonMenuProps extends BasicBlockProps {
    *
    * @example 'right'
    */
-  alignMenu?: MOJButtonMenuAlign | ConditionalString
+  alignMenu?: MOJButtonMenuAlign | ResolvableString
 
   /**
    * Array of menu item button configurations.
@@ -184,21 +184,21 @@ export interface MOJButtonMenuProps extends BasicBlockProps {
    *
    * @example [{ text: 'Archive', href: '#archive' }]
    */
-  items: ConditionalArray<MOJButtonMenuItem>
+  items: ResolvableArray<MOJButtonMenuItem>
 
   /**
    * Additional CSS classes for the menu container.
    *
    * @example 'app-button-menu--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the menu container.
    *
    * @example { 'data-module': 'custom-menu' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**

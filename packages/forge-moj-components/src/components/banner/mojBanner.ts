@@ -3,7 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -36,7 +36,7 @@ export interface MOJBannerProps extends BasicBlockProps {
    * @example 'warning' // Yellow banner with warning icon
    * @example 'information' // Blue banner with info icon
    */
-  bannerType?: MOJBannerType | ConditionalString
+  bannerType?: MOJBannerType | ResolvableString
 
   /**
    * Plain text content for the banner message.
@@ -44,7 +44,7 @@ export interface MOJBannerProps extends BasicBlockProps {
    *
    * @example 'Your application has been submitted.'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the banner message.
@@ -52,7 +52,7 @@ export interface MOJBannerProps extends BasicBlockProps {
    *
    * @example '<p>Your application has been <strong>submitted</strong>.</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Fallback text for the icon used in the aria-label.
@@ -61,21 +61,21 @@ export interface MOJBannerProps extends BasicBlockProps {
    * @example 'Success'
    * @example 'Warning'
    */
-  iconFallbackText?: ConditionalString
+  iconFallbackText?: ResolvableString
 
   /**
    * Additional CSS classes for the banner container.
    *
    * @example 'app-banner--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the banner container.
    *
    * @example { 'data-module': 'custom-banner' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**

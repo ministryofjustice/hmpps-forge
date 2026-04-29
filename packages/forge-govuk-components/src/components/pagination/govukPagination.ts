@@ -2,9 +2,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalArray,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -15,16 +15,16 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface PaginationLink {
   /** The link's URL. Required. */
-  href: ConditionalString
+  href: ResolvableString
 
   /** Text content of the link. Defaults to "Previous page" or "Next page". */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content of the link. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Label underneath the link providing context (e.g., "Introduction"). */
-  labelText?: ConditionalString
+  labelText?: ResolvableString
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
@@ -33,7 +33,7 @@ export interface PaginationLink {
    * Conditional visibility for this link. When the evaluated value is `false`,
    * the link is omitted from rendering. Defaults to showing the link.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -41,19 +41,19 @@ export interface PaginationLink {
  */
 export interface PaginationItem {
   /** The page number text. Required unless ellipsis is true. */
-  number?: ConditionalString
+  number?: ResolvableString
 
   /** Visually hidden label for screen readers (e.g., "Page 1"). */
-  visuallyHiddenText?: ConditionalString
+  visuallyHiddenText?: ResolvableString
 
   /** The link's URL. Required unless ellipsis is true. */
-  href?: ConditionalString
+  href?: ResolvableString
 
   /** Set to true to indicate the current page. */
-  current?: ConditionalBoolean
+  current?: ResolvableBoolean
 
   /** Set to true to render an ellipsis instead of a page number. */
-  ellipsis?: ConditionalBoolean
+  ellipsis?: ResolvableBoolean
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
@@ -62,7 +62,7 @@ export interface PaginationItem {
    * Conditional visibility for this item. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -92,13 +92,13 @@ export interface GovUKPaginationProps extends BasicBlockProps {
   next?: PaginationLink
 
   /** Numbered page items for multi-page navigation. */
-  items?: ConditionalArray<PaginationItem>
+  items?: ResolvableArray<PaginationItem>
 
   /** Accessibility label for the navigation landmark. Defaults to "Pagination". */
-  landmarkLabel?: ConditionalString
+  landmarkLabel?: ResolvableString
 
   /** Additional CSS classes for the pagination nav element. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the pagination nav element. */
   attributes?: Record<string, any>
