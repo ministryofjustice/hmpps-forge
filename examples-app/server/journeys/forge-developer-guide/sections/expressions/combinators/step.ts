@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const combinatorsStep = step({
@@ -7,10 +7,6 @@ export const combinatorsStep = step({
   title: 'Combinators',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Expressions' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('combinators')],
-    }),
-  ],
+  onAccess: [loadContent('combinators')],
   blocks: [content],
 })

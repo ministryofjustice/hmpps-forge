@@ -5,6 +5,7 @@ import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/types/adapter.type'
+import { StructureType } from '../authoring/types/enums'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 import JourneyInstance from './JourneyInstance'
 import Forge from './Forge'
@@ -78,6 +79,7 @@ describe('Forge', () => {
     mockJourneyInstance = {
       getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
       getJourneyCode: vi.fn().mockReturnValue('test-form'),
+      compileAllRouteArtefacts: vi.fn(),
       getCompiledForm: vi.fn().mockReturnValue([]),
       getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
     } as any
@@ -167,17 +169,35 @@ describe('Forge', () => {
   })
 
   describe('registerGlobalFunctions', () => {
-    it('should register a function registry object', () => {
+    it('should register function implementations', () => {
       const engine = new Forge(createDefaultOptions())
-      const mockRegistry = {
-        Function1: { name: 'Function1', evaluate: () => true, isAsync: false },
-        Function2: { name: 'Function2', evaluate: (x: any) => x, isAsync: false },
+      const functions = {
+        Function1: () => () => true,
+        Function2: () => (value: unknown) => value,
       }
 
-      engine.registerGlobalFunctions(mockRegistry)
+      engine.registerGlobalFunctions(functions)
 
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(mockRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
+        Function1: { name: 'Function1', evaluate: expect.any(Function), isAsync: false },
+        Function2: { name: 'Function2', evaluate: expect.any(Function), isAsync: false },
+      })
+    })
+
+    it('should inject dependencies into global function implementations', () => {
+      const engine = new Forge(createDefaultOptions())
+      const functions = {
+        WithSuffix: (deps: { suffix: string }) => (value: unknown) => `${String(value)}${deps.suffix}`,
+      }
+
+      engine.registerGlobalFunctions(functions, { suffix: '!' })
+
+      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
+      const registerMock = vi.mocked(mockFunctionRegistry.register)
+      const registeredFunctions = registerMock.mock.calls.at(-1)?.[0]
+
+      expect(registeredFunctions?.WithSuffix.evaluate('hello')).toBe('hello!')
     })
   })
 
@@ -210,6 +230,42 @@ describe('Forge', () => {
         { journey: 'test-form', routes: 3 },
         "Forge: Registered journey 'Test Form' with 3 routes",
       )
+    })
+
+    it('should compile all route artefacts during registration when lazy step compilation is disabled', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ lazyStepCompilation: false }))
+
+      // Act
+      engine.register({
+        type: StructureType.JOURNEY,
+        path: '/test-form',
+        code: 'test-form',
+        title: 'Test Form',
+        steps: [],
+      })
+
+      // Assert
+      expect(mockJourneyInstance.compileAllRouteArtefacts).toHaveBeenCalledTimes(1)
+      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
+    })
+
+    it('should keep route artefacts lazy during registration by default', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+
+      // Act
+      engine.register({
+        type: StructureType.JOURNEY,
+        path: '/test-form',
+        code: 'test-form',
+        title: 'Test Form',
+        steps: [],
+      })
+
+      // Assert
+      expect(mockJourneyInstance.compileAllRouteArtefacts).not.toHaveBeenCalled()
+      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
     })
 
     it('should successfully register a journey from JourneyDefinition object', () => {
@@ -270,10 +326,15 @@ describe('Forge', () => {
       engine.register('invalid-config')
 
       // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith('Multiple validation errors:')
-      expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 1')
-      expect(mockLogger.error).toHaveBeenCalledWith('Error: Validation error 2')
-      expect(mockLogger.error).toHaveBeenCalledTimes(3)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        [
+          'Forge registration failed: Multiple validation errors',
+          '',
+          '1. Error: Validation error 1',
+          '2. Error: Validation error 2',
+        ].join('\n'),
+      )
+      expect(mockLogger.error).toHaveBeenCalledTimes(1)
     })
 
     it('should handle errors without toString method in AggregateError', () => {
@@ -290,9 +351,9 @@ describe('Forge', () => {
       engine.register('invalid-config')
 
       // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith('Mixed errors:')
-      expect(mockLogger.error).toHaveBeenCalledWith('[object Object]')
-      expect(mockLogger.error).toHaveBeenCalledWith('null')
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        ['Forge registration failed: Mixed errors', '', '1. Object error', '2. null'].join('\n'),
+      )
     })
   })
 
@@ -543,10 +604,10 @@ describe('Forge', () => {
       const component1 = buildComponent('comp-1', () => '<div>1</div>')
       const component2 = buildComponent('comp-2', () => '<div>2</div>')
       const functions1 = {
-        Func1: { name: 'Func1', evaluate: () => true, isAsync: false },
+        Func1: () => () => true,
       }
       const functions2 = {
-        Func2: { name: 'Func2', evaluate: (x: any) => x, isAsync: false },
+        Func2: () => (value: unknown) => value,
       }
 
       const result = engine
@@ -585,11 +646,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions())
       const customComponent = buildComponent('custom-input', () => '<input />')
       const customFunctions = {
-        CustomValidator: {
-          name: 'CustomValidator',
-          evaluate: (value: any) => value !== null,
-          isAsync: false,
-        },
+        CustomValidator: () => (value: unknown) => value !== null,
       }
 
       const result = engine
@@ -605,7 +662,9 @@ describe('Forge', () => {
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(customFunctions)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
+        CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
+      })
       expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
     })
   })

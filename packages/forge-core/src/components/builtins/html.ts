@@ -53,7 +53,7 @@ export interface HtmlBlockProps extends BasicBlockProps {
    *
    * **WARNING: Not sanitized.** Escape any untrusted data with `Transformer.String.EscapeHtml()`.
    */
-  content?: ConditionalString | BlockDefinition[]
+  content?: ConditionalString | BlockDefinition | BlockDefinition[]
 
   /** Additional CSS classes to apply to the element (optional) */
   classes?: ConditionalString

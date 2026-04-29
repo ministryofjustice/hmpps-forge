@@ -64,16 +64,24 @@ export interface TemplateWrapperProps extends BasicBlockProps {
   slots?: Record<string, BlockDefinition[]>
 
   /**
-   * Additional CSS classes to apply to wrapper div (optional).
-   * Only applies when a wrapper div is rendered.
+   * HTML tag to render content within. When set, `classes` and `attributes`
+   * are applied directly to this element instead of a wrapper `<div>`.
+   *
+   * @example 'section'
+   */
+  tag?: string
+
+  /**
+   * Additional CSS classes to apply to the wrapper element (optional).
+   * Only applies when a wrapper element is rendered.
    *
    * @example 'govuk-!-margin-bottom-6'
    */
   classes?: ConditionalString
 
   /**
-   * Custom HTML attributes for wrapper div (optional).
-   * Only applies when a wrapper div is rendered.
+   * Custom HTML attributes for the wrapper element (optional).
+   * Only applies when a wrapper element is rendered.
    *
    * @example { 'data-module': 'template-section' }
    */
@@ -140,9 +148,10 @@ const renderTemplateWrapper = (block: EvaluatedBlock<TemplateWrapper>): string =
   content = content.replace(/\{\{slot:[^}]+}}/g, '')
   content = content.replace(/\{\{[^}]+}}/g, '')
 
-  const hasWrapper = block.classes || block.attributes
+  const hasWrapper = block.tag || block.classes || block.attributes
 
   if (hasWrapper) {
+    const element = block.tag ?? 'div'
     const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
     const customAttrs = block.attributes
       ? Object.entries(block.attributes)
@@ -150,7 +159,7 @@ const renderTemplateWrapper = (block: EvaluatedBlock<TemplateWrapper>): string =
           .join('')
       : ''
 
-    return `<div${classAttr}${customAttrs}>${content}</div>`
+    return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
   }
 
   return content

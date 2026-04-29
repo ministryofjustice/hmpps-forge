@@ -68,6 +68,24 @@ describe('mojProgressBar', () => {
       expect(params.items?.[1].label).toEqual({ text: 'Contact information', classes: 'custom' })
       expect(params.items?.[2].label).toEqual({ html: '<span>Review</span>' })
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { label: 'Personal details' },
+        { label: 'Internal check', visibleWhen: false },
+        { label: 'Review', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { label: { text: string } }) => item.label.text)).toEqual([
+        'Personal details',
+        'Review',
+      ])
+    })
   })
 
   describe('Item states', () => {

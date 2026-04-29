@@ -90,6 +90,21 @@ describe('mojSubNavigation', () => {
       expect(params.items?.[0].active).toBe(true)
       expect(params.items?.[1].active).toBe(false)
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { text: 'Overview', href: '#overview' },
+        { text: 'Admin', href: '#admin', visibleWhen: false },
+        { text: 'Timeline', href: '#timeline', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { text: string }) => item.text)).toEqual(['Overview', 'Timeline'])
+    })
   })
 
   describe('Additional options', () => {

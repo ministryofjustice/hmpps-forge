@@ -21,7 +21,7 @@ import {
   isPredicateOrExpr,
   isPredicateXorExpr,
 } from '../../authoring/typeguards/predicates'
-import { isAccessHook, isActionHook, isSubmitHook } from '../../authoring/typeguards/hooks'
+import { isAccessHook, isSubmitHook } from '../../authoring/typeguards/hooks'
 import UnknownNodeTypeError from '../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../errors/InvalidNodeError'
 import { ASTNode } from '../types/engine.type'
@@ -30,7 +30,6 @@ import JourneyFactory from './structures/journey/JourneyFactory'
 import StepFactory from './structures/step/StepFactory'
 import BlockFactory from './structures/block/BlockFactory'
 import AccessFactory from './hooks/access/AccessFactory'
-import ActionFactory from './hooks/action/ActionFactory'
 import SubmitFactory from './hooks/submit/SubmitFactory'
 import ConditionalFactory from './expressions/conditional/ConditionalFactory'
 import MatchFactory from './expressions/match/MatchFactory'
@@ -63,8 +62,6 @@ export class NodeFactory {
   private readonly blockFactory: BlockFactory
 
   private readonly accessFactory: AccessFactory
-
-  private readonly actionFactory: ActionFactory
 
   private readonly submitFactory: SubmitFactory
 
@@ -102,13 +99,12 @@ export class NodeFactory {
 
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {
     this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this, this.category)
     this.stepFactory = new StepFactory(this.nodeIDGenerator, this, this.category)
     this.blockFactory = new BlockFactory(this.nodeIDGenerator, this, this.category)
     this.accessFactory = new AccessFactory(this.nodeIDGenerator, this, this.category)
-    this.actionFactory = new ActionFactory(this.nodeIDGenerator, this, this.category)
     this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this, this.category)
     this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this, this.category)
     this.matchFactory = new MatchFactory(this.nodeIDGenerator, this, this.category)
@@ -222,13 +218,9 @@ export class NodeFactory {
       return this.throwErrorOutcomeFactory.create(json)
     }
 
-    // Hook nodes: Access, Action, Submit
+    // Hook nodes: Access, Submit
     if (isAccessHook(json)) {
       return this.accessFactory.create(json)
-    }
-
-    if (isActionHook(json)) {
-      return this.actionFactory.create(json)
     }
 
     if (isSubmitHook(json)) {
@@ -238,7 +230,7 @@ export class NodeFactory {
     throw new UnknownNodeTypeError({
       nodeType: json?.type,
       node: json,
-      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Action', 'Submit'],
+      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Submit'],
     })
   }
 
@@ -308,7 +300,6 @@ export class NodeFactory {
       isExpression(value) ||
       isHookOutcome(value) ||
       isAccessHook(value) ||
-      isActionHook(value) ||
       isSubmitHook(value)
   }
 }

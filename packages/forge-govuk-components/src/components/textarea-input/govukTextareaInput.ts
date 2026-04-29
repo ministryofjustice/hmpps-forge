@@ -1,5 +1,6 @@
 import {
   ConditionalBoolean,
+  ConditionalNumber,
   ConditionalString,
   FieldBlockDefinition,
   FieldBlockProps,
@@ -40,10 +41,10 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
    * Controls the initial height of the textarea.
    *
-   * @example '8' // Taller textarea
-   * @example '3' // Shorter textarea
+   * @example 8 // Taller textarea
+   * @example 3 // Shorter textarea
    */
-  rows?: ConditionalString
+  rows?: ConditionalNumber | ConditionalString
 
   /**
    * The label used by the textarea component.
@@ -145,6 +146,14 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
    */
   autocomplete?: ConditionalString
 
+  /**
+   * One or more element IDs to add to the `aria-describedby` attribute.
+   * Used to provide additional descriptive information for screenreader users.
+   *
+   * @example 'comments-guidance'
+   */
+  describedBy?: ConditionalString
+
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>
 }
@@ -163,6 +172,7 @@ export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>('go
     formGroup: block.formGroup,
     classes: block.classes,
     autocomplete: block.autocomplete,
+    describedBy: block.describedBy,
     attributes: block.attributes,
   }
 

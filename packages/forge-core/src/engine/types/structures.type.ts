@@ -1,13 +1,7 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ASTNode } from './ast.type'
-import {
-  AccessHookASTNode,
-  ActionHookASTNode,
-  SubmitHookASTNode,
-  TieBreakerASTNode,
-  ValidationASTNode,
-} from './expressions.type'
+import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
 export interface JourneyReachabilityAST {
@@ -18,6 +12,11 @@ export interface JourneyReachabilityAST {
 export interface StepReachabilityAST {
   entryWhen?: true | ASTNode
   tieBreakers?: TieBreakerASTNode[]
+}
+
+export interface StepEntryValidationAST {
+  groups: string[]
+  when: true | ASTNode
 }
 
 export interface JourneyASTNode extends ASTNode {
@@ -44,8 +43,8 @@ export interface StepASTNode extends ASTNode {
     path: string
     code?: string
     onAccess?: AccessHookASTNode[]
-    onAction?: ActionHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
+    validateOnEntry?: StepEntryValidationAST[]
     blocks?: BlockASTNode[]
     title: string
     description?: string
@@ -54,7 +53,7 @@ export interface StepASTNode extends ASTNode {
     backlink?: string
     metadata?: Record<string, any>
     data?: Record<string, unknown>
-    validWhen?: ASTNode[]
+    validWhen?: unknown
     cleardownFieldCodes?: string[]
   }
 }
@@ -85,11 +84,11 @@ export interface FieldBlockASTNode extends ASTNode {
     // Known field properties
     code?: string | ASTNode // Optional because it might not be set initially
     defaultValue?: ASTNode | any
-    formatters?: ASTNode[] // Array of transformer function AST nodes
+    formatters?: ASTNode[]
+    parsers?: ASTNode[]
     visibleWhen?: ASTNode
-    validWhen?: ValidationASTNode[]
+    validWhen?: unknown
     dependentWhen?: ASTNode
-    value?: ASTNode // Added by normalizer (Self reference)
     metadata?: Record<string, any>
     multiple?: boolean
 

@@ -22,6 +22,8 @@ export interface SelectItem {
   disabled?: ConditionalBoolean
   /** HTML attributes to add to the option. */
   attributes?: Record<string, any>
+  /** Conditional visibility for this option. */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -108,6 +110,14 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
   disabled?: ConditionalBoolean
 
   /**
+   * One or more element IDs to add to the `aria-describedby` attribute.
+   * Used to provide additional descriptive information for screenreader users.
+   *
+   * @example 'country-select-help'
+   */
+  describedBy?: ConditionalString
+
+  /**
    * Additional options for the form group containing the select component.
    */
   formGroup?: {
@@ -148,11 +158,12 @@ export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>('govukS
   const params = {
     id: block.id ?? block.code,
     name: block.code,
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
     hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
     value: block.value,
     disabled: block.disabled,
+    describedBy: block.describedBy,
     formGroup: block.formGroup,
     classes: block.classes,
     attributes: block.attributes,

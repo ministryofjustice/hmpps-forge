@@ -18,14 +18,19 @@ import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, Ou
  *
  * @example
  * // Reference to current collection item
- * { type: 'ExpressionType.Reference', path: ['@item', 'id'] }
+ * { type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }
+ *
+ * @example
+ * // Reference to current loop metadata
+ * { type: 'ExpressionType.Reference', path: ['@loop', '0', 'index0'] }
  */
 export interface ReferenceExpr {
   type: ExpressionType.REFERENCE
 
   /**
    * Path segments to traverse to reach the target value.
-   * Special paths include '@self' (current field) and '@item' (current collection item).
+   * Special paths include '@self' (current field), '@scope' (current iterator item),
+   * and '@loop' (current iterator metadata).
    */
   path: string[]
 
@@ -66,7 +71,7 @@ export interface ReferenceExpr {
  * {
  *   type: 'ExpressionType.Format',
  *   template: 'address_%1_street',
- *   arguments: [{ type: 'ExpressionType.Reference', path: ['@item', 'id'] }]
+ *   arguments: [{ type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }]
  * }
  */
 export interface FormatExpr {
@@ -758,10 +763,11 @@ export interface SubmitHook {
 
   /**
    * Whether to validate form fields before proceeding.
-   * When true, routes to onValid or onInvalid based on validation result.
+   * When true, validates the default validation group and routes to onValid or onInvalid based on validation result.
+   * When passed a group list, validates those groups instead.
    * When false (default), skips validation and uses onAlways.
    */
-  validate?: boolean
+  validate?: boolean | { groups: string[] }
 
   /**
    * Actions to execute regardless of validation result.
@@ -796,46 +802,4 @@ export interface SubmitHook {
     /** Outcomes to evaluate - first match halts (redirect or throws error) */
     next?: HookOutcome[]
   }
-}
-
-/**
- * Lifecycle hook for in-page actions.
- *
- * Executes effects in response to button clicks that do not navigate away,
- * such as "Find address" or "Add another item" buttons.
- *
- * Runs BEFORE block evaluation on POST requests, allowing effects to populate
- * answers that blocks will then display.
- *
- * @example
- * // Postcode lookup action
- * {
- *   type: 'HookType.Action',
- *   when: Post('action').match(Condition.Equals('lookup')),
- *   effects: [lookupPostcode()]
- * }
- *
- * @example
- * // Add item to collection
- * {
- *   type: 'HookType.Action',
- *   when: Post('action').match(Condition.Equals('add-item')),
- *   effects: [addItemToCollection()]
- * }
- */
-export interface ActionHook {
-  type: HookType.ACTION
-
-  /**
-   * Trigger condition for this action.
-   * Checks POST data to determine if this action was triggered.
-   */
-  when: PredicateExpr
-
-  /**
-   * Effects to execute when the action triggers.
-   * Effects run before block evaluation, allowing them to set answers
-   * that will be displayed in the re-rendered form.
-   */
-  effects: EffectFunctionExpr<any>[]
 }

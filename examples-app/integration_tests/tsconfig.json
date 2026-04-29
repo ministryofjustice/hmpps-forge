@@ -2,10 +2,10 @@
   "extends": "@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "lib": ["es2017", "dom"],
-    "types": ["@playwright/test"],
+    "lib": ["esnext", "dom"],
+    "types": ["node", "@playwright/test"],
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": false
   },
   "include": ["**/*.ts"]
 }

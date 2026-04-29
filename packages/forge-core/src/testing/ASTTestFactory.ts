@@ -1,30 +1,18 @@
 // eslint-disable-next-line max-classes-per-file
 import { BlockType, ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../authoring/types/enums'
-import { AstNodeId, NodeId, PseudoNodeId } from '../engine/types/engine.type'
+import { AstNodeId } from '../engine/types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
   PipelineASTNode,
   ReferenceASTNode,
   AccessHookASTNode,
-  ActionHookASTNode,
   SubmitHookASTNode,
   RedirectOutcomeASTNode,
   ThrowErrorOutcomeASTNode,
 } from '../engine/types/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../engine/types/structures.type'
 import { ASTNodeType } from '../engine/types/enums'
-import {
-  PseudoNodeType,
-  PostPseudoNode,
-  QueryPseudoNode,
-  ParamsPseudoNode,
-  DataPseudoNode,
-  RequestPseudoNode,
-  SessionPseudoNode,
-  AnswerLocalPseudoNode,
-  AnswerRemotePseudoNode,
-} from '../engine/types/pseudoNodes.type'
 import { PredicateASTNode } from '../engine/types/predicates.type'
 
 type PredicateBuilderConfig = {
@@ -59,8 +47,6 @@ type PredicateBuilderConfig = {
 export class ASTTestFactory {
   private static astNodeNextId = 1
 
-  private static pseudoNodeNextId = 1
-
   /**
    * Reset the ID counter (useful between tests)
    */
@@ -77,16 +63,6 @@ export class ASTTestFactory {
     this.astNodeNextId += 1
 
     return `${category}:${id}` as AstNodeId
-  }
-
-  /**
-   * Get the next available pseudo node ID
-   */
-  static getPseudoId(category: string = 'compile_pseudo'): PseudoNodeId {
-    const id = this.pseudoNodeNextId
-    this.pseudoNodeNextId += 1
-
-    return `${category}:${id}` as PseudoNodeId
   }
 
   /**
@@ -166,112 +142,6 @@ export class ASTTestFactory {
     }
 
     return builder.build()
-  }
-
-  /**
-   * Create a POST pseudo node
-   */
-  static postPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): PostPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.POST,
-      properties: {
-        baseFieldCode,
-        fieldNodeId,
-      },
-    }
-  }
-
-  /**
-   * Create a QUERY pseudo node
-   */
-  static queryPseudoNode(paramName: string): QueryPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.QUERY,
-      properties: {
-        paramName,
-      },
-    }
-  }
-
-  /**
-   * Create a PARAMS pseudo node
-   */
-  static paramsPseudoNode(paramName: string): ParamsPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.PARAMS,
-      properties: {
-        paramName,
-      },
-    }
-  }
-
-  /**
-   * Create a DATA pseudo node
-   */
-  static dataPseudoNode(baseProperty: string): DataPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.DATA,
-      properties: {
-        baseProperty,
-      },
-    }
-  }
-
-  /**
-   * Create a REQUEST pseudo node
-   */
-  static requestPseudoNode(requestPath: string): RequestPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.REQUEST,
-      properties: {
-        requestPath,
-      },
-    }
-  }
-
-  /**
-   * Create a SESSION pseudo node
-   */
-  static sessionPseudoNode(baseSessionKey: string): SessionPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.SESSION,
-      properties: {
-        baseSessionKey,
-      },
-    }
-  }
-
-  /**
-   * Create an ANSWER_LOCAL pseudo node
-   */
-  static answerLocalPseudoNode(baseFieldCode: string, fieldNodeId?: NodeId): AnswerLocalPseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.ANSWER_LOCAL,
-      properties: {
-        baseFieldCode,
-        fieldNodeId: fieldNodeId ?? ASTTestFactory.getId(),
-      },
-    }
-  }
-
-  /**
-   * Create an ANSWER_REMOTE pseudo node
-   */
-  static answerRemotePseudoNode(baseFieldCode: string): AnswerRemotePseudoNode {
-    return {
-      id: ASTTestFactory.getPseudoId(),
-      type: PseudoNodeType.ANSWER_REMOTE,
-      properties: {
-        baseFieldCode,
-      },
-    }
   }
 
   /**
@@ -585,7 +455,7 @@ export class HookBuilder {
     return this
   }
 
-  build(): AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode {
+  build(): AccessHookASTNode | SubmitHookASTNode {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
@@ -593,6 +463,6 @@ export class HookBuilder {
       id: nodeId,
       hookType: this.hookType,
       properties: this.properties,
-    } as AccessHookASTNode | ActionHookASTNode | SubmitHookASTNode
+    } as AccessHookASTNode | SubmitHookASTNode
   }
 }

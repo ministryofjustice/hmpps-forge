@@ -44,7 +44,6 @@ export enum PredicateType {
 
 export enum HookType {
   ACCESS = 'HookType.Access',
-  ACTION = 'HookType.Action',
   SUBMIT = 'HookType.Submit',
 }
 

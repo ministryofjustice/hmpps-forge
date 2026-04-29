@@ -1,9 +1,15 @@
 name: Pipeline [test -> build -> deploy]
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/pipeline.yml'
+      - 'Makefile'
+      - 'examples-app/**'
+      - 'packages/**'
   push:
     branches:
-      - '**'
+      - 'main'
   workflow_dispatch:
     inputs:
       additional_docker_tag:
@@ -22,57 +28,161 @@ permissions:
   packages: write
 
 concurrency:
-  # Only cancel in progress when on a branch - use SHA on main to ensure uniqueness.
-  # This will allow multiple pipelines to run at the same time on main.
-  # Note that two pipelines running within a few minutes of each other will cause issues with helm deploying to
-  # a namespace, as the second one will not be able to get a lock as a deploy will be in progress.
-  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ${{ github.workflow }}-${{ github.sha }}
 
 jobs:
-  # main node build workflow
-  node_build:
-    name: node build
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/node_build.yml@v2 # WORKFLOW_VERSION
-    secrets: inherit
-    with: 
-      install_command: 'npm run setup'
-  # generic node unit tests - feel free to override with local tests if required
-  node_unit_tests:
-    name: node unit tests
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/node_unit_tests.yml@v2 # WORKFLOW_VERSION
-    needs: [node_build]
-    secrets: inherit
-  # generic node integration tests using wiremock - feel free to override with local tests if required
-  node_integration_tests:
-    name: node integration tests
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/node_integration_tests.yml@v2 # WORKFLOW_VERSION
-    needs: [node_build]
-    secrets: inherit
+  static_checks:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint packages
+            working_directory: packages
+            command: npm run lint
+            build_packages: false
+          - name: Typecheck packages
+            working_directory: packages
+            command: npm run typecheck
+            build_packages: false
+          - name: Lint examples-app
+            working_directory: examples-app
+            command: npm run lint
+            build_packages: true
+          - name: Typecheck examples-app
+            working_directory: examples-app
+            command: npm run typecheck
+            build_packages: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependency
+        if: matrix.build_packages
+        working-directory: packages
+        run: npm ci
+      - name: Build packages dependency
+        if: matrix.build_packages
+        working-directory: packages
+        run: npm run build
+      - name: Install dependencies
+        working-directory: ${{ matrix.working_directory }}
+        run: npm ci
+      - name: Run check
+        working-directory: ${{ matrix.working_directory }}
+        run: ${{ matrix.command }}
+  packages_tests:
+    name: Test packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
+      - name: Test packages
+        working-directory: packages
+        run: npm run test
+  examples_app_tests:
+    name: Test examples-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install packages dependencies
+        working-directory: packages
+        run: npm ci
+      - name: Build packages
+        working-directory: packages
+        run: npm run build
+      - name: Install examples-app dependencies
+        working-directory: examples-app
+        run: npm ci
+      - name: Test examples-app
+        working-directory: examples-app
+        run: npm run test:ci
+      - name: Build examples-app
+        working-directory: examples-app
+        run: npm run build
+      - name: Run end-to-end tests
+        run: make e2e-ci
+  validate:
+    name: Validate
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - static_checks
+      - packages_tests
+      - examples_app_tests
+    steps:
+      - name: Check validation jobs
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            exit 1
+          fi
   helm_lint:
+    if: github.event_name != 'pull_request'
     strategy:
       matrix:
-        environments: ['dev', 'preprod', 'prod']
+        environments: ['dev']
     name: helm lint
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/test_helm_lint.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
     with:
       environment: ${{ matrix.environments }}
+      chart_name: hmpps-forge-examples-app
   build:
-    name: Build docker image from hmpps-github-actions
-    if: github.ref == 'refs/heads/main'
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
+    name: Build and push docker image
+    if: github.event_name != 'pull_request'
     needs:
-      - node_integration_tests
-      - node_unit_tests
-    with:
-      docker_registry: 'ghcr.io'
-      registry_org: 'ministryofjustice'
-      additional_docker_tag: ${{ inputs.additional_docker_tag }}
-      push: ${{ inputs.push || inputs.push == null }}
-      docker_multiplatform: false
+      - validate
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install and build packages
+        working-directory: packages
+        run: |
+          npm ci
+          npm run build
+      - name: Create app version
+        id: version
+        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@v1
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: examples-app/Dockerfile
+          push: ${{ inputs.push || inputs.push == null }}
+          tags: |
+            ghcr.io/ministryofjustice/hmpps-forge-examples-app:${{ steps.version.outputs.version }}
+            ghcr.io/ministryofjustice/hmpps-forge-examples-app:latest
+          build-args: |
+            BUILD_NUMBER=${{ steps.version.outputs.version }}
+            GIT_REF=${{ github.sha }}
+            GIT_BRANCH=${{ github.ref_name }}
   deploy_dev:
     name: Deploy to the development environment
+    if: github.event_name != 'pull_request'
     needs:
       - build
       - helm_lint
@@ -81,26 +191,7 @@ jobs:
     with:
       environment: 'dev'
       app_version: '${{ needs.build.outputs.app_version }}'
-      slack_notification: 'false' # if 'true', it needs a valid NONPROD_RELEASES_SLACK_CHANNEL variable to be set
-  # deploy_preprod:
-  #   name: Deploy to pre-production environment
-  #   needs:
-  #     - build
-  #     - deploy_dev
-  #   uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-  #   secrets: inherit
-  #   with:
-  #     environment: 'preprod'
-  #     app_version: '${{ needs.build.outputs.app_version }}'
-  #     slack_notification: 'false' # if 'true', it needs a valid NONPROD_RELEASES_SLACK_CHANNEL variable to be set
-  # deploy_prod:
-  #   name: Deploy to production environment
-  #   needs:
-  #     - build
-  #     - deploy_preprod
-  #   uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-  #   secrets: inherit
-  #   with:
-  #     environment: 'prod'
-  #     app_version: '${{ needs.build.outputs.app_version }}'
-  #     slack_notification: 'false' # if 'true', it needs a valid PROD_RELEASES_SLACK_CHANNEL variable to be set
+      helm_chart_name: 'hmpps-forge-examples-app'
+      k8s_deployment_name: 'hmpps-forge-examples-app'
+      helm_timeout: '10m'
+      slack_notification: 'false'

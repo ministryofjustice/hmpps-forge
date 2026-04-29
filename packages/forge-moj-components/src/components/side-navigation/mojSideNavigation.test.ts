@@ -90,6 +90,21 @@ describe('mojSideNavigation', () => {
       expect(params.items?.[0].active).toBe(true)
       expect(params.items?.[1].active).toBe(false)
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { text: 'Overview', href: '#overview' },
+        { text: 'Admin', href: '#admin', visibleWhen: false },
+        { text: 'Timeline', href: '#timeline', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { text: string }) => item.text)).toEqual(['Overview', 'Timeline'])
+    })
   })
 
   describe('Sections transformation (sectioned mode)', () => {
@@ -183,6 +198,32 @@ describe('mojSideNavigation', () => {
       expect(params.sections?.[0].heading.attributes).toEqual({
         'data-testid': 'section-heading',
       })
+    })
+
+    it('should omit sections and section items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const sections = [
+        {
+          heading: { text: 'Visible section' },
+          items: [
+            { text: 'Overview', href: '#overview' },
+            { text: 'Admin', href: '#admin', visibleWhen: false },
+          ],
+        },
+        {
+          heading: { text: 'Hidden section' },
+          items: [{ text: 'Hidden item', href: '#hidden' }],
+          visibleWhen: false,
+        },
+      ]
+
+      // Act
+      const params = await helper.getParams({ sections })
+
+      // Assert
+      expect(params.sections).toHaveLength(1)
+      expect(params.sections[0].heading.text).toBe('Visible section')
+      expect(params.sections[0].items.map((item: { text: string }) => item.text)).toEqual(['Overview'])
     })
   })
 

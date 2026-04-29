@@ -71,6 +71,24 @@ describe('mojTicketPanel', () => {
       expect(params.items[0]).toHaveProperty('classes')
       expect(params.items[1]).toHaveProperty('text')
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { text: 'Application submitted' },
+        { text: 'Internal note', visibleWhen: false },
+        { text: 'Confirmation sent', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { text: string }) => item.text)).toEqual([
+        'Application submitted',
+        'Confirmation sent',
+      ])
+    })
   })
 
   describe('Item content', () => {

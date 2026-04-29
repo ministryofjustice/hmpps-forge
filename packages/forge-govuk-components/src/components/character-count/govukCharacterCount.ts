@@ -31,10 +31,10 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
   /**
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
    * Controls the initial height of the textarea.
-   * @example '8' // Taller textarea
-   * @example '3' // Shorter textarea
+   * @example 8 // Taller textarea
+   * @example 3 // Shorter textarea
    */
-  rows?: ConditionalString
+  rows?: ConditionalNumber | ConditionalString
 
   /**
    * The maximum number of characters allowed.

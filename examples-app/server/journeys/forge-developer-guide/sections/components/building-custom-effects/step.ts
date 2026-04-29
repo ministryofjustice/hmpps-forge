@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const buildingCustomEffectsStep = step({
@@ -7,10 +7,6 @@ export const buildingCustomEffectsStep = step({
   title: 'Custom effects',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Functions' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('building-custom-effects')],
-    }),
-  ],
+  onAccess: [loadContent('building-custom-effects')],
   blocks: [content],
 })

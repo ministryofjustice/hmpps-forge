@@ -1,4 +1,10 @@
-import { submit, redirect, Answer, Condition, and } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  submit,
+  redirect,
+  Answer,
+  Condition,
+  and,
+} from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
 import { PatternEffects } from '../../../effects'
 import { heading, hint, additionalNeedsField, continueButton } from './blocks'

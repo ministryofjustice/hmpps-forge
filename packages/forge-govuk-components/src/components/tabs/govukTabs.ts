@@ -2,6 +2,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   EvaluatedBlock,
   RenderedBlock,
@@ -45,6 +46,12 @@ export interface TabItem {
 
   /** Custom HTML attributes for the tab element. */
   attributes?: Record<string, any>
+
+  /**
+   * Conditional visibility for this tab. When the evaluated value is `false`,
+   * the tab is omitted from rendering.
+   */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -112,25 +119,27 @@ export interface GovUKTabs extends BlockDefinition, GovUKTabsProps {
  */
 function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.Environment): string {
   // Process items, handling child blocks in panel content
-  const processedItems = block.items.map(item => {
-    let panelHtml: string | undefined
+  const processedItems = block.items
+    .filter(item => item.visibleWhen !== false)
+    .map(item => {
+      let panelHtml: string | undefined
 
-    // If panel blocks are provided, render them and use as HTML
-    if (item.panel.blocks && item.panel.blocks.length > 0) {
-      panelHtml = (item.panel.blocks as RenderedBlock[]).map(b => b.html).join('')
-    }
+      // If panel blocks are provided, render them and use as HTML
+      if (item.panel.blocks && item.panel.blocks.length > 0) {
+        panelHtml = (item.panel.blocks as RenderedBlock[]).map(b => b.html).join('')
+      }
 
-    return {
-      id: item.id,
-      label: item.label,
-      attributes: item.attributes,
-      panel: {
-        text: panelHtml || item.panel.html ? undefined : item.panel.text,
-        html: panelHtml || item.panel.html,
-        attributes: item.panel.attributes,
-      },
-    }
-  })
+      return {
+        id: item.id,
+        label: item.label,
+        attributes: item.attributes,
+        panel: {
+          text: panelHtml || item.panel.html ? undefined : item.panel.text,
+          html: panelHtml || item.panel.html,
+          attributes: item.panel.attributes,
+        },
+      }
+    })
 
   const params: Record<string, any> = {
     id: block.id,

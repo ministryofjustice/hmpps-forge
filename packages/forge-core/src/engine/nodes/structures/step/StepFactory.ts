@@ -15,7 +15,7 @@ export default class StepFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -56,12 +56,15 @@ export default class StepFactory {
       properties.code = dataProperties.code
     }
 
-    if (dataProperties.onAction !== undefined) {
-      properties.onAction = this.nodeFactory.transformValue(dataProperties.onAction)
-    }
-
     if (dataProperties.onSubmission !== undefined) {
       properties.onSubmission = this.nodeFactory.transformValue(dataProperties.onSubmission)
+    }
+
+    if (dataProperties.validateOnEntry !== undefined) {
+      properties.validateOnEntry = dataProperties.validateOnEntry.map(entry => ({
+        groups: entry.groups,
+        when: entry.when === true ? true : this.nodeFactory.createNode(entry.when),
+      }))
     }
 
     if (dataProperties.blocks !== undefined) {

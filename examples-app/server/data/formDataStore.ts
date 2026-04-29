@@ -7,7 +7,6 @@ type FormAnswers = Record<string, unknown>
 const KEY_PREFIX = 'form-data:'
 const DEFAULT_TTL_SECONDS = 60 * 60 // 1 hour
 
-// FORGE-EXAMPLE: A data store passed as a dependency to effects via registerPackage(pkg, deps).
 // In a real service this would be an API client; here we use Redis as a simple stand-in.
 export default class FormDataStore {
   private client: RedisClient

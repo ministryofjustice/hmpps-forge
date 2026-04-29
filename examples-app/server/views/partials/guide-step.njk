@@ -43,6 +43,25 @@
   {% endfor %}
 {% endif %}
 
+{% set currentSubSection = null %}
+{% if currentSection %}
+  {% for child in currentSection.children %}
+    {% if child.active and child.children | length %}
+      {% set currentSubSection = child %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if currentSubSection %}
+  {% set sideNavTitle = currentSubSection.title %}
+  {% set sideNavItems = [] %}
+  {% for child in currentSubSection.children %}
+    {% if not child.metadata.hiddenFromNav %}
+      {% set _ = sideNavItems.push(child) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
 {% set breadcrumbItems = [] %}
 {% if ancestors and ancestors.length %}
   {% set _ = breadcrumbItems.push({ text: "Home", href: ancestors[0].path }) %}

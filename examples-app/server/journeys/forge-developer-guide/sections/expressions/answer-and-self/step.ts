@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const answerAndSelfStep = step({
@@ -7,10 +7,6 @@ export const answerAndSelfStep = step({
   title: 'Answer and Self',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('answer-and-self')],
-    }),
-  ],
+  onAccess: [loadContent('answer-and-self')],
   blocks: [content],
 })

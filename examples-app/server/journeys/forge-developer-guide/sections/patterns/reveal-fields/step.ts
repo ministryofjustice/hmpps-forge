@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const revealFieldsPatternStep = step({
@@ -7,10 +7,6 @@ export const revealFieldsPatternStep = step({
   title: 'Reveal fields',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Input and forms' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-reveal-fields')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-reveal-fields')],
   blocks: [content],
 })

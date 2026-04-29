@@ -28,9 +28,5 @@ export { default as ExpressFrameworkAdapter } from './adapter/ExpressFrameworkAd
 export { buildNunjucksComponent } from './utils/buildNunjucksComponent'
 export type { NunjucksComponentRenderer } from './utils/buildNunjucksComponent'
 
-export {
-  NunjucksGenerators,
-  nunjucksGeneratorImplementations,
-  nunjucksFunctions,
-} from './generators/nunjucksGenerators'
+export { NunjucksGenerators, nunjucksFunctions } from './generators/nunjucksGenerators'
 export type { NunjucksGeneratorShape } from './generators/nunjucksGenerators'

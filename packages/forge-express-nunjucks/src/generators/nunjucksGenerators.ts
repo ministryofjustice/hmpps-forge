@@ -1,9 +1,5 @@
 import nunjucks from 'nunjucks'
-import {
-  createFunctionsRegistry,
-  defineGeneratorFunctions,
-  GeneratorFunctionExpr,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { defineGeneratorFunctions, type GeneratorBuilder } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Throws if the template uses any forbidden tags. Wired into the generator's
@@ -51,6 +47,11 @@ const templateCache = new Map<string, nunjucks.Template>()
 /**
  * Shape for the Nunjucks-backed generator.
  */
+interface NunjucksStringGeneratorProps {
+  template: string
+  data?: Record<string, unknown>
+}
+
 export interface NunjucksGeneratorShape {
   /**
    * Render a Nunjucks template to a ConditionalString expression.
@@ -68,34 +69,32 @@ export interface NunjucksGeneratorShape {
    * @param props.template - Nunjucks template source.
    * @param props.data - Values available to the template (defaults to an empty object).
    */
-  String: (props: { template: string; data?: Record<string, unknown> }) => GeneratorFunctionExpr
+  String: (props: NunjucksStringGeneratorProps) => GeneratorBuilder<[NunjucksStringGeneratorProps]>
 }
 
-/**
- * Authoring-facing namespace for the Nunjucks generators this package provides.
- */
-export const { generators: NunjucksGenerators, implementations: nunjucksGeneratorImplementations } =
-  defineGeneratorFunctions<NunjucksGeneratorShape>({
-    String: {
-      validate: props => assertTemplateIsAllowed(props.template),
-      factory: () => props => {
-        let compiled = templateCache.get(props.template)
+// Have to jump through some hoops with the types here because of Rolldown trying to create
+// code split types.
+export const {
+  generators: NunjucksGenerators,
+  implementations: nunjucksFunctions,
+}: {
+  generators: NunjucksGeneratorShape
+  implementations: {
+    String: (deps: Record<string, never>) => (props: NunjucksStringGeneratorProps) => unknown
+  }
+} = defineGeneratorFunctions<NunjucksGeneratorShape>({
+  String: {
+    validate: (props: NunjucksStringGeneratorProps) => assertTemplateIsAllowed(props.template),
+    factory: () => (props: NunjucksStringGeneratorProps) => {
+      let compiled = templateCache.get(props.template)
 
-        if (!compiled) {
-          assertTemplateIsAllowed(props.template)
-          compiled = new nunjucks.Template(props.template, safeEnvironment, undefined, true)
-          templateCache.set(props.template, compiled)
-        }
+      if (!compiled) {
+        assertTemplateIsAllowed(props.template)
+        compiled = new nunjucks.Template(props.template, safeEnvironment, undefined, true)
+        templateCache.set(props.template, compiled)
+      }
 
-        return compiled.render(props.data ?? {})
-      },
+      return compiled.render(props.data ?? {})
     },
-  })
-
-/**
- * Pre-built registry entry ready to pass to `forge.registerGlobalFunctions()`.
- *
- * @example
- * forge.registerGlobalFunctions(nunjucksFunctions)
- */
-export const nunjucksFunctions = createFunctionsRegistry(nunjucksGeneratorImplementations)
+  },
+})

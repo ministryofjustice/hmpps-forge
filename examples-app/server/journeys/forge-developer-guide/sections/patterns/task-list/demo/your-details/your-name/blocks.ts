@@ -3,7 +3,7 @@ import {
   GovUKTextInput,
   GovUKButton,
   GovUKHeading,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const heading = GovUKHeading({
@@ -15,7 +15,7 @@ export const nameField = GovUKTextInput({
   code: 'visitorName',
   label: {
     text: 'Full name',
-    classes: GovukUtilityClasses.Label.Medium,
+    classes: GovUKUtilityClasses.Label.Medium,
   },
   validWhen: [
     validation({

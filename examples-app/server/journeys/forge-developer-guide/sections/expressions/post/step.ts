@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const postStep = step({
@@ -7,10 +7,6 @@ export const postStep = step({
   title: 'Post',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'References' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('post')],
-    }),
-  ],
+  onAccess: [loadContent('post')],
   blocks: [content],
 })

@@ -11,8 +11,8 @@ services:
     environment:
       ALLOW_EMPTY_PASSWORD: yes
 
-  app:
-    image: ghcr.io/ministryofjustice/hmpps-forge-examples:${APP_VERSION:-local}
+  ui:
+    image: ghcr.io/ministryofjustice/hmpps-forge-examples-app:${APP_VERSION:-local}
     networks:
       - hmpps
     depends_on:

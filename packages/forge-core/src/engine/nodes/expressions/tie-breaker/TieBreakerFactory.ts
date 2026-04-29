@@ -9,7 +9,7 @@ export default class TieBreakerFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   create(json: TieBreaker): TieBreakerASTNode {

@@ -8,11 +8,11 @@ import { ReferenceBuilder } from './ReferenceBuilder'
 const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
 
 /**
- * Immutable builder for creating references within collection contexts.
+ * Immutable builder for creating item references within iterator contexts.
  *
  * Provides methods to navigate hierarchical data structures and access
- * properties of items during collection iteration. This is primarily used
- * with the Item() reference to access data in collection blocks.
+ * properties of items during iteration. This is primarily used with the
+ * Item() reference to access item data in collection blocks.
  *
  * @example
  * // Access a property of the current item
@@ -21,10 +21,7 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * // Access the full item value
  * Item().value()  // -> ['@scope', '0']
  *
- * // Access the current iteration index
- * Item().index()  // -> ['@scope', '0', '@index']
- *
- * // Navigate to parent in nested collections
+ * // Navigate to the outer item in nested iterators
  * Item().parent.path('groupId')  // -> ['@scope', '1', 'groupId']
  *
  * // Chain with pipe and match
@@ -46,12 +43,12 @@ export class ScopedReferenceBuilder {
   }
 
   /**
-   * Navigate to the parent scope in nested collections.
-   * Returns a new builder at the next level up.
+   * Navigate to the outer iterator's item in nested iterators.
+   * Returns a new builder at the next item level up.
    *
    * @example
-   * Item().parent.path('groupId')  // Access parent item's groupId
-   * Item().parent.parent.path('orgId')  // Access grandparent's orgId
+   * Item().parent.path('groupId')  // Access the outer item's groupId
+   * Item().parent.parent.path('orgId')  // Access the next outer item's orgId
    */
   get parent(): ScopedReferenceBuilder {
     return new ScopedReferenceBuilder(this.level + 1)
@@ -77,17 +74,6 @@ export class ScopedReferenceBuilder {
    */
   value(): ReferenceBuilder {
     return ReferenceBuilder.create(['@scope', this.level.toString()])
-  }
-
-  /**
-   * Get the current iteration index (0-based).
-   *
-   * @example
-   * Item().index()  // Returns 0, 1, 2, etc.
-   * Format('Item %1', Item().index())  // "Item 0", "Item 1", etc.
-   */
-  index(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@scope', this.level.toString(), '@index'])
   }
 
   /**

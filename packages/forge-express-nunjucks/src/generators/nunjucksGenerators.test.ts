@@ -1,8 +1,8 @@
-import { assertTemplateIsAllowed, NunjucksGenerators, nunjucksGeneratorImplementations } from './nunjucksGenerators'
+import { assertTemplateIsAllowed, NunjucksGenerators, nunjucksFunctions } from './nunjucksGenerators'
 
 describe('nunjucksGenerators', () => {
   describe('String evaluator', () => {
-    const evaluate = nunjucksGeneratorImplementations.String({})
+    const evaluate = nunjucksFunctions.String({})
 
     it('should render a plain template', () => {
       // Arrange / Act
@@ -155,7 +155,7 @@ describe('nunjucksGenerators', () => {
 
     it('should reject at render time when a forbidden tag slips past the validate hook', () => {
       // Arrange
-      const evaluate = nunjucksGeneratorImplementations.String({})
+      const evaluate = nunjucksFunctions.String({})
 
       // Act / Assert: calling the generator evaluator directly still catches it on cache miss.
       expect(() => evaluate({ template: '{% include "x.njk" %}' })).toThrow(/include/)

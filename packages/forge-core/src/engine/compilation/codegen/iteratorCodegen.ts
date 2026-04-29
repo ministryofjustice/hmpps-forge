@@ -1,0 +1,36 @@
+import CodeEmitter from './CodeEmitter'
+
+/**
+ * Emits the object-to-array coercion used by compiled iterators.
+ *
+ * The generated functions all need the same object iteration shape. Keeping the
+ * coercion in shared codegen prevents render, inventory, validation, and answer
+ * prep from drifting apart.
+ */
+export function emitNormalizeIteratorInput(emitter: CodeEmitter, inputVar: string): void {
+  emitter.emitBlock(
+    `if (${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object")`,
+    () => {
+      emitter.emit(
+        `${inputVar} = Object.entries(${inputVar}).map(function(e) { return typeof e[1] === "object" && e[1] !== null ? Object.assign({"@key": e[0]}, e[1]) : {"@key": e[0], "@value": e[1]}; });`,
+      )
+    },
+  )
+  emitter.emitBlock(`if (Array.isArray(${inputVar}))`, () => {
+    emitter.emit(`${inputVar} = ${inputVar}.filter(function(item) { return item != null; });`)
+  })
+}
+
+/**
+ * Emits the iterator item scope object expected by scoped property references.
+ *
+ * Object items are copied rather than mutated because their source may be
+ * backed by session or data state shared with later compiled evaluations.
+ * The raw item itself stays in the iterator frame, so Item().value() does not
+ * need to be mirrored onto the scope object.
+ */
+export function emitIteratorItemScope(emitter: CodeEmitter, inputVar: string, indexVar: string, itemVar: string): void {
+  emitter.emit(
+    `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`,
+  )
+}

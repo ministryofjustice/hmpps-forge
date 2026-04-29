@@ -1,6 +1,6 @@
 import { HookType } from '../../authoring/types/enums'
 import { ASTNodeType } from '../types/enums'
-import { HookASTNode, AccessHookASTNode, ActionHookASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { HookASTNode, AccessHookASTNode, SubmitHookASTNode } from '../types/expressions.type'
 
 export function isHookNode(obj: any): obj is HookASTNode {
   return obj != null && obj.type === ASTNodeType.HOOK
@@ -11,13 +11,6 @@ export function isHookNode(obj: any): obj is HookASTNode {
  */
 export function isAccessHookNode(obj: any): obj is AccessHookASTNode {
   return isHookNode(obj) && obj.hookType === HookType.ACCESS
-}
-
-/**
- * Check if an AST node is an Action Hook node
- */
-export function isActionHookNode(obj: any): obj is ActionHookASTNode {
-  return isHookNode(obj) && obj.hookType === HookType.ACTION
 }
 
 /**

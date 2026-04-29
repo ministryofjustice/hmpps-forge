@@ -36,22 +36,23 @@ function isAsyncFunction(fn: FunctionEvaluator<unknown>): boolean {
  * // With dependencies
  * const registry = createFunctionsRegistry(implementations, { apiClient })
  */
-export function createFunctionsRegistry(
-  implementations: FunctionImplementations<FunctionShapeMap, NoDeps>,
+export function createFunctionsRegistry<TShapes extends FunctionShapeMap>(
+  implementations: FunctionImplementations<TShapes, NoDeps>,
 ): FunctionRegistryObject
-export function createFunctionsRegistry<TDeps>(
-  implementations: FunctionImplementations<FunctionShapeMap, TDeps>,
+export function createFunctionsRegistry<TShapes extends FunctionShapeMap, TDeps>(
+  implementations: FunctionImplementations<TShapes, TDeps>,
   deps: TDeps,
 ): FunctionRegistryObject
-export function createFunctionsRegistry<TDeps>(
-  implementations: FunctionImplementations<FunctionShapeMap, TDeps>,
+export function createFunctionsRegistry<TShapes extends FunctionShapeMap, TDeps>(
+  implementations: FunctionImplementations<TShapes, TDeps>,
   deps?: TDeps,
 ): FunctionRegistryObject {
   const resolvedDeps = (deps ?? {}) as TDeps
   const registry = {} as FunctionRegistryObject
 
   Object.keys(implementations).forEach(name => {
-    const evaluate = implementations[name](resolvedDeps)
+    const key = name as keyof TShapes
+    const evaluate = implementations[key](resolvedDeps)
 
     registry[name] = {
       name,

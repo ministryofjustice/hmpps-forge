@@ -1,5 +1,6 @@
 import {
   FunctionExpr,
+  IterateExpr,
   PipelineExpr,
   PredicateExpr,
   ReferenceExpr,
@@ -7,10 +8,12 @@ import {
   FormatExpr,
   ConditionalExpr,
   MatchExpr,
+  ValueExpr,
 } from '../../authoring/types/expressions.type'
 import { PredicateTestExprBuilder } from '../../authoring/builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../../authoring/builders/ConditionalExprBuilder'
 import { MatchExprBuilder } from '../../authoring/builders/MatchExprBuilder'
+import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
 import { ChainableExpr, ChainableIterable, ChainableRef } from '../../authoring/builders/types'
 import { BlockType, StructureType } from '../../authoring/types/enums'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
@@ -29,7 +32,7 @@ export interface BasicBlockProps {
    * @example false // Always hidden
    * @example Answer('contactMethod').match(Condition.Equals('email')) // Visible when email selected
    */
-  visibleWhen?: boolean | PredicateExpr | PredicateTestExprBuilder
+  visibleWhen?: ConditionalBoolean
 
   /**
    * Optional metadata for the field.
@@ -91,6 +94,14 @@ export interface FieldBlockProps extends BasicBlockProps {
   formatters?: TransformerFunctionExpr[]
 
   /**
+   * Array of parsers to transform stored values back to display form on GET.
+   * Parsers are the inverse of formatters: they run when loading a stored value
+   * for rendering, converting canonical form back to what the component needs.
+   * Parsers do NOT modify the stored answer.
+   */
+  parsers?: TransformerFunctionExpr[]
+
+  /**
    * Array of validation rules for this field.
    * The field is valid when all conditions pass.
    *
@@ -106,7 +117,7 @@ export interface FieldBlockProps extends BasicBlockProps {
    *   }),
    * ]
    */
-  validWhen?: ValidationExpr[]
+  validWhen?: (ValidationExpr | IterateExpr | ChainableIterable)[] | IterateExpr | ChainableIterable
 
   /**
    * Marks field as dependent on other fields.
@@ -145,15 +156,13 @@ type DynamicExpression =
   | MatchExpr
   | ConditionalExprBuilder
   | MatchExprBuilder
+  | GeneratorBuilder<ValueExpr[]>
   | ChainableRef
   | ChainableExpr<any>
 
-export type ConditionalString =
-  | string
-  | DynamicExpression
-  | FormatExpr
+export type ConditionalString = string | DynamicExpression | FormatExpr
 
-export type ConditionalBoolean = boolean | DynamicExpression
+export type ConditionalBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
 
 export type ConditionalNumber = number | DynamicExpression
 
@@ -166,33 +175,37 @@ export type RenderedBlock = {
   html: string
 }
 
-type Resolved<T> = Exclude<T, DynamicExpression | FormatExpr | ChainableIterable>
+type Resolved<T> = Exclude<
+  T,
+  DynamicExpression | FormatExpr | ChainableIterable | PredicateExpr | PredicateTestExprBuilder
+>
 
-export type EvaluatedBlock<T, IsRoot extends boolean = true> = Resolved<T> extends infer R
-  ? [R] extends [never]
-    ? never
-    : R extends string
-      ? string
-      : R extends boolean
-        ? boolean
-        : R extends number
-          ? number
-          : R extends (infer U)[]
-            ? EvaluatedBlock<U, false>[]
-            : R extends FieldBlockDefinition
-              ? IsRoot extends true
-                ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
-                    value?: unknown
-                    errors?: { message: string; details?: Record<string, any> }[]
-                  }
-                : RenderedBlock
-              : R extends BlockDefinition
+export type EvaluatedBlock<T, IsRoot extends boolean = true> =
+  Resolved<T> extends infer R
+    ? [R] extends [never]
+      ? never
+      : R extends string
+        ? string
+        : R extends boolean
+          ? boolean
+          : R extends number
+            ? number
+            : R extends (infer U)[]
+              ? EvaluatedBlock<U, false>[]
+              : R extends FieldBlockDefinition
                 ? IsRoot extends true
                   ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
                       value?: unknown
+                      errors?: { message: string; details?: Record<string, any> }[]
                     }
                   : RenderedBlock
-                : R extends object
-                  ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> }
-                  : R
-  : never
+                : R extends BlockDefinition
+                  ? IsRoot extends true
+                    ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                        value?: unknown
+                      }
+                    : RenderedBlock
+                  : R extends object
+                    ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> }
+                    : R
+    : never

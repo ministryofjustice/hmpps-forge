@@ -1,6 +1,7 @@
-import { SubmitHook, AccessHook, ActionHook, PredicateExpr } from './expressions.type'
+import { IterateExpr, SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
+import type { ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ConditionalString } from '../../components/types/structures.type'
 
 /**
@@ -27,11 +28,15 @@ export interface ValidationExpr {
   message: ConditionalString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
+  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted. */
+  groups?: string[]
   /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
   details?: Record<string, any>
 }
 
 export type ValidationProps = Omit<ValidationExpr, 'type'>
+
+export type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
 
 /**
  * A prioritised rule that participates in tie-breaking during reachability,
@@ -136,6 +141,11 @@ export interface StepReachability {
   tieBreakers?: TieBreaker[]
 }
 
+export interface StepEntryValidation {
+  groups: string[]
+  when: true | PredicateExpr | PredicateTestExprBuilder
+}
+
 /**
  * Definition for a single step within a journey.
  * Steps contain blocks and define navigation/hook logic.
@@ -146,8 +156,8 @@ export interface StepDefinition {
   code?: string
   blocks?: BlockDefinition[]
   onAccess?: AccessHook[]
-  onAction?: ActionHook[]
   onSubmission?: SubmitHook[]
+  validateOnEntry?: StepEntryValidation[]
   title: string
   view?: ViewConfig
   reachability?: StepReachability
@@ -167,6 +177,6 @@ export interface StepDefinition {
    *   }),
    * ]
    */
-  validWhen?: (ValidationExpr | unknown)[]
+  validWhen?: ValidWhenInput[] | IterateExpr | ChainableIterable
   cleardownFieldCodes?: string[]
 }

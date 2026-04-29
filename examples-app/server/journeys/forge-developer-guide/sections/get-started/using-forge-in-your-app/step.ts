@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const usingForgeInYourAppStep = step({
@@ -7,10 +7,6 @@ export const usingForgeInYourAppStep = step({
   title: 'Using Forge in your app',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Setup guides' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('using-forge-in-your-app')],
-    }),
-  ],
+  onAccess: [loadContent('using-forge-in-your-app')],
   blocks: [content],
 })

@@ -145,13 +145,53 @@ export interface ChainableScopedRef {
   value(): ChainableRef
 
   /**
-   * Get the current iteration index.
-   */
-  index(): ChainableRef
-
-  /**
    * Get the key when iterating over an object.
    * Only available when iterating over object entries (not arrays).
    */
   key(): ChainableRef
+}
+
+/**
+ * Public interface for loop metadata references (Loop).
+ */
+export interface ChainableLoopRef {
+  /**
+   * Navigate to the parent loop in nested collections.
+   */
+  readonly Parent: ChainableLoopRef
+
+  /**
+   * Get the current iteration position, 1-based.
+   */
+  Index(): ChainableRef
+
+  /**
+   * Get the current iteration index, 0-based.
+   */
+  Index0(): ChainableRef
+
+  /**
+   * Get the reverse iteration position, 1-based.
+   */
+  RevIndex(): ChainableRef
+
+  /**
+   * Get the reverse iteration index, 0-based.
+   */
+  RevIndex0(): ChainableRef
+
+  /**
+   * Check whether this is the first iteration.
+   */
+  First(): ChainableRef
+
+  /**
+   * Check whether this is the last iteration.
+   */
+  Last(): ChainableRef
+
+  /**
+   * Get the total number of items in the iteration.
+   */
+  Length(): ChainableRef
 }

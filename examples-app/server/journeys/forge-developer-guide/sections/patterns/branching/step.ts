@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const branchingPatternStep = step({
@@ -7,10 +7,6 @@ export const branchingPatternStep = step({
   title: 'Branching based on an earlier answer',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Input and forms' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('patterns-branching')],
-    }),
-  ],
+  onAccess: [loadContent('patterns-branching')],
   blocks: [content],
 })

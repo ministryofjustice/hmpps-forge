@@ -1,8 +1,4 @@
-import {
-  GovUKPanel,
-  GovUKBody,
-  GovUKButton,
-} from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKPanel, GovUKBody, GovUKButton } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 export const panel = GovUKPanel({
   titleText: 'Application submitted',

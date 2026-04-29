@@ -2,6 +2,7 @@ import {
   Answer,
   Item,
   Iterator,
+  Loop,
   Format,
   match,
   Condition,
@@ -40,12 +41,12 @@ export const contactCards = CollectionBlock({
           actions: {
             items: [
               {
-                href: Format('edit-contact/%1', Item().index()),
+                href: Format('edit-contact/%1', Loop.Index0()),
                 text: 'Change',
                 visuallyHiddenText: Item().path('contactName'),
               },
               {
-                href: Format('your-contacts?remove=%1', Item().index()),
+                href: Format('delete-contact/%1', Loop.Index0()),
                 text: 'Remove',
                 visuallyHiddenText: Item().path('contactName'),
               },

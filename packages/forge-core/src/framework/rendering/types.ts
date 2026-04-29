@@ -1,6 +1,6 @@
 import { ASTNode, NodeId } from '../../engine/types/ast.type'
 import { ASTNodeType } from '../../engine/types/enums'
-import { ValidationResult } from '../../engine/nodes/expressions/validation/ValidationHandler'
+import { ValidationResult } from '../../engine/runtime/types/ValidationResult.type'
 import { BlockASTNode } from '../../engine/types/structures.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 

@@ -150,13 +150,6 @@ export default class EmbeddingIndex {
       return
     }
 
-    this.indexTimeout = setTimeout(() => {
-      logger.warn('Embedding indexing timed out after 60s')
-      this.state = { status: 'failed', error: 'Indexing timed out' }
-      this.worker?.terminate()
-      this.worker = undefined
-    }, INDEX_TIMEOUT_MS)
-
     this.worker.postMessage({ type: 'embed', texts })
   }
 
@@ -358,7 +351,6 @@ export default class EmbeddingIndex {
   }
 
   shutdown(): void {
-    clearTimeout(this.indexTimeout)
     this.worker?.terminate()
     this.worker = undefined
   }
@@ -370,7 +362,6 @@ export default class EmbeddingIndex {
 
     this.worker.on('message', (response: WorkerResponse) => {
       if (response.type === 'embedded') {
-        clearTimeout(this.indexTimeout)
         this.vectors = response.vectors.map(v => new Float32Array(v))
         this.state = { status: 'ready' }
         logger.info({ count: this.vectors.length }, 'Embedding index ready')
@@ -394,7 +385,6 @@ export default class EmbeddingIndex {
         if (pending) {
           pending.reject(new Error(response.message))
         } else {
-          clearTimeout(this.indexTimeout)
           this.state = { status: 'failed', error: response.message }
           logger.warn({ error: response.message }, 'Embedding worker failed')
           this.worker?.terminate()
@@ -404,7 +394,6 @@ export default class EmbeddingIndex {
     })
 
     this.worker.on('error', (err: Error) => {
-      clearTimeout(this.indexTimeout)
       this.state = { status: 'failed', error: err.message }
       logger.warn({ err }, 'Embedding worker crashed')
       this.worker = undefined

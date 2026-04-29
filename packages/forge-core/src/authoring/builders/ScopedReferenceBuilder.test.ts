@@ -147,46 +147,6 @@ describe('ScopedReferenceBuilder', () => {
     })
   })
 
-  describe('index()', () => {
-    it('should return ReferenceBuilder with @index path', () => {
-      // Arrange
-      const builder = ScopedReferenceBuilder.create(0)
-
-      // Act
-      const result = builder.index()
-
-      // Assert
-      expect(result.expr).toEqual({
-        type: ExpressionType.REFERENCE,
-        path: ['@scope', '0', '@index'],
-      })
-    })
-
-    it('should work with parent navigation', () => {
-      // Arrange
-      const builder = ScopedReferenceBuilder.create(0)
-
-      // Act
-      const result = builder.parent.index()
-
-      // Assert
-      expect(result.expr.path).toEqual(['@scope', '1', '@index'])
-    })
-
-    it('should return ReferenceBuilder that supports chaining', () => {
-      // Arrange
-      const builder = ScopedReferenceBuilder.create(0)
-
-      // Act
-      const ref = builder.index()
-
-      // Assert
-      expect(ref.expr.type).toBe(ExpressionType.REFERENCE)
-      expect(typeof ref.pipe).toBe('function')
-      expect(typeof ref.match).toBe('function')
-    })
-  })
-
   describe('integration', () => {
     it('should support complex navigation patterns', () => {
       // Arrange
@@ -206,13 +166,11 @@ describe('ScopedReferenceBuilder', () => {
       // Act
       const name = item.path('name')
       const value = item.value()
-      const index = item.index()
       const parentName = item.parent.path('groupName')
 
       // Assert
       expect(name.expr.path).toEqual(['@scope', '0', 'name'])
       expect(value.expr.path).toEqual(['@scope', '0'])
-      expect(index.expr.path).toEqual(['@scope', '0', '@index'])
       expect(parentName.expr.path).toEqual(['@scope', '1', 'groupName'])
     })
   })

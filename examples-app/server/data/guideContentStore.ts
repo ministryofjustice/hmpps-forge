@@ -1,9 +1,10 @@
 import { readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import logger from '../logger'
 
 export interface ContentEntry {
   slug: string
+  section?: string
   path: string
   title: string
   tags: string[]
@@ -24,64 +25,58 @@ export function slugifyHeading(text: string): string {
     .replace(/^-|-$/g, '')
 }
 
-function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; markdown: string } {
+function parseFrontmatter(
+  raw: string,
+): { attrs: Record<string, unknown>; body: string } | undefined {
   if (!raw.startsWith('---')) {
-    return { frontmatter: {}, markdown: raw }
+    return undefined
   }
 
   const endIndex = raw.indexOf('---', 3)
 
   if (endIndex === -1) {
-    return { frontmatter: {}, markdown: raw }
+    return undefined
   }
 
-  const frontmatterBlock = raw.slice(3, endIndex).trim()
-  const markdown = raw.slice(endIndex + 3).trim()
+  const attrs: Record<string, unknown> = {}
 
-  const frontmatter: Record<string, unknown> = {}
+  raw
+    .slice(3, endIndex)
+    .trim()
+    .split('\n')
+    .forEach(line => {
+      const colon = line.indexOf(':')
 
-  frontmatterBlock.split('\n').forEach(line => {
-    const colonIndex = line.indexOf(':')
+      if (colon === -1) {
+        return
+      }
 
-    if (colonIndex === -1) {
-      return
-    }
+      const key = line.slice(0, colon).trim()
+      const value = line.slice(colon + 1).trim()
 
-    const key = line.slice(0, colonIndex).trim()
-    let value: unknown = line.slice(colonIndex + 1).trim()
+      if (value.startsWith('[') && value.endsWith(']')) {
+        attrs[key] = value
+          .slice(1, -1)
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      } else {
+        attrs[key] = value
+      }
+    })
 
-    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
-      value = value
-        .slice(1, -1)
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-    }
-
-    frontmatter[key] = value
-  })
-
-  return { frontmatter, markdown }
+  return { attrs, body: raw.slice(endIndex + 3).trim() }
 }
 
 export default class GuideContentStore {
   private entries = new Map<string, ContentEntry>()
 
-  private loaded = false
-
   private loadPromise?: Promise<void>
 
-  constructor(private contentDir: string) {}
+  constructor(private readonly contentDir: string) {}
 
   async load(): Promise<void> {
-    if (this.loaded) {
-      return
-    }
-
-    if (!this.loadPromise) {
-      this.loadPromise = this.performLoad()
-    }
-
+    this.loadPromise ??= this.performLoad()
     await this.loadPromise
   }
 
@@ -100,16 +95,10 @@ export default class GuideContentStore {
       return []
     }
 
-    const headings: HeadingEntry[] = []
-    const regex = /^## (.+)$/gm
-    let match = regex.exec(markdown)
-
-    while (match) {
-      headings.push({ text: match[1], slug: slugifyHeading(match[1]) })
-      match = regex.exec(markdown)
-    }
-
-    return headings
+    return [...markdown.matchAll(/^## (.+)$/gm)].map(m => ({
+      text: m[1],
+      slug: slugifyHeading(m[1]),
+    }))
   }
 
   allEntries(): ContentEntry[] {
@@ -117,32 +106,43 @@ export default class GuideContentStore {
   }
 
   private async performLoad(): Promise<void> {
-    const files = await readdir(this.contentDir)
-    const mdFiles = files.filter(f => f.endsWith('.md') && !f.startsWith('_'))
+    const files = await readdir(this.contentDir, { recursive: true })
 
-    const results = await Promise.all(
-      mdFiles.map(async filename => {
-        const slug = filename.replace(/\.md$/, '')
-        const raw = await readFile(join(this.contentDir, filename), 'utf-8')
-        const { frontmatter, markdown } = parseFrontmatter(raw)
+    const mdFiles = files
+      .filter(f => f.endsWith('.md') && !basename(f).startsWith('_'))
+      .map(f => join(this.contentDir, f))
 
-        const entry: ContentEntry = {
-          slug,
-          path: (frontmatter.path as string) ?? slug,
-          title: (frontmatter.title as string) ?? slug,
-          tags: Array.isArray(frontmatter.teaches) ? (frontmatter.teaches as string[]) : [],
-          markdown,
+    await Promise.all(
+      mdFiles.map(async filePath => {
+        const slug = basename(filePath, '.md')
+        const parsed = parseFrontmatter(await readFile(filePath, 'utf-8'))
+
+        if (!parsed) {
+          return
         }
 
-        return entry
+        const title = typeof parsed.attrs.title === 'string' ? parsed.attrs.title : undefined
+        const path = typeof parsed.attrs.path === 'string' ? parsed.attrs.path : undefined
+
+        if (!title || !path) {
+          return
+        }
+
+        if (this.entries.has(slug)) {
+          throw new Error(`Duplicate guide content slug "${slug}"`)
+        }
+
+        this.entries.set(slug, {
+          slug,
+          section: typeof parsed.attrs.section === 'string' ? parsed.attrs.section : undefined,
+          path,
+          title,
+          tags: Array.isArray(parsed.attrs.teaches) ? parsed.attrs.teaches : [],
+          markdown: parsed.body,
+        })
       }),
     )
 
-    for (const entry of results) {
-      this.entries.set(entry.slug, entry)
-    }
-
-    this.loaded = true
     logger.info({ count: this.entries.size }, 'Guide content loaded')
   }
 }

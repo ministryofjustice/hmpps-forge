@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
-import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema } from './expressions.schema'
+import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
 
@@ -33,8 +33,24 @@ export const ValidationExprSchema = z.looseObject({
   condition: PredicateExprSchema,
   message: z.string().trim().min(1, { message: 'Validation message must not be empty' }),
   submissionOnly: z.boolean().optional(),
+  groups: z.array(z.string().trim().min(1)).optional(),
   details: z.record(z.string(), z.any()).optional(),
 })
+
+const ValidWhenItemSchema = z.discriminatedUnion('type', [ValidationExprSchema, IterateExprSchema])
+const ValidWhenSchema = z.preprocess(value => {
+  if (
+    value !== null &&
+    value !== undefined &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    (value as { type?: unknown }).type === ExpressionType.ITERATE
+  ) {
+    return [value]
+  }
+
+  return value
+}, z.array(ValidWhenItemSchema))
 
 /**
  * @see {@link BlockDefinition}
@@ -51,6 +67,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     code: ConditionalStringSchema,
     defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
+    parsers: z.array(TransformerFunctionExprSchema).optional(),
     errors: z
       .array(
         z.object({
@@ -59,7 +76,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
         }),
       )
       .optional(),
-    validWhen: z.array(ValidationExprSchema).optional(),
+    validWhen: ValidWhenSchema.optional(),
     dependentWhen: PredicateExprSchema.optional(),
     multiple: z.boolean().optional(),
     sanitize: z.boolean().optional(),
@@ -91,22 +108,20 @@ export const AccessHookSchema = z.object({
 })
 
 /**
- * @see {@link ActionHook}
- */
-export const ActionHookSchema = z.object({
-  type: z.literal(HookType.ACTION),
-  when: PredicateExprSchema,
-  effects: z.array(EffectFunctionExprSchema),
-})
-
-/**
  * @see {@link SubmitHook}
  */
 export const SubmitHookSchema = z.object({
   type: z.literal(HookType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
-  validate: z.boolean().optional(),
+  validate: z
+    .union([
+      z.boolean(),
+      z.object({
+        groups: z.array(z.string().trim().min(1)).min(1),
+      }),
+    ])
+    .optional(),
   onAlways: z
     .object({
       effects: z.array(EffectFunctionExprSchema).optional(),
@@ -140,6 +155,11 @@ const StepReachabilitySchema = z
   })
   .optional()
 
+const StepEntryValidationSchema = z.object({
+  groups: z.array(z.string().trim().min(1)).min(1),
+  when: z.union([z.literal(true), PredicateExprSchema]),
+})
+
 const JourneyReachabilitySchema = z
   .object({
     resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
@@ -155,14 +175,15 @@ export const StepSchema = z.looseObject({
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
   onAccess: z.array(AccessHookSchema).optional(),
-  onAction: z.array(ActionHookSchema).optional(),
   onSubmission: z.array(SubmitHookSchema).optional(),
+  validateOnEntry: z.array(StepEntryValidationSchema).optional(),
   title: z.string(),
   view: ViewConfigSchema.optional(),
   reachability: StepReachabilitySchema,
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
+  validWhen: ValidWhenSchema.optional(),
 })
 
 /**

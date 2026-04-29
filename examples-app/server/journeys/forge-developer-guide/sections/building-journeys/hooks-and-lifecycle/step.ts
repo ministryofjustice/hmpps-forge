@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const hooksAndLifecycleStep = step({
@@ -7,10 +7,6 @@ export const hooksAndLifecycleStep = step({
   title: 'Hooks and lifecycle',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('hooks-and-lifecycle')],
-    }),
-  ],
+  onAccess: [loadContent('hooks-and-lifecycle')],
   blocks: [content],
 })

@@ -162,6 +162,28 @@ describe('govukCheckboxInput', () => {
       expect(params.items[2].behaviour).toBe('exclusive')
     })
 
+    it('should omit items and dividers when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        { value: 'email', text: 'Email' },
+        { value: 'phone', text: 'Phone', visibleWhen: false },
+        { divider: 'or', visibleWhen: false },
+        { value: 'post', text: 'Post', visibleWhen: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({
+        code: 'test-checkbox',
+        items,
+      })
+
+      // Assert
+      expect(params.items.map((item: { text?: string; divider?: string }) => item.text ?? item.divider)).toEqual([
+        'Email',
+        'Post',
+      ])
+    })
+
     it('marks items as checked based on value array', async () => {
       const params = await helper.getParams({
         code: 'test-checkbox',
@@ -264,10 +286,12 @@ describe('govukCheckboxInput', () => {
     it('passes through classes and attributes', async () => {
       const params = await helper.getParams({
         code: 'test-checkbox',
+        describedBy: 'checkbox-guidance',
         classes: 'custom-checkbox-class',
         attributes: { 'data-module': 'custom-module' },
         items: [],
       })
+      expect(params.describedBy).toBe('checkbox-guidance')
       expect(params.classes).toBe('custom-checkbox-class')
       expect(params.attributes).toEqual({ 'data-module': 'custom-module' })
     })

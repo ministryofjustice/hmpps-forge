@@ -1,4 +1,4 @@
-import { createMockContext } from '../../../../testing/thunkTestHelpers'
+import { createMockContext } from '../../../../testing/runtimeContextTestHelpers'
 import { EffectFunctionContext } from './EffectFunctionContext'
 
 describe('EffectFunctionContext', () => {

@@ -1,29 +1,34 @@
 import { ASTNodeType } from '../../types/enums'
-import { ExpressionType, IteratorType, HookType } from '../../../authoring/types/enums'
+import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import {
-  AccessHookASTNode,
-  ActionHookASTNode,
-  ExpressionASTNode,
-  SubmitHookASTNode,
-} from '../../types/expressions.type'
+import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
 import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engine.type'
-import { AccessHookResult } from '../../nodes/hooks/access/AccessHandler'
-import { SubmitHookResult } from '../../nodes/hooks/submit/SubmitHandler'
-import { ActionHookResult } from '../../nodes/hooks/action/ActionHandler'
+import {
+  CompiledAccessHookResult as AccessHookResult,
+  CompiledSubmitHookResult as SubmitHookResult,
+} from '../../compilation/hooks/HookLifecycleCompiler'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import { JourneyMetadata } from '../../../framework/rendering/types'
-import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import ThunkEvaluationContext from '../../compilation/thunks/ThunkEvaluationContext'
-import { PseudoNodeType } from '../../types/pseudoNodes.type'
+import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import RenderProjector from '../projection/RenderProjector'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+
+type MockInvocationResult<T> = { value: T; error?: undefined } | { value?: undefined; error: unknown }
+type MockLifecycleInvoke = (<T>(
+  nodeId: NodeId,
+  context: RuntimeEvaluationContext,
+) => Promise<MockInvocationResult<T>>) &
+  ReturnType<typeof vi.fn>
+
+interface MockLifecycleInvoker {
+  invoke: MockLifecycleInvoke
+  invokeSync: ReturnType<typeof vi.fn>
+}
 
 const createMockRequest = (
   overrides: Partial<{
@@ -93,40 +98,16 @@ const createMockResponse = (): StepResponse => {
   }
 }
 
-vi.mock('../../compilation/thunks/ThunkEvaluator')
+const mockContextPreparerPrepare = vi.fn()
 
-const mockRenderProjectorBuild = vi.fn().mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-const mockStepValidityAnalyzerExecute = vi.fn().mockResolvedValue({
-  isValid: true,
-  fieldFailures: [],
-  domainFailures: [],
-})
-
-vi.mock('../evaluation/StepValidityAnalyzer', () => {
-  return {
-    __esModule: true,
-    default: vi.fn(function MockStepValidityAnalyzer() {
-      return {
-        execute(...args: unknown[]) {
-          return mockStepValidityAnalyzerExecute(...args)
-        },
-      }
-    }),
-  }
-})
-
-vi.mock('../projection/RenderProjector', () => {
-  return {
-    __esModule: true,
-    default: vi.fn(function MockRenderProjector() {
-      return {
-        build(...args: unknown[]) {
-          return mockRenderProjectorBuild(...args)
-        },
-      }
-    }),
-  }
-})
+vi.mock('../lifecycle/ContextPreparer', () => ({
+  __esModule: true,
+  default: vi.fn(function MockContextPreparer() {
+    return {
+      prepare: (...args: unknown[]) => mockContextPreparerPrepare(...args),
+    }
+  }),
+}))
 
 describe('StepController', () => {
   let mockCompiledForm: CompiledForm[number]
@@ -136,21 +117,13 @@ describe('StepController', () => {
   let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
   let mockRes: unknown
-  let mockEvaluator: Mocked<ThunkEvaluator>
-  let mockContext: Mocked<ThunkEvaluationContext>
+  let mockEvaluator: MockLifecycleInvoker
+  let mockContext: Mocked<RuntimeEvaluationContext>
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    mockRenderProjectorBuild.mockClear()
-    mockStepValidityAnalyzerExecute.mockClear()
-    ;(StepValidityAnalyzer as unknown as Mock).mockClear()
-    ;(RenderProjector as unknown as Mock).mockClear()
-    mockRenderProjectorBuild.mockResolvedValue({ step: {}, blocks: [], ancestors: [] })
-    mockStepValidityAnalyzerExecute.mockResolvedValue({
-      isValid: true,
-      fieldFailures: [],
-      domainFailures: [],
-    })
+    mockContextPreparerPrepare.mockReset()
+    ;(ContextPreparer as unknown as Mock).mockClear()
 
     mockCurrentStepPath = '/journey/step-1'
     mockNavigationMetadata = []
@@ -181,11 +154,21 @@ describe('StepController', () => {
 
     mockContext = {
       request: {
+        url: 'http://localhost/forms/journey/step-1',
+        method: 'GET',
+        location: {
+          origin: 'http://localhost',
+          pathname: '/forms/journey/step-1',
+          href: 'http://localhost/forms/journey/step-1',
+          basePath: '/forms/journey',
+        },
         getParams: vi.fn().mockReturnValue({}),
-      },
-      metadataRegistry: {
-        get: vi.fn(),
-        findNodesWhere: vi.fn().mockReturnValue([]),
+        getSession: vi.fn().mockReturnValue(undefined),
+        getAllQuery: vi.fn().mockReturnValue({}),
+        getAllHeaders: vi.fn().mockReturnValue({}),
+        getAllCookies: vi.fn().mockReturnValue({}),
+        getAllState: vi.fn().mockReturnValue({}),
+        getAllPost: vi.fn().mockReturnValue({}),
       },
       nodeRegistry: {
         get: vi.fn(),
@@ -200,14 +183,17 @@ describe('StepController', () => {
         data: {},
         validation: undefined,
       },
-    } as unknown as Mocked<ThunkEvaluationContext>
+      astNodeTree: {
+        getNodeType: vi.fn().mockReturnValue(undefined),
+        hasDescendantOfType: vi.fn().mockReturnValue(false),
+      },
+    } as unknown as Mocked<RuntimeEvaluationContext>
 
     mockEvaluator = {
-      createContext: vi.fn().mockReturnValue(mockContext),
       invoke: vi.fn(),
       invokeSync: vi.fn(),
-    } as unknown as Mocked<ThunkEvaluator>
-    ;(ThunkEvaluator.withRuntimeOverlay as Mock).mockReturnValue(mockEvaluator)
+    } as unknown as MockLifecycleInvoker
+    mockContextPreparerPrepare.mockReturnValue(mockContext)
   })
 
   function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
@@ -216,10 +202,8 @@ describe('StepController', () => {
       path: stepNode.properties.path.replace(/^\//, ''),
       code: stepNode.properties.code,
       accessAncestorIds: [stepNode.id],
-      actionHookIds: (stepNode.properties.onAction ?? []).map(hook => hook.id),
       submitHookIds: (stepNode.properties.onSubmission ?? []).map(hook => hook.id),
-      fieldIteratorRootIds: [],
-      validationIterateNodeIds: [],
+      iterateNodeIds: [],
       validationBlockIds: [],
       domainValidationNodeIds: [],
       renderAncestorIds: [],
@@ -228,6 +212,36 @@ describe('StepController', () => {
         (t: SubmitHookASTNode) => t.properties.validate === true,
       ),
       hasDomainValidation: false,
+      compiledAccessLifecycle: async () => {
+        for (const ancestorId of runtimePlan.accessAncestorIds) {
+          const ancestor = mockContext.nodeRegistry.get(ancestorId) as JourneyASTNode | StepASTNode | undefined
+
+          for (const hook of ancestor?.properties.onAccess ?? []) {
+            const result = await mockEvaluator.invoke<AccessHookResult>(hook.id, mockContext)
+
+            if (result.error || !result.value?.executed) {
+              continue
+            }
+
+            if (result.value.outcome === 'redirect' || result.value.outcome === 'error') {
+              return result.value
+            }
+          }
+        }
+
+        return { executed: true, outcome: 'continue' }
+      },
+      compiledSubmitHooks: async () => {
+        for (const hookId of runtimePlan.submitHookIds) {
+          const result = await mockEvaluator.invoke<SubmitHookResult>(hookId, mockContext)
+
+          if (!result.error && result.value?.executed) {
+            return result.value
+          }
+        }
+
+        return { executed: false, validated: false, outcome: 'continue' }
+      },
     }
 
     const routeTemplatePath = `/journey/${stepNode.properties.path.replace(/^\//, '')}`
@@ -248,12 +262,16 @@ describe('StepController', () => {
             return (stepNode.properties.onSubmission ?? []).find(hook => hook.id === nodeId)
           }),
         },
-        metadataRegistry: {
-          get: vi.fn(),
-        },
       } as any,
       currentStepId: stepNode.id,
       runtimePlan,
+      compiledAnswerPreparation: () => {},
+      compiledValidation: () => ({ isValid: true, fieldFailures: [], domainFailures: [] }),
+      compiledRender: () => ({
+        blocks: [],
+        step: { path: stepNode.properties.path, title: stepNode.properties.title },
+        ancestors: [],
+      }),
       reachabilityPlan: {
         entries: [
           {
@@ -265,8 +283,7 @@ describe('StepController', () => {
             forwardOutcomeIds: [],
             hasValidation: false,
             cleardownFieldCodes: [],
-            fieldIteratorRootIds: [],
-            validationIterateNodeIds: [],
+            iterateNodeIds: [],
             validationBlockIds: [],
             domainValidationNodeIds: [],
             reachabilityTieBreakers: [],
@@ -274,6 +291,19 @@ describe('StepController', () => {
         ],
         resumeAlways: false,
         reachabilityDisabled: false,
+        compiledReachability: () => ({
+          entryResults: [undefined],
+          outcomeValues: [[]],
+          tieBreakerPriorities: [undefined],
+          resumeActive: false,
+        }),
+        compiledFieldInventory: () => [
+          {
+            stepId: stepNode.id,
+            fieldCodes: [],
+            cleardownFieldCodes: [],
+          },
+        ],
       },
     }
   }
@@ -281,7 +311,6 @@ describe('StepController', () => {
   function createStepWithHooks(options: {
     code?: string
     onAccess?: AccessHookASTNode[]
-    onAction?: ActionHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
   }): StepASTNode {
     return {
@@ -316,18 +345,6 @@ describe('StepController', () => {
       mockCompiledForm.runtimePlan.accessAncestorIds = ancestorIds
       mockCompiledForm.runtimePlan.renderAncestorIds = ancestorIds.slice(0, -1)
     }
-
-    mockContext.metadataRegistry.get = vi.fn().mockImplementation((nodeId: NodeId, key: string) => {
-      if (key === 'attachedToParentNode') {
-        const index = ancestorIds.indexOf(nodeId as AstNodeId)
-
-        if (index > 0) {
-          return ancestorIds[index - 1]
-        }
-      }
-
-      return undefined
-    })
 
     mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
       return ancestors.find(a => a.id === nodeId)
@@ -507,7 +524,7 @@ describe('StepController', () => {
     })
 
     describe('rendering', () => {
-      it('should call render projector and render after passing access checks', async () => {
+      it('should render after passing access checks', async () => {
         // Arrange
         const step = createStepWithHooks({})
         mockCompiledForm = createCompiledForm(step)
@@ -526,8 +543,96 @@ describe('StepController', () => {
         await controller.get(mockReq, mockRes)
 
         // Assert
-        expect(mockRenderProjectorBuild).toHaveBeenCalledTimes(1)
         expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
+      })
+
+      it('should render entry validation errors when validateOnEntry groups are active', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledEntryValidation = vi.fn().mockReturnValue(['contact'])
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [
+            {
+              blockId: 'compile_ast:999' as NodeId,
+              blockCode: 'email',
+              passed: false,
+              message: 'Enter your email',
+              submissionOnly: false,
+            },
+          ],
+          domainFailures: [],
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.get(mockReq, mockRes)
+
+        // Assert
+        expect(mockCompiledForm.compiledValidation).toHaveBeenCalledWith(expect.anything(), false, ['contact'])
+        expect(mockContext.global.validation).toMatchObject({
+          stepId: mockCompiledForm.runtimePlan.stepId,
+          validated: true,
+          groups: ['contact'],
+          isSubmission: false,
+          isValid: false,
+        })
+        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalledWith(
+          expect.objectContaining({
+            showValidationFailures: true,
+            fieldValidationErrors: [
+              {
+                blockCode: 'email',
+                passed: false,
+                message: 'Enter your email',
+                submissionOnly: false,
+              },
+            ],
+          }),
+          mockReq,
+          mockRes,
+        )
+      })
+
+      it('should not run entry validation when no validateOnEntry groups are active', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledEntryValidation = vi.fn().mockReturnValue([])
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [],
+          domainFailures: [],
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.get(mockReq, mockRes)
+
+        // Assert
+        expect(mockCompiledForm.compiledValidation).not.toHaveBeenCalled()
+        expect(mockContext.global.validation).toBeUndefined()
       })
     })
   })
@@ -596,67 +701,16 @@ describe('StepController', () => {
         await expect(controller.post(mockReq, mockRes)).rejects.toThrow('Access denied')
       })
 
-      it('should evaluate dynamic answer pseudo nodes after iterator expansion on POST', async () => {
+      it('should call compiled answer preparation function on POST', async () => {
         // Arrange
-        const iterateNode = ASTTestFactory.expression(ExpressionType.ITERATE)
-          .withId('compile_ast:iterate')
-          .withProperty('input', { id: 'compile_ast:input', type: ASTNodeType.EXPRESSION })
-          .withProperty('iterator', { type: IteratorType.MAP })
-          .build() as ExpressionASTNode
-
-        const dynamicAnswerNode: { id: NodeId; type: PseudoNodeType.ANSWER_LOCAL } = {
-          id: 'runtime_pseudo:1',
-          type: PseudoNodeType.ANSWER_LOCAL,
-        }
-
         const step = createStepWithHooks({})
         mockCompiledForm = createCompiledForm(step)
-        mockCompiledForm.runtimePlan.fieldIteratorRootIds = [iterateNode.id]
 
-        let iteratorExpanded = false
+        setupAncestorChain([step])
 
-        mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
-          if (nodeId === iterateNode.id) {
-            return iterateNode
-          }
+        const answerPrepSpy = vi.fn()
 
-          if (nodeId === step.id) {
-            return step
-          }
-
-          return undefined
-        })
-
-        mockContext.nodeRegistry.findByType = vi.fn().mockImplementation((type: string) => {
-          if (type === PseudoNodeType.ANSWER_LOCAL && iteratorExpanded) {
-            return [dynamicAnswerNode]
-          }
-
-          return []
-        })
-
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
-          if (nodeId === iterateNode.id) {
-            iteratorExpanded = true
-
-            return {
-              value: [],
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
-          if (nodeId === dynamicAnswerNode.id) {
-            return {
-              value: 'dynamic answer',
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
-          return {
-            value: { executed: false },
-            metadata: { source: 'test', timestamp: Date.now() },
-          }
-        })
+        mockCompiledForm.compiledAnswerPreparation = answerPrepSpy
 
         const controller = new StepController(
           mockCompiledForm,
@@ -670,11 +724,83 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        const invokedNodeIds = mockEvaluator.invoke.mock.calls.map(([nodeId]) => nodeId)
+        expect(answerPrepSpy).toHaveBeenCalledTimes(1)
+        const ctx = answerPrepSpy.mock.calls[0][0]
 
-        expect(invokedNodeIds).toContain(iterateNode.id)
-        expect(invokedNodeIds).toContain(dynamicAnswerNode.id)
-        expect(invokedNodeIds.indexOf(iterateNode.id)).toBeLessThan(invokedNodeIds.indexOf(dynamicAnswerNode.id))
+        expect(ctx.answers).toBeDefined()
+        expect(ctx.post).toBeDefined()
+        expect(ctx.conditions).toBeDefined()
+      })
+
+      it('should pass post values to compiled render on POST', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        const compiledRenderSpy = vi.fn(() => ({
+          blocks: [],
+          step: { path: step.properties.path, title: step.properties.title },
+          ancestors: [],
+        }))
+
+        mockContext.request.getAllPost = vi.fn().mockReturnValue({ fieldName: 'value' })
+        mockCompiledForm.compiledRender = compiledRenderSpy
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(compiledRenderSpy).toHaveBeenCalledTimes(1)
+        expect(compiledRenderSpy).toHaveBeenCalledWith(expect.objectContaining({ post: { fieldName: 'value' } }))
+      })
+
+      it('should await async compiled answer preparation before reachability evaluation on POST', async () => {
+        // Arrange
+        const step = createStepWithHooks({})
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        const compiledReachabilitySpy = vi.fn(ctx => {
+          expect(ctx.answers.prepared.current).toBe('yes')
+
+          return {
+            entryResults: [undefined],
+            outcomeValues: [[]],
+            tieBreakerPriorities: [undefined],
+            resumeActive: false,
+          }
+        })
+
+        mockCompiledForm.compiledAnswerPreparation = async ctx => {
+          await Promise.resolve()
+          ctx.answers.prepared = { current: 'yes', mutations: [] }
+        }
+        mockCompiledForm.reachabilityPlan.compiledReachability = compiledReachabilitySpy
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(compiledReachabilitySpy).toHaveBeenCalledTimes(1)
       })
 
       it('should expose journey reachability to submit hooks after answers are prepared', async () => {
@@ -696,8 +822,7 @@ describe('StepController', () => {
               forwardOutcomeIds: [],
               hasValidation: false,
               cleardownFieldCodes: [],
-              fieldIteratorRootIds: [],
-              validationIterateNodeIds: [],
+              iterateNodeIds: [],
               validationBlockIds: [],
               domainValidationNodeIds: [],
               reachabilityTieBreakers: [],
@@ -705,9 +830,22 @@ describe('StepController', () => {
           ],
           resumeAlways: false,
           reachabilityDisabled: false,
+          compiledReachability: () => ({
+            entryResults: [undefined],
+            outcomeValues: [[]],
+            tieBreakerPriorities: [undefined],
+            resumeActive: false,
+          }),
+          compiledFieldInventory: () => [
+            {
+              stepId: step.id,
+              fieldCodes: [],
+              cleardownFieldCodes: [],
+            },
+          ],
         }
 
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: ThunkEvaluationContext) => {
+        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: RuntimeEvaluationContext) => {
           if (nodeId === submitHook.id) {
             expect(context?.global.reachability).toEqual({
               reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
@@ -751,19 +889,91 @@ describe('StepController', () => {
       })
     })
 
-    describe('action hooks', () => {
-      it('should run action hooks after access passes', async () => {
+    describe('submit hooks', () => {
+      it('should expose validation callback to submit hooks when validation is required', async () => {
         // Arrange
-        const actionHook = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const step = createStepWithHooks({ onAction: [actionHook] })
+        const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
+          .withProperty('validate', true)
+          .build() as SubmitHookASTNode
+        const step = createStepWithHooks({ onSubmission: [submitHook] })
         mockCompiledForm = createCompiledForm(step)
 
         setupAncestorChain([step])
 
-        const actionResult: ActionHookResult = { executed: true }
-        mockEvaluator.invoke.mockResolvedValue({
-          value: actionResult,
-          metadata: { source: 'test', timestamp: Date.now() },
+        mockCompiledForm.compiledValidation = async () => ({
+          isValid: false,
+          fieldFailures: [
+            {
+              blockId: 'compile_ast:999' as NodeId,
+              blockCode: 'email',
+              passed: false,
+              message: 'Enter an email address',
+              submissionOnly: true,
+            },
+          ],
+          domainFailures: [],
+        })
+        mockCompiledForm.runtimePlan.compiledSubmitHooks = async hookContext => {
+          const validation = await hookContext.validate?.(['default'])
+
+          return {
+            executed: true,
+            validated: true,
+            isValid: validation?.isValid,
+            outcome: 'continue',
+          }
+        }
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockNavigationMetadata,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(mockContext.global.validation).toEqual({
+          stepId: mockCompiledForm.runtimePlan.stepId,
+          validated: true,
+          groups: ['default'],
+          isSubmission: true,
+          isValid: false,
+          fieldFailures: [
+            {
+              blockId: 'compile_ast:999',
+              blockCode: 'email',
+              passed: false,
+              message: 'Enter an email address',
+              submissionOnly: true,
+            },
+          ],
+          domainFailures: [],
+        })
+      })
+
+      it('should not pre-validate before submit hooks', async () => {
+        // Arrange
+        const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
+          .withProperty('validate', true)
+          .build() as SubmitHookASTNode
+        const step = createStepWithHooks({ onSubmission: [submitHook] })
+        mockCompiledForm = createCompiledForm(step)
+
+        setupAncestorChain([step])
+
+        mockCompiledForm.compiledValidation = vi.fn().mockReturnValue({
+          isValid: false,
+          fieldFailures: [],
+          domainFailures: [],
+        })
+        mockCompiledForm.runtimePlan.compiledSubmitHooks = async () => ({
+          executed: true,
+          validated: false,
+          outcome: 'continue',
         })
 
         const controller = new StepController(
@@ -778,112 +988,8 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(actionHook.id, mockContext)
-      })
-
-      it('should stop at first executing action (first-match semantics)', async () => {
-        // Arrange
-        const action1 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const action2 = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-        const step = createStepWithHooks({ onAction: [action1, action2] })
-        mockCompiledForm = createCompiledForm(step)
-
-        setupAncestorChain([step])
-
-        mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId) => {
-          if (nodeId === action1.id) {
-            return {
-              value: { executed: true },
-              metadata: { source: 'test', timestamp: Date.now() },
-            }
-          }
-
-          return { value: { executed: false }, metadata: { source: 'test', timestamp: Date.now() } }
-        })
-
-        const controller = new StepController(
-          mockCompiledForm,
-          mockDependencies,
-          mockNavigationMetadata,
-          mockCurrentStepPath,
-          mockRouteTemplateCatalog,
-        )
-
-        // Act
-        await controller.post(mockReq, mockRes)
-
-        // Assert - Only first action should be invoked
-        expect(mockEvaluator.invoke).toHaveBeenCalledWith(action1.id, mockContext)
-        expect(mockEvaluator.invoke).not.toHaveBeenCalledWith(action2.id, expect.anything())
-      })
-    })
-
-    describe('submit hooks', () => {
-      it('should run StepValidityAnalyzer before submit hooks when a submit hook requires validation', async () => {
-        const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
-          .withProperty('validate', true)
-          .build() as SubmitHookASTNode
-        const step = createStepWithHooks({ onSubmission: [submitHook] })
-        mockCompiledForm = createCompiledForm(step)
-
-        setupAncestorChain([step])
-
-        const submitResult: SubmitHookResult = {
-          executed: true,
-          validated: true,
-          isValid: false,
-          outcome: 'continue',
-        }
-        mockStepValidityAnalyzerExecute.mockResolvedValue({
-          isValid: false,
-          fieldFailures: [
-            {
-              blockId: 'compile_ast:999',
-              blockCode: 'email',
-              passed: false,
-              message: 'Enter an email address',
-              submissionOnly: true,
-            },
-          ],
-          domainFailures: [],
-        })
-        mockEvaluator.invoke.mockResolvedValue({
-          value: submitResult,
-          metadata: { source: 'test', timestamp: Date.now() },
-        })
-
-        const controller = new StepController(
-          mockCompiledForm,
-          mockDependencies,
-          mockNavigationMetadata,
-          mockCurrentStepPath,
-          mockRouteTemplateCatalog,
-        )
-
-        await controller.post(mockReq, mockRes)
-
-        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledTimes(1)
-        expect(mockStepValidityAnalyzerExecute).toHaveBeenCalledWith(
-          mockCompiledForm.runtimePlan,
-          mockEvaluator,
-          mockContext,
-          true,
-        )
-        expect(mockContext.global.validation).toEqual({
-          stepId: mockCompiledForm.runtimePlan.stepId,
-          validated: true,
-          isValid: false,
-          fieldFailures: [
-            {
-              blockId: 'compile_ast:999',
-              blockCode: 'email',
-              passed: false,
-              message: 'Enter an email address',
-              submissionOnly: true,
-            },
-          ],
-          domainFailures: [],
-        })
+        expect(mockCompiledForm.compiledValidation).not.toHaveBeenCalled()
+        expect(mockContext.global.validation).toBeUndefined()
       })
 
       it('should run submit hooks after actions', async () => {
@@ -1202,7 +1308,10 @@ describe('StepController', () => {
       await controller.post(mockReq, mockRes)
 
       // Assert
-      expect(mockEvaluator.createContext).toHaveBeenCalledWith(
+      expect(mockContextPreparerPrepare).toHaveBeenCalledWith(
+        mockCompiledForm.runtimePlan,
+        mockCompiledForm.artefact,
+        mockDependencies,
         customRequest,
         expect.objectContaining({
           setHeader: expect.any(Function),
@@ -1241,37 +1350,6 @@ describe('StepController', () => {
 
       // Assert - Access hook was invoked (effects execute internally)
       expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessHook.id, mockContext)
-    })
-
-    it('should invoke action hooks which execute effects internally', async () => {
-      // Arrange
-      const actionHook = ASTTestFactory.hook(HookType.ACTION).build() as ActionHookASTNode
-      const step = createStepWithHooks({ onAction: [actionHook] })
-      mockCompiledForm = createCompiledForm(step)
-
-      setupAncestorChain([step])
-
-      const actionResult: ActionHookResult = { executed: true }
-
-      mockEvaluator.invoke.mockResolvedValue({
-        value: actionResult,
-        metadata: { source: 'test', timestamp: Date.now() },
-      })
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(createMockRequest({ method: 'POST' }))
-
-      const controller = new StepController(
-        mockCompiledForm,
-        mockDependencies,
-        mockNavigationMetadata,
-        mockCurrentStepPath,
-        mockRouteTemplateCatalog,
-      )
-
-      // Act
-      await controller.post(mockReq, mockRes)
-
-      // Assert - Action hook was invoked (effects execute internally)
-      expect(mockEvaluator.invoke).toHaveBeenCalledWith(actionHook.id, mockContext)
     })
 
     it('should invoke submit hooks which execute effects internally', async () => {

@@ -63,6 +63,41 @@ describe('mojMessages', () => {
       expect(params.items).toEqual(items)
       expect(params.items).toHaveLength(3)
     })
+
+    it('should omit items when visibleWhen evaluates to false', async () => {
+      // Arrange
+      const items = [
+        {
+          id: 1,
+          text: 'Visible message',
+          type: 'received',
+          sender: 'Support Agent',
+          timestamp: '2019-06-14T10:00:00.000Z',
+        },
+        {
+          id: 2,
+          text: 'Hidden message',
+          type: 'sent',
+          sender: 'John Smith',
+          timestamp: '2019-06-14T10:05:00.000Z',
+          visibleWhen: false,
+        },
+        {
+          id: 3,
+          text: 'Also visible',
+          type: 'received',
+          sender: 'Support Agent',
+          timestamp: '2019-06-14T10:10:00.000Z',
+          visibleWhen: true,
+        },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items.map((item: { text: string }) => item.text)).toEqual(['Visible message', 'Also visible'])
+    })
   })
 
   describe('Message content', () => {

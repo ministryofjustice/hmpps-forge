@@ -62,14 +62,14 @@ export default class ASTNodeTree {
     return this.nodeTypes.get(nodeId)
   }
 
-  /** Returns property keys that contain AST node children */
+  /** Property edges let compilers ask structural questions without re-walking raw AST objects. */
   getActivePropertyKeys(nodeId: NodeId): string[] {
     const edges = this.propertyEdges.get(nodeId)
 
     return edges ? Array.from(edges.keys()) : []
   }
 
-  /** Checks whether any direct child of the given node has the specified type */
+  /** Direct-child type checks are used when choosing which compiled plan owns a node. */
   hasChildOfType(nodeId: NodeId, type: string): boolean {
     const edges = this.propertyEdges.get(nodeId)
 
@@ -80,7 +80,21 @@ export default class ASTNodeTree {
     return Array.from(edges.values()).some(edge => edge.childTypes.has(type))
   }
 
-  /** Checks whether any descendant (direct or transitive) has the specified type */
+  isDescendantOf(nodeId: NodeId, ancestorId: NodeId): boolean {
+    let currentId: NodeId | undefined = this.getParent(nodeId)
+
+    while (currentId !== undefined) {
+      if (currentId === ancestorId) {
+        return true
+      }
+
+      currentId = this.getParent(currentId)
+    }
+
+    return false
+  }
+
+  /** Descendant checks let plan builders find nested fields and iterators below blocks. */
   hasDescendantOfType(nodeId: NodeId, type: string): boolean {
     if (this.hasChildOfType(nodeId, type)) {
       return true
@@ -91,7 +105,7 @@ export default class ASTNodeTree {
     })
   }
 
-  /** Returns property keys containing children of the specified type */
+  /** Property-key lookups preserve the distinction between child blocks, predicates, and metadata. */
   getPropertyKeysWithChildType(nodeId: NodeId, type: string): string[] {
     const edges = this.propertyEdges.get(nodeId)
 
@@ -110,12 +124,12 @@ export default class ASTNodeTree {
     return result
   }
 
-  /** Returns children that live under a specific property of the given node */
+  /** Property-scoped children keep block order and authored nesting available to compilers. */
   getChildrenInProperty(nodeId: NodeId, propertyKey: string): readonly NodeId[] {
     return this.propertyEdges.get(nodeId)?.get(propertyKey)?.childIds ?? []
   }
 
-  /** Record that a property contains children of a given type without tracking specific child IDs (e.g., from templates) */
+  /** Template children are not registered, but their containing property still affects plan selection. */
   markPropertyContainsType(parentId: NodeId, propertyKey: string, type: string): void {
     let properties = this.propertyEdges.get(parentId)
 

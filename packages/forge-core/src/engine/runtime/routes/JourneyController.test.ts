@@ -1,24 +1,18 @@
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { CompilationArtefact } from '../../compilation/CompilationFactory'
 import { JourneyRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import ThunkEvaluator from '../../compilation/thunks/ThunkEvaluator'
-import ContextPreparer from '../preparation/ContextPreparer'
-import AnswerPreparer from '../preparation/AnswerPreparer'
-import HookExecutor from '../evaluation/HookExecutor'
-import StepValidityAnalyzer from '../evaluation/StepValidityAnalyzer'
-import NavigationAnalyzer from '../analysis/NavigationAnalyzer'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
 import JourneyController from './JourneyController'
 import { StepRequest, CookieMutation, CookieOptions, StepResponse } from '../../../framework'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 
-vi.mock('../../compilation/thunks/ThunkEvaluator')
-
 const mockContextPreparerPrepare = vi.fn()
-const mockAnswerPreparerPrepare = vi.fn().mockResolvedValue(undefined)
-const mockHookExecutorExecuteAccessLifecycle = vi.fn()
+const mockCompiledAnswerPreparation = vi.fn()
+const mockCompiledAccessLifecycle = vi.fn()
 const mockNavigationAnalyzerEvaluate = vi.fn()
 
-vi.mock('../preparation/ContextPreparer', () => ({
+vi.mock('../lifecycle/ContextPreparer', () => ({
   __esModule: true,
   default: vi.fn(function MockContextPreparer() {
     return {
@@ -27,40 +21,24 @@ vi.mock('../preparation/ContextPreparer', () => ({
   }),
 }))
 
-vi.mock('../preparation/AnswerPreparer', () => ({
-  __esModule: true,
-  default: vi.fn(function MockAnswerPreparer() {
-    return {
-      prepare: (...args: unknown[]) => mockAnswerPreparerPrepare(...args),
-    }
-  }),
-}))
-
-vi.mock('../evaluation/HookExecutor', () => ({
-  __esModule: true,
-  default: vi.fn(function MockHookExecutor() {
-    return {
-      executeAccessLifecycle: (...args: unknown[]) => mockHookExecutorExecuteAccessLifecycle(...args),
-    }
-  }),
-}))
-
-vi.mock('../evaluation/StepValidityAnalyzer', () => ({
-  __esModule: true,
-  default: vi.fn(function MockStepValidityAnalyzer() {
-    return {
-      execute: vi.fn(),
-    }
-  }),
-}))
-
-vi.mock('../analysis/NavigationAnalyzer', () => ({
+vi.mock('../navigation/NavigationAnalyzer', () => ({
   __esModule: true,
   default: vi.fn(function MockNavigationAnalyzer() {
     return {
       evaluate: (...args: unknown[]) => mockNavigationAnalyzerEvaluate(...args),
     }
   }),
+  resolveJourneyRootRedirect: (evaluation: {
+    resumeOutcome: string
+    frontierRouteTemplatePath?: string
+    defaultEntryRouteTemplatePath?: string
+  }) => {
+    if (evaluation.resumeOutcome === 'redirect') {
+      return evaluation.frontierRouteTemplatePath
+    }
+
+    return evaluation.defaultEntryRouteTemplatePath
+  },
 }))
 
 const createMockRequest = (
@@ -128,21 +106,30 @@ describe('JourneyController', () => {
 
   beforeEach(() => {
     mockContextPreparerPrepare.mockReset()
-    mockAnswerPreparerPrepare.mockClear()
-    mockHookExecutorExecuteAccessLifecycle.mockReset()
+    mockCompiledAnswerPreparation.mockClear()
+    mockCompiledAccessLifecycle.mockReset()
     mockNavigationAnalyzerEvaluate.mockReset()
     ;(ContextPreparer as unknown as Mock).mockClear()
-    ;(AnswerPreparer as unknown as Mock).mockClear()
-    ;(HookExecutor as unknown as Mock).mockClear()
     ;(NavigationAnalyzer as unknown as Mock).mockClear()
-    ;(StepValidityAnalyzer as unknown as Mock).mockClear()
 
     mockJourneyPlan = {
       journeyId: 'compile_ast:journey' as NodeId,
       path: '/journey',
       accessAncestorIds: ['compile_ast:root-journey' as NodeId, 'compile_ast:journey' as NodeId],
-      fieldIteratorRootIds: [],
-      reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
+      iterateNodeIds: [],
+      compiledAccessLifecycle: (...args: unknown[]) => mockCompiledAccessLifecycle(...args),
+      compiledAnswerPreparation: mockCompiledAnswerPreparation,
+      reachabilityPlan: {
+        entries: [],
+        resumeAlways: false,
+        reachabilityDisabled: false,
+        compiledReachability: () => ({
+          entryResults: [],
+          outcomeValues: [],
+          tieBreakerPriorities: [],
+          resumeActive: false,
+        }),
+      },
     }
 
     mockArtefact = {} as CompilationArtefact
@@ -171,8 +158,26 @@ describe('JourneyController', () => {
     mockReq = {}
     mockRes = {}
 
-    mockContextPreparerPrepare.mockReturnValue({})
-    ;(ThunkEvaluator as unknown as { withRuntimeOverlay: Mock }).withRuntimeOverlay = vi.fn().mockReturnValue({})
+    mockContextPreparerPrepare.mockReturnValue({
+      global: { answers: {}, data: {} },
+      request: {
+        url: 'http://localhost/forms/journey/',
+        method: 'GET',
+        location: {
+          origin: 'http://localhost',
+          pathname: '/forms/journey/',
+          href: 'http://localhost/forms/journey/',
+          basePath: '/forms/journey',
+        },
+        getParams: () => ({}),
+        getSession: () => undefined,
+        getAllQuery: () => ({}),
+        getAllHeaders: () => ({}),
+        getAllCookies: () => ({}),
+        getAllState: () => ({}),
+        getAllPost: () => ({}),
+      },
+    })
   })
 
   describe('get()', () => {
@@ -212,7 +217,7 @@ describe('JourneyController', () => {
 
     it('should redirect to resume frontier when resumeWhen is always active', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           frontierRouteTemplatePath: '/journey/resume-target',
@@ -232,7 +237,7 @@ describe('JourneyController', () => {
 
     it('should redirect to winning entry point when resume is not active', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [
@@ -259,7 +264,7 @@ describe('JourneyController', () => {
 
     it('should fall back to entry point when resume is active but frontier is undefined', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [createStepState({ routeTemplatePath: '/journey/first', isEntryPoint: true })],
@@ -279,7 +284,7 @@ describe('JourneyController', () => {
 
     it('should fall back to first step when no entry points exist', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [createStepState({ routeTemplatePath: '/journey/step-a' })],
@@ -298,7 +303,7 @@ describe('JourneyController', () => {
 
     it('should throw when no steps exist', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [],
@@ -316,16 +321,16 @@ describe('JourneyController', () => {
       })
     })
 
-    it('should run access lifecycle before preparing answers and evaluating navigation', async () => {
+    it('should run access lifecycle before compiled answer preparation and navigation', async () => {
       // Arrange
       const callOrder: string[] = []
 
-      mockHookExecutorExecuteAccessLifecycle.mockImplementation(async () => {
+      mockCompiledAccessLifecycle.mockImplementation(async () => {
         callOrder.push('hooks')
 
         return { outcome: 'continue', executed: true }
       })
-      mockAnswerPreparerPrepare.mockImplementation(async () => {
+      mockCompiledAnswerPreparation.mockImplementation(() => {
         callOrder.push('answers')
       })
       mockNavigationAnalyzerEvaluate.mockImplementation(async () => {
@@ -346,9 +351,114 @@ describe('JourneyController', () => {
       expect(callOrder).toEqual(['hooks', 'answers', 'navigation'])
     })
 
+    it('should call compiled answer preparation with request context', async () => {
+      // Arrange
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [createStepState({ isEntryPoint: true })],
+          defaultEntryRouteTemplatePath: '/journey/target',
+        }),
+      )
+      mockContextPreparerPrepare.mockReturnValue({
+        global: { answers: {}, data: { draw: 'abc' } },
+        request: {
+          url: 'http://localhost/forms/journey/?returnUrl=/home',
+          method: 'GET',
+          location: {
+            origin: 'http://localhost',
+            pathname: '/forms/journey/',
+            href: 'http://localhost/forms/journey/?returnUrl=/home',
+            basePath: '/forms/journey',
+          },
+          getParams: () => ({ journeyId: 'visit' }),
+          getSession: () => ({ userId: 'user-1' }),
+          getAllQuery: () => ({ returnUrl: '/home' }),
+          getAllHeaders: () => ({ accept: 'text/html' }),
+          getAllCookies: () => ({ session: 'abc' }),
+          getAllState: () => ({ csrf: 'token' }),
+          getAllPost: () => ({}),
+        },
+      })
+
+      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+
+      // Act
+      await controller.get(mockReq, mockRes)
+
+      // Assert
+      expect(mockCompiledAnswerPreparation).toHaveBeenCalledWith({
+        answers: {},
+        data: { draw: 'abc' },
+        session: { userId: 'user-1' },
+        params: { journeyId: 'visit' },
+        query: { returnUrl: '/home' },
+        request: {
+          url: 'http://localhost/forms/journey/?returnUrl=/home',
+          path: '/forms/journey/',
+          method: 'GET',
+          headers: { accept: 'text/html' },
+          cookies: { session: 'abc' },
+          state: { csrf: 'token' },
+        },
+        conditions: mockDependencies.functionRegistry,
+        post: {},
+      })
+    })
+
+    it('should await async journey answer preparation before reachability and navigation', async () => {
+      // Arrange
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockNavigationAnalyzerEvaluate.mockResolvedValue(
+        createEvaluation({
+          steps: [createStepState({ isEntryPoint: true })],
+          defaultEntryRouteTemplatePath: '/journey/target',
+        }),
+      )
+
+      const compiledReachabilitySpy = vi.fn(ctx => {
+        expect(ctx.answers.prepared.current).toBe('yes')
+
+        return {
+          entryResults: [],
+          outcomeValues: [],
+          tieBreakerPriorities: [],
+          resumeActive: false,
+        }
+      })
+
+      mockJourneyPlan.compiledAnswerPreparation = async ctx => {
+        await Promise.resolve()
+        ctx.answers.prepared = { current: 'yes', mutations: [] }
+      }
+      mockJourneyPlan.reachabilityPlan.compiledReachability = compiledReachabilitySpy
+
+      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+
+      // Act
+      await controller.get(mockReq, mockRes)
+
+      // Assert
+      expect(compiledReachabilitySpy).toHaveBeenCalledTimes(1)
+      expect(mockNavigationAnalyzerEvaluate).toHaveBeenCalled()
+    })
+
+    it('should throw when compiled answer preparation is missing', async () => {
+      // Arrange
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockJourneyPlan.compiledAnswerPreparation = undefined
+
+      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+
+      // Act & Assert
+      await expect(controller.get(mockReq, mockRes)).rejects.toThrow(
+        'Journey answer preparation compilation is required',
+      )
+    })
+
     it('should honour a redirect outcome from the access lifecycle without running downstream work', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({
+      mockCompiledAccessLifecycle.mockResolvedValue({
         outcome: 'redirect',
         executed: true,
         redirect: '/login',
@@ -360,14 +470,14 @@ describe('JourneyController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockAnswerPreparerPrepare).not.toHaveBeenCalled()
+      expect(mockCompiledAnswerPreparation).not.toHaveBeenCalled()
       expect(mockNavigationAnalyzerEvaluate).not.toHaveBeenCalled()
       expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
     })
 
     it('should throw an HTTP error when the access lifecycle returns an error outcome', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({
+      mockCompiledAccessLifecycle.mockResolvedValue({
         outcome: 'error',
         executed: true,
         status: 403,
@@ -385,7 +495,7 @@ describe('JourneyController', () => {
       ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
         createMockRequest({ params: { personId: 'abc-123' } }),
       )
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           frontierRouteTemplatePath: '/journey/people/:personId/details',
@@ -408,7 +518,7 @@ describe('JourneyController', () => {
 
     it('should invoke NavigationAnalyzer with an undefined currentStepId', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [createStepState({ isEntryPoint: true })],
@@ -428,13 +538,13 @@ describe('JourneyController', () => {
         mockCatalog,
         expect.anything(),
         expect.anything(),
-        expect.anything(),
+        mockDependencies.functionRegistry,
       )
     })
 
     it('should include conditional entries when selecting the winning entry point', async () => {
       // Arrange
-      mockHookExecutorExecuteAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
+      mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
         createEvaluation({
           steps: [

@@ -10,7 +10,7 @@
     "start:dev": "node rolldown/runner.js --watch",
     "lint": "eslint . --cache --max-warnings 0",
     "lint-fix": "eslint . --cache --max-warnings 0 --fix",
-    "typecheck": "tsc && tsc -p integration_tests",
+    "typecheck": "tsgo --noEmit",
     "test": "vitest run",
     "test:ci": "vitest run --no-file-parallelism",
     "int-test": "npx playwright test",

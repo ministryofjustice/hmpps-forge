@@ -16,6 +16,7 @@ import type {
   BasicBlockProps,
   BlockDefinition,
   ConditionalString,
+  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
 hljs.registerLanguage('typescript', typescript)
@@ -237,7 +238,7 @@ function replaceSlotMarkers(markdown: string): string {
   return markdown.replace(slotMarkerPattern, '<div data-forge-slot="$1"></div>')
 }
 
-function replaceSlotPlaceholders(html: string, slots: Record<string, BlockDefinition[]>): string {
+function replaceSlotPlaceholders(html: string, slots: Record<string, RenderedBlock[]>): string {
   return html.replace(slotPlaceholderPattern, (_, slotName) => {
     const renderedBlocks = slots[slotName]
 
@@ -245,7 +246,7 @@ function replaceSlotPlaceholders(html: string, slots: Record<string, BlockDefini
       return ''
     }
 
-    return (renderedBlocks as unknown as { html: string }[]).map(b => b.html).join('')
+    return renderedBlocks.map(block => block.html).join('')
   })
 }
 

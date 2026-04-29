@@ -20,9 +20,8 @@ manages page flow - so you focus on what to ask, not how to wire it up.
 - **Validation pipeline** - field-level and step-level rules with formatters, 
   conditional validation, cross-field checks, and error summaries wired to the 
   right fields automatically.
-- **Hooks and lifecycle** - three hook types (`onAccess`, `onAction`, 
-  `onSubmission`) let you load data, handle in-page actions, and control what 
-  happens on form submission.
+- **Hooks and lifecycle** - `onAccess` and `onSubmission` let you load data,
+  handle POST intents, and control what happens on form submission.
 - **Reachability** - prevents users skipping ahead, clears stale answers when 
   the path changes, and supports resuming partially-completed journeys.
 - **Navigation tree** - automatically built from your journey definitions and 
@@ -72,14 +71,14 @@ renders the GOV.UK components, validates on submission, and redirects on success
 
 ## Packages
 
-| Package | Import path | Purpose |
-|--|--|--|
-| Core | `@ministryofjustice/hmpps-forge/core/authoring` | Authoring API, expression language, engine |
-| Components | `@ministryofjustice/hmpps-forge/core/components` | Built-in block primitives (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`) |
-| Framework | `@ministryofjustice/hmpps-forge/core/framework` | Framework adapter interface |
-| Express + Nunjucks | `@ministryofjustice/hmpps-forge/express-nunjucks` | Express adapter with Nunjucks rendering |
-| GOV.UK Components | `@ministryofjustice/hmpps-forge/govuk-components` | GOV.UK Design System blocks and fields |
-| MOJ Components | `@ministryofjustice/hmpps-forge/moj-components` | MOJ Frontend blocks |
+| Package                  | Import path | Purpose |
+|--------------------------|--|--|
+| Core                     | `@ministryofjustice/hmpps-forge/core/authoring` | Authoring API, expression language, engine |
+| Components               | `@ministryofjustice/hmpps-forge/core/components` | Built-in block primitives (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`) |
+| Framework                | `@ministryofjustice/hmpps-forge/core/framework` | Framework adapter interface |
+| Express-Nunjucks Adapter | `@ministryofjustice/hmpps-forge/express-nunjucks` | Express adapter with Nunjucks rendering |
+| GOV.UK Components        | `@ministryofjustice/hmpps-forge/govuk-components` | GOV.UK Design System blocks and fields |
+| MOJ Components           | `@ministryofjustice/hmpps-forge/moj-components` | MOJ Frontend blocks |
 
 ## Requirements
 
@@ -113,11 +112,10 @@ forge.registerPackage(myJourneyPackage)
 app.use(forge.getRouter())
 ```
 
-See the [developer guide](examples-app/server/journeys/forge-developer-guide/content/get-started.md) for a full walkthrough.
-
 ## Developer guide
 
-The developer guide covers the full API surface:
+We have an interactive [Forge Developer Guide](https://forge-developer-guide-dev.hmpps.service.justice.gov.uk) 
+which covers the full API surface:
 
 - **Building journeys** - defining journeys, steps, blocks, fields, validation, 
   routing, hooks, and navigation
@@ -128,9 +126,11 @@ The developer guide covers the full API surface:
 - **Custom components** - building your own blocks and fields with the component 
   system
 - **Patterns** - single question per page, branching, reveal fields, composite 
-  fields, and resuming partially-completed journeys
+  fields, and resuming partially-completed journeys etc.
+- **Packages** - using the built-in GOVUK and MOJ components packages, how the 
+  express-nunjucks adapter shapes existing Express/Nunjucks approaches to Forge etc.
 
-The guide lives in [`examples-app/server/journeys/forge-developer-guide/content/`](examples-app/server/journeys/forge-developer-guide/content/) and is itself built with Forge, so each pattern page includes a runnable demo.
+The guide lives in [`examples-app/server/journeys/forge-developer-guide/`](examples-app/server/journeys/forge-developer-guide/)  and is itself built with Forge, so each pattern page includes a runnable demo.
 
 ## Development
 

@@ -297,6 +297,57 @@ describe('ASTNodeTree', () => {
     })
   })
 
+  describe('isDescendantOf()', () => {
+    it('should return true for a direct child', () => {
+      // Arrange
+      const tree = new ASTNodeTree()
+      tree.addNode('root' as NodeId)
+      tree.addNode('child' as NodeId, 'root' as NodeId)
+
+      // Act & Assert
+      expect(tree.isDescendantOf('child' as NodeId, 'root' as NodeId)).toBe(true)
+    })
+
+    it('should return true for a grandchild', () => {
+      // Arrange
+      const tree = new ASTNodeTree()
+      tree.addNode('root' as NodeId)
+      tree.addNode('middle' as NodeId, 'root' as NodeId)
+      tree.addNode('leaf' as NodeId, 'middle' as NodeId)
+
+      // Act & Assert
+      expect(tree.isDescendantOf('leaf' as NodeId, 'root' as NodeId)).toBe(true)
+    })
+
+    it('should return false when no ancestor relationship exists', () => {
+      // Arrange
+      const tree = new ASTNodeTree()
+      tree.addNode('root' as NodeId)
+      tree.addNode('a' as NodeId, 'root' as NodeId)
+      tree.addNode('b' as NodeId, 'root' as NodeId)
+
+      // Act & Assert
+      expect(tree.isDescendantOf('a' as NodeId, 'b' as NodeId)).toBe(false)
+    })
+
+    it('should return false when node is itself', () => {
+      // Arrange
+      const tree = new ASTNodeTree()
+      tree.addNode('root' as NodeId)
+
+      // Act & Assert
+      expect(tree.isDescendantOf('root' as NodeId, 'root' as NodeId)).toBe(false)
+    })
+
+    it('should return false for unknown nodes', () => {
+      // Arrange
+      const tree = new ASTNodeTree()
+
+      // Act & Assert
+      expect(tree.isDescendantOf('unknown' as NodeId, 'other' as NodeId)).toBe(false)
+    })
+  })
+
   describe('hasDescendantOfType()', () => {
     it('should return true when a direct child has the type', () => {
       // Arrange

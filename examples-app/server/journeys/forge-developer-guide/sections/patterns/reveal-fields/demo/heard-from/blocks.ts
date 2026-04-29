@@ -9,7 +9,7 @@ import {
   GovUKRadioInput,
   GovUKTextInput,
   GovUKButton,
-  GovukUtilityClasses,
+  GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 // Each radio item can carry a `block` that the GOV.UK radios template renders
@@ -22,7 +22,7 @@ export const heardFromField = GovUKRadioInput({
   fieldset: {
     legend: {
       text: 'How did you hear about us?',
-      classes: GovukUtilityClasses.Fieldset.LargeLabel,
+      classes: GovUKUtilityClasses.Fieldset.LargeLabel,
       isPageHeading: true,
     },
   },
@@ -35,7 +35,7 @@ export const heardFromField = GovUKRadioInput({
         code: 'socialMediaSource',
         label: 'Which platform?',
         dependentWhen: Answer('heardFrom').match(Condition.Equals('social-media')),
-        classes: GovukUtilityClasses.Input.Width20,
+        classes: GovUKUtilityClasses.Input.Width20,
         formatters: [Transformer.String.Trim()],
         validWhen: [
           validation({
@@ -53,7 +53,7 @@ export const heardFromField = GovUKRadioInput({
         code: 'otherSource',
         label: 'Please specify',
         dependentWhen: Answer('heardFrom').match(Condition.Equals('other')),
-        classes: GovukUtilityClasses.Input.Width20,
+        classes: GovUKUtilityClasses.Input.Width20,
         formatters: [Transformer.String.Trim()],
         validWhen: [
           validation({

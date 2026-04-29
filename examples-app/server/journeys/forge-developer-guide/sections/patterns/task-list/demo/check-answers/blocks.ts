@@ -40,14 +40,22 @@ export const yourDetailsSummary = GovUKSummaryList({
       key: { text: 'Full name' },
       value: { text: Answer('visitorName') },
       actions: {
-        items: [{ href: 'your-name', text: 'Change', visuallyHiddenText: 'your name' }],
+        items: [
+          { href: 'your-details/your-name', text: 'Change', visuallyHiddenText: 'your name' },
+        ],
       },
     },
     {
       key: { text: 'Relationship' },
       value: { text: relationshipLabel },
       actions: {
-        items: [{ href: 'relationship', text: 'Change', visuallyHiddenText: 'your relationship' }],
+        items: [
+          {
+            href: 'your-details/relationship',
+            text: 'Change',
+            visuallyHiddenText: 'your relationship',
+          },
+        ],
       },
     },
   ],
@@ -60,14 +68,26 @@ export const visitPreferencesSummary = GovUKSummaryList({
       key: { text: 'Preferred day' },
       value: { text: dayLabel },
       actions: {
-        items: [{ href: 'preferred-day', text: 'Change', visuallyHiddenText: 'preferred day' }],
+        items: [
+          {
+            href: 'visit-preferences/preferred-day',
+            text: 'Change',
+            visuallyHiddenText: 'preferred day',
+          },
+        ],
       },
     },
     {
       key: { text: 'Type of visit' },
       value: { text: visitTypeLabel },
       actions: {
-        items: [{ href: 'visit-type', text: 'Change', visuallyHiddenText: 'type of visit' }],
+        items: [
+          {
+            href: 'visit-preferences/visit-type',
+            text: 'Change',
+            visuallyHiddenText: 'type of visit',
+          },
+        ],
       },
     },
   ],

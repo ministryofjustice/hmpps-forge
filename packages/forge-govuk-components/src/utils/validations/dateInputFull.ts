@@ -37,7 +37,7 @@ export function DateInputFull(messages: DateInputFullMessages): ValidationExpr[]
         ),
       ),
       message: empty.message,
-      submissionOnly: empty.submissionOnly,
+      submissionOnly: empty.submissionOnly ?? false,
     }),
   )
 
@@ -57,7 +57,7 @@ export function DateInputFull(messages: DateInputFullMessages): ValidationExpr[]
         ),
         message: opts.message,
         details: { field },
-        submissionOnly: opts.submissionOnly,
+        submissionOnly: opts.submissionOnly ?? false,
       }),
     )
   }
@@ -68,7 +68,7 @@ export function DateInputFull(messages: DateInputFullMessages): ValidationExpr[]
     validation({
       condition: Self().match(Condition.Date.IsValid()),
       message: invalid.message,
-      submissionOnly: invalid.submissionOnly,
+      submissionOnly: invalid.submissionOnly ?? false,
     }),
   )
 
@@ -79,7 +79,7 @@ export function DateInputFull(messages: DateInputFullMessages): ValidationExpr[]
       validation({
         condition: Self().not.match(Condition.Date.IsFutureDate()),
         message: opts.message,
-        submissionOnly: opts.submissionOnly,
+        submissionOnly: opts.submissionOnly ?? false,
       }),
     )
   }
@@ -91,7 +91,7 @@ export function DateInputFull(messages: DateInputFullMessages): ValidationExpr[]
       validation({
         condition: Self().not.match(Condition.Date.IsPastDate()),
         message: opts.message,
-        submissionOnly: opts.submissionOnly,
+        submissionOnly: opts.submissionOnly ?? false,
       }),
     )
   }

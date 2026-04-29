@@ -1,12 +1,9 @@
 import {
   submit,
-  action,
-  access,
   redirect,
   validation,
   Answer,
   Post,
-  Query,
   Condition,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { patternStep } from '../../../shared/patternStep'
@@ -28,26 +25,6 @@ export const yourContactsStep = patternStep({
       message: 'Add at least one emergency contact',
     }),
   ],
-  // Handles removal via ?remove= query parameter. The redirect strips the
-  // param so a page refresh does not re-trigger the removal.
-  onAccess: [
-    access({
-      when: Query('remove').match(Condition.IsRequired()),
-      effects: [
-        PatternEffects.RemoveItemFromCollection('contacts'),
-        PatternEffects.SaveDraftAnswers('add-another'),
-      ],
-      next: [redirect({ goto: 'your-contacts' })],
-    }),
-  ],
-  // Saves the collection to the session before the add-another redirect,
-  // so the new item persists even though the redirect clears form context.
-  onAction: [
-    action({
-      when: Post('action').match(Condition.Equals('add-another')),
-      effects: [PatternEffects.SaveDraftAnswers('add-another')],
-    }),
-  ],
   onSubmission: [
     // "Add another" skips validation so the user is never blocked from
     // adding their first contact when the collection is empty.
@@ -55,6 +32,7 @@ export const yourContactsStep = patternStep({
       when: Post('action').match(Condition.Equals('add-another')),
       validate: false,
       onAlways: {
+        effects: [PatternEffects.SaveDraftAnswers('add-another')],
         next: [redirect({ goto: 'add-contact' })],
       },
     }),

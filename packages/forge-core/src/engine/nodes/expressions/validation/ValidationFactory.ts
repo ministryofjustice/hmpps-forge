@@ -16,7 +16,7 @@ export default class ValidationFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -27,11 +27,13 @@ export default class ValidationFactory {
       condition: ASTNode
       message: ASTNode | string
       submissionOnly?: boolean
+      groups?: string[]
       details?: Record<string, any>
     } = {
       condition: this.nodeFactory.createNode(json.condition),
       message: this.nodeFactory.transformValue(json.message || ''),
       submissionOnly: false,
+      groups: json.groups ?? ['default'],
     }
 
     if (json.submissionOnly !== undefined) {

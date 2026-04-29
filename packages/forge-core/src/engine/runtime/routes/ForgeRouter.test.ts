@@ -11,6 +11,7 @@ import StepController from './StepController'
 import JourneyController from './JourneyController'
 import { JourneyRuntimePlan, StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
 import ForgeRouter from './ForgeRouter'
+import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 
 vi.mock('./StepController')
 vi.mock('./JourneyController')
@@ -127,23 +128,13 @@ describe('ForgeRouter', () => {
       }),
     }
 
-    const metadataRegistry = {
-      get: vi.fn((nodeId: NodeId, key: string) => {
-        if (key !== 'attachedToParentNode') {
-          return undefined
-        }
+    const astNodeTree = new ASTNodeTree()
 
-        const currentIndex = parentChain.indexOf(nodeId)
+    parentChain.forEach((nodeId, index) => {
+      astNodeTree.addNode(nodeId, parentChain[index - 1])
+    })
 
-        if (currentIndex > 0) {
-          return parentChain[currentIndex - 1]
-        }
-
-        return undefined
-      }),
-    }
-
-    return { nodeRegistry, metadataRegistry, journeyNodes }
+    return { nodeRegistry, astNodeTree, journeyNodes, parentChain }
   }
 
   function createMockJourneyInstance(
@@ -161,10 +152,8 @@ describe('ForgeRouter', () => {
         runtimePlan: {
           stepId: compiled.currentStepId,
           accessAncestorIds: [compiled.currentStepId],
-          actionHookIds: [],
           submitHookIds: [],
-          fieldIteratorRootIds: [],
-          validationIterateNodeIds: [],
+          iterateNodeIds: [],
           validationBlockIds: [],
           domainValidationNodeIds: [],
           renderAncestorIds: [],
@@ -182,6 +171,21 @@ describe('ForgeRouter', () => {
         compiled.artefact.nodeRegistry.get(compiled.currentStepId),
       ]),
     )
+    const sharedAstNodeTree = new ASTNodeTree()
+    const registeredNodeIds = new Set<NodeId>()
+
+    compiledSteps.forEach(compiled => {
+      const parentChain = compiled.artefact.parentChain ?? [compiled.currentStepId]
+
+      parentChain.forEach((nodeId: NodeId, index: number) => {
+        if (registeredNodeIds.has(nodeId)) {
+          return
+        }
+
+        sharedAstNodeTree.addNode(nodeId, parentChain[index - 1])
+        registeredNodeIds.add(nodeId)
+      })
+    })
 
     const sharedArtefact = {
       nodeRegistry: {
@@ -197,26 +201,14 @@ describe('ForgeRouter', () => {
           return undefined
         }),
       },
-      metadataRegistry: {
-        get: vi.fn((nodeId: NodeId, key: string) => {
-          for (const compiled of compiledSteps) {
-            const metadata = compiled.artefact.metadataRegistry.get(nodeId, key)
-
-            if (metadata !== undefined) {
-              return metadata
-            }
-          }
-
-          return undefined
-        }),
-      },
+      astNodeTree: sharedAstNodeTree,
     }
 
     const journeyRuntimePlanMock: JourneyRuntimePlan = {
       journeyId: 'compile_ast:journey' as NodeId,
       path: '/mock',
       accessAncestorIds: [],
-      fieldIteratorRootIds: [],
+      iterateNodeIds: [],
       reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 
@@ -906,7 +898,7 @@ describe('ForgeRouter', () => {
             journeyId,
             path: '/child',
             accessAncestorIds: [],
-            fieldIteratorRootIds: [],
+            iterateNodeIds: [],
             reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
           }
         }

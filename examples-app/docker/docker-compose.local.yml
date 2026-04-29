@@ -2,7 +2,7 @@
 # to support a fully self-contained local development environment.
 
 services:
-  app:
+  ui:
     build:
       target: development
     working_dir: /app/examples-app

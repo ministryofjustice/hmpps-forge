@@ -4,6 +4,13 @@ import { SubmitHookASTNode } from '../../../types/expressions.type'
 import { NodeIDGenerator, NodeIDCategory } from '../../../compilation/id-generators/NodeIDGenerator'
 import { SubmitHook } from '../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
+import { ASTNode } from '../../../types/ast.type'
+
+type SubmitBranch = NonNullable<SubmitHook['onAlways']>
+type SubmitBranchAST = {
+  effects?: ASTNode[]
+  next?: ASTNode[]
+}
 
 /**
  * SubmitFactory: Creates Submit hook nodes
@@ -13,7 +20,7 @@ export default class SubmitFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST | NodeIDCategory.RUNTIME_AST,
+    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -22,8 +29,8 @@ export default class SubmitFactory {
    */
   create(json: SubmitHook): SubmitHookASTNode {
     const properties: SubmitHookASTNode['properties'] = {
-      // Default to validation disabled unless explicitly true
-      validate: json.validate === true,
+      validate: json.validate !== undefined && json.validate !== false,
+      validationGroups: this.getValidationGroups(json.validate),
     }
 
     if (json.when) {
@@ -34,35 +41,16 @@ export default class SubmitFactory {
       properties.guards = this.nodeFactory.createNode(json.guards)
     }
 
-    // Helper to transform submission branches (onAlways/onValid/onInvalid)
-    const transformBranch = (branch: any) => {
-      if (!branch) {
-        return undefined
-      }
-
-      const result: any = {}
-
-      if (Array.isArray(branch.effects)) {
-        result.effects = branch.effects.map((effect: any) => this.nodeFactory.createNode(effect))
-      }
-
-      if (Array.isArray(branch.next)) {
-        result.next = branch.next.map((n: any) => this.nodeFactory.createNode(n))
-      }
-
-      return result
-    }
-
     if (json.onAlways) {
-      properties.onAlways = transformBranch(json.onAlways)
+      properties.onAlways = this.transformBranch(json.onAlways)
     }
 
     if (json.onValid) {
-      properties.onValid = transformBranch(json.onValid)
+      properties.onValid = this.transformBranch(json.onValid)
     }
 
     if (json.onInvalid) {
-      properties.onInvalid = transformBranch(json.onInvalid)
+      properties.onInvalid = this.transformBranch(json.onInvalid)
     }
 
     return {
@@ -72,5 +60,31 @@ export default class SubmitFactory {
       properties,
       raw: json,
     }
+  }
+
+  private getValidationGroups(validate: SubmitHook['validate']): string[] {
+    if (validate === true) {
+      return ['default']
+    }
+
+    if (validate === false || validate === undefined) {
+      return []
+    }
+
+    return validate.groups
+  }
+
+  private transformBranch(branch: SubmitBranch): SubmitBranchAST {
+    const result: SubmitBranchAST = {}
+
+    if (Array.isArray(branch.effects)) {
+      result.effects = branch.effects.map(effect => this.nodeFactory.createNode(effect))
+    }
+
+    if (Array.isArray(branch.next)) {
+      result.next = branch.next.map(next => this.nodeFactory.createNode(next))
+    }
+
+    return result
   }
 }

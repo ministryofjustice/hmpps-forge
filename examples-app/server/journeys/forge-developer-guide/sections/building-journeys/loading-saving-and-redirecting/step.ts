@@ -1,5 +1,5 @@
-import { step, access } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GuideEffects } from '../../../effects'
+import { step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { loadContent } from '../../../effects'
 import { content } from '../blocks/blocks'
 
 export const loadingSavingAndRedirectingStep = step({
@@ -7,10 +7,6 @@ export const loadingSavingAndRedirectingStep = step({
   title: 'Loading, saving and redirecting',
   reachability: { entryWhen: true },
   metadata: { navGroup: 'Working with data' },
-  onAccess: [
-    access({
-      effects: [GuideEffects.LoadContent('loading-saving-and-redirecting')],
-    }),
-  ],
+  onAccess: [loadContent('loading-saving-and-redirecting')],
   blocks: [content],
 })

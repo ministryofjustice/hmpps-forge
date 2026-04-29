@@ -1,4 +1,5 @@
 import {
+  access,
   defineEffectFunctions,
   EffectFunctionContext,
   EffectFunctionExpr,
@@ -6,11 +7,13 @@ import {
 import type GuideContentStore from '../../data/guideContentStore'
 import type GuideSearch from '../../data/guideSearch'
 import type FormDataStore from '../../data/formDataStore'
+import type MocksApi from '../../data/mocksApi'
 
 export interface GuideDeps {
   guideContentStore: GuideContentStore
   guideSearch: GuideSearch
   formDataStore: FormDataStore
+  mocksApi: MocksApi
 }
 
 export interface GuideEffectShape {
@@ -23,11 +26,12 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
     LoadContent: (deps: GuideDeps) => async (context: EffectFunctionContext, slug: string) => {
       await deps.guideContentStore.load()
 
-      const markdown = deps.guideContentStore.getMarkdown(slug)
+      const entry = deps.guideContentStore.get(slug)
 
-      if (markdown) {
-        context.setData('content', markdown)
+      if (entry) {
+        context.setData('content', entry.markdown)
         context.setData('headings', deps.guideContentStore.getHeadings(slug))
+        context.setData('pageTitle', entry.title)
       }
     },
 
@@ -45,3 +49,9 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
       }
     },
   })
+
+export function loadContent(slug: string) {
+  return access({
+    effects: [GuideEffects.LoadContent(slug)],
+  })
+}

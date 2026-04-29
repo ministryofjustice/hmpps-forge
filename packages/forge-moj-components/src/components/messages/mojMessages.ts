@@ -3,6 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
+  ConditionalBoolean,
   ConditionalString,
   ConditionalArray,
   EvaluatedBlock,
@@ -66,6 +67,9 @@ export interface MOJMessageItem {
    * @example '2023-12-25T09:30:00.000Z'
    */
   timestamp: ConditionalString
+
+  /** Conditional visibility for this message */
+  visibleWhen?: ConditionalBoolean
 }
 
 /**
@@ -148,7 +152,7 @@ export interface MOJMessages extends BlockDefinition, MOJMessagesProps {
  */
 function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items,
+    items: block.items.filter(item => item.visibleWhen !== false),
     id: block.id,
     label: block.label,
     classes: block.classes,
