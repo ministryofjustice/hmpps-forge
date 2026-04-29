@@ -12,6 +12,7 @@ import MatchNodeCompiler from './MatchNodeCompiler'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { isASTNode } from '../../../typeguards/nodes'
 import { getDSLSourceMetadata, type DSLPathSegment } from '../../../diagnostics/sourceMetadata'
+import type { GeneratedFunctionHelpers } from '../generated-functions/GeneratedFunctionHelpers'
 
 export type { IteratorScopeFrame } from './types'
 
@@ -470,6 +471,13 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     this.localVarCounter += 1
 
     return `${prefix}${suffix}`
+  }
+
+  /**
+   * Emits a generated runtime helper call without exposing helper parameter names to expression compilers.
+   */
+  compileHelperCall(helperName: keyof GeneratedFunctionHelpers, argExprs: string[]): string {
+    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(${argExprs.join(', ')})`
   }
 
   /**

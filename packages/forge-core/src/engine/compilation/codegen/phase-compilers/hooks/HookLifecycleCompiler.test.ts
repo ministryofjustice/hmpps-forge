@@ -1,5 +1,5 @@
 import { ASTTestFactory } from '../../../../../testing/ASTTestFactory'
-import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { JourneyASTNode, StepASTNode } from '../../../../types/structures.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../../types/expressions.type'
@@ -189,6 +189,55 @@ describe('HookLifecycleCompiler', () => {
       // Assert
       expect(ctx.data.action).toBe('ran')
       expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/login' })
+    })
+
+    it('should compile access effects before a redirect using loaded data', async () => {
+      // Arrange
+      const syncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')
+      const asyncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
+      const redirect = ASTTestFactory.redirectOutcome({ goto: ASTTestFactory.reference(['data', 'redirectPath']) })
+      const hook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('effects', [syncEffect, asyncEffect])
+        .withProperty('next', [redirect])
+        .build() as AccessHookASTNode
+      const fn = compiler.compileAccessLifecycle([createStep([hook])], functionRegistry)
+      const ctx = createContext(functionRegistry, {
+        data: { redirectPath: '/sentence-plan' },
+      })
+
+      // Act
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(ctx.data.action).toBe('ran')
+      expect(ctx.answers.profileLoaded.current).toBe('yes')
+      expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/sentence-plan' })
+    })
+
+    it('should compile formatted redirects after async access effects', async () => {
+      // Arrange
+      const asyncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
+      const loadHook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('effects', [asyncEffect])
+        .build() as AccessHookASTNode
+      const formattedGoto = ASTTestFactory.expression(ExpressionType.FORMAT)
+        .withProperty('template', '/profile/%1')
+        .withProperty('arguments', [ASTTestFactory.reference(['data', 'profileId'])])
+        .build()
+      const redirectHook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('next', [ASTTestFactory.redirectOutcome({ goto: formattedGoto })])
+        .build() as AccessHookASTNode
+      const fn = compiler.compileAccessLifecycle([createJourney([loadHook, redirectHook])], functionRegistry)
+      const ctx = createContext(functionRegistry, {
+        data: { profileId: 'ABC123' },
+      })
+
+      // Act
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(ctx.answers.profileLoaded.current).toBe('yes')
+      expect(result).toEqual({ executed: true, outcome: 'redirect', redirect: '/profile/ABC123' })
     })
 
     it('should throw runtime errors when access effects fail', async () => {
