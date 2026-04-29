@@ -31,4 +31,28 @@ describe('ForgeRuntimeEvaluationError', () => {
       )
     })
   })
+
+  describe('stack', () => {
+    it('should include diagnostic fields when loggers serialise the stack', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({
+        phase: 'render',
+        nodeId: 'compile_ast:1',
+        path: ['steps', 0, 'blocks', 0],
+        formattedPath: 'journey > step > blocks[0]',
+        functionName: 'explode',
+        functionType: 'FunctionType.Generator',
+        cause: new Error('boom'),
+      })
+
+      // Act
+      const stack = error.stack
+
+      // Assert
+      expect(stack).toContain('Path: journey > step > blocks[0]')
+      expect(stack).toContain('Node: compile_ast:1')
+      expect(stack).toContain('Function: explode')
+      expect(stack).toContain('Cause: Error: boom')
+    })
+  })
 })

@@ -1,4 +1,5 @@
 import type { DSLPathSegment } from '../diagnostics/sourceMetadata'
+import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface ForgeRuntimeEvaluationErrorOptions {
   readonly phase: string
@@ -35,6 +36,7 @@ export default class ForgeRuntimeEvaluationError extends Error {
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.cause = options.cause
+    this.stack = formatDiagnosticStack(this)
   }
 
   toString(): string {

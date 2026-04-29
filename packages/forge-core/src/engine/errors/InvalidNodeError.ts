@@ -1,4 +1,5 @@
 import formatFields from '../../shared/utils/utils'
+import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface InvalidNodeErrorOptions {
   /** Specific validation failure message */
@@ -49,6 +50,8 @@ export default class InvalidNodeError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)
     }
+
+    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {
