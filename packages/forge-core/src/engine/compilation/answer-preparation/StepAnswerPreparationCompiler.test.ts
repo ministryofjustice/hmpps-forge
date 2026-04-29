@@ -423,6 +423,48 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.name.current).toBe('original')
     })
 
+    it('should keep submitted value when formatter throws TypeError', () => {
+      // Arrange
+      const trimFormatter = createTransformerFunction('trim')
+      const numberFormatter = createTransformerFunction('toInt')
+      const upperFormatter = createTransformerFunction('toUpperCase')
+      const block = createFieldBlock('age', { formatters: [trimFormatter, numberFormatter, upperFormatter] })
+      const ctx = createCtx({
+        post: { age: ' abc ' },
+        conditions: {
+          get: vi.fn((name: string) => {
+            if (name === 'trim') {
+              return { evaluate: (value: unknown) => (typeof value === 'string' ? value.trim() : value) }
+            }
+
+            if (name === 'toInt') {
+              return {
+                evaluate: () => {
+                  throw new TypeError('Not a number')
+                },
+              }
+            }
+
+            if (name === 'toUpperCase') {
+              return { evaluate: (value: unknown) => (typeof value === 'string' ? value.toUpperCase() : value) }
+            }
+
+            return { evaluate: () => undefined }
+          }),
+        } as unknown as AnswerPreparationContext['conditions'],
+      })
+
+      // Act
+      const source = compiler.generateSource([block])
+      const fn = new Function('ctx', source)
+
+      fn(ctx)
+
+      // Assert
+      expect(ctx.answers.age.current).toBe(' abc ')
+      expect(ctx.answers.age.mutations).toEqual([{ value: ' abc ', source: 'post' }])
+    })
+
     it('should throw runtime errors when formatter evaluation fails', () => {
       // Arrange
       const formatter = createTransformerFunction('explode')

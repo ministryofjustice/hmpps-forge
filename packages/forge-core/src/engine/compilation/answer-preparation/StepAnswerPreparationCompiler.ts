@@ -185,6 +185,12 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileFormatterPipeline(formatters: unknown[], emitter: CodeEmitter, valueVar: string): void {
+    const originalValueVar = emitter.nextVar('_fov')
+    const failedVar = emitter.nextVar('_ff')
+
+    emitter.emit(`var ${originalValueVar} = ${valueVar};`)
+    emitter.emit(`var ${failedVar} = false;`)
+
     for (const formatter of formatters) {
       if (!isASTNode(formatter) && !this.expr.isTemplateNode(formatter)) {
         continue
@@ -193,10 +199,26 @@ export default class StepAnswerPreparationCompiler {
       const resultVar = emitter.nextVar('_fr')
       const callExpr = this.compileFormatterCall(formatter, valueVar)
 
-      emitter.emit(`var ${resultVar};`)
-      emitter.emit(`${resultVar} = ${callExpr};`)
-      emitter.emitBlock(`if (${resultVar} !== undefined)`, () => {
-        emitter.emit(`${valueVar} = ${resultVar};`)
+      emitter.emitBlock(`if (!${failedVar})`, () => {
+        emitter.emit(`var ${resultVar};`)
+        emitter.emit('try {')
+        emitter.indent()
+        emitter.emit(`${resultVar} = ${callExpr};`)
+        emitter.dedent()
+        emitter.emit('} catch (error) {')
+        emitter.indent()
+        emitter.emitBlock('if (error instanceof TypeError || (error && error.cause instanceof TypeError))', () => {
+          emitter.emit(`${valueVar} = ${originalValueVar};`)
+          emitter.emit(`${failedVar} = true;`)
+        })
+        emitter.emitBlock('else', () => {
+          emitter.emit('throw error;')
+        })
+        emitter.dedent()
+        emitter.emit('}')
+        emitter.emitBlock(`if (!${failedVar} && ${resultVar} !== undefined)`, () => {
+          emitter.emit(`${valueVar} = ${resultVar};`)
+        })
       })
     }
   }
