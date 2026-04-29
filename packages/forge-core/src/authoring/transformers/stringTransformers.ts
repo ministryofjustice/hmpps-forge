@@ -1,7 +1,7 @@
 import { assertNumber, assertString } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ResolvableValue } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
 const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
@@ -142,7 +142,7 @@ export interface StringTransformerGroup {
    * @example
    * // Substring(1, 4) applied to "hello" returns "ell"
    */
-  Substring: (start: number | ValueExpr, end?: number | ValueExpr) => TransformerFunctionExpr
+  Substring: (start: number | ResolvableValue, end?: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Replaces all occurrences of a search string with a replacement string
@@ -151,7 +151,7 @@ export interface StringTransformerGroup {
    * @example
    * // Replace("world", "universe") applied to "hello world" returns "hello universe"
    */
-  Replace: (searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => TransformerFunctionExpr
+  Replace: (searchValue: string | ResolvableValue, replaceValue: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Pads the string to a specified length with a given string on the left
@@ -160,7 +160,7 @@ export interface StringTransformerGroup {
    * @example
    * // PadStart(3) applied to "5" returns "  5"
    */
-  PadStart: (targetLength: number | ValueExpr, padString?: string | ValueExpr) => TransformerFunctionExpr
+  PadStart: (targetLength: number | ResolvableValue, padString?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Pads the string to a specified length with a given string on the right
@@ -169,7 +169,7 @@ export interface StringTransformerGroup {
    * @example
    * // PadEnd(3) applied to "5" returns "5  "
    */
-  PadEnd: (targetLength: number | ValueExpr, padString?: string | ValueExpr) => TransformerFunctionExpr
+  PadEnd: (targetLength: number | ResolvableValue, padString?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Converts a string to an integer
@@ -205,7 +205,7 @@ export interface StringTransformerGroup {
    * // ToArray(",") on "hello,world" returns ["hello", "world"]
    * // ToArray("-") on "a-b-c" returns ["a", "b", "c"]
    */
-  ToArray: (separator?: string | ValueExpr) => TransformerFunctionExpr
+  ToArray: (separator?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Converts a date string to a Date object (local time).
@@ -306,7 +306,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     return `${value}'s`
   },
 
-  Substring: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
+  Substring: () => (value: any, start: number | ResolvableValue, end?: number | ResolvableValue) => {
     assertString(value, 'Transformer.String.Substring')
     assertNumber(start, 'Transformer.String.Substring (start)')
     if (end !== undefined) {
@@ -316,7 +316,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     return value.substring(start)
   },
 
-  Replace: () => (value: any, searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => {
+  Replace: () => (value: any, searchValue: string | ResolvableValue, replaceValue: string | ResolvableValue) => {
     assertString(value, 'Transformer.String.Replace')
     assertString(searchValue, 'Transformer.String.Replace (searchValue)')
     assertString(replaceValue, 'Transformer.String.Replace (replaceValue)')
@@ -325,7 +325,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
 
   PadStart:
     () =>
-    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+    (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
       assertString(value, 'Transformer.String.PadStart')
       assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
       assertString(padString, 'Transformer.String.PadStart (padString)')
@@ -334,7 +334,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
 
   PadEnd:
     () =>
-    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+    (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
       assertString(value, 'Transformer.String.PadEnd')
       assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
       assertString(padString, 'Transformer.String.PadEnd (padString)')
@@ -369,7 +369,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     return parsed
   },
 
-  ToArray: () => (value: any, separator?: string | ValueExpr) => {
+  ToArray: () => (value: any, separator?: string | ResolvableValue) => {
     assertString(value, 'Transformer.String.ToArray')
     if (separator === undefined) {
       return value.split('')

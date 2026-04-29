@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
-  ConditionalArray,
+  ResolvableBoolean,
+  ResolvableString,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -17,10 +17,10 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJTimelineItemLabel {
   /** Label text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Label HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 }
 
 /**
@@ -32,7 +32,7 @@ export interface MOJTimelineItemDatetime {
    * A valid datetime string to be formatted.
    * @example '2019-06-14T14:01:00.000Z'
    */
-  timestamp: ConditionalString
+  timestamp: ResolvableString
 
   /**
    * Standard date format type (use instead of format).
@@ -40,7 +40,7 @@ export interface MOJTimelineItemDatetime {
    * @example 'datetime' // Full date and time
    * @example 'date' // Date only
    */
-  type?: 'datetime' | 'shortdatetime' | 'date' | 'shortdate' | 'time' | ConditionalString
+  type?: 'datetime' | 'shortdatetime' | 'date' | 'shortdate' | 'time' | ResolvableString
 
   /**
    * Custom date format string (use instead of type).
@@ -49,7 +49,7 @@ export interface MOJTimelineItemDatetime {
    * @example 'DD/MM/YYYY'
    * @example 'dddd, MMMM Do YYYY, h:mm:ss a'
    */
-  format?: ConditionalString
+  format?: ResolvableString
 }
 
 /**
@@ -58,10 +58,10 @@ export interface MOJTimelineItemDatetime {
  */
 export interface MOJTimelineItemByline {
   /** Byline text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Byline HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 }
 
 /**
@@ -80,14 +80,14 @@ export interface MOJTimelineItem {
    * Use either text or html, not both.
    * @example 'Your application has been received.'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML description of the event.
    * Use either text or html, not both.
    * @example '<p>Your application has been <strong>approved</strong>.</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Date and time of the event.
@@ -102,16 +102,16 @@ export interface MOJTimelineItem {
   byline?: MOJTimelineItemByline
 
   /** Additional CSS classes for this timeline item */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes for this timeline item */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 
   /**
    * Conditional visibility for this timeline item. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -146,7 +146,7 @@ export interface MOJTimelineProps extends BasicBlockProps {
    * Array of timeline items to display.
    * Items are displayed in the order provided (typically most recent first).
    */
-  items: ConditionalArray<MOJTimelineItem>
+  items: ResolvableArray<MOJTimelineItem>
 
   /**
    * Heading level for timeline item labels.
@@ -159,13 +159,13 @@ export interface MOJTimelineProps extends BasicBlockProps {
    * Additional CSS classes for the timeline container.
    * @example 'app-timeline--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the timeline container.
    * @example { 'data-module': 'app-timeline' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**
@@ -186,7 +186,7 @@ export interface MOJTimeline extends BlockDefinition, MOJTimelineProps {
 type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimelineItem, false>
 
 function timelineRenderer(block: EvaluatedBlock<MOJTimeline>, nunjucksEnv: nunjucks.Environment): string {
-  // NOTE: items is typed as ConditionalArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
+  // NOTE: items is typed as ResolvableArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
   const items = block.items as EvaluatedMOJTimelineItem[]
   const params = {
     items: items.filter(item => item.visibleWhen !== false),

@@ -1,5 +1,5 @@
 import { Format } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { HtmlBlock, BasicBlockProps, ConditionalString } from '@ministryofjustice/hmpps-forge/core/components'
+import { HtmlBlock, BasicBlockProps, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 
 type HeadingSize = 'xl' | 'l' | 'm' | 's'
 type HeadingLevel = 1 | 2 | 3 | 4
@@ -13,7 +13,7 @@ const defaultLevels: Record<HeadingSize, HeadingLevel> = {
 
 export interface GovUKHeadingProps extends BasicBlockProps {
   /** Heading text content. Supports dynamic expressions. */
-  text: ConditionalString
+  text: ResolvableString
 
   /** Visual size of the heading. Defaults to 'l'. */
   size?: HeadingSize
@@ -22,7 +22,7 @@ export interface GovUKHeadingProps extends BasicBlockProps {
   level?: HeadingLevel
 
   /** Optional caption displayed above the heading. Matches the heading size class automatically. */
-  caption?: ConditionalString
+  caption?: ResolvableString
 
   /** Additional CSS classes to append to the heading. */
   classes?: string

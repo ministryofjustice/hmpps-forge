@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalArray,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -16,10 +16,10 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJFilterHeading {
   /** Heading text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Heading HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 }
 
 /**
@@ -27,10 +27,10 @@ export interface MOJFilterHeading {
  */
 export interface MOJFilterClearLink {
   /** URL for the clear all filters link */
-  href: ConditionalString
+  href: ResolvableString
 
   /** Text for the clear link (e.g. "Clear filters") */
-  text: ConditionalString
+  text: ResolvableString
 }
 
 /**
@@ -38,13 +38,13 @@ export interface MOJFilterClearLink {
  */
 export interface MOJFilterTagItem {
   /** URL to remove this filter */
-  href: ConditionalString
+  href: ResolvableString
 
   /** Display text for the filter tag */
-  text: ConditionalString
+  text: ResolvableString
 
   /** Conditional visibility for this filter tag */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -55,10 +55,10 @@ export interface MOJFilterCategory {
   heading: MOJFilterHeading
 
   /** Array of filter tag items in this category */
-  items: ConditionalArray<MOJFilterTagItem>
+  items: ResolvableArray<MOJFilterTagItem>
 
   /** Conditional visibility for this filter category */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -72,7 +72,7 @@ export interface MOJFilterSelectedFilters {
   clearLink: MOJFilterClearLink
 
   /** Categories of selected filter tags */
-  categories: ConditionalArray<MOJFilterCategory>
+  categories: ResolvableArray<MOJFilterCategory>
 }
 
 /**
@@ -80,7 +80,7 @@ export interface MOJFilterSelectedFilters {
  */
 export interface MOJFilterSubmit {
   /** Button text (default: "Apply filters") */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Additional HTML attributes for the submit button */
   attributes?: Record<string, string>
@@ -143,13 +143,13 @@ export interface MOJFilterProps extends BasicBlockProps {
    * This should contain the form fields for filtering.
    * @example '<div class="govuk-form-group"><label>...</label><input>...</div>'
    */
-  optionsHtml?: ConditionalString
+  optionsHtml?: ResolvableString
 
   /**
    * Additional CSS classes for the filter container.
    * @example 'app-filter--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the filter container.

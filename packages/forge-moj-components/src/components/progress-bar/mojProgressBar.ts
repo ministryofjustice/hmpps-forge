@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalObject,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -16,13 +16,13 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJProgressBarItemLabel {
   /** Label text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Label HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional CSS classes for the label element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 }
 
 /**
@@ -35,7 +35,7 @@ export interface MOJProgressBarItem {
    *
    * @example 'step-1'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Label for the progress item - can be a simple string or object with additional options.
@@ -43,7 +43,7 @@ export interface MOJProgressBarItem {
    * @example 'Personal details'
    * @example { text: 'Personal details', classes: 'custom-label' }
    */
-  label: ConditionalString | MOJProgressBarItemLabel | ConditionalObject<MOJProgressBarItemLabel>
+  label: ResolvableString | MOJProgressBarItemLabel | ResolvableObject<MOJProgressBarItemLabel>
 
   /**
    * Whether this item represents the current/active step.
@@ -51,7 +51,7 @@ export interface MOJProgressBarItem {
    *
    * @example true // Current step
    */
-  active?: ConditionalBoolean
+  active?: ResolvableBoolean
 
   /**
    * Whether this step has been completed.
@@ -59,16 +59,16 @@ export interface MOJProgressBarItem {
    *
    * @example true // Step is complete
    */
-  complete?: ConditionalBoolean
+  complete?: ResolvableBoolean
 
   /** Additional CSS classes for the item element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes for the item element */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 
   /** Conditional visibility for this progress item */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -94,7 +94,7 @@ export interface MOJProgressBarProps extends BasicBlockProps {
    *
    * @example 'application-progress'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Accessible label for the progress bar (aria-label).
@@ -103,7 +103,7 @@ export interface MOJProgressBarProps extends BasicBlockProps {
    * @example 'Application progress'
    * @example 'Registration steps'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /**
    * Array of progress items representing each step in the journey.
@@ -125,14 +125,14 @@ export interface MOJProgressBarProps extends BasicBlockProps {
    *
    * @example 'app-progress-bar--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the progress bar container.
    *
    * @example { 'data-module': 'progress-tracker' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**

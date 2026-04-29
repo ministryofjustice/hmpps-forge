@@ -2,8 +2,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalArray,
-  ConditionalString,
+  ResolvableArray,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -15,16 +15,16 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface TableHeadCell {
   /** Plain text content for the header cell. If `html` is provided, this will be ignored. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the header cell. Takes precedence over `text`. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ConditionalString
+  format?: ResolvableString
 
   /** Additional CSS classes for the header cell. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -42,16 +42,16 @@ export interface TableHeadCell {
  */
 export interface TableCell {
   /** Plain text content for the cell. If `html` is provided, this will be ignored. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the cell. Takes precedence over `text`. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ConditionalString
+  format?: ResolvableString
 
   /** Additional CSS classes for the cell. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -91,22 +91,22 @@ export type TableRow = TableCell[]
  */
 export interface GovUKTableProps extends BasicBlockProps {
   /** The rows within the table. Each row is an array of cells. Supports dynamic expressions. */
-  rows: ConditionalArray<TableRow>
+  rows: ResolvableArray<TableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
   head?: TableHeadCell[]
 
   /** Caption text displayed above the table. Useful for accessibility. */
-  caption?: ConditionalString
+  caption?: ResolvableString
 
   /** CSS classes for the caption. Use GOV.UK typography classes like "govuk-table__caption--m". */
-  captionClasses?: ConditionalString
+  captionClasses?: ResolvableString
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
   firstCellIsHeader?: boolean
 
   /** Additional CSS classes for the table element. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>

@@ -1,4 +1,4 @@
-import { ConditionFunctionExpr, MatchExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 import { BranchValue } from './ConditionalExprBuilder'
 
@@ -7,13 +7,13 @@ import { BranchValue } from './ConditionalExprBuilder'
  * Provides a flat alternative to deeply nested when().then().else() chains.
  */
 export class MatchExprBuilder {
-  private readonly subject: ValueExpr
+  private readonly subject: ResolvableValue
 
   private readonly branches: Array<{ condition: ConditionFunctionExpr<any>; value: BranchValue }> = []
 
   private otherwiseValue?: BranchValue
 
-  constructor(subject: ValueExpr) {
+  constructor(subject: ResolvableValue) {
     this.subject = subject
   }
 

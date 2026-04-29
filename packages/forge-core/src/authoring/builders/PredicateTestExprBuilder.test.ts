@@ -1,5 +1,5 @@
 import { PredicateTestExprBuilder, and, or, xor, not } from './PredicateTestExprBuilder'
-import { ValueExpr, ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
+import { ResolvableValue, ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
 import { FunctionType, PredicateType } from '../types/enums'
 
 describe('PredicateTestExprBuilder', () => {
@@ -11,7 +11,7 @@ describe('PredicateTestExprBuilder', () => {
   })
 
   // Helper function to create a mock value
-  const mockValue = (value: any): ValueExpr => value
+  const mockValue = (value: any): ResolvableValue => value
 
   describe('constructor', () => {
     test('should create a builder with the given subject', () => {

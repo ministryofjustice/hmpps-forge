@@ -1,5 +1,5 @@
 import { FunctionEvaluator } from '../types/functions.type'
-import { ValueExpr } from '../types/expressions.type'
+import { ResolvableValue } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { extractFactories, extractValidator } from './defineFunction'
 import type {
@@ -13,7 +13,7 @@ import type {
 } from './defineFunction.type'
 
 type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
-  Parameters<TFunction> extends ValueExpr[] ? Parameters<TFunction> : never
+  Parameters<TFunction> extends ResolvableValue[] ? Parameters<TFunction> : never
 
 /**
  * Creates generator functions with dependency injection from factory functions.

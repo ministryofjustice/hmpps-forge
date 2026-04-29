@@ -12,11 +12,11 @@ export const ViewConfigSchema = z.object({
   locals: z.record(z.string(), z.unknown()).optional(),
 })
 
-// TODO: Maybe add other Conditional like ConditionalBoolean etc.
+// TODO: Probably should add other resolvable schemas, such as ResolvableBoolean.
 /**
- * @see {@link ConditionalString}
+ * @see {@link ResolvableString}
  */
-export const ConditionalStringSchema = z.union([
+export const ResolvableStringSchema = z.union([
   z.string(),
   ReferenceExprSchema,
   FormatExprSchema,
@@ -64,8 +64,8 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   })
 
   const fieldBlockProps = z.looseObject({
-    code: ConditionalStringSchema,
-    defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
+    code: ResolvableStringSchema,
+    defaultValue: z.union([ResolvableStringSchema, z.array(ResolvableStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
     parsers: z.array(TransformerFunctionExprSchema).optional(),
     errors: z

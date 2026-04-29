@@ -9,7 +9,7 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
@@ -50,7 +50,7 @@ export class IterableBuilder {
   /**
    * Create an iterable builder from a source and iterator.
    */
-  static create(input: ValueExpr, iterator: IteratorConfig): IterableBuilder {
+  static create(input: ResolvableValue, iterator: IteratorConfig): IterableBuilder {
     return new IterableBuilder(
       {
         type: ExpressionType.ITERATE,

@@ -10,7 +10,7 @@ import {
   MapIteratorConfig,
   FilterIteratorConfig,
   FindIteratorConfig,
-  ValueExpr,
+  ResolvableValue,
   RedirectOutcome,
   ThrowErrorOutcome,
   HookOutcome,
@@ -66,7 +66,7 @@ export function isHookOutcome(obj: any): obj is HookOutcome {
   return isRedirectOutcome(obj) || isThrowErrorOutcome(obj)
 }
 
-export function isValueExpr(obj: any): obj is ValueExpr {
+export function isResolvableValue(obj: any): obj is ResolvableValue {
   // Check for complex expression types first
   if (isReferenceExpr(obj)) return true
   if (isFormatExpr(obj)) return true

@@ -1,6 +1,6 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { PredicateNotExpr, PredicateTestExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { PredicateNotExpr, PredicateTestExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
@@ -27,7 +27,7 @@ describe('NotFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies PredicateNotExpr
 
@@ -50,7 +50,7 @@ describe('NotFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies PredicateNotExpr
 
@@ -73,7 +73,7 @@ describe('NotFactory', () => {
             type: PredicateType.TEST,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
         } satisfies PredicateNotExpr,
       } satisfies PredicateNotExpr

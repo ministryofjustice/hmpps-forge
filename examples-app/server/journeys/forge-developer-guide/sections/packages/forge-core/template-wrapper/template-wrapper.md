@@ -97,7 +97,7 @@ TemplateWrapper({
 })
 ```
 
-The `template` property accepts a `ConditionalString`, so it can vary
+The `template` property accepts a `ResolvableString`, so it can vary
 based on conditions using `when().then().else()`.
 
 ### values (Optional)
@@ -115,7 +115,7 @@ TemplateWrapper({
 })
 ```
 
-Values accept `ConditionalString`, so they can be dynamic. Because
+Values accept `ResolvableString`, so they can be dynamic. Because
 values are injected directly into HTML, escape any untrusted data
 with `Transformer.String.EscapeHtml()`.
 

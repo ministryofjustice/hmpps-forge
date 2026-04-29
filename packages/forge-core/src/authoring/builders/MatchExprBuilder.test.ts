@@ -45,7 +45,7 @@ describe('MatchExprBuilder', () => {
       expect(result.branches[0].value).toBe('Active')
     })
 
-    it('should accept ValueExpr references', () => {
+    it('should accept ResolvableValue references', () => {
       // Arrange
       const valueExpr = Answer('someField')
 
@@ -83,7 +83,7 @@ describe('MatchExprBuilder', () => {
       expect(result.otherwise).toBe('Default')
     })
 
-    it('should accept ValueExpr references', () => {
+    it('should accept ResolvableValue references', () => {
       // Arrange
       const valueExpr = Answer('fallbackField')
 

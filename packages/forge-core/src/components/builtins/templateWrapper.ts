@@ -2,7 +2,7 @@ import { buildComponent } from '../utils/buildComponent'
 import { block as blockBuilder } from '../../authoring/builders'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
-import type { BasicBlockProps, BlockDefinition, ConditionalString, EvaluatedBlock } from '../types/structures.type'
+import type { BasicBlockProps, BlockDefinition, ResolvableString, EvaluatedBlock } from '../types/structures.type'
 
 /**
  * Props for the TemplateWrapper component.
@@ -44,7 +44,7 @@ export interface TemplateWrapperProps extends BasicBlockProps {
    * @example '<div class="wrapper">{{slot:content}}</div>'
    * @example '<h2>{{title}}</h2>{{slot:body}}'
    */
-  template: ConditionalString
+  template: ResolvableString
 
   /**
    * String values to inject into the template at {{name}} markers.
@@ -54,7 +54,7 @@ export interface TemplateWrapperProps extends BasicBlockProps {
    *
    * @example { title: 'Section Title', footer: 'Footer text' }
    */
-  values?: Record<string, ConditionalString>
+  values?: Record<string, ResolvableString>
 
   /**
    * Named slots containing blocks to render at {{slot:name}} markers.
@@ -77,7 +77,7 @@ export interface TemplateWrapperProps extends BasicBlockProps {
    *
    * @example 'govuk-!-margin-bottom-6'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Custom HTML attributes for the wrapper element (optional).

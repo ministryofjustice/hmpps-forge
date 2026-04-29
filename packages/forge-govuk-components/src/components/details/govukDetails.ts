@@ -2,8 +2,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -24,28 +24,28 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface GovUKDetailsProps extends BasicBlockProps {
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
-  summaryText?: ConditionalString
+  summaryText?: ResolvableString
 
   /** HTML to display in the summary (clickable part). Takes precedence over summaryText. */
-  summaryHtml?: ConditionalString
+  summaryHtml?: ResolvableString
 
   /** Plain text content for the expandable section */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the expandable section. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Child blocks to render in the expandable section. Takes precedence over text/html. */
   content?: BlockDefinition[]
 
   /** Whether the details should be expanded by default */
-  open?: ConditionalBoolean
+  open?: ResolvableBoolean
 
   /** ID attribute for the details element */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /** Additional CSS classes for the details element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the details element */
   attributes?: Record<string, any>

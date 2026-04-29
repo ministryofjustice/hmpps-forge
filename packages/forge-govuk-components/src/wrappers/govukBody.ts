@@ -1,10 +1,10 @@
-import { HtmlBlock, BasicBlockProps, ConditionalString } from '@ministryofjustice/hmpps-forge/core/components'
+import { HtmlBlock, BasicBlockProps, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 
 type BodySize = 'l' | 's'
 
 export interface GovUKBodyProps extends BasicBlockProps {
   /** Text content for the paragraph. Supports dynamic expressions. */
-  text: ConditionalString
+  text: ResolvableString
 
   /** Paragraph size variant. 'l' for lead paragraph (24px), 's' for small (16px). Omit for default (19px). */
   size?: BodySize

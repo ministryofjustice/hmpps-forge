@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { FunctionType } from '../../../authoring/types/enums'
 
 /**
- * Simple ValueExpr for function arguments
+ * Simple ResolvableValue for function arguments
  * This is a simplified version used only in function schemas
  */
 const FunctionArgumentSchema: z.ZodType<any> = z.lazy(() =>

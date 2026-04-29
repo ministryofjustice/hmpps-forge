@@ -63,15 +63,15 @@ e2e-ci: ## Run Playwright tests in Docker container (for CI).
 
 typecheck: ## Runs the typecheck.
 	@cd packages && npm run typecheck
-	@docker compose exec ${SERVICE_NAME} npm run typecheck
+	@cd examples-app && npm run typecheck
 
 lint: ## Runs the linter.
 	@cd packages && npm run lint
-	@docker compose exec ${SERVICE_NAME} npm run lint
+	@cd examples-app && npm run lint
 
 lint-fix: ## Automatically fixes linting issues.
 	@cd packages && npm run lint-fix
-	@docker compose exec ${SERVICE_NAME} npm run lint-fix
+	@cd examples-app && npm run lint-fix
 
 install-node-modules: ## Installs Node modules into the Docker volume.
 	@docker volume create ${PROJECT_NAME}_examples_app_node_modules > /dev/null 2>&1 || true

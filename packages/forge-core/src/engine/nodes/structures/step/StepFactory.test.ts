@@ -9,7 +9,7 @@ import {
 } from '../../../../authoring/types/enums'
 import type { StepDefinition } from '../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type { AccessHook, SubmitHook, HookOutcome, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { AccessHook, SubmitHook, HookOutcome, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '../../../types/structures.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -166,7 +166,7 @@ describe('StepFactory', () => {
               type: PredicateType.TEST,
               negate: false,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
-              condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] as ResolvableValue[] },
             },
           },
         ],

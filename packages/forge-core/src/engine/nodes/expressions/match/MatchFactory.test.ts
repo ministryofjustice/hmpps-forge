@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
 import { MatchASTNode } from '../../../types/expressions.type'
-import type { MatchExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { MatchExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
@@ -27,11 +27,11 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ResolvableValue] },
             value: 'Active',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ResolvableValue] },
             value: 'Closed',
           },
         ],
@@ -57,7 +57,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'Result A',
           },
         ],
@@ -80,7 +80,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'literalValue',
           },
         ],
@@ -100,7 +100,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: { type: ExpressionType.REFERENCE, path: ['answers', 'fieldA'] },
           },
         ],
@@ -120,7 +120,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -141,7 +141,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -161,7 +161,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -182,7 +182,7 @@ describe('MatchFactory', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ValueExpr] },
+            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],

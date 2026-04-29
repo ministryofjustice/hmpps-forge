@@ -5,7 +5,7 @@ import {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 
 export type NoDeps = Record<string, never>
@@ -17,9 +17,9 @@ type FunctionGroup<T, TExpr> = {
   [K in keyof T]: (...args: PublicFunctionArguments<T[K]>) => TExpr
 }
 
-export type ConditionFunctionGroup<T> = FunctionGroup<T, ConditionFunctionExpr<ValueExpr[]>>
-export type TransformerFunctionGroup<T> = FunctionGroup<T, TransformerFunctionExpr<ValueExpr[]>>
-export type EffectFunctionGroup<T> = FunctionGroup<T, EffectFunctionExpr<ValueExpr[]>>
+export type ConditionFunctionGroup<T> = FunctionGroup<T, ConditionFunctionExpr<ResolvableValue[]>>
+export type TransformerFunctionGroup<T> = FunctionGroup<T, TransformerFunctionExpr<ResolvableValue[]>>
+export type EffectFunctionGroup<T> = FunctionGroup<T, EffectFunctionExpr<ResolvableValue[]>>
 export type GeneratorFunctionGroup<T> = FunctionGroup<T, unknown>
 
 export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = NoDeps> = {
@@ -56,9 +56,9 @@ type RuntimeContext = {
 
 type RuntimeReturn = {
   condition: boolean | Promise<boolean>
-  transformer: ValueExpr | Promise<ValueExpr>
+  transformer: ResolvableValue | Promise<ResolvableValue>
   effect: void | Promise<void>
-  generator: ValueExpr | Promise<ValueExpr>
+  generator: ResolvableValue | Promise<ResolvableValue>
 }
 
 export type ImplementationShapes<
@@ -109,10 +109,10 @@ type ReferenceArguments<TFunction extends FunctionEvaluator<unknown>> =
   Parameters<TFunction> extends [unknown, ...infer TRest] ? TRest : []
 
 type ValueArguments<TFunction extends FunctionEvaluator<unknown>> =
-  ReferenceArguments<TFunction> extends ValueExpr[] ? ReferenceArguments<TFunction> : never
+  ReferenceArguments<TFunction> extends ResolvableValue[] ? ReferenceArguments<TFunction> : never
 
 type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
-  Parameters<TFunction> extends ValueExpr[] ? Parameters<TFunction> : never
+  Parameters<TFunction> extends ResolvableValue[] ? Parameters<TFunction> : never
 
 export type ConditionFunctions<TShapes extends FunctionShapeMap> = {
   [K in keyof TShapes]: (...args: ValueArguments<TShapes[K]>) => ConditionFunctionExpr<ValueArguments<TShapes[K]>>

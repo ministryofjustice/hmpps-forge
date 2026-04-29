@@ -46,5 +46,5 @@ export type {
   ReferenceExpr,
   SubmitHook,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from './types/expressions.type'

@@ -6,7 +6,7 @@ import type {
   PredicateTestExpr,
   ReferenceExpr,
   ThrowErrorOutcome,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
@@ -88,7 +88,7 @@ describe('ThrowErrorOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ThrowErrorOutcome
@@ -118,7 +118,7 @@ describe('ThrowErrorOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ThrowErrorOutcome

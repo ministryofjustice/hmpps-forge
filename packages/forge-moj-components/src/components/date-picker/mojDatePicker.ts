@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   FieldBlockDefinition,
   FieldBlockProps,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalObject,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -16,16 +16,16 @@ import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJDatePickerLabel {
   /** Label text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Label HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional classes for the label element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Whether the label should be visually hidden */
-  isPageHeading?: ConditionalBoolean
+  isPageHeading?: ResolvableBoolean
 
   /** HTML attributes for the label */
   attributes?: Record<string, string>
@@ -36,13 +36,13 @@ export interface MOJDatePickerLabel {
  */
 export interface MOJDatePickerHint {
   /** Hint text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Hint HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional classes for the hint element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** HTML attributes for the hint */
   attributes?: Record<string, string>
@@ -53,7 +53,7 @@ export interface MOJDatePickerHint {
  */
 export interface MOJDatePickerFormGroup {
   /** Additional classes for the form group */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** HTML attributes for the form group */
   attributes?: Record<string, string>
@@ -81,35 +81,35 @@ export interface MOJDatePickerProps extends FieldBlockProps {
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'appointment-date'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Label for the date picker - can be a simple string or object with additional options.
    * @example 'Select a date'
    * @example { text: 'Select a date', classes: 'govuk-label--l' }
    */
-  label: ConditionalString | MOJDatePickerLabel | ConditionalObject<MOJDatePickerLabel>
+  label: ResolvableString | MOJDatePickerLabel | ResolvableObject<MOJDatePickerLabel>
 
   /**
    * Optional hint text - can be a simple string or object with additional options.
    * @example 'For example, 17/5/2024'
    * @example { html: 'Enter the date in <strong>dd/mm/yyyy</strong> format' }
    */
-  hint?: ConditionalString | MOJDatePickerHint | ConditionalObject<MOJDatePickerHint>
+  hint?: ResolvableString | MOJDatePickerHint | ResolvableObject<MOJDatePickerHint>
 
   /**
    * Earliest date that can be selected (format: dd/mm/yyyy).
    * Users can still type dates before this, so server-side validation is required.
    * @example '01/04/2025'
    */
-  minDate?: ConditionalString
+  minDate?: ResolvableString
 
   /**
    * Latest date that can be selected (format: dd/mm/yyyy).
    * Users can still type dates after this, so server-side validation is required.
    * @example '30/04/2025'
    */
-  maxDate?: ConditionalString
+  maxDate?: ResolvableString
 
   /**
    * Array of dates that cannot be selected (format: dd/mm/yyyy).
@@ -135,7 +135,7 @@ export interface MOJDatePickerProps extends FieldBlockProps {
   formGroup?: MOJDatePickerFormGroup
 
   /** Additional CSS classes for the date picker container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>

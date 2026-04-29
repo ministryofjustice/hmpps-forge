@@ -1,7 +1,7 @@
 import { assertNumber } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * Number transformation functions for mathematical operations and formatting
@@ -18,7 +18,7 @@ export interface NumberTransformerGroup {
    * // Add(3) applied to 5 returns 8
    * // Add(Answer('tax')) applied to Answer('price') - dynamic addition
    */
-  Add: (addend: number | ValueExpr) => TransformerFunctionExpr
+  Add: (addend: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Subtracts a number from the input value
@@ -26,7 +26,7 @@ export interface NumberTransformerGroup {
    * @example
    * // Subtract(3) applied to 10 returns 7
    */
-  Subtract: (subtrahend: number | ValueExpr) => TransformerFunctionExpr
+  Subtract: (subtrahend: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Multiplies the input value by a number
@@ -35,7 +35,7 @@ export interface NumberTransformerGroup {
    * // Multiply(3) applied to 4 returns 12
    * // Multiply(Answer('quantity')) applied to Answer('price') - dynamic multiplication
    */
-  Multiply: (multiplier: number | ValueExpr) => TransformerFunctionExpr
+  Multiply: (multiplier: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Divides the input value by a number
@@ -43,7 +43,7 @@ export interface NumberTransformerGroup {
    * @example
    * // Divide(3) applied to 15 returns 5
    */
-  Divide: (divisor: number | ValueExpr) => TransformerFunctionExpr
+  Divide: (divisor: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns the absolute value of the input
@@ -79,7 +79,7 @@ export interface NumberTransformerGroup {
    * @example
    * // ToFixed(2) applied to 3.14159 returns 3.14
    */
-  ToFixed: (decimals: number | ValueExpr) => TransformerFunctionExpr
+  ToFixed: (decimals: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns the maximum of the input value and a comparison value
@@ -87,7 +87,7 @@ export interface NumberTransformerGroup {
    * @example
    * // Max(10) applied to 5 returns 10
    */
-  Max: (comparison: number | ValueExpr) => TransformerFunctionExpr
+  Max: (comparison: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns the minimum of the input value and a comparison value
@@ -95,7 +95,7 @@ export interface NumberTransformerGroup {
    * @example
    * // Min(10) applied to 5 returns 5
    */
-  Min: (comparison: number | ValueExpr) => TransformerFunctionExpr
+  Min: (comparison: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Raises the input value to the power of the exponent
@@ -103,7 +103,7 @@ export interface NumberTransformerGroup {
    * @example
    * // Power(3) applied to 2 returns 8
    */
-  Power: (exponent: number | ValueExpr) => TransformerFunctionExpr
+  Power: (exponent: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Returns the square root of the input value
@@ -121,29 +121,29 @@ export interface NumberTransformerGroup {
    * // Clamp(5, 10) applied to 3 returns 5
    * // Clamp(5, 10) applied to 7 returns 7
    */
-  Clamp: (min: number | ValueExpr, max: number | ValueExpr) => TransformerFunctionExpr
+  Clamp: (min: number | ResolvableValue, max: number | ResolvableValue) => TransformerFunctionExpr
 }
 
 const { transformers: NumberTransformers, implementations } = defineTransformerFunctions<NumberTransformerGroup>({
-  Add: () => (value: any, addend: number | ValueExpr) => {
+  Add: () => (value: any, addend: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Add')
     assertNumber(addend, 'Transformer.Number.Add (addend)')
     return value + addend
   },
 
-  Subtract: () => (value: any, subtrahend: number | ValueExpr) => {
+  Subtract: () => (value: any, subtrahend: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Subtract')
     assertNumber(subtrahend, 'Transformer.Number.Subtract (subtrahend)')
     return value - subtrahend
   },
 
-  Multiply: () => (value: any, multiplier: number | ValueExpr) => {
+  Multiply: () => (value: any, multiplier: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Multiply')
     assertNumber(multiplier, 'Transformer.Number.Multiply (multiplier)')
     return value * multiplier
   },
 
-  Divide: () => (value: any, divisor: number | ValueExpr) => {
+  Divide: () => (value: any, divisor: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Divide')
     assertNumber(divisor, 'Transformer.Number.Divide (divisor)')
     if (divisor === 0) {
@@ -172,25 +172,25 @@ const { transformers: NumberTransformers, implementations } = defineTransformerF
     return Math.ceil(value)
   },
 
-  ToFixed: () => (value: any, decimals: number | ValueExpr) => {
+  ToFixed: () => (value: any, decimals: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.ToFixed')
     assertNumber(decimals, 'Transformer.Number.ToFixed (decimals)')
     return parseFloat(value.toFixed(decimals))
   },
 
-  Max: () => (value: any, comparison: number | ValueExpr) => {
+  Max: () => (value: any, comparison: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Max')
     assertNumber(comparison, 'Transformer.Number.Max (comparison)')
     return Math.max(value, comparison)
   },
 
-  Min: () => (value: any, comparison: number | ValueExpr) => {
+  Min: () => (value: any, comparison: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Min')
     assertNumber(comparison, 'Transformer.Number.Min (comparison)')
     return Math.min(value, comparison)
   },
 
-  Power: () => (value: any, exponent: number | ValueExpr) => {
+  Power: () => (value: any, exponent: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Power')
     assertNumber(exponent, 'Transformer.Number.Power (exponent)')
     return value ** exponent
@@ -204,7 +204,7 @@ const { transformers: NumberTransformers, implementations } = defineTransformerF
     return Math.sqrt(value)
   },
 
-  Clamp: () => (value: any, min: number | ValueExpr, max: number | ValueExpr) => {
+  Clamp: () => (value: any, min: number | ResolvableValue, max: number | ResolvableValue) => {
     assertNumber(value, 'Transformer.Number.Clamp')
     assertNumber(min, 'Transformer.Number.Clamp (min)')
     assertNumber(max, 'Transformer.Number.Clamp (max)')

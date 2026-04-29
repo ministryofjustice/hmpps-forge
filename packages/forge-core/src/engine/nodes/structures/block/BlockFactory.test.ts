@@ -8,7 +8,7 @@ import {
 } from '../../../../authoring/types/enums'
 import type { ValidationExpr } from '../../../../authoring/types/structures.type'
 import type { BlockDefinition, FieldBlockDefinition } from '../../../../components/types/structures.type'
-import type { PredicateTestExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { PredicateTestExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { BlockASTNode } from '../../../types/structures.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -133,7 +133,7 @@ describe('BlockFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Email is required',
           },
@@ -161,7 +161,7 @@ describe('BlockFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies FieldBlockDefinition
 
@@ -203,7 +203,7 @@ describe('BlockFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         validWhen: [
           {
@@ -212,7 +212,7 @@ describe('BlockFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Required',
           },

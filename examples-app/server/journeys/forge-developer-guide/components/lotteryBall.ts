@@ -3,11 +3,11 @@ import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/autho
 import type {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface LotteryBallProps extends BasicBlockProps {
-  number: ConditionalString
+  number: ResolvableString
   color?: 'blue' | 'green'
   classes?: string
 }

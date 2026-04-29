@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalArray,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -19,13 +19,13 @@ export interface MOJSideNavigationHeading {
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6
 
   /** Heading text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Heading HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional classes for the heading element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes for the heading */
   attributes?: Record<string, string>
@@ -36,19 +36,19 @@ export interface MOJSideNavigationHeading {
  */
 export interface MOJSideNavigationItem {
   /** URL of the navigation item anchor */
-  href: ConditionalString
+  href: ResolvableString
 
   /** Item text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Item HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Flag to mark the navigation item as active */
-  active?: ConditionalBoolean
+  active?: ResolvableBoolean
 
   /** Conditional visibility for this navigation item */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
@@ -62,10 +62,10 @@ export interface MOJSideNavigationSection {
   heading?: MOJSideNavigationHeading
 
   /** Array of navigation items in this section */
-  items: ConditionalArray<MOJSideNavigationItem>
+  items: ResolvableArray<MOJSideNavigationItem>
 
   /** Conditional visibility for this navigation section */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -114,25 +114,25 @@ export interface MOJSideNavigationProps extends BasicBlockProps {
    * The aria-label to add to the navigation container.
    * @example 'Side navigation'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /**
    * Array of navigation items (simple mode - use instead of sections).
    * @example [{ text: 'Nav item 1', href: '#1', active: true }]
    */
-  items?: ConditionalArray<MOJSideNavigationItem>
+  items?: ResolvableArray<MOJSideNavigationItem>
 
   /**
    * Array of navigation sections (sectioned mode - use instead of items).
    * @example [{ heading: { text: 'Section 1' }, items: [...] }]
    */
-  sections?: ConditionalArray<MOJSideNavigationSection>
+  sections?: ResolvableArray<MOJSideNavigationSection>
 
   /**
    * Additional CSS classes for the nav container.
    * @example 'app-side-navigation--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the navigation container.

@@ -1,6 +1,6 @@
 import { assertNumber, assertString } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { ConditionFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * String conditions for text validation and pattern matching
@@ -15,35 +15,35 @@ export interface StringConditionGroup {
    * @param pattern - The regex pattern to match against
    * @returns true if the string matches the pattern
    */
-  MatchesRegex: (pattern: ValueExpr) => ConditionFunctionExpr
+  MatchesRegex: (pattern: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string has at least the minimum specified length
    * @param min - The minimum length required
    * @returns true if the string length is >= min
    */
-  HasMinLength: (min: ValueExpr) => ConditionFunctionExpr
+  HasMinLength: (min: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string does not exceed the maximum specified length
    * @param max - The maximum length allowed
    * @returns true if the string length is <= max
    */
-  HasMaxLength: (max: ValueExpr) => ConditionFunctionExpr
+  HasMaxLength: (max: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string has exactly the specified length
    * @param len - The exact length required
    * @returns true if the string length equals len
    */
-  HasExactLength: (len: ValueExpr) => ConditionFunctionExpr
+  HasExactLength: (len: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string contains at most the specified number of words
    * @param maxWords - The maximum number of words allowed
    * @returns true if the word count is <= maxWords
    */
-  HasMaxWords: (maxWords: ValueExpr) => ConditionFunctionExpr
+  HasMaxWords: (maxWords: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string contains only letters (A-Z, a-z)
@@ -96,26 +96,26 @@ export interface StringConditionGroup {
    * @param prefix - The prefix to check for
    * @returns true if the string starts with the prefix
    */
-  StartsWith: (prefix: ValueExpr) => ConditionFunctionExpr
+  StartsWith: (prefix: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string ends with the specified suffix
    * @param suffix - The suffix to check for
    * @returns true if the string ends with the suffix
    */
-  EndsWith: (suffix: ValueExpr) => ConditionFunctionExpr
+  EndsWith: (suffix: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if a string contains the specified substring
    * @param substring - The substring to check for
    * @returns true if the string contains the substring
    */
-  Contains: (substring: ValueExpr) => ConditionFunctionExpr
+  Contains: (substring: ResolvableValue) => ConditionFunctionExpr
 }
 
 export const { conditions: StringConditions, implementations: StringConditionsImplementations } =
   defineConditionFunctions<StringConditionGroup>({
-    MatchesRegex: () => (value: unknown, pattern: ValueExpr) => {
+    MatchesRegex: () => (value: unknown, pattern: ResolvableValue) => {
       assertString(value, 'Condition.String.MatchesRegex')
       assertString(pattern, 'Condition.String.MatchesRegex (pattern)')
 
@@ -126,7 +126,7 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
       }
     },
 
-    HasMinLength: () => (value: unknown, min: ValueExpr) => {
+    HasMinLength: () => (value: unknown, min: ResolvableValue) => {
       assertString(value, 'Condition.String.HasMinLength')
       assertNumber(min, 'Condition.String.HasMinLength (min)')
 
@@ -137,7 +137,7 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
       return value.length >= min
     },
 
-    HasMaxLength: () => (value: unknown, max: ValueExpr) => {
+    HasMaxLength: () => (value: unknown, max: ResolvableValue) => {
       assertString(value, 'Condition.String.HasMaxLength')
       assertNumber(max, 'Condition.String.HasMaxLength (max)')
 
@@ -148,7 +148,7 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
       return value.length <= max
     },
 
-    HasExactLength: () => (value: unknown, len: ValueExpr) => {
+    HasExactLength: () => (value: unknown, len: ResolvableValue) => {
       assertString(value, 'Condition.String.HasExactLength')
       assertNumber(len, 'Condition.String.HasExactLength (len)')
 
@@ -159,7 +159,7 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
       return value.length === len
     },
 
-    HasMaxWords: () => (value: unknown, maxWords: ValueExpr) => {
+    HasMaxWords: () => (value: unknown, maxWords: ResolvableValue) => {
       assertString(value, 'Condition.String.HasMaxWords')
       assertNumber(maxWords, 'Condition.String.HasMaxWords (maxWords)')
 
@@ -210,19 +210,19 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
       return /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)
     },
 
-    StartsWith: () => (value: unknown, prefix: ValueExpr) => {
+    StartsWith: () => (value: unknown, prefix: ResolvableValue) => {
       assertString(value, 'Condition.String.StartsWith')
       assertString(prefix, 'Condition.String.StartsWith (prefix)')
       return value.startsWith(prefix)
     },
 
-    EndsWith: () => (value: unknown, suffix: ValueExpr) => {
+    EndsWith: () => (value: unknown, suffix: ResolvableValue) => {
       assertString(value, 'Condition.String.EndsWith')
       assertString(suffix, 'Condition.String.EndsWith (suffix)')
       return value.endsWith(suffix)
     },
 
-    Contains: () => (value: unknown, substring: ValueExpr) => {
+    Contains: () => (value: unknown, substring: ResolvableValue) => {
       assertString(value, 'Condition.String.Contains')
       assertString(substring, 'Condition.String.Contains (substring)')
       return value.includes(substring)
