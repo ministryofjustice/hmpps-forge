@@ -31,6 +31,9 @@ type DiagnosticError = {
   readonly functionName?: unknown
   readonly functionType?: unknown
   readonly variant?: unknown
+  readonly phase?: unknown
+  readonly nodeId?: unknown
+  readonly cause?: unknown
 }
 
 export interface ForgeOptions {
@@ -349,12 +352,15 @@ export default class Forge {
 
     const path = this.formatValue(diagnostic.formattedPath) ?? this.formatPathValue(diagnostic.path)
     const fields = [
+      { label: 'Phase', value: this.formatValue(diagnostic.phase) },
       { label: 'Path', value: path },
+      { label: 'Node', value: this.formatValue(diagnostic.nodeId) },
       { label: 'Code', value: this.formatValue(diagnostic.code) },
       { label: 'Expected', value: this.formatValue(diagnostic.expected) },
       { label: 'Function', value: this.formatValue(diagnostic.functionName) },
       { label: 'Type', value: this.formatValue(diagnostic.functionType) },
       { label: 'Variant', value: this.formatValue(diagnostic.variant) },
+      { label: 'Cause', value: this.formatValue(diagnostic.cause) },
     ]
 
     return fields

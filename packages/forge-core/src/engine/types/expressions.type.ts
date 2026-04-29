@@ -161,7 +161,6 @@ export interface ValidationASTNode extends ExpressionASTNode {
     submissionOnly?: boolean
     groups?: string[]
     details?: Record<string, any>
-    resolvedBlockCode?: string | ASTNode // Computed during normalization
   }
 }
 

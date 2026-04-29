@@ -7,6 +7,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKCharacterCount component.
@@ -235,9 +236,9 @@ export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
       maxlength: block.maxWords ? undefined : block.maxLength,
       maxwords: block.maxWords,
       threshold: block.threshold,
-      label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-      errorMessage: block.errors?.length ? { text: block.errors[0].message } : undefined,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
+      errorMessage: normaliseGovukErrorMessage(block.errors),
       formGroup: block.formGroup,
       classes: block.classes,
       attributes: block.attributes,

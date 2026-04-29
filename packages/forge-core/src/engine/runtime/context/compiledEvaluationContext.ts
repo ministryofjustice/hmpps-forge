@@ -1,5 +1,5 @@
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { HookLifecycleContext } from '../../compilation/hooks/HookLifecycleCompiler'
+import type { HookLifecycleContext } from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { JourneyInstanceDependencies } from '../../types/engine.type'
 import RuntimeEvaluationContext, { RuntimeEvaluationGlobalState } from './RuntimeEvaluationContext'

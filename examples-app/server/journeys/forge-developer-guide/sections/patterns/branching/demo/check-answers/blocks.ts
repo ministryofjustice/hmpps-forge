@@ -3,6 +3,7 @@ import {
   Condition,
   Transformer,
   match,
+  Conditional,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   GovUKHeading,
@@ -37,31 +38,37 @@ export const summaryList = GovUKSummaryList({
         ],
       },
     },
-    {
-      key: { text: 'Office' },
-      value: { text: Answer('location').pipe(Transformer.String.Capitalize()) },
-      actions: {
-        items: [{ href: 'location', text: 'Change', visuallyHiddenText: 'office' }],
+    Conditional({
+      when: Answer('visitType').match(Condition.Equals('in-person')),
+      then: {
+        key: { text: 'Office' },
+        value: { text: Answer('location').pipe(Transformer.String.Capitalize()) },
+        actions: {
+          items: [{ href: 'location', text: 'Change', visuallyHiddenText: 'office' }],
+        },
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('in-person')),
-    },
-    {
-      key: { text: 'Invite email' },
-      value: { text: Answer('videoEmail') },
-      actions: {
-        items: [{ href: 'video-email', text: 'Change', visuallyHiddenText: 'invite email' }],
+    }),
+    Conditional({
+      when: Answer('visitType').match(Condition.Equals('video')),
+      then: {
+        key: { text: 'Invite email' },
+        value: { text: Answer('videoEmail') },
+        actions: {
+          items: [{ href: 'video-email', text: 'Change', visuallyHiddenText: 'invite email' }],
+        },
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('video')),
-    },
-    {
-      key: { text: 'Phone number' },
-      value: { text: Answer('phoneNumber') },
-      actions: {
-        items: [{ href: 'phone-number', text: 'Change', visuallyHiddenText: 'phone number' }],
+    }),
+    Conditional({
+      when: Answer('visitType').match(Condition.Equals('phone')),
+      then: {
+        key: { text: 'Phone number' },
+        value: { text: Answer('phoneNumber') },
+        actions: {
+          items: [{ href: 'phone-number', text: 'Change', visuallyHiddenText: 'phone number' }],
+        },
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('phone')),
-    },
-  ],
+    }),
+  ] as GovUKSummaryList['rows'],
 })
 
 export const confirmBody = GovUKBody({

@@ -6,6 +6,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKTextInput component.
@@ -240,8 +241,8 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextI
   const params = {
     id: block.id ?? block.code,
     name: block.code,
-    label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    label: normaliseGovukTextParam(block.label),
+    hint: normaliseGovukTextParam(block.hint),
     value: block.value,
     type: block.inputType ?? 'text',
     inputmode: block.inputMode,
@@ -257,7 +258,7 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextI
     inputWrapper: block.inputWrapper,
     classes: block.classes,
     attributes: block.attributes,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    errorMessage: normaliseGovukErrorMessage(block.errors),
   }
 
   return nunjucksEnv.render('govuk/components/input/template.njk', {

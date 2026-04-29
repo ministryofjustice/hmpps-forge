@@ -7,7 +7,7 @@ import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engi
 import {
   CompiledAccessHookResult as AccessHookResult,
   CompiledSubmitHookResult as SubmitHookResult,
-} from '../../compilation/hooks/HookLifecycleCompiler'
+} from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
 import { CompiledForm } from '../../compilation/CompilationFactory'
 import { JourneyMetadata } from '../../../framework/rendering/types'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'

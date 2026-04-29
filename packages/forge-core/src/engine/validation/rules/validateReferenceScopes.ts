@@ -1,5 +1,5 @@
 import { BlockType, ExpressionType, StructureType } from '../../../authoring/types/enums'
-import FormConfigurationReferenceScopeError from '../../errors/FormConfigurationReferenceScopeError'
+import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
 import { formatDSLPath } from '../formatDSLPath'
 import type { ReferenceValidationRule, TraversalContext } from './types'
 
@@ -13,8 +13,8 @@ const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
   'length',
 ])
 
-const createError = (context: TraversalContext, message: string, code: string): FormConfigurationReferenceScopeError =>
-  new FormConfigurationReferenceScopeError({
+const createError = (context: TraversalContext, message: string, code: string): ForgeConfigurationReferenceScopeError =>
+  new ForgeConfigurationReferenceScopeError({
     path: [...context.path],
     message,
     code,

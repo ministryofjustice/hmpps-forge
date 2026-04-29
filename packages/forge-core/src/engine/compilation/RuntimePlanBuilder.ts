@@ -1,10 +1,13 @@
 import { normalizeRelativePath } from '../../framework/path/routePath'
 import { NodeId } from '../types/ast.type'
-import type { CompiledAnswerPreparationFunction } from './answer-preparation/StepAnswerPreparationCompiler'
-import type { CompiledFieldInventoryFunction } from './field-inventory/StepFieldInventoryCompiler'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hooks/HookLifecycleCompiler'
-import type { CompiledReachabilityFunction } from './reachability/ReachabilityCompiler'
-import type { CompiledValidationFunction } from './validation/StepValidationCompiler'
+import type { CompiledAnswerPreparationFunction } from './codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
+import type { CompiledFieldInventoryFunction } from './codegen/phase-compilers/field-inventory/StepFieldInventoryCompiler'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from './codegen/phase-compilers/hooks/HookLifecycleCompiler'
+import type { CompiledReachabilityFunction } from './codegen/phase-compilers/reachability/ReachabilityCompiler'
+import type { CompiledValidationFunction } from './codegen/phase-compilers/validation/StepValidationCompiler'
 import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'

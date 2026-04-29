@@ -6,7 +6,7 @@ import type { CompilationDependencies } from './compilation/CompilationDependenc
 import type RuntimePlanBuilder from './compilation/RuntimePlanBuilder'
 import type { ReachabilityRuntimePlan, StepRuntimePlan } from './compilation/RuntimePlanBuilder'
 import type { SharedCompiledForm } from './compilation/CompilationFactory'
-import type { CompiledValidationFunction } from './compilation/validation/StepValidationCompiler'
+import type { CompiledValidationFunction } from './compilation/codegen/phase-compilers/validation/StepValidationCompiler'
 import CompilationFactory from './compilation/CompilationFactory'
 import JourneyInstance from './JourneyInstance'
 
