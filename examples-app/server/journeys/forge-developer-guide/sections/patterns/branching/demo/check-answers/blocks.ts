@@ -2,7 +2,8 @@ import {
   Answer,
   Condition,
   Transformer,
-  match, Conditional,
+  match,
+  Conditional,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   GovUKHeading,
@@ -66,7 +67,7 @@ export const summaryList = GovUKSummaryList({
           items: [{ href: 'phone-number', text: 'Change', visuallyHiddenText: 'phone number' }],
         },
       },
-    })
+    }),
   ] as GovUKSummaryList['rows'],
 })
 
