@@ -5,6 +5,7 @@ import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
 const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
+const DEFAULT_FORMAT_DATE_TIME_ZONE = 'Europe/London'
 const DEFAULT_FORMAT_DATE_OPTIONS: StringDateFormatOptions = {
   dateStyle: 'long',
 }
@@ -30,7 +31,7 @@ const assertStringDateFormatOptions: (
 
 const parseDateString = (value: string, functionName: string): Date => {
   const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
-  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
+  const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/
   const trimmed = value.trim()
 
   if (!trimmed) {
@@ -53,24 +54,29 @@ const parseDateString = (value: string, functionName: string): Date => {
     return date
   }
 
-  if (ISO_DATE_RE.test(trimmed)) {
-    const [datePart] = trimmed.split('T')
-    const [yearStr, monthStr, dayStr] = datePart.split('-')
-    const year = Number(yearStr)
-    const month = Number(monthStr)
-    const day = Number(dayStr)
+  const isoMatch = ISO_DATE_RE.exec(trimmed)
 
-    const date = new Date(trimmed)
+  if (isoMatch) {
+    const year = Number(isoMatch[1])
+    const month = Number(isoMatch[2])
+    const day = Number(isoMatch[3])
+    const dateOnly = new Date(Date.UTC(year, month - 1, day))
 
-    if (Number.isNaN(date.getTime())) {
-      throw new TypeError(`${functionName}: "${value}" is not a valid ISO date`)
-    }
-
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    if (dateOnly.getUTCFullYear() !== year || dateOnly.getUTCMonth() !== month - 1 || dateOnly.getUTCDate() !== day) {
       throw new TypeError(`${functionName}: "${value}" is not a valid date`)
     }
 
-    return date
+    if (!trimmed.includes('T')) {
+      return dateOnly
+    }
+
+    const dateTime = new Date(trimmed)
+
+    if (Number.isNaN(dateTime.getTime())) {
+      throw new TypeError(`${functionName}: "${value}" is not a valid ISO date`)
+    }
+
+    return dateTime
   }
 
   throw new TypeError(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
@@ -383,13 +389,18 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     assertString(value, 'Transformer.String.FormatDate')
     assertStringDateFormatOptions(options, 'Transformer.String.FormatDate')
 
-    const { locale = DEFAULT_FORMAT_DATE_LOCALE, ...dateTimeFormatOptions } = options ?? DEFAULT_FORMAT_DATE_OPTIONS
+    const {
+      locale = DEFAULT_FORMAT_DATE_LOCALE,
+      timeZone = DEFAULT_FORMAT_DATE_TIME_ZONE,
+      ...dateTimeFormatOptions
+    } = options ?? DEFAULT_FORMAT_DATE_OPTIONS
 
     assertString(locale, 'Transformer.String.FormatDate (locale)')
+    assertString(timeZone, 'Transformer.String.FormatDate (timeZone)')
 
     const date = parseDateString(value, 'Transformer.String.FormatDate')
 
-    return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(date)
+    return new Intl.DateTimeFormat(locale, { ...dateTimeFormatOptions, timeZone }).format(date)
   },
 
   ToISODate: () => (value: any) => {
