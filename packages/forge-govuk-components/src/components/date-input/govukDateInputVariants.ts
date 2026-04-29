@@ -7,6 +7,11 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField, Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  normaliseGovukErrorMessage,
+  normaliseGovukFieldset,
+  normaliseGovukTextParam,
+} from '../../utils/govukParamNormalisers'
 
 /**
  * Props for GOV.UK Date Input Components.
@@ -241,13 +246,9 @@ function buildParams(
 ) {
   return {
     id: block.id || block.code,
-    fieldset: block.fieldset || {
-      legend: {
-        text: block.label,
-      },
-    },
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    fieldset: normaliseGovukFieldset(block.fieldset, block.label),
+    hint: normaliseGovukTextParam(block.hint),
+    errorMessage: normaliseGovukErrorMessage(block.errors),
     formGroup: block.formGroup,
     items,
     classes: block.classes,
