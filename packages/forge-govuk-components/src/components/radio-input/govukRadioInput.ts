@@ -9,6 +9,11 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  normaliseGovukErrorMessage,
+  normaliseGovukFieldset,
+  normaliseGovukTextParam,
+} from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKRadioInput component.
@@ -259,20 +264,16 @@ export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRad
     .map(option => makeOption(option, block.value as string))
 
   const params = {
-    fieldset: block.fieldset || {
-      legend: {
-        text: block.label,
-      },
-    },
+    fieldset: normaliseGovukFieldset(block.fieldset, block.label),
     idPrefix: block.idPrefix || block.code,
     name: block.code,
     value: block.value,
     formGroup: block.formGroup,
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    hint: normaliseGovukTextParam(block.hint),
     items,
     classes: block.classes,
     attributes: block.attributes,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    errorMessage: normaliseGovukErrorMessage(block.errors),
   }
 
   return nunjucksEnv.render('govuk/components/radios/template.njk', {
@@ -304,7 +305,7 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
     text: option.text,
     html: option.html,
     id: option.id,
-    hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
+    hint: normaliseGovukTextParam(option.hint),
     checked: checkedValue === option.value || (option.checked ?? false),
     conditional: getConditionalContent(option.block),
     disabled: option.disabled,

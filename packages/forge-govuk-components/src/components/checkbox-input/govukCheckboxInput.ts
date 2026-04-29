@@ -9,6 +9,11 @@ import {
   RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import {
+  normaliseGovukErrorMessage,
+  normaliseGovukFieldset,
+  normaliseGovukTextParam,
+} from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKCheckboxInput component.
@@ -315,20 +320,16 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
       .map(option => makeOption(option, block.value))
 
     const params = {
-      fieldset: block.fieldset || {
-        legend: {
-          text: block.label,
-        },
-      },
+      fieldset: normaliseGovukFieldset(block.fieldset, block.label),
       idPrefix: block.idPrefix || block.code,
       name: block.name || block.code,
       describedBy: block.describedBy,
       formGroup: block.formGroup,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+      hint: normaliseGovukTextParam(block.hint),
       items,
       classes: block.classes,
       attributes: block.attributes,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
+      errorMessage: normaliseGovukErrorMessage(block.errors),
     }
 
     return nunjucksEnv.render('govuk/components/checkboxes/template.njk', {
@@ -369,7 +370,7 @@ const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckbo
     text: option.text,
     html: option.html,
     id: option.id,
-    hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
+    hint: normaliseGovukTextParam(option.hint),
     checked: isChecked,
     conditional: getConditionalContent(option.block),
     disabled: option.disabled,

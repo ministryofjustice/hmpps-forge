@@ -6,6 +6,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKPasswordInput component.
@@ -204,8 +205,8 @@ export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
     const params = {
       id: block.id ?? block.code,
       name: block.code,
-      label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
       value: block.value,
       disabled: block.disabled,
       autocomplete: block.autocomplete,
@@ -220,7 +221,7 @@ export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
       passwordShownAnnouncementText: block.passwordShownAnnouncementText,
       passwordHiddenAnnouncementText: block.passwordHiddenAnnouncementText,
       button: block.button,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
+      errorMessage: normaliseGovukErrorMessage(block.errors),
     }
 
     return nunjucksEnv.render('govuk/components/password-input/template.njk', {

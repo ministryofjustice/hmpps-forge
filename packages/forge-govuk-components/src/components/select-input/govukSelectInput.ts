@@ -7,6 +7,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Select item configuration
@@ -159,15 +160,15 @@ export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>('govukS
     id: block.id ?? block.code,
     name: block.code,
     items: block.items.filter(item => item.visibleWhen !== false),
-    label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    label: normaliseGovukTextParam(block.label),
+    hint: normaliseGovukTextParam(block.hint),
     value: block.value,
     disabled: block.disabled,
     describedBy: block.describedBy,
     formGroup: block.formGroup,
     classes: block.classes,
     attributes: block.attributes,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    errorMessage: normaliseGovukErrorMessage(block.errors),
   }
 
   return nunjucksEnv.render('govuk/components/select/template.njk', {
