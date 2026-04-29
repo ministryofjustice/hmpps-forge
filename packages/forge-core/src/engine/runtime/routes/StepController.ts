@@ -23,11 +23,14 @@ import { resolveBacklinkRouteTemplatePath } from '../navigation/NavigationPathAn
 import ReachabilityStateProjector from '../reachability/ReachabilityStateProjector'
 import RenderContextFactory from '../rendering/RenderContextFactory'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
-import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
-import { CompiledRenderResult } from '../../compilation/rendering/StepRenderCompiler'
+import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
+import { CompiledRenderResult } from '../../compilation/codegen/phase-compilers/rendering/StepRenderCompiler'
 import { StepFieldInventory } from '../types/StepFieldInventory.type'
 import { StepValidityResult } from '../types/StepValidityResult.type'
-import { CompiledAccessHookResult, CompiledSubmitHookResult } from '../../compilation/hooks/HookLifecycleCompiler'
+import {
+  CompiledAccessHookResult,
+  CompiledSubmitHookResult,
+} from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
 
 /**
  * Handles the full request lifecycle for steps.

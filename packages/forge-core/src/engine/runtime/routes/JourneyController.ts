@@ -14,8 +14,8 @@ import {
   buildCompiledBaseContext,
   buildCompiledHookLifecycleContext,
 } from '../context/compiledEvaluationContext'
-import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
-import { CompiledAccessHookResult } from '../../compilation/hooks/HookLifecycleCompiler'
+import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
+import { CompiledAccessHookResult } from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
 
 export default class JourneyController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer

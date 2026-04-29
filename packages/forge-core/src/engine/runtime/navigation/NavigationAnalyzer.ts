@@ -5,7 +5,7 @@ import NavigationPathAnalyzer from './NavigationPathAnalyzer'
 import { NavigationEvaluation, ResumeOutcome } from '../types/NavigationEvaluation.type'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 import ReachabilityGraphBuilder from '../reachability/ReachabilityGraphBuilder'
-import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
+import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 
 export default class NavigationAnalyzer {
