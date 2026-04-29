@@ -472,14 +472,14 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.name.current).toBe('original')
     })
 
-    it('should set value to undefined and skip remaining formatters when a formatter throws TypeError', () => {
+    it('should keep submitted value and skip remaining formatters when a formatter throws TypeError', () => {
       // Arrange
       const toNumberFormatter = createTransformerFunction('toNumber')
       const afterFormatter = createTransformerFunction('after')
       const afterEvaluate = vi.fn(() => 'should not run')
       const block = createFieldBlock('age', { formatters: [toNumberFormatter, afterFormatter] })
       const ctx = createCtx({
-        post: { age: '' },
+        post: { age: 'abc' },
         conditions: {
           get: vi.fn((name: string) => {
             if (name === 'toNumber') {
@@ -506,11 +506,8 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Assert
       expect(afterEvaluate).not.toHaveBeenCalled()
-      expect(ctx.answers.age.current).toBeUndefined()
-      expect(ctx.answers.age.mutations).toEqual([
-        { value: '', source: 'post' },
-        { value: undefined, source: 'processed' },
-      ])
+      expect(ctx.answers.age.current).toBe('abc')
+      expect(ctx.answers.age.mutations).toEqual([{ value: 'abc', source: 'post' }])
     })
 
     it('should throw runtime errors when formatter evaluation fails', () => {

@@ -235,6 +235,7 @@ export default class StepAnswerPreparationCompiler {
     }
 
     emitter.comment('StepAnswerPreparationCompiler.compileFormatterPipeline')
+    const originalValueVar = emitter.const('originalFormatterValue', valueVar)
     const failedVar = emitter.let('formatterFailed', 'false')
 
     for (const formatter of compilableFormatters) {
@@ -250,7 +251,7 @@ export default class StepAnswerPreparationCompiler {
             emitter.if(
               `${errorVar} instanceof TypeError || (${errorVar} && ${errorVar}.cause instanceof TypeError)`,
               () => {
-                emitter.assign(valueVar, 'undefined')
+                emitter.assign(valueVar, originalValueVar)
                 emitter.assign(failedVar, 'true')
               },
               () => emitter.code(`throw ${errorVar};`),
