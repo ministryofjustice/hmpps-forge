@@ -17,6 +17,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 export const EXAMPLE_GROUPS = {
   basic: 'example-basic',
@@ -120,10 +121,16 @@ const referenceExample = GovUKTextInput({
   ],
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-govuk-components/src/components/text-input/govukTextInput.ts',
+  names: ['GovUKTextInputProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveExample(EXAMPLE_GROUPS.basic, [basicExample])],
     'single-question-example': [
       liveExample(EXAMPLE_GROUPS.singleQuestion, [singleQuestionExample]),

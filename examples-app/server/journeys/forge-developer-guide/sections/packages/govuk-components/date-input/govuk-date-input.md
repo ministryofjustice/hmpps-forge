@@ -97,6 +97,12 @@ GovUKDateInputMonthDay({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Fieldset and legend
 
 Date inputs are always wrapped in a fieldset. When the date input is

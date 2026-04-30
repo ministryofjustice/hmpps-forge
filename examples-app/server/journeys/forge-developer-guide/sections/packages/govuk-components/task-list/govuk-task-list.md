@@ -48,6 +48,12 @@ GovUKTaskList({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Linked tasks
 
 Add `href` to make a task title a clickable link.

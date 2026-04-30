@@ -6,6 +6,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -30,10 +31,16 @@ const numberedExample = GovUKList({
   type: 'number',
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-govuk-components/src/wrappers/govukList.ts',
+  names: ['ListType', 'IterableDataSource', 'GovUKListProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'bullet-example': [liveDisplay([bulletExample])],
     'numbered-example': [liveDisplay([numberedExample])],

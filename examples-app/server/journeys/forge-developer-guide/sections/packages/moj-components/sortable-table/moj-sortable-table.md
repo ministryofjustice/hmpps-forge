@@ -42,6 +42,12 @@ MOJSortableTable({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Captions
 
 Use `caption` and `captionClasses` to describe the table.

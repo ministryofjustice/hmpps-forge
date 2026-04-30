@@ -38,6 +38,12 @@ MOJSideNavigation({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Sections
 
 Use `sections` when the navigation needs grouped links.

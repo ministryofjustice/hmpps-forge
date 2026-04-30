@@ -35,6 +35,12 @@ MOJBanner({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Banner types
 
 Set `bannerType` to choose the visual style and icon.
@@ -57,6 +63,24 @@ Use `html` when the message needs links or inline formatting.
 MOJBanner({
   bannerType: 'information',
   html: 'Review the <a href="#" class="govuk-link">case history</a> before continuing.',
+})
+```
+
+---
+
+## With child blocks
+
+Use `blocks` when the banner message should be composed from Forge
+blocks. Blocks take precedence over `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+MOJBanner({
+  bannerType: 'information',
+  blocks: [
+    GovUKBody({ text: 'Review the case history before continuing.', classes: 'govuk-!-margin-bottom-0' }),
+  ],
 })
 ```
 

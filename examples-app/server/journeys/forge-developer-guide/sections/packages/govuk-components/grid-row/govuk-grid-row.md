@@ -44,6 +44,12 @@ GovUKGridRow({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Column widths
 
 {{slot:widths-example}}

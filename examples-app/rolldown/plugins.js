@@ -34,24 +34,28 @@ function cleanPlugin(dir, { exclude = [], excludeExtensions = [] } = {}) {
   }
 }
 
-function copyPlugin({ patterns, baseDir, outDir }) {
+function copyPlugin({ patterns, baseDir, outDir, exclude = [] }) {
   return {
     name: 'copy-assets',
     buildStart() {
       patterns.forEach(pattern => {
-        globSync(pattern).forEach(file => {
-          this.addWatchFile(file)
-        })
+        globSync(pattern)
+          .filter(file => !exclude.some(excludePattern => excludePattern.test(file)))
+          .forEach(file => {
+            this.addWatchFile(file)
+          })
       })
     },
     writeBundle() {
       patterns.forEach(pattern => {
-        globSync(pattern).forEach(file => {
-          const dest = path.join(outDir, path.relative(baseDir, file))
+        globSync(pattern)
+          .filter(file => !exclude.some(excludePattern => excludePattern.test(file)))
+          .forEach(file => {
+            const dest = path.join(outDir, path.relative(baseDir, file))
 
-          fs.mkdirSync(path.dirname(dest), { recursive: true })
-          fs.copyFileSync(file, dest)
-        })
+            fs.mkdirSync(path.dirname(dest), { recursive: true })
+            fs.copyFileSync(file, dest)
+          })
       })
     },
   }

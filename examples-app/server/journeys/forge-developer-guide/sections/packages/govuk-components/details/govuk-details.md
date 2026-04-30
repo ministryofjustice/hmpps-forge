@@ -37,6 +37,12 @@ GovUKDetails({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Content types
 
 ### Plain text

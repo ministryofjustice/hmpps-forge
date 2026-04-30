@@ -45,6 +45,12 @@ GovUKRadioInput({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Fieldset and legend
 
 Radios are always wrapped in a fieldset with a legend. Use the

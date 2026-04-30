@@ -32,6 +32,12 @@ MOJBadge({ text: 'Complete', classes: 'moj-badge--green' })
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Colours
 
 Use `moj-badge--{colour}` classes to match the meaning of the status.

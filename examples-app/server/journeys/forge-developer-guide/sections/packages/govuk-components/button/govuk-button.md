@@ -64,6 +64,12 @@ GovUKButton({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## GovUKLinkButton
 
 An `<a>` element styled as a button. Use it for navigation actions

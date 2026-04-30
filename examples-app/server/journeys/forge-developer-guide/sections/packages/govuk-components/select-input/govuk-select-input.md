@@ -72,6 +72,12 @@ GovUKSelectInput({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Hint
 
 Add guidance below the label with the `hint` property.

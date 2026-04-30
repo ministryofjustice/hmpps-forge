@@ -44,6 +44,12 @@ MOJMultiSelect({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Table caption
 
 Use a caption to describe what the selectable rows represent.

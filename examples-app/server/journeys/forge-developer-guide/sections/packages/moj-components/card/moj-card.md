@@ -36,6 +36,12 @@ MOJCard({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Heading options
 
 Use a heading object when you need to control the heading level or

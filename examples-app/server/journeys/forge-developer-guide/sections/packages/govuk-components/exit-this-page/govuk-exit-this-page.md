@@ -35,6 +35,12 @@ GovUKExitThisPage({})
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Custom redirect
 
 Set `redirectUrl` to change where the user is taken.

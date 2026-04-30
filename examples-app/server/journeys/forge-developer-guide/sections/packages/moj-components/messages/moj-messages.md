@@ -43,6 +43,12 @@ MOJMessages({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Sent and received messages
 
 Use `type: 'sent'` for outgoing messages and `type: 'received'` for
@@ -83,6 +89,30 @@ MOJMessages({
   items: [
     {
       html: '<p>See the <a href="#">updated risk assessment</a>.</p>',
+      type: 'received',
+      sender: 'Risk team',
+      timestamp: '2026-04-24T11:00:00.000Z',
+    },
+  ],
+})
+```
+
+---
+
+## With child blocks
+
+Use item `blocks` when a message should be composed from Forge
+blocks. Blocks take precedence over item `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+MOJMessages({
+  items: [
+    {
+      blocks: [
+        GovUKBody({ text: 'See the updated risk assessment.', classes: 'govuk-!-margin-bottom-0' }),
+      ],
       type: 'received',
       sender: 'Risk team',
       timestamp: '2026-04-24T11:00:00.000Z',

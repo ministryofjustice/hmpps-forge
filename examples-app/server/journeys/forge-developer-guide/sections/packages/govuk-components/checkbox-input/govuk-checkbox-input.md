@@ -48,6 +48,12 @@ GovUKCheckboxInput({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Fieldset and legend
 
 Checkboxes are always wrapped in a fieldset with a legend. When the

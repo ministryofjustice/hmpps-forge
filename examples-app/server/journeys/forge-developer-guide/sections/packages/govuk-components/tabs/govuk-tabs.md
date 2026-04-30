@@ -48,6 +48,12 @@ GovUKTabs({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## HTML content
 
 Use `panel.html` for rich content inside a tab.

@@ -7,6 +7,7 @@ import { MOJBadge } from '@ministryofjustice/hmpps-forge/moj-components'
 import { GovUKTable } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -54,10 +55,16 @@ const coloursExample = TemplateWrapper({
   },
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-moj-components/src/components/badge/mojBadge.ts',
+  names: ['MOJBadgeColour', 'MOJBadgeProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'colours-example': [liveDisplay([coloursExample])],
   },

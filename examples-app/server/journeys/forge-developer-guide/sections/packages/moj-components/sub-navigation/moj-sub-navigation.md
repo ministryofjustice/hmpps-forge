@@ -39,6 +39,12 @@ MOJSubNavigation({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Active item
 
 Set `active: true` on the current item. The component adds the

@@ -34,6 +34,12 @@ GovUKNotificationBanner({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Success banner
 
 Set `bannerType: 'success'` for a green success banner. The title

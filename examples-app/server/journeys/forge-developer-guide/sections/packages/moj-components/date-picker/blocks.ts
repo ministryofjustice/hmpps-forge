@@ -6,6 +6,7 @@ import {
 import { MOJDatePicker } from '@ministryofjustice/hmpps-forge/moj-components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -30,10 +31,21 @@ const limitsExample = MOJDatePicker({
   excludedDays: ['saturday', 'sunday'],
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-moj-components/src/components/date-picker/mojDatePicker.ts',
+  names: [
+    'MOJDatePickerLabel',
+    'MOJDatePickerHint',
+    'MOJDatePickerFormGroup',
+    'MOJDatePickerProps',
+  ],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'limits-example': [liveDisplay([limitsExample])],
   },

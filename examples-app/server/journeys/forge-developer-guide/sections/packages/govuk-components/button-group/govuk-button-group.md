@@ -37,6 +37,12 @@ GovUKButtonGroup({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Primary and secondary
 
 Pair a primary button with a secondary action.

@@ -39,6 +39,12 @@ GovUKSummaryList({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Action links
 
 Add a `Change` or other action link to each row. Use
@@ -94,6 +100,32 @@ GovUKSummaryList({
   rows: [
     { key: { text: 'Name' }, value: { text: 'Sarah Philips' } },
     { key: { text: 'Email' }, value: { text: 'sarah@example.com' } },
+  ],
+})
+```
+
+---
+
+## Value child blocks
+
+Use `value.blocks` when a row value should be composed from Forge
+blocks. Blocks take precedence over `value.text` and `value.html`.
+
+{{slot:blocks-example}}
+
+```typescript
+GovUKSummaryList({
+  rows: [
+    {
+      key: { text: 'Address' },
+      value: {
+        blocks: [
+          GovUKBody({ text: '72 Guild Street' }),
+          GovUKBody({ text: 'London' }),
+          GovUKBody({ text: 'SE23 6FH', classes: 'govuk-!-margin-bottom-0' }),
+        ],
+      },
+    },
   ],
 })
 ```

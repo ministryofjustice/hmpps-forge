@@ -36,10 +36,16 @@ GovUKPanel({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## With a reference number
 
 The panel body is commonly used to display a reference number or
-confirmation code.
+confirmation code. Use `html` for simple inline markup.
 
 {{slot:reference-example}}
 
@@ -47,6 +53,24 @@ confirmation code.
 GovUKPanel({
   titleText: 'Application complete',
   html: 'Your reference number<br><strong>HDJ2123F</strong>',
+})
+```
+
+---
+
+## With child blocks
+
+Use `blocks` when the panel body should be composed from Forge
+blocks. Blocks take precedence over `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+GovUKPanel({
+  titleText: 'Application complete',
+  blocks: [
+    HtmlBlock({ content: 'Your reference number<br><strong>HDJ2123F</strong>' }),
+  ],
 })
 ```
 

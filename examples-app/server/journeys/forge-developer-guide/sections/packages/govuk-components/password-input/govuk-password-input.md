@@ -35,6 +35,12 @@ GovUKPasswordInput({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Autocomplete
 
 Set `autocomplete` to tell the browser whether this is an existing

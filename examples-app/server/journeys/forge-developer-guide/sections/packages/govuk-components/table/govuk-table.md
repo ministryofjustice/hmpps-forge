@@ -40,6 +40,12 @@ GovUKTable({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Headers
 
 Add column headers with the `head` property.

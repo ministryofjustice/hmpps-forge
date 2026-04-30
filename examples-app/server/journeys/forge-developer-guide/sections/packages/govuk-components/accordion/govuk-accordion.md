@@ -45,6 +45,12 @@ GovUKAccordion({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## With summaries
 
 Add a `summary` to each item to give users more context before they

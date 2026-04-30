@@ -23,7 +23,7 @@ with a left border.
 ## How to use it
 
 Import `GovUKInsetText` from the GOV.UK components package. Provide
-either `text` or `html` as content.
+`text`, `html`, or `blocks` as content.
 
 ```typescript
 import { GovUKInsetText } from '@ministryofjustice/hmpps-forge/govuk-components'
@@ -32,6 +32,12 @@ GovUKInsetText({
   text: 'It can take up to 8 weeks to register a lasting power of attorney if there are no mistakes in the application.',
 })
 ```
+
+---
+
+## Type interface
+
+{{slot:interface}}
 
 ---
 
@@ -44,6 +50,24 @@ Use `html` when you need links or formatting within the inset text.
 ```typescript
 GovUKInsetText({
   html: 'You can <a class="govuk-link" href="/appeal">appeal the decision</a> if you think it is wrong.',
+})
+```
+
+---
+
+## With child blocks
+
+Use `blocks` when the inset text content is easier to compose from
+other Forge blocks. Blocks take precedence over `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+GovUKInsetText({
+  blocks: [
+    GovUKBody({ text: 'Bring one proof of identity to your appointment.' }),
+    GovUKBody({ text: 'A passport or driving licence is usually enough.', classes: 'govuk-!-margin-bottom-0' }),
+  ],
 })
 ```
 

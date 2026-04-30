@@ -41,6 +41,12 @@ MOJTimeline({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Multiple events
 
 Items are displayed in the order you provide, usually with the most
@@ -61,6 +67,31 @@ MOJTimeline({
     {
       label: { text: 'Application submitted' },
       html: '<p>The visitor submitted the request online.</p>',
+      datetime: { timestamp: '2026-04-23T09:15:00.000Z', type: 'datetime' },
+      byline: { text: 'Visitor' },
+    },
+  ],
+})
+```
+
+---
+
+## With child blocks
+
+Use item `blocks` when a timeline event description should be
+composed from Forge blocks. Blocks take precedence over item `text`
+and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+MOJTimeline({
+  items: [
+    {
+      label: { text: 'Application submitted' },
+      blocks: [
+        GovUKBody({ text: 'The visitor submitted the request online.', classes: 'govuk-!-margin-bottom-0' }),
+      ],
       datetime: { timestamp: '2026-04-23T09:15:00.000Z', type: 'datetime' },
       byline: { text: 'Visitor' },
     },

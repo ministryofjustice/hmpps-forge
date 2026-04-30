@@ -6,6 +6,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -25,10 +26,16 @@ const htmlExample = GovUKDetails({
   html: 'Your reference number is on the letter we sent you. It starts with <strong>HDJ</strong> followed by 4 numbers and a letter, for example <strong>HDJ2123F</strong>.',
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-govuk-components/src/components/details/govukDetails.ts',
+  names: ['GovUKDetailsProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'html-example': [liveDisplay([htmlExample])],
   },

@@ -40,6 +40,12 @@ GovUKBreadcrumbs({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Collapse on mobile
 
 Set `collapseOnMobile: true` to show only the parent link on small

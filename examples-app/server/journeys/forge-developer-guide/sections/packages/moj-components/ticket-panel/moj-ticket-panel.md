@@ -39,6 +39,12 @@ MOJTicketPanel({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Multiple sections
 
 Use multiple `items` when the panel needs separate content areas.
@@ -55,6 +61,28 @@ MOJTicketPanel({
     },
     {
       text: 'We will email you within 24 hours to confirm your application.',
+    },
+  ],
+})
+```
+
+---
+
+## With child blocks
+
+Use item `blocks` when a ticket panel section should be composed from
+Forge blocks. Blocks take precedence over item `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+MOJTicketPanel({
+  items: [
+    {
+      blocks: [
+        HtmlBlock({ content: '<h2 class="govuk-heading-m">Application submitted</h2><p>Reference: ABC123</p>' }),
+      ],
+      classes: 'moj-ticket-panel__content--green',
     },
   ],
 })

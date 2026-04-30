@@ -6,6 +6,7 @@ import {
 import { MOJButtonMenu } from '@ministryofjustice/hmpps-forge/moj-components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -33,10 +34,16 @@ const alignedExample = MOJButtonMenu({
   ],
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-moj-components/src/components/button-menu/mojButtonMenu.ts',
+  names: ['MOJButtonMenuAlign', 'MOJButtonMenuButton', 'MOJButtonMenuItem', 'MOJButtonMenuProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'aligned-example': [liveDisplay([alignedExample])],
   },

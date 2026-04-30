@@ -6,6 +6,7 @@ import {
 import { MOJSortableTable } from '@ministryofjustice/hmpps-forge/moj-components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -35,10 +36,21 @@ const captionExample = MOJSortableTable({
   rows,
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-moj-components/src/components/sortable-table/mojSortableTable.ts',
+  names: [
+    'SortableTableHeadCell',
+    'SortableTableCell',
+    'SortableTableRow',
+    'MOJSortableTableProps',
+  ],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'caption-example': [liveDisplay([captionExample])],
   },

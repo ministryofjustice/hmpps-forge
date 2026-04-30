@@ -32,6 +32,12 @@ GovUKBody({ text: 'This is a paragraph of body text.' })
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Size variants
 
 Use the `size` property to change the text size.

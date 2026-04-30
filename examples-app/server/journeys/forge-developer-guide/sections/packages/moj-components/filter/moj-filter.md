@@ -35,6 +35,12 @@ MOJFilter({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Selected filters
 
 Use `selectedFilters` to show active filters as removable tags.

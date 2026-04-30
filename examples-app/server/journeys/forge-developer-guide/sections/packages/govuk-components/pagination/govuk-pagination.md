@@ -37,6 +37,12 @@ GovUKPagination({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Numbered pages
 
 Add `items` for page number links. Set `current: true` on the

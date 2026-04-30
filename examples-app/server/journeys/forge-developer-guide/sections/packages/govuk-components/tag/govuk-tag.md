@@ -32,6 +32,12 @@ GovUKTag({ text: 'Completed' })
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Colours
 
 Use `GovUKUtilityClasses.Tag` to apply colour variants.

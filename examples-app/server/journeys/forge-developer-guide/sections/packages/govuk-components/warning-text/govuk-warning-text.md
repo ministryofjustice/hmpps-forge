@@ -24,7 +24,7 @@ GOV.UK Design System warning text pattern.
 ## How to use it
 
 Import `GovUKWarningText` from the GOV.UK components package. Provide
-either `text` or `html` as content.
+`text`, `html`, or `blocks` as content.
 
 ```typescript
 import { GovUKWarningText } from '@ministryofjustice/hmpps-forge/govuk-components'
@@ -33,6 +33,12 @@ GovUKWarningText({
   text: 'You can be fined up to £5,000 if you do not register.',
 })
 ```
+
+---
+
+## Type interface
+
+{{slot:interface}}
 
 ---
 
@@ -45,6 +51,23 @@ Use `html` when you need links or formatting within the warning.
 ```typescript
 GovUKWarningText({
   html: 'You must <a class="govuk-link" href="/complete">complete your return</a> by 31 January.',
+})
+```
+
+---
+
+## With child blocks
+
+Use `blocks` when the warning content is built from another Forge
+block. Blocks take precedence over `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+GovUKWarningText({
+  blocks: [
+    HtmlBlock({ tag: 'span', content: 'You must confirm this action before continuing.' }),
+  ],
 })
 ```
 

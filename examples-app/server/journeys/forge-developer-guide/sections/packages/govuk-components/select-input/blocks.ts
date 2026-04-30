@@ -16,6 +16,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 export const EXAMPLE_GROUPS = {
   basic: 'example-select-basic',
@@ -80,10 +81,16 @@ const relationshipExample = GovUKSelectInput({
   ],
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-govuk-components/src/components/select-input/govukSelectInput.ts',
+  names: ['SelectItem', 'GovUKSelectInputProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveExample(EXAMPLE_GROUPS.basic, [basicExample])],
     'relationship-example': [liveExample(EXAMPLE_GROUPS.relationship, [relationshipExample])],
   },

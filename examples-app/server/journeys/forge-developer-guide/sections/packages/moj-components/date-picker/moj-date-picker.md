@@ -36,6 +36,12 @@ MOJDatePicker({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Date limits
 
 Use `minDate` and `maxDate` to limit dates in the calendar picker.

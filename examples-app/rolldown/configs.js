@@ -45,6 +45,16 @@ function getAppConfig() {
           baseDir: serverDir,
           outDir,
         }),
+        copyPlugin({
+          patterns: [
+            path.join(cwd, '../packages/forge-govuk-components/src/components/**/*.ts'),
+            path.join(cwd, '../packages/forge-govuk-components/src/wrappers/**/*.ts'),
+            path.join(cwd, '../packages/forge-moj-components/src/components/**/*.ts'),
+          ],
+          baseDir: path.join(cwd, '../packages'),
+          outDir: path.join(outDir, 'package-sources'),
+          exclude: [/\.test\.ts$/],
+        }),
         typecheckPlugin({ prefix: styleText(['bold', 'cyan'], '[TSC]') }),
       ],
     },

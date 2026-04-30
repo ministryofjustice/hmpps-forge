@@ -38,6 +38,12 @@ MOJAlert({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Variants
 
 Set `alertVariant` to choose the alert style.
@@ -65,6 +71,25 @@ MOJAlert({
   text: 'This case has changed since you last viewed it.',
   showTitleAsHeading: true,
   headingTag: 'h3',
+})
+```
+
+---
+
+## With child blocks
+
+Use `blocks` when the alert message should be composed from Forge
+blocks. Blocks take precedence over `text` and `html`.
+
+{{slot:blocks-example}}
+
+```typescript
+MOJAlert({
+  alertVariant: 'warning',
+  title: 'Check the risk information',
+  blocks: [
+    GovUKBody({ text: 'Review the case history before continuing.', classes: 'govuk-!-margin-bottom-0' }),
+  ],
 })
 ```
 

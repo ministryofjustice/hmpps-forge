@@ -37,6 +37,12 @@ GovUKList({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## List types
 
 ### Bullet list

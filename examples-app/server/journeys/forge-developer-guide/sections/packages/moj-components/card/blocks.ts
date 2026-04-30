@@ -6,6 +6,7 @@ import {
 import { MOJCard } from '@ministryofjustice/hmpps-forge/moj-components'
 import { GovUKMarkdownBlock } from '../../../../components/govukMarkdown'
 import { TableOfContents } from '../../../../components/tableOfContents'
+import { SourceInterfaceSnippet } from '../../shared/sourceInterfaceSnippet'
 
 function liveDisplay(blocks: BlockDefinition[]) {
   return TemplateWrapper({
@@ -27,10 +28,16 @@ const headingExample = MOJCard({
   description: 'Create, update, and cancel visits.',
 })
 
+const interfaceSnippet = SourceInterfaceSnippet({
+  sourcePath: 'forge-moj-components/src/components/card/mojCard.ts',
+  names: ['MOJCardHeading', 'MOJCardDescription', 'MOJCardProps'],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
     toc: [TableOfContents({ headings: Data('headings') })],
+    interface: [interfaceSnippet],
     'basic-example': [liveDisplay([basicExample])],
     'heading-example': [liveDisplay([headingExample])],
   },

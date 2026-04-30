@@ -32,6 +32,12 @@ GovUKSectionBreak({ size: 'l', visible: true })
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Sizes
 
 The `size` property controls the amount of vertical spacing.

@@ -37,6 +37,12 @@ MOJCardGroup({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Columns
 
 Set `columns` to control the grid width. Supported values are `2`,

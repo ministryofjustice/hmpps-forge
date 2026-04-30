@@ -39,6 +39,12 @@ MOJProgressBar({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Active and complete steps
 
 Set `complete: true` for finished steps and `active: true` for the

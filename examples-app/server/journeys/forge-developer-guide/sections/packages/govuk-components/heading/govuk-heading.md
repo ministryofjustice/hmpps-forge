@@ -32,6 +32,12 @@ GovUKHeading({ text: 'Page title' })
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Size
 
 The `size` property controls the visual size. The heading level

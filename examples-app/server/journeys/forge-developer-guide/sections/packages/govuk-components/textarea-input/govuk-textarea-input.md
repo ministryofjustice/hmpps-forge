@@ -36,6 +36,12 @@ GovUKTextareaInput({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Label
 
 The label can be a plain string or an object. Use

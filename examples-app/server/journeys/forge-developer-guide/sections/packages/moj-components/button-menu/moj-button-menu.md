@@ -39,6 +39,12 @@ MOJButtonMenu({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Align the menu
 
 Set `alignMenu: 'right'` when the menu should align to the right edge

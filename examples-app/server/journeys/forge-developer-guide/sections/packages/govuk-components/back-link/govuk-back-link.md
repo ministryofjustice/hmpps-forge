@@ -45,6 +45,12 @@ GovUKBackLink({
 
 ---
 
+## Type interface
+
+{{slot:interface}}
+
+---
+
 ## Dynamic href
 
 Use expressions for dynamic back links.
