@@ -7,6 +7,7 @@ import GuideContentStore from '../data/guideContentStore'
 import GuideSearch from '../data/guideSearch'
 import LlmsTextGenerator from '../data/llmsTextGenerator'
 import PatternSourceStore from '../data/patternSourceStore'
+import config from '../config'
 import MocksApi from '../data/mocksApi'
 import logger from '../logger'
 
@@ -20,7 +21,7 @@ export const services = () => {
     join(__dirname, 'journeys', 'forge-developer-guide'),
   )
   const patternSourceStore = new PatternSourceStore()
-  const llmsTextGenerator = new LlmsTextGenerator(patternSourceStore)
+  const llmsTextGenerator = new LlmsTextGenerator(patternSourceStore, config.ingressUrl)
   const mocksApi = new MocksApi()
   const guideSearch = new GuideSearch(guideContentStore, embeddingIndex)
 

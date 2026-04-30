@@ -3,13 +3,6 @@ import type PatternSourceStore from './patternSourceStore'
 
 const GUIDE_PATH = 'forge-developer-guide'
 
-const INDEX_PREAMBLE = [
-  '# Forge Developer Guide',
-  'Forge is a stateless, declarative framework for building multi-page journeys in GOV.UK services. You define journeys, steps, blocks, and fields as data structures and Forge handles routing, rendering, validation, and navigation.',
-  'Documentation is organised into sections following a learning progression. Each page is self-contained but later sections build on earlier ones. Fetch individual pages at `/llms/forge-developer-guide/{path}` for full markdown, or `/llms-full.txt` for everything.',
-  'Pattern pages include complete working demo source code showing the pattern implemented as a real Forge journey.',
-]
-
 const FULL_PREAMBLE = [
   '# Forge Developer Guide — Full Documentation',
   'Complete reference for the Forge framework. Generated from source documentation.',
@@ -96,12 +89,25 @@ function strip(path: string): string {
   return path.replace(/^\/+|\/+$/g, '')
 }
 
+function fullUrl(ingressUrl: string, path: string): string {
+  return `${ingressUrl.replace(/\/+$/g, '')}/${strip(path)}`
+}
+
+function indexPreamble(ingressUrl: string): string[] {
+  return [
+    '# Forge Developer Guide',
+    'Forge is a stateless, declarative framework for building multi-page journeys in GOV.UK services. You define journeys, steps, blocks, and fields as data structures and Forge handles routing, rendering, validation, and navigation.',
+    `Documentation is organised into sections following a learning progression. Each page is self-contained but later sections build on earlier ones. Fetch individual pages at \`${fullUrl(ingressUrl, `/llms/${GUIDE_PATH}/{path}`)}\` for full markdown, or \`${fullUrl(ingressUrl, '/llms-full.txt')}\` for everything.`,
+    'Pattern pages include complete working demo source code showing the pattern implemented as a real Forge journey.',
+  ]
+}
+
 function sectionKey(entry: ContentEntry): string {
   return entry.section ?? entry.path.split('/')[0]
 }
 
-function contentLink(entry: ContentEntry): string {
-  return `/llms/${GUIDE_PATH}/${strip(entry.path)}`
+function contentLink(ingressUrl: string, entry: ContentEntry): string {
+  return fullUrl(ingressUrl, `/llms/${GUIDE_PATH}/${strip(entry.path)}`)
 }
 
 function resolvePath(basePath: string, relativePath: string): string {
@@ -213,10 +219,13 @@ function forEachSection(
 }
 
 export default class LlmsTextGenerator {
-  constructor(private readonly patternSources: PatternSourceStore) {}
+  constructor(
+    private readonly patternSources: PatternSourceStore,
+    private readonly ingressUrl: string,
+  ) {}
 
   buildIndex(entries: ContentEntry[]): string {
-    const lines: string[] = [...INDEX_PREAMBLE, '']
+    const lines: string[] = [...indexPreamble(this.ingressUrl), '']
 
     forEachSection(entries, (section, group) => {
       lines.push(`## ${section.title}`, '')
@@ -292,7 +301,7 @@ export default class LlmsTextGenerator {
 
       const anchor = fragment ? `#${fragment}` : ''
 
-      return `[${text}](${contentLink(target)}${anchor})`
+      return `[${text}](${contentLink(this.ingressUrl, target)}${anchor})`
     })
   }
 
@@ -331,7 +340,9 @@ export default class LlmsTextGenerator {
       const demoCount = patternName ? this.patternSources.getDemo(patternName).length : 0
       const demoNote = demoCount > 0 ? ` (includes ${demoCount} demo source files)` : ''
 
-      lines.push(`- [${entry.title}](${contentLink(entry)})${description}${demoNote}`)
+      lines.push(
+        `- [${entry.title}](${contentLink(this.ingressUrl, entry)})${description}${demoNote}`,
+      )
     })
 
     if (group.entries.length > 0 && group.children.size > 0) {
