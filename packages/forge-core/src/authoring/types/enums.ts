@@ -18,7 +18,6 @@ export enum BlockType {
 
 export enum ExpressionType {
   REFERENCE = 'ExpressionType.Reference',
-  FORMAT = 'ExpressionType.Format',
   PIPELINE = 'ExpressionType.Pipeline',
   NEXT = 'ExpressionType.Next',
   VALIDATION = 'ExpressionType.Validation',

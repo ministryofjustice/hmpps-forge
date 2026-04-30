@@ -81,17 +81,6 @@ export interface PipelineASTNode extends ExpressionASTNode {
 }
 
 /**
- * Format Expression AST node
- */
-export interface FormatASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.FORMAT
-  properties: {
-    template: string
-    arguments: (ASTNode | any)[]
-  }
-}
-
-/**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
  * Iterator templates are compiled once and instantiated with fresh runtime IDs

@@ -1,8 +1,13 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
-import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
+import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
-import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
+import {
+  TransformerFunctionExprSchema,
+  GeneratorFunctionExprSchema,
+  FunctionExprSchema,
+  EffectFunctionExprSchema,
+} from './base.schema'
 
 /**
  * @see {@link ViewConfig}
@@ -19,7 +24,7 @@ export const ViewConfigSchema = z.object({
 export const ResolvableStringSchema = z.union([
   z.string(),
   ReferenceExprSchema,
-  FormatExprSchema,
+  GeneratorFunctionExprSchema,
   PipelineExprSchema,
   ConditionalExprSchema,
   MatchExprSchema,

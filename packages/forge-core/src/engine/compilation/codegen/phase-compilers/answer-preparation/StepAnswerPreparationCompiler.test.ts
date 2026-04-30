@@ -8,6 +8,10 @@ import {
   IteratorType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
+import {
+  FORMAT_STRING_GENERATOR_NAME,
+  FormatGeneratorsRegistry,
+} from '../../../../../authoring/generators/formatGenerators'
 import { FieldBlockASTNode } from '../../../../types/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../types/expressions.type'
 import { TestPredicateASTNode } from '../../../../types/predicates.type'
@@ -85,6 +89,10 @@ function createCtx(overrides: Partial<AnswerPreparationContext> = {}): AnswerPre
     request: { method: 'POST' },
     conditions: {
       get: vi.fn((name: string) => {
+        if (name === FORMAT_STRING_GENERATOR_NAME) {
+          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+        }
+
         if (name === 'trim') {
           return { evaluate: (value: unknown) => (typeof value === 'string' ? value.trim() : value) }
         }
@@ -757,20 +765,13 @@ describe('StepAnswerPreparationCompiler', () => {
         variant: 'text-input',
         blockType: BlockType.FIELD,
         properties: {
-          code: {
-            type: ASTNodeType.EXPRESSION,
-            expressionType: ExpressionType.FORMAT,
-            properties: {
-              template: 'person_%1',
-              arguments: [
-                {
-                  type: ASTNodeType.EXPRESSION,
-                  expressionType: ExpressionType.REFERENCE,
-                  properties: { path: ['@loop', 0, 'index0'] },
-                },
-              ],
+          code: ASTTestFactory.formatExpression('person_%1', [
+            {
+              type: ASTNodeType.EXPRESSION,
+              expressionType: ExpressionType.REFERENCE,
+              properties: { path: ['@loop', 0, 'index0'] },
             },
-          },
+          ]),
         },
       })
       const iterateNode = createIterateNode(createReference(['data', 'items']), template)

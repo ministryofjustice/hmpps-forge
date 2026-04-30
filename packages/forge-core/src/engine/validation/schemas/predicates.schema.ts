@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PredicateType, ExpressionType, OutcomeType } from '../../../authoring/types/enums'
-import { ResolvableValueSchema, FormatExprSchema } from './expressions.schema'
+import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
 /**
@@ -96,7 +96,7 @@ export const MatchExprSchema = z.lazy(() =>
 export const RedirectOutcomeSchema = z.object({
   type: z.literal(OutcomeType.REDIRECT),
   when: PredicateExprSchema.optional(),
-  goto: z.union([z.string(), FormatExprSchema, ResolvableValueSchema]),
+  goto: z.union([z.string(), ResolvableValueSchema]),
 })
 
 /**
@@ -106,7 +106,7 @@ export const ThrowErrorOutcomeSchema = z.object({
   type: z.literal(OutcomeType.THROW_ERROR),
   when: PredicateExprSchema.optional(),
   status: z.number().int().min(100).max(599),
-  message: z.union([z.string(), FormatExprSchema, ResolvableValueSchema]),
+  message: z.union([z.string(), ResolvableValueSchema]),
 })
 
 /**

@@ -51,46 +51,6 @@ export interface ReferenceExpr {
 }
 
 /**
- * Represents a string formatting expression with placeholder substitution.
- * Placeholders are denoted as %1, %2, etc., and are replaced with the corresponding
- * argument values at runtime.
- *
- * @example
- * // Simple string formatting
- * {
- *   type: 'ExpressionType.Format',
- *   template: 'Hello %1, you are %2 years old',
- *   arguments: [
- *     { type: 'ExpressionType.Reference', path: ['answers', 'name'] },
- *     { type: 'ExpressionType.Reference', path: ['answers', 'age'] }
- *   ]
- * }
- *
- * @example
- * // Dynamic field code generation in collections
- * {
- *   type: 'ExpressionType.Format',
- *   template: 'address_%1_street',
- *   arguments: [{ type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }]
- * }
- */
-export interface FormatExpr {
-  type: ExpressionType.FORMAT
-
-  /**
-   * Template string containing placeholders (%1, %2, etc.).
-   * Placeholders are 1-indexed and correspond to the arguments array.
-   */
-  template: string
-
-  /**
-   * Array of expressions whose values will replace the placeholders.
-   * The first argument replaces %1, second replaces %2, and so on.
-   */
-  arguments: ResolvableValue[]
-}
-
-/**
  * Represents a pipeline of sequential transformations.
  * The output of each step becomes the input to the next step,
  * allowing for complex data transformations through composition.
@@ -356,7 +316,6 @@ export interface IterateExpr {
  */
 export type ResolvableValue =
   | ReferenceExpr
-  | FormatExpr
   | TransformerFunctionExpr
   | GeneratorFunctionExpr
   | PipelineExpr

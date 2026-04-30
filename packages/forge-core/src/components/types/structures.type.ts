@@ -5,7 +5,7 @@ import {
   PredicateExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  FormatExpr,
+  GeneratorFunctionExpr,
   ConditionalExpr,
   MatchExpr,
   ResolvableValue,
@@ -156,11 +156,12 @@ type DynamicExpression =
   | MatchExpr
   | ConditionalExprBuilder
   | MatchExprBuilder
+  | GeneratorFunctionExpr
   | GeneratorBuilder<ResolvableValue[]>
   | ChainableRef
   | ChainableExpr<any>
 
-export type ResolvableString = string | DynamicExpression | FormatExpr
+export type ResolvableString = string | DynamicExpression
 
 export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
 
@@ -175,10 +176,7 @@ export type RenderedBlock = {
   html: string
 }
 
-type Resolved<T> = Exclude<
-  T,
-  DynamicExpression | FormatExpr | ChainableIterable | PredicateExpr | PredicateTestExprBuilder
->
+type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr | PredicateTestExprBuilder>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true> =
   Resolved<T> extends infer R

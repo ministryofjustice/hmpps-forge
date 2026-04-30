@@ -8,7 +8,6 @@ import { TransformerFunctionExprSchema, GeneratorFunctionExprSchema } from './ba
 export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
   z.union([
     ReferenceExprSchema,
-    FormatExprSchema,
     TransformerFunctionExprSchema,
     GeneratorFunctionExprSchema,
     PipelineExprSchema,
@@ -28,15 +27,6 @@ export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
 export const ReferenceExprSchema = z.looseObject({
   type: z.literal(ExpressionType.REFERENCE),
   path: z.array(z.string()),
-})
-
-/**
- * @see {@link FormatExpr}
- */
-export const FormatExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ExpressionType.FORMAT),
-  template: z.string(),
-  arguments: z.array(ResolvableValueSchema),
 })
 
 /**
