@@ -1,4 +1,5 @@
 import formatFields from '../../shared/utils/utils'
+import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface ForgeConfigurationReferenceScopeErrorOptions {
   /** Path to the invalid reference expression */
@@ -25,6 +26,7 @@ export default class ForgeConfigurationReferenceScopeError extends Error {
     this.code = options.code
     this.path = options.path
     this.formattedPath = options.formattedPath
+    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {
