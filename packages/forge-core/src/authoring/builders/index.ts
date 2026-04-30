@@ -16,14 +16,15 @@ import {
 import { ForgePackage } from '../types/package.type'
 import {
   AccessHook,
-  FormatExpr,
+  GeneratorFunctionExpr,
   RedirectOutcome,
   SubmitHook,
   ThrowErrorOutcome,
   ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { BlockType, ExpressionType, OutcomeType, StructureType, HookType } from '../types/enums'
+import { BlockType, ExpressionType, OutcomeType, StructureType, HookType, FunctionType } from '../types/enums'
+import { FORMAT_STRING_GENERATOR_NAME } from '../generators/formatGenerators'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -355,11 +356,11 @@ export function Self(): ChainableRef {
  * Format('Hello %1!', Answer('name'))
  * Format('%1 %2', Answer('firstName'), Answer('lastName'))
  */
-export function Format(template: string, ...args: ResolvableString[]): FormatExpr {
+export function Format(template: string, ...args: ResolvableString[]): GeneratorFunctionExpr {
   return {
-    type: ExpressionType.FORMAT,
-    template,
-    arguments: args,
+    type: FunctionType.GENERATOR,
+    name: FORMAT_STRING_GENERATOR_NAME,
+    arguments: [template, ...args],
   }
 }
 

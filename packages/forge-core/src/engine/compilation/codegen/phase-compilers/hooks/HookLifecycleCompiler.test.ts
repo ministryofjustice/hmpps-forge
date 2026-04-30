@@ -1,5 +1,6 @@
 import { ASTTestFactory } from '../../../../../testing/ASTTestFactory'
-import { ExpressionType, FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
+import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
+import { FormatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { JourneyASTNode, StepASTNode } from '../../../../types/structures.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../../types/expressions.type'
@@ -111,6 +112,7 @@ describe('HookLifecycleCompiler', () => {
     compiler = new HookLifecycleCompiler()
     functionRegistry = new FunctionRegistry()
     functionRegistry.register({
+      ...FormatGeneratorsRegistry,
       isRequired: {
         name: 'isRequired',
         isAsync: false,
@@ -220,10 +222,9 @@ describe('HookLifecycleCompiler', () => {
       const loadHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [asyncEffect])
         .build() as AccessHookASTNode
-      const formattedGoto = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', '/profile/%1')
-        .withProperty('arguments', [ASTTestFactory.reference(['data', 'profileId'])])
-        .build()
+      const formattedGoto = ASTTestFactory.formatExpression('/profile/%1', [
+        ASTTestFactory.reference(['data', 'profileId']),
+      ])
       const redirectHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('next', [ASTTestFactory.redirectOutcome({ goto: formattedGoto })])
         .build() as AccessHookASTNode

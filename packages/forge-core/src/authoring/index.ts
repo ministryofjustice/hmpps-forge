@@ -36,7 +36,6 @@ export type {
   ConditionalExpr,
   ConditionFunctionExpr,
   EffectFunctionExpr,
-  FormatExpr,
   FunctionExpr,
   GeneratorFunctionExpr,
   IterateExpr,

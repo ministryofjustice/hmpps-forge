@@ -6,13 +6,11 @@ import { IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
 import PredicateNodeCompiler from './PredicateNodeCompiler'
 import PipelineNodeCompiler from './PipelineNodeCompiler'
-import FormatNodeCompiler from './FormatNodeCompiler'
 import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { isASTNode } from '../../../typeguards/nodes'
 import { getDSLSourceMetadata, type DSLPathSegment } from '../../../diagnostics/sourceMetadata'
-import type { GeneratedFunctionHelpers } from '../generated-functions/GeneratedFunctionHelpers'
 
 export type { IteratorScopeFrame } from './types'
 
@@ -50,8 +48,6 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   private readonly predicates = new PredicateNodeCompiler(this)
 
   private readonly pipelines = new PipelineNodeCompiler(this)
-
-  private readonly formats = new FormatNodeCompiler(this)
 
   private readonly conditionals = new ConditionalNodeCompiler(this)
 
@@ -215,8 +211,6 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
         return this.references.compile(properties)
       case ExpressionType.PIPELINE:
         return this.pipelines.compilePipeline(properties)
-      case ExpressionType.FORMAT:
-        return this.formats.compile(properties)
       case ExpressionType.ITERATE:
         return this.compileIterate(properties)
       case ExpressionType.VALIDATION:
@@ -471,13 +465,6 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     this.localVarCounter += 1
 
     return `${prefix}${suffix}`
-  }
-
-  /**
-   * Emits a generated runtime helper call without exposing helper parameter names to expression compilers.
-   */
-  compileHelperCall(helperName: keyof GeneratedFunctionHelpers, argExprs: string[]): string {
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(${argExprs.join(', ')})`
   }
 
   /**

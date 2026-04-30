@@ -7,6 +7,10 @@ import {
   IteratorType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
+import {
+  FORMAT_STRING_GENERATOR_NAME,
+  FormatGeneratorsRegistry,
+} from '../../../../../authoring/generators/formatGenerators'
 import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../types/structures.type'
 import {
   FunctionASTNode,
@@ -115,6 +119,10 @@ function createCtx(overrides: Partial<ValidationContext> = {}): ValidationContex
     request: {},
     conditions: {
       get: vi.fn((name: string) => {
+        if (name === FORMAT_STRING_GENERATOR_NAME) {
+          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+        }
+
         if (name === 'isRequired') {
           return {
             evaluate: (value: unknown) =>
@@ -1247,20 +1255,13 @@ describe('StepValidationCompiler', () => {
           variant: 'text-input',
           blockType: BlockType.FIELD,
           properties: {
-            code: {
-              type: ASTNodeType.EXPRESSION,
-              expressionType: ExpressionType.FORMAT,
-              properties: {
-                template: 'item_%1',
-                arguments: [
-                  {
-                    type: ASTNodeType.EXPRESSION,
-                    expressionType: ExpressionType.REFERENCE,
-                    properties: { path: ['@loop', '0', 'index0'] },
-                  },
-                ],
+            code: ASTTestFactory.formatExpression('item_%1', [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.REFERENCE,
+                properties: { path: ['@loop', '0', 'index0'] },
               },
-            },
+            ]),
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
@@ -1375,20 +1376,13 @@ describe('StepValidationCompiler', () => {
           variant: 'text-input',
           blockType: BlockType.FIELD,
           properties: {
-            code: {
-              type: ASTNodeType.EXPRESSION,
-              expressionType: ExpressionType.FORMAT,
-              properties: {
-                template: 'item_%1',
-                arguments: [
-                  {
-                    type: ASTNodeType.EXPRESSION,
-                    expressionType: ExpressionType.REFERENCE,
-                    properties: { path: ['@scope', '0', '@key'] },
-                  },
-                ],
+            code: ASTTestFactory.formatExpression('item_%1', [
+              {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.REFERENCE,
+                properties: { path: ['@scope', '0', '@key'] },
               },
-            },
+            ]),
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,

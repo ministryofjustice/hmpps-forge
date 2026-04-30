@@ -2,7 +2,6 @@ import { TieBreaker, ValidationExpr } from '../types/structures.type'
 import { isPredicateExpr } from './predicates'
 import {
   ReferenceExpr,
-  FormatExpr,
   PipelineExpr,
   ConditionalExpr,
   MatchExpr,
@@ -16,14 +15,10 @@ import {
   HookOutcome,
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, OutcomeType } from '../types/enums'
-import { isFunctionExpr, isTransformerFunctionExpr } from './functions'
+import { isFunctionExpr, isTransformerFunctionExpr, isGeneratorFunctionExpr } from './functions'
 
 export function isReferenceExpr(obj: any): obj is ReferenceExpr {
   return obj != null && obj.type === ExpressionType.REFERENCE
-}
-
-export function isFormatExpr(obj: any): obj is FormatExpr {
-  return obj != null && obj.type === ExpressionType.FORMAT
 }
 
 export function isPipelineExpr(obj: any): obj is PipelineExpr {
@@ -69,14 +64,13 @@ export function isHookOutcome(obj: any): obj is HookOutcome {
 export function isResolvableValue(obj: any): obj is ResolvableValue {
   // Check for complex expression types first
   if (isReferenceExpr(obj)) return true
-  if (isFormatExpr(obj)) return true
   if (isPipelineExpr(obj)) return true
   if (isIterateExpr(obj)) return true
 
   // Check for function types
   if (obj != null && typeof obj === 'object' && 'type' in obj) {
     if (isTransformerFunctionExpr(obj)) return true
-    // TODO: probably add generator function here later
+    if (isGeneratorFunctionExpr(obj)) return true
   }
 
   // Check for arrays
@@ -102,7 +96,6 @@ export function isTieBreaker(obj: any): obj is TieBreaker {
 
 export function isExpression(node: any): boolean {
   return isReferenceExpr(node) ||
-    isFormatExpr(node) ||
     isPipelineExpr(node) ||
     isConditionalExpr(node) ||
     isMatchExpr(node) ||

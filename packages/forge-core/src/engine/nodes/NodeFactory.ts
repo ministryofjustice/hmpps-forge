@@ -4,7 +4,6 @@ import {
   isConditionalExpr,
   isMatchExpr,
   isReferenceExpr,
-  isFormatExpr,
   isPipelineExpr,
   isIterateExpr,
   isTieBreaker,
@@ -40,7 +39,6 @@ import AndFactory from './predicates/and/AndFactory'
 import OrFactory from './predicates/or/OrFactory'
 import XorFactory from './predicates/xor/XorFactory'
 import ReferenceFactory from './expressions/reference/ReferenceFactory'
-import FormatFactory from './expressions/format/FormatFactory'
 import PipelineFactory from './expressions/pipeline/PipelineFactory'
 import IterateFactory from './expressions/iterate/IterateFactory'
 import ValidationFactory from './expressions/validation/ValidationFactory'
@@ -82,8 +80,6 @@ export class NodeFactory {
 
   private readonly referenceFactory: ReferenceFactory
 
-  private readonly formatFactory: FormatFactory
-
   private readonly pipelineFactory: PipelineFactory
 
   private readonly iterateFactory: IterateFactory
@@ -117,7 +113,6 @@ export class NodeFactory {
     this.orFactory = new OrFactory(this.nodeIDGenerator, this, this.category)
     this.xorFactory = new XorFactory(this.nodeIDGenerator, this, this.category)
     this.referenceFactory = new ReferenceFactory(this.nodeIDGenerator, this, this.category)
-    this.formatFactory = new FormatFactory(this.nodeIDGenerator, this, this.category)
     this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this, this.category)
     this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this, this.category)
     this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
@@ -187,13 +182,9 @@ export class NodeFactory {
       return this.withSourceMetadata(this.xorFactory.create(json), json)
     }
 
-    // Expression nodes: References, Format, Pipelines, Iterate, Validations, Functions, Next
+    // Expression nodes: References, Pipelines, Iterate, Validations, Functions, Next
     if (isReferenceExpr(json)) {
       return this.withSourceMetadata(this.referenceFactory.create(json), json)
-    }
-
-    if (isFormatExpr(json)) {
-      return this.withSourceMetadata(this.formatFactory.create(json), json)
     }
 
     if (isPipelineExpr(json)) {

@@ -7,6 +7,10 @@ import {
   IteratorType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
+import {
+  FORMAT_STRING_GENERATOR_NAME,
+  FormatGeneratorsRegistry,
+} from '../../../../../authoring/generators/formatGenerators'
 import { ASTNodeType } from '../../../../types/enums'
 import { BlockASTNode, StepASTNode } from '../../../../types/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../types/expressions.type'
@@ -82,7 +86,13 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
     post: {},
     request: { method: 'GET' },
     conditions: {
-      get: vi.fn(() => ({ evaluate: () => undefined })),
+      get: vi.fn((name: string) => {
+        if (name === FORMAT_STRING_GENERATOR_NAME) {
+          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+        }
+
+        return { evaluate: () => undefined }
+      }),
     } as unknown as RenderCompilationContext['conditions'],
     ...overrides,
   }
@@ -573,22 +583,15 @@ describe('StepRenderCompiler', () => {
               variant: 'text-input',
               blockType: BlockType.FIELD,
               properties: {
-                code: {
-                  type: ASTNodeType.EXPRESSION,
-                  expressionType: ExpressionType.FORMAT,
-                  properties: {
-                    template: 'memberName_%1',
-                    arguments: [
-                      {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
-                        properties: {
-                          path: ['@loop', 0, 'index0'],
-                        },
-                      },
-                    ],
+                code: ASTTestFactory.formatExpression('memberName_%1', [
+                  {
+                    type: ASTNodeType.EXPRESSION,
+                    expressionType: ExpressionType.REFERENCE,
+                    properties: {
+                      path: ['@loop', 0, 'index0'],
+                    },
                   },
-                },
+                ]),
                 defaultValue: {
                   type: ASTNodeType.EXPRESSION,
                   expressionType: ExpressionType.REFERENCE,
@@ -777,14 +780,12 @@ describe('StepRenderCompiler', () => {
 
     it('should evaluate format expressions in nested array item properties', () => {
       // Arrange
-      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Goals to work on now (%1)')
-        .withProperty('arguments', [createReference(['data', 'activeGoalsCount'])])
-        .build()
-      const futureText = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Future goals (%1)')
-        .withProperty('arguments', [createReference(['data', 'futureGoalsCount'])])
-        .build()
+      const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [
+        createReference(['data', 'activeGoalsCount']),
+      ])
+      const futureText = ASTTestFactory.formatExpression('Future goals (%1)', [
+        createReference(['data', 'futureGoalsCount']),
+      ])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
         .withProperty('items', [
           {
@@ -844,10 +845,7 @@ describe('StepRenderCompiler', () => {
         input: activeGoals,
         steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
       })
-      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Goals to work on now (%1)')
-        .withProperty('arguments', [activeGoalsCount])
-        .build()
+      const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [activeGoalsCount])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
         .withProperty('items', [
           {
@@ -859,6 +857,7 @@ describe('StepRenderCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
+        ...FormatGeneratorsRegistry,
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -926,10 +925,7 @@ describe('StepRenderCompiler', () => {
         input: goalsInArea,
         steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
       })
-      const text = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Goals in area (%1)')
-        .withProperty('arguments', [goalCount])
-        .build()
+      const text = ASTTestFactory.formatExpression('Goals in area (%1)', [goalCount])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
         .withProperty('items', [
           {
@@ -941,6 +937,7 @@ describe('StepRenderCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
+        ...FormatGeneratorsRegistry,
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -992,10 +989,9 @@ describe('StepRenderCompiler', () => {
 
     it('should keep surrounding format text when nested array item argument resolves to undefined', () => {
       // Arrange
-      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Goals to work on now (%1)')
-        .withProperty('arguments', [createReference(['data', 'activeGoalsCount'])])
-        .build()
+      const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [
+        createReference(['data', 'activeGoalsCount']),
+      ])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
         .withProperty('items', [
           {
@@ -1031,10 +1027,7 @@ describe('StepRenderCompiler', () => {
         formattedDslPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
       })
 
-      const currentText = ASTTestFactory.expression(ExpressionType.FORMAT)
-        .withProperty('template', 'Goals to work on now (%1)')
-        .withProperty('arguments', [throwingCount])
-        .build()
+      const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [throwingCount])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
         .withProperty('items', [
           {
@@ -1046,6 +1039,7 @@ describe('StepRenderCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
+        ...FormatGeneratorsRegistry,
         throwingCount: {
           name: 'throwingCount',
           isAsync: false,

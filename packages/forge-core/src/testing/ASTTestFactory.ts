@@ -14,6 +14,7 @@ import {
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../engine/types/structures.type'
 import { ASTNodeType } from '../engine/types/enums'
 import { PredicateASTNode } from '../engine/types/predicates.type'
+import { FORMAT_STRING_GENERATOR_NAME } from '../authoring/generators/formatGenerators'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode
@@ -109,6 +110,10 @@ export class ASTTestFactory {
       .withProperty('name', name)
       .withProperty('arguments', args)
       .build()
+  }
+
+  static formatExpression(template: string, args: unknown[] = []): FunctionASTNode {
+    return ASTTestFactory.functionExpression(FunctionType.GENERATOR, FORMAT_STRING_GENERATOR_NAME, [template, ...args])
   }
 
   static pipelineExpression(config: { input: unknown; steps: unknown[] }): PipelineASTNode {
