@@ -2,6 +2,7 @@ import { ASTNode } from '../../../types/ast.type'
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../types/template.type'
+import CodeEmitter from '../emitters/CodeEmitter'
 import { IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
 import PredicateNodeCompiler from './PredicateNodeCompiler'
@@ -11,6 +12,7 @@ import MatchNodeCompiler from './MatchNodeCompiler'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { isASTNode } from '../../../typeguards/nodes'
 import { getDSLSourceMetadata, type DSLPathSegment } from '../../../diagnostics/sourceMetadata'
+import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
 
@@ -344,13 +346,23 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
     this.popIteratorFrame()
     const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar)
 
-    return this.wrapIife([
-      `var ${inputVar} = ${inputExpr};`,
-      this.compileNormalizeIteratorInput(inputVar),
-      `var ${resultVar} = [];`,
-      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} var ${yieldVar} = ${scopedYieldExpr}; if (${yieldVar} !== undefined) { ${resultVar}.push(${yieldVar}); } } }`,
-      `return ${resultVar};`,
-    ])
+    return compileIifeExpression({
+      awaitResult: this.usedAwait,
+      isAsync: this.usedAwait,
+      compileBody: emitter => {
+        emitter.declareLet(inputVar, inputExpr)
+        this.compileNormalizeIteratorInput(inputVar, emitter)
+        emitter.declareConst(resultVar, '[]')
+        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
+          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
+          emitter.declareConst(yieldVar, scopedYieldExpr)
+          emitter.if(`${yieldVar} !== undefined`, () => {
+            emitter.code(`${resultVar}.push(${yieldVar});`)
+          })
+        })
+        emitter.return(resultVar)
+      },
+    })
   }
 
   /**
@@ -375,13 +387,27 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
     this.popIteratorFrame()
 
-    return this.wrapIife([
-      `var ${inputVar} = ${inputExpr};`,
-      this.compileNormalizeIteratorInput(inputVar),
-      `var ${resultVar} = [];`,
-      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} if (${predicateExpr}) { ${resultVar}.push(${rawItemExpr}); } } }`,
-      `return ${resultVar};`,
-    ])
+    return compileIifeExpression({
+      awaitResult: this.usedAwait,
+      isAsync: this.usedAwait,
+      compileBody: emitter => {
+        emitter.declareLet(inputVar, inputExpr)
+
+        this.compileNormalizeIteratorInput(inputVar, emitter)
+
+        emitter.declareConst(resultVar, '[]')
+
+        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
+          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
+
+          emitter.if(predicateExpr, () => {
+            emitter.code(`${resultVar}.push(${rawItemExpr});`)
+          })
+        })
+
+        emitter.return(resultVar)
+      },
+    })
   }
 
   /**
@@ -406,54 +432,98 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
     this.popIteratorFrame()
 
-    return this.wrapIife([
-      `var ${inputVar} = ${inputExpr};`,
-      this.compileNormalizeIteratorInput(inputVar),
-      `var ${resultVar} = undefined;`,
-      `if (Array.isArray(${inputVar})) { for (var ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) { if (${rawItemExpr} == null) { continue; } ${this.compileIteratorItemScope(inputVar, indexVar, itemVar)} if (${predicateExpr}) { ${resultVar} = ${rawItemExpr}; break; } } }`,
-      `return ${resultVar};`,
-    ])
+    return compileIifeExpression({
+      awaitResult: this.usedAwait,
+      isAsync: this.usedAwait,
+      compileBody: emitter => {
+        emitter.declareLet(inputVar, inputExpr)
+
+        this.compileNormalizeIteratorInput(inputVar, emitter)
+
+        emitter.declareLet(resultVar, 'undefined')
+
+        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
+          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
+
+          emitter.if(predicateExpr, () => {
+            emitter.assign(resultVar, rawItemExpr)
+            emitter.break()
+          })
+        })
+
+        emitter.return(resultVar)
+      },
+    })
   }
 
   /**
    * Normalizes object inputs to keyed items so iterator templates can use @key and @value.
    */
-  private compileNormalizeIteratorInput(inputVar: string): string {
-    return [
-      `if (${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object") { ${inputVar} = Object.entries(${inputVar}).map(function(e) { return typeof e[1] === "object" && e[1] !== null ? Object.assign({"@key": e[0]}, e[1]) : {"@key": e[0], "@value": e[1]}; }); }`,
-      `if (Array.isArray(${inputVar})) { ${inputVar} = ${inputVar}.filter(function(item) { return item != null; }); }`,
-    ].join(' ')
+  private compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
+    emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
+      emitter.assign(
+        inputVar,
+        `Object.entries(${inputVar}).map(function(entry) { return typeof entry[1] === "object" && entry[1] !== null ? Object.assign({"@key": entry[0]}, entry[1]) : {"@key": entry[0], "@value": entry[1]}; })`,
+      )
+    })
+
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      emitter.assign(inputVar, `${inputVar}.filter(function(item) { return item != null; })`)
+    })
   }
 
   /**
    * Creates the per-item object exposed to @scope references inside iterator templates.
    */
-  private compileIteratorItemScope(inputVar: string, indexVar: string, itemVar: string): string {
-    return `var ${itemVar} = typeof ${inputVar}[${indexVar}] === "object" && ${inputVar}[${indexVar}] !== null ? Object.assign({}, ${inputVar}[${indexVar}]) : { "@value": ${inputVar}[${indexVar}] };`
+  private compileIteratorItemScope(rawItemExpr: string, itemVar: string, emitter: CodeEmitter): void {
+    emitter.declareConst(
+      itemVar,
+      `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`,
+    )
   }
 
   /**
    * Isolates iterator expressions so local item and index variables cannot leak outward.
    */
   private compileScopedIteratorExpression(expr: string, itemVar: string, indexVar: string): string {
-    if (this.usedAwait) {
-      return `(await (async function(${itemVar}, ${indexVar}) { return ${expr}; })(${itemVar}, ${indexVar}))`
-    }
-
-    return `(function(${itemVar}, ${indexVar}) { return ${expr}; })(${itemVar}, ${indexVar})`
+    return compileIifeExpression({
+      args: [itemVar, indexVar],
+      awaitResult: this.usedAwait,
+      isAsync: this.usedAwait,
+      params: [itemVar, indexVar],
+      compileBody: emitter => {
+        if (this.usedAwait) {
+          emitter.return(`await (${expr})`)
+        } else {
+          emitter.return(`(${expr})`)
+        }
+      },
+    })
   }
 
-  /**
-   * Wraps expression-only iterator lowering in an IIFE so it can return a value.
-   */
-  private wrapIife(statements: string[]): string {
-    const body = statements.join(' ')
+  private compileIteratorArrayLoop(
+    inputVar: string,
+    indexVar: string,
+    rawItemExpr: string,
+    emitter: CodeEmitter,
+    compileItem: () => void,
+  ): void {
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      emitter.code(`for (let ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) {`)
+      emitter.indent()
 
-    if (this.usedAwait) {
-      return `(await (async function() { ${body} })())`
-    }
+      try {
+        emitter.if(`${rawItemExpr} == null`, () => {
+          emitter.continue()
+        })
 
-    return `(function() { ${body} })()`
+        compileItem()
+      } finally {
+        emitter.dedent()
+      }
+
+      emitter.code('}')
+    })
   }
 
   /**

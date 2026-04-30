@@ -11,4 +11,12 @@ export interface NodeCompilationContext {
   namespaceToCtx(namespace: string): string
   readonly iteratorStack: readonly IteratorScopeFrame[]
   readonly selfCodeExpr: string | undefined
+
+  /**
+   * Indicates that the generated expression body has async dependencies.
+   *
+   * Expression compilers use this to emit awaitable wrappers while preserving
+   * the same expression-shaped contract for sync and async source.
+   */
+  readonly usesAwait: boolean
 }

@@ -11,6 +11,7 @@ import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGeneratorsRegistry,
 } from '../../../../../authoring/generators/formatGenerators'
+import { StringTransformersRegistry } from '../../../../../authoring/transformers/stringTransformers'
 import { ASTNodeType } from '../../../../types/enums'
 import { BlockASTNode, StepASTNode } from '../../../../types/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../types/expressions.type'
@@ -1016,6 +1017,112 @@ describe('StepRenderCompiler', () => {
           href: 'overview?type=current',
         },
       ])
+    })
+
+    it('should keep surrounding format text when nested transformer pipeline input resolves to undefined', async () => {
+      // Arrange
+      const missingDate = ASTTestFactory.pipelineExpression({
+        input: createReference(['data', 'missingDate']),
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+      })
+      const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('html', content)
+        .build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        ...FormatGeneratorsRegistry,
+        FormatDate: StringTransformersRegistry.FormatDate,
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(createCtx({ conditions: functionRegistry }))
+
+      // Assert
+      expect(result.blocks[0].properties.html).toBe('Date: ')
+    })
+
+    it('should skip async transformer pipeline steps when input resolves to undefined', async () => {
+      // Arrange
+      const missingDate = ASTTestFactory.pipelineExpression({
+        input: createReference(['data', 'missingDate']),
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'AsyncFormatDate')],
+      })
+      const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('html', content)
+        .build()
+      const evaluate = vi.fn(async () => {
+        throw new TypeError('Expected this transformer to be skipped')
+      })
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        ...FormatGeneratorsRegistry,
+        AsyncFormatDate: {
+          name: 'AsyncFormatDate',
+          isAsync: true,
+          evaluate,
+        },
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(createCtx({ conditions: functionRegistry }))
+
+      // Assert
+      expect(result.blocks[0].properties.html).toBe('Date: ')
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should throw transformer TypeError when nested pipeline input has an incompatible value', () => {
+      // Arrange
+      const date = ASTTestFactory.pipelineExpression({
+        input: createReference(['data', 'date']),
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+      })
+      const content = ASTTestFactory.formatExpression('Date: %1', [date])
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('html', content)
+        .build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        ...FormatGeneratorsRegistry,
+        FormatDate: StringTransformersRegistry.FormatDate,
+      })
+
+      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      let thrown: unknown
+
+      try {
+        compiled(createCtx({ conditions: functionRegistry, data: { date: 123 } }))
+      } catch (error) {
+        thrown = error
+      }
+
+      // Assert
+      expect(thrown).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect((thrown as ForgeRuntimeEvaluationError).functionName).toBe('FormatDate')
+      expect((thrown as ForgeRuntimeEvaluationError).cause).toBeInstanceOf(TypeError)
     })
 
     it('should throw runtime errors when nested array item text evaluation throws', () => {
