@@ -5,10 +5,10 @@ import {
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
-  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Panel content configuration for a tab.
@@ -122,20 +122,19 @@ function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.En
   const processedItems = block.items
     .filter(item => item.visibleWhen !== false)
     .map(item => {
-      let panelHtml: string | undefined
-
-      // If panel blocks are provided, render them and use as HTML
-      if (item.panel.blocks && item.panel.blocks.length > 0) {
-        panelHtml = (item.panel.blocks as RenderedBlock[]).map(b => b.html).join('')
-      }
+      const panel = normaliseGovukTextHtmlContent({
+        text: item.panel.text,
+        html: item.panel.html,
+        blocks: item.panel.blocks,
+      })
 
       return {
         id: item.id,
         label: item.label,
         attributes: item.attributes,
         panel: {
-          text: panelHtml || item.panel.html ? undefined : item.panel.text,
-          html: panelHtml || item.panel.html,
+          text: panel.text,
+          html: panel.html,
           attributes: item.panel.attributes,
         },
       }

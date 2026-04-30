@@ -8,6 +8,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKDetails component.
@@ -66,18 +67,16 @@ export interface GovUKDetails extends BlockDefinition, GovUKDetailsProps {
  * Renders the GOV.UK Details component using the official Nunjucks template.
  */
 function detailsRenderer(block: EvaluatedBlock<GovUKDetails>, nunjucksEnv: nunjucks.Environment): string {
-  // If content blocks are provided, render them and use as HTML
-  let contentHtml: string | undefined
-
-  if (block.content && block.content.length > 0) {
-    contentHtml = block.content.map(b => b.html).join('')
-  }
-
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.content,
+  })
   const params: Record<string, any> = {
     summaryText: block.summaryHtml ? undefined : block.summaryText,
     summaryHtml: block.summaryHtml,
-    text: contentHtml || block.html ? undefined : block.text,
-    html: contentHtml || block.html,
+    text: content.text,
+    html: content.html,
     open: block.open,
     id: block.id,
     classes: block.classes,

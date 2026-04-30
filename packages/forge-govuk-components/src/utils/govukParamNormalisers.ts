@@ -1,7 +1,22 @@
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 type GovukTextParam<T extends object> = T | { text: string }
 
 interface GovukError {
   readonly message: string
+}
+
+export type GovukRenderedBlockContent = RenderedBlock | readonly RenderedBlock[] | undefined
+
+export interface GovukTextHtmlContent {
+  readonly text?: string
+  readonly html?: string
+  readonly blocks?: GovukRenderedBlockContent
+}
+
+export interface GovukNormalisedTextHtmlContent {
+  text?: string
+  html?: string
 }
 
 /**
@@ -53,4 +68,28 @@ export function normaliseGovukErrorMessage(errors: readonly GovukError[] | undef
   }
 
   return { text: firstError.message }
+}
+
+export function renderGovukBlocksToHtml(blocks: GovukRenderedBlockContent): string | undefined {
+  if (!blocks) {
+    return undefined
+  }
+
+  const renderedBlocks = Array.isArray(blocks) ? blocks : [blocks]
+
+  if (renderedBlocks.length === 0) {
+    return undefined
+  }
+
+  return renderedBlocks.map(block => block.html).join('')
+}
+
+export function normaliseGovukTextHtmlContent(content: GovukTextHtmlContent): GovukNormalisedTextHtmlContent {
+  const blocksHtml = renderGovukBlocksToHtml(content.blocks)
+  const html = blocksHtml ?? content.html
+
+  return {
+    text: html !== undefined ? undefined : content.text,
+    html,
+  }
 }

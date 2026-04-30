@@ -7,6 +7,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKPanel component.
@@ -59,6 +60,12 @@ export interface GovUKPanelProps extends BasicBlockProps {
   html?: ResolvableString
 
   /**
+   * Child blocks to render in the panel body.
+   * Takes precedence over `text` and `html`.
+   */
+  blocks?: BlockDefinition[]
+
+  /**
    * Additional CSS classes for the panel container.
    */
   classes?: ResolvableString
@@ -84,12 +91,17 @@ export interface GovUKPanel extends BlockDefinition, GovUKPanelProps {
  * Renders the GOV.UK Panel component using the official Nunjucks template.
  */
 function panelRenderer(block: EvaluatedBlock<GovUKPanel>, nunjucksEnv: nunjucks.Environment): string {
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.blocks,
+  })
   const params: Record<string, any> = {
     titleText: block.titleHtml ? undefined : block.titleText,
     titleHtml: block.titleHtml,
     headingLevel: block.headingLevel,
-    text: block.html ? undefined : block.text,
-    html: block.html,
+    text: content.text,
+    html: content.html,
     classes: block.classes,
     attributes: block.attributes,
   }

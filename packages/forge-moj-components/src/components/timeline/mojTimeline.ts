@@ -10,6 +10,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Label configuration for a timeline item.
@@ -88,6 +89,12 @@ export interface MOJTimelineItem {
    * @example '<p>Your application has been <strong>approved</strong>.</p>'
    */
   html?: ResolvableString
+
+  /**
+   * Child blocks to render as the event description.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Date and time of the event.
@@ -189,13 +196,27 @@ function timelineRenderer(block: EvaluatedBlock<MOJTimeline>, nunjucksEnv: nunju
   // NOTE: items is typed as ResolvableArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
   const items = block.items as EvaluatedMOJTimelineItem[]
   const params = {
-    items: items.filter(item => item.visibleWhen !== false),
+    items: items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
     headingLevel: block.headingLevel,
     classes: block.classes,
     attributes: block.attributes,
   }
 
   return nunjucksEnv.render('moj/components/timeline/template.njk', { params })
+}
+
+function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
+  const { blocks, ...itemParams } = item
+  const content = normaliseMojTextHtmlContent({
+    text: item.text,
+    html: item.html,
+    blocks,
+  })
+
+  return {
+    ...itemParams,
+    ...content,
+  }
 }
 
 export const mojTimeline = buildNunjucksComponent<MOJTimeline>('mojTimeline', timelineRenderer)

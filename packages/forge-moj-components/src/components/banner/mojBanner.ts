@@ -8,6 +8,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Banner type that determines styling and icon.
@@ -55,6 +56,12 @@ export interface MOJBannerProps extends BasicBlockProps {
   html?: ResolvableString
 
   /**
+   * Child blocks to render in the banner message.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
+
+  /**
    * Fallback text for the icon used in the aria-label.
    * Defaults to the bannerType value if not provided.
    *
@@ -93,10 +100,15 @@ export interface MOJBanner extends BlockDefinition, MOJBannerProps {
  * Renders an MOJ Banner component using Nunjucks template
  */
 function bannerRenderer(block: EvaluatedBlock<MOJBanner>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    type: block.bannerType,
+  const content = normaliseMojTextHtmlContent({
     text: block.text,
     html: block.html,
+    blocks: block.blocks,
+  })
+  const params = {
+    type: block.bannerType,
+    text: content.text,
+    html: content.html,
     iconFallbackText: block.iconFallbackText,
     classes: block.classes,
     attributes: block.attributes,

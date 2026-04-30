@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojTimeline } from './mojTimeline'
@@ -8,6 +11,14 @@ describe('mojTimeline', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(mojTimeline)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Item data transformation', () => {
     it('should pass through single item with label text', async () => {
@@ -115,6 +126,26 @@ describe('mojTimeline', () => {
 
       // Assert
       expect(params.items?.[0].text).toBeUndefined()
+    })
+
+    it('should use blocks over text and html when provided', async () => {
+      // Arrange
+      const items = [
+        {
+          label: { text: 'Event' },
+          text: 'This is ignored',
+          html: '<p>This is also ignored</p>',
+          blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+        },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items?.[0].text).toBeUndefined()
+      expect(params.items?.[0].html).toBe('<p>First block</p><p>Second block</p>')
+      expect(params.items?.[0].blocks).toBeUndefined()
     })
 
     it('should leave html undefined when not provided', async () => {
