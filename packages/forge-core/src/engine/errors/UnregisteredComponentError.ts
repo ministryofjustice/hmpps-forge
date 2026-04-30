@@ -1,4 +1,5 @@
 import formatFields from '../../shared/utils/utils'
+import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface UnregisteredComponentErrorOptions {
   /** Path to the block in the journey configuration */
@@ -22,6 +23,7 @@ export default class UnregisteredComponentError extends Error {
     this.path = options.path
     this.variant = options.variant
     this.formattedPath = options.formattedPath
+    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {

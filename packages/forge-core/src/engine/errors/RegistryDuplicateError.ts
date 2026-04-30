@@ -1,4 +1,5 @@
 import formatFields from '../../shared/utils/utils'
+import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface RegistryDuplicateErrorOptions {
   /** Type of registry (function or component) */
@@ -19,6 +20,7 @@ export default class RegistryDuplicateError extends Error {
     this.name = new.target.name
     this.registryType = options.registryType
     this.itemName = options.itemName
+    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {
