@@ -2,6 +2,8 @@ import PatternSourceStore from './patternSourceStore'
 import LlmsTextGenerator from './llmsTextGenerator'
 import type { ContentEntry } from './guideContentStore'
 
+const ingressUrl = 'https://forge.example'
+
 function makeEntry(
   slug: string,
   section: string,
@@ -39,19 +41,36 @@ describe('LlmsTextGenerator', () => {
           'Composite fields',
         ),
       ]
-      const generator = new LlmsTextGenerator(new PatternSourceStore())
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
 
       // Act
       const index = generator.buildIndex(entries)
 
       // Assert
       expect(index).toContain(
-        '[Text Input](/llms/forge-developer-guide/packages/govuk-components/text-input)',
+        '[Text Input](https://forge.example/llms/forge-developer-guide/packages/govuk-components/text-input)',
       )
-      expect(index).toContain('[Loop](/llms/forge-developer-guide/authoring-language/loop)')
       expect(index).toContain(
-        '[Composite fields](/llms/forge-developer-guide/patterns/composite-fields)',
+        '[Loop](https://forge.example/llms/forge-developer-guide/authoring-language/loop)',
       )
+      expect(index).toContain(
+        '[Composite fields](https://forge.example/llms/forge-developer-guide/patterns/composite-fields)',
+      )
+    })
+
+    it('should include the ingress URL in the generated path hints', () => {
+      // Arrange
+      const entries = [makeEntry('packages', 'packages', 'packages/overview', 'Packages')]
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
+
+      // Act
+      const index = generator.buildIndex(entries)
+
+      // Assert
+      expect(index).toContain(
+        'https://forge.example/llms/forge-developer-guide/{path}` for full markdown',
+      )
+      expect(index).toContain('`https://forge.example/llms-full.txt` for everything')
     })
 
     it('should group nested entries under overview headings when path segments contain groups', () => {
@@ -86,7 +105,7 @@ describe('LlmsTextGenerator', () => {
           'Text Input',
         ),
       ]
-      const generator = new LlmsTextGenerator(new PatternSourceStore())
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
 
       // Act
       const index = generator.buildIndex(entries)
@@ -123,17 +142,17 @@ describe('LlmsTextGenerator', () => {
           'Defining steps',
         ),
       ]
-      const generator = new LlmsTextGenerator(new PatternSourceStore())
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
 
       // Act
       const page = generator.buildContentPage(entries[0], entries)
 
       // Assert
       expect(page).toContain(
-        '[Defining a journey](/llms/forge-developer-guide/building-journeys/defining-a-journey)',
+        '[Defining a journey](https://forge.example/llms/forge-developer-guide/building-journeys/defining-a-journey)',
       )
       expect(page).toContain(
-        '[Steps](/llms/forge-developer-guide/building-journeys/defining-steps#fields)',
+        '[Steps](https://forge.example/llms/forge-developer-guide/building-journeys/defining-steps#fields)',
       )
     })
 
@@ -148,7 +167,7 @@ describe('LlmsTextGenerator', () => {
           'See [docs](https://example.com) and [home](/get-started) and [top](#intro).',
         ),
       ]
-      const generator = new LlmsTextGenerator(new PatternSourceStore())
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
 
       // Act
       const page = generator.buildContentPage(entries[0], entries)
@@ -170,7 +189,7 @@ describe('LlmsTextGenerator', () => {
           'See [missing](no-such-page) for details.',
         ),
       ]
-      const generator = new LlmsTextGenerator(new PatternSourceStore())
+      const generator = new LlmsTextGenerator(new PatternSourceStore(), ingressUrl)
 
       // Act
       const page = generator.buildContentPage(entries[0], entries)
