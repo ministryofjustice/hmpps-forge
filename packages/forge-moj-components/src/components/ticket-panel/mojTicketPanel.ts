@@ -9,6 +9,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Color variants available for ticket panel sections.
@@ -34,6 +35,12 @@ export interface MOJTicketPanelItem {
    * @example '<h2 class="govuk-heading-m">Application details</h2><p>Reference: ABC123</p>'
    */
   html?: ResolvableString
+
+  /**
+   * Child blocks to render in the section.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Additional CSS classes for the section.
@@ -116,17 +123,33 @@ export interface MOJTicketPanel extends BlockDefinition, MOJTicketPanelProps {
   variant: 'mojTicketPanel'
 }
 
+type EvaluatedMOJTicketPanelItem = EvaluatedBlock<MOJTicketPanel>['items'][number]
+
 /**
  * Renders an MOJ Ticket Panel component using Nunjucks template
  */
 function ticketPanelRenderer(block: EvaluatedBlock<MOJTicketPanel>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items.filter(item => item.visibleWhen !== false),
+    items: block.items.filter(item => item.visibleWhen !== false).map(normaliseTicketPanelItem),
     classes: block.classes,
     attributes: block.attributes,
   }
 
   return nunjucksEnv.render('moj/components/ticket-panel/template.njk', { params })
+}
+
+function normaliseTicketPanelItem(item: EvaluatedMOJTicketPanelItem) {
+  const { blocks, ...itemParams } = item
+  const content = normaliseMojTextHtmlContent({
+    text: item.text,
+    html: item.html,
+    blocks,
+  })
+
+  return {
+    ...itemParams,
+    ...content,
+  }
 }
 
 export const mojTicketPanel = buildNunjucksComponent<MOJTicketPanel>('mojTicketPanel', ticketPanelRenderer)

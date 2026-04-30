@@ -5,7 +5,6 @@ import {
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
-  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
@@ -13,6 +12,8 @@ import {
   normaliseGovukErrorMessage,
   normaliseGovukFieldset,
   normaliseGovukTextParam,
+  renderGovukBlocksToHtml,
+  type GovukRenderedBlockContent,
 } from '../../utils/govukParamNormalisers'
 
 /**
@@ -281,16 +282,14 @@ export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRad
   })
 })
 
-const getConditionalContent = (block: RenderedBlock | RenderedBlock[] | undefined) => {
-  if (!block) {
+const getConditionalContent = (block: GovukRenderedBlockContent) => {
+  const html = renderGovukBlocksToHtml(block)
+
+  if (html === undefined) {
     return undefined
   }
 
-  if (Array.isArray(block)) {
-    return { html: block.map(b => b.html).join('') }
-  }
-
-  return { html: block.html }
+  return { html }
 }
 
 const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInputDivider>, checkedValue: string) => {

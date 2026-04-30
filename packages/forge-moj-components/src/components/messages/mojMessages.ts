@@ -10,6 +10,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Message type indicating whether the message was sent or received.
@@ -44,6 +45,12 @@ export interface MOJMessageItem {
    * @example '<p>Please see the <strong>attached document</strong>.</p>'
    */
   html?: ResolvableString
+
+  /**
+   * Child blocks to render as the message content.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Message type indicating direction.
@@ -147,12 +154,14 @@ export interface MOJMessages extends BlockDefinition, MOJMessagesProps {
   variant: 'mojMessages'
 }
 
+type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
+
 /**
  * Renders an MOJ Messages component using Nunjucks template
  */
 function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items.filter(item => item.visibleWhen !== false),
+    items: block.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
     id: block.id,
     label: block.label,
     classes: block.classes,
@@ -160,6 +169,20 @@ function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunju
   }
 
   return nunjucksEnv.render('moj/components/messages/template.njk', { params })
+}
+
+function normaliseMessageItem(item: EvaluatedMOJMessageItem) {
+  const { blocks, ...itemParams } = item
+  const content = normaliseMojTextHtmlContent({
+    text: item.text,
+    html: item.html,
+    blocks,
+  })
+
+  return {
+    ...itemParams,
+    ...content,
+  }
 }
 
 export const mojMessages = buildNunjucksComponent<MOJMessages>('mojMessages', messagesRenderer)

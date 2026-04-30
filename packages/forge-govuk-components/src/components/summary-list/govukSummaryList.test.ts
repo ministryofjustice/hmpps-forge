@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukSummaryList } from './govukSummaryList'
@@ -8,6 +11,14 @@ describe('GOV.UK Summary List Component', () => {
   setupComponentTest()
 
   const helper = new GovukComponentTestHelper(govukSummaryList)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Row data transformation', () => {
     it('sets single row with text content correctly', async () => {
@@ -245,6 +256,42 @@ describe('GOV.UK Summary List Component', () => {
         '<span class="govuk-!-font-weight-bold">72 Guild Street</span><br>London<br>SE23 6FH',
       )
       expect(params.rows[0].value.text).toBeUndefined()
+    })
+
+    it('sets value with child block content', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        rows: [
+          {
+            key: { text: 'Address' },
+            value: {
+              text: 'This is ignored',
+              html: '<p>This is also ignored</p>',
+              blocks: [renderedBlock('<p>72 Guild Street</p>'), renderedBlock('<p>London</p>')],
+            },
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.rows[0].value.html).toBe('<p>72 Guild Street</p><p>London</p>')
+      expect(params.rows[0].value.text).toBeUndefined()
+      expect(params.rows[0].value.blocks).toBeUndefined()
+    })
+
+    it('preserves rows with no value when value is undefined', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        rows: [
+          {
+            key: { text: 'Name' },
+            value: undefined,
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.rows[0].value).toBeUndefined()
     })
 
     it('sets classes on key', async () => {

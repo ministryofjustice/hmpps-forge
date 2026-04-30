@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojTicketPanel } from './mojTicketPanel'
@@ -8,6 +11,14 @@ describe('mojTicketPanel', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(mojTicketPanel)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Item data transformation', () => {
     it('should pass through single item with text content', async () => {
@@ -134,6 +145,24 @@ describe('mojTicketPanel', () => {
       // Assert
       expect(params.items[0].text).toBe('Plain text fallback')
       expect(params.items[0].html).toBe('<p>HTML content</p>')
+    })
+
+    it('should use blocks over text and html when provided', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        items: [
+          {
+            text: 'This is ignored',
+            html: '<p>This is also ignored</p>',
+            blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+          },
+        ],
+      })
+
+      // Assert
+      expect(params.items[0].text).toBeUndefined()
+      expect(params.items[0].html).toBe('<p>First block</p><p>Second block</p>')
+      expect(params.items[0].blocks).toBeUndefined()
     })
 
     it('should handle items with only html', async () => {

@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukPanel } from './govukPanel'
@@ -8,6 +11,14 @@ describe('GOV.UK Panel Component', () => {
   setupComponentTest()
 
   const helper = new GovukComponentTestHelper(govukPanel)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Title transformation', () => {
     it('sets titleText correctly', async () => {
@@ -84,6 +95,20 @@ describe('GOV.UK Panel Component', () => {
       // Assert
       expect(params.text).toBeUndefined()
       expect(params.html).toBe('<strong>Your reference number</strong><br>HDJ2123F')
+    })
+
+    it('uses blocks over text and html when provided', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        titleText: 'Application complete',
+        text: 'This is ignored',
+        html: '<p>This is also ignored</p>',
+        blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+      })
+
+      // Assert
+      expect(params.text).toBeUndefined()
+      expect(params.html).toBe('<p>First block</p><p>Second block</p>')
     })
 
     it('handles panel with only title', async () => {
