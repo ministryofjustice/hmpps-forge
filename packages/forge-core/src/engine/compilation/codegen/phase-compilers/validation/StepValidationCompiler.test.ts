@@ -29,7 +29,7 @@ import {
   XorPredicateASTNode,
 } from '../../../../types/predicates.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ForgeRuntimeEvaluationError from '../../../../errors/ForgeRuntimeEvaluationError'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import StepValidationCompiler, { ValidationContext } from './StepValidationCompiler'
 
 function createStep(): StepASTNode {
@@ -723,7 +723,23 @@ describe('StepValidationCompiler', () => {
       const fn = compiler.compileOnSubmitValidation(step, [block], [])
 
       // Assert
-      expect(() => fn!(ctx, false)).toThrow(ForgeRuntimeEvaluationError)
+      const evaluate = () => fn!(ctx, false)
+
+      expect(evaluate).toThrow('Unexpected failure')
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected throwingCondition to throw the original Error')
+        }
+
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'validation',
+          functionName: 'throwingCondition',
+          functionType: FunctionType.CONDITION,
+        })
+      }
     })
 
     it('should throw runtime errors when validation message evaluation fails', () => {
@@ -764,7 +780,23 @@ describe('StepValidationCompiler', () => {
       const fn = compiler.compileOnSubmitValidation(step, [block], [])
 
       // Assert
-      expect(() => fn!(ctx, false)).toThrow(ForgeRuntimeEvaluationError)
+      const evaluate = () => fn!(ctx, false)
+
+      expect(evaluate).toThrow('Message failed')
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected messageGenerator to throw the original Error')
+        }
+
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'validation',
+          functionName: 'messageGenerator',
+          functionType: FunctionType.GENERATOR,
+        })
+      }
     })
   })
 

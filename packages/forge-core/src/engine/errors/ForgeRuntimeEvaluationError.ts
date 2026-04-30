@@ -11,6 +11,17 @@ interface ForgeRuntimeEvaluationErrorOptions {
   readonly functionType?: string
 }
 
+export interface ForgeRuntimeEvaluationDiagnostics {
+  readonly phase: string
+  readonly nodeId?: string
+  readonly path?: readonly DSLPathSegment[]
+  readonly formattedPath?: string
+  readonly functionName?: string
+  readonly functionType?: string
+}
+
+export const FORGE_RUNTIME_EVALUATION_DIAGNOSTICS = Symbol.for('hmpps-forge.runtimeEvaluationDiagnostics')
+
 export default class ForgeRuntimeEvaluationError extends Error {
   readonly phase: string
 
@@ -51,6 +62,33 @@ export default class ForgeRuntimeEvaluationError extends Error {
   }
 }
 
+export const decorateForgeRuntimeEvaluationError = (
+  error: Error,
+  diagnostics: ForgeRuntimeEvaluationDiagnostics,
+): Error => {
+  if (getForgeRuntimeEvaluationDiagnostics(error) !== undefined) {
+    return error
+  }
+
+  Object.defineProperty(error, FORGE_RUNTIME_EVALUATION_DIAGNOSTICS, {
+    value: diagnostics,
+  })
+
+  error.stack = appendForgeDiagnosticsToStack(error.stack, diagnostics)
+
+  return error
+}
+
+export const getForgeRuntimeEvaluationDiagnostics = (error: Error): ForgeRuntimeEvaluationDiagnostics | undefined => {
+  const diagnostics: unknown = Reflect.get(error, FORGE_RUNTIME_EVALUATION_DIAGNOSTICS)
+
+  if (!isForgeRuntimeEvaluationDiagnostics(diagnostics)) {
+    return undefined
+  }
+
+  return diagnostics
+}
+
 interface DiagnosticField {
   readonly label: string
   readonly value: string | undefined
@@ -62,6 +100,31 @@ const formatForgeDiagnosticError = (name: string, message: string, fields: reado
     .map(field => `  ${field.label}: ${field.value}`)
 
   return [`${name}: ${message}`, ...formattedFields].join('\n')
+}
+
+const appendForgeDiagnosticsToStack = (
+  stack: string | undefined,
+  diagnostics: ForgeRuntimeEvaluationDiagnostics,
+): string | undefined => {
+  if (stack === undefined) {
+    return undefined
+  }
+
+  return `${stack}\n\n${formatForgeRuntimeDiagnostics(diagnostics)}`
+}
+
+const formatForgeRuntimeDiagnostics = (diagnostics: ForgeRuntimeEvaluationDiagnostics): string => {
+  const formattedFields = [
+    { label: 'Phase', value: diagnostics.phase },
+    { label: 'Path', value: diagnostics.formattedPath ?? formatPath(diagnostics.path) },
+    { label: 'Node', value: diagnostics.nodeId },
+    { label: 'Function', value: diagnostics.functionName },
+    { label: 'Type', value: diagnostics.functionType },
+  ]
+    .filter(field => field.value !== undefined)
+    .map(field => `  ${field.label}: ${field.value}`)
+
+  return ['Forge diagnostics:', ...formattedFields].join('\n')
 }
 
 const formatPath = (path: readonly DSLPathSegment[] | undefined): string | undefined => {
@@ -82,4 +145,12 @@ const formatCause = (cause: unknown): string | undefined => {
   }
 
   return String(cause)
+}
+
+const isForgeRuntimeEvaluationDiagnostics = (value: unknown): value is ForgeRuntimeEvaluationDiagnostics => {
+  return value !== null &&
+    value !== undefined &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).phase === 'string'
 }

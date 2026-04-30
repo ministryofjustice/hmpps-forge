@@ -3,7 +3,10 @@ import NodeCompilationDispatcher from '../expressions/NodeCompilationDispatcher'
 import { createCompiledFunction, GeneratedFunction } from './compiledFunctionFactory'
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
-import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
+import ForgeRuntimeEvaluationError, {
+  decorateForgeRuntimeEvaluationError,
+  type ForgeRuntimeEvaluationDiagnostics,
+} from '../../../errors/ForgeRuntimeEvaluationError'
 import type { DSLPathSegment } from '../../../diagnostics/sourceMetadata'
 
 interface CompileOptions {
@@ -28,7 +31,7 @@ interface RuntimeEvaluationDiagnostics {
     formattedPath?: string,
     functionName?: string,
     functionType?: string,
-  ) => ForgeRuntimeEvaluationError
+  ) => unknown
 }
 
 const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
@@ -113,15 +116,22 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
       }
 
       const current = diagnostics.current
-
-      return new ForgeRuntimeEvaluationError({
+      const runtimeDiagnostics: ForgeRuntimeEvaluationDiagnostics = {
         phase,
-        cause: error,
         nodeId: nodeId ?? current?.nodeId,
         path: path ?? current?.path,
         formattedPath: formattedPath ?? current?.formattedPath,
         functionName: functionName ?? current?.functionName,
         functionType: functionType ?? current?.functionType,
+      }
+
+      if (error instanceof Error) {
+        return decorateForgeRuntimeEvaluationError(error, runtimeDiagnostics)
+      }
+
+      return new ForgeRuntimeEvaluationError({
+        ...runtimeDiagnostics,
+        cause: error,
       })
     },
   }

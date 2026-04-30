@@ -7,7 +7,7 @@ import { AccessHookASTNode, SubmitHookASTNode } from '../../../../types/expressi
 import { TestPredicateASTNode } from '../../../../types/predicates.type'
 import type { StepRequest } from '../../../../../framework/types/request.type'
 import type { StepResponse } from '../../../../../framework/types/response.type'
-import ForgeRuntimeEvaluationError from '../../../../errors/ForgeRuntimeEvaluationError'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import HookLifecycleCompiler, { HookLifecycleContext } from './HookLifecycleCompiler'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
@@ -251,10 +251,25 @@ describe('HookLifecycleCompiler', () => {
       const ctx = createContext(functionRegistry)
 
       // Act
-      const result = fn!(ctx)
+      let thrown: unknown
+
+      try {
+        await fn!(ctx)
+      } catch (error) {
+        thrown = error
+      }
 
       // Assert
-      await expect(result).rejects.toThrow(ForgeRuntimeEvaluationError)
+      if (!(thrown instanceof Error)) {
+        throw new Error('Expected throwingEffect to throw the original Error')
+      }
+
+      expect(thrown.message).toBe('Effect failed')
+      expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
+        phase: 'hooks',
+        functionName: 'throwingEffect',
+        functionType: FunctionType.EFFECT,
+      })
     })
   })
 
