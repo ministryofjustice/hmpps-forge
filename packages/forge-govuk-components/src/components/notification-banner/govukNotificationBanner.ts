@@ -8,6 +8,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKNotificationBanner component.
@@ -137,16 +138,14 @@ function notificationBannerRenderer(
   block: EvaluatedBlock<GovUKNotificationBanner>,
   nunjucksEnv: nunjucks.Environment,
 ): string {
-  // If content blocks are provided, render them and use as HTML
-  let contentHtml: string | undefined
-
-  if (block.content && block.content.length > 0) {
-    contentHtml = block.content.map(b => b.html).join('')
-  }
-
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.content,
+  })
   const params: Record<string, any> = {
-    text: contentHtml || block.html ? undefined : block.text,
-    html: contentHtml || block.html,
+    text: content.text,
+    html: content.html,
     titleText: block.titleHtml ? undefined : block.titleText,
     titleHtml: block.titleHtml,
     titleHeadingLevel: block.titleHeadingLevel,

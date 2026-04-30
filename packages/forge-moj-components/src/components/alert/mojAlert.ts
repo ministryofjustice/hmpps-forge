@@ -9,6 +9,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Alert variant types that determine styling and icon.
@@ -69,6 +70,12 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example '<p>You have <strong>unsaved changes</strong>.</p>'
    */
   html?: ResolvableString
+
+  /**
+   * Child blocks to render in the alert message.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Whether to display the title as a heading element.
@@ -157,11 +164,16 @@ export interface MOJAlert extends BlockDefinition, MOJAlertProps {
  * Renders an MOJ Alert component using Nunjucks template
  */
 function alertRenderer(block: EvaluatedBlock<MOJAlert>, nunjucksEnv: nunjucks.Environment): string {
+  const content = normaliseMojTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.blocks,
+  })
   const params = {
     variant: block.alertVariant,
     title: block.title,
-    text: block.text,
-    html: block.html,
+    text: content.text,
+    html: content.html,
     showTitleAsHeading: block.showTitleAsHeading,
     headingTag: block.headingTag,
     dismissible: block.dismissible,

@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukWarningText } from './govukWarningText'
@@ -8,6 +11,14 @@ describe('GOV.UK Warning Text Component', () => {
   setupComponentTest()
 
   const helper = new GovukComponentTestHelper(govukWarningText)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Data transformation', () => {
     it('sets text content correctly', async () => {
@@ -31,6 +42,19 @@ describe('GOV.UK Warning Text Component', () => {
       // Assert
       expect(params.text).toBeUndefined()
       expect(params.html).toBe('<strong>You must</strong> complete this section.')
+    })
+
+    it('uses blocks over text and html when provided', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        text: 'This is ignored',
+        html: '<p>This is also ignored</p>',
+        blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+      })
+
+      // Assert
+      expect(params.text).toBeUndefined()
+      expect(params.html).toBe('<p>First block</p><p>Second block</p>')
     })
 
     it('passes through iconFallbackText', async () => {

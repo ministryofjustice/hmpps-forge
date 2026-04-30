@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojAlert } from './mojAlert'
@@ -8,6 +11,14 @@ describe('mojAlert', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(mojAlert)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('alertVariant transformation', () => {
     it('should pass through alertVariant as variant', async () => {
@@ -109,6 +120,20 @@ describe('mojAlert', () => {
 
       // Assert
       expect(params.text).toBeUndefined()
+    })
+
+    it('should use blocks over text and html when provided', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        title: 'Alert',
+        text: 'This is ignored',
+        html: '<p>This is also ignored</p>',
+        blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+      })
+
+      // Assert
+      expect(params.text).toBeUndefined()
+      expect(params.html).toBe('<p>First block</p><p>Second block</p>')
     })
   })
 

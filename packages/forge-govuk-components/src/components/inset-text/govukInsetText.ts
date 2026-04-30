@@ -7,6 +7,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKInsetText component.
@@ -36,6 +37,12 @@ export interface GovUKInsetTextProps extends BasicBlockProps {
    * Use this when you need to include links or other HTML elements.
    */
   html?: ResolvableString
+
+  /**
+   * Child blocks to render in the inset text.
+   * Takes precedence over `text` and `html`.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * ID attribute to add to the inset text container.
@@ -71,9 +78,14 @@ export interface GovUKInsetText extends BlockDefinition, GovUKInsetTextProps {
  * Renders the GOV.UK Inset Text component using the official Nunjucks template.
  */
 function insetTextRenderer(block: EvaluatedBlock<GovUKInsetText>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    text: block.html ? undefined : block.text,
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
     html: block.html,
+    blocks: block.blocks,
+  })
+  const params: Record<string, any> = {
+    text: content.text,
+    html: content.html,
     id: block.id,
     classes: block.classes,
     attributes: block.attributes,

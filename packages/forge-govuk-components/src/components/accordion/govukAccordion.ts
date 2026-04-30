@@ -6,10 +6,10 @@ import {
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
-  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Heading configuration for an accordion section.
@@ -171,12 +171,11 @@ function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: n
   const processedItems = items
     .filter(item => item.visibleWhen !== false)
     .map(item => {
-      let contentHtml: string | undefined
-
-      // If content blocks are provided, render them and use as HTML
-      if (item.content.blocks && item.content.blocks.length > 0) {
-        contentHtml = (item.content.blocks as RenderedBlock[]).map(b => b.html).join('')
-      }
+      const content = normaliseGovukTextHtmlContent({
+        text: item.content.text,
+        html: item.content.html,
+        blocks: item.content.blocks,
+      })
 
       return {
         heading: {
@@ -190,8 +189,8 @@ function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: n
             }
           : undefined,
         content: {
-          text: contentHtml || item.content.html ? undefined : item.content.text,
-          html: contentHtml || item.content.html,
+          text: content.text,
+          html: content.html,
         },
         expanded: item.expanded,
       }
