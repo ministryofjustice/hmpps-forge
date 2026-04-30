@@ -1,4 +1,5 @@
-import { FunctionType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionType } from '../../../../../authoring/types/enums'
+import { ASTNodeType } from '../../../../types/enums'
 import { FieldBlockASTNode } from '../../../../types/structures.type'
 import { IterateASTNode } from '../../../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../../types/template.type'
@@ -317,23 +318,71 @@ export default class StepAnswerPreparationCompiler {
   private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter, mode: AnswerPreparationMode): void {
     const template = iterateNode.properties.iterator.yieldTemplate
 
-    if (template === undefined) {
-      return
-    }
-
-    const templateFields = this.findTemplateFields(template)
-
-    if (templateFields.length === 0) {
+    if (template === undefined || !this.containsTemplateField(template)) {
       return
     }
 
     emitter.comment('StepAnswerPreparationCompiler.compileIterateBlock')
-    this.templates.compileMapIterator(iterateNode, emitter, () => {
-      templateFields.forEach(templateField => {
-        const codeExpr = this.templates.compileTemplateCodeExpression(templateField, emitter)
+    this.templates.compileMapIterator(iterateNode, emitter, yieldTemplate => {
+      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode)
+    })
+  }
 
-        this.compileTemplateField(templateField, codeExpr, emitter, mode)
+  /**
+   * Walks template values and emits answer preparation at the iterator scope where each field appears.
+   */
+  private compileTemplateAnswerPreparation(
+    template: TemplateValue,
+    emitter: CodeEmitter,
+    mode: AnswerPreparationMode,
+  ): void {
+    if (template === null || template === undefined || typeof template !== 'object') {
+      return
+    }
+
+    if (this.expr.isTemplateNode(template)) {
+      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
+        this.compileTemplateMapIterator(template, emitter, mode)
+
+        return
+      }
+
+      if (isTemplateFieldNode(template)) {
+        const codeExpr = this.templates.compileTemplateCodeExpression(template, emitter)
+
+        this.compileTemplateField(template, codeExpr, emitter, mode)
+      }
+
+      Object.values(template.properties ?? {}).forEach(child => {
+        this.compileTemplateAnswerPreparation(child as TemplateValue, emitter, mode)
       })
+
+      return
+    }
+
+    if (Array.isArray(template)) {
+      template.forEach(item => {
+        this.compileTemplateAnswerPreparation(item, emitter, mode)
+      })
+
+      return
+    }
+
+    Object.values(template as Record<string, TemplateValue>).forEach(item => {
+      this.compileTemplateAnswerPreparation(item, emitter, mode)
+    })
+  }
+
+  /**
+   * Emits answer preparation for a nested MAP iterator template.
+   */
+  private compileTemplateMapIterator(
+    templateNode: TemplateNode,
+    emitter: CodeEmitter,
+    mode: AnswerPreparationMode,
+  ): void {
+    this.templates.compileTemplateMapIterator(templateNode, emitter, yieldTemplate => {
+      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode)
     })
   }
 
@@ -395,11 +444,10 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Template fields can be nested below conditional reveals or child blocks, so
-   * answer prep walks the whole yield template before emitting the iterator loop.
+   * Fast pre-check used to avoid emitting iterator loops for templates with no fields.
    */
-  private findTemplateFields(template: TemplateValue): TemplateNode[] {
-    return this.templates.findTemplateNodes(template, isTemplateFieldNode)
+  private containsTemplateField(template: TemplateValue): boolean {
+    return this.templates.containsTemplateNode(template, isTemplateFieldNode)
   }
 }
 

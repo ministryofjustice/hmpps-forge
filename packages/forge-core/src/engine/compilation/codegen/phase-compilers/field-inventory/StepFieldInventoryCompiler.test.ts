@@ -18,7 +18,7 @@ function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
     .build() as FieldBlockASTNode
 }
 
-function createReference(path: string[]): ReferenceASTNode {
+function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.REFERENCE,
@@ -216,6 +216,59 @@ describe('StepFieldInventoryCompiler', () => {
         {
           stepId: 'compile_ast:step-a',
           fieldCodes: ['staticField', 'member_0', 'member_1'],
+          cleardownFieldCodes: [],
+        },
+      ])
+    })
+
+    it('should collect field codes from nested iterator templates with parent and child loop scope', () => {
+      // Arrange
+      const functionRegistry = new FunctionRegistry()
+      const dynamicCode = createGeneratorFunction('memberCode', [
+        createReference(['@loop', 1, 'index0']),
+        createReference(['@loop', 0, 'index0']),
+      ])
+      const memberField = createFieldBlock(dynamicCode)
+      const innerIterator = createIterateNode(createReference(['@scope', 0, 'members']), createTemplate(memberField))
+      const template = createTemplate([innerIterator])
+      const iterateNode = createIterateNode(createReference(['data', 'teams']), template)
+      const steps: FieldInventoryStepSource[] = [
+        {
+          stepId: 'compile_ast:step-a',
+          fieldBlocks: [],
+          iterateNodes: [iterateNode],
+          cleardownFieldCodes: [],
+        },
+      ]
+
+      functionRegistry.register({
+        memberCode: {
+          name: 'memberCode',
+          isAsync: false,
+          evaluate: (teamIndex: unknown, memberIndex: unknown) =>
+            `team_${String(teamIndex)}_member_${String(memberIndex)}`,
+        },
+      })
+
+      const compiled = compiler.compile(steps, functionRegistry)
+
+      // Act
+      const result = compiled!(
+        createContext(functionRegistry, {
+          data: {
+            teams: [
+              { name: 'Alpha', members: [{ name: 'Ada' }, { name: 'Grace' }] },
+              { name: 'Beta', members: [{ name: 'Linus' }] },
+            ],
+          },
+        }),
+      )
+
+      // Assert
+      expect(result).toEqual([
+        {
+          stepId: 'compile_ast:step-a',
+          fieldCodes: ['team_0_member_0', 'team_0_member_1', 'team_1_member_0'],
           cleardownFieldCodes: [],
         },
       ])
