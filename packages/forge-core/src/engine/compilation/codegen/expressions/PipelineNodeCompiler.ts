@@ -1,4 +1,7 @@
+import { compileIifeExpression } from './IifeExpressionCompiler'
 import { NodeCompilationContext } from './types'
+
+const PIPELINE_VALUE_PARAM = '_forgePipelineValue'
 
 /**
  * Compiles authored function calls and pipelines.
@@ -13,19 +16,45 @@ export default class PipelineNodeCompiler {
    * Threads the previous step result into each pipeline function call.
    */
   compilePipeline(properties: Record<string, unknown>): string {
-    let expr = this.ctx.compileOperand(properties.input)
     const steps = (properties.steps ?? []) as Record<string, unknown>[]
 
-    for (const step of steps) {
-      const stepProps = (step.properties ?? step) as Record<string, unknown>
-      const funcName = stepProps.name as string
-      const funcArgs = (stepProps.arguments ?? []) as unknown[]
-      const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
+    return steps.reduce((expr, step) => this.compilePipelineStep(expr, step), this.ctx.compileOperand(properties.input))
+  }
 
-      expr = this.ctx.compileFunctionCall(funcName, [expr, ...argExprs], step)
-    }
+  /**
+   * Emits one transformer step, treating undefined as an absent piped value.
+   */
+  private compilePipelineStep(inputExpr: string, step: Record<string, unknown>): string {
+    const stepProps = (step.properties ?? step) as Record<string, unknown>
+    const funcName = stepProps.name as string
+    const funcArgs = (stepProps.arguments ?? []) as unknown[]
+    const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
+    const callExpr = this.ctx.compileFunctionCall(funcName, [PIPELINE_VALUE_PARAM, ...argExprs], step)
 
-    return expr
+    return this.compileOptionalPipelineCall(inputExpr, callExpr)
+  }
+
+  /**
+   * Skips transformer evaluation when a pipeline receives no value to transform.
+   */
+  private compileOptionalPipelineCall(inputExpr: string, callExpr: string): string {
+    return compileIifeExpression({
+      args: [inputExpr],
+      awaitResult: this.ctx.usesAwait,
+      isAsync: this.ctx.usesAwait,
+      params: [PIPELINE_VALUE_PARAM],
+      compileBody: emitter => {
+        emitter.if(`${PIPELINE_VALUE_PARAM} === undefined`, () => {
+          emitter.return('undefined')
+        })
+
+        if (this.ctx.usesAwait) {
+          emitter.return(`await (${callExpr})`)
+        } else {
+          emitter.return(`(${callExpr})`)
+        }
+      },
+    })
   }
 
   /**
