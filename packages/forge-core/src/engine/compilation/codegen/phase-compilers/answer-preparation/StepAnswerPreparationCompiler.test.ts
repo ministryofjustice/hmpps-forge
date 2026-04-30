@@ -43,7 +43,7 @@ function createTransformerFunction(name: string, args: unknown[] = []): Function
   } as FunctionASTNode
 }
 
-function createReference(path: string[]): ReferenceASTNode {
+function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
     expressionType: ExpressionType.REFERENCE,
@@ -789,6 +789,45 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.person_0.current).toBe('Alice')
       expect(ctx.answers.person_1).toBeDefined()
       expect(ctx.answers.person_1.current).toBe('Bob')
+    })
+
+    it('should process fields inside nested iterators with parent and child loop scope', () => {
+      // Arrange
+      const memberField = createFieldBlock(
+        ASTTestFactory.formatExpression('team_%1_member_%2', [
+          createReference(['@loop', 1, 'index0']),
+          createReference(['@loop', 0, 'index0']),
+        ]),
+      )
+      const innerIterator = createIterateNode(
+        createReference(['@scope', 0, 'members']),
+        createTemplateValue(memberField),
+      )
+      const template = createTemplateValue([innerIterator])
+      const iterateNode = createIterateNode(createReference(['data', 'teams']), template)
+      const ctx = createCtx({
+        post: {
+          team_0_member_0: 'Ada',
+          team_0_member_1: 'Grace',
+          team_1_member_0: 'Linus',
+        },
+        data: {
+          teams: [
+            { name: 'Alpha', members: [{ name: 'Ada' }, { name: 'Grace' }] },
+            { name: 'Beta', members: [{ name: 'Linus' }] },
+          ],
+        },
+      })
+
+      // Act
+      const source = compiler.generateSource([], [iterateNode])
+
+      runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.team_0_member_0.current).toBe('Ada')
+      expect(ctx.answers.team_0_member_1.current).toBe('Grace')
+      expect(ctx.answers.team_1_member_0.current).toBe('Linus')
     })
   })
 
