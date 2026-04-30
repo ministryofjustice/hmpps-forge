@@ -1,5 +1,7 @@
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
-import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
+import ForgeRuntimeEvaluationError, {
+  getForgeRuntimeEvaluationDiagnostics,
+} from '../../../errors/ForgeRuntimeEvaluationError'
 import NodeCompilationDispatcher from '../expressions/NodeCompilationDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
@@ -18,7 +20,7 @@ describe('GeneratedFunctionCompiler', () => {
       expect(compile).toThrow(ForgeCompilationError)
     })
 
-    it('should wrap compiled runtime failures in ForgeRuntimeEvaluationError', () => {
+    it('should preserve Error failures and attach Forge diagnostics', () => {
       // Arrange
       const expr = new NodeCompilationDispatcher()
       const fn = compileGeneratedFunction<GeneratedFunction>(
@@ -28,6 +30,34 @@ describe('GeneratedFunctionCompiler', () => {
         () => 'throw new Error("boom");',
         { phase: 'render' },
       )
+
+      // Act
+      const evaluate = () => Reflect.apply(fn, undefined, [{}])
+
+      // Assert
+      expect(evaluate).toThrow(Error)
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected generated function to throw the original Error')
+        }
+
+        expect(error).not.toBeInstanceOf(ForgeRuntimeEvaluationError)
+        expect(error.message).toBe('boom')
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toEqual({ phase: 'render' })
+        expect(error.stack).toContain('Forge diagnostics:')
+        expect(error.stack).toContain('Phase: render')
+      }
+    })
+
+    it('should wrap non-Error runtime failures in ForgeRuntimeEvaluationError', () => {
+      // Arrange
+      const expr = new NodeCompilationDispatcher()
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], undefined, () => 'throw "boom";', {
+        phase: 'render',
+      })
 
       // Act
       const evaluate = () => Reflect.apply(fn, undefined, [{}])

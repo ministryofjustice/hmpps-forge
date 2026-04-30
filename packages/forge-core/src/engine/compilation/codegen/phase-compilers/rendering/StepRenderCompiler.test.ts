@@ -19,7 +19,7 @@ import { TemplateValue } from '../../../../types/template.type'
 import TemplateFactory from '../../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ForgeRuntimeEvaluationError from '../../../../errors/ForgeRuntimeEvaluationError'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { attachDSLSourceMetadata } from '../../../../diagnostics/sourceMetadata'
 import StepRenderCompiler, { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
 
@@ -1120,9 +1120,15 @@ describe('StepRenderCompiler', () => {
       }
 
       // Assert
-      expect(thrown).toBeInstanceOf(ForgeRuntimeEvaluationError)
-      expect((thrown as ForgeRuntimeEvaluationError).functionName).toBe('FormatDate')
-      expect((thrown as ForgeRuntimeEvaluationError).cause).toBeInstanceOf(TypeError)
+      if (!(thrown instanceof TypeError)) {
+        throw new Error('Expected FormatDate to throw the original TypeError')
+      }
+
+      expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
+        phase: 'render',
+        functionName: 'FormatDate',
+        functionType: FunctionType.TRANSFORMER,
+      })
     })
 
     it('should throw runtime errors when nested array item text evaluation throws', () => {
@@ -1172,12 +1178,18 @@ describe('StepRenderCompiler', () => {
       }
 
       // Assert
-      expect(thrown).toBeInstanceOf(ForgeRuntimeEvaluationError)
-      expect((thrown as ForgeRuntimeEvaluationError).phase).toBe('render')
-      expect((thrown as ForgeRuntimeEvaluationError).functionName).toBe('throwingCount')
-      expect((thrown as ForgeRuntimeEvaluationError).formattedPath).toBe(
-        'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
-      )
+      if (!(thrown instanceof Error)) {
+        throw new Error('Expected throwingCount to throw the original Error')
+      }
+
+      expect(thrown.message).toBe('Count failed')
+      expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
+        phase: 'render',
+        functionName: 'throwingCount',
+        functionType: FunctionType.GENERATOR,
+        formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+      })
+      expect(thrown.stack).toContain('Forge diagnostics:')
     })
   })
 })

@@ -19,7 +19,7 @@ import { TemplateValue } from '../../../../types/template.type'
 import TemplateFactory from '../../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ForgeRuntimeEvaluationError from '../../../../errors/ForgeRuntimeEvaluationError'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { generatedFunctionHelpers } from '../../generated-functions/GeneratedFunctionHelpers'
 import StepAnswerPreparationCompiler, { AnswerPreparationContext } from './StepAnswerPreparationCompiler'
 
@@ -537,7 +537,23 @@ describe('StepAnswerPreparationCompiler', () => {
       const fn = compiler.compile([block])
 
       // Assert
-      expect(() => fn!(ctx)).toThrow(ForgeRuntimeEvaluationError)
+      const evaluate = () => fn!(ctx)
+
+      expect(evaluate).toThrow('Formatter failed')
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected explode to throw the original Error')
+        }
+
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'answer-preparation',
+          functionName: 'explode',
+          functionType: FunctionType.TRANSFORMER,
+        })
+      }
     })
 
     it('should pass additional arguments to formatter', () => {
@@ -619,7 +635,23 @@ describe('StepAnswerPreparationCompiler', () => {
       const fn = compiler.compile([block])
 
       // Assert
-      expect(() => fn!(ctx)).toThrow(ForgeRuntimeEvaluationError)
+      const evaluate = () => fn!(ctx)
+
+      expect(evaluate).toThrow('boom')
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected willThrow to throw the original Error')
+        }
+
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'answer-preparation',
+          functionName: 'willThrow',
+          functionType: FunctionType.CONDITION,
+        })
+      }
     })
   })
 

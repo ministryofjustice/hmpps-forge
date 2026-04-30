@@ -7,7 +7,7 @@ import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../../Runtime
 import NodeRegistry from '../../../registries/NodeRegistry'
 import { NodeId } from '../../../../types/ast.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ForgeRuntimeEvaluationError from '../../../../errors/ForgeRuntimeEvaluationError'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler, { ReachabilityContext } from './ReachabilityCompiler'
 
 function createReference(path: string[]): ReferenceASTNode {
@@ -571,7 +571,21 @@ describe('ReachabilityCompiler', () => {
       const evaluate = () => fn!(ctx)
 
       // Assert
-      expect(evaluate).toThrow(ForgeRuntimeEvaluationError)
+      expect(evaluate).toThrow('boom')
+
+      try {
+        evaluate()
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected throwingCondition to throw the original Error')
+        }
+
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'reachability',
+          functionName: 'throwingCondition',
+          functionType: FunctionType.CONDITION,
+        })
+      }
     })
   })
 
