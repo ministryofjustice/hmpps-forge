@@ -70,13 +70,7 @@ export default class JourneyController<TRequest, TResponse> {
   private prepareRequest(req: TRequest, res: TResponse) {
     const request = this.dependencies.frameworkAdapter.toStepRequest(req)
     const response = this.dependencies.frameworkAdapter.toStepResponse(res)
-    const context = this.contextPreparer.prepare(
-      this.journeyPlan,
-      this.journeyArtefact,
-      this.dependencies,
-      request,
-      response,
-    )
+    const context = this.contextPreparer.prepare(this.journeyPlan, this.journeyArtefact, request, response)
 
     return { request, context }
   }

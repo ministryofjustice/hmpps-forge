@@ -67,6 +67,17 @@ export default class FieldCodeEmitter {
   }
 
   /**
+   * Emits the render/validation block ID used for FIELD blocks created from iterator templates.
+   */
+  compileIteratorFieldBlockIdExpression(codeExpr: string | undefined, fallbackId: string): string {
+    if (codeExpr !== undefined) {
+      return `"compiled:" + ${codeExpr}`
+    }
+
+    return JSON.stringify(`compiled:${fallbackId}`)
+  }
+
+  /**
    * Assigns a FIELD block's code property only when it resolves to a string expression.
    */
   assignProperty(

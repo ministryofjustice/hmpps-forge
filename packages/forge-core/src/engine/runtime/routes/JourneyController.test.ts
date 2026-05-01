@@ -113,10 +113,8 @@ describe('JourneyController', () => {
     ;(NavigationAnalyzer as unknown as Mock).mockClear()
 
     mockJourneyPlan = {
-      journeyId: 'compile_ast:journey' as NodeId,
       path: '/journey',
       accessAncestorIds: ['compile_ast:root-journey' as NodeId, 'compile_ast:journey' as NodeId],
-      iterateNodeIds: [],
       compiledAccessLifecycle: (...args: unknown[]) => mockCompiledAccessLifecycle(...args),
       compiledAnswerPreparation: mockCompiledAnswerPreparation,
       reachabilityPlan: {

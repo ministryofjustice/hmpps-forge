@@ -10,13 +10,4 @@ export class CompilationDependencies {
     readonly nodeRegistry: NodeRegistry = new NodeRegistry(),
     readonly astNodeTree: ASTNodeTree = new ASTNodeTree(),
   ) {}
-
-  clone() {
-    const clonedNodeIdGenerator = this.nodeIdGenerator.clone()
-    const clonedNodeFactory = new NodeFactory(clonedNodeIdGenerator, NodeIDCategory.COMPILE_AST)
-    const clonedNodeRegistry = this.nodeRegistry.clone()
-    const clonedAstNodeTree = this.astNodeTree.clone()
-
-    return new CompilationDependencies(clonedNodeIdGenerator, clonedNodeFactory, clonedNodeRegistry, clonedAstNodeTree)
-  }
 }

@@ -1,8 +1,8 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ASTNodeType } from '../types/enums'
-import { BlockType, ExpressionType, HookType, IteratorType } from '../../authoring/types/enums'
-import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
+import { IterateASTNode } from '../types/expressions.type'
 import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
 import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.type'
 import { CompilationDependencies } from './CompilationDependencies'
@@ -68,7 +68,7 @@ export default class CompilationFactory {
 
     // The NodeFactory preserves the authoring structure while assigning AST node
     // shapes. NodeRegistrationWalker then fills in missing IDs, resolves @self
-    // references, registers nodes, and records parent/child edges in ASTNodeTree.
+    // references, registers nodes, and records parent edges in ASTNodeTree.
     sharedDependencies.nodeFactory.setSourceMap(createDSLSourceMap(journeyDef))
     const rootNode = sharedDependencies.nodeFactory.createNode(journeyDef) as JourneyASTNode
 
@@ -213,7 +213,7 @@ export default class CompilationFactory {
         fieldBlocks: allFieldBlocks
           .filter(block => sharedDependencies.astNodeTree.isDescendantOf(block.id, entry.stepId)),
         iterateNodes: allIterateNodes
-          .filter(node => entry.iterateNodeIds.includes(node.id)),
+          .filter(node => sharedDependencies.astNodeTree.isDescendantOf(node.id, entry.stepId)),
       }))
 
       plan.compiledFieldInventory = compiler.compile(steps, this.journeyInstanceDependencies.functionRegistry)
@@ -298,12 +298,7 @@ export default class CompilationFactory {
         (node): node is JourneyASTNode | StepASTNode =>
           node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP,
       )
-    const submitHooks = runtimePlan.submitHookIds
-      .map(nodeId => compilationDependencies.nodeRegistry.get(nodeId))
-      .filter(
-        (node): node is SubmitHookASTNode =>
-          node?.type === ASTNodeType.HOOK && (node as { hookType?: unknown }).hookType === HookType.SUBMIT,
-      )
+    const submitHooks = stepNode.properties.onSubmission ?? []
 
     runtimePlan.compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(
       accessAncestors,
@@ -354,7 +349,7 @@ export default class CompilationFactory {
     // and field values. All iterator types are passed because FILTER/FIND can be
     // used as inline property values even though only MAP can yield blocks.
     const renderCompiler = new StepRenderCompiler()
-    const ancestorNodes = runtimePlan.renderAncestorIds
+    const ancestorNodes = runtimePlan.accessAncestorIds.slice(0, -1)
       .map(id => compilationDependencies.nodeRegistry.get(id) as JourneyASTNode)
     const renderIterateNodes = compilationDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))

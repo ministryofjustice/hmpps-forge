@@ -58,14 +58,10 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
 function createEntry(overrides: Partial<ReachabilityStepEntry> = {}): ReachabilityStepEntry {
   return {
     stepId: ASTTestFactory.getId() as NodeId,
-    path: '/step',
     isEntryPoint: false,
     forwardOutcomeIds: [],
     hasValidation: false,
     cleardownFieldCodes: [],
-    iterateNodeIds: [],
-    validationBlockIds: [],
-    domainValidationNodeIds: [],
     reachabilityTieBreakers: [],
     ...overrides,
   }

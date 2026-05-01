@@ -8,12 +8,6 @@ import { BlockASTNode } from '../../types/structures.type'
 /** Indexes include both structural AST types and authoring sub-types. */
 export type IndexableNodeType = ASTNodeType | ExpressionType | FunctionType | PredicateType | HookType | BlockType
 
-/** Registered nodes keep their authoring path so generated failures can be traced. */
-export interface NodeRegistryEntry {
-  node: ASTNode
-  path: (string | number)[]
-}
-
 /**
  * Stores the shared compiled AST by ID.
  *
@@ -22,7 +16,7 @@ export interface NodeRegistryEntry {
  * tree handles ownership and ancestry; this registry handles fast retrieval.
  */
 export default class NodeRegistry {
-  private readonly nodes: Map<NodeId, NodeRegistryEntry> = new Map()
+  private readonly nodes: Map<NodeId, ASTNode> = new Map()
 
   private readonly typeIndex: Map<string, Set<NodeId>> = new Map()
 
@@ -30,12 +24,12 @@ export default class NodeRegistry {
    * Nodes are frozen on registration so every generated function sees the same
    * shared AST shape for the lifetime of the compiled journey.
    */
-  register(id: NodeId, node: ASTNode, path: (string | number)[] = []): void {
+  register(id: NodeId, node: ASTNode): void {
     if (this.nodes.has(id)) {
       throw new Error(`Node with ID "${id}" is already registered`)
     }
 
-    this.nodes.set(id, { node: Object.freeze(node), path })
+    this.nodes.set(id, Object.freeze(node))
 
     this.addToTypeIndex(node.type, id)
 
@@ -79,38 +73,11 @@ export default class NodeRegistry {
   }
 
   get(id: NodeId): ASTNode | undefined {
-    return this.nodes.get(id)?.node
-  }
-
-  /** Get the registered node plus its authoring path, when available. */
-  getEntry(id: NodeId): NodeRegistryEntry | undefined {
     return this.nodes.get(id)
   }
 
   has(id: NodeId): boolean {
     return this.nodes.has(id)
-  }
-
-  getAll(): Map<NodeId, ASTNode> {
-    const result = new Map<NodeId, ASTNode>()
-
-    this.nodes.forEach((entry, id) => {
-      result.set(id, entry.node)
-    })
-
-    return result
-  }
-
-  getAllEntries(): Map<NodeId, NodeRegistryEntry> {
-    return new Map(this.nodes)
-  }
-
-  getIds(): NodeId[] {
-    return Array.from(this.nodes.keys())
-  }
-
-  size(): number {
-    return this.nodes.size
   }
 
   findByType<T = ASTNode>(type: IndexableNodeType): T[] {
@@ -123,49 +90,13 @@ export default class NodeRegistry {
     const results: T[] = []
 
     nodeIds.forEach(id => {
-      const entry = this.nodes.get(id)
+      const node = this.nodes.get(id)
 
-      if (entry) {
-        results.push(entry.node as T)
+      if (node) {
+        results.push(node as T)
       }
     })
 
     return results
-  }
-
-  findBy(predicate: (node: ASTNode) => boolean): ASTNode[] {
-    const results: ASTNode[] = []
-
-    this.nodes.forEach(entry => {
-      if (predicate(entry.node)) {
-        results.push(entry.node)
-      }
-    })
-
-    return results
-  }
-
-  clear(): void {
-    this.nodes.clear()
-    this.typeIndex.clear()
-  }
-
-  /**
-   * Copies share frozen node objects but own their indices, which lets compiler
-   * artefacts fork without mutating the original registry bookkeeping.
-   */
-  clone(): NodeRegistry {
-    const cloned = Object.create(Object.getPrototypeOf(this)) as NodeRegistry
-
-    const clonedIndex = new Map<string, Set<NodeId>>()
-
-    this.typeIndex.forEach((nodeSet, type) => {
-      clonedIndex.set(type, new Set(nodeSet))
-    })
-
-    return Object.assign(cloned, {
-      nodes: new Map(this.nodes),
-      typeIndex: clonedIndex,
-    })
   }
 }

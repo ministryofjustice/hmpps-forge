@@ -151,15 +151,8 @@ describe('ForgeRouter', () => {
         reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
         runtimePlan: {
           stepId: compiled.currentStepId,
+          path: '/step',
           accessAncestorIds: [compiled.currentStepId],
-          submitHookIds: [],
-          iterateNodeIds: [],
-          validationBlockIds: [],
-          domainValidationNodeIds: [],
-          renderAncestorIds: [],
-          renderStepId: compiled.currentStepId,
-          hasValidatingSubmitHook: false,
-          hasDomainValidation: false,
         },
       }
     })
@@ -205,10 +198,8 @@ describe('ForgeRouter', () => {
     }
 
     const journeyRuntimePlanMock: JourneyRuntimePlan = {
-      journeyId: 'compile_ast:journey' as NodeId,
       path: '/mock',
       accessAncestorIds: [],
-      iterateNodeIds: [],
       reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
     }
 
@@ -895,10 +886,8 @@ describe('ForgeRouter', () => {
       ;(journeyInstance.getJourneyRuntimePlan as Mock).mockImplementation((journeyId: NodeId) => {
         if (journeyId === childJourney.id) {
           return {
-            journeyId,
             path: '/child',
             accessAncestorIds: [],
-            iterateNodeIds: [],
             reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
           }
         }

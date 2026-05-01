@@ -115,13 +115,5 @@ function createStepRuntimePlan(stepId: NodeId): StepRuntimePlan {
     stepId,
     path: '/step',
     accessAncestorIds: [],
-    submitHookIds: [],
-    iterateNodeIds: [],
-    validationBlockIds: [],
-    domainValidationNodeIds: [],
-    renderAncestorIds: [],
-    renderStepId: stepId,
-    hasValidatingSubmitHook: false,
-    hasDomainValidation: false,
   }
 }
