@@ -1,10 +1,8 @@
 import { CompilationDependencies } from './CompilationDependencies'
-import { ASTNode, AstNodeId } from '../types/engine.type'
-import { ASTNodeType } from '../types/enums'
-import { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
-import { BasicBlockASTNode, FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
-import { TemplateValue } from '../types/template.type'
-import { BlockType, ExpressionType, IteratorType, HookType } from '../../authoring/types/enums'
+import { AstNodeId } from '../types/engine.type'
+import { AccessHookASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { JourneyASTNode, StepASTNode } from '../types/structures.type'
+import { HookType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../../testing/ASTTestFactory'
 import RuntimePlanBuilder from './RuntimePlanBuilder'
 
@@ -54,45 +52,6 @@ function createStep(
   return step.build()
 }
 
-function createBlock(id: AstNodeId): BasicBlockASTNode {
-  return ASTTestFactory.block('test', BlockType.BASIC)
-    .withId(id)
-    .build() as BasicBlockASTNode
-}
-
-function createFieldBlock(id: AstNodeId, hasValidation = false): FieldBlockASTNode {
-  return ASTTestFactory.block('text-input', BlockType.FIELD)
-    .withId(id)
-    .withProperty(
-      'validWhen',
-      hasValidation
-        ? [
-            {
-              id: `${id}:validation` as AstNodeId,
-              type: ASTNodeType.EXPRESSION,
-              expressionType: ExpressionType.VALIDATION,
-              properties: {
-                condition: { id: `${id}:condition` as AstNodeId, type: ASTNodeType.EXPRESSION } as ASTNode,
-                message: 'Required',
-              },
-            },
-          ]
-        : [],
-    )
-    .build() as FieldBlockASTNode
-}
-
-function createIterate(id: AstNodeId, yieldTemplate?: TemplateValue): IterateASTNode {
-  return ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
-    .withId(id)
-    .withProperty('input', [])
-    .withProperty('iterator', {
-      type: IteratorType.MAP,
-      yieldTemplate,
-    })
-    .build()
-}
-
 describe('RuntimePlanBuilder', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -110,45 +69,12 @@ describe('RuntimePlanBuilder', () => {
         onAccess: [stepAccess],
         onSubmission: [submit],
       })
-      const block = createBlock('compile_ast:7')
-      const staticValidatingField = createFieldBlock('compile_ast:8', true)
-      const externalBlock = createBlock('compile_ast:9')
-      const iterateA = createIterate('compile_ast:10', {
-        field: {
-          type: ASTNodeType.TEMPLATE,
-          originalType: ASTNodeType.BLOCK,
-          id: 'template:1',
-          blockType: BlockType.FIELD,
-          properties: {
-            validWhen: ['required'],
-          },
-        },
-      })
-      const iterateB = createIterate('compile_ast:11', {
-        field: {
-          type: ASTNodeType.TEMPLATE,
-          originalType: ASTNodeType.BLOCK,
-          id: 'template:2',
-          blockType: BlockType.FIELD,
-          properties: {},
-        },
-      })
 
       dependencies.nodeRegistry.register(journey.id, journey)
       dependencies.nodeRegistry.register(step.id, step)
-      dependencies.nodeRegistry.register(block.id, block)
-      dependencies.nodeRegistry.register(staticValidatingField.id, staticValidatingField)
-      dependencies.nodeRegistry.register(externalBlock.id, externalBlock)
-      dependencies.nodeRegistry.register(iterateA.id, iterateA)
-      dependencies.nodeRegistry.register(iterateB.id, iterateB)
 
       dependencies.astNodeTree.addNode(journey.id)
       dependencies.astNodeTree.addNode(step.id, journey.id)
-      dependencies.astNodeTree.addNode(block.id, step.id)
-      dependencies.astNodeTree.addNode(staticValidatingField.id, step.id)
-      dependencies.astNodeTree.addNode(iterateA.id, block.id)
-      dependencies.astNodeTree.addNode(iterateB.id, block.id)
-      dependencies.astNodeTree.addNode(externalBlock.id, journey.id)
 
       const builder = new RuntimePlanBuilder(dependencies.nodeRegistry, dependencies.astNodeTree)
 
@@ -159,16 +85,7 @@ describe('RuntimePlanBuilder', () => {
       expect(result).toEqual({
         stepId: step.id,
         path: 'step',
-        code: undefined,
         accessAncestorIds: [journey.id, step.id],
-        submitHookIds: [submit.id],
-        iterateNodeIds: [iterateA.id, iterateB.id],
-        validationBlockIds: [staticValidatingField.id],
-        domainValidationNodeIds: [],
-        renderAncestorIds: [journey.id],
-        renderStepId: step.id,
-        hasValidatingSubmitHook: false,
-        hasDomainValidation: false,
       })
     })
   })

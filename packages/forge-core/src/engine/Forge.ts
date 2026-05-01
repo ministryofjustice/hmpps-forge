@@ -169,6 +169,8 @@ export default class Forge {
       this.componentRegistry.registerBuiltInComponents()
     }
 
+    this.options.logger.warn('YOLO')
+
     this.dependencies = {
       functionRegistry: this.functionRegistry,
       componentRegistry: this.componentRegistry,

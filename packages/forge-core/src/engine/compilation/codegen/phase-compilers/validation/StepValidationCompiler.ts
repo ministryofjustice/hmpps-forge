@@ -340,6 +340,7 @@ export default class StepValidationCompiler {
 
     emitter.comment('StepValidationCompiler.compileTemplateFieldValidations')
     const blockCodeExpr = codeExpr ?? 'undefined'
+    const blockIdExpr = this.fieldCodes.compileIteratorFieldBlockIdExpression(codeExpr, String(field.id))
 
     this.expr.withSelfCodeExpression(codeExpr, () => {
       const dependentWhen = field.properties?.dependentWhen
@@ -348,13 +349,13 @@ export default class StepValidationCompiler {
         const guardExpr = this.expr.compileOperand(dependentWhen)
 
         emitter.if(guardExpr, () => {
-          this.compileFieldValidationSlot(validWhen, JSON.stringify('iterator'), blockCodeExpr, emitter)
+          this.compileFieldValidationSlot(validWhen, blockIdExpr, blockCodeExpr, emitter)
         })
 
         return
       }
 
-      this.compileFieldValidationSlot(validWhen, JSON.stringify('iterator'), blockCodeExpr, emitter)
+      this.compileFieldValidationSlot(validWhen, blockIdExpr, blockCodeExpr, emitter)
     })
   }
 

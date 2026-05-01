@@ -8,27 +8,18 @@ import type {
 } from './codegen/phase-compilers/hooks/HookLifecycleCompiler'
 import type { CompiledReachabilityFunction } from './codegen/phase-compilers/reachability/ReachabilityCompiler'
 import type { CompiledValidationFunction } from './codegen/phase-compilers/validation/StepValidationCompiler'
-import { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import { SubmitHookASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
 import ASTNodeTree from './node-tree/ASTNodeTree'
 import NodeRegistry from './registries/NodeRegistry'
-import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
+import { BlockType } from '../../authoring/types/enums'
 
 export interface StepRuntimePlan {
   stepId: NodeId
   path: string
-  code?: string
   accessAncestorIds: NodeId[]
-  submitHookIds: NodeId[]
-  iterateNodeIds: NodeId[]
-  validationBlockIds: NodeId[]
-  domainValidationNodeIds: NodeId[]
-  renderAncestorIds: NodeId[]
-  renderStepId: NodeId
-  hasValidatingSubmitHook: boolean
-  hasDomainValidation: boolean
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
 }
@@ -52,16 +43,12 @@ export interface ReachabilityRuntimePlan {
 
 export interface ReachabilityStepEntry {
   stepId: NodeId
-  path: string
   code?: string
   isEntryPoint: boolean
   entryWhenNodeId?: NodeId
   forwardOutcomeIds: NodeId[]
   hasValidation: boolean
   cleardownFieldCodes: string[]
-  iterateNodeIds: NodeId[]
-  validationBlockIds: NodeId[]
-  domainValidationNodeIds: NodeId[]
   reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
 }
 
@@ -76,15 +63,11 @@ export interface ReachabilityTieBreakerEntry {
 }
 
 /**
- * Runtime plan for a journey as a whole, used when handling the journey root
- * (for example resume). It carries the journey access chain, the MAP iterator
- * nodes for its direct steps, and the shared reachability plan for those steps.
+ * Runtime plan for a journey as a whole, used when handling the journey root.
  */
 export interface JourneyRuntimePlan {
-  journeyId: NodeId
   path: string
   accessAncestorIds: NodeId[]
-  iterateNodeIds: NodeId[]
   reachabilityPlan: ReachabilityRuntimePlan
   /**
    * Compiled answer preparation for the journey root. This covers the journey's
@@ -103,15 +86,12 @@ export interface JourneyRuntimePlan {
  * generated functions back onto the same plan objects.
  */
 export default class RuntimePlanBuilder {
-  private readonly allIterateNodes: IterateASTNode[]
-
   private readonly allFieldBlocks: FieldBlockASTNode[]
 
   constructor(
-    private readonly nodeRegistry: NodeRegistry,
+    nodeRegistry: NodeRegistry,
     private readonly astNodeTree: ASTNodeTree,
   ) {
-    this.allIterateNodes = nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
     this.allFieldBlocks = nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
   }
 
@@ -167,10 +147,8 @@ export default class RuntimePlanBuilder {
     reachabilityPlan: ReachabilityRuntimePlan,
   ): JourneyRuntimePlan {
     return {
-      journeyId: journeyNode.id,
       path: normalizeRelativePath(journeyNode.properties.path),
       accessAncestorIds: getAncestorChain(journeyNode.id, this.astNodeTree),
-      iterateNodeIds: reachabilityPlan.entries.flatMap(entry => entry.iterateNodeIds),
       reachabilityPlan,
     }
   }
@@ -227,25 +205,19 @@ export default class RuntimePlanBuilder {
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityStepEntry {
     const stepId = stepNode.id
     const { forwardOutcomeIds } = this.extractForwardNavigation(stepNode)
-    const iterateNodeIds = this.findIterateNodeIds(stepId)
-    const validationBlockIds = this.findValidationBlockIds(stepId)
-    const domainValidationNodeIds = this.findDomainValidationNodeIds(stepNode)
+    const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
 
     return {
       stepId,
-      path: normalizeRelativePath(stepNode.properties.path),
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeIds,
-      hasValidation: validationBlockIds.length > 0 || domainValidationNodeIds.length > 0,
+      hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
-      iterateNodeIds,
-      validationBlockIds,
-      domainValidationNodeIds,
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,
         whenNodeId: entry.properties.when?.id,
@@ -256,45 +228,17 @@ export default class RuntimePlanBuilder {
   buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
     const stepId = stepNode.id
 
-    const accessAncestorIds = getAncestorChain(stepId, this.astNodeTree)
-    const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
-    const iterateNodeIds = this.findIterateNodeIds(stepId)
-    const validationBlockIds = this.findValidationBlockIds(stepId)
-    const domainValidationNodeIds = this.findDomainValidationNodeIds(stepNode)
-    const renderAncestorIds = accessAncestorIds.slice(0, -1)
-
     return {
       stepId,
       path: normalizeRelativePath(stepNode.properties.path),
-      code: stepNode.properties.code,
-      accessAncestorIds,
-      submitHookIds,
-      iterateNodeIds,
-      validationBlockIds,
-      domainValidationNodeIds,
-      renderAncestorIds,
-      renderStepId: stepId,
-      hasValidatingSubmitHook: this.computeHasValidatingSubmitHook(stepNode),
-      hasDomainValidation: domainValidationNodeIds.length > 0,
+      accessAncestorIds: getAncestorChain(stepId, this.astNodeTree),
     }
   }
 
-  private findIterateNodeIds(stepId: NodeId): NodeId[] {
-    return this.allIterateNodes
-      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepId))
-      .filter(node => node.properties.iterator.type === IteratorType.MAP)
-      .map(node => node.id)
-  }
-
-  private findValidationBlockIds(stepId: NodeId): NodeId[] {
+  private hasValidationBlocks(stepId: NodeId): boolean {
     return this.allFieldBlocks
       .filter(block => this.astNodeTree.isDescendantOf(block.id, stepId))
-      .filter(block => hasConfiguredValue(block.properties.validWhen))
-      .map(block => block.id)
-  }
-
-  private findDomainValidationNodeIds(stepNode: StepASTNode): NodeId[] {
-    return collectNodeIds(stepNode.properties.validWhen)
+      .some(block => hasConfiguredValue(block.properties.validWhen))
   }
 
   private extractForwardNavigation(stepNode: StepASTNode): {
@@ -325,10 +269,6 @@ export default class RuntimePlanBuilder {
         .map(node => node.id),
     )
   }
-
-  private computeHasValidatingSubmitHook(stepNode: StepASTNode): boolean {
-    return (stepNode.properties.onSubmission ?? []).some((hook: SubmitHookASTNode) => hook.properties.validate)
-  }
 }
 
 function hasConfiguredValue(value: unknown): boolean {
@@ -341,20 +281,4 @@ function hasConfiguredValue(value: unknown): boolean {
   }
 
   return true
-}
-
-function collectNodeIds(value: unknown): NodeId[] {
-  if (value === undefined) {
-    return []
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap(item => collectNodeIds(item))
-  }
-
-  if (value !== null && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string') {
-    return [(value as { id: NodeId }).id]
-  }
-
-  return []
 }

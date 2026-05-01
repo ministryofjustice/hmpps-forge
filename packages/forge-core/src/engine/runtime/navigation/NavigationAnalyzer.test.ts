@@ -10,6 +10,8 @@ import NavigationAnalyzer, { resolveJourneyRootRedirect, resolveStepRequestRedir
 import { pickTieBreakerWinner, resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
 import { NavigationStepState } from '../types/NavigationEvaluation.type'
 
+const routePathsByStepId = new Map<NodeId, string>()
+
 function createEntry(options: {
   stepId: NodeId
   path: string
@@ -19,17 +21,15 @@ function createEntry(options: {
   hasValidation?: boolean
   reachabilityTieBreakers?: ReachabilityStepEntry['reachabilityTieBreakers']
 }): ReachabilityStepEntry {
+  routePathsByStepId.set(options.stepId, options.path)
+
   return {
     stepId: options.stepId,
-    path: options.path,
     isEntryPoint: options.isEntryPoint ?? false,
     entryWhenNodeId: options.entryWhenNodeId,
     forwardOutcomeIds: options.forwardOutcomeIds ?? [],
     hasValidation: options.hasValidation ?? false,
     cleardownFieldCodes: [],
-    iterateNodeIds: [],
-    validationBlockIds: [],
-    domainValidationNodeIds: [],
     reachabilityTieBreakers: options.reachabilityTieBreakers ?? [],
   }
 }
@@ -39,7 +39,8 @@ function createRouteTemplateCatalog(entries: ReachabilityStepEntry[]): JourneyRo
   const stepIdByRouteTemplatePath = new Map<string, NodeId>()
 
   entries.forEach(entry => {
-    const routeTemplatePath = joinPaths('/journey', entry.path)
+    const routePath = routePathsByStepId.get(entry.stepId) ?? entry.stepId
+    const routeTemplatePath = joinPaths('/journey', routePath)
 
     routeTemplatePathByStepId.set(entry.stepId, routeTemplatePath)
     stepIdByRouteTemplatePath.set(routeTemplatePath, entry.stepId)
@@ -94,6 +95,7 @@ describe('NavigationAnalyzer', () => {
   beforeEach(() => {
     analyzer = new NavigationAnalyzer()
     mockFunctionRegistry = {} as FunctionRegistry
+    routePathsByStepId.clear()
 
     context = {
       global: {
@@ -115,9 +117,6 @@ describe('NavigationAnalyzer', () => {
         getAllHeaders: vi.fn().mockReturnValue({}),
         getAllCookies: vi.fn().mockReturnValue({}),
         getAllState: vi.fn().mockReturnValue({}),
-      },
-      nodeRegistry: {
-        findByType: vi.fn().mockReturnValue([]),
       },
     } as unknown as Mocked<RuntimeEvaluationContext>
   })

@@ -119,6 +119,7 @@ describe('StepController', () => {
   let mockRes: unknown
   let mockEvaluator: MockLifecycleInvoker
   let mockContext: Mocked<RuntimeEvaluationContext>
+  let mockAncestorNodes: (JourneyASTNode | StepASTNode)[]
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -151,6 +152,7 @@ describe('StepController', () => {
 
     mockReq = {}
     mockRes = {}
+    mockAncestorNodes = []
 
     mockContext = {
       request: {
@@ -170,22 +172,10 @@ describe('StepController', () => {
         getAllState: vi.fn().mockReturnValue({}),
         getAllPost: vi.fn().mockReturnValue({}),
       },
-      nodeRegistry: {
-        get: vi.fn(),
-        findByType: vi.fn().mockReturnValue([]),
-      },
-      functionRegistry: {
-        get: vi.fn().mockReturnValue({ evaluate: vi.fn() }),
-        getAll: vi.fn().mockReturnValue(new Map()),
-      },
       global: {
         answers: {},
         data: {},
         validation: undefined,
-      },
-      astNodeTree: {
-        getNodeType: vi.fn().mockReturnValue(undefined),
-        hasDescendantOfType: vi.fn().mockReturnValue(false),
       },
     } as unknown as Mocked<RuntimeEvaluationContext>
 
@@ -197,24 +187,14 @@ describe('StepController', () => {
   })
 
   function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
+    const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
     const runtimePlan: StepRuntimePlan = {
       stepId: stepNode.id,
       path: stepNode.properties.path.replace(/^\//, ''),
-      code: stepNode.properties.code,
       accessAncestorIds: [stepNode.id],
-      submitHookIds: (stepNode.properties.onSubmission ?? []).map(hook => hook.id),
-      iterateNodeIds: [],
-      validationBlockIds: [],
-      domainValidationNodeIds: [],
-      renderAncestorIds: [],
-      renderStepId: stepNode.id,
-      hasValidatingSubmitHook: (stepNode.properties.onSubmission ?? []).some(
-        (t: SubmitHookASTNode) => t.properties.validate === true,
-      ),
-      hasDomainValidation: false,
       compiledAccessLifecycle: async () => {
         for (const ancestorId of runtimePlan.accessAncestorIds) {
-          const ancestor = mockContext.nodeRegistry.get(ancestorId) as JourneyASTNode | StepASTNode | undefined
+          const ancestor = mockAncestorNodes.find(node => node.id === ancestorId)
 
           for (const hook of ancestor?.properties.onAccess ?? []) {
             const result = await mockEvaluator.invoke<AccessHookResult>(hook.id, mockContext)
@@ -232,7 +212,7 @@ describe('StepController', () => {
         return { executed: true, outcome: 'continue' }
       },
       compiledSubmitHooks: async () => {
-        for (const hookId of runtimePlan.submitHookIds) {
+        for (const hookId of submitHookIds) {
           const result = await mockEvaluator.invoke<SubmitHookResult>(hookId, mockContext)
 
           if (!result.error && result.value?.executed) {
@@ -276,16 +256,12 @@ describe('StepController', () => {
         entries: [
           {
             stepId: stepNode.id,
-            path: stepNode.properties.path.replace(/^\//, ''),
             code: stepNode.properties.code,
             isEntryPoint: true,
             entryWhenNodeId: undefined,
             forwardOutcomeIds: [],
             hasValidation: false,
             cleardownFieldCodes: [],
-            iterateNodeIds: [],
-            validationBlockIds: [],
-            domainValidationNodeIds: [],
             reachabilityTieBreakers: [],
           },
         ],
@@ -343,12 +319,9 @@ describe('StepController', () => {
 
     if (mockCompiledForm) {
       mockCompiledForm.runtimePlan.accessAncestorIds = ancestorIds
-      mockCompiledForm.runtimePlan.renderAncestorIds = ancestorIds.slice(0, -1)
     }
 
-    mockContext.nodeRegistry.get = vi.fn().mockImplementation((nodeId: NodeId) => {
-      return ancestors.find(a => a.id === nodeId)
-    })
+    mockAncestorNodes = ancestors
   }
 
   describe('get()', () => {
@@ -815,16 +788,12 @@ describe('StepController', () => {
           entries: [
             {
               stepId: step.id,
-              path: 'step-1',
               code: 'test-step',
               isEntryPoint: true,
               entryWhenNodeId: undefined,
               forwardOutcomeIds: [],
               hasValidation: false,
               cleardownFieldCodes: [],
-              iterateNodeIds: [],
-              validationBlockIds: [],
-              domainValidationNodeIds: [],
               reachabilityTieBreakers: [],
             },
           ],
@@ -1311,7 +1280,6 @@ describe('StepController', () => {
       expect(mockContextPreparerPrepare).toHaveBeenCalledWith(
         mockCompiledForm.runtimePlan,
         mockCompiledForm.artefact,
-        mockDependencies,
         customRequest,
         expect.objectContaining({
           setHeader: expect.any(Function),

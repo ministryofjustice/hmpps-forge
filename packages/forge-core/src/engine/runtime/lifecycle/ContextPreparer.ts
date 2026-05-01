@@ -1,13 +1,16 @@
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
 import { StepResponse } from '../../../framework/types/response.type'
-import { JourneyASTNode } from '../../types/structures.type'
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
+import { ASTNode, NodeId } from '../../types/engine.type'
 import { CompilationDependencies } from '../../compilation/CompilationDependencies'
+import { ASTNodeType } from '../../types/enums'
 
 interface AccessRuntimeInputs {
   accessAncestorIds: NodeId[]
 }
+
+type StaticDataAncestor = JourneyASTNode | StepASTNode
 
 /**
  * ContextPreparer - Creates and prepares the evaluation context before hooks run
@@ -29,18 +32,12 @@ export default class ContextPreparer {
   prepare(
     runtimePlan: AccessRuntimeInputs,
     compilationDependencies: CompilationDependencies,
-    journeyInstanceDependencies: JourneyInstanceDependencies,
     request: StepRequest,
     response: StepResponse,
   ): RuntimeEvaluationContext {
-    const context = new RuntimeEvaluationContext(
-      compilationDependencies,
-      journeyInstanceDependencies,
-      request,
-      response,
-    )
+    const context = new RuntimeEvaluationContext(request, response)
 
-    this.mergeStaticData(runtimePlan, context)
+    this.mergeStaticData(runtimePlan, compilationDependencies, context)
 
     return context
   }
@@ -51,9 +48,13 @@ export default class ContextPreparer {
    * Merge order is outermost first (journeys before step), so later ancestors
    * override earlier ones via shallow merge.
    */
-  private mergeStaticData(runtimePlan: AccessRuntimeInputs, context: RuntimeEvaluationContext): void {
+  private mergeStaticData(
+    runtimePlan: AccessRuntimeInputs,
+    compilationDependencies: CompilationDependencies,
+    context: RuntimeEvaluationContext,
+  ): void {
     const ancestors = runtimePlan.accessAncestorIds
-      .map(nodeId => context.nodeRegistry.get(nodeId) as JourneyASTNode)
+      .map(nodeId => this.getStaticDataAncestor(nodeId, compilationDependencies))
 
     ancestors.forEach(ancestor => {
       const staticData = ancestor.properties.data
@@ -62,5 +63,19 @@ export default class ContextPreparer {
         Object.assign(context.global.data, staticData)
       }
     })
+  }
+
+  private getStaticDataAncestor(nodeId: NodeId, compilationDependencies: CompilationDependencies): StaticDataAncestor {
+    const node = compilationDependencies.nodeRegistry.get(nodeId)
+
+    if (!this.isStaticDataAncestor(node)) {
+      throw new Error(`Access ancestor "${nodeId}" was not registered as a journey or step`)
+    }
+
+    return node
+  }
+
+  private isStaticDataAncestor(node: ASTNode | undefined): node is StaticDataAncestor {
+    return node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP
   }
 }

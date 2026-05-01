@@ -1,83 +1,16 @@
 import { NodeId } from '../../types/engine.type'
 
-interface PropertyEdge {
-  readonly childIds: NodeId[]
-  readonly childTypes: Set<string>
-}
-
 export default class ASTNodeTree {
   private readonly parentMap = new Map<NodeId, NodeId>()
 
-  private readonly childrenMap = new Map<NodeId, NodeId[]>()
-
-  private readonly roots: NodeId[] = []
-
-  private readonly nodeTypes = new Map<NodeId, string>()
-
-  private readonly propertyEdges = new Map<NodeId, Map<string, PropertyEdge>>()
-
-  addNode(nodeId: NodeId, parentId?: NodeId, propertyKey?: string, nodeType?: string): void {
-    if (!this.childrenMap.has(nodeId)) {
-      this.childrenMap.set(nodeId, [])
-    }
-
-    if (nodeType !== undefined) {
-      this.nodeTypes.set(nodeId, nodeType)
-    }
-
+  addNode(nodeId: NodeId, parentId?: NodeId): void {
     if (parentId !== undefined) {
       this.parentMap.set(nodeId, parentId)
-
-      const siblings = this.childrenMap.get(parentId)
-
-      if (siblings) {
-        siblings.push(nodeId)
-      } else {
-        this.childrenMap.set(parentId, [nodeId])
-      }
-
-      if (propertyKey !== undefined) {
-        this.addPropertyEdge(parentId, propertyKey, nodeId, nodeType)
-      }
-    } else {
-      this.roots.push(nodeId)
     }
   }
 
   getParent(nodeId: NodeId): NodeId | undefined {
     return this.parentMap.get(nodeId)
-  }
-
-  getChildren(nodeId: NodeId): readonly NodeId[] {
-    return this.childrenMap.get(nodeId) ?? []
-  }
-
-  isLeaf(nodeId: NodeId): boolean {
-    const children = this.childrenMap.get(nodeId)
-
-    return children === undefined || children.length === 0
-  }
-
-  getNodeType(nodeId: NodeId): string | undefined {
-    return this.nodeTypes.get(nodeId)
-  }
-
-  /** Property edges let compilers ask structural questions without re-walking raw AST objects. */
-  getActivePropertyKeys(nodeId: NodeId): string[] {
-    const edges = this.propertyEdges.get(nodeId)
-
-    return edges ? Array.from(edges.keys()) : []
-  }
-
-  /** Direct-child type checks are used when choosing which compiled plan owns a node. */
-  hasChildOfType(nodeId: NodeId, type: string): boolean {
-    const edges = this.propertyEdges.get(nodeId)
-
-    if (!edges) {
-      return false
-    }
-
-    return Array.from(edges.values()).some(edge => edge.childTypes.has(type))
   }
 
   isDescendantOf(nodeId: NodeId, ancestorId: NodeId): boolean {
@@ -92,122 +25,5 @@ export default class ASTNodeTree {
     }
 
     return false
-  }
-
-  /** Descendant checks let plan builders find nested fields and iterators below blocks. */
-  hasDescendantOfType(nodeId: NodeId, type: string): boolean {
-    if (this.hasChildOfType(nodeId, type)) {
-      return true
-    }
-
-    return this.getChildren(nodeId).some(childId => {
-      return this.hasDescendantOfType(childId, type)
-    })
-  }
-
-  /** Property-key lookups preserve the distinction between child blocks, predicates, and metadata. */
-  getPropertyKeysWithChildType(nodeId: NodeId, type: string): string[] {
-    const edges = this.propertyEdges.get(nodeId)
-
-    if (!edges) {
-      return []
-    }
-
-    const result: string[] = []
-
-    edges.forEach((edge, key) => {
-      if (edge.childTypes.has(type)) {
-        result.push(key)
-      }
-    })
-
-    return result
-  }
-
-  /** Property-scoped children keep block order and authored nesting available to compilers. */
-  getChildrenInProperty(nodeId: NodeId, propertyKey: string): readonly NodeId[] {
-    return this.propertyEdges.get(nodeId)?.get(propertyKey)?.childIds ?? []
-  }
-
-  /** Template children are not registered, but their containing property still affects plan selection. */
-  markPropertyContainsType(parentId: NodeId, propertyKey: string, type: string): void {
-    let properties = this.propertyEdges.get(parentId)
-
-    if (!properties) {
-      properties = new Map()
-      this.propertyEdges.set(parentId, properties)
-    }
-
-    let edge = properties.get(propertyKey)
-
-    if (!edge) {
-      edge = { childIds: [], childTypes: new Set() }
-      properties.set(propertyKey, edge)
-    }
-
-    edge.childTypes.add(type)
-  }
-
-  postOrder(): NodeId[] {
-    const result: NodeId[] = []
-
-    const visit = (nodeId: NodeId): void => {
-      const children = this.childrenMap.get(nodeId)
-
-      if (children) {
-        children.forEach(childId => visit(childId))
-      }
-
-      result.push(nodeId)
-    }
-
-    this.roots.forEach(rootId => visit(rootId))
-
-    return result
-  }
-
-  clone(): ASTNodeTree {
-    const cloned = new ASTNodeTree()
-
-    this.parentMap.forEach((parentId, nodeId) => cloned.parentMap.set(nodeId, parentId))
-    this.childrenMap.forEach((children, nodeId) => cloned.childrenMap.set(nodeId, [...children]))
-    cloned.roots.push(...this.roots)
-    this.nodeTypes.forEach((type, nodeId) => cloned.nodeTypes.set(nodeId, type))
-    this.propertyEdges.forEach((properties, parentId) => {
-      const clonedProperties = new Map<string, PropertyEdge>()
-
-      properties.forEach((edge, key) => {
-        clonedProperties.set(key, {
-          childIds: [...edge.childIds],
-          childTypes: new Set(edge.childTypes),
-        })
-      })
-
-      cloned.propertyEdges.set(parentId, clonedProperties)
-    })
-
-    return cloned
-  }
-
-  private addPropertyEdge(parentId: NodeId, propertyKey: string, childId: NodeId, nodeType?: string): void {
-    let properties = this.propertyEdges.get(parentId)
-
-    if (!properties) {
-      properties = new Map()
-      this.propertyEdges.set(parentId, properties)
-    }
-
-    let edge = properties.get(propertyKey)
-
-    if (!edge) {
-      edge = { childIds: [], childTypes: new Set() }
-      properties.set(propertyKey, edge)
-    }
-
-    edge.childIds.push(childId)
-
-    if (nodeType !== undefined) {
-      edge.childTypes.add(nodeType)
-    }
   }
 }

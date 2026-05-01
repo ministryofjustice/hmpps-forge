@@ -1159,7 +1159,11 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures).toHaveLength(2)
+      expect(result.fieldFailures[0].blockId).toBe('compiled:name')
+      expect(result.fieldFailures[0].blockCode).toBe('name')
       expect(result.fieldFailures[0].message).toBe('Enter a name')
+      expect(result.fieldFailures[1].blockId).toBe('compiled:name')
+      expect(result.fieldFailures[1].blockCode).toBe('name')
       expect(result.fieldFailures[1].message).toBe('Enter a name')
     })
 
@@ -1340,6 +1344,7 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures).toHaveLength(1)
+      expect(result.fieldFailures[0].blockId).toBe('compiled:item_1')
       expect(result.fieldFailures[0].blockCode).toBe('item_1')
       expect(result.fieldFailures[0].message).toBe('Required')
     })
@@ -1687,6 +1692,7 @@ describe('StepValidationCompiler', () => {
       expect(source).toContain('Array.isArray')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"isRequired"')
+      expect(source).toContain('blockId: "compiled:" + "field"')
     })
 
     it('should handle empty input arrays', () => {

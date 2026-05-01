@@ -5,11 +5,12 @@ import { ASTNodeType } from './enums'
  */
 export type CompileAstNodeId = `compile_ast:${number}`
 export type TemplateNodeId = `template:${number}`
+export type CompiledNodeId = `compiled:${string}`
 
 /**
  * Union of all valid NodeId formats
  */
-export type NodeId = CompileAstNodeId
+export type NodeId = CompileAstNodeId | CompiledNodeId
 
 /**
  * NodeIds categorized by AST node type

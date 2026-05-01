@@ -373,8 +373,8 @@ export default class StepRenderCompiler {
       }
 
       const idExpr =
-        blockType === BlockType.FIELD && codeExpr !== undefined
-          ? `"compiled:" + ${codeExpr}`
+        blockType === BlockType.FIELD
+          ? this.fieldCodes.compileIteratorFieldBlockIdExpression(codeExpr, String(block.id))
           : JSON.stringify(`compiled:${String(block.id)}`)
 
       emitter.code(
@@ -503,10 +503,11 @@ export default class StepRenderCompiler {
         this.compileFieldValueResolution(emitter, propsVar)
       }
 
-      // FIELD blocks inside iterators use "compiled:" + fieldCode as their ID so
-      // validation failures (which are remapped to the same scheme) can match.
       // The code property has already been compiled into propsVar at this point.
-      const idExpr = blockType === BlockType.FIELD ? `"compiled:" + ${propsVar}["code"]` : JSON.stringify(block.id)
+      const idExpr =
+        blockType === BlockType.FIELD
+          ? this.fieldCodes.compileIteratorFieldBlockIdExpression(`${propsVar}["code"]`, String(block.id))
+          : JSON.stringify(block.id)
 
       emitter.assign(
         resultVar,
