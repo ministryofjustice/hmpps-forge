@@ -136,3 +136,4 @@ forge-package/
 
 # Rollup transpiles .ts config to .js during build
 packages/rollup.config.js
+packages/*.md
