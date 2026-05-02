@@ -8,6 +8,7 @@ import { routingAndEntryPointsStep } from './routing-and-entry-points/step'
 import { reachabilityStep } from './reachability/step'
 import { navigationTreeStep } from './navigation-tree/step'
 import { hooksAndLifecycleStep } from './hooks-and-lifecycle/step'
+import { definitionsAndRuntimeStep } from './definitions-and-runtime/step'
 import { loadingSavingAndRedirectingStep } from './loading-saving-and-redirecting/step'
 import { shapingDataStep } from './shaping-data/step'
 import { validationStep } from './validation/step'
@@ -29,6 +30,7 @@ export const buildingJourneysJourney = journey({
     reachabilityStep,
     navigationTreeStep,
     hooksAndLifecycleStep,
+    definitionsAndRuntimeStep,
     loadingSavingAndRedirectingStep,
     shapingDataStep,
     validationStep,
