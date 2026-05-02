@@ -12,12 +12,11 @@ export type {
   Evaluated,
   HasNestedBlocksLookup,
   JourneyAncestor,
-  JourneyMetadata,
-  NavigationJourney,
-  NavigationStep,
-  NavigationTree,
   RenderContext,
-  StepMetadata,
+  RouteTree,
+  RouteTreeNode,
+  RouteTreeRoute,
+  RouteTreeRouteKind,
 } from './rendering/types'
 export type { ASTNode, AstNodeId, NodeId } from '../engine/types/ast.type'
 export type { BlockASTNode } from '../engine/types/structures.type'

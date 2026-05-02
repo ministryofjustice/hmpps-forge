@@ -26,40 +26,27 @@ type EvaluatedProperties<P> = {
   [K in keyof P]: Evaluated<P[K]>
 }
 
-/**
- * Step metadata (raw, without navigation state)
- */
-export interface StepMetadata {
-  title?: string
-  path: string
-  metadata?: Record<string, unknown>
-}
+export type RouteTreeRouteKind = 'journey' | 'step'
 
-/**
- * Journey metadata (raw, without navigation state)
- */
-export interface JourneyMetadata {
+export interface RouteTreeRoute {
+  kind: RouteTreeRouteKind
+  nodeId: NodeId
   title?: string
   description?: string
-  path: string
   metadata?: Record<string, unknown>
-  children: (JourneyMetadata | StepMetadata)[]
 }
 
-/** Navigation step (hydrated with type discriminator + active state) */
-export type NavigationStep = StepMetadata & { type: 'step'; active: boolean }
-
-/** Navigation journey (hydrated with type discriminator + active state) */
-export type NavigationJourney = Omit<JourneyMetadata, 'children'> & {
-  type: 'journey'
+export interface RouteTreeNode {
+  segment: string
+  path: string
+  templatePath: string
   active: boolean
-  children: (NavigationJourney | NavigationStep)[]
+  metadata?: Record<string, unknown>
+  route?: RouteTreeRoute
+  children: RouteTreeNode[]
 }
 
-/**
- * Complete navigation tree for all registered forms
- */
-export type NavigationTree = NavigationJourney[]
+export type RouteTree = RouteTreeNode[]
 
 /**
  * Journey ancestor in the render context.
@@ -78,8 +65,8 @@ export interface JourneyAncestor {
  * Contains all data needed to render a page
  */
 export interface RenderContext {
-  /** Navigation tree for side menus, showing all journeys and steps with active state */
-  navigation: NavigationTree
+  /** Route hierarchy with request params resolved and active state applied. */
+  routeTree: RouteTree
 
   /**
    * Current step properties (excluding hooks and blocks).

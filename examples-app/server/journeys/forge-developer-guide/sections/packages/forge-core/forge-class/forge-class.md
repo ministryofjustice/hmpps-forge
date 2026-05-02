@@ -36,7 +36,7 @@ const forge = new Forge({
 |--------|------|---------|-------------|
 | `frameworkAdapter` | `FrameworkAdapterBuilder` | *required* | Builder for the web framework adapter. Use the static `configure()` method on your adapter class. |
 | `logger` | `Logger \| Console` | `console` | Logger instance for Forge output. Compatible with pino, bunyan, or any logger with `info`, `error`, `warn`, and `debug` methods. |
-| `basePath` | `string` | `''` | Base path prefix for all routes. When set, all routes are mounted under this path and navigation metadata includes the prefix. |
+| `basePath` | `string` | `''` | Base path prefix for all routes. When set, all routes are mounted under this path and the route tree includes the prefix. |
 | `strictRegistration` | `boolean` | `true` | When `true`, registration errors throw immediately. When `false`, errors are logged and the failing journey is skipped. |
 | `lazyStepCompilation` | `boolean` | `true` | When `true`, each step compiles on first request for faster startup. When `false`, all steps compile at registration time for faster first requests. |
 | `disableBuiltInFunctions` | `boolean` | `false` | Skip registering built-in conditions, transformers, and effects. |

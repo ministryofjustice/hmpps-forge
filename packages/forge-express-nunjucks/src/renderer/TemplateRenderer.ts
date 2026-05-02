@@ -8,10 +8,11 @@ import {
   Evaluated,
   HasNestedBlocksLookup,
   RenderContext,
+  RouteTreeNode,
   ValidationResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import createHttpError from 'http-errors'
-import { FieldError, TemplateContext } from './types'
+import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
@@ -86,7 +87,8 @@ export default class TemplateRenderer {
       blocks: renderedBlocks,
       step: context.step,
       ancestors: context.ancestors,
-      navigation: context.navigation,
+      routeTree: context.routeTree,
+      navigation: buildNavigationCompatibilityTree(context.routeTree),
       answers: context.answers,
       data: context.data,
       fieldValidationErrors: context.fieldValidationErrors,
@@ -299,4 +301,28 @@ export default class TemplateRenderer {
       html,
     }
   }
+}
+
+function buildNavigationCompatibilityTree(routeTree: RouteTreeNode[]): TemplateNavigationItem[] {
+  return routeTree.flatMap(node => toNavigationCompatibilityItems(node))
+}
+
+function toNavigationCompatibilityItems(node: RouteTreeNode): TemplateNavigationItem[] {
+  const children = node.children.flatMap(child => toNavigationCompatibilityItems(child))
+
+  if (!node.route) {
+    return children
+  }
+
+  return [
+    {
+      type: node.route.kind,
+      title: node.route.title,
+      description: node.route.description,
+      path: node.path,
+      active: node.active,
+      metadata: node.metadata ?? node.route.metadata,
+      children,
+    },
+  ]
 }

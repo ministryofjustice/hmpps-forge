@@ -58,19 +58,9 @@ describe('Forge', () => {
       build: vi.fn().mockReturnValue(mockFrameworkAdapter),
     } as any
 
-    // Mock ForgeRouter with a mutable routes array that mount populates
-    const mockRoutes: Array<{ method: string; path: string }> = []
-
     mockForgeRouter = {
-      mount: vi.fn().mockImplementation(() => {
-        mockRoutes.push(
-          { method: 'GET', path: '/start' },
-          { method: 'GET', path: '/page-1' },
-          { method: 'POST', path: '/page-1' },
-        )
-      }),
+      mount: vi.fn().mockReturnValue(3),
       getRouter: vi.fn().mockReturnValue(mockRouter),
-      getRegisteredRoutes: vi.fn().mockImplementation(() => [...mockRoutes]),
     } as any
     ;(ForgeRouter as MockedClass<typeof ForgeRouter>).mockImplementation(function mockForgeRouterCtor() {
       return mockForgeRouter as any

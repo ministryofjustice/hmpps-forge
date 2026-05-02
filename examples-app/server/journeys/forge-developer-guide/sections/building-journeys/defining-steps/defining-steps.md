@@ -61,9 +61,9 @@ When Forge compiles a journey, it processes each step in three ways:
    becomes `/travel-declaration/add-trip`.
 2. **Inherits configuration**: any `view` or `data` set on the parent
    journey flows down to the step. The step can override either.
-3. **Registers in the navigation tree**: the step's `title`, `path`,
+3. **Registers in the route tree**: the step's `title`, `path`,
    and `metadata` are extracted into the
-   [navigation tree](navigation-tree) so templates can render sidebars
+   [route tree](navigation-tree) so templates can render sidebars
    and breadcrumbs.
 
 ### Configuration inheritance
@@ -194,7 +194,7 @@ path: '/prisoner/:prisonerId'
 
 ### `title` (Required)
 
-The display name for the step. Used in the navigation tree, the page
+The display name for the step. Used in the route tree, the page
 title, and anywhere the step needs a human-readable label.
 
 ```typescript
@@ -291,8 +291,8 @@ GovUKSelectInput({
 
 ### `metadata` (Optional)
 
-Arbitrary data passed through to the navigation tree. Forge does not
-use it internally. See [The navigation tree](navigation-tree) for how
+Arbitrary data passed through to the route tree. Forge does not
+use it internally. See [The route tree](navigation-tree) for how
 to use metadata for grouping and display.
 
 ```typescript

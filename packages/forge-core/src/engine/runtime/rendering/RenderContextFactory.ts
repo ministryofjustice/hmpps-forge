@@ -8,27 +8,26 @@ import { isObjectValue } from '../../../shared/typeguards/primitives'
 import {
   JourneyAncestor,
   RenderContext,
-  NavigationTree,
-  NavigationJourney,
-  NavigationStep,
-  JourneyMetadata,
-  StepMetadata,
+  RouteTree,
+  RouteTreeNode,
+  RouteTreeRoute,
   Evaluated,
   HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
+import { StoredRouteTree, StoredRouteTreeNode, StoredRouteTreeRoute } from '../types/routes.type'
 
 export interface RenderContextOptions {
   /** Show validation errors on blocks. Set to true after form submission. Defaults to false. */
   showValidationFailures?: boolean
 
-  /** Raw navigation metadata from the router, hydrated with active state. */
-  navigationMetadata: JourneyMetadata[]
+  /** Raw route hierarchy from the router, hydrated with params and active state. */
+  routeTree: StoredRouteTree
 
-  /** Full path of the current step, used to determine active state in navigation. */
+  /** Full route template path of the current step, used to determine active state in the route tree. */
   currentStepPath: string
 
-  /** Route params from the current request, used to resolve :param placeholders in navigation paths. */
+  /** Route params from the current request, used to resolve :param placeholders in route paths. */
   params: Record<string, string>
 }
 
@@ -53,10 +52,10 @@ export default class RenderContextFactory {
       fieldValidationFailures.length > 0
         ? attachValidationToBlocks(input.blocks, fieldValidationFailures)
         : input.blocks
-    const navigation = buildNavigationTree(options.navigationMetadata, options.currentStepPath, options.params)
+    const routeTree = buildRouteTree(options.routeTree, options.currentStepPath, options.params)
 
     return {
-      navigation,
+      routeTree,
       step: input.step,
       ancestors: input.ancestors,
       blocks,
@@ -70,48 +69,38 @@ export default class RenderContextFactory {
   }
 }
 
-function buildNavigationTree(
-  metadata: JourneyMetadata[],
+function buildRouteTree(
+  routeTree: StoredRouteTree,
   currentStepPath: string,
   params: Record<string, string>,
-): NavigationTree {
-  return metadata.map(journey => toNavigationJourney(journey, currentStepPath, params))
+): RouteTree {
+  return routeTree.map(node => toRouteTreeNode(node, currentStepPath, params))
 }
 
-function toNavigationJourney(
-  stored: JourneyMetadata,
+function toRouteTreeNode(
+  stored: StoredRouteTreeNode,
   currentStepPath: string,
   params: Record<string, string>,
-): NavigationJourney {
-  const children = stored.children.map(child => {
-    if ('children' in child) {
-      return toNavigationJourney(child, currentStepPath, params)
-    }
-
-    return toNavigationStep(child, currentStepPath, params)
-  })
+): RouteTreeNode {
+  const children = stored.children.map(child => toRouteTreeNode(child, currentStepPath, params))
 
   return {
-    type: 'journey',
-    title: stored.title,
-    description: stored.description,
-    path: resolvePathParams(stored.path, params),
-    active: children.some(child => child.active),
+    segment: stored.segment,
+    path: resolvePathParams(stored.templatePath, params),
+    templatePath: stored.templatePath,
+    active: stored.templatePath === currentStepPath || children.some(child => child.active),
     metadata: stored.metadata,
+    route: stored.route ? toRouteTreeRoute(stored.route) : undefined,
     children,
   }
 }
 
-function toNavigationStep(
-  stored: StepMetadata,
-  currentStepPath: string,
-  params: Record<string, string>,
-): NavigationStep {
+function toRouteTreeRoute(stored: StoredRouteTreeRoute): RouteTreeRoute {
   return {
-    type: 'step',
     title: stored.title,
-    path: resolvePathParams(stored.path, params),
-    active: stored.path === currentStepPath,
+    description: stored.description,
+    kind: stored.kind,
+    nodeId: stored.nodeId,
     metadata: stored.metadata,
   }
 }
