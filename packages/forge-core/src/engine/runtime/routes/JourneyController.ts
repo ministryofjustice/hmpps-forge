@@ -1,12 +1,11 @@
 import createHttpError from 'http-errors'
 import { JourneyInstanceDependencies } from '../../types/engine.type'
-import { CompilationArtefact } from '../../compilation/CompilationFactory'
-import { JourneyRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
 import { StepRequest } from '../../../framework/types/request.type'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../navigation/redirectTarget'
 import ContextPreparer from '../lifecycle/ContextPreparer'
-import NavigationAnalyzer, { resolveJourneyRootRedirect } from '../navigation/NavigationAnalyzer'
+import { resolveJourneyRootRedirect } from '../navigation/NavigationAnalyzer'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import {
@@ -14,22 +13,17 @@ import {
   buildCompiledBaseContext,
   buildCompiledHookLifecycleContext,
 } from '../context/compiledEvaluationContext'
-import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
-import { CompiledAccessHookResult } from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
+import type { CompiledAccessHookResult } from '../../types/hookLifecycle.type'
 
 export default class JourneyController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
 
-  private readonly navigationAnalyzer: NavigationAnalyzer
-
   constructor(
     private readonly journeyPlan: JourneyRuntimePlan,
-    private readonly journeyArtefact: CompilationArtefact,
     private readonly dependencies: JourneyInstanceDependencies,
     private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ) {
     this.contextPreparer = new ContextPreparer()
-    this.navigationAnalyzer = new NavigationAnalyzer()
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
@@ -47,16 +41,7 @@ export default class JourneyController<TRequest, TResponse> {
 
     await this.prepareAnswers(context)
 
-    const compiledResult = await this.evaluateCompiledReachability(context)
-
-    const evaluation = await this.navigationAnalyzer.evaluate(
-      this.journeyPlan.reachabilityPlan,
-      undefined,
-      this.routeTemplateCatalog,
-      context,
-      compiledResult,
-      this.dependencies.functionRegistry,
-    )
+    const { evaluation } = await this.evaluateCompiledNavigation(context)
 
     const redirectRouteTemplatePath = resolveJourneyRootRedirect(evaluation)
 
@@ -70,7 +55,7 @@ export default class JourneyController<TRequest, TResponse> {
   private prepareRequest(req: TRequest, res: TResponse) {
     const request = this.dependencies.frameworkAdapter.toStepRequest(req)
     const response = this.dependencies.frameworkAdapter.toStepResponse(res)
-    const context = this.contextPreparer.prepare(this.journeyPlan, this.journeyArtefact, request, response)
+    const context = this.contextPreparer.prepare(this.journeyPlan, request, response)
 
     return { request, context }
   }
@@ -110,9 +95,7 @@ export default class JourneyController<TRequest, TResponse> {
   }
 
   /**
-   * Mirrors StepController.prepareAnswers(), but uses the journey-level compiled
-   * function. Journey-root requests have no current step, so the function is
-   * compiled from the direct steps owned by this journey.
+   * Prepares answers for the direct steps owned by the journey root.
    */
   private async prepareAnswers(context: RuntimeEvaluationContext): Promise<void> {
     const compiledFn = this.journeyPlan.compiledAnswerPreparation
@@ -126,19 +109,16 @@ export default class JourneyController<TRequest, TResponse> {
     await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
   }
 
-  /**
-   * Same pattern as StepController.evaluateCompiledReachability. Hybrid
-   * compiled functions may be sync or async, so callers always await this helper.
-   * The journey controller passes `undefined` as currentStepId to
-   * NavigationAnalyzer since it handles the journey root.
-   */
-  private async evaluateCompiledReachability(context: RuntimeEvaluationContext): Promise<CompiledReachabilityResult> {
-    const compiledFn = this.journeyPlan.reachabilityPlan.compiledReachability
+  private async evaluateCompiledNavigation(context: RuntimeEvaluationContext) {
+    const compiledFn = this.journeyPlan.navigationPlan.compiledNavigation
 
     if (!compiledFn) {
-      throw new Error('[Forge] Reachability fallback is disabled — compiledReachability function is missing from plan')
+      throw new Error('[Forge] Navigation compilation is required — compiledNavigation function is missing from plan')
     }
 
-    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry), {
+      plan: this.journeyPlan.navigationPlan,
+      routeTemplateCatalog: this.routeTemplateCatalog,
+    })
   }
 }

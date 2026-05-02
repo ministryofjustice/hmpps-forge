@@ -8,7 +8,8 @@ import { TestPredicateASTNode } from '../../../../types/predicates.type'
 import type { StepRequest } from '../../../../../framework/types/request.type'
 import type { StepResponse } from '../../../../../framework/types/response.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import HookLifecycleCompiler, { HookLifecycleContext } from './HookLifecycleCompiler'
+import type { HookLifecycleContext } from '../../../../types/hookLifecycle.type'
+import HookLifecycleCompiler from './HookLifecycleCompiler'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {

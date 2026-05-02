@@ -1,4 +1,4 @@
-import { CompilationArtefact, JourneyIndex } from '../../compilation/CompilationFactory'
+import type { CompilationArtefact, JourneyIndex } from '../../types/compilationArtefacts.type'
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
@@ -68,8 +68,6 @@ export default class ForgeRouter<TRouter> {
     return this.navigationMetadata
   }
 
-  // ── Pass 1: Compute route paths and catalogs ─────────────────────
-
   private buildStepRouteContexts(
     stepIndex: Map<NodeId, StepASTNode>,
     artefact: CompilationArtefact,
@@ -99,8 +97,6 @@ export default class ForgeRouter<TRouter> {
     return { stepContexts, catalogsByBasePath }
   }
 
-  // ── Pass 2: Create journey sub-routers ────────────────────────────
-
   private createJourneyRouters(journeyIndex: JourneyIndex, artefact: CompilationArtefact): void {
     journeyIndex.forEach((_, journeyId) => {
       const chain = getAncestorChain(journeyId, artefact.astNodeTree)
@@ -127,8 +123,6 @@ export default class ForgeRouter<TRouter> {
       })
     })
   }
-
-  // ── Pass 3: Mount step routes ─────────────────────────────────────
 
   private mountStepRoutes(
     stepContexts: StepRouteContext[],
@@ -172,8 +166,6 @@ export default class ForgeRouter<TRouter> {
     })
   }
 
-  // ── Pass 4: Mount journey root handlers ───────────────────────────
-
   private mountJourneyRootHandlers(
     journeyInstance: JourneyInstance,
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
@@ -191,12 +183,8 @@ export default class ForgeRouter<TRouter> {
 
       const getController = () => {
         if (!controller) {
-          controller = new JourneyController(
-            journeyPlan,
-            journeyInstance.getJourneyCompilationArtefact(),
-            dependencies,
-            routeTemplateCatalog,
-          )
+          journeyInstance.getJourneyCompilationArtefact()
+          controller = new JourneyController(journeyPlan, dependencies, routeTemplateCatalog)
         }
 
         return controller
@@ -207,13 +195,9 @@ export default class ForgeRouter<TRouter> {
     })
   }
 
-  // ── Pass 5: Store navigation metadata ─────────────────────────────
-
   private storeNavigationMetadata(config: JourneyDefinition): void {
     this.navigationMetadata.push(this.extractJourneyMetadata(config, this.basePath))
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────
 
   private getJourneyAncestry(stepId: NodeId, artefact: CompilationArtefact): JourneyASTNode[] {
     return getAncestorChain(stepId, artefact.astNodeTree)

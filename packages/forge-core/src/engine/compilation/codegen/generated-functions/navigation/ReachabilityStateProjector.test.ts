@@ -1,6 +1,6 @@
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
-import { StepFieldInventory } from '../types/StepFieldInventory.type'
+import { NavigationEvaluation, NavigationStepState } from '../../../../types/NavigationEvaluation.type'
+import { StepFieldInventory } from '../../../../types/StepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {
   const projector = new ReachabilityStateProjector()

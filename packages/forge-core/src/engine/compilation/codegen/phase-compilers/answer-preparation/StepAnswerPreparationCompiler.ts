@@ -16,6 +16,8 @@ import {
 } from '../../generated-functions/GeneratedFunctionCompiler'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 
+import type { CompiledAnswerPreparationFunction } from '../../../../types/compiledPhaseResults.type'
+
 interface FormatterFunctionCall {
   readonly name: string
   readonly arguments: unknown[]
@@ -40,8 +42,6 @@ export interface AnswerPreparationContext {
   conditions: FunctionRegistry
   post: Record<string, string | string[]>
 }
-
-export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
 
 /**
  * Compiles GET/POST answer preparation for a step or journey-root plan.

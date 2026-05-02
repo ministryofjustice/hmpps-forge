@@ -3,7 +3,7 @@ import { BlockType, ExpressionType } from '../../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../../types/structures.type'
 import { IterateASTNode } from '../../../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../../types/template.type'
-import { StepFieldInventory } from '../../../../runtime/types/StepFieldInventory.type'
+import { StepFieldInventory } from '../../../../types/StepFieldInventory.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
@@ -33,23 +33,34 @@ export type CompiledFieldInventoryFunction = (
 ) => StepFieldInventory[] | Promise<StepFieldInventory[]>
 
 /**
- * Compiles the possible field codes for each step in a reachability plan.
+ * Compiles the possible field codes for each step in a navigation plan.
  *
  * Registered field codes are read from field blocks, including dynamic code
  * expressions. MAP iterator field codes are evaluated inline from templates
  * using the same iterator scope model as answer preparation, validation, and
- * render. The result lets navigation clear unreachable answers without creating
- * request-time AST nodes.
+ * render.
  */
 export default class StepFieldInventoryCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
 
-  private readonly fieldCodes = new FieldCodeEmitter(this.expr)
+  private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly templates = new ScopedTemplateCompiler(this.expr)
+  private readonly templates: ScopedTemplateCompiler
 
   /**
-   * Builds the generated inventory function for a journey's reachable step set.
+   * Creates an inventory compiler.
+   *
+   * Passing an existing expression dispatcher shares function metadata with a
+   * surrounding generated function.
+   */
+  constructor(expr: NodeCompilationDispatcher = new NodeCompilationDispatcher()) {
+    this.expr = expr
+    this.fieldCodes = new FieldCodeEmitter(this.expr)
+    this.templates = new ScopedTemplateCompiler(this.expr)
+  }
+
+  /**
+   * Builds a standalone generated inventory function for tests and diagnostics.
    */
   compile(
     steps: FieldInventoryStepSource[],
@@ -72,6 +83,16 @@ export default class StepFieldInventoryCompiler {
   }
 
   /**
+   * Emits inventory collection into an existing generated function.
+   *
+   * The caller owns the target array and expression dispatcher lifecycle; this
+   * method only appends the per-step collection statements.
+   */
+  compileInto(steps: FieldInventoryStepSource[], emitter: CodeEmitter, fieldInventoryVar: string): void {
+    steps.forEach(step => this.compileStep(step, emitter, fieldInventoryVar))
+  }
+
+  /**
    * Emits the full field inventory source, accumulating one inventory entry per step.
    */
   private buildSource(steps: FieldInventoryStepSource[]): string {
@@ -82,7 +103,7 @@ export default class StepFieldInventoryCompiler {
     emitter.comment('StepFieldInventoryCompiler.buildSource')
     emitter.declareConst('fieldInventory', '[]')
 
-    steps.forEach(step => this.compileStep(step, emitter))
+    this.compileInto(steps, emitter, 'fieldInventory')
     emitter.return('fieldInventory')
 
     return emitter.toString()
@@ -91,7 +112,7 @@ export default class StepFieldInventoryCompiler {
   /**
    * Emits one step's static and iterator-derived field codes into a de-duplicated result.
    */
-  private compileStep(step: FieldInventoryStepSource, emitter: CodeEmitter): void {
+  private compileStep(step: FieldInventoryStepSource, emitter: CodeEmitter, fieldInventoryVar: string): void {
     emitter.comment('StepFieldInventoryCompiler.compileStep')
     emitter.scope(() => {
       const fieldCodesVar = emitter.const('fieldCodes', '[]')
@@ -103,7 +124,7 @@ export default class StepFieldInventoryCompiler {
       })
 
       emitter.code(
-        `fieldInventory.push({ stepId: ${JSON.stringify(step.stepId)}, fieldCodes: Array.from(new Set(${fieldCodesVar})), cleardownFieldCodes: ${JSON.stringify(step.cleardownFieldCodes)} });`,
+        `${fieldInventoryVar}.push({ stepId: ${JSON.stringify(step.stepId)}, fieldCodes: Array.from(new Set(${fieldCodesVar})), cleardownFieldCodes: ${JSON.stringify(step.cleardownFieldCodes)} });`,
       )
     })
   }

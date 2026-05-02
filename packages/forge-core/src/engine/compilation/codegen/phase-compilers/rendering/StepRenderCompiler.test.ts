@@ -21,7 +21,8 @@ import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { attachDSLSourceMetadata } from '../../../../diagnostics/sourceMetadata'
-import StepRenderCompiler, { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
+import type { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
+import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
   return ASTTestFactory.step()

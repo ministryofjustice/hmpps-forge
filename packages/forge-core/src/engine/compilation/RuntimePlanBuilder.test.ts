@@ -70,6 +70,8 @@ describe('RuntimePlanBuilder', () => {
         onSubmission: [submit],
       })
 
+      journey.properties.data = { shared: 'journey', journeyOnly: true }
+      step.properties.data = { shared: 'step', stepOnly: true }
       dependencies.nodeRegistry.register(journey.id, journey)
       dependencies.nodeRegistry.register(step.id, step)
 
@@ -85,7 +87,11 @@ describe('RuntimePlanBuilder', () => {
       expect(result).toEqual({
         stepId: step.id,
         path: 'step',
-        accessAncestorIds: [journey.id, step.id],
+        staticData: {
+          shared: 'step',
+          journeyOnly: true,
+          stepOnly: true,
+        },
       })
     })
   })

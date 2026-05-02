@@ -9,7 +9,7 @@ import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import JourneyInstance from '../../JourneyInstance'
 import StepController from './StepController'
 import JourneyController from './JourneyController'
-import { JourneyRuntimePlan, StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { JourneyRuntimePlan, StepRuntimePlan } from '../../types/runtimePlans.type'
 import ForgeRouter from './ForgeRouter'
 import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 
@@ -138,7 +138,7 @@ describe('ForgeRouter', () => {
   }
 
   function createMockJourneyInstance(
-    compiledForm: Array<{ artefact: any; currentStepId: NodeId; runtimePlan?: StepRuntimePlan }>,
+    compiledForm: Array<{ artefact: any; stepId: NodeId; runtimePlan?: StepRuntimePlan }>,
     config: JourneyDefinition,
   ): Mocked<JourneyInstance> {
     const compiledSteps = compiledForm.map(compiled => {
@@ -148,27 +148,29 @@ describe('ForgeRouter', () => {
 
       return {
         ...compiled,
-        reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
+        navigationPlan: {
+          entries: [],
+          resumeConfigured: false,
+          reachabilityDisabled: false,
+          compiledStepValidations: new Map(),
+        },
         runtimePlan: {
-          stepId: compiled.currentStepId,
+          stepId: compiled.stepId,
           path: '/step',
-          accessAncestorIds: [compiled.currentStepId],
+          staticData: {},
         },
       }
     })
 
-    const byStepId = new Map(compiledSteps.map(compiled => [compiled.currentStepId, compiled]))
+    const byStepId = new Map(compiledSteps.map(compiled => [compiled.stepId, compiled]))
     const stepIndex = new Map(
-      compiledSteps.map(compiled => [
-        compiled.currentStepId,
-        compiled.artefact.nodeRegistry.get(compiled.currentStepId),
-      ]),
+      compiledSteps.map(compiled => [compiled.stepId, compiled.artefact.nodeRegistry.get(compiled.stepId)]),
     )
     const sharedAstNodeTree = new ASTNodeTree()
     const registeredNodeIds = new Set<NodeId>()
 
     compiledSteps.forEach(compiled => {
-      const parentChain = compiled.artefact.parentChain ?? [compiled.currentStepId]
+      const parentChain = compiled.artefact.parentChain ?? [compiled.stepId]
 
       parentChain.forEach((nodeId: NodeId, index: number) => {
         if (registeredNodeIds.has(nodeId)) {
@@ -199,8 +201,13 @@ describe('ForgeRouter', () => {
 
     const journeyRuntimePlanMock: JourneyRuntimePlan = {
       path: '/mock',
-      accessAncestorIds: [],
-      reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
+      staticData: {},
+      navigationPlan: {
+        entries: [],
+        resumeConfigured: false,
+        reachabilityDisabled: false,
+        compiledStepValidations: new Map(),
+      },
     }
 
     return {
@@ -282,7 +289,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -307,7 +314,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -329,7 +336,7 @@ describe('ForgeRouter', () => {
         title: 'Test Journey',
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -368,7 +375,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -394,7 +401,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -431,8 +438,8 @@ describe('ForgeRouter', () => {
 
       const journeyInstance = createMockJourneyInstance(
         [
-          { artefact: artefact1, currentStepId: stepNode1.id },
-          { artefact: artefact2, currentStepId: stepNode2.id },
+          { artefact: artefact1, stepId: stepNode1.id },
+          { artefact: artefact2, stepId: stepNode2.id },
         ],
         config,
       )
@@ -473,7 +480,7 @@ describe('ForgeRouter', () => {
       const childRouter = { _type: 'child-router' }
       mockFrameworkAdapter.createRouter.mockReturnValueOnce(mockMainRouter).mockReturnValueOnce(childRouter)
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -507,8 +514,8 @@ describe('ForgeRouter', () => {
 
       const journeyInstance = createMockJourneyInstance(
         [
-          { artefact: artefact1, currentStepId: stepNode1.id },
-          { artefact: artefact2, currentStepId: stepNode2.id },
+          { artefact: artefact1, stepId: stepNode1.id },
+          { artefact: artefact2, stepId: stepNode2.id },
         ],
         config,
       )
@@ -549,7 +556,7 @@ describe('ForgeRouter', () => {
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -591,7 +598,7 @@ describe('ForgeRouter', () => {
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -635,8 +642,8 @@ describe('ForgeRouter', () => {
 
       const journeyInstance = createMockJourneyInstance(
         [
-          { artefact: artefact1, currentStepId: stepNode1.id },
-          { artefact: artefact2, currentStepId: stepNode2.id },
+          { artefact: artefact1, stepId: stepNode1.id },
+          { artefact: artefact2, stepId: stepNode2.id },
         ],
         config,
       )
@@ -667,7 +674,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -690,7 +697,7 @@ describe('ForgeRouter', () => {
         title: 'Test Journey',
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -729,8 +736,8 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/begin', title: 'Begin' }],
       }
 
-      const journeyInstance1 = createMockJourneyInstance([{ artefact: artefact1, currentStepId: step1.id }], config1)
-      const journeyInstance2 = createMockJourneyInstance([{ artefact: artefact2, currentStepId: step2.id }], config2)
+      const journeyInstance1 = createMockJourneyInstance([{ artefact: artefact1, stepId: step1.id }], config1)
+      const journeyInstance2 = createMockJourneyInstance([{ artefact: artefact2, stepId: step2.id }], config2)
 
       // Act
       router.mount(journeyInstance1)
@@ -774,8 +781,8 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/begin', title: 'Begin' }],
       }
 
-      const journeyInstance1 = createMockJourneyInstance([{ artefact: artefact1, currentStepId: step1.id }], config1)
-      const journeyInstance2 = createMockJourneyInstance([{ artefact: artefact2, currentStepId: step2.id }], config2)
+      const journeyInstance1 = createMockJourneyInstance([{ artefact: artefact1, stepId: step1.id }], config1)
+      const journeyInstance2 = createMockJourneyInstance([{ artefact: artefact2, stepId: step2.id }], config2)
 
       // Act
       router.mount(journeyInstance1)
@@ -804,7 +811,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/entry', title: 'Entry Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -829,7 +836,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/entry', title: 'Entry Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       router.mount(journeyInstance)
@@ -882,13 +889,18 @@ describe('ForgeRouter', () => {
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: childStep.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: childStep.id }], config)
       ;(journeyInstance.getJourneyRuntimePlan as Mock).mockImplementation((journeyId: NodeId) => {
         if (journeyId === childJourney.id) {
           return {
             path: '/child',
-            accessAncestorIds: [],
-            reachabilityPlan: { entries: [], resumeAlways: false, reachabilityDisabled: false },
+            staticData: {},
+            navigationPlan: {
+              entries: [],
+              resumeConfigured: false,
+              reachabilityDisabled: false,
+              compiledStepValidations: new Map(),
+            },
           }
         }
 
@@ -935,8 +947,8 @@ describe('ForgeRouter', () => {
 
       const journeyInstance = createMockJourneyInstance(
         [
-          { artefact: artefactParent, currentStepId: parentStep.id },
-          { artefact: artefactChild, currentStepId: childStep.id },
+          { artefact: artefactParent, stepId: parentStep.id },
+          { artefact: artefactChild, stepId: childStep.id },
         ],
         config,
       )
@@ -972,7 +984,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1004,7 +1016,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step-one', title: 'Step One' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1036,7 +1048,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/first-step', title: 'First Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1066,7 +1078,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1096,7 +1108,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1127,7 +1139,7 @@ describe('ForgeRouter', () => {
         steps: [{ type: StructureType.STEP, path: '/step', title: 'Step' }],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)
@@ -1171,7 +1183,7 @@ describe('ForgeRouter', () => {
         ],
       }
 
-      const journeyInstance = createMockJourneyInstance([{ artefact, currentStepId: stepNode.id }], config)
+      const journeyInstance = createMockJourneyInstance([{ artefact, stepId: stepNode.id }], config)
 
       // Act
       routerWithBasePath.mount(journeyInstance)

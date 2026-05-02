@@ -28,6 +28,8 @@ import {
 import ScopedTemplateCompiler, { isTemplateBlockNode } from '../../values/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
 
+import type { CompiledRenderFunction, CompiledRenderResult } from '../../../../types/compiledPhaseResults.type'
+
 /**
  * Runtime context passed to the compiled render function.
  * Field value resolution reads the AnswerHistory produced by compiled answer
@@ -53,18 +55,7 @@ export interface CompiledBlock {
   properties: Record<string, unknown>
 }
 
-/** Output of the compiled render function — blocks + step/ancestor metadata. */
-export interface CompiledRenderResult {
-  blocks: CompiledBlock[]
-  step: Record<string, unknown>
-  ancestors: Record<string, unknown>[]
-}
-
 type SyncCompiledRenderFunction = (ctx: RenderCompilationContext) => CompiledRenderResult
-
-export type CompiledRenderFunction = (
-  ctx: RenderCompilationContext,
-) => CompiledRenderResult | Promise<CompiledRenderResult>
 
 interface RenderBlockValue {
   readonly id?: unknown

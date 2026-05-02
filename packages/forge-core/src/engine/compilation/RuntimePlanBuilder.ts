@@ -1,13 +1,5 @@
 import { normalizeRelativePath } from '../../framework/path/routePath'
-import { NodeId } from '../types/ast.type'
-import type { CompiledAnswerPreparationFunction } from './codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
-import type { CompiledFieldInventoryFunction } from './codegen/phase-compilers/field-inventory/StepFieldInventoryCompiler'
-import type {
-  CompiledAccessLifecycleFunction,
-  CompiledSubmitHooksFunction,
-} from './codegen/phase-compilers/hooks/HookLifecycleCompiler'
-import type { CompiledReachabilityFunction } from './codegen/phase-compilers/reachability/ReachabilityCompiler'
-import type { CompiledValidationFunction } from './codegen/phase-compilers/validation/StepValidationCompiler'
+import { ASTNode, NodeId } from '../types/ast.type'
 import { SubmitHookASTNode } from '../types/expressions.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
@@ -15,106 +7,59 @@ import getAncestorChain from '../utils/getAncestorChain'
 import ASTNodeTree from './node-tree/ASTNodeTree'
 import NodeRegistry from './registries/NodeRegistry'
 import { BlockType } from '../../authoring/types/enums'
+import { ASTNodeType } from '../types/enums'
+import type {
+  JourneyRuntimePlan,
+  NavigationRuntimePlan,
+  ReachabilityCompilationEntry,
+  ReachabilityCompilationPlan,
+  StepRuntimePlan,
+} from '../types/runtimePlans.type'
 
-export interface StepRuntimePlan {
-  stepId: NodeId
-  path: string
-  accessAncestorIds: NodeId[]
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledSubmitHooks?: CompiledSubmitHooksFunction
-}
-
-export interface ReachabilityRuntimePlan {
-  entries: ReachabilityStepEntry[]
-  resumeAlways: boolean
-  resumeWhenNodeId?: NodeId
-  reachabilityDisabled: boolean
-  /**
-   * Generated function that pre-computes entry predicates, forward outcomes,
-   * tie-breaker priorities, and the resume condition in a single call.
-   *
-   * The plan is shared across every direct step in a journey, so this function is
-   * compiled once and reused for GET, POST, and journey-root navigation checks.
-   */
-  compiledReachability?: CompiledReachabilityFunction
-  compiledFieldInventory?: CompiledFieldInventoryFunction
-  resolveStepValidations?: () => Map<NodeId, CompiledValidationFunction>
-}
-
-export interface ReachabilityStepEntry {
-  stepId: NodeId
-  code?: string
-  isEntryPoint: boolean
-  entryWhenNodeId?: NodeId
-  forwardOutcomeIds: NodeId[]
-  hasValidation: boolean
-  cleardownFieldCodes: string[]
-  reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
-}
-
-/**
- * Runtime shape of a tie-breaker rule. `whenNodeId` points to the predicate
- * expression compiled into the reachability quick function; when absent, the
- * rule is a catch-all.
- */
 export interface ReachabilityTieBreakerEntry {
   priority: number
   whenNodeId?: NodeId
 }
 
 /**
- * Runtime plan for a journey as a whole, used when handling the journey root.
- */
-export interface JourneyRuntimePlan {
-  path: string
-  accessAncestorIds: NodeId[]
-  reachabilityPlan: ReachabilityRuntimePlan
-  /**
-   * Compiled answer preparation for the journey root. This covers the journey's
-   * direct steps so resume/reachability can evaluate with prepared answers
-   * without pretending that a specific step is currently being rendered.
-   */
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-}
-
-/**
  * Builds the small immutable plan objects consumed by controllers and compilers.
- *
- * Plans deliberately store node IDs and topology, not generated source. Compilers
- * later use those IDs to pull AST nodes from the shared registry and attach the
- * generated functions back onto the same plan objects.
  */
 export default class RuntimePlanBuilder {
   private readonly allFieldBlocks: FieldBlockASTNode[]
 
   constructor(
-    nodeRegistry: NodeRegistry,
+    private readonly nodeRegistry: NodeRegistry,
     private readonly astNodeTree: ASTNodeTree,
   ) {
     this.allFieldBlocks = nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
   }
 
   /**
-   * Build reachability and journey runtime plans in a single pass.
+   * Build step, navigation, reachability compilation, and journey runtime plans.
    *
    * Groups steps by parent journey. For each journey that owns direct steps,
-   * builds one `ReachabilityRuntimePlan` and one `JourneyRuntimePlan`.
-   * The reachability map is step-keyed for fast lookup, but all direct steps in
+   * builds one `ReachabilityCompilationPlan`, one `NavigationRuntimePlan`, and one `JourneyRuntimePlan`.
+   * The navigation map is step-keyed for fast lookup, but all direct steps in
    * the same journey share the same plan instance.
    */
   buildAllPlans(
     stepIndex: Map<NodeId, StepASTNode>,
     journeyIndex: Map<NodeId, JourneyASTNode>,
   ): {
-    reachabilityPlansByStepId: Map<NodeId, ReachabilityRuntimePlan>
+    stepRuntimePlans: Map<NodeId, StepRuntimePlan>
+    navigationPlansByStepId: Map<NodeId, NavigationRuntimePlan>
+    reachabilityCompilationPlans: ReachabilityCompilationPlan[]
     journeyRuntimePlans: Map<NodeId, JourneyRuntimePlan>
   } {
     const journeyStepMap = new Map<NodeId, StepASTNode[]>()
-    const reachabilityPlansByStepId = new Map<NodeId, ReachabilityRuntimePlan>()
+    const stepRuntimePlans = new Map<NodeId, StepRuntimePlan>()
+    const navigationPlansByStepId = new Map<NodeId, NavigationRuntimePlan>()
+    const reachabilityCompilationPlans: ReachabilityCompilationPlan[] = []
     const journeyRuntimePlans = new Map<NodeId, JourneyRuntimePlan>()
 
     stepIndex.forEach((stepNode, stepId) => {
+      stepRuntimePlans.set(stepId, this.buildStepRuntimePlan(stepNode))
+
       const ancestors = getAncestorChain(stepId, this.astNodeTree)
       const parentJourneyId = ancestors[ancestors.length - 2]
 
@@ -128,28 +73,33 @@ export default class RuntimePlanBuilder {
 
     journeyStepMap.forEach((journeySteps, journeyId) => {
       const journeyNode = journeyIndex.get(journeyId)
-      const reachabilityPlan = this.buildReachabilityPlan(journeySteps, journeyNode, journeyIndex)
+      const reachabilityCompilationPlan = this.buildReachabilityPlan(journeySteps, journeyNode, journeyIndex)
 
       journeySteps.forEach(stepNode => {
-        reachabilityPlansByStepId.set(stepNode.id, reachabilityPlan)
+        navigationPlansByStepId.set(stepNode.id, reachabilityCompilationPlan.navigationPlan)
       })
 
+      reachabilityCompilationPlans.push(reachabilityCompilationPlan)
+
       if (journeyNode) {
-        journeyRuntimePlans.set(journeyId, this.buildJourneyRuntimePlan(journeyNode, reachabilityPlan))
+        journeyRuntimePlans.set(
+          journeyId,
+          this.buildJourneyRuntimePlan(journeyNode, reachabilityCompilationPlan.navigationPlan),
+        )
       }
     })
 
-    return { reachabilityPlansByStepId, journeyRuntimePlans }
+    return { stepRuntimePlans, navigationPlansByStepId, reachabilityCompilationPlans, journeyRuntimePlans }
   }
 
   private buildJourneyRuntimePlan(
     journeyNode: JourneyASTNode,
-    reachabilityPlan: ReachabilityRuntimePlan,
+    navigationPlan: NavigationRuntimePlan,
   ): JourneyRuntimePlan {
     return {
       path: normalizeRelativePath(journeyNode.properties.path),
-      accessAncestorIds: getAncestorChain(journeyNode.id, this.astNodeTree),
-      reachabilityPlan,
+      staticData: this.buildStaticData(getAncestorChain(journeyNode.id, this.astNodeTree)),
+      navigationPlan,
     }
   }
 
@@ -157,18 +107,37 @@ export default class RuntimePlanBuilder {
     journeySteps: StepASTNode[],
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: Map<NodeId, JourneyASTNode>,
-  ): ReachabilityRuntimePlan {
+  ): ReachabilityCompilationPlan {
     const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
+    const resumeAlways = resumeWhen === true
+    const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
+    const navigationPlan: NavigationRuntimePlan = {
+      entries: entries.map(entry => ({
+        stepId: entry.stepId,
+        code: entry.code,
+        isEntryPoint: entry.isEntryPoint,
+        hasValidation: entry.hasValidation,
+      })),
+      resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
+      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
+      compiledStepValidations: new Map(),
+    }
 
     return {
+      navigationPlan,
       entries,
-      resumeAlways: resumeWhen === true,
-      resumeWhenNodeId: resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined,
-      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
+      resumeAlways,
+      resumeWhenNodeId,
     }
   }
 
+  /**
+   * Resolves inherited reachability disabling from the nearest journey setting.
+   *
+   * A journey's own setting wins first; otherwise the nearest ancestor journey
+   * with an explicit setting controls the direct-step navigation plan.
+   */
   private resolveReachabilityDisabled(
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: Map<NodeId, JourneyASTNode>,
@@ -202,7 +171,10 @@ export default class RuntimePlanBuilder {
     return false
   }
 
-  private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityStepEntry {
+  /**
+   * Extracts reachability inputs that depend on AST node identities.
+   */
+  private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
     const { forwardOutcomeIds } = this.extractForwardNavigation(stepNode)
     const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
@@ -225,14 +197,49 @@ export default class RuntimePlanBuilder {
     }
   }
 
+  /**
+   * Builds the plan for one step route.
+   */
   buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
     const stepId = stepNode.id
 
     return {
       stepId,
       path: normalizeRelativePath(stepNode.properties.path),
-      accessAncestorIds: getAncestorChain(stepId, this.astNodeTree),
+      staticData: this.buildStaticData(getAncestorChain(stepId, this.astNodeTree)),
     }
+  }
+
+  /**
+   * Merges static `data` from outer to inner ancestors.
+   */
+  private buildStaticData(ancestorIds: NodeId[]): Record<string, unknown> {
+    return (
+      ancestorIds
+        .map(nodeId => this.getStaticDataNode(nodeId)).reduce<Record<string, unknown>>((data, node) => {
+          const staticData = node.properties.data
+
+          if (staticData === undefined) {
+            return data
+          }
+
+          return { ...data, ...staticData }
+        }, {})
+    )
+  }
+
+  private getStaticDataNode(nodeId: NodeId): JourneyASTNode | StepASTNode {
+    const node = this.nodeRegistry.get(nodeId)
+
+    if (!this.isStaticDataNode(node)) {
+      throw new Error(`Static data ancestor "${nodeId}" was not registered as a journey or step`)
+    }
+
+    return node
+  }
+
+  private isStaticDataNode(node: ASTNode | undefined): node is JourneyASTNode | StepASTNode {
+    return node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP
   }
 
   private hasValidationBlocks(stepId: NodeId): boolean {

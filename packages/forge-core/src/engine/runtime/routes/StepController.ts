@@ -1,6 +1,6 @@
 import createHttpError from 'http-errors'
 import { JourneyInstanceDependencies } from '../../types/engine.type'
-import { CompiledForm } from '../../compilation/CompilationFactory'
+import type { CompiledForm } from '../../types/compilationArtefacts.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import {
   buildCompiledAnswerPreparationContext,
@@ -13,23 +13,17 @@ import { JourneyMetadata, RenderContext } from '../../../framework/rendering/typ
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../navigation/redirectTarget'
 import ContextPreparer from '../lifecycle/ContextPreparer'
-import NavigationAnalyzer, {
+import {
+  resolveBacklinkRouteTemplatePath,
   resolvePostRequestRedirect,
   resolveStepRequestRedirect,
 } from '../navigation/NavigationAnalyzer'
-import { NavigationEvaluation } from '../types/NavigationEvaluation.type'
-import { resolveBacklinkRouteTemplatePath } from '../navigation/NavigationPathAnalyzer'
-import ReachabilityStateProjector from '../reachability/ReachabilityStateProjector'
+import { NavigationEvaluation } from '../../types/NavigationEvaluation.type'
 import RenderContextFactory from '../rendering/RenderContextFactory'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
-import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
-import { CompiledRenderResult } from '../../compilation/codegen/phase-compilers/rendering/StepRenderCompiler'
-import { StepFieldInventory } from '../types/StepFieldInventory.type'
+import type { CompiledRenderResult } from '../../types/compiledPhaseResults.type'
 import { StepValidityResult } from '../types/StepValidityResult.type'
-import {
-  CompiledAccessHookResult,
-  CompiledSubmitHookResult,
-} from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
+import type { CompiledAccessHookResult, CompiledSubmitHookResult } from '../../types/hookLifecycle.type'
 
 /**
  * Handles the full request lifecycle for steps.
@@ -42,10 +36,6 @@ import {
  */
 export default class StepController<TRequest, TResponse> {
   private readonly contextPreparer: ContextPreparer
-
-  private readonly navigationEvaluator: NavigationAnalyzer
-
-  private readonly reachabilityStateProjector: ReachabilityStateProjector
 
   private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
 
@@ -64,8 +54,6 @@ export default class StepController<TRequest, TResponse> {
     this.navigationMetadata = navigationMetadata
     this.currentRouteTemplatePath = currentRouteTemplatePath
     this.contextPreparer = new ContextPreparer()
-    this.navigationEvaluator = new NavigationAnalyzer()
-    this.reachabilityStateProjector = new ReachabilityStateProjector()
   }
 
   async get(req: TRequest, res: TResponse): Promise<void> {
@@ -150,12 +138,8 @@ export default class StepController<TRequest, TResponse> {
   private prepareRequest(req: TRequest, res: TResponse) {
     const request = this.dependencies.frameworkAdapter.toStepRequest(req)
     const response = this.dependencies.frameworkAdapter.toStepResponse(res)
-    const context = this.contextPreparer.prepare(
-      this.compiledForm.runtimePlan,
-      this.compiledForm.artefact,
-      request,
-      response,
-    )
+    const context = this.contextPreparer.prepare(this.compiledForm.runtimePlan, request, response)
+
     return { request, context }
   }
 
@@ -254,8 +238,7 @@ export default class StepController<TRequest, TResponse> {
   /**
    * Calls the compiled answer preparation function, which resolves all field
    * answers — POST extraction, formatters, dependentWhen, and default values.
-   * Sync-only compilations return immediately; async user functions return a
-   * Promise. Mutates context.global.answers in place.
+   * Mutates context.global.answers in place.
    */
   private async prepareAnswers(context: RuntimeEvaluationContext): Promise<void> {
     const compiledFn = this.compiledForm.compiledAnswerPreparation
@@ -272,8 +255,7 @@ export default class StepController<TRequest, TResponse> {
   /**
    * Builds the final RenderContext by calling the compiled render function,
    * enriching step metadata with backlink resolution, and assembling via
-   * RenderContextFactory. Render has no interpreted fallback, so missing compiled
-   * functions fail fast before this method runs.
+   * RenderContextFactory.
    */
   private async buildRenderContext(
     context: RuntimeEvaluationContext,
@@ -305,8 +287,7 @@ export default class StepController<TRequest, TResponse> {
   }
 
   /**
-   * Calls the compiled render function with the shared compiled-function
-   * context snapshot.
+   * Calls the compiled render function with the current request context.
    */
   private async evaluateCompiledRender(context: RuntimeEvaluationContext): Promise<CompiledRenderResult> {
     const compiledFn = this.compiledForm.compiledRender
@@ -342,43 +323,24 @@ export default class StepController<TRequest, TResponse> {
   }
 
   private async evaluateNavigation(context: RuntimeEvaluationContext): Promise<NavigationEvaluation> {
-    const fieldInventory = await this.evaluateCompiledFieldInventory(context)
-    const compiledResult = await this.evaluateCompiledReachability(context)
-    const navigationEvaluation = await this.navigationEvaluator.evaluate(
-      this.compiledForm.reachabilityPlan,
-      this.compiledForm.runtimePlan.stepId,
-      this.routeTemplateCatalog,
-      context,
-      compiledResult,
-      this.dependencies.functionRegistry,
-    )
-
-    this.reachabilityStateProjector.projectToContext(navigationEvaluation, fieldInventory, context)
-
-    return navigationEvaluation
-  }
-
-  private async evaluateCompiledFieldInventory(context: RuntimeEvaluationContext): Promise<StepFieldInventory[]> {
-    const compiledFn = this.compiledForm.reachabilityPlan.compiledFieldInventory
+    const compiledFn = this.compiledForm.navigationPlan.compiledNavigation
 
     if (!compiledFn) {
-      throw new Error('[Forge] Field inventory compilation is required — compiledFieldInventory is missing from plan')
+      throw new Error('[Forge] Navigation compilation is required — compiledNavigation function is missing from plan')
     }
 
-    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
-  }
+    const result = await compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry), {
+      plan: this.compiledForm.navigationPlan,
+      currentStepId: this.compiledForm.runtimePlan.stepId,
+      routeTemplateCatalog: this.routeTemplateCatalog,
+      params: context.request.getParams(),
+    })
 
-  /**
-   * Calls the compiled reachability function if available. Hybrid compiled
-   * functions may be sync or async, so callers always await this helper.
-   */
-  private async evaluateCompiledReachability(context: RuntimeEvaluationContext): Promise<CompiledReachabilityResult> {
-    const compiledFn = this.compiledForm.reachabilityPlan.compiledReachability
-
-    if (!compiledFn) {
-      throw new Error('[Forge] Reachability fallback is disabled — compiledReachability function is missing from plan')
+    if (result.reachability !== undefined) {
+      context.global.reachability = result.reachability
     }
 
-    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+    return result.evaluation
   }
+
 }

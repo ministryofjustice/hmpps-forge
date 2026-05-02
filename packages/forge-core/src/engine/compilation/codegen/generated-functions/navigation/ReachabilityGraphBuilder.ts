@@ -1,29 +1,25 @@
-import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../compilation/RuntimePlanBuilder'
-import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
-import { resolveRedirectTarget } from '../navigation/redirectTarget'
-import { pickTieBreakerWinner } from '../navigation/NavigationPathAnalyzer'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
-import { NodeId } from '../../types/ast.type'
-import { NavigationStepState } from '../types/NavigationEvaluation.type'
-import { CompiledReachabilityResult } from '../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
-import type { ValidationContext } from '../../compilation/codegen/phase-compilers/validation/StepValidationCompiler'
-import FunctionRegistry from '../../registries/FunctionRegistry'
-import { buildCompiledBaseContext } from '../context/compiledEvaluationContext'
+import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../../types/runtimePlans.type'
+import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
+import { JourneyRouteTemplateCatalog } from '../../../../runtime/types/routes.type'
+import { NodeId } from '../../../../types/ast.type'
+import { NavigationStepState } from '../../../../types/NavigationEvaluation.type'
+import type { ValidationContext } from '../../phase-compilers/validation/StepValidationCompiler'
+import type { CompiledReachabilityResult } from '../../phase-compilers/reachability/ReachabilityCompiler'
+import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 
 /**
- * Builds the reachability graph for a journey using pre-compiled results.
+ * Builds the reachability state for a journey.
  *
- * Entry predicates, forward outcomes, tie-breaker priorities, and step validation
- * are all resolved from compiled functions — no invoker.invoke() calls during the walk.
+ * Entry predicates, forward outcomes, tie-breaker priorities, and step
+ * validation determine which steps are reachable.
  */
 export default class ReachabilityGraphBuilder {
   async build(
-    plan: ReachabilityRuntimePlan,
+    plan: NavigationRuntimePlan,
     currentStepId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
-    context: RuntimeEvaluationContext,
+    validationContext: ValidationContext,
     compiledResult: CompiledReachabilityResult,
-    functionRegistry: FunctionRegistry,
   ): Promise<NavigationStepState[]> {
     const steps = this.createStepStates(plan.entries, routeTemplateCatalog)
 
@@ -44,8 +40,7 @@ export default class ReachabilityGraphBuilder {
       routeTemplateCatalog,
       compiledResult,
       currentStepId,
-      context,
-      functionRegistry,
+      validationContext,
     )
     this.applyCompiledTieBreakers(steps, compiledResult)
 
@@ -53,7 +48,7 @@ export default class ReachabilityGraphBuilder {
   }
 
   private createStepStates(
-    entries: ReachabilityStepEntry[],
+    entries: NavigationRuntimeEntry[],
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ): NavigationStepState[] {
     return entries.map((entry, declarationIndex) => {
@@ -81,7 +76,7 @@ export default class ReachabilityGraphBuilder {
 
   private seedEntryPointsFromCompiled(
     steps: NavigationStepState[],
-    entries: ReachabilityStepEntry[],
+    entries: NavigationRuntimeEntry[],
     compiled: CompiledReachabilityResult,
   ): void {
     entries.forEach((entry, index) => {
@@ -97,11 +92,8 @@ export default class ReachabilityGraphBuilder {
   }
 
   /**
-   * Reads raw outcome path strings from the compiled result and resolves them
-   * through resolveRedirectTarget (for relative URL handling) and the route
-   * catalog (to verify the target is a known step). Redirect resolution stays
-   * here in TypeScript rather than in the compiled function to avoid duplicating
-   * URL parsing logic in generated code.
+   * Reads raw outcome path strings from the compiled result and resolves them as
+   * route-template paths before checking they point at known journey steps.
    */
   private resolveForwardPathsFromCompiled(
     currentRouteTemplatePath: string,
@@ -117,17 +109,14 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      const resolvedTarget = resolveRedirectTarget(outcomeStr, {
-        origin: 'https://forge.local',
-        pathname: currentRouteTemplatePath,
-      })
+      const routeTemplatePath = resolveRouteTemplateTargetPath(outcomeStr, currentRouteTemplatePath)
 
-      if (!routeTemplateCatalog.stepIdByRouteTemplatePath.has(resolvedTarget.pathname)) {
+      if (routeTemplatePath === undefined || !routeTemplateCatalog.stepIdByRouteTemplatePath.has(routeTemplatePath)) {
         continue
       }
 
-      if (!routeTemplatePaths.includes(resolvedTarget.pathname)) {
-        routeTemplatePaths.push(resolvedTarget.pathname)
+      if (!routeTemplatePaths.includes(routeTemplatePath)) {
+        routeTemplatePaths.push(routeTemplatePath)
       }
     }
 
@@ -136,26 +125,24 @@ export default class ReachabilityGraphBuilder {
 
   private async walkReachabilityGraph(
     steps: NavigationStepState[],
-    plan: ReachabilityRuntimePlan,
+    plan: NavigationRuntimePlan,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     compiled: CompiledReachabilityResult,
     currentStepId: NodeId | undefined,
-    context: RuntimeEvaluationContext,
-    functionRegistry: FunctionRegistry,
+    validationCtx: ValidationContext,
   ): Promise<void> {
     if (steps.length === 0) {
       return
     }
 
-    const resumeConfigured = plan.resumeAlways || plan.resumeWhenNodeId !== undefined
+    const resumeConfigured = plan.resumeConfigured
     const isCurrentStepAnActiveEntry = steps.some(step => step.isReachable && step.stepId === currentStepId)
 
     if (!resumeConfigured && isCurrentStepAnActiveEntry) {
       return
     }
 
-    const stepValidations = plan.resolveStepValidations?.()
-    const validationCtx = this.buildValidationContext(context, functionRegistry)
+    const stepValidations = plan.compiledStepValidations
 
     const entryByStepId = new Map(plan.entries.map(entry => [entry.stepId, entry]))
     const stepIndexByStepId = new Map(plan.entries.map((entry, idx) => [entry.stepId, idx]))
@@ -191,7 +178,7 @@ export default class ReachabilityGraphBuilder {
       }
 
       if (entry.hasValidation) {
-        const compiledValidation = stepValidations?.get(current.stepId)
+        const compiledValidation = stepValidations.get(current.stepId)
 
         if (!compiledValidation) {
           throw new Error(`[Forge] Compiled validation missing for step "${current.stepId}"`)
@@ -260,12 +247,5 @@ export default class ReachabilityGraphBuilder {
 
   private isActiveEntry(step: NavigationStepState): boolean {
     return step.isEntryPoint || step.isConditionalEntry
-  }
-
-  private buildValidationContext(
-    context: RuntimeEvaluationContext,
-    functionRegistry: FunctionRegistry,
-  ): ValidationContext {
-    return buildCompiledBaseContext(context, functionRegistry)
   }
 }

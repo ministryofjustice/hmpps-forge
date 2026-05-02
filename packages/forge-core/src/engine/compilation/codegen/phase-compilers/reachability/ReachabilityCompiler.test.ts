@@ -3,7 +3,11 @@ import { ASTNodeType } from '../../../../types/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../../authoring/types/enums'
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../../types/expressions.type'
 import { TestPredicateASTNode } from '../../../../types/predicates.type'
-import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../../RuntimePlanBuilder'
+import type {
+  NavigationRuntimePlan,
+  ReachabilityCompilationEntry,
+  ReachabilityCompilationPlan,
+} from '../../../../types/runtimePlans.type'
 import NodeRegistry from '../../../registries/NodeRegistry'
 import { NodeId } from '../../../../types/ast.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
@@ -55,7 +59,7 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
   } as RedirectOutcomeASTNode
 }
 
-function createEntry(overrides: Partial<ReachabilityStepEntry> = {}): ReachabilityStepEntry {
+function createEntry(overrides: Partial<ReachabilityCompilationEntry> = {}): ReachabilityCompilationEntry {
   return {
     stepId: ASTTestFactory.getId() as NodeId,
     isEntryPoint: false,
@@ -67,12 +71,29 @@ function createEntry(overrides: Partial<ReachabilityStepEntry> = {}): Reachabili
   }
 }
 
-function createPlan(overrides: Partial<ReachabilityRuntimePlan> = {}): ReachabilityRuntimePlan {
+function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
+  const entries = overrides.entries ?? []
+  const navigationPlan = overrides.navigationPlan ?? createNavigationPlan(entries)
+
   return {
-    entries: [],
+    entries,
     resumeAlways: false,
-    reachabilityDisabled: false,
+    navigationPlan,
     ...overrides,
+  }
+}
+
+function createNavigationPlan(entries: ReachabilityCompilationEntry[]): NavigationRuntimePlan {
+  return {
+    entries: entries.map(entry => ({
+      stepId: entry.stepId,
+      code: entry.code,
+      isEntryPoint: entry.isEntryPoint,
+      hasValidation: entry.hasValidation,
+    })),
+    resumeConfigured: false,
+    reachabilityDisabled: false,
+    compiledStepValidations: new Map(),
   }
 }
 
@@ -614,6 +635,35 @@ describe('ReachabilityCompiler', () => {
       expect(source).toContain('"equals"')
       expect(source).toContain('"/step-2"')
       expect(source).toContain('return {')
+    })
+  })
+
+  describe('compileNavigation()', () => {
+    it('should evaluate navigation through generated function helpers', async () => {
+      // Arrange
+      const entry = createEntry({ isEntryPoint: true })
+      const plan = createPlan({ entries: [entry] })
+      const functionRegistry = new FunctionRegistry()
+      const routeTemplatePath = '/journey/start'
+      const routeTemplateCatalog = {
+        routeTemplatePathByStepId: new Map([[entry.stepId, routeTemplatePath]]),
+        stepIdByRouteTemplatePath: new Map([[routeTemplatePath, entry.stepId]]),
+      }
+
+      // Act
+      const source = compiler.generateNavigationSource(plan, [], registry, functionRegistry)
+      const fn = compiler.compileNavigation(plan, [], registry, functionRegistry)
+      const result = await fn(createCtx({ conditions: functionRegistry }), {
+        plan: plan.navigationPlan,
+        currentStepId: entry.stepId,
+        routeTemplateCatalog,
+      })
+
+      // Assert
+      expect(source).toContain('_forgeHelpers.evaluateNavigation')
+      expect(result.evaluation.currentStepId).toBe(entry.stepId)
+      expect(result.evaluation.defaultEntryRouteTemplatePath).toBe(routeTemplatePath)
+      expect(result.evaluation.steps[0].isReachable).toBe(true)
     })
   })
 

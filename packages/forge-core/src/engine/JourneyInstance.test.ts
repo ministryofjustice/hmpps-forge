@@ -3,10 +3,8 @@ import { StructureType } from '../authoring/types/enums'
 import type { JourneyASTNode, StepASTNode } from './types/structures.type'
 import type { JourneyInstanceDependencies, NodeId } from './types/engine.type'
 import type { CompilationDependencies } from './compilation/CompilationDependencies'
-import type RuntimePlanBuilder from './compilation/RuntimePlanBuilder'
-import type { ReachabilityRuntimePlan, StepRuntimePlan } from './compilation/RuntimePlanBuilder'
-import type { SharedCompiledForm } from './compilation/CompilationFactory'
-import type { CompiledValidationFunction } from './compilation/codegen/phase-compilers/validation/StepValidationCompiler'
+import type { NavigationRuntimePlan, StepRuntimePlan } from './types/runtimePlans.type'
+import type { SharedCompiledForm } from './types/compilationArtefacts.type'
 import CompilationFactory from './compilation/CompilationFactory'
 import JourneyInstance from './JourneyInstance'
 
@@ -16,13 +14,12 @@ describe('JourneyInstance', () => {
       vi.restoreAllMocks()
     })
 
-    it('should eagerly compile step, journey, and reachability validation artefacts', () => {
+    it('should eagerly compile step and journey artefacts', () => {
       // Arrange
       const stepOneId = 'compile_ast:1'
       const stepTwoId = 'compile_ast:2'
-      const resolveStepValidations = vi.fn(() => new Map<NodeId, CompiledValidationFunction>())
-      const reachabilityPlan = createReachabilityPlan(resolveStepValidations)
-      const sharedCompilation = createSharedCompilation(stepOneId, stepTwoId, reachabilityPlan)
+      const navigationPlan = createNavigationPlan()
+      const sharedCompilation = createSharedCompilation(stepOneId, stepTwoId, navigationPlan)
       const compileSharedSpy = vi.spyOn(CompilationFactory.prototype, 'compileShared')
         .mockReturnValue(sharedCompilation)
       const compileStepSpy = vi.spyOn(CompilationFactory.prototype, 'compileStep')
@@ -41,7 +38,6 @@ describe('JourneyInstance', () => {
       expect(compileStepSpy).toHaveBeenCalledWith(sharedCompilation, stepTwoId)
       expect(compileJourneySpy).toHaveBeenCalledTimes(1)
       expect(compileJourneySpy).toHaveBeenCalledWith(sharedCompilation)
-      expect(resolveStepValidations).toHaveBeenCalledTimes(1)
     })
   })
 })
@@ -68,7 +64,7 @@ function createDependencies(): JourneyInstanceDependencies {
 function createSharedCompilation(
   stepOneId: NodeId,
   stepTwoId: NodeId,
-  reachabilityPlan: ReachabilityRuntimePlan,
+  navigationPlan: NavigationRuntimePlan,
 ): SharedCompiledForm {
   return {
     rootNode: { properties: { code: 'journey' } } as JourneyASTNode,
@@ -78,34 +74,35 @@ function createSharedCompilation(
       [stepTwoId, { id: stepTwoId } as StepASTNode],
     ]),
     journeyIndex: new Map(),
-    reachabilityPlans: new Map([
-      [stepOneId, reachabilityPlan],
-      [stepTwoId, reachabilityPlan],
+    stepRuntimePlans: new Map([
+      [stepOneId, createStepRuntimePlan(stepOneId)],
+      [stepTwoId, createStepRuntimePlan(stepTwoId)],
     ]),
+    navigationPlans: new Map([
+      [stepOneId, navigationPlan],
+      [stepTwoId, navigationPlan],
+    ]),
+    reachabilityCompilationPlans: [],
     journeyRuntimePlans: new Map(),
-    planBuilder: {} as RuntimePlanBuilder,
   }
 }
 
-function createReachabilityPlan(
-  resolveStepValidations: () => Map<NodeId, CompiledValidationFunction>,
-): ReachabilityRuntimePlan {
+function createNavigationPlan(): NavigationRuntimePlan {
   return {
     entries: [],
-    resumeAlways: false,
+    resumeConfigured: false,
     reachabilityDisabled: false,
-    resolveStepValidations,
+    compiledStepValidations: new Map(),
   }
 }
 
 function createCompiledStep(): ReturnType<CompilationFactory['compileStep']> {
   return {
-    artefact: {} as CompilationDependencies,
     compiledAnswerPreparation: undefined,
     compiledEntryValidation: undefined,
     compiledRender: undefined,
     compiledValidation: undefined,
-    currentStepId: 'compile_ast:3',
+    navigationPlan: createNavigationPlan(),
     runtimePlan: createStepRuntimePlan('compile_ast:3'),
   }
 }
@@ -114,6 +111,6 @@ function createStepRuntimePlan(stepId: NodeId): StepRuntimePlan {
   return {
     stepId,
     path: '/step',
-    accessAncestorIds: [],
+    staticData: {},
   }
 }
