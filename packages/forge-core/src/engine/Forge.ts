@@ -168,8 +168,6 @@ export default class Forge {
       this.componentRegistry.registerBuiltInComponents()
     }
 
-    this.options.logger.warn('DEMO')
-
     this.dependencies = {
       functionRegistry: this.functionRegistry,
       componentRegistry: this.componentRegistry,
