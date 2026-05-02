@@ -172,7 +172,11 @@ export default class RouteTreeBuilder {
     const node = this.ensureNode(templatePath)
 
     if (node.route !== undefined) {
-      throw new DuplicateRouteError({ path: templatePath })
+      const isStepOverridingJourney = node.route.kind === 'journey' && route.kind === 'step'
+
+      if (!isStepOverridingJourney) {
+        throw new DuplicateRouteError({ path: templatePath })
+      }
     }
 
     node.route = route
