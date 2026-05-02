@@ -65,7 +65,7 @@ export interface JourneyAncestor {
  * Contains all data needed to render a page
  */
 export interface RenderContext {
-  /** URL-folder route tree with request params resolved and active state applied. */
+  /** Route hierarchy with request params resolved and active state applied. */
   routeTree: RouteTree
 
   /**

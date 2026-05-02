@@ -24,7 +24,7 @@ manages page flow - so you focus on what to ask, not how to wire it up.
   handle POST intents, and control what happens on form submission.
 - **Reachability** - prevents users skipping ahead, clears stale answers when 
   the path changes, and supports resuming partially-completed journeys.
-- **Route tree** - automatically built from mounted URL folders and 
+- **Route tree** - automatically built from mounted route paths and 
   available in templates for sidebars, breadcrumbs, and menus.
 - **Expression language** - references (`Answer()`, `Data()`, `Params()`, 
   `Session()`), conditionals, iterators, combinators, and pluggable functions 

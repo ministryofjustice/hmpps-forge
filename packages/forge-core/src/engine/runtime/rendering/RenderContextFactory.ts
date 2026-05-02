@@ -21,7 +21,7 @@ export interface RenderContextOptions {
   /** Show validation errors on blocks. Set to true after form submission. Defaults to false. */
   showValidationFailures?: boolean
 
-  /** Raw URL-folder route tree from the router, hydrated with params and active state. */
+  /** Raw route hierarchy from the router, hydrated with params and active state. */
   routeTree: StoredRouteTree
 
   /** Full route template path of the current step, used to determine active state in the route tree. */

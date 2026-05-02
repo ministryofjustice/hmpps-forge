@@ -10,7 +10,7 @@ prerequisites: [journey, JourneyDefinition, children]
 
 # The route tree
 
-Forge automatically builds a URL-folder route tree from your registered
+Forge automatically builds a path-segment route tree from your registered
 journeys and steps. Templates use this tree to render sidebars, breadcrumbs,
 and menus without manually wiring every link.
 
@@ -21,25 +21,25 @@ and menus without manually wiring every link.
 ## What is the route tree?
 
 The route tree is a structural view of the URLs Forge has mounted. It is
-based on URL folders, not on authored journey nesting.
+based on URL path segments, not on authored journey nesting.
 
 Every node has:
 
-- `segment` - the URL segment for this folder.
+- `segment` - this node's URL path segment.
 - `path` - the resolved URL for the current request.
 - `templatePath` - the original route template, including params.
 - `active` - `true` for the current step or an ancestor of it.
 - `metadata` - custom metadata from the concrete journey or step, when the
   node represents one.
 - `route` - concrete journey or step data when this URL is routable.
-- `children` - nested URL folders.
+- `children` - nested route segment nodes.
 
-Folder-only nodes are valid. A node can also represent a real route and still
-have child folders.
+Segment-only nodes are valid. A node can also represent a real route and still
+have child route segments.
 
 ---
 
-## URL folders, not authored nesting
+## Path Segments, Not Authored Nesting
 
 Forge still uses compiled navigation plans for reachability and redirects.
 The route tree only describes the URL structure.
@@ -50,7 +50,7 @@ step({ path: '/travellers/name', title: 'Traveller name' })
 step({ path: '/travellers/date-of-birth', title: 'Date of birth' })
 ```
 
-Those steps produce a shared folder node:
+Those steps produce a shared route segment node:
 
 ```
 /travel
@@ -60,7 +60,7 @@ Those steps produce a shared folder node:
 ```
 
 The `/travellers` node may not have a `route`. It exists because the URL
-structure needs a folder for the child routes.
+structure needs an intermediate segment for the child routes.
 
 ---
 
@@ -184,9 +184,9 @@ step({
 
 - **Treat it as route structure.** Reachability and resume behaviour still
   comes from compiled navigation plans.
-- **Check for `route`.** Folder-only nodes are part of the shape, but they
+- **Check for `route`.** Segment-only nodes are part of the shape, but they
   may not have a title or metadata.
 - **Use `metadata` for presentation.** Group labels, icons, ordering hints,
   and visibility flags belong there.
-- **Check `active` on folders too.** Active state bubbles up through child
-  nodes, so folders and journeys can highlight the current section.
+- **Check `active` on intermediate nodes too.** Active state bubbles up through
+  child nodes, so route segments and journeys can highlight the current section.

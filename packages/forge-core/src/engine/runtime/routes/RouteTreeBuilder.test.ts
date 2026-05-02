@@ -76,7 +76,7 @@ describe('RouteTreeBuilder', () => {
     return { index, result }
   }
 
-  it('should include the base path as URL folder nodes', () => {
+  it('should include the base path as route segment nodes', () => {
     // Arrange
     const journey = createJourneyNode('compile_ast:1', '/journey', 'journey')
     const step = createStepNode('compile_ast:2', '/start', 'Start')
@@ -101,7 +101,7 @@ describe('RouteTreeBuilder', () => {
     ])
   })
 
-  it('should merge shared URL folders for sibling routes', () => {
+  it('should merge shared route segments for sibling routes', () => {
     // Arrange
     const journey = createJourneyNode('compile_ast:3', '/apply', 'apply')
     const nameStep = createStepNode('compile_ast:4', '/personal/name', 'Name')

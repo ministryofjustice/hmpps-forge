@@ -247,7 +247,7 @@ describe('ForgeRouter', () => {
       )
     })
 
-    it('should build a URL-folder route tree that allows concrete routes to have children', () => {
+    it('should build a route hierarchy that allows concrete routes to have children', () => {
       // Arrange
       const journeyNode = createJourneyNode('compile_ast:5', '/journey', 'test')
       const childJourneyNode = createJourneyNode('compile_ast:6', '/section', 'section', 'Section')
@@ -288,7 +288,7 @@ describe('ForgeRouter', () => {
       ])
     })
 
-    it('should include base path folders in the route tree and root router mount path', () => {
+    it('should include base path segments in the route tree and root router mount path', () => {
       // Arrange
       const routerWithBasePath = new ForgeRouter(mockDependencies, {
         frameworkAdapter: { build: () => mockFrameworkAdapter },

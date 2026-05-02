@@ -53,7 +53,7 @@ When Forge receives a journey definition, it does three things:
    the journey's `path`. A journey at `/travel-declaration` with a step at
    `/your-trips` produces the route `/travel-declaration/your-trips`.
 3. **Builds the route tree**: extracts `title`, `path`, and `metadata` from the
-   journey and its steps to produce a URL-folder route tree. This tree is available
+   journey and its steps to produce a path-segment route tree. This tree is available
    in your templates for rendering sidebars, breadcrumbs, and menus.
 
 ```
