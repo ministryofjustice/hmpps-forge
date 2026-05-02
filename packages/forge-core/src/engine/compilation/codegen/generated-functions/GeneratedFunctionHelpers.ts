@@ -1,3 +1,11 @@
+import { evaluateGeneratedNavigation } from './navigation/evaluateGeneratedNavigation'
+import type {
+  NavigationEvaluationInput,
+  NavigationEvaluationResult,
+} from '../../../types/GeneratedNavigationEvaluation.type'
+import type { CompiledReachabilityResult } from '../phase-compilers/reachability/ReachabilityCompiler'
+import type { ValidationContext } from '../phase-compilers/validation/StepValidationCompiler'
+
 interface AnswerHistory {
   current: unknown
   mutations: { value: unknown; source: string }[]
@@ -77,6 +85,11 @@ export interface GeneratedFunctionHelpers {
     metadata: RuntimeDiagnosticState,
     evaluate: () => Promise<unknown>,
   ): Promise<unknown>
+  evaluateNavigation(
+    ctx: ValidationContext,
+    input: NavigationEvaluationInput,
+    compiledResult: CompiledReachabilityResult,
+  ): Promise<NavigationEvaluationResult>
   evaluateValidationCondition(evaluate: () => unknown): boolean
   evaluateValidationConditionAsync(evaluate: () => Promise<unknown>): Promise<boolean>
 }
@@ -150,6 +163,10 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
 
   evaluateTrackedAsync(diagnostics, metadata, evaluate) {
     return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
+  },
+
+  evaluateNavigation(ctx, input, compiledResult) {
+    return evaluateGeneratedNavigation(ctx, input, compiledResult)
   },
 
   evaluateValidationCondition(evaluate) {

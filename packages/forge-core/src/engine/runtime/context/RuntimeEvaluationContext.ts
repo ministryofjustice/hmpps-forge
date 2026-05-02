@@ -1,4 +1,5 @@
 import { NodeId } from '../../types/engine.type'
+import { JourneyReachabilityState } from '../../types/JourneyReachabilityState.type'
 import { AnswerHistory } from '../types/AnswerHistory.type'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse } from '../../../framework/types/response.type'
@@ -18,19 +19,6 @@ export interface StepValidationState {
   isValid: boolean
   fieldFailures: StepValidationFailure[]
   domainFailures: DomainValidationFailure[]
-}
-
-export interface ReachabilityStep {
-  path: string
-  code?: string
-  fieldCodes?: string[]
-  cleardownFieldCodes?: string[]
-  backPath?: string
-}
-
-export interface JourneyReachabilityState {
-  reachableSteps: ReachabilityStep[]
-  unreachableSteps: ReachabilityStep[]
 }
 
 /**

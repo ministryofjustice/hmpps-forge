@@ -3,15 +3,15 @@ import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
-import { JourneyInstanceDependencies, NodeId, AstNodeId } from '../../types/engine.type'
-import {
+import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import type {
   CompiledAccessHookResult as AccessHookResult,
   CompiledSubmitHookResult as SubmitHookResult,
-} from '../../compilation/codegen/phase-compilers/hooks/HookLifecycleCompiler'
-import { CompiledForm } from '../../compilation/CompilationFactory'
+} from '../../types/hookLifecycle.type'
+import type { CompiledForm } from '../../types/compilationArtefacts.type'
 import { JourneyMetadata } from '../../../framework/rendering/types'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
-import { StepRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { StepRuntimePlan } from '../../types/runtimePlans.type'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
@@ -191,11 +191,9 @@ describe('StepController', () => {
     const runtimePlan: StepRuntimePlan = {
       stepId: stepNode.id,
       path: stepNode.properties.path.replace(/^\//, ''),
-      accessAncestorIds: [stepNode.id],
+      staticData: {},
       compiledAccessLifecycle: async () => {
-        for (const ancestorId of runtimePlan.accessAncestorIds) {
-          const ancestor = mockAncestorNodes.find(node => node.id === ancestorId)
-
+        for (const ancestor of mockAncestorNodes) {
           for (const hook of ancestor?.properties.onAccess ?? []) {
             const result = await mockEvaluator.invoke<AccessHookResult>(hook.id, mockContext)
 
@@ -230,20 +228,11 @@ describe('StepController', () => {
       routeTemplatePathByStepId: new Map([[stepNode.id, routeTemplatePath]]),
       stepIdByRouteTemplatePath: new Map([[routeTemplatePath, stepNode.id]]),
     }
+    const reachableStep = stepNode.properties.code
+      ? { path: routeTemplatePath, code: stepNode.properties.code }
+      : { path: routeTemplatePath }
 
     return {
-      artefact: {
-        nodeRegistry: {
-          get: vi.fn((nodeId: NodeId) => {
-            if (nodeId === stepNode.id) {
-              return stepNode
-            }
-
-            return (stepNode.properties.onSubmission ?? []).find(hook => hook.id === nodeId)
-          }),
-        },
-      } as any,
-      currentStepId: stepNode.id,
       runtimePlan,
       compiledAnswerPreparation: () => {},
       compiledValidation: () => ({ isValid: true, fieldFailures: [], domainFailures: [] }),
@@ -252,34 +241,48 @@ describe('StepController', () => {
         step: { path: stepNode.properties.path, title: stepNode.properties.title },
         ancestors: [],
       }),
-      reachabilityPlan: {
+      navigationPlan: {
         entries: [
           {
             stepId: stepNode.id,
             code: stepNode.properties.code,
             isEntryPoint: true,
-            entryWhenNodeId: undefined,
-            forwardOutcomeIds: [],
             hasValidation: false,
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
           },
         ],
-        resumeAlways: false,
+        resumeConfigured: false,
         reachabilityDisabled: false,
-        compiledReachability: () => ({
-          entryResults: [undefined],
-          outcomeValues: [[]],
-          tieBreakerPriorities: [undefined],
-          resumeActive: false,
-        }),
-        compiledFieldInventory: () => [
-          {
-            stepId: stepNode.id,
-            fieldCodes: [],
-            cleardownFieldCodes: [],
+        compiledStepValidations: new Map(),
+        compiledNavigation: async () => ({
+          evaluation: {
+            currentStepId: stepNode.id,
+            steps: [
+              {
+                stepId: stepNode.id,
+                routeTemplatePath,
+                code: stepNode.properties.code,
+                declarationIndex: 0,
+                isEntryPoint: true,
+                isConditionalEntry: false,
+                hasValidation: false,
+                isReachable: true,
+                isValid: true,
+                forwardRouteTemplatePaths: [],
+                predecessorRouteTemplatePaths: [],
+              },
+            ],
+            defaultEntryRouteTemplatePath: routeTemplatePath,
+            frontierRouteTemplatePath: undefined,
+            canonicalPathRouteTemplatePaths: [routeTemplatePath],
+            progressExists: false,
+            resumeActive: false,
+            resumeOutcome: 'no-op' as const,
           },
-        ],
+          reachability: {
+            reachableSteps: [reachableStep],
+            unreachableSteps: [],
+          },
+        }),
       },
     }
   }
@@ -315,12 +318,6 @@ describe('StepController', () => {
   }
 
   function setupAncestorChain(ancestors: (JourneyASTNode | StepASTNode)[]): void {
-    const ancestorIds = ancestors.map(a => a.id) as AstNodeId[]
-
-    if (mockCompiledForm) {
-      mockCompiledForm.runtimePlan.accessAncestorIds = ancestorIds
-    }
-
     mockAncestorNodes = ancestors
   }
 
@@ -744,14 +741,20 @@ describe('StepController', () => {
 
         setupAncestorChain([step])
 
-        const compiledReachabilitySpy = vi.fn(ctx => {
+        const compiledNavigationSpy = vi.fn(async ctx => {
           expect(ctx.answers.prepared.current).toBe('yes')
 
           return {
-            entryResults: [undefined],
-            outcomeValues: [[]],
-            tieBreakerPriorities: [undefined],
-            resumeActive: false,
+            evaluation: {
+              currentStepId: step.id,
+              steps: [],
+              defaultEntryRouteTemplatePath: undefined,
+              frontierRouteTemplatePath: undefined,
+              canonicalPathRouteTemplatePaths: [],
+              progressExists: false,
+              resumeActive: false,
+              resumeOutcome: 'no-op' as const,
+            },
           }
         })
 
@@ -759,7 +762,7 @@ describe('StepController', () => {
           await Promise.resolve()
           ctx.answers.prepared = { current: 'yes', mutations: [] }
         }
-        mockCompiledForm.reachabilityPlan.compiledReachability = compiledReachabilitySpy
+        mockCompiledForm.navigationPlan.compiledNavigation = compiledNavigationSpy
 
         const controller = new StepController(
           mockCompiledForm,
@@ -773,7 +776,7 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(compiledReachabilitySpy).toHaveBeenCalledTimes(1)
+        expect(compiledNavigationSpy).toHaveBeenCalledTimes(1)
       })
 
       it('should expose journey reachability to submit hooks after answers are prepared', async () => {
@@ -784,34 +787,34 @@ describe('StepController', () => {
 
         setupAncestorChain([step])
 
-        mockCompiledForm.reachabilityPlan = {
+        mockCompiledForm.navigationPlan = {
           entries: [
             {
               stepId: step.id,
               code: 'test-step',
               isEntryPoint: true,
-              entryWhenNodeId: undefined,
-              forwardOutcomeIds: [],
               hasValidation: false,
-              cleardownFieldCodes: [],
-              reachabilityTieBreakers: [],
             },
           ],
-          resumeAlways: false,
+          resumeConfigured: false,
           reachabilityDisabled: false,
-          compiledReachability: () => ({
-            entryResults: [undefined],
-            outcomeValues: [[]],
-            tieBreakerPriorities: [undefined],
-            resumeActive: false,
-          }),
-          compiledFieldInventory: () => [
-            {
-              stepId: step.id,
-              fieldCodes: [],
-              cleardownFieldCodes: [],
+          compiledStepValidations: new Map(),
+          compiledNavigation: async () => ({
+            evaluation: {
+              currentStepId: step.id,
+              steps: [],
+              defaultEntryRouteTemplatePath: undefined,
+              frontierRouteTemplatePath: undefined,
+              canonicalPathRouteTemplatePaths: [],
+              progressExists: false,
+              resumeActive: false,
+              resumeOutcome: 'no-op' as const,
             },
-          ],
+            reachability: {
+              reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
+              unreachableSteps: [],
+            },
+          }),
         }
 
         mockEvaluator.invoke.mockImplementation(async (nodeId: NodeId, context?: RuntimeEvaluationContext) => {
@@ -1279,7 +1282,6 @@ describe('StepController', () => {
       // Assert
       expect(mockContextPreparerPrepare).toHaveBeenCalledWith(
         mockCompiledForm.runtimePlan,
-        mockCompiledForm.artefact,
         customRequest,
         expect.objectContaining({
           setHeader: expect.any(Function),

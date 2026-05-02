@@ -1,5 +1,5 @@
 import { NodeId } from '../../types/ast.type'
-import { CompiledStep } from '../../compilation/CompilationFactory'
+import type { CompiledStep } from '../../types/compilationArtefacts.type'
 
 export type StepResolver = () => CompiledStep
 

@@ -1,11 +1,10 @@
 import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
-import { CompilationArtefact } from '../../compilation/CompilationFactory'
-import { JourneyRuntimePlan } from '../../compilation/RuntimePlanBuilder'
+import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
 import ContextPreparer from '../lifecycle/ContextPreparer'
-import NavigationAnalyzer from '../navigation/NavigationAnalyzer'
 import JourneyController from './JourneyController'
 import { StepRequest, CookieMutation, CookieOptions, StepResponse } from '../../../framework'
 import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import type { NavigationEvaluationInput } from '../../types/GeneratedNavigationEvaluation.type'
 
 const mockContextPreparerPrepare = vi.fn()
 const mockCompiledAnswerPreparation = vi.fn()
@@ -19,26 +18,6 @@ vi.mock('../lifecycle/ContextPreparer', () => ({
       prepare: (...args: unknown[]) => mockContextPreparerPrepare(...args),
     }
   }),
-}))
-
-vi.mock('../navigation/NavigationAnalyzer', () => ({
-  __esModule: true,
-  default: vi.fn(function MockNavigationAnalyzer() {
-    return {
-      evaluate: (...args: unknown[]) => mockNavigationAnalyzerEvaluate(...args),
-    }
-  }),
-  resolveJourneyRootRedirect: (evaluation: {
-    resumeOutcome: string
-    frontierRouteTemplatePath?: string
-    defaultEntryRouteTemplatePath?: string
-  }) => {
-    if (evaluation.resumeOutcome === 'redirect') {
-      return evaluation.frontierRouteTemplatePath
-    }
-
-    return evaluation.defaultEntryRouteTemplatePath
-  },
 }))
 
 const createMockRequest = (
@@ -98,7 +77,6 @@ const createMockResponse = (): StepResponse => {
 
 describe('JourneyController', () => {
   let mockJourneyPlan: JourneyRuntimePlan
-  let mockArtefact: CompilationArtefact
   let mockDependencies: Mocked<JourneyInstanceDependencies>
   let mockCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
@@ -110,27 +88,27 @@ describe('JourneyController', () => {
     mockCompiledAccessLifecycle.mockReset()
     mockNavigationAnalyzerEvaluate.mockReset()
     ;(ContextPreparer as unknown as Mock).mockClear()
-    ;(NavigationAnalyzer as unknown as Mock).mockClear()
 
     mockJourneyPlan = {
       path: '/journey',
-      accessAncestorIds: ['compile_ast:root-journey' as NodeId, 'compile_ast:journey' as NodeId],
+      staticData: {},
       compiledAccessLifecycle: (...args: unknown[]) => mockCompiledAccessLifecycle(...args),
       compiledAnswerPreparation: mockCompiledAnswerPreparation,
-      reachabilityPlan: {
+      navigationPlan: {
         entries: [],
-        resumeAlways: false,
+        resumeConfigured: false,
         reachabilityDisabled: false,
-        compiledReachability: () => ({
-          entryResults: [],
-          outcomeValues: [],
-          tieBreakerPriorities: [],
-          resumeActive: false,
+        compiledStepValidations: new Map(),
+        compiledNavigation: async (ctx: unknown, navigation: NavigationEvaluationInput) => ({
+          evaluation: await mockNavigationAnalyzerEvaluate(
+            navigation.plan,
+            navigation.currentStepId,
+            navigation.routeTemplateCatalog,
+            ctx,
+          ),
         }),
       },
     }
-
-    mockArtefact = {} as CompilationArtefact
 
     mockCatalog = {
       routeTemplatePathByStepId: new Map(),
@@ -224,7 +202,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -251,7 +229,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -271,7 +249,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -290,7 +268,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -310,7 +288,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toMatchObject({
@@ -340,7 +318,7 @@ describe('JourneyController', () => {
         })
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -379,7 +357,7 @@ describe('JourneyController', () => {
         },
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -414,14 +392,14 @@ describe('JourneyController', () => {
         }),
       )
 
-      const compiledReachabilitySpy = vi.fn(ctx => {
+      const compiledNavigationSpy = vi.fn(async ctx => {
         expect(ctx.answers.prepared.current).toBe('yes')
 
         return {
-          entryResults: [],
-          outcomeValues: [],
-          tieBreakerPriorities: [],
-          resumeActive: false,
+          evaluation: createEvaluation({
+            steps: [createStepState({ isEntryPoint: true })],
+            defaultEntryRouteTemplatePath: '/journey/target',
+          }),
         }
       })
 
@@ -429,16 +407,15 @@ describe('JourneyController', () => {
         await Promise.resolve()
         ctx.answers.prepared = { current: 'yes', mutations: [] }
       }
-      mockJourneyPlan.reachabilityPlan.compiledReachability = compiledReachabilitySpy
+      mockJourneyPlan.navigationPlan.compiledNavigation = compiledNavigationSpy
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(compiledReachabilitySpy).toHaveBeenCalledTimes(1)
-      expect(mockNavigationAnalyzerEvaluate).toHaveBeenCalled()
+      expect(compiledNavigationSpy).toHaveBeenCalledTimes(1)
     })
 
     it('should throw when compiled answer preparation is missing', async () => {
@@ -446,7 +423,7 @@ describe('JourneyController', () => {
       mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockJourneyPlan.compiledAnswerPreparation = undefined
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toThrow(
@@ -462,7 +439,7 @@ describe('JourneyController', () => {
         redirect: '/login',
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -482,7 +459,7 @@ describe('JourneyController', () => {
         message: 'Access denied',
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toMatchObject({ status: 403, message: 'Access denied' })
@@ -502,7 +479,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -514,7 +491,7 @@ describe('JourneyController', () => {
       )
     })
 
-    it('should invoke NavigationAnalyzer with an undefined currentStepId', async () => {
+    it('should invoke compiled navigation with an undefined currentStepId', async () => {
       // Arrange
       mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockNavigationAnalyzerEvaluate.mockResolvedValue(
@@ -524,19 +501,17 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
       expect(mockNavigationAnalyzerEvaluate).toHaveBeenCalledWith(
-        mockJourneyPlan.reachabilityPlan,
+        mockJourneyPlan.navigationPlan,
         undefined,
         mockCatalog,
         expect.anything(),
-        expect.anything(),
-        mockDependencies.functionRegistry,
       )
     })
 
@@ -558,7 +533,7 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockArtefact, mockDependencies, mockCatalog)
+      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
 
       // Act
       await controller.get(mockReq, mockRes)

@@ -1,5 +1,5 @@
-import { JourneyReachabilityState } from '../context/RuntimeEvaluationContext'
-import { AnswerHistory } from '../types/AnswerHistory.type'
+import { JourneyReachabilityState } from '../../../types/JourneyReachabilityState.type'
+import { AnswerHistory } from '../../../runtime/types/AnswerHistory.type'
 
 export default class FieldsToClearResolver {
   resolve(reachability: JourneyReachabilityState | undefined, answers: Record<string, AnswerHistory>): string[] {

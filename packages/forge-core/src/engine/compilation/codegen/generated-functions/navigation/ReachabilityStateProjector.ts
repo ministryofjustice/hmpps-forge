@@ -1,21 +1,10 @@
-import RuntimeEvaluationContext, {
-  JourneyReachabilityState,
-  ReachabilityStep,
-} from '../context/RuntimeEvaluationContext'
-import { resolvePathParams } from '../../../framework/path/routePath'
-import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
-import { resolveBacklinkRouteTemplatePathForStep } from '../navigation/NavigationPathAnalyzer'
-import { StepFieldInventory } from '../types/StepFieldInventory.type'
+import { resolvePathParams } from '../../../../../framework/path/routePath'
+import { JourneyReachabilityState, ReachabilityStep } from '../../../../types/JourneyReachabilityState.type'
+import { NavigationEvaluation, NavigationStepState } from '../../../../types/NavigationEvaluation.type'
+import { resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
+import { StepFieldInventory } from '../../../../types/StepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
-  projectToContext(
-    evaluation: NavigationEvaluation,
-    fieldInventory: StepFieldInventory[],
-    context: RuntimeEvaluationContext,
-  ): void {
-    context.global.reachability = this.project(evaluation, fieldInventory, context.request.getParams())
-  }
-
   project(
     evaluation: NavigationEvaluation,
     fieldInventory: StepFieldInventory[],

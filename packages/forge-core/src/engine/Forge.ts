@@ -60,14 +60,13 @@ export interface ForgeOptions {
   strictRegistration?: boolean
 
   /**
-   * Defer route compilation (quick functions, linked closures, runtime plans)
-   * until the route is first accessed.
+   * Defer route compilation until the route is first accessed.
    *
    * When `true` (default), each step compiles on first request — faster startup,
    * but the first user to hit a step pays the compilation cost.
    *
    * When `false`, route artefacts compile at registration time — slower startup,
-   * but first requests do not pay generated-function compilation costs.
+   * but first requests do not pay compilation costs.
    *
    * @default true
    */
@@ -169,7 +168,7 @@ export default class Forge {
       this.componentRegistry.registerBuiltInComponents()
     }
 
-    this.options.logger.warn('YOLO')
+    this.options.logger.warn('DEMO')
 
     this.dependencies = {
       functionRegistry: this.functionRegistry,

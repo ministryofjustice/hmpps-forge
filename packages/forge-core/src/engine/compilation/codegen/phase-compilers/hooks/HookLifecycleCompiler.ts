@@ -10,58 +10,19 @@ import {
   ThrowErrorOutcomeASTNode,
 } from '../../../../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../../../../types/structures.type'
-import { JourneyInstanceDependencies } from '../../../../types/engine.type'
 import { HookType as RuntimeHookType } from '../../../../runtime/types/AnswerHistory.type'
-import EffectFunctionContextCtor, {
-  EffectEvaluationContext,
-} from '../../../../nodes/expressions/effect/EffectFunctionContext'
-import { StepValidationState } from '../../../../runtime/context/RuntimeEvaluationContext'
-import { StepValidityResult } from '../../../../runtime/types/StepValidityResult.type'
+import EffectFunctionContextCtor from '../../../../nodes/expressions/effect/EffectFunctionContext'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../../typeguards/outcome-nodes'
-
-export interface HookLifecycleContext {
-  answers: EffectEvaluationContext['global']['answers']
-  data: Record<string, unknown>
-  validation?: StepValidationState
-  session: Record<string, unknown>
-  params: Record<string, unknown>
-  query: Record<string, unknown>
-  post: Record<string, string | string[]>
-  request: Record<string, unknown>
-  conditions: FunctionRegistry
-  logger: JourneyInstanceDependencies['logger']
-  effectContext: EffectEvaluationContext
-  validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
-}
-
-export interface CompiledAccessHookResult {
-  executed: boolean
-  outcome: 'continue' | 'redirect' | 'error'
-  redirect?: string
-  status?: number
-  message?: string
-}
-
-export interface CompiledSubmitHookResult {
-  executed: boolean
-  validated: boolean
-  isValid?: boolean
-  outcome: 'continue' | 'redirect' | 'error'
-  redirect?: string
-  status?: number
-  message?: string
-}
-
-export type CompiledAccessLifecycleFunction = (
-  ctx: HookLifecycleContext,
-) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
-
-export type CompiledSubmitHooksFunction = (
-  ctx: HookLifecycleContext,
-) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
+import type {
+  CompiledAccessHookResult,
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHookResult,
+  CompiledSubmitHooksFunction,
+  HookLifecycleContext,
+} from '../../../../types/hookLifecycle.type'
 
 type GeneratedAccessLifecycleFunction = (
   ctx: HookLifecycleContext,

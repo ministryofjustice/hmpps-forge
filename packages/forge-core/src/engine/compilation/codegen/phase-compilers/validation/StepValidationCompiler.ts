@@ -30,6 +30,11 @@ import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-
 import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../values/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
 
+import type {
+  CompiledEntryValidationFunction,
+  CompiledValidationFunction,
+} from '../../../../types/compiledPhaseResults.type'
+
 export interface ValidationContext {
   answers: Record<string, { current: unknown }>
   data: Record<string, unknown>
@@ -45,14 +50,6 @@ type SyncCompiledValidationFunction = (
   isSubmission: boolean,
   groups?: string[],
 ) => StepValidityResult
-
-export type CompiledValidationFunction = (
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult | Promise<StepValidityResult>
-
-export type CompiledEntryValidationFunction = (ctx: ValidationContext) => string[] | Promise<string[]>
 
 /**
  * Phase compiler for step-level validation generated functions.

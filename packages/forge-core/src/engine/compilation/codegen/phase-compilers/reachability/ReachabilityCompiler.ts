@@ -1,26 +1,27 @@
 /**
- * Compiles one reachability evaluator per journey.
+ * Emits navigation evaluators for a reachability compilation plan.
  *
- * The generated function pre-computes every dynamic value the graph builder
- * needs: entry predicates, redirect outcome targets, tie-breaker priorities, and
- * resume state. The graph algorithm stays in TypeScript and consumes these arrays
- * by step index.
- *
- * Redirect URL resolution and validation-aware graph walking remain outside the
- * generated function. This keeps generated code limited to expression evaluation
- * while navigation policy stays in ordinary TypeScript.
- *
- * Generated-function construction failures throw ForgeCompilationError. There is
- * no secondary reachability execution path.
+ * Dynamic result arrays are indexed by step position in `plan.entries`.
+ * Navigation evaluators also emit field inventory when request params are
+ * present.
  */
 import { ASTNode } from '../../../../types/ast.type'
-import { ReachabilityRuntimePlan, ReachabilityStepEntry } from '../../../RuntimePlanBuilder'
+import type { ReachabilityCompilationEntry, ReachabilityCompilationPlan } from '../../../../types/runtimePlans.type'
 import NodeRegistry from '../../../registries/NodeRegistry'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+  GENERATED_FUNCTION_HELPERS_PARAM,
+} from '../../generated-functions/GeneratedFunctionCompiler'
 import { isRedirectOutcomeNode } from '../../../../typeguards/outcome-nodes'
+import type {
+  NavigationEvaluationInput,
+  NavigationEvaluationResult,
+} from '../../../../types/GeneratedNavigationEvaluation.type'
+import StepFieldInventoryCompiler, { FieldInventoryStepSource } from '../field-inventory/StepFieldInventoryCompiler'
 
 /**
  * Context passed to the compiled reachability function. Reachability expressions
@@ -38,7 +39,7 @@ export interface ReachabilityContext {
 
 /**
  * The result of calling the compiled reachability function. Arrays are indexed
- * by step position in the ReachabilityRuntimePlan.entries array, maintaining a
+ * by step position in the ReachabilityCompilationPlan.entries array, maintaining a
  * 1:1 correspondence with the plan's step ordering.
  */
 export interface CompiledReachabilityResult {
@@ -58,28 +59,35 @@ export type CompiledReachabilityFunction = (
   ctx: ReachabilityContext,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
+export type CompiledNavigationFunction = (
+  ctx: ReachabilityContext,
+  navigation: NavigationEvaluationInput,
+) => Promise<NavigationEvaluationResult>
+
 /**
- * Turns a reachability runtime plan into a generated evaluator function.
- *
- * The compiler only emits value evaluation. Graph policy remains in the
- * TypeScript reachability runtime so navigation behaviour is easier to audit.
+ * Builds generated functions from a reachability compilation plan.
  */
 export default class ReachabilityCompiler {
   private readonly expr = new NodeCompilationDispatcher()
 
+  private readonly fieldInventory = new StepFieldInventoryCompiler(this.expr)
+
   /**
    * Compiles the plan into an executable reachability evaluator.
+   *
+   * This evaluator returns only the dynamic arrays, making it useful for tests
+   * and diagnostics that inspect expression output directly.
    */
-  compile(plan: ReachabilityRuntimePlan, nodeRegistry: NodeRegistry): SyncCompiledReachabilityFunction | undefined
+  compile(plan: ReachabilityCompilationPlan, nodeRegistry: NodeRegistry): SyncCompiledReachabilityFunction | undefined
 
   compile(
-    plan: ReachabilityRuntimePlan,
+    plan: ReachabilityCompilationPlan,
     nodeRegistry: NodeRegistry,
     functionRegistry: FunctionRegistry,
   ): CompiledReachabilityFunction | undefined
 
   compile(
-    plan: ReachabilityRuntimePlan,
+    plan: ReachabilityCompilationPlan,
     nodeRegistry: NodeRegistry,
     functionRegistry?: FunctionRegistry,
   ): CompiledReachabilityFunction | SyncCompiledReachabilityFunction | undefined {
@@ -93,10 +101,31 @@ export default class ReachabilityCompiler {
   }
 
   /**
+   * Compiles the plan into a navigation evaluator.
+   *
+   * The generated function evaluates dynamic reachability expressions and, when
+   * params are available, emits field inventory.
+   */
+  compileNavigation(
+    plan: ReachabilityCompilationPlan,
+    fieldInventorySources: FieldInventoryStepSource[],
+    nodeRegistry: NodeRegistry,
+    functionRegistry: FunctionRegistry,
+  ): CompiledNavigationFunction {
+    return compileGeneratedFunction<CompiledNavigationFunction>(
+      this.expr,
+      ['ctx', 'navigation'],
+      functionRegistry,
+      () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
+      { forceAsync: true, phase: 'navigation' },
+    )
+  }
+
+  /**
    * Builds the generated source without constructing a function, mainly for debugging.
    */
   generateSource(
-    plan: ReachabilityRuntimePlan,
+    plan: ReachabilityCompilationPlan,
     nodeRegistry: NodeRegistry,
     functionRegistry?: FunctionRegistry,
   ): string {
@@ -104,15 +133,72 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Emits the full reachability function body in the order consumed by the runtime plan.
+   * Builds inspectable generated navigation source.
+   *
+   * Function metadata determines whether emitted calls need `await`.
    */
-  private buildSource(plan: ReachabilityRuntimePlan, nodeRegistry: NodeRegistry): string {
+  generateNavigationSource(
+    plan: ReachabilityCompilationPlan,
+    fieldInventorySources: FieldInventoryStepSource[],
+    nodeRegistry: NodeRegistry,
+    functionRegistry: FunctionRegistry,
+  ): string {
+    return buildGeneratedSource(this.expr, functionRegistry, () =>
+      this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
+    )
+  }
+
+  /**
+   * Emits the full reachability function body in compilation-plan step order.
+   */
+  private buildSource(plan: ReachabilityCompilationPlan, nodeRegistry: NodeRegistry): string {
     const emitter = new CodeEmitter()
     const stepCount = plan.entries.length
 
     emitter.code('"use strict";')
 
     emitter.comment('ReachabilityCompiler.buildSource')
+    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
+
+    emitter.return(this.buildReachabilityResultExpression())
+
+    return emitter.toString()
+  }
+
+  /**
+   * Emits the generated navigation function body with reachability arrays and
+   * optional field inventory.
+   */
+  private buildNavigationSource(
+    plan: ReachabilityCompilationPlan,
+    fieldInventorySources: FieldInventoryStepSource[],
+    nodeRegistry: NodeRegistry,
+  ): string {
+    const emitter = new CodeEmitter()
+    const stepCount = plan.entries.length
+
+    emitter.code('"use strict";')
+
+    emitter.comment('ReachabilityCompiler.buildNavigationSource')
+    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
+    this.compileFieldInventory(fieldInventorySources, emitter)
+
+    emitter.return(
+      `${GENERATED_FUNCTION_HELPERS_PARAM}.evaluateNavigation(ctx, fieldInventory === undefined ? navigation : { ...navigation, fieldInventory: fieldInventory }, ${this.buildReachabilityResultExpression()})`,
+    )
+
+    return emitter.toString()
+  }
+
+  /**
+   * Emits reachability arrays aligned to `plan.entries`.
+   */
+  private compileReachabilityResult(
+    plan: ReachabilityCompilationPlan,
+    nodeRegistry: NodeRegistry,
+    emitter: CodeEmitter,
+    stepCount: number,
+  ): void {
     emitter.declareConst('entryResults', `new Array(${stepCount})`)
     emitter.declareConst('outcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
     emitter.declareConst('tieBreakerPriorities', `new Array(${stepCount})`)
@@ -121,19 +207,32 @@ export default class ReachabilityCompiler {
     this.compileForwardOutcomes(plan.entries, nodeRegistry, emitter)
     this.compileTieBreakers(plan.entries, nodeRegistry, emitter)
     this.compileResumeCondition(plan, nodeRegistry, emitter)
+  }
 
-    emitter.return(
-      '{ entryResults: entryResults, outcomeValues: outcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }',
-    )
+  /**
+   * Emits field inventory only for navigation calls that can project params.
+   */
+  private compileFieldInventory(fieldInventorySources: FieldInventoryStepSource[], emitter: CodeEmitter): void {
+    emitter.comment('ReachabilityCompiler.compileFieldInventory')
+    emitter.declareLet('fieldInventory')
+    emitter.if('navigation.params !== undefined', () => {
+      emitter.assign('fieldInventory', '[]')
+      this.fieldInventory.compileInto(fieldInventorySources, emitter, 'fieldInventory')
+    })
+  }
 
-    return emitter.toString()
+  /**
+   * Builds the reachability result object literal.
+   */
+  private buildReachabilityResultExpression(): string {
+    return '{ entryResults: entryResults, outcomeValues: outcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
   }
 
   /**
    * Emits the optional per-step entryWhen predicates used to seed extra entry points.
    */
   private compileEntryPredicates(
-    entries: ReachabilityStepEntry[],
+    entries: ReachabilityCompilationEntry[],
     nodeRegistry: NodeRegistry,
     emitter: CodeEmitter,
   ): void {
@@ -168,13 +267,10 @@ export default class ReachabilityCompiler {
    * absent), the generated code evaluates `goto` and pushes the string result
    * to the step's outcome array.
    *
-   * The outcome IDs in the plan point to AST nodes in the shared registry —
-   * they're looked up here at compile time, not at runtime. Only REDIRECT
-   * outcomes are compiled; THROW_ERROR outcomes are skipped (they don't
-   * contribute to the reachability graph).
+   * Only REDIRECT outcomes contribute path candidates.
    */
   private compileForwardOutcomes(
-    entries: ReachabilityStepEntry[],
+    entries: ReachabilityCompilationEntry[],
     nodeRegistry: NodeRegistry,
     emitter: CodeEmitter,
   ): void {
@@ -226,8 +322,8 @@ export default class ReachabilityCompiler {
   /**
    * Emits the goto target evaluation and pushes the result to outcomeValues.
    * String literals are emitted as JSON constants. AST expressions are compiled
-   * through the shared dispatcher. Expression failures throw contextual Forge
-   * runtime errors rather than silently removing a graph edge.
+   * through the shared dispatcher. Expression failures surface as Forge runtime
+   * errors with diagnostic context.
    */
   private compileGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
     let gotoExpr: string
@@ -255,7 +351,11 @@ export default class ReachabilityCompiler {
    * priority. The generated code guards each rule with `priority === undefined`
    * so later predicates are not evaluated after a winner has been chosen.
    */
-  private compileTieBreakers(entries: ReachabilityStepEntry[], nodeRegistry: NodeRegistry, emitter: CodeEmitter): void {
+  private compileTieBreakers(
+    entries: ReachabilityCompilationEntry[],
+    nodeRegistry: NodeRegistry,
+    emitter: CodeEmitter,
+  ): void {
     emitter.comment('ReachabilityCompiler.compileTieBreakers')
 
     entries.forEach((entry, index) => {
@@ -299,7 +399,7 @@ export default class ReachabilityCompiler {
    * Emits the journey resume condition, defaulting to inactive when no predicate is configured.
    */
   private compileResumeCondition(
-    plan: ReachabilityRuntimePlan,
+    plan: ReachabilityCompilationPlan,
     nodeRegistry: NodeRegistry,
     emitter: CodeEmitter,
   ): void {

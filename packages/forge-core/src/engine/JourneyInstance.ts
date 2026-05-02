@@ -2,15 +2,16 @@ import type { JourneyDefinition } from '../authoring/types/structures.type'
 import { JourneyInstanceDependencies, NodeId } from './types/engine.type'
 import { isJourneyDefinition } from '../authoring/typeguards/structures'
 import { DSLValidator } from './validation/DSLValidator'
-import CompilationFactory, {
+import CompilationFactory from './compilation/CompilationFactory'
+import type {
+  CompilationArtefact,
   CompiledForm,
   CompiledStep,
-  CompilationArtefact,
   JourneyIndex,
   SharedCompiledForm,
   StepIndex,
-} from './compilation/CompilationFactory'
-import { JourneyRuntimePlan } from './compilation/RuntimePlanBuilder'
+} from './types/compilationArtefacts.type'
+import type { JourneyRuntimePlan } from './types/runtimePlans.type'
 
 /**
  * Contains compiled journey metadata and original configuration.
@@ -54,7 +55,6 @@ export default class JourneyInstance {
     })
 
     this.getJourneyCompilationArtefact()
-    this.compileReachabilityValidationPlans()
   }
 
   getCompiledForm(): CompiledForm {
@@ -115,20 +115,12 @@ export default class JourneyInstance {
     }
 
     const partial = this.compiler.compileStep(this.sharedCompilation, stepId)
-    const reachabilityPlan = this.sharedCompilation.reachabilityPlans.get(stepId)!
+    const navigationPlan = this.sharedCompilation.navigationPlans.get(stepId)!
 
-    const compiledStep: CompiledStep = { ...partial, reachabilityPlan }
+    const compiledStep: CompiledStep = { ...partial, navigationPlan }
 
     this.stepCache.set(stepId, compiledStep)
 
     return compiledStep
-  }
-
-  private compileReachabilityValidationPlans(): void {
-    const reachabilityPlans = new Set(this.sharedCompilation.reachabilityPlans.values())
-
-    reachabilityPlans.forEach(plan => {
-      plan.resolveStepValidations?.()
-    })
   }
 }

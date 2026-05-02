@@ -1,5 +1,5 @@
-import { NodeId } from '../../types/ast.type'
-import { NavigationEvaluation, NavigationStepState } from '../types/NavigationEvaluation.type'
+import { NodeId } from '../../../../types/ast.type'
+import { NavigationStepState } from '../../../../types/NavigationEvaluation.type'
 
 export interface NavigationPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]
@@ -30,12 +30,6 @@ export function pickTieBreakerWinner(candidates: NavigationStepState[]): Navigat
 
     return candidatePriority > bestPriority ? candidate : best
   })
-}
-
-export function resolveBacklinkRouteTemplatePath(evaluation: NavigationEvaluation): string | undefined {
-  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
-
-  return resolveBacklinkRouteTemplatePathForStep(currentStep, evaluation.canonicalPathRouteTemplatePaths)
 }
 
 export function resolveBacklinkRouteTemplatePathForStep(

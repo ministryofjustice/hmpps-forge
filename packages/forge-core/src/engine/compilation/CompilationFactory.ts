@@ -1,61 +1,34 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ASTNodeType } from '../types/enums'
+import type { ASTNode } from '../types/ast.type'
 import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
 import { IterateASTNode } from '../types/expressions.type'
 import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
-import { AstNodeId, JourneyInstanceDependencies, NodeId } from '../types/engine.type'
+import { JourneyInstanceDependencies, NodeId } from '../types/engine.type'
 import { CompilationDependencies } from './CompilationDependencies'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
-import RuntimePlanBuilder, { JourneyRuntimePlan, StepRuntimePlan, ReachabilityRuntimePlan } from './RuntimePlanBuilder'
-import StepValidationCompiler, {
-  CompiledEntryValidationFunction,
-  CompiledValidationFunction,
-} from './codegen/phase-compilers/validation/StepValidationCompiler'
+import RuntimePlanBuilder from './RuntimePlanBuilder'
+import type { ReachabilityCompilationPlan, StepRuntimePlan } from '../types/runtimePlans.type'
+import type { CompiledValidationFunction } from '../types/compiledPhaseResults.type'
+import type {
+  CompilationArtefact,
+  JourneyIndex,
+  SharedCompiledForm,
+  StepIndex,
+} from '../types/compilationArtefacts.type'
+import StepValidationCompiler from './codegen/phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './codegen/phase-compilers/reachability/ReachabilityCompiler'
-import StepRenderCompiler, { CompiledRenderFunction } from './codegen/phase-compilers/rendering/StepRenderCompiler'
-import StepAnswerPreparationCompiler, {
-  CompiledAnswerPreparationFunction,
-} from './codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
+import StepRenderCompiler from './codegen/phase-compilers/rendering/StepRenderCompiler'
+import StepAnswerPreparationCompiler from './codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './codegen/phase-compilers/hooks/HookLifecycleCompiler'
-import StepFieldInventoryCompiler, {
-  FieldInventoryStepSource,
-} from './codegen/phase-compilers/field-inventory/StepFieldInventoryCompiler'
+import { FieldInventoryStepSource } from './codegen/phase-compilers/field-inventory/StepFieldInventoryCompiler'
 import { createDSLSourceMap } from '../diagnostics/sourceMetadata'
-
-export type StepIndex = Map<NodeId, StepASTNode>
-
-export type JourneyIndex = Map<NodeId, JourneyASTNode>
-
-export interface SharedCompiledForm {
-  rootNode: JourneyASTNode
-  sharedDependencies: CompilationDependencies
-  stepIndex: StepIndex
-  journeyIndex: JourneyIndex
-  reachabilityPlans: Map<NodeId, ReachabilityRuntimePlan>
-  journeyRuntimePlans: Map<NodeId, JourneyRuntimePlan>
-  planBuilder: RuntimePlanBuilder
-}
-
-export interface CompiledStep {
-  artefact: CompilationDependencies
-  currentStepId: AstNodeId
-  runtimePlan: StepRuntimePlan
-  reachabilityPlan: ReachabilityRuntimePlan
-  compiledValidation?: CompiledValidationFunction
-  compiledEntryValidation?: CompiledEntryValidationFunction
-  compiledRender?: CompiledRenderFunction
-  compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined
-}
+import getAncestorChain from '../utils/getAncestorChain'
 
 /**
  * Compiles a journey definition into the shared AST, runtime plans, and generated
  * functions used by request handling.
- *
- * Compilation is split into shared work and lazy per-route work. The shared pass
- * builds the immutable AST/indices and the journey-level reachability plans.
- * Step and journey route handlers then attach the generated functions they need
- * to those plans. No request-time AST expansion or overlay registries are used.
  */
 export default class CompilationFactory {
   constructor(private readonly journeyInstanceDependencies: JourneyInstanceDependencies) {}
@@ -89,40 +62,26 @@ export default class CompilationFactory {
 
     const planBuilder = new RuntimePlanBuilder(sharedDependencies.nodeRegistry, sharedDependencies.astNodeTree)
 
-    const { reachabilityPlansByStepId: reachabilityPlans, journeyRuntimePlans } = planBuilder.buildAllPlans(
-      stepIndex,
-      journeyIndex,
-    )
+    const {
+      stepRuntimePlans,
+      navigationPlansByStepId: navigationPlans,
+      reachabilityCompilationPlans,
+      journeyRuntimePlans,
+    } = planBuilder.buildAllPlans(stepIndex, journeyIndex)
 
-    // Step-keyed reachability maps intentionally contain duplicate plan objects:
+    // Step-keyed navigation maps intentionally contain duplicate plan objects:
     // every step in the same journey points at the journey's shared plan. Compile
     // each distinct plan once and let all of its steps reuse the generated function.
     const reachabilityCompiler = new ReachabilityCompiler()
-    const compiledPlans = new Set<ReachabilityRuntimePlan>()
 
-    reachabilityPlans.forEach(plan => {
-      if (compiledPlans.has(plan)) {
-        return
-      }
-
-      compiledPlans.add(plan)
-      plan.compiledReachability = reachabilityCompiler.compile(
+    reachabilityCompilationPlans.forEach(plan => {
+      plan.navigationPlan.compiledStepValidations = this.compileStepValidationMap(plan, sharedDependencies, stepIndex)
+      plan.navigationPlan.compiledNavigation = reachabilityCompiler.compileNavigation(
         plan,
+        this.buildFieldInventorySources(plan, sharedDependencies),
         sharedDependencies.nodeRegistry,
         this.journeyInstanceDependencies.functionRegistry,
       )
-    })
-
-    // Reachability projection needs the full set of possible field codes,
-    // including MAP iterator fields. Compile that inventory once per journey so
-    // request-time navigation can read field codes without expanding template nodes.
-    this.compileFieldInventory(compiledPlans, sharedDependencies)
-
-    // Graph walking only needs validation for journeys that perform navigation
-    // checks. Resolve those step validation functions lazily, then cache them on
-    // the shared plan so submit handling and reachability use the same compiled code.
-    compiledPlans.forEach(plan => {
-      plan.resolveStepValidations = this.createLazyStepValidationResolver(plan, sharedDependencies, stepIndex)
     })
 
     return {
@@ -130,14 +89,15 @@ export default class CompilationFactory {
       sharedDependencies,
       stepIndex,
       journeyIndex,
-      reachabilityPlans,
+      stepRuntimePlans,
+      navigationPlans,
+      reachabilityCompilationPlans,
       journeyRuntimePlans,
-      planBuilder,
     }
   }
 
   /**
-   * Attach journey-root quick functions to the shared journey plans.
+   * Attach journey-root generated functions to the shared journey runtime plans.
    */
   compileJourney(shared: SharedCompiledForm): CompilationArtefact {
     const compilationDependencies = shared.sharedDependencies
@@ -148,16 +108,14 @@ export default class CompilationFactory {
     return compilationDependencies
   }
 
+  /**
+   * Compiles journey-root access lifecycles from journey ancestor nodes.
+   */
   private compileJourneyHooks(shared: SharedCompiledForm, compilationDependencies: CompilationDependencies): void {
     const compiler = new HookLifecycleCompiler()
 
-    shared.journeyRuntimePlans.forEach(plan => {
-      const accessAncestors = plan.accessAncestorIds
-        .map(nodeId => compilationDependencies.nodeRegistry.get(nodeId))
-        .filter(
-          (node): node is JourneyASTNode | StepASTNode =>
-            node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP,
-        )
+    shared.journeyRuntimePlans.forEach((plan, journeyId) => {
+      const accessAncestors = this.resolveAccessAncestors(journeyId, compilationDependencies)
 
       plan.compiledAccessLifecycle = compiler.compileAccessLifecycle(
         accessAncestors,
@@ -180,7 +138,7 @@ export default class CompilationFactory {
       .filter(node => node.properties.iterator.type === IteratorType.MAP)
 
     shared.journeyRuntimePlans.forEach(plan => {
-      const stepIds = plan.reachabilityPlan.entries.map(entry => entry.stepId)
+      const stepIds = plan.navigationPlan.entries.map(entry => entry.stepId)
 
       // Field blocks and MAP iterators can live under nested blocks/templates.
       // The AST tree is the source of truth for which nodes belong to each step.
@@ -197,69 +155,68 @@ export default class CompilationFactory {
     })
   }
 
-  private compileFieldInventory(
-    compiledPlans: Set<ReachabilityRuntimePlan>,
+  /**
+   * Collects field inventory inputs for every step in a reachability plan.
+   */
+  private buildFieldInventorySources(
+    plan: ReachabilityCompilationPlan,
     sharedDependencies: CompilationDependencies,
-  ): void {
-    const compiler = new StepFieldInventoryCompiler()
+  ): FieldInventoryStepSource[] {
     const allFieldBlocks = sharedDependencies.nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
     const allIterateNodes = sharedDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => node.properties.iterator.type === IteratorType.MAP)
 
-    compiledPlans.forEach(plan => {
-      const steps: FieldInventoryStepSource[] = plan.entries.map(entry => ({
-        stepId: entry.stepId,
-        cleardownFieldCodes: entry.cleardownFieldCodes,
-        fieldBlocks: allFieldBlocks
-          .filter(block => sharedDependencies.astNodeTree.isDescendantOf(block.id, entry.stepId)),
-        iterateNodes: allIterateNodes
-          .filter(node => sharedDependencies.astNodeTree.isDescendantOf(node.id, entry.stepId)),
-      }))
-
-      plan.compiledFieldInventory = compiler.compile(steps, this.journeyInstanceDependencies.functionRegistry)
-    })
+    return plan.entries.map(entry => ({
+      stepId: entry.stepId,
+      cleardownFieldCodes: entry.cleardownFieldCodes,
+      fieldBlocks: allFieldBlocks
+        .filter(block => sharedDependencies.astNodeTree.isDescendantOf(block.id, entry.stepId)),
+      iterateNodes: allIterateNodes
+        .filter(node => sharedDependencies.astNodeTree.isDescendantOf(node.id, entry.stepId)),
+    }))
   }
 
   /**
-   * Attach route-specific quick functions for a single step.
+   * Attach route-specific generated functions for a single step.
    */
   compileStep(shared: SharedCompiledForm, stepId: NodeId) {
     const stepNode = shared.stepIndex.get(stepId)
+    const runtimePlan = shared.stepRuntimePlans.get(stepId)
 
     if (!stepNode) {
       throw new Error(`Unable to compile step "${stepId}" - step not found in shared step index`)
     }
 
-    return this.compileForStep(shared.planBuilder, stepNode, shared.sharedDependencies)
+    if (!runtimePlan) {
+      throw new Error(`Unable to compile step "${stepId}" - runtime plan not found`)
+    }
+
+    return this.compileForStep(shared, stepNode, runtimePlan, shared.sharedDependencies)
   }
 
-  private createLazyStepValidationResolver(
-    plan: ReachabilityRuntimePlan,
+  /**
+   * Compiles validation functions used during navigation evaluation.
+   *
+   * The returned map is keyed by step ID.
+   */
+  private compileStepValidationMap(
+    plan: ReachabilityCompilationPlan,
     sharedDependencies: CompilationDependencies,
     stepIndex: StepIndex,
-  ): () => Map<NodeId, CompiledValidationFunction> {
-    let cached: Map<NodeId, CompiledValidationFunction> | undefined
+  ): Map<NodeId, CompiledValidationFunction> {
+    const compiledValidations = new Map<NodeId, CompiledValidationFunction>()
+    const compiler = new StepValidationCompiler()
+    const allFieldBlocks = sharedDependencies.nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
+    const allIterateNodes = sharedDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
+      .filter(node => node.properties.iterator.type === IteratorType.MAP)
 
-    return () => {
-      if (cached !== undefined) {
-        return cached
-      }
-
-      cached = new Map()
-      const compiler = new StepValidationCompiler()
-      const allFieldBlocks = sharedDependencies.nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD)
-      const allIterateNodes = sharedDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
-        .filter(node => node.properties.iterator.type === IteratorType.MAP)
-
-      for (const entry of plan.entries) {
-        if (!entry.hasValidation) {
-          continue
-        }
-
+    plan.entries
+      .filter(entry => entry.hasValidation)
+      .forEach(entry => {
         const stepNode = stepIndex.get(entry.stepId)
 
         if (!stepNode) {
-          continue
+          return
         }
 
         const fieldBlocks = allFieldBlocks
@@ -277,27 +234,30 @@ export default class CompilationFactory {
         )
 
         if (compiled) {
-          cached.set(entry.stepId, compiled)
+          compiledValidations.set(entry.stepId, compiled)
         }
-      }
+      })
 
-      return cached
-    }
+    return compiledValidations
   }
 
+  /**
+   * Compiles the functions used by a single step route.
+   */
   private compileForStep(
-    planBuilder: RuntimePlanBuilder,
+    shared: SharedCompiledForm,
     stepNode: StepASTNode,
+    runtimePlan: StepRuntimePlan,
     compilationDependencies: CompilationDependencies,
   ) {
-    const runtimePlan = planBuilder.buildStepRuntimePlan(stepNode)
+    const navigationPlan = shared.navigationPlans.get(stepNode.id)
+
+    if (!navigationPlan) {
+      throw new Error(`Unable to compile step "${stepNode.id}" - navigation plan not found`)
+    }
+
     const hookCompiler = new HookLifecycleCompiler()
-    const accessAncestors = runtimePlan.accessAncestorIds
-      .map(nodeId => compilationDependencies.nodeRegistry.get(nodeId))
-      .filter(
-        (node): node is JourneyASTNode | StepASTNode =>
-          node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP,
-      )
+    const accessAncestors = this.resolveAccessAncestors(stepNode.id, compilationDependencies)
     const submitHooks = stepNode.properties.onSubmission ?? []
 
     runtimePlan.compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(
@@ -333,13 +293,15 @@ export default class CompilationFactory {
     const iterateNodes = compilationDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
       .filter(node => node.properties.iterator.type === IteratorType.MAP)
-    const compiledValidation = validationCompiler.compileOnSubmitValidation(
-      stepNode,
-      fieldBlocks,
-      stepNode.properties.validWhen,
-      iterateNodes,
-      this.journeyInstanceDependencies.functionRegistry,
-    )
+    const compiledValidation =
+      navigationPlan.compiledStepValidations.get(stepNode.id) ??
+      validationCompiler.compileOnSubmitValidation(
+        stepNode,
+        fieldBlocks,
+        stepNode.properties.validWhen,
+        iterateNodes,
+        this.journeyInstanceDependencies.functionRegistry,
+      )
     const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
       stepNode.properties.validateOnEntry,
       this.journeyInstanceDependencies.functionRegistry,
@@ -349,8 +311,7 @@ export default class CompilationFactory {
     // and field values. All iterator types are passed because FILTER/FIND can be
     // used as inline property values even though only MAP can yield blocks.
     const renderCompiler = new StepRenderCompiler()
-    const ancestorNodes = runtimePlan.accessAncestorIds.slice(0, -1)
-      .map(id => compilationDependencies.nodeRegistry.get(id) as JourneyASTNode)
+    const ancestorNodes = this.resolveRenderAncestors(stepNode.id, compilationDependencies)
     const renderIterateNodes = compilationDependencies.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationDependencies.astNodeTree.isDescendantOf(node.id, stepNode.id))
     const compiledRender = renderCompiler.compile(
@@ -361,19 +322,48 @@ export default class CompilationFactory {
     )
 
     return {
-      artefact: compilationDependencies,
-      currentStepId: stepNode.id,
       runtimePlan,
+      navigationPlan,
       compiledValidation,
       compiledEntryValidation,
       compiledRender,
       compiledAnswerPreparation,
     }
   }
-}
 
-export type CompiledForm = CompiledStep[]
-export type CompilationArtefact = CompiledStep['artefact']
+  /**
+   * Resolves journey/step ancestors for access hook codegen.
+   */
+  private resolveAccessAncestors(
+    nodeId: NodeId,
+    compilationDependencies: CompilationDependencies,
+  ): Array<JourneyASTNode | StepASTNode> {
+    return getAncestorChain(nodeId, compilationDependencies.astNodeTree)
+      .map(ancestorId => compilationDependencies.nodeRegistry.get(ancestorId))
+      .filter(this.isAccessAncestor)
+  }
+
+  /**
+   * Resolves journey ancestors passed to render codegen.
+   *
+   * The current step is intentionally excluded because render receives it as the
+   * primary node.
+   */
+  private resolveRenderAncestors(stepId: NodeId, compilationDependencies: CompilationDependencies): JourneyASTNode[] {
+    return getAncestorChain(stepId, compilationDependencies.astNodeTree)
+      .slice(0, -1)
+      .map(ancestorId => compilationDependencies.nodeRegistry.get(ancestorId))
+      .filter(this.isJourneyNode)
+  }
+
+  private isAccessAncestor(node: ASTNode | undefined): node is JourneyASTNode | StepASTNode {
+    return node?.type === ASTNodeType.JOURNEY || node?.type === ASTNodeType.STEP
+  }
+
+  private isJourneyNode(node: ASTNode | undefined): node is JourneyASTNode {
+    return node?.type === ASTNodeType.JOURNEY
+  }
+}
 
 function hasConfiguredValue(value: unknown): boolean {
   if (value === undefined) {
