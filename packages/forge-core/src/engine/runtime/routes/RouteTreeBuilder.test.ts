@@ -223,6 +223,25 @@ describe('RouteTreeBuilder', () => {
     expect(act).toThrow(DuplicateRouteError)
   })
 
+  it('should allow a step to occupy the same path as its parent journey', () => {
+    // Arrange
+    const journey = createJourneyNode('compile_ast:20', '/', 'example')
+    const step = createStepNode('compile_ast:21', '/', 'Home')
+
+    // Act
+    const { index } = buildRouteTree([journey], [step], [[journey.id, step.id]])
+
+    // Assert
+    expect(index.roots).toMatchObject([
+      {
+        segment: '',
+        templatePath: '/',
+        route: { kind: 'step', nodeId: step.id },
+      },
+    ])
+    expect(index.journeyNodesById.get(journey.id)).toBe(index.stepNodesById.get(step.id))
+  })
+
   it('should expose contexts that replace registered route counting', () => {
     // Arrange
     const journey = createJourneyNode('compile_ast:17', '/journey', 'journey')
