@@ -2,9 +2,10 @@ import { AstNodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
-import { BlockASTNode } from '../../types/structures.type'
+import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
-import { Evaluated, JourneyAncestor, JourneyMetadata, StepMetadata } from '../../../framework/rendering/types'
+import { Evaluated, JourneyAncestor } from '../../../framework/rendering/types'
+import { StoredRouteTreeNode } from '../types/routes.type'
 
 function createMockBlock(id: AstNodeId, overrides: Partial<Evaluated<BlockASTNode>['properties']> = {}) {
   return {
@@ -35,28 +36,78 @@ function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderC
 }
 
 const defaultOptions: RenderContextOptions = {
-  navigationMetadata: [],
+  routeTree: [],
   currentStepPath: '',
   params: {},
 }
 
-function createStoredStep(path: string, title?: string): StepMetadata {
+function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile_ast:100'): StoredRouteTreeNode {
+  const metadata = undefined
+  const stepNode: StepASTNode = {
+    id,
+    type: ASTNodeType.STEP,
+    properties: {
+      path,
+      title: title ?? 'Step',
+    },
+  }
+
   return {
-    path,
-    title,
+    segment: getLastSegment(path),
+    templatePath: path,
+    metadata,
+    route: {
+      kind: 'step',
+      nodeId: id,
+      title,
+      metadata,
+      stepNode,
+    },
+    children: [],
   }
 }
 
 function createStoredJourney(
   path: string,
-  children: Array<JourneyMetadata | StepMetadata>,
-  overrides: Partial<JourneyMetadata> = {},
-): JourneyMetadata {
-  return {
-    path,
-    children,
-    ...overrides,
+  children: StoredRouteTreeNode[],
+  overrides: Partial<{
+    id: AstNodeId
+    title: string
+    description: string
+    metadata: Record<string, unknown>
+  }> = {},
+): StoredRouteTreeNode {
+  const id = overrides.id ?? 'compile_ast:200'
+  const journeyNode: JourneyASTNode = {
+    id,
+    type: ASTNodeType.JOURNEY,
+    properties: {
+      path,
+      code: getLastSegment(path),
+      title: overrides.title ?? 'Journey',
+      description: overrides.description,
+      metadata: overrides.metadata,
+    },
   }
+
+  return {
+    segment: getLastSegment(path),
+    templatePath: path,
+    metadata: overrides.metadata,
+    route: {
+      kind: 'journey',
+      nodeId: id,
+      title: overrides.title,
+      description: overrides.description,
+      metadata: overrides.metadata,
+      journeyNode,
+    },
+    children,
+  }
+}
+
+function getLastSegment(path: string): string {
+  return path.split('/').filter(Boolean).at(-1) ?? ''
 }
 
 describe('RenderContextFactory', () => {
@@ -241,11 +292,11 @@ describe('RenderContextFactory', () => {
       expect(result.domainValidationErrors).toEqual([])
     })
 
-    it('should resolve param placeholders in navigation paths', () => {
+    it('should resolve param placeholders in route tree paths', () => {
       // Arrange
       const input = createRenderInput()
       const options: RenderContextOptions = {
-        navigationMetadata: [
+        routeTree: [
           createStoredJourney(
             '/user/:userId',
             [
@@ -263,16 +314,16 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, options)
 
       // Assert
-      expect(result.navigation[0].path).toBe('/user/abc-123')
-      expect(result.navigation[0].children[0].path).toBe('/user/abc-123/profile')
-      expect(result.navigation[0].children[1].path).toBe('/user/abc-123/settings')
+      expect(result.routeTree[0].path).toBe('/user/abc-123')
+      expect(result.routeTree[0].children[0].path).toBe('/user/abc-123/profile')
+      expect(result.routeTree[0].children[1].path).toBe('/user/abc-123/settings')
     })
 
     it('should preserve active state when resolving param placeholders', () => {
       // Arrange
       const input = createRenderInput()
       const options: RenderContextOptions = {
-        navigationMetadata: [
+        routeTree: [
           createStoredJourney(
             '/user/:userId',
             [
@@ -290,16 +341,16 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, options)
 
       // Assert
-      expect(result.navigation[0].active).toBe(true)
-      expect(result.navigation[0].children[0].active).toBe(true)
-      expect(result.navigation[0].children[1].active).toBe(false)
+      expect(result.routeTree[0].active).toBe(true)
+      expect(result.routeTree[0].children[0].active).toBe(true)
+      expect(result.routeTree[0].children[1].active).toBe(false)
     })
 
     it('should leave unmatched param placeholders unchanged', () => {
       // Arrange
       const input = createRenderInput()
       const options: RenderContextOptions = {
-        navigationMetadata: [
+        routeTree: [
           createStoredJourney('/user/:userId', [createStoredStep('/user/:userId/item/:itemId', 'Item')], {
             title: 'User',
           }),
@@ -312,23 +363,29 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, options)
 
       // Assert
-      expect(result.navigation[0].children[0].path).toBe('/user/abc-123/item/:itemId')
+      expect(result.routeTree[0].children[0].path).toBe('/user/abc-123/item/:itemId')
     })
 
-    it('should build navigation tree with active state from metadata', () => {
+    it('should build route tree with active state from stored routes', () => {
       // Arrange
       const input = createRenderInput()
       const options: RenderContextOptions = {
-        navigationMetadata: [
+        routeTree: [
           createStoredJourney(
             '/journey',
             [
-              createStoredStep('/journey/step-1', 'Step 1'),
-              createStoredJourney('/journey/child', [createStoredStep('/journey/child/step', 'Child Step')], {
-                title: 'Child Journey',
-              }),
+              createStoredStep('/journey/step-1', 'Step 1', 'compile_ast:101'),
+              createStoredJourney(
+                '/journey/child',
+                [createStoredStep('/journey/child/step', 'Child Step', 'compile_ast:102')],
+                {
+                  id: 'compile_ast:103',
+                  title: 'Child Journey',
+                },
+              ),
             ],
             {
+              id: 'compile_ast:104',
               title: 'Journey',
               description: 'Journey Description',
             },
@@ -342,36 +399,64 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, options)
 
       // Assert
-      expect(result.navigation).toEqual([
+      expect(result.routeTree).toEqual([
         {
-          type: 'journey',
-          title: 'Journey',
-          description: 'Journey Description',
+          segment: 'journey',
           path: '/journey',
+          templatePath: '/journey',
           active: true,
           metadata: undefined,
+          route: {
+            kind: 'journey',
+            nodeId: 'compile_ast:104',
+            title: 'Journey',
+            description: 'Journey Description',
+            metadata: undefined,
+          },
           children: [
             {
-              type: 'step',
-              title: 'Step 1',
+              segment: 'step-1',
               path: '/journey/step-1',
+              templatePath: '/journey/step-1',
               active: false,
               metadata: undefined,
+              route: {
+                kind: 'step',
+                nodeId: 'compile_ast:101',
+                title: 'Step 1',
+                description: undefined,
+                metadata: undefined,
+              },
+              children: [],
             },
             {
-              type: 'journey',
-              title: 'Child Journey',
-              description: undefined,
+              segment: 'child',
               path: '/journey/child',
+              templatePath: '/journey/child',
               active: true,
               metadata: undefined,
+              route: {
+                kind: 'journey',
+                nodeId: 'compile_ast:103',
+                title: 'Child Journey',
+                description: undefined,
+                metadata: undefined,
+              },
               children: [
                 {
-                  type: 'step',
-                  title: 'Child Step',
+                  segment: 'step',
                   path: '/journey/child/step',
+                  templatePath: '/journey/child/step',
                   active: true,
                   metadata: undefined,
+                  route: {
+                    kind: 'step',
+                    nodeId: 'compile_ast:102',
+                    title: 'Child Step',
+                    description: undefined,
+                    metadata: undefined,
+                  },
+                  children: [],
                 },
               ],
             },

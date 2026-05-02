@@ -9,7 +9,7 @@ import {
   buildCompiledRenderContext,
 } from '../context/compiledEvaluationContext'
 import { StepRequest } from '../../../framework/types/request.type'
-import { JourneyMetadata, RenderContext } from '../../../framework/rendering/types'
+import { RenderContext } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../navigation/redirectTarget'
 import ContextPreparer from '../lifecycle/ContextPreparer'
@@ -20,7 +20,7 @@ import {
 } from '../navigation/NavigationAnalyzer'
 import { NavigationEvaluation } from '../../types/NavigationEvaluation.type'
 import RenderContextFactory from '../rendering/RenderContextFactory'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog, StoredRouteTree } from '../types/routes.type'
 import type { CompiledRenderResult } from '../../types/compiledPhaseResults.type'
 import { StepValidityResult } from '../types/StepValidityResult.type'
 import type { CompiledAccessHookResult, CompiledSubmitHookResult } from '../../types/hookLifecycle.type'
@@ -39,19 +39,19 @@ export default class StepController<TRequest, TResponse> {
 
   private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
 
-  private readonly navigationMetadata: JourneyMetadata[]
+  private readonly routeTree: StoredRouteTree
 
   private readonly currentRouteTemplatePath: string
 
   constructor(
     private readonly compiledForm: CompiledForm[number],
     private readonly dependencies: JourneyInstanceDependencies,
-    navigationMetadata: JourneyMetadata[],
+    routeTree: StoredRouteTree,
     currentRouteTemplatePath: string,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ) {
     this.routeTemplateCatalog = routeTemplateCatalog
-    this.navigationMetadata = navigationMetadata
+    this.routeTree = routeTree
     this.currentRouteTemplatePath = currentRouteTemplatePath
     this.contextPreparer = new ContextPreparer()
   }
@@ -278,7 +278,7 @@ export default class StepController<TRequest, TResponse> {
         domainValidationFailures: validation?.domainFailures ?? [],
       },
       {
-        navigationMetadata: this.navigationMetadata,
+        routeTree: this.routeTree,
         currentStepPath: this.currentRouteTemplatePath,
         showValidationFailures: options?.showValidationFailures,
         params: request.getParams(),
