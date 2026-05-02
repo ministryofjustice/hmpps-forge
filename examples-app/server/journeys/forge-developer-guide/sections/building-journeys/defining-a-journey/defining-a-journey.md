@@ -37,7 +37,7 @@ const travelDeclaration = journey({
 A journey is a declaration, not a runtime process. It doesn't execute anything
 or hold state. It describes structure: what steps exist, where they live, and
 how they're configured. Forge takes that definition, compiles it, mounts
-routes for each step, and builds a navigation tree. But the journey itself
+routes for each step, and builds a route tree. But the journey itself
 is just data.
 
 ---
@@ -52,8 +52,8 @@ When Forge receives a journey definition, it does three things:
 2. **Mounts routes**: registers GET and POST handlers for each step under
    the journey's `path`. A journey at `/travel-declaration` with a step at
    `/your-trips` produces the route `/travel-declaration/your-trips`.
-3. **Builds navigation**: extracts `title`, `path`, and `metadata` from the
-   journey and its steps to produce a navigation tree. This tree is available
+3. **Builds the route tree**: extracts `title`, `path`, and `metadata` from the
+   journey and its steps to produce a URL-folder route tree. This tree is available
    in your templates for rendering sidebars, breadcrumbs, and menus.
 
 ```
@@ -106,7 +106,7 @@ code: 'travel-declaration'
 
 ### `title` (Required)
 
-The display name for the journey. Used in the navigation tree, breadcrumbs,
+The display name for the journey. Used in the route tree, breadcrumbs,
 and anywhere the journey needs a human-readable label.
 
 ```typescript
@@ -141,12 +141,11 @@ journey({
 
 A step at `/list` inside `contactsJourney` at `/contacts` produces the
 route `/case-management/contacts/list`. See
-[The navigation tree](navigation-tree) for how nesting shapes the
-navigation structure.
+[The route tree](navigation-tree) for how URLs shape the route structure.
 
 ### `description` (Optional)
 
-A short description of the journey. Passed through to the navigation tree
+A short description of the journey. Passed through to the route tree
 and available in templates.
 
 ```typescript
@@ -219,7 +218,7 @@ block({
 ### `metadata` (Optional)
 
 Arbitrary data attached to the journey. Forge does not use it internally. It's
-passed through to the navigation tree for your templates to use.
+passed through to the route tree for your templates to use.
 
 ```typescript
 metadata: {

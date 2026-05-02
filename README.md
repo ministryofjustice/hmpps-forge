@@ -4,7 +4,7 @@ HMPPS Forge is a declarative, stateless framework for building multi-page
 journeys, handling routing, rendering, validation, and navigation.
 
 Define your journeys as plain data structures. Forge compiles them into routes, 
-renders GOV.UK-styled pages, validates submissions, builds navigation trees, and 
+renders GOV.UK-styled pages, validates submissions, builds a route tree, and 
 manages page flow - so you focus on what to ask, not how to wire it up.
 
 > Note: 'Forge' is temporary name, if you can think of a better one, please 
@@ -24,7 +24,7 @@ manages page flow - so you focus on what to ask, not how to wire it up.
   handle POST intents, and control what happens on form submission.
 - **Reachability** - prevents users skipping ahead, clears stale answers when 
   the path changes, and supports resuming partially-completed journeys.
-- **Navigation tree** - automatically built from your journey definitions and 
+- **Route tree** - automatically built from mounted URL folders and 
   available in templates for sidebars, breadcrumbs, and menus.
 - **Expression language** - references (`Answer()`, `Data()`, `Params()`, 
   `Session()`), conditionals, iterators, combinators, and pluggable functions 

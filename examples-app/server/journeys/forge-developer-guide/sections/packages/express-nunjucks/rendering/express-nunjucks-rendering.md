@@ -97,7 +97,7 @@ available in the Nunjucks context:
 | `blocks` | `string[]` | Each visible block, already rendered to HTML. Use `{{ block \| safe }}` in your template. |
 | `step` | object | The current step's metadata (`title`, `path`, `view`, etc.). |
 | `ancestors` | object[] | The chain of parent journeys from root to immediate parent. |
-| `navigation` | object | Navigation data (next/previous steps, breadcrumbs). |
+| `routeTree` | object | URL-folder route tree with resolved paths and active state. |
 | `answers` | object | The user's answers for this journey. |
 | `data` | object | Data set by effects (e.g. loaded content, API responses). |
 | `fieldValidationErrors` | object[] | Field-level validation errors (after a POST). |
