@@ -9,13 +9,12 @@ import type {
   CompiledSubmitHookResult as SubmitHookResult,
 } from '../../types/hookLifecycle.type'
 import type { CompiledForm } from '../../types/compilationArtefacts.type'
-import { JourneyMetadata } from '../../../framework/rendering/types'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepRuntimePlan } from '../../types/runtimePlans.type'
 import StepController from './StepController'
 import { StepRequest } from '../../../framework/types/request.type'
 import { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
+import { JourneyRouteTemplateCatalog, StoredRouteTree } from '../types/routes.type'
 import ContextPreparer from '../lifecycle/ContextPreparer'
 
 type MockInvocationResult<T> = { value: T; error?: undefined } | { value?: undefined; error: unknown }
@@ -112,7 +111,7 @@ vi.mock('../lifecycle/ContextPreparer', () => ({
 describe('StepController', () => {
   let mockCompiledForm: CompiledForm[number]
   let mockDependencies: Mocked<JourneyInstanceDependencies>
-  let mockNavigationMetadata: JourneyMetadata[]
+  let mockRouteTree: StoredRouteTree
   let mockCurrentStepPath: string
   let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
@@ -127,7 +126,7 @@ describe('StepController', () => {
     ;(ContextPreparer as unknown as Mock).mockClear()
 
     mockCurrentStepPath = '/journey/step-1'
-    mockNavigationMetadata = []
+    mockRouteTree = []
     mockRouteTemplateCatalog = {
       routeTemplatePathByStepId: new Map(),
       stepIdByRouteTemplatePath: new Map(),
@@ -340,7 +339,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -370,7 +369,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -396,7 +395,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -436,7 +435,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -479,7 +478,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -504,7 +503,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -541,7 +540,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -592,7 +591,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -634,7 +633,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -662,7 +661,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -685,7 +684,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -721,7 +720,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -767,7 +766,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -845,7 +844,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -899,7 +898,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -951,7 +950,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -981,7 +980,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1015,7 +1014,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1050,7 +1049,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1084,7 +1083,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1118,7 +1117,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1148,7 +1147,7 @@ describe('StepController', () => {
         const controller = new StepController(
           mockCompiledForm,
           mockDependencies,
-          mockNavigationMetadata,
+          mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
         )
@@ -1179,7 +1178,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1207,7 +1206,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1235,7 +1234,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1271,7 +1270,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1310,7 +1309,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1346,7 +1345,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1370,7 +1369,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1399,7 +1398,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )
@@ -1435,7 +1434,7 @@ describe('StepController', () => {
       const controller = new StepController(
         mockCompiledForm,
         mockDependencies,
-        mockNavigationMetadata,
+        mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
       )

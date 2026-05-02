@@ -285,15 +285,11 @@ export default class Forge {
   ): void {
     const instance = JourneyInstance.createFromConfiguration(journeyConfiguration, dependencies)
 
-    const routesBefore = this.forgeRouter.getRegisteredRoutes().length
-
     if (!this.options.lazyStepCompilation) {
       instance.compileAllRouteArtefacts()
     }
 
-    this.forgeRouter.mount(instance, dependencies)
-
-    const routeCount = this.forgeRouter.getRegisteredRoutes().length - routesBefore
+    const routeCount = this.forgeRouter.mount(instance, dependencies)
 
     dependencies.logger.info(
       { journey: instance.getJourneyCode(), routes: routeCount },
