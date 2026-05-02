@@ -115,8 +115,82 @@ describe('TemplateRenderer', () => {
       expect(templateContext.step).toEqual({ path: '/step', title: 'Test Step' })
       expect(templateContext.ancestors).toEqual([{ code: 'test-journey', path: '/journey', title: 'Test Journey' }])
       expect(templateContext.routeTree).toEqual([])
+      expect(templateContext.navigation).toEqual([])
       expect(templateContext.answers).toEqual({ email: 'test@example.com' })
       expect(templateContext.data).toEqual({ userId: '123' })
+    })
+
+    it('should expose old navigation shape from route tree in template context', () => {
+      // Arrange
+      const context = createRenderContext({
+        routeTree: [
+          {
+            segment: 'apply',
+            path: '/apply',
+            templatePath: '/apply',
+            active: true,
+            metadata: { navGroup: 'Top' },
+            route: {
+              kind: 'journey',
+              nodeId: 'compile_ast:1',
+              title: 'Apply',
+              description: 'Application journey',
+              metadata: { navGroup: 'Top' },
+            },
+            children: [
+              {
+                segment: 'personal',
+                path: '/apply/personal',
+                templatePath: '/apply/personal',
+                active: true,
+                children: [
+                  {
+                    segment: 'name',
+                    path: '/apply/personal/name',
+                    templatePath: '/apply/personal/name',
+                    active: true,
+                    metadata: { hiddenFromNav: false },
+                    route: {
+                      kind: 'step',
+                      nodeId: 'compile_ast:2',
+                      title: 'Name',
+                      metadata: { hiddenFromNav: false },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+
+      // Act
+      renderer.render(context)
+
+      // Assert
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
+      expect(templateContext.navigation).toEqual([
+        {
+          type: 'journey',
+          title: 'Apply',
+          description: 'Application journey',
+          path: '/apply',
+          active: true,
+          metadata: { navGroup: 'Top' },
+          children: [
+            {
+              type: 'step',
+              title: 'Name',
+              description: undefined,
+              path: '/apply/personal/name',
+              active: true,
+              metadata: { hiddenFromNav: false },
+              children: [],
+            },
+          ],
+        },
+      ])
     })
 
     it('should merge provided locals into template context', () => {
