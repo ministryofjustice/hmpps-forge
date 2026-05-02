@@ -37,7 +37,7 @@ describe('TemplateRenderer', () => {
 
   function createRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
     return {
-      navigation: [],
+      routeTree: [],
       step: { path: '/step', title: 'Test Step' },
       ancestors: [{ code: 'test-journey', path: '/journey', title: 'Test Journey' }],
       blocks: [],
@@ -100,7 +100,7 @@ describe('TemplateRenderer', () => {
       expect(templateContext.blocks).toEqual(['<input type="text" />'])
     })
 
-    it('should include step, ancestors, navigation, answers, and data in template context', () => {
+    it('should include step, ancestors, route tree, answers, and data in template context', () => {
       // Arrange
       const context = createRenderContext({
         answers: { email: 'test@example.com' },
@@ -114,7 +114,7 @@ describe('TemplateRenderer', () => {
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.step).toEqual({ path: '/step', title: 'Test Step' })
       expect(templateContext.ancestors).toEqual([{ code: 'test-journey', path: '/journey', title: 'Test Journey' }])
-      expect(templateContext.navigation).toEqual([])
+      expect(templateContext.routeTree).toEqual([])
       expect(templateContext.answers).toEqual({ email: 'test@example.com' })
       expect(templateContext.data).toEqual({ userId: '123' })
     })

@@ -670,7 +670,7 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
-        navigation: [],
+        routeTree: [],
         step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [
@@ -710,7 +710,7 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
-        navigation: [],
+        routeTree: [],
         step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [] as Evaluated<BlockASTNode>[],

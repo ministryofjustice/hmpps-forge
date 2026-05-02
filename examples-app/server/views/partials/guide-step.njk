@@ -5,7 +5,7 @@
 {% set mainClasses = "govuk-body" %}
 
 {% set guideNav = null %}
-{% for item in navigation %}
+{% for item in routeTree %}
   {% if item.active %}
     {% set guideNav = item %}
   {% endif %}
@@ -13,8 +13,8 @@
 
 {% set topNavItems = [] %}
 {% for child in guideNav.children %}
-  {% if not child.metadata.hiddenFromNav %}
-    {% set _ = topNavItems.push({ href: child.path, text: child.title, active: child.active }) %}
+  {% if child.route and not child.metadata.hiddenFromNav %}
+    {% set _ = topNavItems.push({ href: child.path, text: child.route.title, active: child.active }) %}
   {% endif %}
 {% endfor %}
 
@@ -25,19 +25,19 @@
   {% endif %}
 {% endfor %}
 
-{% set sideNavTitle = guideNav.title %}
+{% set sideNavTitle = guideNav.route.title %}
 {% set sideNavItems = [] %}
 {% for child in guideNav.children %}
-  {% if not child.metadata.hiddenFromNav %}
+  {% if child.route and not child.metadata.hiddenFromNav %}
     {% set _ = sideNavItems.push(child) %}
   {% endif %}
 {% endfor %}
 
 {% if currentSection %}
-  {% set sideNavTitle = currentSection.title %}
+  {% set sideNavTitle = currentSection.route.title if currentSection.route else currentSection.segment %}
   {% set sideNavItems = [] %}
   {% for child in currentSection.children %}
-    {% if not child.metadata.hiddenFromNav %}
+    {% if child.route and not child.metadata.hiddenFromNav %}
       {% set _ = sideNavItems.push(child) %}
     {% endif %}
   {% endfor %}
@@ -53,10 +53,10 @@
 {% endif %}
 
 {% if currentSubSection %}
-  {% set sideNavTitle = currentSubSection.title %}
+  {% set sideNavTitle = currentSubSection.route.title if currentSubSection.route else currentSubSection.segment %}
   {% set sideNavItems = [] %}
   {% for child in currentSubSection.children %}
-    {% if not child.metadata.hiddenFromNav %}
+    {% if child.route and not child.metadata.hiddenFromNav %}
       {% set _ = sideNavItems.push(child) %}
     {% endif %}
   {% endfor %}
@@ -111,7 +111,7 @@
             {% for child in group.items %}
               <li class="guide-side-nav__item{% if child.active %} guide-side-nav__item--current{% endif %}">
                 <a class="guide-side-nav__link govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ child.path }}"{% if child.active %} aria-current="page"{% endif %}>
-                  {{ child.title }}
+                  {{ child.route.title }}
                 </a>
               </li>
             {% endfor %}

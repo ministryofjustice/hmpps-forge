@@ -86,7 +86,7 @@ export default class TemplateRenderer {
       blocks: renderedBlocks,
       step: context.step,
       ancestors: context.ancestors,
-      navigation: context.navigation,
+      routeTree: context.routeTree,
       answers: context.answers,
       data: context.data,
       fieldValidationErrors: context.fieldValidationErrors,
