@@ -6,6 +6,7 @@ import { installFrontendLibrariesStep } from './install-frontend-libraries/step'
 import { usingForgeInYourAppStep } from './using-forge-in-your-app/step'
 import { usingForgeWithExpressAndNunjucksStep } from './using-forge-with-express-and-nunjucks/step'
 import { creatingYourFirstJourneyStep } from './creating-your-first-journey/step'
+import { faqStep } from './faq/step'
 import { getInTouchStep } from './get-in-touch/step'
 
 export const getStartedJourney = journey({
@@ -23,6 +24,7 @@ export const getStartedJourney = journey({
     usingForgeInYourAppStep,
     usingForgeWithExpressAndNunjucksStep,
     creatingYourFirstJourneyStep,
+    faqStep,
     getInTouchStep,
   ],
 })
