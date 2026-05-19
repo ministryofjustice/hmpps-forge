@@ -114,3 +114,19 @@ rows: [
   [{ text: 'January' }, { text: '£85', format: 'numeric' }],
 ]
 ```
+
+---
+
+## Nested blocks
+
+Nest any block in the `html` property on table cells.
+
+{{slot:nested-block-example}}
+
+```typescript
+GovUKTable({
+  rows: [
+    [{ text: 'Status' }, { html: GovUKTag({ text: 'Completed' }) }],
+  ]
+})
+```
