@@ -8,6 +8,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+// eslint-disable-next-line no-restricted-imports
 import { isRenderedBlock } from '../../../../forge-core/src/authoring/typeguards/structures'
 
 /**
