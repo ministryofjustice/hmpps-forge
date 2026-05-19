@@ -219,7 +219,7 @@ definitions need, you can define your own. Custom transformers are
 used the same way as built-ins: with `.pipe()` on references and
 generators, and in the `formatters` property on fields.
 
-See [Building custom transformers](building-functions-and-components/custom-transformers)
+See [Building custom transformers](/forge-developer-guide/building-functions-and-components/custom-transformers)
 for the shape interface, implementation, type-checking conventions,
 and registration details.
 
