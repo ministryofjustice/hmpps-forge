@@ -8,6 +8,8 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+// eslint-disable-next-line no-restricted-imports
+import { isRenderedBlock } from '../../../../forge-core/src/authoring/typeguards/structures'
 
 /**
  * Configuration for a table header cell.
@@ -45,7 +47,7 @@ export interface TableCell {
   text?: ResolvableString
 
   /** HTML content for the cell. Takes precedence over `text`. */
-  html?: ResolvableString
+  html?: ResolvableString | BlockDefinition
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
   format?: ResolvableString
@@ -123,12 +125,24 @@ export interface GovUKTable extends BlockDefinition, GovUKTableProps {
   variant: 'govukTable'
 }
 
+const resolveHtml = (html: unknown): string => {
+  if (isRenderedBlock(html)) {
+    return html.html
+  }
+  return (html as string) ?? ''
+}
+
 /**
  * Renders the GOV.UK Table component using the official Nunjucks template.
  */
 function tableRenderer(block: EvaluatedBlock<GovUKTable>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    rows: block.rows,
+    rows: block.rows.map(row =>
+      row.map(column => ({
+        ...column,
+        ...(column.html && { html: resolveHtml(column.html) }),
+      })),
+    ),
     head: block.head,
     caption: block.caption,
     captionClasses: block.captionClasses,
