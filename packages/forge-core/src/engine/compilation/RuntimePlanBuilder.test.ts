@@ -95,4 +95,77 @@ describe('RuntimePlanBuilder', () => {
       })
     })
   })
+
+  describe('buildAllPlans()', () => {
+    it('should default unreachable redirect to entry when omitted', () => {
+      // Arrange
+      const dependencies = new CompilationDependencies()
+      const journey = createJourney('compile_ast:1', [])
+      const step = createStep('compile_ast:2')
+
+      dependencies.nodeRegistry.register(journey.id, journey)
+      dependencies.nodeRegistry.register(step.id, step)
+      dependencies.astNodeTree.addNode(journey.id)
+      dependencies.astNodeTree.addNode(step.id, journey.id)
+
+      const builder = new RuntimePlanBuilder(dependencies.nodeRegistry, dependencies.astNodeTree)
+
+      // Act
+      const result = builder.buildAllPlans(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+
+      // Assert
+      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+    })
+
+    it('should store configured unreachable redirect on the navigation plan', () => {
+      // Arrange
+      const dependencies = new CompilationDependencies()
+      const journey = createJourney('compile_ast:1', [])
+      const step = createStep('compile_ast:2')
+
+      journey.properties.reachability = { unreachableRedirect: 'frontier' }
+      dependencies.nodeRegistry.register(journey.id, journey)
+      dependencies.nodeRegistry.register(step.id, step)
+      dependencies.astNodeTree.addNode(journey.id)
+      dependencies.astNodeTree.addNode(step.id, journey.id)
+
+      const builder = new RuntimePlanBuilder(dependencies.nodeRegistry, dependencies.astNodeTree)
+
+      // Act
+      const result = builder.buildAllPlans(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+
+      // Assert
+      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('frontier')
+    })
+
+    it('should not inherit unreachable redirect from ancestor journeys', () => {
+      // Arrange
+      const dependencies = new CompilationDependencies()
+      const parentJourney = createJourney('compile_ast:1', [])
+      const childJourney = createJourney('compile_ast:2', [])
+      const step = createStep('compile_ast:3')
+
+      parentJourney.properties.reachability = { unreachableRedirect: 'frontier' }
+      dependencies.nodeRegistry.register(parentJourney.id, parentJourney)
+      dependencies.nodeRegistry.register(childJourney.id, childJourney)
+      dependencies.nodeRegistry.register(step.id, step)
+      dependencies.astNodeTree.addNode(parentJourney.id)
+      dependencies.astNodeTree.addNode(childJourney.id, parentJourney.id)
+      dependencies.astNodeTree.addNode(step.id, childJourney.id)
+
+      const builder = new RuntimePlanBuilder(dependencies.nodeRegistry, dependencies.astNodeTree)
+
+      // Act
+      const result = builder.buildAllPlans(
+        new Map([[step.id, step]]),
+        new Map([
+          [parentJourney.id, parentJourney],
+          [childJourney.id, childJourney],
+        ]),
+      )
+
+      // Assert
+      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+    })
+  })
 })

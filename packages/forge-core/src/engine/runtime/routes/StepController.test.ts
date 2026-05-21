@@ -250,6 +250,7 @@ describe('StepController', () => {
           },
         ],
         resumeConfigured: false,
+        unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
         compiledNavigation: async () => ({
@@ -276,6 +277,7 @@ describe('StepController', () => {
             progressExists: false,
             resumeActive: false,
             resumeOutcome: 'no-op' as const,
+            unreachableRedirect: 'entry' as const,
           },
           reachability: {
             reachableSteps: [reachableStep],
@@ -753,6 +755,7 @@ describe('StepController', () => {
               progressExists: false,
               resumeActive: false,
               resumeOutcome: 'no-op' as const,
+              unreachableRedirect: 'entry' as const,
             },
           }
         })
@@ -796,6 +799,7 @@ describe('StepController', () => {
             },
           ],
           resumeConfigured: false,
+          unreachableRedirect: 'entry',
           reachabilityDisabled: false,
           compiledStepValidations: new Map(),
           compiledNavigation: async () => ({
@@ -808,6 +812,7 @@ describe('StepController', () => {
               progressExists: false,
               resumeActive: false,
               resumeOutcome: 'no-op' as const,
+              unreachableRedirect: 'entry' as const,
             },
             reachability: {
               reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
@@ -857,6 +862,56 @@ describe('StepController', () => {
           reachableSteps: [{ path: '/journey/step-1', code: 'test-step' }],
           unreachableSteps: [],
         })
+      })
+
+      it('should redirect unreachable POST requests to configured frontier before submit hooks run', async () => {
+        // Arrange
+        const submitHook = ASTTestFactory.hook(HookType.SUBMIT).build() as SubmitHookASTNode
+        const step = createStepWithHooks({ onSubmission: [submitHook] })
+        mockCompiledForm = createCompiledForm(step)
+        mockCompiledForm.navigationPlan.unreachableRedirect = 'frontier'
+        mockCompiledForm.navigationPlan.compiledNavigation = async () => ({
+          evaluation: {
+            currentStepId: step.id,
+            steps: [
+              {
+                stepId: step.id,
+                routeTemplatePath: '/journey/step-1',
+                declarationIndex: 0,
+                isEntryPoint: false,
+                isConditionalEntry: false,
+                hasValidation: false,
+                isReachable: false,
+                isValid: true,
+                forwardRouteTemplatePaths: [],
+                predecessorRouteTemplatePaths: [],
+              },
+            ],
+            defaultEntryRouteTemplatePath: '/journey/start',
+            frontierRouteTemplatePath: '/journey/frontier',
+            canonicalPathRouteTemplatePaths: ['/journey/start', '/journey/frontier'],
+            progressExists: true,
+            resumeActive: false,
+            resumeOutcome: 'no-op' as const,
+            unreachableRedirect: 'frontier' as const,
+          },
+        })
+
+        const controller = new StepController(
+          mockCompiledForm,
+          mockDependencies,
+          mockRouteTree,
+          mockCurrentStepPath,
+          mockRouteTemplateCatalog,
+        )
+
+        // Act
+        await controller.post(mockReq, mockRes)
+
+        // Assert
+        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/frontier')
+        expect(mockEvaluator.invoke).not.toHaveBeenCalledWith(submitHook.id, mockContext)
+        expect(mockDependencies.frameworkAdapter.render).not.toHaveBeenCalled()
       })
     })
 

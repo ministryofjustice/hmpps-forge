@@ -153,6 +153,7 @@ describe('evaluateGeneratedNavigation', () => {
         createEntry({ stepId: 'compile_ast:3', path: 'later' }),
       ],
       resumeConfigured: false,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -175,6 +176,7 @@ describe('evaluateGeneratedNavigation', () => {
       '/journey/gated',
     ])
     expect(result.defaultEntryRouteTemplatePath).toBe('/journey/start')
+    expect(result.unreachableRedirect).toBe('entry')
   })
 
   it('should resolve internal redirect outcomes using canonical route template paths', async () => {
@@ -193,6 +195,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: false,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -232,6 +235,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -277,6 +281,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -328,6 +333,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -373,6 +379,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -423,6 +430,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -477,6 +485,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -536,6 +545,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: false,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -569,6 +579,7 @@ describe('evaluateGeneratedNavigation', () => {
         createEntry({ stepId: 'compile_ast:81', path: 'second' }),
       ],
       resumeConfigured: false,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }
@@ -599,6 +610,7 @@ describe('evaluateGeneratedNavigation', () => {
         createEntry({ stepId: 'compile_ast:92', path: 'page-three' }),
       ],
       resumeConfigured: false,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: true,
     }
@@ -638,6 +650,7 @@ describe('evaluateGeneratedNavigation', () => {
         }),
       ],
       resumeConfigured: true,
+      unreachableRedirect: 'entry',
       compiledStepValidations: new Map(),
       reachabilityDisabled: false,
     }

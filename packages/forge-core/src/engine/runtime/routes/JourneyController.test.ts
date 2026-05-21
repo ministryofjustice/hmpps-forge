@@ -97,6 +97,7 @@ describe('JourneyController', () => {
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
+        unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
         compiledNavigation: async (ctx: unknown, navigation: NavigationEvaluationInput) => ({
@@ -188,6 +189,7 @@ describe('JourneyController', () => {
       progressExists: false,
       resumeActive: false,
       resumeOutcome: 'no-op' as const,
+      unreachableRedirect: 'entry' as const,
       ...overrides,
     })
 

@@ -168,6 +168,7 @@ const StepEntryValidationSchema = z.object({
 const JourneyReachabilitySchema = z
   .object({
     resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    unreachableRedirect: z.enum(['entry', 'frontier']).optional(),
     disableReachabilityChecks: z.boolean().optional(),
   })
   .optional()

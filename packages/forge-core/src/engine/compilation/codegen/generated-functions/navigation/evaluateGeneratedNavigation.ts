@@ -42,6 +42,7 @@ export async function evaluateGeneratedNavigation(
       pathAnalysis.progressExists,
       pathAnalysis.frontierRouteTemplatePath,
     ),
+    unreachableRedirect: input.plan.unreachableRedirect,
   }
 
   if (input.fieldInventory === undefined || input.params === undefined) {

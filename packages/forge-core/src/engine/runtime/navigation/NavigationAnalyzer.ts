@@ -31,7 +31,7 @@ export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): st
     return undefined
   }
 
-  return evaluation.defaultEntryRouteTemplatePath
+  return resolveUnreachableRedirect(evaluation)
 }
 
 export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
@@ -43,6 +43,14 @@ export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): st
 
   if (currentStep.isReachable) {
     return undefined
+  }
+
+  return resolveUnreachableRedirect(evaluation)
+}
+
+function resolveUnreachableRedirect(evaluation: NavigationEvaluation): string | undefined {
+  if (evaluation.unreachableRedirect === 'frontier') {
+    return evaluation.frontierRouteTemplatePath ?? evaluation.defaultEntryRouteTemplatePath
   }
 
   return evaluation.defaultEntryRouteTemplatePath
