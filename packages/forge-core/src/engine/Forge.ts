@@ -12,15 +12,6 @@ import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegis
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 
-type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) => FunctionEvaluator<unknown>>
-
-interface ForgePackageRegistration<TDeps = Record<string, never>> {
-  journey: string | JourneyDefinition
-  functions?: ForgeFunctionImplementations<TDeps>
-  components?: ComponentRegistryEntry<BlockDefinition>[]
-  enabled?: boolean
-}
-
 type DiagnosticError = {
   readonly name?: unknown
   readonly message?: unknown
