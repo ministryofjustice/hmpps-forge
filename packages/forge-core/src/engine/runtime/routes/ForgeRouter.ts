@@ -4,7 +4,7 @@ import { JourneyASTNode } from '../../types/structures.type'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
 import StepController from './StepController'
 import JourneyController from './JourneyController'
-import type JourneyInstance from '../../JourneyInstance'
+import type PackageInstance from '../../PackageInstance'
 import {
   createRouteTreeIndex,
   JourneyRouteContext,
@@ -32,14 +32,11 @@ export default class ForgeRouter<TRouter> {
     this.basePath = normalizeBasePath(options.basePath)
   }
 
-  mount(
-    journeyInstance: JourneyInstance,
-    packageDependencies: PackageDependencies,
-    forgeDependencies: ForgeDependencies,
-  ): number {
-    const stepIndex = journeyInstance.getStepIndex()
-    const journeyIndex = journeyInstance.getJourneyIndex()
-    const artefact = journeyInstance.getSharedCompilationArtefact()
+  mount(packageInstance: PackageInstance, forgeDependencies: ForgeDependencies): number {
+    const packageDependencies = packageInstance.getDependencies()
+    const stepIndex = packageInstance.getStepIndex()
+    const journeyIndex = packageInstance.getJourneyIndex()
+    const artefact = packageInstance.getSharedCompilationArtefact()
     const routeTreeBuilder = new RouteTreeBuilder(this.routeTreeIndex)
     const { journeyContexts, stepContexts, catalogsByBasePath } = routeTreeBuilder.build({
       basePath: this.basePath,
@@ -49,9 +46,9 @@ export default class ForgeRouter<TRouter> {
     })
 
     this.createJourneyRouters(journeyContexts)
-    const stepRouteCount = this.mountStepRoutes(stepContexts, journeyInstance, packageDependencies, forgeDependencies)
+    const stepRouteCount = this.mountStepRoutes(stepContexts, packageInstance, packageDependencies, forgeDependencies)
     const journeyRootRouteCount = this.mountJourneyRootHandlers(
-      journeyInstance,
+      packageInstance,
       journeyContexts,
       catalogsByBasePath,
       packageDependencies,
@@ -99,7 +96,7 @@ export default class ForgeRouter<TRouter> {
 
   private mountStepRoutes(
     stepContexts: StepRouteContext[],
-    journeyInstance: JourneyInstance,
+    packageInstance: PackageInstance,
     packageDependencies: PackageDependencies,
     forgeDependencies: ForgeDependencies,
   ): number {
@@ -114,7 +111,7 @@ export default class ForgeRouter<TRouter> {
         throw new Error(`Unable to mount step route "${fullPath}" before its journey router`)
       }
 
-      const resolveCompiledStep = () => journeyInstance.getCompiledStep(ctx.stepId)
+      const resolveCompiledStep = () => packageInstance.getCompiledStep(ctx.stepId)
 
       let controller: StepController<unknown, unknown> | undefined
 
@@ -147,7 +144,7 @@ export default class ForgeRouter<TRouter> {
   }
 
   private mountJourneyRootHandlers(
-    journeyInstance: JourneyInstance,
+    packageInstance: PackageInstance,
     journeyContexts: JourneyRouteContext[],
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
     packageDependencies: PackageDependencies,
@@ -157,7 +154,7 @@ export default class ForgeRouter<TRouter> {
 
     journeyContexts.forEach(({ journeyNode, templatePath }) => {
       const journeyRouter = this.journeyRouters.get(templatePath)
-      const journeyPlan = journeyInstance.getJourneyRuntimePlan(journeyNode.id)
+      const journeyPlan = packageInstance.getJourneyRuntimePlan(journeyNode.id)
       const routeTemplateCatalog = catalogsByBasePath.get(templatePath)
 
       if (!journeyRouter || !journeyPlan || !routeTemplateCatalog) {
@@ -168,7 +165,7 @@ export default class ForgeRouter<TRouter> {
 
       const getController = () => {
         if (!controller) {
-          journeyInstance.getJourneyCompilationArtefact()
+          packageInstance.getJourneyCompilationArtefact()
           controller = new JourneyController(journeyPlan, packageDependencies, forgeDependencies, routeTemplateCatalog)
         }
 

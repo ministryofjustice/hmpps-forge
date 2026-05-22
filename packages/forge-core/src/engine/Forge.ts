@@ -1,13 +1,8 @@
-import type { JourneyDefinition } from '../authoring/types/structures.type'
-import JourneyInstance from './JourneyInstance'
-import { ForgeDependencies, PackageDependencies } from './types/engine.type'
+import PackageInstance from './PackageInstance'
+import type { ForgeDependencies, ForgeFunctionImplementations, ForgePackageRegistration } from './types/engine.type'
 import FunctionRegistry from './registries/FunctionRegistry'
-import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
-import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
-import type { BlockDefinition } from '../components/types/structures.type'
-import type { FunctionEvaluator } from '../authoring/types/functions.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
 import ForgeRouter from './runtime/routes/ForgeRouter'
@@ -162,7 +157,6 @@ export default class Forge {
     this.dependencies = {
       logger: this.options.logger,
       frameworkAdapter: this.options.frameworkAdapter.build({
-        componentRegistry: this.componentRegistry,
         logger: this.options.logger,
       }),
     }
@@ -223,35 +217,13 @@ export default class Forge {
     }
 
     try {
-      let packageDependencies: PackageDependencies = {
+      const packageInstance = PackageInstance.create(pkg, {
         functionRegistry: this.functionRegistry,
         componentRegistry: this.componentRegistry,
-      }
-      let forgeDependencies: ForgeDependencies = this.dependencies
+        functionDependencies: deps,
+      })
 
-      if (pkg.functions) {
-        const resolvedDeps = (deps ?? {}) as TDeps
-        const scopedFunctionRegistry = new ScopedFunctionRegistry(this.functionRegistry)
-
-        scopedFunctionRegistry.register(createFunctionsRegistry(pkg.functions, resolvedDeps))
-        packageDependencies = { ...packageDependencies, functionRegistry: scopedFunctionRegistry }
-      }
-
-      if (pkg.components) {
-        const scopedComponentRegistry = new ScopedComponentRegistry(this.componentRegistry)
-
-        scopedComponentRegistry.registerMany(pkg.components)
-        packageDependencies = { ...packageDependencies, componentRegistry: scopedComponentRegistry }
-        forgeDependencies = {
-          ...forgeDependencies,
-          frameworkAdapter: this.options.frameworkAdapter.build({
-            componentRegistry: scopedComponentRegistry,
-            logger: this.options.logger,
-          }),
-        }
-      }
-
-      this.registerJourney(pkg.journey, packageDependencies, forgeDependencies)
+      this.registerPackageInstance(packageInstance)
     } catch (e) {
       this.handleRegistrationError(e)
     }
@@ -259,22 +231,16 @@ export default class Forge {
     return this
   }
 
-  private registerJourney(
-    journeyConfiguration: string | JourneyDefinition,
-    packageDependencies: PackageDependencies,
-    forgeDependencies: ForgeDependencies,
-  ): void {
-    const instance = JourneyInstance.createFromConfiguration(journeyConfiguration, packageDependencies)
-
+  private registerPackageInstance(packageInstance: PackageInstance): void {
     if (!this.options.lazyStepCompilation) {
-      instance.compileAllRouteArtefacts()
+      packageInstance.compileAllRouteArtefacts()
     }
 
-    const routeCount = this.forgeRouter.mount(instance, packageDependencies, forgeDependencies)
+    const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
 
-    forgeDependencies.logger.info(
-      { journey: instance.getJourneyCode(), routes: routeCount },
-      `Forge: Registered journey '${instance.getJourneyTitle()}' with ${routeCount} routes`,
+    this.dependencies.logger.info(
+      { journey: packageInstance.getJourneyCode(), routes: routeCount },
+      `Forge: Registered journey '${packageInstance.getJourneyTitle()}' with ${routeCount} routes`,
     )
   }
 
