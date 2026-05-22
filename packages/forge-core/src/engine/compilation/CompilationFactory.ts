@@ -5,7 +5,8 @@ import type { ASTNode } from '../types/ast.type'
 import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
 import { IterateASTNode } from '../types/expressions.type'
 import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
-import { JourneyInstanceDependencies, NodeId } from '../types/engine.type'
+import { NodeId } from '../types/engine.type'
+import FunctionRegistry from '../registries/FunctionRegistry'
 import { CompilationContext } from './CompilationContext'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
 import RuntimePlanBuilder from './RuntimePlanBuilder'
@@ -31,7 +32,7 @@ import getAncestorChain from '../utils/getAncestorChain'
  * functions used by request handling.
  */
 export default class CompilationFactory {
-  constructor(private readonly journeyInstanceDependencies: JourneyInstanceDependencies) {}
+  constructor(private readonly functionRegistry: FunctionRegistry) {}
 
   /**
    * Build the immutable compilation artefact that every route shares.
@@ -80,7 +81,7 @@ export default class CompilationFactory {
         plan,
         this.buildFieldInventorySources(plan, sharedContext),
         sharedContext.nodeRegistry,
-        this.journeyInstanceDependencies.functionRegistry,
+        this.functionRegistry,
       )
     })
 
@@ -117,10 +118,7 @@ export default class CompilationFactory {
     shared.journeyRuntimePlans.forEach((plan, journeyId) => {
       const accessAncestors = this.resolveAccessAncestors(journeyId, compilationContext)
 
-      plan.compiledAccessLifecycle = compiler.compileAccessLifecycle(
-        accessAncestors,
-        this.journeyInstanceDependencies.functionRegistry,
-      )
+      plan.compiledAccessLifecycle = compiler.compileAccessLifecycle(accessAncestors, this.functionRegistry)
     })
   }
 
@@ -144,11 +142,7 @@ export default class CompilationFactory {
       const iterateNodes = allMapIterateNodes
         .filter(node => stepIds.some(stepId => compilationContext.astNodeTree.isDescendantOf(node.id, stepId)))
 
-      plan.compiledAnswerPreparation = compiler.compile(
-        fieldBlocks,
-        iterateNodes,
-        this.journeyInstanceDependencies.functionRegistry,
-      )
+      plan.compiledAnswerPreparation = compiler.compile(fieldBlocks, iterateNodes, this.functionRegistry)
     })
   }
 
@@ -227,7 +221,7 @@ export default class CompilationFactory {
           fieldBlocks,
           stepNode.properties.validWhen,
           iterateNodes,
-          this.journeyInstanceDependencies.functionRegistry,
+          this.functionRegistry,
         )
 
         if (compiled) {
@@ -257,14 +251,8 @@ export default class CompilationFactory {
     const accessAncestors = this.resolveAccessAncestors(stepNode.id, compilationContext)
     const submitHooks = stepNode.properties.onSubmission ?? []
 
-    runtimePlan.compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(
-      accessAncestors,
-      this.journeyInstanceDependencies.functionRegistry,
-    )
-    runtimePlan.compiledSubmitHooks = hookCompiler.compileSubmitHooks(
-      submitHooks,
-      this.journeyInstanceDependencies.functionRegistry,
-    )
+    runtimePlan.compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(accessAncestors, this.functionRegistry)
+    runtimePlan.compiledSubmitHooks = hookCompiler.compileSubmitHooks(submitHooks, this.functionRegistry)
 
     // Answer preparation owns every field, not just validating fields. It resolves
     // GET defaults and POST bodies, then records answer mutations before hooks,
@@ -278,7 +266,7 @@ export default class CompilationFactory {
     const compiledAnswerPreparation = answerPrepCompiler.compile(
       allFieldBlocks,
       answerPrepIterateNodes,
-      this.journeyInstanceDependencies.functionRegistry,
+      this.functionRegistry,
     )
 
     // Validation only needs fields with validWhen plus any step-level domain
@@ -297,11 +285,11 @@ export default class CompilationFactory {
         fieldBlocks,
         stepNode.properties.validWhen,
         iterateNodes,
-        this.journeyInstanceDependencies.functionRegistry,
+        this.functionRegistry,
       )
     const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
       stepNode.properties.validateOnEntry,
-      this.journeyInstanceDependencies.functionRegistry,
+      this.functionRegistry,
     )
 
     // Render evaluates step metadata, journey ancestor metadata, block properties,
@@ -311,12 +299,7 @@ export default class CompilationFactory {
     const ancestorNodes = this.resolveRenderAncestors(stepNode.id, compilationContext)
     const renderIterateNodes = compilationContext.nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE)
       .filter(node => compilationContext.astNodeTree.isDescendantOf(node.id, stepNode.id))
-    const compiledRender = renderCompiler.compile(
-      stepNode,
-      ancestorNodes,
-      renderIterateNodes,
-      this.journeyInstanceDependencies.functionRegistry,
-    )
+    const compiledRender = renderCompiler.compile(stepNode, ancestorNodes, renderIterateNodes, this.functionRegistry)
 
     return {
       runtimePlan,

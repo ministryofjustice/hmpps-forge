@@ -1,7 +1,7 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyASTNode, StepASTNode } from './types/structures.type'
-import type { JourneyInstanceDependencies, NodeId } from './types/engine.type'
+import type { PackageDependencies, NodeId } from './types/engine.type'
 import type { CompilationContext } from './compilation/CompilationContext'
 import type { NavigationRuntimePlan, StepRuntimePlan } from './types/runtimePlans.type'
 import type { SharedCompiledForm } from './types/compilationArtefacts.type'
@@ -52,13 +52,11 @@ function createJourneyDefinition(): JourneyDefinition {
   }
 }
 
-function createDependencies(): JourneyInstanceDependencies {
+function createDependencies(): PackageDependencies {
   return {
     componentRegistry: {},
-    frameworkAdapter: {},
     functionRegistry: {},
-    logger: console,
-  } as JourneyInstanceDependencies
+  } as PackageDependencies
 }
 
 function createSharedCompilation(
