@@ -113,5 +113,25 @@ describe('JourneyFactory', () => {
       expect(result2.id).toBeDefined()
       expect(result1.id).not.toBe(result2.id)
     })
+
+    it('should pass through unreachable redirect reachability config', () => {
+      // Arrange
+      const json = {
+        type: StructureType.JOURNEY,
+        code: 'test-journey',
+        path: 'test-journey',
+        title: 'Test Journey',
+        reachability: {
+          unreachableRedirect: 'frontier',
+        },
+        steps: [] as StepDefinition[],
+      } satisfies JourneyDefinition
+
+      // Act
+      const result = journeyFactory.create(json)
+
+      // Assert
+      expect(result.properties.reachability?.unreachableRedirect).toBe('frontier')
+    })
   })
 })

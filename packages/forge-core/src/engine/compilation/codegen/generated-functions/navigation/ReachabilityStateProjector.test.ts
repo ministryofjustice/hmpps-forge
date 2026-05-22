@@ -31,6 +31,7 @@ describe('ReachabilityStateProjector', () => {
       progressExists: false,
       resumeActive: false,
       resumeOutcome: 'no-op',
+      unreachableRedirect: 'entry',
       ...overrides,
     }
   }

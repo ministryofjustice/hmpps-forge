@@ -2,7 +2,7 @@
 title: Reachability and resuming
 section: building-journeys
 path: building-journeys/reachability
-teaches: [reachability, reachability-graph, validity, frontier, progress, backlinks, linearised-path, tieBreakers, field-cleardown, cleardownFieldCodes, getFieldsToClear, resumeWhen, disableReachabilityChecks]
+teaches: [reachability, reachability-graph, validity, frontier, progress, backlinks, linearised-path, tieBreakers, field-cleardown, cleardownFieldCodes, getFieldsToClear, resumeWhen, unreachableRedirect, disableReachabilityChecks]
 prerequisites: [routing, entryWhen, step, journey]
 ---
 
@@ -250,6 +250,41 @@ for a worked example with code.
 
 ---
 
+## Unreachable redirects
+
+Reachability redirects are separate from resume redirects.
+
+Use `entry` to send unreachable step requests to the tiebreaker-winning
+entry point:
+
+```typescript
+reachability: {
+  unreachableRedirect: 'entry',
+}
+```
+
+For journeys with a task list, or visible step navigation, it
+can be more helpful to redirect skipped-ahead requests to the current
+frontier instead:
+
+```typescript
+journey({
+  code: 'application',
+  path: '/application',
+  title: 'Application',
+  reachability: {
+    unreachableRedirect: 'frontier',
+  },
+  steps: [stepOne, stepTwo, stepThree, stepFour],
+})
+```
+
+With this setting, users can still return to earlier reachable steps.
+Only requests for unreachable steps are redirected to the frontier. If
+no frontier exists, Forge falls back to the default entry point.
+
+---
+
 ## Backlinks
 
 The backlink for a step is the previous step on the linearised path:
@@ -324,7 +359,7 @@ When a user requests a specific step URL:
 |---|---|---|
 | Redirect to frontier | - | Redirect to frontier |
 | No-op | Yes | Render the step |
-| No-op | No | Redirect to tiebreaker-winning entry point |
+| No-op | No | Redirect to the configured unreachable target |
 
 ---
 
@@ -445,13 +480,26 @@ When reachability is disabled:
 
 ### `resumeWhen` (Optional, journey)
 
-Controls resume behaviour. Accepts `true` (always resume) or a
-condition expression (resume only when the condition is true).
+Controls proactive resume behaviour. Accepts `true` (always force the
+user to the frontier) or a condition expression (force to the frontier
+only when the condition is true).
 
 ```typescript
 reachability: {
   resumeWhen: Query('resume').match(Condition.Equals('true')),
 }
+```
+
+### `unreachableRedirect` (Optional, journey)
+
+Controls where Forge redirects when a requested step is not reachable.
+Use `'entry'` for the tiebreaker-winning entry point.
+
+Use `'frontier'` to send skipped-ahead requests to the first incomplete
+step while still allowing users to revisit earlier reachable steps.
+
+```typescript
+reachability: { unreachableRedirect: 'frontier' }
 ```
 
 ### `disableReachabilityChecks` (Optional, journey)
@@ -511,6 +559,9 @@ const staleKeys = context.getFieldsToClear()
 - **Use conditional `resumeWhen` over always-on.** A query parameter
   like `?resume=true` lets change links work normally while task list
   links still trigger resume.
+- **Use `unreachableRedirect: 'frontier'` for step navigation.** This
+  prevents users skipping ahead while still letting them return to
+  completed reachable steps.
 - **Put tiebreakers on entry points.** When multiple entries can be
   active, the tiebreaker determines where users land from the journey
   root.

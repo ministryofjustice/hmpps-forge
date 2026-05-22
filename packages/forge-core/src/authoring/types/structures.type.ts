@@ -55,6 +55,8 @@ export interface TieBreaker {
 
 export type TieBreakerProps = Omit<TieBreaker, 'type'>
 
+export type UnreachableRedirectTarget = 'entry' | 'frontier'
+
 /**
  * Top-level journey definition representing a complete form flow.
  * Journeys contain steps and can have nested child journeys.
@@ -94,6 +96,18 @@ export interface JourneyReachability {
    * reachability: { resumeWhen: Query('resume').match(Condition.Equals('true')) }
    */
   resumeWhen?: true | PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Controls where Forge redirects when a requested step is not reachable.
+   *
+   * - `entry` — redirect to the default active entry point.
+   * - `frontier` — redirect to the current frontier when one exists, otherwise
+   *   fall back to the default active entry point.
+   *
+   * @example
+   * reachability: { unreachableRedirect: 'frontier' }
+   */
+  unreachableRedirect?: UnreachableRedirectTarget
 
   /**
    * Disables the reachability BFS walk for this journey. All steps are

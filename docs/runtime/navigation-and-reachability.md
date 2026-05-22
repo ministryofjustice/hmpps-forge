@@ -26,6 +26,7 @@ The topology is known during compilation:
 - which steps can produce forward outcomes
 - which fields belong to each step
 - which cleardown rules apply to each step
+- where unreachable step requests should redirect
 
 The request-time values are evaluated when a request arrives:
 
@@ -200,6 +201,23 @@ the frontier route.
 
 If resume is not active, navigation uses the current step path when possible,
 or falls back to the default entry path.
+
+Resume is proactive. When active, it can redirect a reachable step request to
+the frontier.
+
+### Unreachable redirects
+
+Unreachable redirect behaviour is separate from resume behaviour.
+
+When a requested step is not reachable, Forge redirects either to the default
+entry route or to the current frontier route. The default target is the entry
+route.
+
+If the configured target is the frontier and no frontier exists, Forge falls
+back to the default entry route.
+
+This setting applies to step GET and POST requests. For POST requests, Forge
+still redirects before submit hooks run.
 
 ### Reachability projection
 

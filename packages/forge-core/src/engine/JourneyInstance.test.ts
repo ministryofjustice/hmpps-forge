@@ -91,6 +91,7 @@ function createNavigationPlan(): NavigationRuntimePlan {
   return {
     entries: [],
     resumeConfigured: false,
+    unreachableRedirect: 'entry',
     reachabilityDisabled: false,
     compiledStepValidations: new Map(),
   }

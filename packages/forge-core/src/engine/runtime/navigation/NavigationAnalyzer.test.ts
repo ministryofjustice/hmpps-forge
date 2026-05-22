@@ -2,6 +2,7 @@ import { NavigationEvaluation, NavigationStepState } from '../../types/Navigatio
 import {
   resolveBacklinkRouteTemplatePath,
   resolveJourneyRootRedirect,
+  resolvePostRequestRedirect,
   resolveStepRequestRedirect,
 } from './NavigationAnalyzer'
 
@@ -31,6 +32,7 @@ function createEvaluation(overrides: Partial<NavigationEvaluation> = {}): Naviga
     progressExists: false,
     resumeActive: false,
     resumeOutcome: 'no-op',
+    unreachableRedirect: 'entry',
     ...overrides,
   }
 }
@@ -79,6 +81,75 @@ describe('NavigationAnalyzer', () => {
 
     // Assert
     expect(result).toBe('/journey/entry')
+  })
+
+  it('should redirect unreachable step requests to the frontier when configured', () => {
+    // Arrange
+    const unreachable = createNavigationStep({ isReachable: false })
+    const evaluation = createEvaluation({
+      currentStepId: unreachable.stepId,
+      steps: [unreachable],
+      frontierRouteTemplatePath: '/journey/frontier',
+      unreachableRedirect: 'frontier',
+    })
+
+    // Act
+    const result = resolveStepRequestRedirect(evaluation)
+
+    // Assert
+    expect(result).toBe('/journey/frontier')
+  })
+
+  it('should fall back to the default entry when frontier redirect is configured without a frontier', () => {
+    // Arrange
+    const unreachable = createNavigationStep({ isReachable: false })
+    const evaluation = createEvaluation({
+      currentStepId: unreachable.stepId,
+      steps: [unreachable],
+      unreachableRedirect: 'frontier',
+    })
+
+    // Act
+    const result = resolveStepRequestRedirect(evaluation)
+
+    // Assert
+    expect(result).toBe('/journey/entry')
+  })
+
+  it('should redirect to resume frontier before unreachable redirect config on step requests', () => {
+    // Arrange
+    const unreachable = createNavigationStep({ isReachable: false })
+    const evaluation = createEvaluation({
+      currentStepId: unreachable.stepId,
+      steps: [unreachable],
+      defaultEntryRouteTemplatePath: '/journey/entry',
+      frontierRouteTemplatePath: '/journey/resume-frontier',
+      resumeOutcome: 'redirect',
+      unreachableRedirect: 'entry',
+    })
+
+    // Act
+    const result = resolveStepRequestRedirect(evaluation)
+
+    // Assert
+    expect(result).toBe('/journey/resume-frontier')
+  })
+
+  it('should use unreachable redirect config for POST requests', () => {
+    // Arrange
+    const unreachable = createNavigationStep({ isReachable: false })
+    const evaluation = createEvaluation({
+      currentStepId: unreachable.stepId,
+      steps: [unreachable],
+      frontierRouteTemplatePath: '/journey/frontier',
+      unreachableRedirect: 'frontier',
+    })
+
+    // Act
+    const result = resolvePostRequestRedirect(evaluation)
+
+    // Assert
+    expect(result).toBe('/journey/frontier')
   })
 
   it('should redirect journey root requests to the resume frontier before default entry', () => {

@@ -2,10 +2,11 @@ import { ASTNodeType } from './enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ASTNode } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
-import type { ViewConfig } from '../../authoring/types/structures.type'
+import type { UnreachableRedirectTarget, ViewConfig } from '../../authoring/types/structures.type'
 
 export interface JourneyReachabilityAST {
   resumeWhen?: true | ASTNode
+  unreachableRedirect?: UnreachableRedirectTarget
   disableReachabilityChecks?: boolean
 }
 

@@ -92,6 +92,7 @@ function createNavigationPlan(entries: ReachabilityCompilationEntry[]): Navigati
       hasValidation: entry.hasValidation,
     })),
     resumeConfigured: false,
+    unreachableRedirect: 'entry',
     reachabilityDisabled: false,
     compiledStepValidations: new Map(),
   }

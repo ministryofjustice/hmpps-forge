@@ -1,4 +1,5 @@
 import { NodeId } from './ast.type'
+import type { UnreachableRedirectTarget } from '../../authoring/types/structures.type'
 
 export type ResumeOutcome = 'no-op' | 'redirect'
 
@@ -26,4 +27,5 @@ export interface NavigationEvaluation {
   progressExists: boolean
   resumeActive: boolean
   resumeOutcome: ResumeOutcome
+  unreachableRedirect: UnreachableRedirectTarget
 }

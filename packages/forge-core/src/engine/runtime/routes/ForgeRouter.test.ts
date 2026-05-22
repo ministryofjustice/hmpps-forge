@@ -136,6 +136,7 @@ describe('ForgeRouter', () => {
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
+        unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
       },
@@ -150,6 +151,7 @@ describe('ForgeRouter', () => {
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
+        unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
       },

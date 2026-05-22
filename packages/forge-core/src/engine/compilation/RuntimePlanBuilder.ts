@@ -120,6 +120,7 @@ export default class RuntimePlanBuilder {
         hasValidation: entry.hasValidation,
       })),
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
+      unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
       compiledStepValidations: new Map(),
     }

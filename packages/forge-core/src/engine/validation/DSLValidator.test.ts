@@ -42,6 +42,47 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate journey unreachable redirect targets', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        reachability: {
+          unreachableRedirect: 'frontier',
+        },
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject invalid journey unreachable redirect targets', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        reachability: {
+          unreachableRedirect: 'start',
+        },
+        steps: [],
+      } as unknown as JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+    })
+
     it('should validate grouped validation and validateOnEntry schema', () => {
       const postcodeBlock = {
         type: StructureType.BLOCK,

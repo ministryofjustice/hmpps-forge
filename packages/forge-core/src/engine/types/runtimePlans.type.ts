@@ -3,6 +3,7 @@ import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } fro
 import type { CompiledAnswerPreparationFunction, CompiledValidationFunction } from './compiledPhaseResults.type'
 import type { CompiledNavigationFunction } from '../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
 import type { ReachabilityTieBreakerEntry } from '../compilation/RuntimePlanBuilder'
+import type { UnreachableRedirectTarget } from '../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {
   stepId: NodeId
@@ -15,6 +16,7 @@ export interface StepRuntimePlan {
 export interface NavigationRuntimePlan {
   entries: NavigationRuntimeEntry[]
   resumeConfigured: boolean
+  unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
   compiledNavigation?: CompiledNavigationFunction
   compiledStepValidations: Map<NodeId, CompiledValidationFunction>
