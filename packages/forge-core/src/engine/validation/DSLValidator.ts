@@ -13,7 +13,7 @@ import { effectScopeRule } from './rules/validateEffectScope'
 import type { ValidationRule } from './rules/types'
 
 export class DSLValidator {
-  static validateSchema(input: JourneyDefinition): void {
+  static validateSchema(input: unknown): asserts input is JourneyDefinition {
     const result = JourneySchema.safeParse(input)
 
     if (!result.success) {
