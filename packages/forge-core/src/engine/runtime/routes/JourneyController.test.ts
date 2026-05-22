@@ -1,4 +1,4 @@
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies, NodeId } from '../../types/engine.type'
 import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
 import ContextPreparer from '../lifecycle/ContextPreparer'
 import JourneyController from './JourneyController'
@@ -77,7 +77,8 @@ const createMockResponse = (): StepResponse => {
 
 describe('JourneyController', () => {
   let mockJourneyPlan: JourneyRuntimePlan
-  let mockDependencies: Mocked<JourneyInstanceDependencies>
+  let mockPackageDependencies: Mocked<PackageDependencies>
+  let mockForgeDependencies: Mocked<ForgeDependencies>
   let mockCatalog: JourneyRouteTemplateCatalog
   let mockReq: unknown
   let mockRes: unknown
@@ -116,7 +117,12 @@ describe('JourneyController', () => {
       stepIdByRouteTemplatePath: new Map(),
     }
 
-    mockDependencies = {
+    mockPackageDependencies = {
+      componentRegistry: {} as any,
+      functionRegistry: {} as any,
+    } as unknown as Mocked<PackageDependencies>
+
+    mockForgeDependencies = {
       logger: {
         debug: vi.fn(),
         info: vi.fn(),
@@ -128,9 +134,7 @@ describe('JourneyController', () => {
         toStepRequest: vi.fn().mockImplementation(() => createMockRequest()),
         toStepResponse: vi.fn().mockImplementation(createMockResponse),
       },
-      componentRegistry: {} as any,
-      functionRegistry: {} as any,
-    } as unknown as Mocked<JourneyInstanceDependencies>
+    } as unknown as Mocked<ForgeDependencies>
 
     mockReq = {}
     mockRes = {}
@@ -204,13 +208,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/resume-target')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/resume-target')
     })
 
     it('should redirect to winning entry point when resume is not active', async () => {
@@ -231,13 +240,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/your-name')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/your-name')
     })
 
     it('should fall back to entry point when resume is active but frontier is undefined', async () => {
@@ -251,13 +265,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/first')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/first')
     })
 
     it('should fall back to first step when no entry points exist', async () => {
@@ -270,13 +289,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/step-a')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/step-a')
     })
 
     it('should throw when no steps exist', async () => {
@@ -290,7 +314,12 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toMatchObject({
@@ -320,7 +349,12 @@ describe('JourneyController', () => {
         })
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -359,7 +393,12 @@ describe('JourneyController', () => {
         },
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -379,7 +418,7 @@ describe('JourneyController', () => {
           cookies: { session: 'abc' },
           state: { csrf: 'token' },
         },
-        conditions: mockDependencies.functionRegistry,
+        conditions: mockPackageDependencies.functionRegistry,
         post: {},
       })
     })
@@ -411,7 +450,12 @@ describe('JourneyController', () => {
       }
       mockJourneyPlan.navigationPlan.compiledNavigation = compiledNavigationSpy
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -425,7 +469,12 @@ describe('JourneyController', () => {
       mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
       mockJourneyPlan.compiledAnswerPreparation = undefined
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toThrow(
@@ -441,7 +490,12 @@ describe('JourneyController', () => {
         redirect: '/login',
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -449,7 +503,7 @@ describe('JourneyController', () => {
       // Assert
       expect(mockCompiledAnswerPreparation).not.toHaveBeenCalled()
       expect(mockNavigationAnalyzerEvaluate).not.toHaveBeenCalled()
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
     })
 
     it('should throw an HTTP error when the access lifecycle returns an error outcome', async () => {
@@ -461,7 +515,12 @@ describe('JourneyController', () => {
         message: 'Access denied',
       })
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act & Assert
       await expect(controller.get(mockReq, mockRes)).rejects.toMatchObject({ status: 403, message: 'Access denied' })
@@ -469,7 +528,7 @@ describe('JourneyController', () => {
 
     it('should interpolate path params from the request into the redirect URL', async () => {
       // Arrange
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
+      ;(mockForgeDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
         createMockRequest({ params: { personId: 'abc-123' } }),
       )
       mockCompiledAccessLifecycle.mockResolvedValue({ outcome: 'continue', executed: true })
@@ -481,13 +540,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(
         mockRes,
         '/journey/people/abc-123/details',
       )
@@ -503,7 +567,12 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
@@ -535,13 +604,18 @@ describe('JourneyController', () => {
         }),
       )
 
-      const controller = new JourneyController(mockJourneyPlan, mockDependencies, mockCatalog)
+      const controller = new JourneyController(
+        mockJourneyPlan,
+        mockPackageDependencies,
+        mockForgeDependencies,
+        mockCatalog,
+      )
 
       // Act
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/confirmation')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/confirmation')
     })
   })
 })

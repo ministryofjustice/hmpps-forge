@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors'
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
 import { StepRequest } from '../../../framework/types/request.type'
 import { resolvePathParams } from '../../../framework/path/routePath'
@@ -20,7 +20,8 @@ export default class JourneyController<TRequest, TResponse> {
 
   constructor(
     private readonly journeyPlan: JourneyRuntimePlan,
-    private readonly dependencies: JourneyInstanceDependencies,
+    private readonly packageDependencies: PackageDependencies,
+    private readonly forgeDependencies: ForgeDependencies,
     private readonly routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ) {
     this.contextPreparer = new ContextPreparer()
@@ -53,8 +54,8 @@ export default class JourneyController<TRequest, TResponse> {
   }
 
   private prepareRequest(req: TRequest, res: TResponse) {
-    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
-    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
+    const request = this.forgeDependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.forgeDependencies.frameworkAdapter.toStepResponse(res)
     const context = this.contextPreparer.prepare(this.journeyPlan, request, response)
 
     return { request, context }
@@ -63,11 +64,14 @@ export default class JourneyController<TRequest, TResponse> {
   private redirect(res: TResponse, request: StepRequest, redirect: string): void {
     const resolvedTarget = resolveRedirectTarget(redirect, request.location)
 
-    return this.dependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
+    return this.forgeDependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
   }
 
   private redirectToRouteTemplatePath(res: TResponse, request: StepRequest, routeTemplatePath: string): void {
-    return this.dependencies.frameworkAdapter.redirect(res, resolvePathParams(routeTemplatePath, request.getParams()))
+    return this.forgeDependencies.frameworkAdapter.redirect(
+      res,
+      resolvePathParams(routeTemplatePath, request.getParams()),
+    )
   }
 
   private getRedirectTarget(redirect: string | undefined): string {
@@ -91,7 +95,13 @@ export default class JourneyController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
+    return compiledFn(
+      buildCompiledHookLifecycleContext(
+        context,
+        this.packageDependencies.functionRegistry,
+        this.forgeDependencies.logger,
+      ),
+    )
   }
 
   /**
@@ -106,7 +116,7 @@ export default class JourneyController<TRequest, TResponse> {
       )
     }
 
-    await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
+    await compiledFn(buildCompiledAnswerPreparationContext(context, this.packageDependencies.functionRegistry))
   }
 
   private async evaluateCompiledNavigation(context: RuntimeEvaluationContext) {
@@ -116,7 +126,7 @@ export default class JourneyController<TRequest, TResponse> {
       throw new Error('[Forge] Navigation compilation is required — compiledNavigation function is missing from plan')
     }
 
-    return compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry), {
+    return compiledFn(buildCompiledBaseContext(context, this.packageDependencies.functionRegistry), {
       plan: this.journeyPlan.navigationPlan,
       routeTemplateCatalog: this.routeTemplateCatalog,
     })

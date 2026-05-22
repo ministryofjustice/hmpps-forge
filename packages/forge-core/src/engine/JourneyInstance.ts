@@ -1,5 +1,5 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import { JourneyInstanceDependencies, NodeId } from './types/engine.type'
+import { PackageDependencies, NodeId } from './types/engine.type'
 import { isJourneyDefinition } from '../authoring/typeguards/structures'
 import { DSLValidator } from './validation/DSLValidator'
 import CompilationFactory from './compilation/CompilationFactory'
@@ -27,13 +27,13 @@ export default class JourneyInstance {
 
   private readonly rawConfiguration: JourneyDefinition
 
-  private constructor(formConfiguration: JourneyDefinition, dependencies: JourneyInstanceDependencies) {
+  private constructor(formConfiguration: JourneyDefinition, packageDependencies: PackageDependencies) {
     this.rawConfiguration = formConfiguration
-    this.compiler = new CompilationFactory(dependencies)
+    this.compiler = new CompilationFactory(packageDependencies.functionRegistry)
     this.sharedCompilation = this.compiler.compileShared(formConfiguration)
   }
 
-  static createFromConfiguration(configuration: any, dependencies: JourneyInstanceDependencies) {
+  static createFromConfiguration(configuration: any, packageDependencies: PackageDependencies) {
     let configurationAsObject
 
     if (isJourneyDefinition(configuration)) {
@@ -44,9 +44,13 @@ export default class JourneyInstance {
     }
 
     DSLValidator.validateSchema(configurationAsObject)
-    DSLValidator.validateTree(configurationAsObject, dependencies.functionRegistry, dependencies.componentRegistry)
+    DSLValidator.validateTree(
+      configurationAsObject,
+      packageDependencies.functionRegistry,
+      packageDependencies.componentRegistry,
+    )
 
-    return new JourneyInstance(configurationAsObject, dependencies)
+    return new JourneyInstance(configurationAsObject, packageDependencies)
   }
 
   compileAllRouteArtefacts(): void {
@@ -78,7 +82,7 @@ export default class JourneyInstance {
   }
 
   getSharedCompilationArtefact(): CompilationArtefact {
-    return this.sharedCompilation.sharedDependencies
+    return this.sharedCompilation.sharedContext
   }
 
   getJourneyCompilationArtefact(): CompilationArtefact {

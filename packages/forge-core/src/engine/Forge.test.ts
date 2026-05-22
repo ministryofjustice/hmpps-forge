@@ -497,7 +497,7 @@ describe('Forge', () => {
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
         CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
       })
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
+      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object), expect.any(Object))
     })
   })
 })

@@ -3,7 +3,7 @@ import { HookType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../testing/ASTTestFactory'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../types/expressions.type'
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies, NodeId } from '../../types/engine.type'
 import type {
   CompiledAccessHookResult as AccessHookResult,
   CompiledSubmitHookResult as SubmitHookResult,
@@ -110,7 +110,8 @@ vi.mock('../lifecycle/ContextPreparer', () => ({
 
 describe('StepController', () => {
   let mockCompiledForm: CompiledForm[number]
-  let mockDependencies: Mocked<JourneyInstanceDependencies>
+  let mockPackageDependencies: Mocked<PackageDependencies>
+  let mockForgeDependencies: Mocked<ForgeDependencies>
   let mockRouteTree: StoredRouteTree
   let mockCurrentStepPath: string
   let mockRouteTemplateCatalog: JourneyRouteTemplateCatalog
@@ -132,7 +133,12 @@ describe('StepController', () => {
       stepIdByRouteTemplatePath: new Map(),
     }
 
-    mockDependencies = {
+    mockPackageDependencies = {
+      componentRegistry: {} as any,
+      functionRegistry: {} as any,
+    } as unknown as Mocked<PackageDependencies>
+
+    mockForgeDependencies = {
       logger: {
         debug: vi.fn(),
         info: vi.fn(),
@@ -145,9 +151,7 @@ describe('StepController', () => {
         toStepRequest: vi.fn().mockImplementation(() => createMockRequest()),
         toStepResponse: vi.fn().mockImplementation(createMockResponse),
       },
-      componentRegistry: {} as any,
-      functionRegistry: {} as any,
-    } as unknown as Mocked<JourneyInstanceDependencies>
+    } as unknown as Mocked<ForgeDependencies>
 
     mockReq = {}
     mockRes = {}
@@ -340,7 +344,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -351,7 +356,7 @@ describe('StepController', () => {
 
         // Assert
         expect(mockEvaluator.invoke).toHaveBeenCalledWith(accessHook.id, mockContext)
-        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
 
       it('should throw error when access fails with error outcome', async () => {
@@ -370,7 +375,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -396,7 +402,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -406,7 +413,7 @@ describe('StepController', () => {
         await controller.get(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/login')
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/login')
       })
 
       it('should run access lifecycle for all ancestors in order', async () => {
@@ -436,7 +443,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -479,7 +487,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -490,7 +499,7 @@ describe('StepController', () => {
 
         // Assert - Step access should never be called
         expect(mockEvaluator.invoke).not.toHaveBeenCalledWith(stepAccessHook.id, expect.anything())
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalled()
       })
     })
 
@@ -504,7 +513,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -514,7 +524,7 @@ describe('StepController', () => {
         await controller.get(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
 
       it('should render entry validation errors when validateOnEntry groups are active', async () => {
@@ -541,7 +551,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -559,7 +570,7 @@ describe('StepController', () => {
           isSubmission: false,
           isValid: false,
         })
-        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalledWith(
+        expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalledWith(
           expect.objectContaining({
             showValidationFailures: true,
             fieldValidationErrors: [
@@ -592,7 +603,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -610,7 +622,7 @@ describe('StepController', () => {
 
   describe('post()', () => {
     beforeEach(() => {
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
+      ;(mockForgeDependencies.frameworkAdapter.toStepRequest as Mock).mockImplementation(() =>
         createMockRequest({
           method: 'POST',
           post: { fieldName: 'value' },
@@ -634,7 +646,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -662,7 +675,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -685,7 +699,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -721,7 +736,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -768,7 +784,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -848,7 +865,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -899,7 +917,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -909,9 +928,9 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/frontier')
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/journey/frontier')
         expect(mockEvaluator.invoke).not.toHaveBeenCalledWith(submitHook.id, mockContext)
-        expect(mockDependencies.frameworkAdapter.render).not.toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.render).not.toHaveBeenCalled()
       })
     })
 
@@ -952,7 +971,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1004,7 +1024,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1034,7 +1055,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1068,7 +1090,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1078,8 +1101,11 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/next-step')
-        expect(mockDependencies.frameworkAdapter.render).not.toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(
+          mockRes,
+          '/forms/journey/next-step',
+        )
+        expect(mockForgeDependencies.frameworkAdapter.render).not.toHaveBeenCalled()
       })
 
       it('should redirect with absolute URL when next is absolute', async () => {
@@ -1103,7 +1129,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1113,7 +1140,7 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/absolute/path')
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/absolute/path')
       })
 
       it('should redirect with external URL when next contains protocol', async () => {
@@ -1137,7 +1164,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1147,7 +1175,10 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, 'https://external.com/path')
+        expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(
+          mockRes,
+          'https://external.com/path',
+        )
       })
 
       it('should render with validation errors when validated=true and no next', async () => {
@@ -1171,7 +1202,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1181,8 +1213,8 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
-        expect(mockDependencies.frameworkAdapter.redirect).not.toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.redirect).not.toHaveBeenCalled()
       })
 
       it('should render without validation flags when no submit hooks execute', async () => {
@@ -1201,7 +1233,8 @@ describe('StepController', () => {
 
         const controller = new StepController(
           mockCompiledForm,
-          mockDependencies,
+          mockPackageDependencies,
+          mockForgeDependencies,
           mockRouteTree,
           mockCurrentStepPath,
           mockRouteTemplateCatalog,
@@ -1211,7 +1244,7 @@ describe('StepController', () => {
         await controller.post(mockReq, mockRes)
 
         // Assert
-        expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
+        expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalled()
       })
     })
   })
@@ -1232,7 +1265,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1242,7 +1276,10 @@ describe('StepController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/forms/journey/relative-path')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(
+        mockRes,
+        '/forms/journey/relative-path',
+      )
     })
 
     it('should not prepend base URL for absolute paths starting with /', async () => {
@@ -1260,7 +1297,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1270,7 +1308,7 @@ describe('StepController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/absolute-path')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, '/absolute-path')
     })
 
     it('should not prepend base URL for URLs with protocol', async () => {
@@ -1288,7 +1326,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1298,7 +1337,7 @@ describe('StepController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert
-      expect(mockDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, 'http://example.com/path')
+      expect(mockForgeDependencies.frameworkAdapter.redirect).toHaveBeenCalledWith(mockRes, 'http://example.com/path')
     })
   })
 
@@ -1320,11 +1359,12 @@ describe('StepController', () => {
         state: { key: 'value' },
       })
 
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(customRequest)
+      ;(mockForgeDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(customRequest)
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1363,7 +1403,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1395,11 +1436,14 @@ describe('StepController', () => {
         value: submitResult,
         metadata: { source: 'test', timestamp: Date.now() },
       })
-      ;(mockDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(createMockRequest({ method: 'POST' }))
+      ;(mockForgeDependencies.frameworkAdapter.toStepRequest as Mock).mockReturnValue(
+        createMockRequest({ method: 'POST' }),
+      )
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1423,7 +1467,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1433,7 +1478,7 @@ describe('StepController', () => {
       await controller.get(mockReq, mockRes)
 
       // Assert - Should still render successfully
-      expect(mockDependencies.frameworkAdapter.render).toHaveBeenCalled()
+      expect(mockForgeDependencies.frameworkAdapter.render).toHaveBeenCalled()
     })
 
     it('should handle multiple access hooks', async () => {
@@ -1452,7 +1497,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,
@@ -1488,7 +1534,8 @@ describe('StepController', () => {
 
       const controller = new StepController(
         mockCompiledForm,
-        mockDependencies,
+        mockPackageDependencies,
+        mockForgeDependencies,
         mockRouteTree,
         mockCurrentStepPath,
         mockRouteTemplateCatalog,

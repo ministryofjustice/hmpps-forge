@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors'
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import type { CompiledForm } from '../../types/compilationArtefacts.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import {
@@ -45,7 +45,8 @@ export default class StepController<TRequest, TResponse> {
 
   constructor(
     private readonly compiledForm: CompiledForm[number],
-    private readonly dependencies: JourneyInstanceDependencies,
+    private readonly packageDependencies: PackageDependencies,
+    private readonly forgeDependencies: ForgeDependencies,
     routeTree: StoredRouteTree,
     currentRouteTemplatePath: string,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
@@ -87,7 +88,7 @@ export default class StepController<TRequest, TResponse> {
       showValidationFailures: validation !== undefined,
     })
 
-    return this.dependencies.frameworkAdapter.render(renderContext, req, res)
+    return this.forgeDependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
@@ -132,12 +133,12 @@ export default class StepController<TRequest, TResponse> {
       },
     )
 
-    return this.dependencies.frameworkAdapter.render(renderContext, req, res)
+    return this.forgeDependencies.frameworkAdapter.render(renderContext, req, res)
   }
 
   private prepareRequest(req: TRequest, res: TResponse) {
-    const request = this.dependencies.frameworkAdapter.toStepRequest(req)
-    const response = this.dependencies.frameworkAdapter.toStepResponse(res)
+    const request = this.forgeDependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.forgeDependencies.frameworkAdapter.toStepResponse(res)
     const context = this.contextPreparer.prepare(this.compiledForm.runtimePlan, request, response)
 
     return { request, context }
@@ -146,11 +147,14 @@ export default class StepController<TRequest, TResponse> {
   private redirect(res: TResponse, request: StepRequest, redirect: string): void {
     const resolvedTarget = resolveRedirectTarget(redirect, request.location)
 
-    return this.dependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
+    return this.forgeDependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
   }
 
   private redirectToRouteTemplatePath(res: TResponse, request: StepRequest, routeTemplatePath: string): void {
-    return this.dependencies.frameworkAdapter.redirect(res, resolvePathParams(routeTemplatePath, request.getParams()))
+    return this.forgeDependencies.frameworkAdapter.redirect(
+      res,
+      resolvePathParams(routeTemplatePath, request.getParams()),
+    )
   }
 
   private getRedirectTarget(redirect: string | undefined): string {
@@ -174,7 +178,13 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(buildCompiledHookLifecycleContext(context, this.dependencies))
+    return compiledFn(
+      buildCompiledHookLifecycleContext(
+        context,
+        this.packageDependencies.functionRegistry,
+        this.forgeDependencies.logger,
+      ),
+    )
   }
 
   private async executeSubmitHooks(context: RuntimeEvaluationContext): Promise<CompiledSubmitHookResult> {
@@ -187,8 +197,11 @@ export default class StepController<TRequest, TResponse> {
     }
 
     return compiledFn(
-      buildCompiledHookLifecycleContext(context, this.dependencies, groups =>
-        this.evaluateValidation(context, true, groups),
+      buildCompiledHookLifecycleContext(
+        context,
+        this.packageDependencies.functionRegistry,
+        this.forgeDependencies.logger,
+        groups => this.evaluateValidation(context, true, groups),
       ),
     )
   }
@@ -200,7 +213,7 @@ export default class StepController<TRequest, TResponse> {
       return []
     }
 
-    return compiledEntryValidation(buildCompiledBaseContext(context, this.dependencies.functionRegistry))
+    return compiledEntryValidation(buildCompiledBaseContext(context, this.packageDependencies.functionRegistry))
   }
 
   private async evaluateValidation(
@@ -217,7 +230,7 @@ export default class StepController<TRequest, TResponse> {
     }
 
     const result = await compiledValidation(
-      buildCompiledBaseContext(context, this.dependencies.functionRegistry),
+      buildCompiledBaseContext(context, this.packageDependencies.functionRegistry),
       isSubmission,
       groups,
     )
@@ -249,7 +262,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    await compiledFn(buildCompiledAnswerPreparationContext(context, this.dependencies.functionRegistry))
+    await compiledFn(buildCompiledAnswerPreparationContext(context, this.packageDependencies.functionRegistry))
   }
 
   /**
@@ -298,7 +311,7 @@ export default class StepController<TRequest, TResponse> {
       )
     }
 
-    return compiledFn(buildCompiledRenderContext(context, this.dependencies.functionRegistry))
+    return compiledFn(buildCompiledRenderContext(context, this.packageDependencies.functionRegistry))
   }
 
   private resolveStepMetadata(
@@ -329,7 +342,7 @@ export default class StepController<TRequest, TResponse> {
       throw new Error('[Forge] Navigation compilation is required — compiledNavigation function is missing from plan')
     }
 
-    const result = await compiledFn(buildCompiledBaseContext(context, this.dependencies.functionRegistry), {
+    const result = await compiledFn(buildCompiledBaseContext(context, this.packageDependencies.functionRegistry), {
       plan: this.compiledForm.navigationPlan,
       currentStepId: this.compiledForm.runtimePlan.stepId,
       routeTemplateCatalog: this.routeTemplateCatalog,

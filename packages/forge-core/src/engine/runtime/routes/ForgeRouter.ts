@@ -1,4 +1,4 @@
-import { JourneyInstanceDependencies } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
 import { JourneyASTNode } from '../../types/structures.type'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
@@ -25,18 +25,21 @@ export default class ForgeRouter<TRouter> {
   private readonly journeyRouters = new Map<string, { router: TRouter; journeyNode: JourneyASTNode }>()
 
   constructor(
-    private readonly dependencies: JourneyInstanceDependencies,
+    private readonly forgeDependencies: ForgeDependencies,
     options: ForgeOptions,
   ) {
-    this.router = dependencies.frameworkAdapter.createRouter()
+    this.router = forgeDependencies.frameworkAdapter.createRouter()
     this.basePath = normalizeBasePath(options.basePath)
   }
 
-  mount(journeyInstance: JourneyInstance, journeyDependencies?: JourneyInstanceDependencies): number {
+  mount(
+    journeyInstance: JourneyInstance,
+    packageDependencies: PackageDependencies,
+    forgeDependencies: ForgeDependencies,
+  ): number {
     const stepIndex = journeyInstance.getStepIndex()
     const journeyIndex = journeyInstance.getJourneyIndex()
     const artefact = journeyInstance.getSharedCompilationArtefact()
-    const deps = journeyDependencies ?? this.dependencies
     const routeTreeBuilder = new RouteTreeBuilder(this.routeTreeIndex)
     const { journeyContexts, stepContexts, catalogsByBasePath } = routeTreeBuilder.build({
       basePath: this.basePath,
@@ -46,12 +49,13 @@ export default class ForgeRouter<TRouter> {
     })
 
     this.createJourneyRouters(journeyContexts)
-    const stepRouteCount = this.mountStepRoutes(stepContexts, journeyInstance, deps)
+    const stepRouteCount = this.mountStepRoutes(stepContexts, journeyInstance, packageDependencies, forgeDependencies)
     const journeyRootRouteCount = this.mountJourneyRootHandlers(
       journeyInstance,
       journeyContexts,
       catalogsByBasePath,
-      deps,
+      packageDependencies,
+      forgeDependencies,
     )
 
     return stepRouteCount + journeyRootRouteCount
@@ -72,9 +76,9 @@ export default class ForgeRouter<TRouter> {
       }
 
       const parentRouter = this.resolveParentRouter(context)
-      const newRouter = this.dependencies.frameworkAdapter.createRouter()
+      const newRouter = this.forgeDependencies.frameworkAdapter.createRouter()
 
-      this.dependencies.frameworkAdapter.mountRouter(parentRouter, context.mountPath, newRouter)
+      this.forgeDependencies.frameworkAdapter.mountRouter(parentRouter, context.mountPath, newRouter)
       this.journeyRouters.set(context.templatePath, { router: newRouter, journeyNode: context.journeyNode })
     })
   }
@@ -96,7 +100,8 @@ export default class ForgeRouter<TRouter> {
   private mountStepRoutes(
     stepContexts: StepRouteContext[],
     journeyInstance: JourneyInstance,
-    dependencies: JourneyInstanceDependencies,
+    packageDependencies: PackageDependencies,
+    forgeDependencies: ForgeDependencies,
   ): number {
     let routeCount = 0
 
@@ -117,7 +122,8 @@ export default class ForgeRouter<TRouter> {
         if (!controller) {
           controller = new StepController(
             resolveCompiledStep(),
-            dependencies,
+            packageDependencies,
+            forgeDependencies,
             this.routeTreeIndex.roots,
             ctx.routeTemplatePath,
             ctx.routeTemplateCatalog,
@@ -127,10 +133,10 @@ export default class ForgeRouter<TRouter> {
         return controller
       }
 
-      this.dependencies.frameworkAdapter.get(journeyRouter.router, stepPath, (req, res) =>
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, (req, res) =>
         getController().get(req, res),
       )
-      this.dependencies.frameworkAdapter.post(journeyRouter.router, stepPath, (req, res) =>
+      this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, (req, res) =>
         getController().post(req, res),
       )
 
@@ -144,7 +150,8 @@ export default class ForgeRouter<TRouter> {
     journeyInstance: JourneyInstance,
     journeyContexts: JourneyRouteContext[],
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
-    dependencies: JourneyInstanceDependencies,
+    packageDependencies: PackageDependencies,
+    forgeDependencies: ForgeDependencies,
   ): number {
     let routeCount = 0
 
@@ -162,13 +169,15 @@ export default class ForgeRouter<TRouter> {
       const getController = () => {
         if (!controller) {
           journeyInstance.getJourneyCompilationArtefact()
-          controller = new JourneyController(journeyPlan, dependencies, routeTemplateCatalog)
+          controller = new JourneyController(journeyPlan, packageDependencies, forgeDependencies, routeTemplateCatalog)
         }
 
         return controller
       }
 
-      this.dependencies.frameworkAdapter.get(journeyRouter.router, '/', (req, res) => getController().get(req, res))
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', (req, res) =>
+        getController().get(req, res),
+      )
       routeCount += 1
     })
 
