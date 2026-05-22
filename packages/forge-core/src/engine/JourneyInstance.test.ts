@@ -2,7 +2,7 @@ import type { JourneyDefinition } from '../authoring/types/structures.type'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyASTNode, StepASTNode } from './types/structures.type'
 import type { JourneyInstanceDependencies, NodeId } from './types/engine.type'
-import type { CompilationDependencies } from './compilation/CompilationDependencies'
+import type { CompilationContext } from './compilation/CompilationContext'
 import type { NavigationRuntimePlan, StepRuntimePlan } from './types/runtimePlans.type'
 import type { SharedCompiledForm } from './types/compilationArtefacts.type'
 import CompilationFactory from './compilation/CompilationFactory'
@@ -25,7 +25,7 @@ describe('JourneyInstance', () => {
       const compileStepSpy = vi.spyOn(CompilationFactory.prototype, 'compileStep')
         .mockReturnValue(createCompiledStep())
       const compileJourneySpy = vi.spyOn(CompilationFactory.prototype, 'compileJourney')
-        .mockReturnValue({} as CompilationDependencies)
+        .mockReturnValue({} as CompilationContext)
       const journey = JourneyInstance.createFromConfiguration(createJourneyDefinition(), createDependencies())
 
       // Act
@@ -68,7 +68,7 @@ function createSharedCompilation(
 ): SharedCompiledForm {
   return {
     rootNode: { properties: { code: 'journey' } } as JourneyASTNode,
-    sharedDependencies: {} as CompilationDependencies,
+    sharedContext: {} as CompilationContext,
     stepIndex: new Map<NodeId, StepASTNode>([
       [stepOneId, { id: stepOneId } as StepASTNode],
       [stepTwoId, { id: stepTwoId } as StepASTNode],

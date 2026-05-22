@@ -78,7 +78,7 @@ export default class JourneyInstance {
   }
 
   getSharedCompilationArtefact(): CompilationArtefact {
-    return this.sharedCompilation.sharedDependencies
+    return this.sharedCompilation.sharedContext
   }
 
   getJourneyCompilationArtefact(): CompilationArtefact {

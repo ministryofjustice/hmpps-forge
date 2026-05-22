@@ -1,6 +1,6 @@
 import type { NodeId } from './ast.type'
 import type { JourneyASTNode, StepASTNode } from './structures.type'
-import type { CompilationDependencies } from '../compilation/CompilationDependencies'
+import type { CompilationContext } from '../compilation/CompilationContext'
 import type {
   JourneyRuntimePlan,
   NavigationRuntimePlan,
@@ -20,7 +20,7 @@ export type JourneyIndex = Map<NodeId, JourneyASTNode>
 
 export interface SharedCompiledForm {
   rootNode: JourneyASTNode
-  sharedDependencies: CompilationDependencies
+  sharedContext: CompilationContext
   stepIndex: StepIndex
   journeyIndex: JourneyIndex
   stepRuntimePlans: Map<NodeId, StepRuntimePlan>
@@ -40,4 +40,4 @@ export interface CompiledStep {
 
 export type CompiledForm = CompiledStep[]
 
-export type CompilationArtefact = CompilationDependencies
+export type CompilationArtefact = CompilationContext
