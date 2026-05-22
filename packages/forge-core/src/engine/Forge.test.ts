@@ -1,14 +1,11 @@
 import { buildComponent } from '../components/utils/buildComponent'
-import type { JourneyDefinition } from '../authoring/types/structures.type'
 import ComponentRegistry from './registries/ComponentRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/types/adapter.type'
-import { StructureType } from '../authoring/types/enums'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 import JourneyInstance from './JourneyInstance'
-import ForgeRuntimeEvaluationError from './errors/ForgeRuntimeEvaluationError'
 import Forge from './Forge'
 
 vi.mock('./JourneyInstance')
@@ -189,198 +186,6 @@ describe('Forge', () => {
       const registeredFunctions = registerMock.mock.calls.at(-1)?.[0]
 
       expect(registeredFunctions?.WithSuffix.evaluate('hello')).toBe('hello!')
-    })
-  })
-
-  describe('register()', () => {
-    it('should successfully register a journey from string configuration', () => {
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-      const formConfig = JSON.stringify({
-        journey: 'test-journey',
-        code: 'test-form',
-        title: 'Test Form',
-      })
-
-      engine.register(formConfig)
-
-      // Verify JourneyInstance creation
-      expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(
-        formConfig,
-        expect.objectContaining({
-          functionRegistry: expect.any(FunctionRegistry),
-          componentRegistry: expect.any(ComponentRegistry),
-          logger: mockLogger,
-        }),
-      )
-
-      // Verify ForgeRouter.mount was called
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
-
-      // Verify structured logging
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        { journey: 'test-form', routes: 3 },
-        "Forge: Registered journey 'Test Form' with 3 routes",
-      )
-    })
-
-    it('should compile all route artefacts during registration when lazy step compilation is disabled', () => {
-      // Arrange
-      const engine = new Forge(createDefaultOptions({ lazyStepCompilation: false }))
-
-      // Act
-      engine.register({
-        type: StructureType.JOURNEY,
-        path: '/test-form',
-        code: 'test-form',
-        title: 'Test Form',
-        steps: [],
-      })
-
-      // Assert
-      expect(mockJourneyInstance.compileAllRouteArtefacts).toHaveBeenCalledTimes(1)
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
-    })
-
-    it('should keep route artefacts lazy during registration by default', () => {
-      // Arrange
-      const engine = new Forge(createDefaultOptions())
-
-      // Act
-      engine.register({
-        type: StructureType.JOURNEY,
-        path: '/test-form',
-        code: 'test-form',
-        title: 'Test Form',
-        steps: [],
-      })
-
-      // Assert
-      expect(mockJourneyInstance.compileAllRouteArtefacts).not.toHaveBeenCalled()
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockJourneyInstance, expect.any(Object))
-    })
-
-    it('should successfully register a journey from JourneyDefinition object', () => {
-      const engine = new Forge(createDefaultOptions())
-      const formConfig: JourneyDefinition = {
-        journey: 'test-journey',
-        code: 'test-form',
-        title: 'Test Form',
-        steps: [],
-      } as any
-
-      engine.register(formConfig)
-
-      expect(JourneyInstance.createFromConfiguration).toHaveBeenCalledWith(formConfig, expect.any(Object))
-    })
-
-    it('should throw registration errors by default', () => {
-      // Arrange
-      const error = new Error('Registration failed')
-      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
-        throw error
-      })
-
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-
-      // Act & Assert
-      expect(() => engine.register('invalid-config')).toThrow(error)
-      expect(mockLogger.error).toHaveBeenCalledWith(error)
-      expect(mockForgeRouter.mount).not.toHaveBeenCalled()
-    })
-
-    it('should swallow registration errors when strictRegistration is false', () => {
-      // Arrange
-      const error = new Error('Registration failed')
-      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
-        throw error
-      })
-
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
-
-      // Act & Assert
-      expect(() => engine.register('invalid-config')).not.toThrow()
-      expect(mockLogger.error).toHaveBeenCalledWith(error)
-      expect(mockForgeRouter.mount).not.toHaveBeenCalled()
-    })
-
-    it('should log AggregateError details during registration', () => {
-      // Arrange
-      const error1 = new Error('Validation error 1')
-      const error2 = new Error('Validation error 2')
-      const aggregateError = new AggregateError([error1, error2], 'Multiple validation errors')
-
-      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
-        throw aggregateError
-      })
-
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
-      engine.register('invalid-config')
-
-      // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        [
-          'Forge registration failed: Multiple validation errors',
-          '',
-          '1. Error: Validation error 1',
-          '2. Error: Validation error 2',
-        ].join('\n'),
-      )
-      expect(mockLogger.error).toHaveBeenCalledTimes(1)
-    })
-
-    it('should include Forge diagnostic fields in AggregateError logs', () => {
-      // Arrange
-      const diagnosticError = new ForgeRuntimeEvaluationError({
-        phase: 'render',
-        nodeId: 'compile_ast:1',
-        path: ['steps', 0, 'blocks', 0],
-        formattedPath: 'travel-declaration > personal-details > blocks[0]',
-        functionName: 'explode',
-        cause: new Error('boom'),
-      })
-      const aggregateError = new AggregateError([diagnosticError], 'Compilation failed')
-
-      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
-        throw aggregateError
-      })
-
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
-
-      // Act
-      engine.register('invalid-config')
-
-      // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        [
-          'Forge registration failed: Compilation failed',
-          '',
-          '1. ForgeRuntimeEvaluationError: Failed to evaluate compiled Forge render function',
-          '   Phase: render',
-          '   Path: travel-declaration > personal-details > blocks[0]',
-          '   Node: compile_ast:1',
-          '   Function: explode',
-          '   Cause: Error: boom',
-        ].join('\n'),
-      )
-    })
-
-    it('should handle errors without toString method in AggregateError', () => {
-      // Arrange
-      const error1 = { message: 'Object error' }
-      const error2: any = null
-      const aggregateError = new AggregateError([error1, error2], 'Mixed errors')
-
-      ;(JourneyInstance.createFromConfiguration as Mock).mockImplementation(() => {
-        throw aggregateError
-      })
-
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
-      engine.register('invalid-config')
-
-      // Assert
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        ['Forge registration failed: Mixed errors', '', '1. Object error', '2. null'].join('\n'),
-      )
     })
   })
 
@@ -642,14 +447,14 @@ describe('Forge', () => {
         .registerGlobalComponents([component2])
         .registerGlobalFunctions(functions1)
         .registerGlobalFunctions(functions2)
-        .register('config-1')
-        .register('config-2')
+        .registerPackage({ journey: 'config-1' })
+        .registerPackage({ journey: 'config-2' })
 
       expect(result).toBe(engine)
       expect(mockForgeRouter.mount).toHaveBeenCalledTimes(2)
     })
 
-    it('should support chaining even when form registration fails', () => {
+    it('should support chaining even when package registration fails', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       const component = buildComponent('comp', () => '<div />')
 
@@ -661,8 +466,8 @@ describe('Forge', () => {
 
       const result = engine
         .registerGlobalComponent(component)
-        .register('bad-config') // This will fail
-        .register('good-config') // This should work
+        .registerPackage({ journey: 'bad-config' })
+        .registerPackage({ journey: 'good-config' })
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
@@ -679,7 +484,7 @@ describe('Forge', () => {
       const result = engine
         .registerGlobalComponent(customComponent)
         .registerGlobalFunctions(customFunctions)
-        .register('test-config')
+        .registerPackage({ journey: 'test-config' })
 
       // Verify chaining returns the engine
       expect(result).toBe(engine)
