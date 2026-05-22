@@ -45,15 +45,7 @@ const forge = new Forge({
 
 ---
 
-## Registering journeys
-
-### register()
-
-Register a single journey definition:
-
-```typescript
-forge.register(myJourney)
-```
+## Registering packages
 
 ### registerPackage()
 

@@ -47,8 +47,8 @@ export interface ForgeOptions {
   debug?: boolean
 
   /**
-   * When `true` (default), registration errors (from `register()` and
-   * `registerPackage()`) throw immediately — fail fast on invalid journey
+   * When `true` (default), registration errors from `registerPackage()`
+   * throw immediately — fail fast on invalid journey
    * definitions, schema errors, duplicate routes, or compilation failures.
    *
    * When `false`, registration errors are logged via the configured logger
@@ -139,7 +139,7 @@ export default class Forge {
    *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
    * })
    *   .registerGlobalComponents(govukComponents(nunjucksEnv))
-   *   .register(myJourney)
+   *   .registerPackage(myPackage)
    *
    * app.use(forge.getRouter() as express.Router)
    * ```
@@ -200,17 +200,6 @@ export default class Forge {
     const resolvedDeps = (deps ?? {}) as TDeps
 
     this.functionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
-
-    return this
-  }
-
-  /** Register a journey with forge */
-  register(journeyConfiguration: string | JourneyDefinition): this {
-    try {
-      this.registerJourney(journeyConfiguration, this.dependencies)
-    } catch (e) {
-      this.handleRegistrationError(e)
-    }
 
     return this
   }

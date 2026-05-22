@@ -20,7 +20,7 @@
  *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
  * })
  *   .registerGlobalComponents(govukComponents())
- *   .register(myJourney)
+ *   .registerPackage(myPackage)
  * ```
  */
 
