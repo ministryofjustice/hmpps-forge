@@ -8,8 +8,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
-// eslint-disable-next-line no-restricted-imports
-import { isRenderedBlock } from '../../../../forge-core/src/authoring/typeguards/structures'
+import { renderGovukBlocksToHtml } from '../../utils/govukParamNormalisers'
 
 /**
  * Configuration for a table header cell.
@@ -43,11 +42,14 @@ export interface TableHeadCell {
  * Used in row arrays to define cell content.
  */
 export interface TableCell {
-  /** Plain text content for the cell. If `html` is provided, this will be ignored. */
+  /** Plain text content for the cell. If `html` or `blocks` is provided, this will be ignored. */
   text?: ResolvableString
 
-  /** HTML content for the cell. Takes precedence over `text`. */
-  html?: ResolvableString | BlockDefinition
+  /** HTML content for the cell. Takes precedence over `text`; ignored when `blocks` is provided. */
+  html?: ResolvableString
+
+  /** Child blocks to render for the cell. Takes precedence over `text` and `html`. */
+  blocks?: BlockDefinition[]
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
   format?: ResolvableString
@@ -125,11 +127,22 @@ export interface GovUKTable extends BlockDefinition, GovUKTableProps {
   variant: 'govukTable'
 }
 
-const resolveHtml = (html: unknown): string => {
-  if (isRenderedBlock(html)) {
-    return html.html
+type EvaluatedTableRow = EvaluatedBlock<GovUKTable>['rows'][number]
+type EvaluatedTableCell = EvaluatedTableRow[number]
+
+function normaliseTableCell(cell: EvaluatedTableCell) {
+  const { blocks, ...cellParams } = cell
+  const blocksHtml = renderGovukBlocksToHtml(blocks)
+
+  if (blocksHtml === undefined) {
+    return cellParams
   }
-  return (html as string) ?? ''
+
+  return {
+    ...cellParams,
+    text: undefined,
+    html: blocksHtml,
+  }
 }
 
 /**
@@ -137,12 +150,7 @@ const resolveHtml = (html: unknown): string => {
  */
 function tableRenderer(block: EvaluatedBlock<GovUKTable>, nunjucksEnv: nunjucks.Environment): string {
   const params: Record<string, any> = {
-    rows: block.rows.map(row =>
-      row.map(column => ({
-        ...column,
-        ...(column.html && { html: resolveHtml(column.html) }),
-      })),
-    ),
+    rows: block.rows.map(row => row.map(normaliseTableCell)),
     head: block.head,
     caption: block.caption,
     captionClasses: block.captionClasses,
