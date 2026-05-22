@@ -16,7 +16,6 @@ import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
-  componentRegistry: ComponentRegistry
   defaultTemplate?: string
 }
 
@@ -27,8 +26,6 @@ export default class TemplateRenderer {
   private static readonly FALLBACK_TEMPLATE = 'form-step'
 
   private readonly nunjucksEnv: nunjucks.Environment
-
-  private readonly componentRegistry: ComponentRegistry
 
   private readonly defaultTemplate: string
 
@@ -43,7 +40,6 @@ export default class TemplateRenderer {
 
   constructor(options: TemplateRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
-    this.componentRegistry = options.componentRegistry
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
 
     const env = this.nunjucksEnv
@@ -76,8 +72,13 @@ export default class TemplateRenderer {
   }
 
   /** Render a full page from RenderContext and return HTML string */
-  render(context: RenderContext, locals: Record<string, unknown> = {}): string {
-    const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures, context.hasNestedBlocks)
+  render(context: RenderContext, locals: Record<string, unknown>, componentRegistry: ComponentRegistry): string {
+    const renderedBlocks = this.renderBlocks(
+      context.blocks,
+      context.showValidationFailures,
+      componentRegistry,
+      context.hasNestedBlocks,
+    )
 
     const mergedViewLocals = this.mergeViewLocals(context)
 
@@ -159,24 +160,28 @@ export default class TemplateRenderer {
   private renderBlocks(
     blocks: Evaluated<BlockASTNode>[],
     showValidationFailures: boolean,
+    componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): string[] {
     const visibleBlocks = blocks.filter(block => block.properties.visibleWhen !== false)
 
-    return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures, hasNestedBlocks))
+    return visibleBlocks.map(block =>
+      this.renderBlock(block, showValidationFailures, componentRegistry, hasNestedBlocks),
+    )
   }
 
   /** Render a single block to HTML using the ComponentRegistry */
   private renderBlock(
     block: Evaluated<BlockASTNode>,
     showValidationFailures: boolean,
+    componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): string {
     try {
-      const component = this.componentRegistry.get(block.variant)
+      const component = componentRegistry.get(block.variant)
 
       if (!component) {
-        const availableVariants = Array.from(this.componentRegistry.getAll().keys())
+        const availableVariants = Array.from(componentRegistry.getAll().keys())
 
         throw new Error(
           `Component variant "${block.variant}" not found in registry. ` +
@@ -186,7 +191,12 @@ export default class TemplateRenderer {
 
       const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
       const transformedProperties = needsTransform
-        ? this.transformPropertiesWithRenderedBlocks(block.properties, showValidationFailures, hasNestedBlocks)
+        ? this.transformPropertiesWithRenderedBlocks(
+            block.properties,
+            showValidationFailures,
+            componentRegistry,
+            hasNestedBlocks,
+          )
         : block.properties
 
       const evaluatedBlock = this.toEvaluatedBlock(
@@ -233,12 +243,13 @@ export default class TemplateRenderer {
   private transformPropertiesWithRenderedBlocks(
     properties: Record<string, unknown>,
     showValidationFailures: boolean,
+    componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
     Object.entries(properties).forEach(([key, value]) => {
-      result[key] = this.transformValue(value, showValidationFailures, hasNestedBlocks)
+      result[key] = this.transformValue(value, showValidationFailures, componentRegistry, hasNestedBlocks)
     })
 
     return result
@@ -248,6 +259,7 @@ export default class TemplateRenderer {
   private transformValue(
     value: unknown,
     showValidationFailures: boolean,
+    componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): unknown {
     if (value === null || value === undefined) {
@@ -255,11 +267,18 @@ export default class TemplateRenderer {
     }
 
     if (isBlockStructNode(value)) {
-      return this.renderNestedBlock(value as Evaluated<BlockASTNode>, showValidationFailures, hasNestedBlocks)
+      return this.renderNestedBlock(
+        value as Evaluated<BlockASTNode>,
+        showValidationFailures,
+        componentRegistry,
+        hasNestedBlocks,
+      )
     }
 
     if (Array.isArray(value)) {
-      const transformed = value.map(element => this.transformValue(element, showValidationFailures, hasNestedBlocks))
+      const transformed = value.map(element =>
+        this.transformValue(element, showValidationFailures, componentRegistry, hasNestedBlocks),
+      )
 
       // Filter out null values (non-visible nested blocks)
       return transformed.filter(item => item !== null)
@@ -269,6 +288,7 @@ export default class TemplateRenderer {
       return this.transformPropertiesWithRenderedBlocks(
         value as Record<string, unknown>,
         showValidationFailures,
+        componentRegistry,
         hasNestedBlocks,
       )
     }
@@ -280,6 +300,7 @@ export default class TemplateRenderer {
   private renderNestedBlock(
     block: Evaluated<BlockASTNode>,
     showValidationFailures: boolean,
+    componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): RenderedBlock | null {
     const { visibleWhen, ...properties } = block.properties
@@ -289,7 +310,7 @@ export default class TemplateRenderer {
       return null
     }
 
-    const html = this.renderBlock(block, showValidationFailures, hasNestedBlocks)
+    const html = this.renderBlock(block, showValidationFailures, componentRegistry, hasNestedBlocks)
 
     return {
       block: {

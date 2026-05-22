@@ -31,7 +31,6 @@ export interface ExpressFrameworkAdapterUserOptions {
 }
 
 export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdapterUserOptions {
-  componentRegistry: ComponentRegistry
   logger: Logger | Console
 }
 
@@ -69,7 +68,6 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       build: (deps: FrameworkAdapterDependencies) =>
         new ExpressFrameworkAdapter({
           ...options,
-          componentRegistry: deps.componentRegistry,
           logger: deps.logger,
         }),
     }
@@ -82,7 +80,6 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     this.logger = options.logger
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
-      componentRegistry: options.componentRegistry,
       defaultTemplate: options.defaultTemplate,
     })
   }
@@ -298,13 +295,18 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   }
 
   /** Render a full page from RenderContext and send the HTML response */
-  render(context: RenderContext, req: express.Request, res: express.Response): void {
+  render(
+    context: RenderContext,
+    req: express.Request,
+    res: express.Response,
+    componentRegistry: ComponentRegistry,
+  ): void {
     const locals = {
       ...req.app.locals,
       ...res.locals,
     }
 
-    const html = this.templateRenderer.render(context, locals)
+    const html = this.templateRenderer.render(context, locals, componentRegistry)
 
     res.type('html').send(html)
   }
