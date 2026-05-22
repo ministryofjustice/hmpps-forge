@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { govukTable } from './govukTable'
@@ -8,6 +11,14 @@ describe('GOV.UK Table Component', () => {
   setupComponentTest()
 
   const helper = new GovukComponentTestHelper(govukTable)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Row data transformation', () => {
     it('sets basic row with single cell', async () => {
@@ -71,6 +82,22 @@ describe('GOV.UK Table Component', () => {
 
       // Assert
       expect(params.rows[0][0]).toEqual({ text: 'This is ignored', html: '<em>February</em>' })
+    })
+
+    it('uses cell blocks over text and html', async () => {
+      // Arrange
+      const blocks = [renderedBlock('<strong>Completed</strong>'), renderedBlock('<span>Updated</span>')]
+
+      // Act
+      const params = await helper.getParams({
+        rows: [[{ text: 'Ignored', html: '<em>Ignored</em>', blocks }]],
+      })
+
+      // Assert
+      expect(params.rows[0][0]).toEqual({
+        text: undefined,
+        html: '<strong>Completed</strong><span>Updated</span>',
+      })
     })
   })
 
@@ -506,6 +533,21 @@ describe('GOV.UK Table Component', () => {
       expect(html).toContain('govuk-table')
       expect(html).toContain('<strong>Month</strong>')
       expect(html).toContain('<em>January</em>')
+    })
+
+    it('renders table with block content in cells', async () => {
+      // Arrange
+      const blocks = [renderedBlock('<strong>Completed</strong>')]
+
+      // Act
+      const html = await helper.renderWithNunjucks({
+        rows: [[{ text: 'Status' }, { blocks }]],
+      })
+
+      // Assert
+      expect(html).toContain('govuk-table')
+      expect(html).toContain('Status')
+      expect(html).toContain('<strong>Completed</strong>')
     })
   })
 })

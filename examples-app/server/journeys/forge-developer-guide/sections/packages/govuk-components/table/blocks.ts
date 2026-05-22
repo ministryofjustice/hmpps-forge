@@ -44,7 +44,7 @@ const captionExample = GovUKTable({
 })
 
 const nestedBlockExample = GovUKTable({
-  rows: [[{ text: 'Status' }, { html: GovUKTag({ text: 'Completed' }) }]],
+  rows: [[{ text: 'Status' }, { blocks: [GovUKTag({ text: 'Completed' })] }]],
 })
 
 export const content = GovUKMarkdownBlock({

@@ -24,7 +24,7 @@ captions, row header cells, and dynamic data.
 
 Import `GovUKTable` from the GOV.UK components package. The `rows`
 property is an array of row arrays, where each cell has a `text` or
-`html` property.
+`html` property, or a `blocks` array for nested Forge blocks.
 
 ```typescript
 import { GovUKTable } from '@ministryofjustice/hmpps-forge/govuk-components'
@@ -119,14 +119,14 @@ rows: [
 
 ## Nested blocks
 
-Nest any block in the `html` property on table cells.
+Nest blocks in the `blocks` property on table cells.
 
 {{slot:nested-block-example}}
 
 ```typescript
 GovUKTable({
   rows: [
-    [{ text: 'Status' }, { html: GovUKTag({ text: 'Completed' }) }],
+    [{ text: 'Status' }, { blocks: [GovUKTag({ text: 'Completed' })] }],
   ]
 })
 ```
