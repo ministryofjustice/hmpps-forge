@@ -69,8 +69,6 @@ describe('Forge', () => {
     mockPackageInstance = {
       getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
       getJourneyCode: vi.fn().mockReturnValue('test-form'),
-      compileAllRouteArtefacts: vi.fn(),
-      getCompiledForm: vi.fn().mockReturnValue([]),
       getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
     } as unknown as Mocked<PackageInstance>

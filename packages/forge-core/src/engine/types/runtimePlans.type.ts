@@ -2,7 +2,7 @@ import type { NodeId } from './ast.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
 import type { CompiledAnswerPreparationFunction, CompiledValidationFunction } from './compiledPhaseResults.type'
 import type { CompiledNavigationFunction } from '../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
-import type { ReachabilityTieBreakerEntry } from '../compilation/RuntimePlanBuilder'
+import type { ReachabilityTieBreakerEntry } from '../compilation/CompilationPlanner'
 import type { UnreachableRedirectTarget } from '../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {

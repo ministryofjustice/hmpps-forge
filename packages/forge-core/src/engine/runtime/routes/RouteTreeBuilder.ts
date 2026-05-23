@@ -1,4 +1,5 @@
-import type { CompilationArtefact, JourneyIndex, StepIndex } from '../../types/compilationArtefacts.type'
+import type { JourneyIndex, StepIndex } from '../../types/compilationArtefacts.type'
+import type { CompilationContext } from '../../compilation/CompilationContext'
 import type { NodeId } from '../../types/ast.type'
 import type { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { joinPaths } from '../../../framework/path/routePath'
@@ -19,14 +20,14 @@ export interface RouteTreeBuilderInput {
   basePath: string
   stepIndex: StepIndex
   journeyIndex: JourneyIndex
-  artefact: CompilationArtefact
+  compilationContext: CompilationContext
 }
 
 export default class RouteTreeBuilder {
   constructor(private readonly routeTreeIndex: RouteTreeIndex) {}
 
   build(input: RouteTreeBuilderInput): RouteTreeBuildResult {
-    const journeyContexts = this.buildJourneyContexts(input.journeyIndex, input.artefact, input.basePath)
+    const journeyContexts = this.buildJourneyContexts(input.journeyIndex, input.compilationContext, input.basePath)
     const catalogsByBasePath = new Map<string, JourneyRouteTemplateCatalog>()
 
     journeyContexts.forEach(context => {
@@ -36,7 +37,7 @@ export default class RouteTreeBuilder {
     })
 
     const stepContexts = Array.from(input.stepIndex.entries()).map(([stepId, stepNode]) =>
-      this.buildStepContext(stepId, stepNode, input.artefact, input.basePath, catalogsByBasePath),
+      this.buildStepContext(stepId, stepNode, input.compilationContext, input.basePath, catalogsByBasePath),
     )
 
     stepContexts.forEach(context => {
@@ -54,14 +55,14 @@ export default class RouteTreeBuilder {
 
   private buildJourneyContexts(
     journeyIndex: JourneyIndex,
-    artefact: CompilationArtefact,
+    compilationContext: CompilationContext,
     basePath: string,
   ): JourneyRouteContext[] {
     const contextsById = new Map<NodeId, JourneyRouteContext>()
 
     journeyIndex.forEach((_, journeyId) => {
-      const chain = getAncestorChain(journeyId, artefact.astNodeTree)
-        .map(nodeId => artefact.nodeRegistry.get(nodeId))
+      const chain = getAncestorChain(journeyId, compilationContext.astNodeTree)
+        .map(nodeId => compilationContext.nodeRegistry.get(nodeId))
         .filter(isJourneyStructNode)
 
       let parentPath = basePath
@@ -94,11 +95,11 @@ export default class RouteTreeBuilder {
   private buildStepContext(
     stepId: NodeId,
     stepNode: StepASTNode,
-    artefact: CompilationArtefact,
+    compilationContext: CompilationContext,
     basePath: string,
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
   ): StepRouteContext {
-    const journeyAncestry = this.getJourneyAncestry(stepId, artefact)
+    const journeyAncestry = this.getJourneyAncestry(stepId, compilationContext)
     const journeyBasePath = this.getJourneyBasePath(journeyAncestry, basePath)
     const routeTemplatePath = joinPaths(journeyBasePath, stepNode.properties.path)
     const routeTemplateCatalog = this.getRouteTemplateCatalog(catalogsByBasePath, journeyBasePath)
@@ -115,10 +116,10 @@ export default class RouteTreeBuilder {
     }
   }
 
-  private getJourneyAncestry(stepId: NodeId, artefact: CompilationArtefact): JourneyASTNode[] {
-    return getAncestorChain(stepId, artefact.astNodeTree)
+  private getJourneyAncestry(stepId: NodeId, compilationContext: CompilationContext): JourneyASTNode[] {
+    return getAncestorChain(stepId, compilationContext.astNodeTree)
       .filter(nodeId => nodeId !== stepId)
-      .map(nodeId => artefact.nodeRegistry.get(nodeId))
+      .map(nodeId => compilationContext.nodeRegistry.get(nodeId))
       .filter(isJourneyStructNode)
   }
 

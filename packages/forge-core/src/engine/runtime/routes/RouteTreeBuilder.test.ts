@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../types/enums'
 import { CompileAstNodeId, NodeId } from '../../types/ast.type'
 import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import type { CompilationArtefact } from '../../types/compilationArtefacts.type'
+import type { CompilationContext } from '../../compilation/CompilationContext'
 import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../types/routes.type'
@@ -60,17 +60,17 @@ describe('RouteTreeBuilder', () => {
       })
     })
 
-    const artefact = {
+    const compilationContext = {
       nodeRegistry: {
         get: (nodeId: NodeId) => nodesById.get(nodeId),
       },
       astNodeTree,
-    } as unknown as CompilationArtefact
+    } as unknown as CompilationContext
     const result = builder.build({
       basePath,
       journeyIndex: new Map(journeys.map(journey => [journey.id, journey])),
       stepIndex: new Map(steps.map(step => [step.id, step])),
-      artefact,
+      compilationContext,
     })
 
     return { index, result }

@@ -36,13 +36,13 @@ export default class ForgeRouter<TRouter> {
     const packageDependencies = packageInstance.getDependencies()
     const stepIndex = packageInstance.getStepIndex()
     const journeyIndex = packageInstance.getJourneyIndex()
-    const artefact = packageInstance.getSharedCompilationArtefact()
+    const compilationContext = packageInstance.getCompilationContext()
     const routeTreeBuilder = new RouteTreeBuilder(this.routeTreeIndex)
     const { journeyContexts, stepContexts, catalogsByBasePath } = routeTreeBuilder.build({
       basePath: this.basePath,
       stepIndex,
       journeyIndex,
-      artefact,
+      compilationContext,
     })
 
     this.createJourneyRouters(journeyContexts)
@@ -111,30 +111,21 @@ export default class ForgeRouter<TRouter> {
         throw new Error(`Unable to mount step route "${fullPath}" before its journey router`)
       }
 
-      const resolveCompiledStep = () => packageInstance.getCompiledStep(ctx.stepId)
-
-      let controller: StepController<unknown, unknown> | undefined
-
-      const getController = () => {
-        if (!controller) {
-          controller = new StepController(
-            resolveCompiledStep(),
-            packageDependencies,
-            forgeDependencies,
-            this.routeTreeIndex.roots,
-            ctx.routeTemplatePath,
-            ctx.routeTemplateCatalog,
-          )
-        }
-
-        return controller
-      }
+      const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
+      const controller = new StepController(
+        compiledStep,
+        packageDependencies,
+        forgeDependencies,
+        this.routeTreeIndex.roots,
+        ctx.routeTemplatePath,
+        ctx.routeTemplateCatalog,
+      )
 
       this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, (req, res) =>
-        getController().get(req, res),
+        controller.get(req, res),
       )
       this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, (req, res) =>
-        getController().post(req, res),
+        controller.post(req, res),
       )
 
       routeCount += 2
@@ -161,20 +152,14 @@ export default class ForgeRouter<TRouter> {
         return
       }
 
-      let controller: JourneyController<unknown, unknown> | undefined
-
-      const getController = () => {
-        if (!controller) {
-          packageInstance.getJourneyCompilationArtefact()
-          controller = new JourneyController(journeyPlan, packageDependencies, forgeDependencies, routeTemplateCatalog)
-        }
-
-        return controller
-      }
-
-      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', (req, res) =>
-        getController().get(req, res),
+      const controller = new JourneyController(
+        journeyPlan,
+        packageDependencies,
+        forgeDependencies,
+        routeTemplateCatalog,
       )
+
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', (req, res) => controller.get(req, res))
       routeCount += 1
     })
 

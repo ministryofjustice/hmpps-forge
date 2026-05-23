@@ -45,19 +45,6 @@ export interface ForgeOptions {
    */
   strictRegistration?: boolean
 
-  /**
-   * Defer route compilation until the route is first accessed.
-   *
-   * When `true` (default), each step compiles on first request — faster startup,
-   * but the first user to hit a step pays the compilation cost.
-   *
-   * When `false`, route artefacts compile at registration time — slower startup,
-   * but first requests do not pay compilation costs.
-   *
-   * @default true
-   */
-  lazyStepCompilation?: boolean
-
   /** Logger instance for forge output */
   logger?: Logger | Console
 
@@ -136,7 +123,6 @@ export default class Forge {
       disableBuiltInComponents: false,
       debug: false,
       strictRegistration: true,
-      lazyStepCompilation: true,
       logger: console,
       basePath: '',
     }
@@ -232,10 +218,6 @@ export default class Forge {
   }
 
   private registerPackageInstance(packageInstance: PackageInstance): void {
-    if (!this.options.lazyStepCompilation) {
-      packageInstance.compileAllRouteArtefacts()
-    }
-
     const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
 
     this.dependencies.logger.info(

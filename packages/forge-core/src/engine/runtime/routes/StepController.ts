@@ -1,6 +1,6 @@
 import createHttpError from 'http-errors'
 import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
-import type { CompiledForm } from '../../types/compilationArtefacts.type'
+import type { CompiledStep } from '../../types/compilationArtefacts.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import {
   buildCompiledAnswerPreparationContext,
@@ -44,7 +44,7 @@ export default class StepController<TRequest, TResponse> {
   private readonly currentRouteTemplatePath: string
 
   constructor(
-    private readonly compiledForm: CompiledForm[number],
+    private readonly compiledForm: CompiledStep,
     private readonly packageDependencies: PackageDependencies,
     private readonly forgeDependencies: ForgeDependencies,
     routeTree: StoredRouteTree,
