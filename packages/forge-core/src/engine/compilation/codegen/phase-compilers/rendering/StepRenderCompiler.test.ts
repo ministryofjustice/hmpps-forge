@@ -19,6 +19,7 @@ import { TemplateValue } from '../../../../types/template.type'
 import TemplateFactory from '../../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
+import type { CompilationDependencies } from '../../CompilationDependencies'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { attachDSLSourceMetadata } from '../../../../diagnostics/sourceMetadata'
 import type { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
@@ -102,10 +103,11 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
 
 describe('StepRenderCompiler', () => {
   let compiler: StepRenderCompiler
+  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    compiler = new StepRenderCompiler()
+    compiler = new StepRenderCompiler(dependencies)
   })
 
   describe('compile()', () => {
@@ -125,9 +127,11 @@ describe('StepRenderCompiler', () => {
         },
       })
 
+      const syncCompiler = new StepRenderCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(createStepWithBlocks([block]), [], [], functionRegistry)
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const source = syncCompiler.generateSource(createStepWithBlocks([block]), [], [])
+      const compiled = syncCompiler.compile(createStepWithBlocks([block]), [], [])
       const result = compiled!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -157,9 +161,11 @@ describe('StepRenderCompiler', () => {
         },
       })
 
+      const asyncCompiler = new StepRenderCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(createStepWithBlocks([block]), [], [], functionRegistry)
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const source = asyncCompiler.generateSource(createStepWithBlocks([block]), [], [])
+      const compiled = asyncCompiler.compile(createStepWithBlocks([block]), [], [])
       const result = await compiled!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -167,7 +173,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.content).toBe('Hello Ada')
     })
 
-    it('should not mutate source collection objects when rendering iterator blocks', () => {
+    it('should not mutate source collection objects when rendering iterator blocks', async () => {
       // Arrange
       const member: Record<string, unknown> = { memberName: 'Ada' }
       const members = [member]
@@ -180,7 +186,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx({ data: { members } }))
+      const result = await compiled(createCtx({ data: { members } }))
 
       // Assert
       expect(result.blocks).toHaveLength(1)
@@ -188,7 +194,7 @@ describe('StepRenderCompiler', () => {
       expect(JSON.stringify(members)).toBe('[{"memberName":"Ada"}]')
     })
 
-    it('should resolve Item value to the original iterator item when rendering iterator blocks', () => {
+    it('should resolve Item value to the original iterator item when rendering iterator blocks', async () => {
       // Arrange
       const member: Record<string, unknown> = { memberName: 'Ada' }
       const members = [member]
@@ -202,7 +208,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx({ data: { members } }))
+      const result = await compiled(createCtx({ data: { members } }))
 
       // Assert
       expect(result.blocks[0].properties.defaultValue).toBe(member)
@@ -213,7 +219,7 @@ describe('StepRenderCompiler', () => {
       expect(source).not.toContain('"@item"')
     })
 
-    it('should evaluate generator expressions when rendering block properties', () => {
+    it('should evaluate generator expressions when rendering block properties', async () => {
       // Arrange
       const addressDisplay = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderAddress', [
         {
@@ -247,7 +253,7 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           answers: {
             addressLine1: { current: '123 Example Street' },
@@ -261,7 +267,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.html).toBe('123 Example Street<br>London')
     })
 
-    it('should evaluate post references when rendering block properties', () => {
+    it('should evaluate post references when rendering block properties', async () => {
       // Arrange
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', createReference(['post', 'action']))
@@ -273,13 +279,13 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx({ post: { action: 'find-address' }, request: { method: 'POST' } }))
+      const result = await compiled(createCtx({ post: { action: 'find-address' }, request: { method: 'POST' } }))
 
       // Assert
       expect(result.blocks[0].properties.content).toBe('find-address')
     })
 
-    it('should stringify dynamic answer reference field codes', () => {
+    it('should stringify dynamic answer reference field codes', async () => {
       // Arrange
       const dynamicAnswerCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'answerCode')
       const answerReference = ASTTestFactory.expression<ReferenceASTNode>(ExpressionType.REFERENCE)
@@ -307,7 +313,7 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           answers: {
             '123': { current: 'Ada' },
@@ -321,7 +327,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.content).toBe('Ada')
     })
 
-    it('should render action-set field values after POST preparation', () => {
+    it('should render action-set field values after POST preparation', async () => {
       // Arrange
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('addressTown')
@@ -333,7 +339,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           request: { method: 'POST' },
           answers: {
@@ -352,7 +358,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.value).toBe('London')
     })
 
-    it('should render raw POST field values when only formatter processing follows', () => {
+    it('should render raw POST field values when only formatter processing follows', async () => {
       // Arrange
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('email')
@@ -364,7 +370,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           request: { method: 'POST' },
           answers: {
@@ -383,7 +389,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.value).toBe('test@example.com')
     })
 
-    it('should resolve dynamic registered field codes as strings', () => {
+    it('should resolve dynamic registered field codes as strings', async () => {
       // Arrange
       const dynamicCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'fieldCode')
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
@@ -408,7 +414,7 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           answers: {
             '123': { current: 'Ada' },
@@ -423,7 +429,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.value).toBe('Ada')
     })
 
-    it('should evaluate generator expressions inside iterator yield templates', () => {
+    it('should evaluate generator expressions inside iterator yield templates', async () => {
       // Arrange
       const members = [{ memberName: 'Ada' }]
       const templateBlock = ASTTestFactory.block('summary-row', BlockType.BASIC)
@@ -458,7 +464,7 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           data: { members },
           conditions: { get } as unknown as RenderCompilationContext['conditions'],
@@ -469,7 +475,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.html).toBe('Ada<br>Member')
     })
 
-    it('should evaluate Loop metadata inside iterator blocks', () => {
+    it('should evaluate Loop metadata inside iterator blocks', async () => {
       // Arrange
       const members = [{ memberName: 'Ada' }, null, { memberName: 'Grace' }, { memberName: 'Linus' }]
       const templateBlock = ASTTestFactory.block('loop-row', BlockType.BASIC)
@@ -490,7 +496,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx({ data: { members } }))
+      const result = await compiled(createCtx({ data: { members } }))
 
       // Assert
       expect(result.blocks.map(block => block.properties)).toMatchObject([
@@ -527,7 +533,7 @@ describe('StepRenderCompiler', () => {
       ])
     })
 
-    it('should evaluate parent Loop metadata inside nested iterator expressions', () => {
+    it('should evaluate parent Loop metadata inside nested iterator expressions', async () => {
       // Arrange
       const teams = [
         { name: 'Alpha', members: [{ name: 'Ada' }, { name: 'Grace' }] },
@@ -563,7 +569,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx({ data: { teams } }))
+      const result = await compiled(createCtx({ data: { teams } }))
 
       // Assert
       expect(result.blocks[0].properties.members).toEqual([
@@ -575,7 +581,7 @@ describe('StepRenderCompiler', () => {
       ])
     })
 
-    it('should keep newly added inline iterator fields blank when existing rows have POST values', () => {
+    it('should keep newly added inline iterator fields blank when existing rows have POST values', async () => {
       // Arrange
       const collection = createCollectionBlock(
         createIterateNode(
@@ -613,7 +619,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           data: {
             members: [{ memberName: 'Alice' }, { memberName: '' }],
@@ -647,6 +653,13 @@ describe('StepRenderCompiler', () => {
 
     it('should compile summary-list rows with match expressions and visibleWhen predicates', () => {
       // Arrange
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        Equals: { name: 'Equals', isAsync: false, evaluate: () => undefined },
+      })
+
+      const localCompiler = new StepRenderCompiler({ functionRegistry })
       const visitType = createReference(['answers', 'visitType'])
       const equalsPhone = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone'])
       const equalsVideo = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['video'])
@@ -686,13 +699,13 @@ describe('StepRenderCompiler', () => {
           },
         ])
         .build()
-      const source = compiler.generateSource(createStepWithBlocks([block]), [])
+      const source = localCompiler.generateSource(createStepWithBlocks([block]), [])
 
       // Act / Assert
       expect(() => new Function('ctx', source)).not.toThrow()
     })
 
-    it('should evaluate conditional expressions in block properties', () => {
+    it('should evaluate conditional expressions in block properties', async () => {
       // Arrange
       const block = ASTTestFactory.block('inset-text', BlockType.BASIC)
         .withProperty(
@@ -716,7 +729,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           answers: {
             visitType: { current: 'phone' },
@@ -733,7 +746,7 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.text).toBe('Phone call')
     })
 
-    it('should evaluate predicate expressions in boolean block properties', () => {
+    it('should evaluate predicate expressions in boolean block properties', async () => {
       // Arrange
       const block = ASTTestFactory.block('pagination', BlockType.BASIC)
         .withProperty('items', [
@@ -760,7 +773,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           data: {
             currentPage: 2,
@@ -780,7 +793,7 @@ describe('StepRenderCompiler', () => {
       ])
     })
 
-    it('should evaluate format expressions in nested array item properties', () => {
+    it('should evaluate format expressions in nested array item properties', async () => {
       // Arrange
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [
         createReference(['data', 'activeGoalsCount']),
@@ -807,7 +820,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(
+      const result = await compiled(
         createCtx({
           data: {
             activeGoalsCount: 2,
@@ -878,7 +891,8 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const pipelineCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = pipelineCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -958,7 +972,8 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const findCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = findCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -989,7 +1004,7 @@ describe('StepRenderCompiler', () => {
       ])
     })
 
-    it('should keep surrounding format text when nested array item argument resolves to undefined', () => {
+    it('should keep surrounding format text when nested array item argument resolves to undefined', async () => {
       // Arrange
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [
         createReference(['data', 'activeGoalsCount']),
@@ -1009,7 +1024,7 @@ describe('StepRenderCompiler', () => {
       }
 
       // Act
-      const result = compiled(createCtx())
+      const result = await compiled(createCtx())
 
       // Assert
       expect(result.blocks[0].properties.items).toEqual([
@@ -1037,7 +1052,8 @@ describe('StepRenderCompiler', () => {
         FormatDate: StringTransformersRegistry.FormatDate,
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const formatCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = formatCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1074,7 +1090,8 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const skipCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = skipCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1088,7 +1105,7 @@ describe('StepRenderCompiler', () => {
       expect(evaluate).not.toHaveBeenCalled()
     })
 
-    it('should throw transformer TypeError when nested pipeline input has an incompatible value', () => {
+    it('should throw transformer TypeError when nested pipeline input has an incompatible value', async () => {
       // Arrange
       const date = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'date']),
@@ -1105,7 +1122,8 @@ describe('StepRenderCompiler', () => {
         FormatDate: StringTransformersRegistry.FormatDate,
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const typeErrorCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = typeErrorCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1115,7 +1133,7 @@ describe('StepRenderCompiler', () => {
       let thrown: unknown
 
       try {
-        compiled(createCtx({ conditions: functionRegistry, data: { date: 123 } }))
+        await compiled(createCtx({ conditions: functionRegistry, data: { date: 123 } }))
       } catch (error) {
         thrown = error
       }
@@ -1132,7 +1150,7 @@ describe('StepRenderCompiler', () => {
       })
     })
 
-    it('should throw runtime errors when nested array item text evaluation throws', () => {
+    it('should throw runtime errors when nested array item text evaluation throws', async () => {
       // Arrange
       const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
 
@@ -1163,7 +1181,8 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [], functionRegistry)
+      const throwCompiler = new StepRenderCompiler({ functionRegistry })
+      const compiled = throwCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1173,7 +1192,7 @@ describe('StepRenderCompiler', () => {
       let thrown: unknown
 
       try {
-        compiled(createCtx({ conditions: functionRegistry }))
+        await compiled(createCtx({ conditions: functionRegistry }))
       } catch (error) {
         thrown = error
       }

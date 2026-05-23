@@ -42,7 +42,7 @@ export default class PackageInstance {
   private constructor(packageConfiguration: JourneyDefinition, packageDependencies: PackageDependencies) {
     this.dependencies = packageDependencies
     this.rawConfiguration = packageConfiguration
-    this.compiler = new CompilationFactory(packageDependencies.functionRegistry)
+    this.compiler = new CompilationFactory({ functionRegistry: packageDependencies.functionRegistry })
     this.sharedCompilation = this.compiler.compileShared(packageConfiguration)
   }
 

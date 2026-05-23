@@ -22,6 +22,7 @@ import type {
   NavigationEvaluationResult,
 } from '../../../../types/GeneratedNavigationEvaluation.type'
 import StepFieldInventoryCompiler, { FieldInventoryStepSource } from '../field-inventory/StepFieldInventoryCompiler'
+import type { CompilationDependencies } from '../../CompilationDependencies'
 
 /**
  * Context passed to the compiled reachability function. Reachability expressions
@@ -53,8 +54,6 @@ export interface CompiledReachabilityResult {
   resumeActive: boolean
 }
 
-type SyncCompiledReachabilityFunction = (ctx: ReachabilityContext) => CompiledReachabilityResult
-
 export type CompiledReachabilityFunction = (
   ctx: ReachabilityContext,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
@@ -68,33 +67,22 @@ export type CompiledNavigationFunction = (
  * Builds generated functions from a reachability compilation plan.
  */
 export default class ReachabilityCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
 
-  private readonly fieldInventory = new StepFieldInventoryCompiler(this.expr)
+  private readonly fieldInventory: StepFieldInventoryCompiler
+
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new NodeCompilationDispatcher(dependencies)
+    this.fieldInventory = new StepFieldInventoryCompiler(dependencies, this.expr)
+  }
 
   /**
    * Compiles the plan into an executable reachability evaluator.
-   *
-   * This evaluator returns only the dynamic arrays, making it useful for tests
-   * and diagnostics that inspect expression output directly.
    */
-  compile(plan: ReachabilityCompilationPlan, nodeRegistry: NodeRegistry): SyncCompiledReachabilityFunction | undefined
-
-  compile(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: NodeRegistry,
-    functionRegistry: FunctionRegistry,
-  ): CompiledReachabilityFunction | undefined
-
-  compile(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: NodeRegistry,
-    functionRegistry?: FunctionRegistry,
-  ): CompiledReachabilityFunction | SyncCompiledReachabilityFunction | undefined {
+  compile(plan: ReachabilityCompilationPlan, nodeRegistry: NodeRegistry): CompiledReachabilityFunction | undefined {
     return compileGeneratedFunction<CompiledReachabilityFunction>(
       this.expr,
       ['ctx'],
-      functionRegistry,
       () => this.buildSource(plan, nodeRegistry),
       { phase: 'reachability' },
     )
@@ -110,12 +98,10 @@ export default class ReachabilityCompiler {
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
     nodeRegistry: NodeRegistry,
-    functionRegistry: FunctionRegistry,
   ): CompiledNavigationFunction {
     return compileGeneratedFunction<CompiledNavigationFunction>(
       this.expr,
       ['ctx', 'navigation'],
-      functionRegistry,
       () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
       { forceAsync: true, phase: 'navigation' },
     )
@@ -124,12 +110,8 @@ export default class ReachabilityCompiler {
   /**
    * Builds the generated source without constructing a function, mainly for debugging.
    */
-  generateSource(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: NodeRegistry,
-    functionRegistry?: FunctionRegistry,
-  ): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSource(plan, nodeRegistry))
+  generateSource(plan: ReachabilityCompilationPlan, nodeRegistry: NodeRegistry): string {
+    return buildGeneratedSource(this.expr, () => this.buildSource(plan, nodeRegistry))
   }
 
   /**
@@ -141,11 +123,8 @@ export default class ReachabilityCompiler {
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
     nodeRegistry: NodeRegistry,
-    functionRegistry: FunctionRegistry,
   ): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () =>
-      this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
-    )
+    return buildGeneratedSource(this.expr, () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry))
   }
 
   /**

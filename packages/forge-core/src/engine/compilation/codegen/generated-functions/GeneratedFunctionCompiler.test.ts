@@ -2,19 +2,23 @@ import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
 } from '../../../errors/ForgeRuntimeEvaluationError'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { CompilationDependencies } from '../CompilationDependencies'
 import NodeCompilationDispatcher from '../expressions/NodeCompilationDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
+
+const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
 describe('GeneratedFunctionCompiler', () => {
   describe('compileGeneratedFunction()', () => {
     it('should throw ForgeCompilationError when generated source cannot be constructed', () => {
       // Arrange
-      const expr = new NodeCompilationDispatcher()
+      const expr = new NodeCompilationDispatcher(dependencies)
 
       // Act
       const compile = () =>
-        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], undefined, () => 'return (', { phase: 'render' })
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
 
       // Assert
       expect(compile).toThrow(ForgeCompilationError)
@@ -22,14 +26,10 @@ describe('GeneratedFunctionCompiler', () => {
 
     it('should preserve Error failures and attach Forge diagnostics', () => {
       // Arrange
-      const expr = new NodeCompilationDispatcher()
-      const fn = compileGeneratedFunction<GeneratedFunction>(
-        expr,
-        ['ctx'],
-        undefined,
-        () => 'throw new Error("boom");',
-        { phase: 'render' },
-      )
+      const expr = new NodeCompilationDispatcher(dependencies)
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw new Error("boom");', {
+        phase: 'render',
+      })
 
       // Act
       const evaluate = () => Reflect.apply(fn, undefined, [{}])
@@ -54,8 +54,8 @@ describe('GeneratedFunctionCompiler', () => {
 
     it('should wrap non-Error runtime failures in ForgeRuntimeEvaluationError', () => {
       // Arrange
-      const expr = new NodeCompilationDispatcher()
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], undefined, () => 'throw "boom";', {
+      const expr = new NodeCompilationDispatcher(dependencies)
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw "boom";', {
         phase: 'render',
       })
 
@@ -68,11 +68,10 @@ describe('GeneratedFunctionCompiler', () => {
 
     it('should pass shared helpers into generated functions', () => {
       // Arrange
-      const expr = new NodeCompilationDispatcher()
+      const expr = new NodeCompilationDispatcher(dependencies)
       const fn = compileGeneratedFunction<GeneratedFunction>(
         expr,
         ['ctx'],
-        undefined,
         () => 'return _forgeHelpers.normalizePostValue(["", "red"], false);',
         { phase: 'answer-preparation' },
       )

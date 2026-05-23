@@ -10,8 +10,8 @@ import PredicateNodeCompiler from './PredicateNodeCompiler'
 import PipelineNodeCompiler from './PipelineNodeCompiler'
 import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { isASTNode } from '../../../typeguards/nodes'
+import type { CompilationDependencies } from '../CompilationDependencies'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
@@ -26,8 +26,6 @@ const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
  * function-call discovery stay consistent across generated functions.
  */
 export default class NodeCompilationDispatcher implements NodeCompilationContext {
-  private functionRegistry: FunctionRegistry | undefined
-
   private usedAwait = false
 
   private readonly iteratorFrames: IteratorScopeFrame[] = []
@@ -48,6 +46,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
   private readonly diagnostics = new DiagnosticEmitter()
 
+  constructor(private readonly dependencies: CompilationDependencies) {}
+
   get iteratorStack(): readonly IteratorScopeFrame[] {
     return this.iteratorFrames
   }
@@ -62,13 +62,6 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
 
   get usesAwait(): boolean {
     return this.usedAwait
-  }
-
-  /**
-   * Supplies authored-function metadata so generated source can choose sync or async calls.
-   */
-  setFunctionRegistry(functionRegistry: FunctionRegistry | undefined): void {
-    this.functionRegistry = functionRegistry
   }
 
   /**
@@ -517,12 +510,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
    * Emits a registered function call through shared helpers when diagnostics are available.
    */
   compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
-    const callIsAsync = this.functionRegistry !== undefined && (this.functionRegistry.get(funcName)?.isAsync ?? true)
+    const callIsAsync = this.dependencies.functionRegistry.get(funcName)?.isAsync ?? true
 
-    // Registry metadata is the source of truth for async user functions. Source
-    // generation without a registry is used by narrow unit tests and preserves
-    // sync output. With a registry, unknown entries are emitted as awaitable so
-    // missing journey functions still fail at runtime lookup time.
     if (callIsAsync) {
       this.usedAwait = true
     }
