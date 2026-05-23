@@ -3,6 +3,7 @@ import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../types/template.type'
 import CodeEmitter from '../emitters/CodeEmitter'
+import DiagnosticEmitter from '../emitters/DiagnosticEmitter'
 import { IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
 import PredicateNodeCompiler from './PredicateNodeCompiler'
@@ -11,21 +12,11 @@ import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { isASTNode } from '../../../typeguards/nodes'
-import { getDSLSourceMetadata, type DSLPathSegment } from '../../../diagnostics/sourceMetadata'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
 
-interface DiagnosticMetadata {
-  readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
-  readonly formattedPath?: string
-  readonly functionName?: string
-  readonly functionType?: string
-}
-
 const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
-const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
 
 /**
  * Coordinates expression-node compilers and owns transient code-generation state.
@@ -54,6 +45,8 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   private readonly conditionals = new ConditionalNodeCompiler(this)
 
   private readonly matches = new MatchNodeCompiler(this)
+
+  private readonly diagnostics = new DiagnosticEmitter()
 
   get iteratorStack(): readonly IteratorScopeFrame[] {
     return this.iteratorFrames
@@ -174,7 +167,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       return expression
     }
 
-    return this.compileTrackedExpression(node, expression)
+    return this.diagnostics.wrapExpression(expression, node, this.usedAwait)
   }
 
   /**
@@ -196,7 +189,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       return expression
     }
 
-    return this.compileTrackedExpression(node, expression)
+    return this.diagnostics.wrapExpression(expression, node, this.usedAwait)
   }
 
   private isDirectFunctionExpression(expressionType: string | undefined): boolean {
@@ -551,9 +544,10 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       this.usedAwait = true
     }
 
-    const metadata = this.getDiagnosticMetadata(source, funcName)
+    const helperName = callIsAsync ? 'evaluateFunctionAsync' : 'evaluateFunction'
+    const helperCall = this.diagnostics.wrapFunctionCall(helperName, funcName, argExprs, source)
 
-    if (metadata === undefined) {
+    if (helperCall === undefined) {
       const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argExprs.join(', ')})`
 
       if (callIsAsync) {
@@ -563,32 +557,7 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       return callExpr
     }
 
-    const helperName = callIsAsync ? 'evaluateFunctionAsync' : 'evaluateFunction'
-    const helperCall = this.compileDiagnosticHelperCall(helperName, metadata, funcName, argExprs)
-
     if (callIsAsync) {
-      return `(await ${helperCall})`
-    }
-
-    return helperCall
-  }
-
-  /**
-   * Wraps non-function expressions with node metadata so runtime errors keep DSL context.
-   */
-  private compileTrackedExpression(source: unknown, expression: string): string {
-    const metadata = this.getDiagnosticMetadata(source)
-
-    if (metadata === undefined) {
-      return expression
-    }
-
-    const returnStatement = this.usedAwait ? `return await (${expression});` : `return (${expression});`
-    const helperName = this.usedAwait ? 'evaluateTrackedAsync' : 'evaluateTracked'
-    const callbackPrefix = this.usedAwait ? 'async ' : ''
-    const helperCall = this.compileTrackedHelperCall(helperName, metadata, callbackPrefix, returnStatement)
-
-    if (this.usedAwait) {
       return `(await ${helperCall})`
     }
 
@@ -602,143 +571,11 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       .join('\n')
   }
 
-  private compileRuntimeDiagnosticsArg(): string {
-    return `typeof ${RUNTIME_DIAGNOSTICS_PARAM} === "undefined" ? undefined : ${RUNTIME_DIAGNOSTICS_PARAM}`
-  }
-
-  private compileTrackedHelperCall(
-    helperName: string,
-    metadata: DiagnosticMetadata,
-    callbackPrefix: string,
-    returnStatement: string,
-  ): string {
-    const callback = `${callbackPrefix}function() {\n${this.indentSource(returnStatement)}\n}`
-    const args = [this.compileRuntimeDiagnosticsArg(), this.compileDiagnosticMetadataLiteral(metadata), callback]
-
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${this.indentSource(args.join(',\n'))}\n)`
-  }
-
-  private compileDiagnosticHelperCall(
-    helperName: string,
-    metadata: DiagnosticMetadata,
-    funcName: string,
-    argExprs: string[],
-  ): string {
-    const args = [
-      'ctx',
-      this.compileRuntimeDiagnosticsArg(),
-      this.compileDiagnosticMetadataLiteral(metadata),
-      JSON.stringify(funcName),
-      `[${argExprs.join(', ')}]`,
-    ]
-
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${this.indentSource(args.join(',\n'))}\n)`
-  }
-
   private compileReturnFunction(expression: string): string {
     const functionPrefix = this.usedAwait ? 'async ' : ''
     const awaitKeyword = this.usedAwait ? 'await ' : ''
 
     return `${functionPrefix}function() {\n${this.indentSource(`return ${awaitKeyword}${expression};`)}\n}`
-  }
-
-  private compileDiagnosticMetadataLiteral(metadata: DiagnosticMetadata): string {
-    return [
-      '{',
-      this.indentSource(
-        [
-          `nodeId: ${this.toSourceLiteral(metadata.nodeId)},`,
-          `path: ${this.toSourceLiteral(metadata.path)},`,
-          `formattedPath: ${this.toSourceLiteral(metadata.formattedPath)},`,
-          `functionName: ${this.toSourceLiteral(metadata.functionName)},`,
-          `functionType: ${this.toSourceLiteral(metadata.functionType)}`,
-        ].join('\n'),
-      ),
-      '}',
-    ].join('\n')
-  }
-
-  /**
-   * Pulls together node and function metadata for generated runtime diagnostics.
-   */
-  private getDiagnosticMetadata(source: unknown, functionName?: string): DiagnosticMetadata | undefined {
-    const sourceMetadata = this.getSourceMetadata(source)
-    const resolvedFunctionName = functionName ?? this.getFunctionName(source)
-    const functionType = this.getFunctionType(source)
-
-    if (
-      sourceMetadata.nodeId === undefined &&
-      sourceMetadata.path === undefined &&
-      sourceMetadata.formattedPath === undefined &&
-      resolvedFunctionName === undefined &&
-      functionType === undefined
-    ) {
-      return undefined
-    }
-
-    return {
-      ...sourceMetadata,
-      functionName: resolvedFunctionName,
-      functionType,
-    }
-  }
-
-  private getSourceMetadata(source: unknown): DiagnosticMetadata {
-    const metadata = getDSLSourceMetadata(source)
-
-    if (!this.isRecord(source)) {
-      return {
-        path: metadata?.dslPath,
-        formattedPath: metadata?.formattedDslPath,
-      }
-    }
-
-    return {
-      nodeId: typeof source.id === 'string' ? source.id : undefined,
-      path: metadata?.dslPath,
-      formattedPath: metadata?.formattedDslPath,
-    }
-  }
-
-  private getFunctionName(source: unknown): string | undefined {
-    if (!this.isRecord(source)) {
-      return undefined
-    }
-
-    const properties = this.isRecord(source.properties) ? source.properties : source
-    const name = properties.name
-
-    return typeof name === 'string' ? name : undefined
-  }
-
-  private getFunctionType(source: unknown): string | undefined {
-    if (!this.isRecord(source)) {
-      return undefined
-    }
-
-    const expressionType = source.expressionType
-
-    switch (expressionType) {
-      case FunctionType.CONDITION:
-      case FunctionType.TRANSFORMER:
-      case FunctionType.GENERATOR:
-      case FunctionType.EFFECT:
-        return expressionType
-      default:
-        return undefined
-    }
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-  }
-
-  private toSourceLiteral(value: unknown): string {
-    if (value === undefined) {
-      return 'undefined'
-    }
-
-    return JSON.stringify(value) ?? 'undefined'
   }
 
   /**
