@@ -6,9 +6,9 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import JourneyCompiler, { type JourneyCompilationResult } from './compilation/JourneyCompiler'
+import JourneyCompiler from './compilation/JourneyCompiler'
 import type { CompilationContext } from './compilation/CompilationContext'
-import type { CompiledStep, JourneyIndex, StepIndex } from './types/compilationArtefacts.type'
+import type { CompiledStep, JourneyCompilationResult, JourneyIndex, StepIndex } from './types/compilationArtefacts.type'
 import type { JourneyRuntimePlan } from './types/runtimePlans.type'
 
 interface PackageInstanceOptions<TDeps> {

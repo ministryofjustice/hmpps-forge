@@ -30,7 +30,7 @@ import {
 } from '../../../../types/predicates.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepValidationCompiler, { ValidationContext } from './StepValidationCompiler'
 
 function createStep(): StepASTNode {

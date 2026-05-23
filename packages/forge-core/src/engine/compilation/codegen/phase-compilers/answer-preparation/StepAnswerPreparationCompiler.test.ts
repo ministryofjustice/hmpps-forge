@@ -21,7 +21,7 @@ import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { generatedFunctionHelpers } from '../../generated-functions/GeneratedFunctionHelpers'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler, { AnswerPreparationContext } from './StepAnswerPreparationCompiler'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {

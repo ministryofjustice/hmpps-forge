@@ -27,7 +27,7 @@ import {
 } from '../../generated-functions/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateBlockNode } from '../../values/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type { CompiledRenderFunction } from '../../../../types/compiledPhaseResults.type'
 

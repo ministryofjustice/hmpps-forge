@@ -1,25 +1,14 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ASTNodeType } from '../types/enums'
-import type { NodeId } from '../types/engine.type'
-import type { CompiledStep, JourneyIndex, StepIndex } from '../types/compilationArtefacts.type'
-import type { JourneyRuntimePlan } from '../types/runtimePlans.type'
-import type { CompilationDependencies } from './codegen/CompilationDependencies'
+import type { JourneyIndex, JourneyCompilationResult, StepIndex } from '../types/compilationArtefacts.type'
+import type { CompilationDependencies } from './codegen/compilationDependencies.type'
 import { CompilationContext } from './CompilationContext'
 import { NodeIDCategory } from './id-generators/NodeIDGenerator'
 import NodeRegistrationWalker from './traversers/NodeRegistrationWalker'
 import CompilationPlanner from './CompilationPlanner'
 import CodegenOrchestrator from './CodegenOrchestrator'
 import { createDSLSourceMap } from '../diagnostics/sourceMetadata'
-
-export interface JourneyCompilationResult {
-  readonly rootNode: JourneyASTNode
-  readonly context: CompilationContext
-  readonly stepIndex: StepIndex
-  readonly journeyIndex: JourneyIndex
-  readonly steps: Map<NodeId, CompiledStep>
-  readonly journeyPlans: Map<NodeId, JourneyRuntimePlan>
-}
 
 export default class JourneyCompiler {
   constructor(private readonly dependencies: CompilationDependencies) {}

@@ -22,7 +22,7 @@ import type {
   NavigationEvaluationResult,
 } from '../../../../types/GeneratedNavigationEvaluation.type'
 import StepFieldInventoryCompiler, { FieldInventoryStepSource } from '../field-inventory/StepFieldInventoryCompiler'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 /**
  * Context passed to the compiled reachability function. Reachability expressions

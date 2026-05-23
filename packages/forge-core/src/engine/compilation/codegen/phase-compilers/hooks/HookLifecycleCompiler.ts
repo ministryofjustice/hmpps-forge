@@ -14,7 +14,7 @@ import EffectFunctionContextCtor from '../../../../nodes/expressions/effect/Effe
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../../typeguards/outcome-nodes'
 import type {
   CompiledAccessHookResult,

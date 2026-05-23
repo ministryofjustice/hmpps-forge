@@ -11,7 +11,7 @@ import PipelineNodeCompiler from './PipelineNodeCompiler'
 import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../typeguards/nodes'
-import type { CompilationDependencies } from '../CompilationDependencies'
+import type { CompilationDependencies } from '../compilationDependencies.type'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'

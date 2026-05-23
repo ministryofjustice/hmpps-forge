@@ -3,7 +3,7 @@ import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
 } from '../../../errors/ForgeRuntimeEvaluationError'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { CompilationDependencies } from '../CompilationDependencies'
+import type { CompilationDependencies } from '../compilationDependencies.type'
 import NodeCompilationDispatcher from '../expressions/NodeCompilationDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'

@@ -10,7 +10,7 @@ import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../values/ScopedTemplateCompiler'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 export interface FieldInventoryContext {
   answers: Record<string, { current: unknown }>

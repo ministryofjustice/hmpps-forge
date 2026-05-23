@@ -15,7 +15,7 @@ import {
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../generated-functions/GeneratedFunctionCompiler'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type { CompiledAnswerPreparationFunction } from '../../../../types/compiledPhaseResults.type'
 

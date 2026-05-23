@@ -11,7 +11,7 @@ import type {
 import NodeRegistry from '../../../registries/NodeRegistry'
 import { NodeId } from '../../../../types/ast.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import type { CompilationDependencies } from '../../CompilationDependencies'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler, { ReachabilityContext } from './ReachabilityCompiler'
 

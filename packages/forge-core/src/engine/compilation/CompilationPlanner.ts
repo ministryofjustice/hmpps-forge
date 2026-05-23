@@ -16,47 +16,12 @@ import type {
   StepRuntimePlan,
 } from '../types/runtimePlans.type'
 import type { JourneyIndex, StepIndex } from '../types/compilationArtefacts.type'
-
-export interface ReachabilityTieBreakerEntry {
-  priority: number
-  whenNodeId?: NodeId
-}
-
-export interface StepCompilationInputs {
-  readonly stepNode: StepASTNode
-  readonly runtimePlan: StepRuntimePlan
-  readonly fieldBlocks: FieldBlockASTNode[]
-  readonly validatingFieldBlocks: FieldBlockASTNode[]
-  readonly mapIterateNodes: IterateASTNode[]
-  readonly allIterateNodes: IterateASTNode[]
-  readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
-  readonly renderAncestors: JourneyASTNode[]
-  readonly submitHooks: SubmitHookASTNode[]
-}
-
-export interface JourneyCompilationInputs {
-  readonly journeyNode: JourneyASTNode
-  readonly runtimePlan: JourneyRuntimePlan
-  readonly stepFieldBlocks: FieldBlockASTNode[]
-  readonly stepMapIterateNodes: IterateASTNode[]
-  readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
-}
-
-export interface FieldInventoryStepSource {
-  readonly stepId: string
-  readonly fieldBlocks: FieldBlockASTNode[]
-  readonly iterateNodes: IterateASTNode[]
-  readonly cleardownFieldCodes: string[]
-}
-
-export interface CompilationPlan {
-  readonly stepInputs: Map<NodeId, StepCompilationInputs>
-  readonly journeyInputs: Map<NodeId, JourneyCompilationInputs>
-  readonly reachabilityPlans: ReachabilityCompilationPlan[]
-  readonly fieldInventorySources: Map<NavigationRuntimePlan, FieldInventoryStepSource[]>
-  readonly navigationPlansByStepId: Map<NodeId, NavigationRuntimePlan>
-  readonly journeyRuntimePlans: Map<NodeId, JourneyRuntimePlan>
-}
+import type {
+  CompilationPlan,
+  FieldInventoryStepSource,
+  JourneyCompilationInputs,
+  StepCompilationInputs,
+} from '../types/compilationPlan.type'
 
 export default class CompilationPlanner {
   private readonly allFieldBlocks: FieldBlockASTNode[]
