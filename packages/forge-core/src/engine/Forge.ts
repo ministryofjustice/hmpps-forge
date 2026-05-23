@@ -203,7 +203,7 @@ export default class Forge {
     }
 
     try {
-      const packageInstance = PackageInstance.create(pkg, {
+      const packageInstance = new PackageInstance(pkg, {
         functionRegistry: this.functionRegistry,
         componentRegistry: this.componentRegistry,
         functionDependencies: deps,

@@ -11,15 +11,12 @@ import type { CompilationContext } from './compilation/CompilationContext'
 import type { CompiledStep, JourneyCompilationResult, JourneyIndex, StepIndex } from './types/compilationArtefacts.type'
 import type { JourneyRuntimePlan } from './types/runtimePlans.type'
 
-interface PackageInstanceOptions<TDeps> {
+export interface PackageInstanceOptions<TDeps> {
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
   readonly functionDependencies?: TDeps
 }
 
-/**
- * Contains package-scoped dependencies and compiled metadata for the package root journey.
- */
 export default class PackageInstance {
   private readonly dependencies: PackageDependencies
 
@@ -27,27 +24,23 @@ export default class PackageInstance {
 
   private readonly rawConfiguration: JourneyDefinition
 
-  private constructor(packageConfiguration: JourneyDefinition, packageDependencies: PackageDependencies) {
-    this.dependencies = packageDependencies
-    this.rawConfiguration = packageConfiguration
-    const compiler = new JourneyCompiler({ functionRegistry: packageDependencies.functionRegistry })
-    this.compilation = compiler.compile(packageConfiguration)
-  }
-
-  static create<TDeps>(pkg: ForgePackageRegistration<TDeps>, options: PackageInstanceOptions<TDeps>): PackageInstance {
-    const packageDependencies: PackageDependencies = {
-      functionRegistry: this.resolveFunctionRegistry(pkg, options),
-      componentRegistry: this.resolveComponentRegistry(pkg, options.componentRegistry),
+  constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
+    this.dependencies = {
+      functionRegistry: PackageInstance.resolveFunctionRegistry(pkg, options),
+      componentRegistry: PackageInstance.resolveComponentRegistry(pkg, options.componentRegistry),
     }
-    const packageConfiguration = this.loadConfiguration(pkg.journey)
+
+    this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
 
     DSLValidator.validateTree(
-      packageConfiguration,
-      packageDependencies.functionRegistry,
-      packageDependencies.componentRegistry,
+      this.rawConfiguration,
+      this.dependencies.functionRegistry,
+      this.dependencies.componentRegistry,
     )
 
-    return new PackageInstance(packageConfiguration, packageDependencies)
+    const compiler = new JourneyCompiler({ functionRegistry: this.dependencies.functionRegistry })
+
+    this.compilation = compiler.compile(this.rawConfiguration)
   }
 
   getDependencies(): PackageDependencies {
@@ -101,15 +94,15 @@ export default class PackageInstance {
     return parsedConfiguration
   }
 
-  private static resolveFunctionRegistry<TDeps>(
-    pkg: ForgePackageRegistration<TDeps>,
-    options: PackageInstanceOptions<TDeps>,
+  private static resolveFunctionRegistry(
+    pkg: ForgePackageRegistration<any>,
+    options: PackageInstanceOptions<any>,
   ): FunctionRegistry {
     if (!pkg.functions) {
       return options.functionRegistry
     }
 
-    const resolvedDeps = (options.functionDependencies ?? {}) as TDeps
+    const resolvedDeps = options.functionDependencies ?? {}
     const scopedFunctionRegistry = new ScopedFunctionRegistry(options.functionRegistry)
 
     scopedFunctionRegistry.register(createFunctionsRegistry(pkg.functions, resolvedDeps))
@@ -117,8 +110,8 @@ export default class PackageInstance {
     return scopedFunctionRegistry
   }
 
-  private static resolveComponentRegistry<TDeps>(
-    pkg: ForgePackageRegistration<TDeps>,
+  private static resolveComponentRegistry(
+    pkg: ForgePackageRegistration<any>,
     componentRegistry: ComponentRegistry,
   ): ComponentRegistry {
     if (!pkg.components) {
@@ -131,5 +124,4 @@ export default class PackageInstance {
 
     return scopedComponentRegistry
   }
-
 }

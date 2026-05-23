@@ -12,7 +12,7 @@ import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import PackageInstance from './PackageInstance'
 
 describe('PackageInstance', () => {
-  describe('create()', () => {
+  describe('constructor()', () => {
     beforeEach(() => {
       vi.restoreAllMocks()
     })
@@ -25,7 +25,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         { journey: createJourneyDefinition() },
         { functionRegistry, componentRegistry },
       )
@@ -50,7 +50,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         {
           journey: createJourneyDefinition(),
           functions: {
@@ -85,7 +85,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         {
           journey: createJourneyDefinition(),
           components: [packageComponent],
