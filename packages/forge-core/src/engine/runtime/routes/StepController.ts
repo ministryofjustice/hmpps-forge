@@ -88,7 +88,12 @@ export default class StepController<TRequest, TResponse> {
       showValidationFailures: validation !== undefined,
     })
 
-    return this.forgeDependencies.frameworkAdapter.render(renderContext, req, res)
+    return this.forgeDependencies.frameworkAdapter.render(
+      renderContext,
+      req,
+      res,
+      this.packageDependencies.componentRegistry,
+    )
   }
 
   async post(req: TRequest, res: TResponse): Promise<void> {
@@ -133,7 +138,12 @@ export default class StepController<TRequest, TResponse> {
       },
     )
 
-    return this.forgeDependencies.frameworkAdapter.render(renderContext, req, res)
+    return this.forgeDependencies.frameworkAdapter.render(
+      renderContext,
+      req,
+      res,
+      this.packageDependencies.componentRegistry,
+    )
   }
 
   private prepareRequest(req: TRequest, res: TResponse) {

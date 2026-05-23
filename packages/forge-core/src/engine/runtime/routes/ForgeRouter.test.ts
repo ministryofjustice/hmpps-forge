@@ -7,7 +7,7 @@ import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
 import type { CompiledStep } from '../../types/compilationArtefacts.type'
 import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import JourneyInstance from '../../JourneyInstance'
+import type PackageInstance from '../../PackageInstance'
 import ForgeRouter from './ForgeRouter'
 import StepController from './StepController'
 import JourneyController from './JourneyController'
@@ -162,23 +162,24 @@ describe('ForgeRouter', () => {
     }
   }
 
-  function createJourneyInstance(
+  function createPackageInstance(
     journeys: JourneyASTNode[],
     steps: StepASTNode[],
     artefact: MockArtefact,
-  ): Mocked<JourneyInstance> {
+  ): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.id, createCompiledStep(step)]))
     const journeyPlans = new Map<NodeId, JourneyRuntimePlan>(
       journeys.map(journey => [journey.id, createJourneyRuntimePlan(journey)]),
     )
 
     return {
+      getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
       getStepIndex: vi.fn().mockReturnValue(new Map(steps.map(step => [step.id, step]))),
       getJourneyIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.id, journey]))),
       getSharedCompilationArtefact: vi.fn().mockReturnValue(artefact),
       getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
       getJourneyRuntimePlan: vi.fn((journeyId: NodeId) => journeyPlans.get(journeyId)),
-    } as unknown as Mocked<JourneyInstance>
+    } as unknown as Mocked<PackageInstance>
   }
 
   describe('getRouter()', () => {
@@ -207,10 +208,10 @@ describe('ForgeRouter', () => {
       const journeyNode = createJourneyNode('compile_ast:1', '/journey', 'test')
       const stepNode = createStepNode('compile_ast:2', '/step-one')
       const artefact = createArtefact([journeyNode, stepNode], [[journeyNode.id, stepNode.id]])
-      const journeyInstance = createJourneyInstance([journeyNode], [stepNode], artefact)
+      const packageInstance = createPackageInstance([journeyNode], [stepNode], artefact)
 
       // Act
-      const routeCount = router.mount(journeyInstance, mockPackageDependencies, mockForgeDependencies)
+      const routeCount = router.mount(packageInstance, mockForgeDependencies)
 
       // Assert
       expect(routeCount).toBe(3)
@@ -225,9 +226,9 @@ describe('ForgeRouter', () => {
       const journeyNode = createJourneyNode('compile_ast:3', '/journey', 'test')
       const stepNode = createStepNode('compile_ast:4', '/step-one')
       const artefact = createArtefact([journeyNode, stepNode], [[journeyNode.id, stepNode.id]])
-      const journeyInstance = createJourneyInstance([journeyNode], [stepNode], artefact)
+      const packageInstance = createPackageInstance([journeyNode], [stepNode], artefact)
 
-      router.mount(journeyInstance, mockPackageDependencies, mockForgeDependencies)
+      router.mount(packageInstance, mockForgeDependencies)
 
       const stepGetHandler = mockFrameworkAdapter.get.mock.calls.find(call => call[1] === '/step-one')?.[2] as
         | ((req: unknown, res: unknown) => Promise<void>)
@@ -266,10 +267,10 @@ describe('ForgeRouter', () => {
           [journeyNode.id, childJourneyNode.id, stepNode.id],
         ],
       )
-      const journeyInstance = createJourneyInstance([journeyNode, childJourneyNode], [stepNode], artefact)
+      const packageInstance = createPackageInstance([journeyNode, childJourneyNode], [stepNode], artefact)
 
       // Act
-      router.mount(journeyInstance, mockPackageDependencies, mockForgeDependencies)
+      router.mount(packageInstance, mockForgeDependencies)
 
       // Assert
       expect(router.getRouteTree()).toMatchObject([
@@ -304,10 +305,10 @@ describe('ForgeRouter', () => {
       const journeyNode = createJourneyNode('compile_ast:8', '/journey', 'test')
       const stepNode = createStepNode('compile_ast:9', '/step-one')
       const artefact = createArtefact([journeyNode, stepNode], [[journeyNode.id, stepNode.id]])
-      const journeyInstance = createJourneyInstance([journeyNode], [stepNode], artefact)
+      const packageInstance = createPackageInstance([journeyNode], [stepNode], artefact)
 
       // Act
-      const routeCount = routerWithBasePath.mount(journeyInstance, mockPackageDependencies, mockForgeDependencies)
+      const routeCount = routerWithBasePath.mount(packageInstance, mockForgeDependencies)
 
       // Assert
       expect(routeCount).toBe(3)
@@ -342,10 +343,10 @@ describe('ForgeRouter', () => {
           [journeyNode.id, secondStep.id],
         ],
       )
-      const journeyInstance = createJourneyInstance([journeyNode], [firstStep, secondStep], artefact)
+      const packageInstance = createPackageInstance([journeyNode], [firstStep, secondStep], artefact)
 
       // Act
-      const act = () => router.mount(journeyInstance, mockPackageDependencies, mockForgeDependencies)
+      const act = () => router.mount(packageInstance, mockForgeDependencies)
 
       // Assert
       expect(act).toThrow(DuplicateRouteError)

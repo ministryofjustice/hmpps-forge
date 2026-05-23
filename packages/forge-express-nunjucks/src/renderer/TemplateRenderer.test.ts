@@ -31,9 +31,12 @@ describe('TemplateRenderer', () => {
 
     renderer = new TemplateRenderer({
       nunjucksEnv: mockNunjucksEnv,
-      componentRegistry: mockComponentRegistry,
     })
   })
+
+  function render(context: RenderContext, locals: Record<string, unknown> = {}): string {
+    return renderer.render(context, locals, mockComponentRegistry)
+  }
 
   function createRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
     return {
@@ -74,7 +77,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      const result = renderer.render(context)
+      const result = render(context)
 
       // Assert
       expect(result).toBe('<html>rendered</html>')
@@ -93,7 +96,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -108,7 +111,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -166,7 +169,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -199,7 +202,7 @@ describe('TemplateRenderer', () => {
       const locals = { csrfToken: 'abc123', applicationName: 'My App' }
 
       // Act
-      renderer.render(context, locals)
+      render(context, locals)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -225,7 +228,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -241,7 +244,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext()
 
       // Act & Assert
-      expect(() => renderer.render(context)).toThrow('Template syntax error')
+      expect(() => render(context)).toThrow('Template syntax error')
     })
   })
 
@@ -253,7 +256,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-step.njk')
@@ -270,7 +273,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('parent-template.njk')
@@ -287,7 +290,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('root-template.njk')
@@ -301,7 +304,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
@@ -314,7 +317,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
@@ -327,7 +330,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
@@ -345,7 +348,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -361,7 +364,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -379,7 +382,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -393,7 +396,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -417,7 +420,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act & Assert
-      expect(() => renderer.render(context)).toThrow(
+      expect(() => render(context)).toThrow(
         'Component variant "unknown-component" not found in registry. Available variants: html, radios',
       )
     })
@@ -440,7 +443,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -481,7 +484,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -515,7 +518,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -544,7 +547,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -586,7 +589,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledTimes(2)
@@ -632,7 +635,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[2][0]
@@ -674,7 +677,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
@@ -714,7 +717,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
@@ -742,7 +745,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -776,7 +779,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -796,7 +799,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext({ blocks: [] })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -808,7 +811,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext({ ancestors: [] })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
@@ -821,7 +824,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext()
 
       // Act
-      const result = renderer.render(context)
+      const result = render(context)
 
       // Assert
       expect(result).toBe('')

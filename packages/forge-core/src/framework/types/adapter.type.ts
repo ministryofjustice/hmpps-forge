@@ -23,7 +23,6 @@ export interface ComponentRegistry {
  * Dependencies provided by Forge when building an adapter.
  */
 export interface FrameworkAdapterDependencies {
-  componentRegistry: ComponentRegistry
   logger: Logger | Console
 }
 
@@ -51,5 +50,5 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   toStepResponse(res: TResponse): StepResponse
   redirect(res: TResponse, url: string): void
   forwardError(res: TResponse, error: unknown, next?: (error?: unknown) => void): void
-  render(context: RenderContext, req: TRequest, res: TResponse): void
+  render(context: RenderContext, req: TRequest, res: TResponse, componentRegistry: ComponentRegistry): void
 }

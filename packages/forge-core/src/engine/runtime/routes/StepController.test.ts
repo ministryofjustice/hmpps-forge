@@ -584,6 +584,7 @@ describe('StepController', () => {
           }),
           mockReq,
           mockRes,
+          mockPackageDependencies.componentRegistry,
         )
       })
 
