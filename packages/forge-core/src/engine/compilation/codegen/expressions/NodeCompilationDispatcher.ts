@@ -82,29 +82,15 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
   }
 
   /**
-   * Adds an iterator frame for compilers that manage the scope lifetime themselves.
-   */
-  pushIteratorFrame(frame: IteratorScopeFrame): void {
-    this.iteratorFrames.push(frame)
-  }
-
-  /**
-   * Removes the current iterator frame after its nested expression has compiled.
-   */
-  popIteratorFrame(): void {
-    this.iteratorFrames.pop()
-  }
-
-  /**
    * Compiles a nested expression with @scope and @loop bound to an iterator frame.
    */
   withIteratorFrame<T>(frame: IteratorScopeFrame, compile: () => T): T {
-    this.pushIteratorFrame(frame)
+    this.iteratorFrames.push(frame)
 
     try {
       return compile()
     } finally {
-      this.popIteratorFrame()
+      this.iteratorFrames.pop()
     }
   }
 
@@ -333,10 +319,9 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       rawItemExpr,
     }
 
-    this.pushIteratorFrame(frame)
-    const yieldExpr = yieldTemplate !== undefined ? this.compileOperand(yieldTemplate) : 'undefined'
-
-    this.popIteratorFrame()
+    const yieldExpr = this.withIteratorFrame(frame, () =>
+      yieldTemplate !== undefined ? this.compileOperand(yieldTemplate) : 'undefined',
+    )
     const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar)
 
     return compileIifeExpression({
@@ -375,10 +360,9 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       rawItemExpr,
     }
 
-    this.pushIteratorFrame(frame)
-    const predicateExpr = predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false'
-
-    this.popIteratorFrame()
+    const predicateExpr = this.withIteratorFrame(frame, () =>
+      predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false',
+    )
 
     return compileIifeExpression({
       awaitResult: this.usedAwait,
@@ -420,10 +404,9 @@ export default class NodeCompilationDispatcher implements NodeCompilationContext
       rawItemExpr,
     }
 
-    this.pushIteratorFrame(frame)
-    const predicateExpr = predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false'
-
-    this.popIteratorFrame()
+    const predicateExpr = this.withIteratorFrame(frame, () =>
+      predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false',
+    )
 
     return compileIifeExpression({
       awaitResult: this.usedAwait,
