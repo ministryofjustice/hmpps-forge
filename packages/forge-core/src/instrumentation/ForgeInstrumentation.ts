@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import type { Logger } from '../framework/types/adapter.type'
-import { ActiveSpan } from './ActiveSpan'
+import { ActiveSpan, type ClockAnchor } from './ActiveSpan'
 import LoggerSink from './LoggerSink'
 import type { ForgeInstrumentationSink, ForgeSpan } from './types'
 
@@ -29,13 +29,15 @@ export class ForgeInstrumentation {
     return this.sinks
   }
 
-  private createSpan(name: string, parentSpanId?: string): ActiveSpan {
+  private createSpan(name: string, parentSpanId?: string, parentClockAnchor?: ClockAnchor): ActiveSpan {
     return new ActiveSpan({
       name,
       spanId: randomUUID(),
       parentSpanId,
+      clockAnchor: parentClockAnchor,
       recorder: span => this.record(span),
-      childFactory: (childName, childParentSpanId) => this.createSpan(childName, childParentSpanId),
+      childFactory: (childName, childParentSpanId, childParentClockAnchor) =>
+        this.createSpan(childName, childParentSpanId, childParentClockAnchor),
     })
   }
 }

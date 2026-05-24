@@ -1,4 +1,5 @@
-import type { ForgeSpan, ForgeSpanAttributes, ForgeSpanEvent } from './types'
+import { hrTimeDuration, millisToHrTime } from './utils'
+import type { ForgeSpan, ForgeSpanAttributes, ForgeSpanEvent, HrTime } from './types'
 import { ForgeSpanStatus } from './types'
 
 interface CreateSpanFields {
@@ -7,19 +8,23 @@ interface CreateSpanFields {
   attributes?: ForgeSpanAttributes
   events?: ForgeSpanEvent[]
   error?: unknown
-  startTime?: number
-  endTime?: number
+  startTime?: HrTime
+  endTime?: HrTime
+  duration?: HrTime
   spanId?: string
   parentSpanId?: string
 }
 
 export function createSpan(fields: CreateSpanFields): ForgeSpan {
-  const startTime = fields.startTime ?? Date.now()
+  const startTime = fields.startTime ?? millisToHrTime(Date.now())
+  const endTime = fields.endTime ?? startTime
+  const duration = fields.duration ?? hrTimeDuration(startTime, endTime)
 
   return {
     name: fields.name,
     startTime,
-    endTime: fields.endTime ?? startTime,
+    endTime,
+    duration,
     status: fields.status ?? ForgeSpanStatus.OK,
     error: fields.error,
     attributes: fields.attributes ?? {},

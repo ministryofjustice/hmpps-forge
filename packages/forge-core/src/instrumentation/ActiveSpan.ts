@@ -1,19 +1,29 @@
 import { createSpan } from './createSpan'
-import type { ForgeSpan, ForgeSpanAttributes, ForgeSpanAttributeValue, ForgeSpanEvent } from './types'
+import { millisToHrTime } from './utils'
+import type { ForgeSpan, ForgeSpanAttributes, ForgeSpanAttributeValue, ForgeSpanEvent, HrTime } from './types'
 import { ForgeSpanStatus } from './types'
+
+export interface ClockAnchor {
+  wallClockMillis: number
+  performanceMillis: number
+  timeOrigin: number
+}
 
 export interface ActiveSpanOptions {
   name: string
   spanId: string
   parentSpanId?: string
   recorder: (span: ForgeSpan) => void
-  childFactory: (name: string, parentSpanId: string) => ActiveSpan
+  childFactory: (name: string, parentSpanId: string, parentClockAnchor: ClockAnchor) => ActiveSpan
+  clockAnchor?: ClockAnchor
 }
 
 export class ActiveSpan {
   private readonly name: string
 
-  private readonly startTime: number
+  private readonly clockAnchor: ClockAnchor
+
+  private readonly startTime: HrTime
 
   private readonly spanId: string
 
@@ -25,7 +35,7 @@ export class ActiveSpan {
 
   private readonly recorder: (span: ForgeSpan) => void
 
-  private readonly childFactory: (name: string, parentSpanId: string) => ActiveSpan
+  private readonly childFactory: (name: string, parentSpanId: string, parentClockAnchor: ClockAnchor) => ActiveSpan
 
   private status: ForgeSpanStatus
 
@@ -35,7 +45,8 @@ export class ActiveSpan {
 
   constructor(options: ActiveSpanOptions) {
     this.name = options.name
-    this.startTime = Date.now()
+    this.clockAnchor = options.clockAnchor ?? this.captureClockAnchor()
+    this.startTime = this.performanceTimeToHrTime(performance.now(), this.clockAnchor)
     this.spanId = options.spanId
     this.parentSpanId = options.parentSpanId
     this.attributes = {}
@@ -75,7 +86,11 @@ export class ActiveSpan {
       return this
     }
 
-    this.events.push({ name, timestamp: Date.now(), attributes })
+    this.events.push({
+      name,
+      timestamp: this.performanceTimeToHrTime(performance.now(), this.clockAnchor),
+      attributes,
+    })
 
     return this
   }
@@ -91,7 +106,7 @@ export class ActiveSpan {
     return this
   }
 
-  end(endTime?: number): void {
+  end(): void {
     if (!this.recording) {
       return
     }
@@ -102,7 +117,7 @@ export class ActiveSpan {
       createSpan({
         name: this.name,
         startTime: this.startTime,
-        endTime: endTime ?? Date.now(),
+        endTime: this.performanceTimeToHrTime(performance.now(), this.clockAnchor),
         status: this.status,
         error: this.error,
         attributes: this.attributes,
@@ -118,7 +133,7 @@ export class ActiveSpan {
   }
 
   traceChild(name: string): ActiveSpan {
-    return this.childFactory(name, this.spanId)
+    return this.childFactory(name, this.spanId, this.clockAnchor)
   }
 
   traceFn<T>(fn: (span: ActiveSpan) => T): T {
@@ -143,5 +158,19 @@ export class ActiveSpan {
     } finally {
       this.end()
     }
+  }
+
+  private captureClockAnchor(): ClockAnchor {
+    return {
+      wallClockMillis: Date.now(),
+      performanceMillis: performance.now(),
+      timeOrigin: performance.timeOrigin,
+    }
+  }
+
+  private performanceTimeToHrTime(performanceNow: number, anchor: ClockAnchor): HrTime {
+    const offset = anchor.wallClockMillis - (anchor.performanceMillis + anchor.timeOrigin)
+
+    return millisToHrTime(performanceNow + anchor.timeOrigin + offset)
   }
 }

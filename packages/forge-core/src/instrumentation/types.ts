@@ -7,16 +7,19 @@ export type ForgeSpanAttributeValue = string | number | boolean | string[] | num
 
 export type ForgeSpanAttributes = Record<string, ForgeSpanAttributeValue>
 
+export type HrTime = [seconds: number, nanos: number]
+
 export interface ForgeSpanEvent {
   name: string
-  timestamp: number
+  timestamp: HrTime
   attributes?: ForgeSpanAttributes
 }
 
 export interface ForgeSpan {
   name: string
-  startTime: number
-  endTime: number
+  startTime: HrTime
+  endTime: HrTime
+  duration: HrTime
   status: ForgeSpanStatus
   error?: unknown
   attributes: ForgeSpanAttributes
