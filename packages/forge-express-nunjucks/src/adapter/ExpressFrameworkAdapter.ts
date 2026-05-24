@@ -5,6 +5,7 @@ import {
   CookieMutation,
   CookieOptions,
   extractPathname,
+  ForgeInstrumentation,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
@@ -33,6 +34,7 @@ export interface ExpressFrameworkAdapterUserOptions {
 
 export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdapterUserOptions {
   logger: Logger | Console
+  instrumentation: ForgeInstrumentation
 }
 
 /**
@@ -46,6 +48,8 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   express.Response
 > {
   private readonly logger: Logger | Console
+
+  private readonly instrumentation: ForgeInstrumentation
 
   private readonly templateRenderer: TemplateRenderer
 
@@ -70,6 +74,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
         new ExpressFrameworkAdapter({
           ...options,
           logger: deps.logger,
+          instrumentation: deps.instrumentation,
         }),
     }
   }
@@ -79,6 +84,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
    */
   private constructor(options: ExpressFrameworkAdapterFullOptions) {
     this.logger = options.logger
+    this.instrumentation = options.instrumentation
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
       defaultTemplate: options.defaultTemplate,

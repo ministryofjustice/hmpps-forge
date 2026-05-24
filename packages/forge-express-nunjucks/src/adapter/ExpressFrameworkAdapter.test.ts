@@ -4,6 +4,7 @@ import nunjucks from 'nunjucks'
 import { BlockType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   ComponentRegistry,
+  ForgeInstrumentation,
   FrameworkAdapter,
   StepHandler,
   Evaluated,
@@ -38,7 +39,7 @@ describe('ExpressFrameworkAdapter', () => {
 
     const builder = ExpressFrameworkAdapter.configure({ nunjucksEnv: mockNunjucksEnv })
 
-    adapter = builder.build({ logger: mockLogger })
+    adapter = builder.build({ logger: mockLogger, instrumentation: new ForgeInstrumentation(undefined, mockLogger) })
   })
 
   describe('createRouter()', () => {

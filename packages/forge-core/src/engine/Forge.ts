@@ -8,6 +8,7 @@ import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter
 import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 import type { ForgeInstrumentationOptions } from '../instrumentation/ForgeInstrumentation'
 import ForgeRouter from './runtime/routes/ForgeRouter'
+import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
@@ -211,7 +212,7 @@ export default class Forge {
         functionDependencies: deps,
       })
 
-      const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
+      const routeCount = this.registerPackageInstance(packageInstance)
 
       span.setAttributes({
         journeyCode: packageInstance.getJourneyCode(),
@@ -220,15 +221,28 @@ export default class Forge {
       })
     } catch (e) {
       span.recordError(e)
-
-      if (this.options.strictRegistration) {
-        throw e
-      }
+      this.handleRegistrationError(e)
     } finally {
       span.end()
     }
 
     return this
+  }
+
+  private registerPackageInstance(packageInstance: PackageInstance): number {
+    return this.forgeRouter.mount(packageInstance, this.dependencies)
+  }
+
+  private handleRegistrationError(e: unknown): void {
+    this.logRegistrationError(e)
+
+    if (this.options.strictRegistration) {
+      throw e
+    }
+  }
+
+  private logRegistrationError(e: unknown): void {
+    this.dependencies.logger.error(RegistrationErrorFormatter.format(e))
   }
 
   /**

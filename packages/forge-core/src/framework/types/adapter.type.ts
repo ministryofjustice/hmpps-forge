@@ -26,7 +26,7 @@ export interface ComponentRegistry {
  */
 export interface FrameworkAdapterDependencies {
   logger: Logger | Console
-  instrumentation?: ForgeInstrumentation
+  instrumentation: ForgeInstrumentation
 }
 
 /**
