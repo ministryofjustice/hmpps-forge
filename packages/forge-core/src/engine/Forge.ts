@@ -5,10 +5,9 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
-import ForgeInstrumentation from '../instrumentation/ForgeInstrumentation'
+import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 import type { ForgeInstrumentationOptions } from '../instrumentation/ForgeInstrumentation'
 import ForgeRouter from './runtime/routes/ForgeRouter'
-import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
@@ -221,22 +220,20 @@ export default class Forge {
   private registerPackageInstance(packageInstance: PackageInstance): void {
     const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
 
-    this.dependencies.logger.info(
-      { journey: packageInstance.getJourneyCode(), routes: routeCount },
-      `Forge: Registered journey '${packageInstance.getJourneyTitle()}' with ${routeCount} routes`,
-    )
+    this.instrumentation.record({
+      type: 'journey-registered',
+      journeyCode: packageInstance.getJourneyCode(),
+      journeyTitle: packageInstance.getJourneyTitle(),
+      routeCount,
+    })
   }
 
   private handleRegistrationError(e: unknown): void {
-    this.logRegistrationError(e)
+    this.instrumentation.record({ type: 'registration-error', error: e })
 
     if (this.options.strictRegistration) {
       throw e
     }
-  }
-
-  private logRegistrationError(e: unknown): void {
-    this.dependencies.logger.error(RegistrationErrorFormatter.format(e))
   }
 
   /**

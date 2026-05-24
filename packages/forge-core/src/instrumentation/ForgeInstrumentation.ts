@@ -1,20 +1,16 @@
 import type { Logger } from '../framework/types/adapter.type'
+import LoggerSink from './LoggerSink'
 import type { ForgeInstrumentationSink } from './types'
 
 export interface ForgeInstrumentationOptions {
   sinks: ForgeInstrumentationSink | ForgeInstrumentationSink[]
 }
 
-// TODO: consider consolidating the logger into this class so all Forge output flows through instrumentation
-export default class ForgeInstrumentation {
+export class ForgeInstrumentation {
   private readonly sinks: ForgeInstrumentationSink[]
 
   constructor(options: ForgeInstrumentationOptions | undefined, logger: Logger | Console) {
-    this.sinks = resolveSinks(options?.sinks)
-
-    this.sinks.forEach(sink => {
-      sink.initialize?.({ logger })
-    })
+    this.sinks = [new LoggerSink(logger), ...resolveSinks(options?.sinks)]
   }
 
   record(trace: unknown): void {

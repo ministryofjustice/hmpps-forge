@@ -1,11 +1,5 @@
-import type { Logger } from '../framework/types/adapter.type'
-
-export interface ForgeInstrumentationSinkDependencies {
-  logger: Logger | Console
-}
-
 export interface ForgeInstrumentationSink {
-  initialize?(dependencies: ForgeInstrumentationSinkDependencies): void
+  initialize?(): void
   record(trace: unknown): void | Promise<void>
 }
 
@@ -16,3 +10,17 @@ export interface ForgeHtmlRenderDebugBridge {
 export interface ForgeHtmlRenderDebugSink extends ForgeInstrumentationSink {
   getHtmlRenderDebugBridge(): ForgeHtmlRenderDebugBridge | undefined
 }
+
+export interface ForgeJourneyRegisteredEvent {
+  type: 'journey-registered'
+  journeyCode: string
+  journeyTitle: string
+  routeCount: number
+}
+
+export interface ForgeRegistrationErrorEvent {
+  type: 'registration-error'
+  error: unknown
+}
+
+export type ForgeLifecycleEvent = ForgeJourneyRegisteredEvent | ForgeRegistrationErrorEvent
