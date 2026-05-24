@@ -6,6 +6,7 @@ export type {
   Logger,
   StepHandler,
 } from './types/adapter.type'
+export type { ForgeResult } from '../engine/runtime/orchestrator/types'
 export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions, StepResponse } from './types/response.type'
 export type {
