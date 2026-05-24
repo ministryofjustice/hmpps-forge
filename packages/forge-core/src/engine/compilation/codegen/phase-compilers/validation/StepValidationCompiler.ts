@@ -21,7 +21,6 @@
 import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../types/structures.type'
 import { IterateASTNode } from '../../../../types/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../../types/template.type'
-import { StepValidityResult } from '../../../../runtime/types/StepValidityResult.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
@@ -29,6 +28,7 @@ import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatch
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../values/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type {
   CompiledEntryValidationFunction,
@@ -45,12 +45,6 @@ export interface ValidationContext {
   conditions: FunctionRegistry
 }
 
-type SyncCompiledValidationFunction = (
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult
-
 /**
  * Phase compiler for step-level validation generated functions.
  *
@@ -58,17 +52,24 @@ type SyncCompiledValidationFunction = (
  * values and predicates to the shared expression/value compilers.
  */
 export default class StepValidationCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
 
-  private readonly fieldCodes = new FieldCodeEmitter(this.expr)
+  private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly values = new RuntimeValueCompiler(this.expr, {
-    expressionErrorFallback: 'undefined',
-    expressionErrorMode: 'throw',
-    omitUndefinedArrayItems: false,
-  })
+  private readonly values: RuntimeValueCompiler
 
-  private readonly templates = new ScopedTemplateCompiler(this.expr)
+  private readonly templates: ScopedTemplateCompiler
+
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new NodeCompilationDispatcher(dependencies)
+    this.fieldCodes = new FieldCodeEmitter(this.expr)
+    this.values = new RuntimeValueCompiler(this.expr, {
+      expressionErrorFallback: 'undefined',
+      expressionErrorMode: 'throw',
+      omitUndefinedArrayItems: false,
+    })
+    this.templates = new ScopedTemplateCompiler(this.expr)
+  }
 
   /**
    * Builds the generated validation function used by submit hooks and reachability checks.
@@ -77,28 +78,11 @@ export default class StepValidationCompiler {
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
-    iterateNodes?: IterateASTNode[],
-  ): SyncCompiledValidationFunction | undefined
-
-  compileOnSubmitValidation(
-    stepNode: StepASTNode,
-    fieldBlocks: FieldBlockASTNode[],
-    domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[],
-    functionRegistry: FunctionRegistry,
-  ): CompiledValidationFunction | undefined
-
-  compileOnSubmitValidation(
-    stepNode: StepASTNode,
-    fieldBlocks: FieldBlockASTNode[],
-    domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
-  ): CompiledValidationFunction | SyncCompiledValidationFunction | undefined {
+  ): CompiledValidationFunction | undefined {
     return compileGeneratedFunction<CompiledValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
-      functionRegistry,
       () => this.buildSubmitValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
       { phase: 'validation' },
     )
@@ -107,10 +91,7 @@ export default class StepValidationCompiler {
   /**
    * Builds the generated group-selector used before rendering a GET request.
    */
-  compileOnEntryValidation(
-    entries: StepEntryValidationAST[] | undefined,
-    functionRegistry: FunctionRegistry,
-  ): CompiledEntryValidationFunction | undefined {
+  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction | undefined {
     if (entries === undefined || entries.length === 0) {
       return undefined
     }
@@ -118,7 +99,6 @@ export default class StepValidationCompiler {
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
-      functionRegistry,
       () => this.buildEntryValidationSource(entries),
       { phase: 'entry-validation' },
     )
@@ -132,9 +112,8 @@ export default class StepValidationCompiler {
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
   ): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () =>
+    return buildGeneratedSource(this.expr, () =>
       this.buildSubmitValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
     )
   }
@@ -142,8 +121,8 @@ export default class StepValidationCompiler {
   /**
    * Produces inspectable entry-validation source for tests and local debugging.
    */
-  generateOnEntryValidationSource(entries: StepEntryValidationAST[], functionRegistry?: FunctionRegistry): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildEntryValidationSource(entries))
+  generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
+    return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
   }
 
   /**

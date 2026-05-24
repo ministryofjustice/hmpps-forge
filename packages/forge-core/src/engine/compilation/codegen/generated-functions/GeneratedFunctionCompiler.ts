@@ -1,4 +1,3 @@
-import FunctionRegistry from '../../../registries/FunctionRegistry'
 import NodeCompilationDispatcher from '../expressions/NodeCompilationDispatcher'
 import { createCompiledFunction, GeneratedFunction } from './compiledFunctionFactory'
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
@@ -45,12 +44,7 @@ export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
  * same hybrid sync/async rules while still letting each compiler own its source
  * layout.
  */
-export function buildGeneratedSource(
-  expr: NodeCompilationDispatcher,
-  functionRegistry: FunctionRegistry | undefined,
-  buildSource: () => string,
-): string {
-  expr.setFunctionRegistry(functionRegistry)
+export function buildGeneratedSource(expr: NodeCompilationDispatcher, buildSource: () => string): string {
   expr.reset()
 
   return buildSource()
@@ -66,12 +60,11 @@ export function buildGeneratedSource(
 export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   expr: NodeCompilationDispatcher,
   parameterNames: string[],
-  functionRegistry: FunctionRegistry | undefined,
   buildSource: () => string,
   options: CompileOptions = {},
 ): TFunction {
   const phase = options.phase ?? 'unknown'
-  const source = wrapGeneratedSource(buildGeneratedSource(expr, functionRegistry, buildSource))
+  const source = wrapGeneratedSource(buildGeneratedSource(expr, buildSource))
   const usesAwait = options.forceAsync === true || expr.usesAwait
   let compiled: GeneratedFunction
 

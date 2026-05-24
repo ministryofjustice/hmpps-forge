@@ -15,6 +15,7 @@ import {
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../generated-functions/GeneratedFunctionCompiler'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type { CompiledAnswerPreparationFunction } from '../../../../types/compiledPhaseResults.type'
 
@@ -61,17 +62,24 @@ export interface AnswerPreparationContext {
  * callers still fail fast if defensive checks find a missing generated function.
  */
 export default class StepAnswerPreparationCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
 
-  private readonly fieldCodes = new FieldCodeEmitter(this.expr)
+  private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly values = new RuntimeValueCompiler(this.expr, {
-    expressionErrorFallback: 'undefined',
-    expressionErrorMode: 'throw',
-    omitUndefinedArrayItems: false,
-  })
+  private readonly values: RuntimeValueCompiler
 
-  private readonly templates = new ScopedTemplateCompiler(this.expr)
+  private readonly templates: ScopedTemplateCompiler
+
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new NodeCompilationDispatcher(dependencies)
+    this.fieldCodes = new FieldCodeEmitter(this.expr)
+    this.values = new RuntimeValueCompiler(this.expr, {
+      expressionErrorFallback: 'undefined',
+      expressionErrorMode: 'throw',
+      omitUndefinedArrayItems: false,
+    })
+    this.templates = new ScopedTemplateCompiler(this.expr)
+  }
 
   /**
    * Builds the generated answer-preparation function for a step.
@@ -79,12 +87,10 @@ export default class StepAnswerPreparationCompiler {
   compile(
     fieldBlocks: FieldBlockASTNode[],
     iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
   ): CompiledAnswerPreparationFunction | undefined {
     return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
       this.expr,
       ['ctx'],
-      functionRegistry,
       () => this.buildSource(fieldBlocks, iterateNodes),
       { phase: 'answer-preparation' },
     )
@@ -93,12 +99,8 @@ export default class StepAnswerPreparationCompiler {
   /**
    * Produces inspectable generated source for tests and local debugging.
    */
-  generateSource(
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
-  ): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSource(fieldBlocks, iterateNodes))
+  generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
+    return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
   }
 
   /**

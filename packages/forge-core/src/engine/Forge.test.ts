@@ -69,12 +69,12 @@ describe('Forge', () => {
     mockPackageInstance = {
       getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
       getJourneyCode: vi.fn().mockReturnValue('test-form'),
-      compileAllRouteArtefacts: vi.fn(),
-      getCompiledForm: vi.fn().mockReturnValue([]),
       getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
     } as unknown as Mocked<PackageInstance>
-    ;(PackageInstance.create as Mock).mockReturnValue(mockPackageInstance)
+    ;(PackageInstance as MockedClass<typeof PackageInstance>).mockImplementation(function mockPackageInstanceCtor() {
+      return mockPackageInstance as any
+    })
   })
 
   /**
@@ -211,7 +211,7 @@ describe('Forge', () => {
       engine.registerPackage(pkg, functionDependencies)
 
       // Assert
-      expect(PackageInstance.create).toHaveBeenCalledWith(
+      expect(PackageInstance).toHaveBeenCalledWith(
         pkg,
         expect.objectContaining({
           functionRegistry: expect.any(FunctionRegistry),
@@ -231,13 +231,13 @@ describe('Forge', () => {
       engine.registerPackage(pkg)
 
       // Assert
-      expect(PackageInstance.create).not.toHaveBeenCalled()
+      expect(PackageInstance).not.toHaveBeenCalled()
     })
 
     it('should throw on package creation failure by default', () => {
       // Arrange
       const error = new Error('Package failed')
-      ;(PackageInstance.create as Mock).mockImplementation(() => {
+      ;(PackageInstance as unknown as Mock).mockImplementation(function mockPackageInstanceCtor() {
         throw error
       })
 
@@ -250,7 +250,7 @@ describe('Forge', () => {
 
     it('should swallow errors when strictRegistration is false', () => {
       // Arrange
-      ;(PackageInstance.create as Mock).mockImplementation(() => {
+      ;(PackageInstance as unknown as Mock).mockImplementation(function mockPackageInstanceCtor() {
         throw new Error('Package failed')
       })
 
@@ -310,11 +310,13 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
       const component = buildComponent('comp', () => '<div />')
 
-      ;(PackageInstance.create as Mock)
-        .mockImplementationOnce(() => {
+      ;(PackageInstance as unknown as Mock)
+        .mockImplementationOnce(function mockPackageInstanceCtor() {
           throw new Error('First form fails')
         })
-        .mockImplementationOnce(() => mockPackageInstance)
+        .mockImplementationOnce(function mockPackageInstanceCtor() {
+          return mockPackageInstance
+        })
 
       const result = engine
         .registerGlobalComponent(component)

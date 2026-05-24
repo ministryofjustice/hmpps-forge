@@ -8,7 +8,7 @@ import type {
   CompiledAccessHookResult as AccessHookResult,
   CompiledSubmitHookResult as SubmitHookResult,
 } from '../../types/hookLifecycle.type'
-import type { CompiledForm } from '../../types/compilationArtefacts.type'
+import type { CompiledStep } from '../../types/compilationArtefacts.type'
 import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepRuntimePlan } from '../../types/runtimePlans.type'
 import StepController from './StepController'
@@ -109,7 +109,7 @@ vi.mock('../lifecycle/ContextPreparer', () => ({
 }))
 
 describe('StepController', () => {
-  let mockCompiledForm: CompiledForm[number]
+  let mockCompiledForm: CompiledStep
   let mockPackageDependencies: Mocked<PackageDependencies>
   let mockForgeDependencies: Mocked<ForgeDependencies>
   let mockRouteTree: StoredRouteTree
@@ -189,7 +189,7 @@ describe('StepController', () => {
     mockContextPreparerPrepare.mockReturnValue(mockContext)
   })
 
-  function createCompiledForm(stepNode: StepASTNode): CompiledForm[number] {
+  function createCompiledForm(stepNode: StepASTNode): CompiledStep {
     const submitHookIds = (stepNode.properties.onSubmission ?? []).map(hook => hook.id)
     const runtimePlan: StepRuntimePlan = {
       stepId: stepNode.id,

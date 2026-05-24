@@ -1,13 +1,16 @@
 import { FunctionType, PredicateType } from '../../../../authoring/types/enums'
 import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { CompilationDependencies } from '../compilationDependencies.type'
 import NodeCompilationDispatcher from './NodeCompilationDispatcher'
 
 describe('NodeCompilationDispatcher', () => {
   let compiler: NodeCompilationDispatcher
+  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    compiler = new NodeCompilationDispatcher()
+    compiler = new NodeCompilationDispatcher(dependencies)
   })
 
   describe('compileExpression()', () => {

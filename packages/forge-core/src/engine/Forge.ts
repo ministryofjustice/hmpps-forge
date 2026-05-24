@@ -6,21 +6,7 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
 import ForgeRouter from './runtime/routes/ForgeRouter'
-
-type DiagnosticError = {
-  readonly name?: unknown
-  readonly message?: unknown
-  readonly formattedPath?: unknown
-  readonly path?: unknown
-  readonly code?: unknown
-  readonly expected?: unknown
-  readonly functionName?: unknown
-  readonly functionType?: unknown
-  readonly variant?: unknown
-  readonly phase?: unknown
-  readonly nodeId?: unknown
-  readonly cause?: unknown
-}
+import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
@@ -44,19 +30,6 @@ export interface ForgeOptions {
    * @default true
    */
   strictRegistration?: boolean
-
-  /**
-   * Defer route compilation until the route is first accessed.
-   *
-   * When `true` (default), each step compiles on first request — faster startup,
-   * but the first user to hit a step pays the compilation cost.
-   *
-   * When `false`, route artefacts compile at registration time — slower startup,
-   * but first requests do not pay compilation costs.
-   *
-   * @default true
-   */
-  lazyStepCompilation?: boolean
 
   /** Logger instance for forge output */
   logger?: Logger | Console
@@ -136,7 +109,6 @@ export default class Forge {
       disableBuiltInComponents: false,
       debug: false,
       strictRegistration: true,
-      lazyStepCompilation: true,
       logger: console,
       basePath: '',
     }
@@ -217,7 +189,7 @@ export default class Forge {
     }
 
     try {
-      const packageInstance = PackageInstance.create(pkg, {
+      const packageInstance = new PackageInstance(pkg, {
         functionRegistry: this.functionRegistry,
         componentRegistry: this.componentRegistry,
         functionDependencies: deps,
@@ -232,10 +204,6 @@ export default class Forge {
   }
 
   private registerPackageInstance(packageInstance: PackageInstance): void {
-    if (!this.options.lazyStepCompilation) {
-      packageInstance.compileAllRouteArtefacts()
-    }
-
     const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
 
     this.dependencies.logger.info(
@@ -253,87 +221,7 @@ export default class Forge {
   }
 
   private logRegistrationError(e: unknown): void {
-    if (e instanceof AggregateError) {
-      this.dependencies.logger.error(this.formatAggregateRegistrationError(e))
-    } else {
-      this.dependencies.logger.error(e)
-    }
-  }
-
-  private formatAggregateRegistrationError(error: AggregateError): string {
-    const entries = error.errors.map((entry, index) => this.formatRegistrationErrorEntry(entry, index))
-
-    return [`Forge registration failed: ${error.message}`, '', ...entries].join('\n')
-  }
-
-  private formatRegistrationErrorEntry(error: unknown, index: number): string {
-    const diagnostic = this.toDiagnosticError(error)
-    const title = this.formatErrorTitle(diagnostic, error)
-    const fields = this.formatErrorFields(diagnostic)
-
-    return [`${index + 1}. ${title}`, ...fields.map(field => `   ${field}`)].join('\n')
-  }
-
-  private formatErrorTitle(diagnostic: DiagnosticError | undefined, error: unknown): string {
-    const name = this.formatValue(diagnostic?.name)
-    const message = this.formatValue(diagnostic?.message)
-
-    if (name && message) {
-      return `${name}: ${message}`
-    }
-
-    if (message) {
-      return message
-    }
-
-    return this.formatValue(error) ?? String(error)
-  }
-
-  private formatErrorFields(diagnostic: DiagnosticError | undefined): string[] {
-    if (!diagnostic) {
-      return []
-    }
-
-    const path = this.formatValue(diagnostic.formattedPath) ?? this.formatPathValue(diagnostic.path)
-    const fields = [
-      { label: 'Phase', value: this.formatValue(diagnostic.phase) },
-      { label: 'Path', value: path },
-      { label: 'Node', value: this.formatValue(diagnostic.nodeId) },
-      { label: 'Code', value: this.formatValue(diagnostic.code) },
-      { label: 'Expected', value: this.formatValue(diagnostic.expected) },
-      { label: 'Function', value: this.formatValue(diagnostic.functionName) },
-      { label: 'Type', value: this.formatValue(diagnostic.functionType) },
-      { label: 'Variant', value: this.formatValue(diagnostic.variant) },
-      { label: 'Cause', value: this.formatValue(diagnostic.cause) },
-    ]
-
-    return fields
-      .filter(field => field.value !== undefined)
-      .map(field => `${field.label}: ${field.value}`)
-  }
-
-  private toDiagnosticError(error: unknown): DiagnosticError | undefined {
-    if (!error || typeof error !== 'object') {
-      return undefined
-    }
-
-    return error as DiagnosticError
-  }
-
-  private formatPathValue(value: unknown): string | undefined {
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.map(pathPart => String(pathPart)).join('.') : 'root'
-    }
-
-    return this.formatValue(value)
-  }
-
-  private formatValue(value: unknown): string | undefined {
-    if (value === undefined || value === null || value === '') {
-      return undefined
-    }
-
-    return String(value)
+    this.dependencies.logger.error(RegistrationErrorFormatter.format(e))
   }
 
   /**

@@ -27,8 +27,9 @@ import {
 } from '../../generated-functions/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateBlockNode } from '../../values/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../values/RuntimeValueCompiler'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
-import type { CompiledRenderFunction, CompiledRenderResult } from '../../../../types/compiledPhaseResults.type'
+import type { CompiledRenderFunction } from '../../../../types/compiledPhaseResults.type'
 
 /**
  * Runtime context passed to the compiled render function.
@@ -55,8 +56,6 @@ export interface CompiledBlock {
   properties: Record<string, unknown>
 }
 
-type SyncCompiledRenderFunction = (ctx: RenderCompilationContext) => CompiledRenderResult
-
 interface RenderBlockValue {
   readonly id?: unknown
   readonly type: ASTNodeType.BLOCK
@@ -81,27 +80,34 @@ export default class StepRenderCompiler {
   // Child structure and access hooks are route/lifecycle concerns, not metadata.
   private static readonly JOURNEY_SKIP_PROPS = new Set(['onAccess', 'children', 'steps', 'reachability'])
 
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
 
-  private readonly fieldCodes = new FieldCodeEmitter(this.expr)
+  private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly templates = new ScopedTemplateCompiler(this.expr)
+  private readonly templates: ScopedTemplateCompiler
 
-  private readonly values = new RuntimeValueCompiler(this.expr, {
-    expressionErrorFallback: 'undefined',
-    expressionErrorMode: 'throw',
-    omitUndefinedArrayItems: true,
-    isStructuralValue: value => this.isRenderBlockValue(value),
-    compileStructuralValue: (value, emitter, targetVar) => this.tryCompileRenderBlockValue(value, emitter, targetVar),
-    noteInlineIterator: nodeId => {
-      this.inlineIterateIds.add(nodeId)
-    },
-  })
+  private readonly values: RuntimeValueCompiler
 
   // Iterates used as property values are compiled at that property site. Track
   // them so block-yielding MAP iterators are not emitted a second time as
   // top-level blocks.
   private readonly inlineIterateIds = new Set<string>()
+
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new NodeCompilationDispatcher(dependencies)
+    this.fieldCodes = new FieldCodeEmitter(this.expr)
+    this.templates = new ScopedTemplateCompiler(this.expr)
+    this.values = new RuntimeValueCompiler(this.expr, {
+      expressionErrorFallback: 'undefined',
+      expressionErrorMode: 'throw',
+      omitUndefinedArrayItems: true,
+      isStructuralValue: value => this.isRenderBlockValue(value),
+      compileStructuralValue: (value, emitter, targetVar) => this.tryCompileRenderBlockValue(value, emitter, targetVar),
+      noteInlineIterator: nodeId => {
+        this.inlineIterateIds.add(nodeId)
+      },
+    })
+  }
 
   /**
    * Builds the executable render function for one step.
@@ -112,26 +118,11 @@ export default class StepRenderCompiler {
   compile(
     stepNode: StepASTNode,
     ancestorNodes: JourneyASTNode[],
-    iterateNodes?: IterateASTNode[],
-  ): SyncCompiledRenderFunction | undefined
-
-  compile(
-    stepNode: StepASTNode,
-    ancestorNodes: JourneyASTNode[],
-    iterateNodes: IterateASTNode[],
-    functionRegistry: FunctionRegistry,
-  ): CompiledRenderFunction | undefined
-
-  compile(
-    stepNode: StepASTNode,
-    ancestorNodes: JourneyASTNode[],
     iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
-  ): CompiledRenderFunction | SyncCompiledRenderFunction | undefined {
+  ): CompiledRenderFunction | undefined {
     return compileGeneratedFunction<CompiledRenderFunction>(
       this.expr,
       ['ctx'],
-      functionRegistry,
       () => this.buildSource(stepNode, ancestorNodes, iterateNodes),
       { phase: 'render' },
     )
@@ -140,15 +131,8 @@ export default class StepRenderCompiler {
   /**
    * Builds the raw render source for tests and debugging without constructing a Function.
    */
-  generateSource(
-    stepNode: StepASTNode,
-    ancestorNodes: JourneyASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-    functionRegistry?: FunctionRegistry,
-  ): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () =>
-      this.buildSource(stepNode, ancestorNodes, iterateNodes),
-    )
+  generateSource(stepNode: StepASTNode, ancestorNodes: JourneyASTNode[], iterateNodes: IterateASTNode[] = []): string {
+    return buildGeneratedSource(this.expr, () => this.buildSource(stepNode, ancestorNodes, iterateNodes))
   }
 
   /**

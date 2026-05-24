@@ -1,12 +1,10 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { JourneyASTNode, StepASTNode } from './types/structures.type'
-import type { NodeId } from './types/engine.type'
+import type { JourneyASTNode } from './types/structures.type'
 import type { CompilationContext } from './compilation/CompilationContext'
-import type { NavigationRuntimePlan, StepRuntimePlan } from './types/runtimePlans.type'
-import type { SharedCompiledForm } from './types/compilationArtefacts.type'
-import CompilationFactory from './compilation/CompilationFactory'
+import type { JourneyCompilationResult } from './types/compilationArtefacts.type'
+import JourneyCompiler from './compilation/JourneyCompiler'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
@@ -14,7 +12,7 @@ import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import PackageInstance from './PackageInstance'
 
 describe('PackageInstance', () => {
-  describe('create()', () => {
+  describe('constructor()', () => {
     beforeEach(() => {
       vi.restoreAllMocks()
     })
@@ -27,7 +25,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         { journey: createJourneyDefinition() },
         { functionRegistry, componentRegistry },
       )
@@ -52,7 +50,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         {
           journey: createJourneyDefinition(),
           functions: {
@@ -87,7 +85,7 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = PackageInstance.create(
+      const instance = new PackageInstance(
         {
           journey: createJourneyDefinition(),
           components: [packageComponent],
@@ -104,51 +102,11 @@ describe('PackageInstance', () => {
       expect(componentRegistry.has('package-component')).toBe(false)
     })
   })
-
-  describe('compileAllRouteArtefacts()', () => {
-    beforeEach(() => {
-      vi.restoreAllMocks()
-    })
-
-    it('should eagerly compile step and journey artefacts', () => {
-      // Arrange
-      const stepOneId = 'compile_ast:1'
-      const stepTwoId = 'compile_ast:2'
-      const navigationPlan = createNavigationPlan()
-      const sharedCompilation = createSharedCompilation(stepOneId, stepTwoId, navigationPlan)
-      const compileSharedSpy = vi.spyOn(CompilationFactory.prototype, 'compileShared')
-        .mockReturnValue(sharedCompilation)
-      const compileStepSpy = vi.spyOn(CompilationFactory.prototype, 'compileStep')
-        .mockReturnValue(createCompiledStep())
-      const compileJourneySpy = vi.spyOn(CompilationFactory.prototype, 'compileJourney')
-        .mockReturnValue({} as CompilationContext)
-      const packageInstance = PackageInstance.create(
-        { journey: createJourneyDefinition() },
-        {
-          componentRegistry: new ComponentRegistry(),
-          functionRegistry: new FunctionRegistry(),
-        },
-      )
-
-      // Act
-      packageInstance.compileAllRouteArtefacts()
-
-      // Assert
-      expect(compileSharedSpy).toHaveBeenCalledTimes(1)
-      expect(compileStepSpy).toHaveBeenCalledTimes(2)
-      expect(compileStepSpy).toHaveBeenCalledWith(sharedCompilation, stepOneId)
-      expect(compileStepSpy).toHaveBeenCalledWith(sharedCompilation, stepTwoId)
-      expect(compileJourneySpy).toHaveBeenCalledTimes(1)
-      expect(compileJourneySpy).toHaveBeenCalledWith(sharedCompilation)
-    })
-  })
 })
 
 function mockCompilation(): void {
-  const navigationPlan = createNavigationPlan()
-
-  vi.spyOn(CompilationFactory.prototype, 'compileShared')
-    .mockReturnValue(createSharedCompilation('compile_ast:1', 'compile_ast:2', navigationPlan))
+  vi.spyOn(JourneyCompiler.prototype, 'compile')
+    .mockReturnValue(createCompilationResult())
 }
 
 function createJourneyDefinition(): JourneyDefinition {
@@ -161,57 +119,13 @@ function createJourneyDefinition(): JourneyDefinition {
   }
 }
 
-function createSharedCompilation(
-  stepOneId: NodeId,
-  stepTwoId: NodeId,
-  navigationPlan: NavigationRuntimePlan,
-): SharedCompiledForm {
+function createCompilationResult(): JourneyCompilationResult {
   return {
     rootNode: { properties: { code: 'journey' } } as JourneyASTNode,
-    sharedContext: {} as CompilationContext,
-    stepIndex: new Map<NodeId, StepASTNode>([
-      [stepOneId, { id: stepOneId } as StepASTNode],
-      [stepTwoId, { id: stepTwoId } as StepASTNode],
-    ]),
+    context: {} as CompilationContext,
+    stepIndex: new Map(),
     journeyIndex: new Map(),
-    stepRuntimePlans: new Map([
-      [stepOneId, createStepRuntimePlan(stepOneId)],
-      [stepTwoId, createStepRuntimePlan(stepTwoId)],
-    ]),
-    navigationPlans: new Map([
-      [stepOneId, navigationPlan],
-      [stepTwoId, navigationPlan],
-    ]),
-    reachabilityCompilationPlans: [],
-    journeyRuntimePlans: new Map(),
-  }
-}
-
-function createNavigationPlan(): NavigationRuntimePlan {
-  return {
-    entries: [],
-    resumeConfigured: false,
-    unreachableRedirect: 'entry',
-    reachabilityDisabled: false,
-    compiledStepValidations: new Map(),
-  }
-}
-
-function createCompiledStep(): ReturnType<CompilationFactory['compileStep']> {
-  return {
-    compiledAnswerPreparation: undefined,
-    compiledEntryValidation: undefined,
-    compiledRender: undefined,
-    compiledValidation: undefined,
-    navigationPlan: createNavigationPlan(),
-    runtimePlan: createStepRuntimePlan('compile_ast:3'),
-  }
-}
-
-function createStepRuntimePlan(stepId: NodeId): StepRuntimePlan {
-  return {
-    stepId,
-    path: '/step',
-    staticData: {},
+    steps: new Map(),
+    journeyPlans: new Map(),
   }
 }

@@ -21,7 +21,24 @@ import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { generatedFunctionHelpers } from '../../generated-functions/GeneratedFunctionHelpers'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler, { AnswerPreparationContext } from './StepAnswerPreparationCompiler'
+
+function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
+  const registry = new FunctionRegistry()
+  const entries: Record<string, { name: string; isAsync: false; evaluate: () => undefined }> = {}
+
+  funcNames.forEach(name => {
+    entries[name] = { name, isAsync: false, evaluate: () => undefined }
+  })
+  registry.register(entries)
+
+  return registry
+}
+
+function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompiler {
+  return new StepAnswerPreparationCompiler({ functionRegistry: createSyncRegistry(...funcNames) })
+}
 
 function createFieldBlock(code: unknown, props: Record<string, unknown> = {}): FieldBlockASTNode {
   const builder = ASTTestFactory.block('text-input', BlockType.FIELD)
@@ -145,14 +162,15 @@ function runGeneratedSource(source: string, ctx: AnswerPreparationContext): void
 
 describe('StepAnswerPreparationCompiler', () => {
   let compiler: StepAnswerPreparationCompiler
+  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    compiler = new StepAnswerPreparationCompiler()
+    compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
   describe('hybrid async compilation', () => {
-    it('should keep compiled answer preparation synchronous when registry functions are sync', () => {
+    it('should keep compiled answer preparation synchronous when registry functions are sync', async () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
@@ -170,10 +188,12 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
+      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource([block], [], functionRegistry)
-      const fn = compiler.compile([block], [], functionRegistry)
-      const result = fn!(ctx)
+      const source = localCompiler.generateSource([block], [])
+      const fn = localCompiler.compile([block], [])
+      const result = await fn!(ctx)
 
       // Assert
       expect(source).not.toContain('await')
@@ -199,9 +219,11 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
+      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource([block], [], functionRegistry)
-      const fn = compiler.compile([block], [], functionRegistry)
+      const source = localCompiler.generateSource([block], [])
+      const fn = localCompiler.compile([block], [])
 
       await fn!(ctx)
 
@@ -233,9 +255,11 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
+      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource([block], [], functionRegistry)
-      const fn = compiler.compile([block], [], functionRegistry)
+      const source = localCompiler.generateSource([block], [])
+      const fn = localCompiler.compile([block], [])
 
       await fn!(ctx)
 
@@ -263,9 +287,11 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
+      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource([block], [], functionRegistry)
-      const fn = compiler.compile([block], [], functionRegistry)
+      const source = localCompiler.generateSource([block], [])
+      const fn = localCompiler.compile([block], [])
 
       await fn!(ctx)
 
@@ -297,6 +323,7 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const dynamicCode = createGeneratorFunction('fieldCode')
       const block = createFieldBlock(dynamicCode)
+      const localCompiler = createSyncCompiler('fieldCode')
       const ctx = createCtx({
         post: { firstName: 'John' },
         conditions: {
@@ -311,7 +338,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -325,6 +352,7 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const dynamicCode = createGeneratorFunction('fieldCode')
       const block = createFieldBlock(dynamicCode)
+      const localCompiler = createSyncCompiler('fieldCode')
       const ctx = createCtx({
         post: { firstName: 'John' },
         conditions: {
@@ -339,7 +367,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -423,10 +451,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
+      const localCompiler = createSyncCompiler('trim')
       const ctx = createCtx({ post: { name: '  John  ' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -441,10 +470,11 @@ describe('StepAnswerPreparationCompiler', () => {
       const trim = createTransformerFunction('trim')
       const upper = createTransformerFunction('toUpperCase')
       const block = createFieldBlock('name', { formatters: [trim, upper] })
+      const localCompiler = createSyncCompiler('trim', 'toUpperCase')
       const ctx = createCtx({ post: { name: '  hello  ' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -455,10 +485,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
+      const localCompiler = createSyncCompiler('trim')
       const ctx = createCtx({ post: { name: 'NoSpaces' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -470,10 +501,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const noopFormatter = createTransformerFunction('nonexistent')
       const block = createFieldBlock('name', { formatters: [noopFormatter] })
+      const localCompiler = createSyncCompiler('nonexistent')
       const ctx = createCtx({ post: { name: 'original' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -486,6 +518,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const afterFormatter = createTransformerFunction('after')
       const afterEvaluate = vi.fn(() => 'should not run')
       const block = createFieldBlock('age', { formatters: [toNumberFormatter, afterFormatter] })
+      const localCompiler = createSyncCompiler('toNumber', 'after')
       const ctx = createCtx({
         post: { age: 'abc' },
         conditions: {
@@ -508,7 +541,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile([block])
+      const fn = localCompiler.compile([block])
 
       fn!(ctx)
 
@@ -522,6 +555,7 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const formatter = createTransformerFunction('explode')
       const block = createFieldBlock('name', { formatters: [formatter] })
+      const localCompiler = createSyncCompiler('explode')
       const ctx = createCtx({
         post: { name: 'original' },
         conditions: {
@@ -534,7 +568,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile([block])
+      const fn = localCompiler.compile([block])
 
       // Assert
       const evaluate = () => fn!(ctx)
@@ -560,10 +594,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const truncate = createTransformerFunction('truncate', [3])
       const block = createFieldBlock('name', { formatters: [truncate] })
+      const localCompiler = createSyncCompiler('truncate')
       const ctx = createCtx({ post: { name: 'hello world' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -578,13 +613,14 @@ describe('StepAnswerPreparationCompiler', () => {
       const cond = createConditionFunction('isRequired')
       const predicate = createTestPredicate(ref, cond)
       const block = createFieldBlock('email', { dependentWhen: predicate })
+      const localCompiler = createSyncCompiler('isRequired')
       const ctx = createCtx({
         post: { email: 'test@example.com' },
         answers: { showEmail: { current: 'yes', mutations: [] } },
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -597,13 +633,14 @@ describe('StepAnswerPreparationCompiler', () => {
       const cond = createConditionFunction('isRequired')
       const predicate = createTestPredicate(ref, cond)
       const block = createFieldBlock('email', { dependentWhen: predicate })
+      const localCompiler = createSyncCompiler('isRequired')
       const ctx = createCtx({
         post: { email: 'test@example.com' },
         answers: { showEmail: { current: '', mutations: [] } },
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -620,6 +657,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const cond = createConditionFunction('willThrow')
       const predicate = createTestPredicate(ref, cond)
       const block = createFieldBlock('email', { dependentWhen: predicate })
+      const localCompiler = createSyncCompiler('willThrow')
       const ctx = createCtx({
         post: { email: 'test@example.com' },
         conditions: {
@@ -632,7 +670,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile([block])
+      const fn = localCompiler.compile([block])
 
       // Assert
       const evaluate = () => fn!(ctx)
@@ -720,6 +758,7 @@ describe('StepAnswerPreparationCompiler', () => {
         .withProperty('otherwise', 'Unknown')
         .build()
       const block = createFieldBlock('country', { defaultValue: defaultMatch })
+      const localCompiler = createSyncCompiler('equals')
       const ctx = createCtx({
         request: { method: 'GET' },
         data: { defaultCountry: 'US' },
@@ -737,7 +776,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -807,13 +846,14 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
       const iterateNode = createIterateNode(createReference(['data', 'items']), template)
+      const localCompiler = createSyncCompiler(FORMAT_STRING_GENERATOR_NAME)
       const ctx = createCtx({
         post: { person_0: 'Alice', person_1: 'Bob' },
         data: { items: [{ name: 'a' }, { name: 'b' }] },
       })
 
       // Act
-      const source = compiler.generateSource([], [iterateNode])
+      const source = localCompiler.generateSource([], [iterateNode])
       runGeneratedSource(source, ctx)
 
       // Assert
@@ -837,6 +877,7 @@ describe('StepAnswerPreparationCompiler', () => {
       )
       const template = createTemplateValue([innerIterator])
       const iterateNode = createIterateNode(createReference(['data', 'teams']), template)
+      const localCompiler = createSyncCompiler(FORMAT_STRING_GENERATOR_NAME)
       const ctx = createCtx({
         post: {
           team_0_member_0: 'Ada',
@@ -852,7 +893,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([], [iterateNode])
+      const source = localCompiler.generateSource([], [iterateNode])
 
       runGeneratedSource(source, ctx)
 
@@ -868,10 +909,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter], defaultValue: '  spaced  ' })
+      const localCompiler = createSyncCompiler('trim')
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = localCompiler.generateSource([block])
       runGeneratedSource(source, ctx)
 
       // Assert — defaultValue is set as-is, no trimming

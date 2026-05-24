@@ -10,6 +10,7 @@ import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../values/ScopedTemplateCompiler'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 export interface FieldInventoryContext {
   answers: Record<string, { current: unknown }>
@@ -47,14 +48,8 @@ export default class StepFieldInventoryCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
-  /**
-   * Creates an inventory compiler.
-   *
-   * Passing an existing expression dispatcher shares function metadata with a
-   * surrounding generated function.
-   */
-  constructor(expr: NodeCompilationDispatcher = new NodeCompilationDispatcher()) {
-    this.expr = expr
+  constructor(dependencies: CompilationDependencies, sharedExpr?: NodeCompilationDispatcher) {
+    this.expr = sharedExpr ?? new NodeCompilationDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
@@ -62,24 +57,17 @@ export default class StepFieldInventoryCompiler {
   /**
    * Builds a standalone generated inventory function for tests and diagnostics.
    */
-  compile(
-    steps: FieldInventoryStepSource[],
-    functionRegistry?: FunctionRegistry,
-  ): CompiledFieldInventoryFunction | undefined {
-    return compileGeneratedFunction<CompiledFieldInventoryFunction>(
-      this.expr,
-      ['ctx'],
-      functionRegistry,
-      () => this.buildSource(steps),
-      { phase: 'field-inventory' },
-    )
+  compile(steps: FieldInventoryStepSource[]): CompiledFieldInventoryFunction | undefined {
+    return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(steps), {
+      phase: 'field-inventory',
+    })
   }
 
   /**
    * Produces inspectable generated source for tests and local debugging.
    */
-  generateSource(steps: FieldInventoryStepSource[], functionRegistry?: FunctionRegistry): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSource(steps))
+  generateSource(steps: FieldInventoryStepSource[]): string {
+    return buildGeneratedSource(this.expr, () => this.buildSource(steps))
   }
 
   /**

@@ -4,7 +4,7 @@ import { AccessHookASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { HookType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../../testing/ASTTestFactory'
-import RuntimePlanBuilder from './RuntimePlanBuilder'
+import CompilationPlanner from './CompilationPlanner'
 
 function createAccessHook(id: AstNodeId): AccessHookASTNode {
   return ASTTestFactory.hook(HookType.ACCESS)
@@ -52,13 +52,13 @@ function createStep(
   return step.build()
 }
 
-describe('RuntimePlanBuilder', () => {
+describe('CompilationPlanner', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
   })
 
-  describe('buildStepRuntimePlan()', () => {
-    it('should compile the step runtime topology from metadata and node registry', () => {
+  describe('buildPlan()', () => {
+    it('should build step runtime plan with merged static data from ancestors', () => {
       // Arrange
       const context = new CompilationContext()
       const journeyAccess = createAccessHook('compile_ast:1')
@@ -78,13 +78,15 @@ describe('RuntimePlanBuilder', () => {
       context.astNodeTree.addNode(journey.id)
       context.astNodeTree.addNode(step.id, journey.id)
 
-      const builder = new RuntimePlanBuilder(context.nodeRegistry, context.astNodeTree)
+      const planner = new CompilationPlanner(context.nodeRegistry, context.astNodeTree)
 
       // Act
-      const result = builder.buildStepRuntimePlan(step)
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(result).toEqual({
+      const stepInputs = plan.stepInputs.get(step.id)
+
+      expect(stepInputs?.runtimePlan).toEqual({
         stepId: step.id,
         path: 'step',
         staticData: {
@@ -94,9 +96,7 @@ describe('RuntimePlanBuilder', () => {
         },
       })
     })
-  })
 
-  describe('buildAllPlans()', () => {
     it('should default unreachable redirect to entry when omitted', () => {
       // Arrange
       const context = new CompilationContext()
@@ -108,13 +108,13 @@ describe('RuntimePlanBuilder', () => {
       context.astNodeTree.addNode(journey.id)
       context.astNodeTree.addNode(step.id, journey.id)
 
-      const builder = new RuntimePlanBuilder(context.nodeRegistry, context.astNodeTree)
+      const planner = new CompilationPlanner(context.nodeRegistry, context.astNodeTree)
 
       // Act
-      const result = builder.buildAllPlans(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
     })
 
     it('should store configured unreachable redirect on the navigation plan', () => {
@@ -129,13 +129,13 @@ describe('RuntimePlanBuilder', () => {
       context.astNodeTree.addNode(journey.id)
       context.astNodeTree.addNode(step.id, journey.id)
 
-      const builder = new RuntimePlanBuilder(context.nodeRegistry, context.astNodeTree)
+      const planner = new CompilationPlanner(context.nodeRegistry, context.astNodeTree)
 
       // Act
-      const result = builder.buildAllPlans(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('frontier')
+      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('frontier')
     })
 
     it('should not inherit unreachable redirect from ancestor journeys', () => {
@@ -153,10 +153,10 @@ describe('RuntimePlanBuilder', () => {
       context.astNodeTree.addNode(childJourney.id, parentJourney.id)
       context.astNodeTree.addNode(step.id, childJourney.id)
 
-      const builder = new RuntimePlanBuilder(context.nodeRegistry, context.astNodeTree)
+      const planner = new CompilationPlanner(context.nodeRegistry, context.astNodeTree)
 
       // Act
-      const result = builder.buildAllPlans(
+      const plan = planner.buildPlan(
         new Map([[step.id, step]]),
         new Map([
           [parentJourney.id, parentJourney],
@@ -165,7 +165,7 @@ describe('RuntimePlanBuilder', () => {
       )
 
       // Assert
-      expect(result.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
     })
   })
 })

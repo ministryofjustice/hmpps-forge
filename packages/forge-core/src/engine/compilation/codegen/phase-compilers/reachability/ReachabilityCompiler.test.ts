@@ -11,6 +11,7 @@ import type {
 import NodeRegistry from '../../../registries/NodeRegistry'
 import { NodeId } from '../../../../types/ast.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler, { ReachabilityContext } from './ReachabilityCompiler'
 
@@ -131,15 +132,16 @@ function createCtx(overrides: Partial<ReachabilityContext> = {}): ReachabilityCo
 describe('ReachabilityCompiler', () => {
   let compiler: ReachabilityCompiler
   let registry: NodeRegistry
+  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    compiler = new ReachabilityCompiler()
+    compiler = new ReachabilityCompiler(dependencies)
     registry = new NodeRegistry()
   })
 
   describe('compile()', () => {
-    it('should keep compiled reachability synchronous when registry functions are sync', () => {
+    it('should keep compiled reachability synchronous when registry functions are sync', async () => {
       // Arrange
       const predicate = createTestPredicate(
         createReference(['data', 'isAdmin']),
@@ -159,10 +161,12 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(plan, registry, functionRegistry)
-      const fn = compiler.compile(plan, registry, functionRegistry)
-      const result = fn!(
+      const source = localCompiler.generateSource(plan, registry)
+      const fn = localCompiler.compile(plan, registry)
+      const result = await fn!(
         createCtx({
           data: { isAdmin: true },
           conditions: functionRegistry,
@@ -171,12 +175,6 @@ describe('ReachabilityCompiler', () => {
 
       // Assert
       expect(source).not.toContain('await')
-      expect(result).not.toBeInstanceOf(Promise)
-
-      if (result instanceof Promise) {
-        throw new Error('Expected sync reachability result')
-      }
-
       expect(result.entryResults[0]).toBe(true)
     })
 
@@ -200,9 +198,11 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(plan, registry, functionRegistry)
-      const fn = compiler.compile(plan, registry, functionRegistry)
+      const source = localCompiler.generateSource(plan, registry)
+      const fn = localCompiler.compile(plan, registry)
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -232,9 +232,11 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(plan, registry, functionRegistry)
-      const fn = compiler.compile(plan, registry, functionRegistry)
+      const source = localCompiler.generateSource(plan, registry)
+      const fn = localCompiler.compile(plan, registry)
       const result = await fn!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -242,7 +244,7 @@ describe('ReachabilityCompiler', () => {
       expect(result.outcomeValues[0]).toEqual(['next'])
     })
 
-    it('should compile a plan with no dynamic nodes', () => {
+    it('should compile a plan with no dynamic nodes', async () => {
       // Arrange
       const plan = createPlan({
         entries: [createEntry({ isEntryPoint: true })],
@@ -253,7 +255,7 @@ describe('ReachabilityCompiler', () => {
 
       // Assert
       expect(fn).toBeDefined()
-      const result = fn!(createCtx())
+      const result = await fn!(createCtx())
       expect(result.entryResults).toHaveLength(1)
       expect(result.entryResults[0]).toBeUndefined()
       expect(result.outcomeValues).toHaveLength(1)
@@ -261,7 +263,7 @@ describe('ReachabilityCompiler', () => {
       expect(result.resumeActive).toBe(false)
     })
 
-    it('should evaluate a conditional entry predicate as true', () => {
+    it('should evaluate a conditional entry predicate as true', async () => {
       // Arrange
       const predicate = createTestPredicate(
         createReference(['data', 'isAdmin']),
@@ -278,13 +280,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.entryResults[0]).toBe(true)
     })
 
-    it('should evaluate a conditional entry predicate as false', () => {
+    it('should evaluate a conditional entry predicate as false', async () => {
       // Arrange
       const predicate = createTestPredicate(
         createReference(['data', 'isAdmin']),
@@ -301,7 +303,7 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.entryResults[0]).toBe(false)
@@ -309,7 +311,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('forward outcomes', () => {
-    it('should compile a static goto outcome', () => {
+    it('should compile a static goto outcome', async () => {
       // Arrange
       const outcome = createRedirectOutcome('/step-2')
 
@@ -321,13 +323,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(createCtx())
+      const result = await fn!(createCtx())
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-2'])
     })
 
-    it('should compile a guarded outcome that passes', () => {
+    it('should compile a guarded outcome that passes', async () => {
       // Arrange
       const whenPred = createTestPredicate(
         createReference(['answers', 'choice']),
@@ -345,13 +347,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-2'])
     })
 
-    it('should skip a guarded outcome that fails', () => {
+    it('should skip a guarded outcome that fails', async () => {
       // Arrange
       const whenPred = createTestPredicate(
         createReference(['answers', 'choice']),
@@ -369,13 +371,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.outcomeValues[0]).toEqual([])
     })
 
-    it('should compile multiple outcomes for one step', () => {
+    it('should compile multiple outcomes for one step', async () => {
       // Arrange
       const outcome1 = createRedirectOutcome('/step-2')
       const outcome2 = createRedirectOutcome('/step-3')
@@ -389,13 +391,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(createCtx())
+      const result = await fn!(createCtx())
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-2', '/step-3'])
     })
 
-    it('should compile match expressions in dynamic goto outcomes', () => {
+    it('should compile match expressions in dynamic goto outcomes', async () => {
       // Arrange
       const gotoMatch = ASTTestFactory.expression(ExpressionType.MATCH)
         .withProperty('branches', [
@@ -426,7 +428,7 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-yes'])
@@ -434,7 +436,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('tie-breakers', () => {
-    it('should compile a catch-all tie-breaker', () => {
+    it('should compile a catch-all tie-breaker', async () => {
       // Arrange
       const plan = createPlan({
         entries: [
@@ -446,13 +448,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(createCtx())
+      const result = await fn!(createCtx())
 
       // Assert
       expect(result.tieBreakerPriorities[0]).toBe(5)
     })
 
-    it('should compile a conditional tie-breaker that matches', () => {
+    it('should compile a conditional tie-breaker that matches', async () => {
       // Arrange
       const pred = createTestPredicate(
         createReference(['data', 'priority']),
@@ -473,13 +475,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.tieBreakerPriorities[0]).toBe(10)
     })
 
-    it('should fall through to catch-all when conditional fails', () => {
+    it('should fall through to catch-all when conditional fails', async () => {
       // Arrange
       const pred = createTestPredicate(
         createReference(['data', 'priority']),
@@ -500,7 +502,7 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.tieBreakerPriorities[0]).toBe(5)
@@ -508,19 +510,19 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('resume condition', () => {
-    it('should set resumeActive true when resumeAlways', () => {
+    it('should set resumeActive true when resumeAlways', async () => {
       // Arrange
       const plan = createPlan({ resumeAlways: true })
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(createCtx())
+      const result = await fn!(createCtx())
 
       // Assert
       expect(result.resumeActive).toBe(true)
     })
 
-    it('should evaluate resume predicate as true', () => {
+    it('should evaluate resume predicate as true', async () => {
       // Arrange
       const pred = createTestPredicate(
         createReference(['data', 'hasProgress']),
@@ -535,13 +537,13 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.resumeActive).toBe(true)
     })
 
-    it('should evaluate resume predicate as false', () => {
+    it('should evaluate resume predicate as false', async () => {
       // Arrange
       const pred = createTestPredicate(
         createReference(['data', 'hasProgress']),
@@ -556,7 +558,7 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.resumeActive).toBe(false)
@@ -564,7 +566,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('error handling', () => {
-    it('should throw runtime errors for entry predicate failures', () => {
+    it('should throw runtime errors for entry predicate failures', async () => {
       // Arrange
       const pred = createTestPredicate(createReference(['data', 'value']), createConditionFunction('throwingCondition'))
 
@@ -586,13 +588,12 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const evaluate = () => fn!(ctx)
 
       // Assert
-      expect(evaluate).toThrow('boom')
+      await expect(fn!(ctx)).rejects.toThrow('boom')
 
       try {
-        evaluate()
+        await fn!(ctx)
       } catch (error) {
         if (!(error instanceof Error)) {
           throw new Error('Expected throwingCondition to throw the original Error')
@@ -651,9 +652,11 @@ describe('ReachabilityCompiler', () => {
         stepIdByRouteTemplatePath: new Map([[routeTemplatePath, entry.stepId]]),
       }
 
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateNavigationSource(plan, [], registry, functionRegistry)
-      const fn = compiler.compileNavigation(plan, [], registry, functionRegistry)
+      const source = localCompiler.generateNavigationSource(plan, [], registry)
+      const fn = localCompiler.compileNavigation(plan, [], registry)
       const result = await fn(createCtx({ conditions: functionRegistry }), {
         plan: plan.navigationPlan,
         currentStepId: entry.stepId,
@@ -669,7 +672,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('multi-step plan', () => {
-    it('should compile a plan with multiple steps', () => {
+    it('should compile a plan with multiple steps', async () => {
       // Arrange
       const entryPred = createTestPredicate(
         createReference(['data', 'skipIntro']),
@@ -701,7 +704,7 @@ describe('ReachabilityCompiler', () => {
 
       // Act
       const fn = compiler.compile(plan, registry)
-      const result = fn!(ctx)
+      const result = await fn!(ctx)
 
       // Assert
       expect(result.entryResults).toHaveLength(3)

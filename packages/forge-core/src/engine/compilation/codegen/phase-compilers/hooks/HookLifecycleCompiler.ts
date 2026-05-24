@@ -1,5 +1,4 @@
 import { FunctionType, HookType } from '../../../../../authoring/types/enums'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import { ASTNode } from '../../../../types/ast.type'
 import { ASTNodeType } from '../../../../types/enums'
 import {
@@ -15,6 +14,7 @@ import EffectFunctionContextCtor from '../../../../nodes/expressions/effect/Effe
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../../typeguards/outcome-nodes'
 import type {
   CompiledAccessHookResult,
@@ -44,19 +44,21 @@ type GeneratedSubmitHooksFunction = (
  * when their registry metadata is absent or sync.
  */
 export default class HookLifecycleCompiler {
-  private readonly expr = new NodeCompilationDispatcher()
+  private readonly expr: NodeCompilationDispatcher
+
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new NodeCompilationDispatcher(dependencies)
+  }
 
   /**
    * Builds the generated access lifecycle for the journey/step ancestor chain.
    */
   compileAccessLifecycle(
     accessAncestors: (JourneyASTNode | StepASTNode)[],
-    functionRegistry: FunctionRegistry,
   ): CompiledAccessLifecycleFunction | undefined {
     const generated = compileGeneratedFunction<GeneratedAccessLifecycleFunction>(
       this.expr,
       ['ctx', 'EffectFunctionContext'],
-      functionRegistry,
       () => this.buildAccessSource(accessAncestors),
       { forceAsync: true, phase: 'hooks' },
     )
@@ -67,14 +69,10 @@ export default class HookLifecycleCompiler {
   /**
    * Builds the generated submit lifecycle for one step's submit hooks.
    */
-  compileSubmitHooks(
-    hooks: SubmitHookASTNode[],
-    functionRegistry: FunctionRegistry,
-  ): CompiledSubmitHooksFunction | undefined {
+  compileSubmitHooks(hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction | undefined {
     const generated = compileGeneratedFunction<GeneratedSubmitHooksFunction>(
       this.expr,
       ['ctx', 'EffectFunctionContext'],
-      functionRegistry,
       () => this.buildSubmitSource(hooks),
       { forceAsync: true, phase: 'hooks' },
     )
@@ -85,15 +83,15 @@ export default class HookLifecycleCompiler {
   /**
    * Produces inspectable generated access source for tests and local debugging.
    */
-  generateAccessSource(accessAncestors: (JourneyASTNode | StepASTNode)[], functionRegistry?: FunctionRegistry): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildAccessSource(accessAncestors))
+  generateAccessSource(accessAncestors: (JourneyASTNode | StepASTNode)[]): string {
+    return buildGeneratedSource(this.expr, () => this.buildAccessSource(accessAncestors))
   }
 
   /**
    * Produces inspectable generated submit source for tests and local debugging.
    */
-  generateSubmitSource(hooks: SubmitHookASTNode[], functionRegistry?: FunctionRegistry): string {
-    return buildGeneratedSource(this.expr, functionRegistry, () => this.buildSubmitSource(hooks))
+  generateSubmitSource(hooks: SubmitHookASTNode[]): string {
+    return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks))
   }
 
   /**

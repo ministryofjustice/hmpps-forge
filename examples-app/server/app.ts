@@ -19,7 +19,6 @@ import developerGuidePackage from './journeys/forge-developer-guide'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import llmsTxtRouter from './routes/llmsTxt'
 import type { Services } from './services'
-import config from './config'
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -28,7 +27,6 @@ export default function createApp(services: Services): express.Application {
   const forge = new Forge({
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-    lazyStepCompilation: !config.production,
   })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)

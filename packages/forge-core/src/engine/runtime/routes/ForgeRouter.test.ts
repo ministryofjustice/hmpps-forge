@@ -176,7 +176,7 @@ describe('ForgeRouter', () => {
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
       getStepIndex: vi.fn().mockReturnValue(new Map(steps.map(step => [step.id, step]))),
       getJourneyIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.id, journey]))),
-      getSharedCompilationArtefact: vi.fn().mockReturnValue(artefact),
+      getCompilationContext: vi.fn().mockReturnValue(artefact),
       getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
       getJourneyRuntimePlan: vi.fn((journeyId: NodeId) => journeyPlans.get(journeyId)),
     } as unknown as Mocked<PackageInstance>

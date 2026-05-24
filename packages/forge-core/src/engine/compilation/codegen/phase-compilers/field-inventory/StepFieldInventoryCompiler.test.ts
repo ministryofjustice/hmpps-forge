@@ -7,6 +7,7 @@ import { TemplateValue } from '../../../../types/template.type'
 import TemplateFactory from '../../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
+import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepFieldInventoryCompiler, {
   FieldInventoryContext,
   FieldInventoryStepSource,
@@ -73,14 +74,15 @@ function createContext(
 
 describe('StepFieldInventoryCompiler', () => {
   let compiler: StepFieldInventoryCompiler
+  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    compiler = new StepFieldInventoryCompiler()
+    compiler = new StepFieldInventoryCompiler(dependencies)
   })
 
   describe('compile()', () => {
-    it('should collect static field and cleardown codes for each step', () => {
+    it('should collect static field and cleardown codes for each step', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const steps: FieldInventoryStepSource[] = [
@@ -91,10 +93,10 @@ describe('StepFieldInventoryCompiler', () => {
           cleardownFieldCodes: ['^task_\\d+$'],
         },
       ]
-      const compiled = compiler.compile(steps, functionRegistry)
+      const compiled = compiler.compile(steps)
 
       // Act
-      const result = compiled!(createContext(functionRegistry))
+      const result = await compiled!(createContext(functionRegistry))
 
       // Assert
       expect(result).not.toBeInstanceOf(Promise)
@@ -128,7 +130,8 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(steps, functionRegistry)
+      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const compiled = localCompiler.compile(steps)
 
       // Act
       const result = compiled!(createContext(functionRegistry))
@@ -164,7 +167,8 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(steps, functionRegistry)
+      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const compiled = localCompiler.compile(steps)
 
       // Act
       const result = compiled!(createContext(functionRegistry))
@@ -202,7 +206,8 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(steps, functionRegistry)
+      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const compiled = localCompiler.compile(steps)
 
       // Act
       const result = compiled!(
@@ -250,7 +255,8 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const compiled = compiler.compile(steps, functionRegistry)
+      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const compiled = localCompiler.compile(steps)
 
       // Act
       const result = compiled!(
@@ -297,9 +303,11 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
+      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+
       // Act
-      const source = compiler.generateSource(steps, functionRegistry)
-      const compiled = compiler.compile(steps, functionRegistry)
+      const source = localCompiler.generateSource(steps)
+      const compiled = localCompiler.compile(steps)
       const result = await compiled!(
         createContext(functionRegistry, {
           data: { members: [{ name: 'Ada' }] },
