@@ -21,7 +21,9 @@ export function createStepRenderTerminal(
     name: 'render',
     async execute(state) {
       if (!compiledRender) {
-        throw new Error(`[Forge] Render compilation is required — compiledRender function is missing for step "${path}"`)
+        throw new Error(
+          `[Forge] Render compilation is required — compiledRender function is missing for step "${path}"`,
+        )
       }
 
       const renderResult = await compiledRender(buildCompiledRenderContext(state.context, functionRegistry))

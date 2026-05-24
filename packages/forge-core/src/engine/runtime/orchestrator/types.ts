@@ -4,9 +4,7 @@ import type { NavigationEvaluation } from '../../types/NavigationEvaluation.type
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../types/StepValidityResult.type'
 
-export type ForgeResult =
-  | { type: 'render'; context: RenderContext }
-  | { type: 'redirect'; url: string }
+export type ForgeResult = { type: 'render'; context: RenderContext } | { type: 'redirect'; url: string }
 
 export type PhaseOutcome =
   | { action: 'continue' }

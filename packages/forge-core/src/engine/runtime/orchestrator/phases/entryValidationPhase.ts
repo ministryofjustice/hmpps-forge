@@ -1,4 +1,7 @@
-import type { CompiledEntryValidationFunction, CompiledValidationFunction } from '../../../types/compiledPhaseResults.type'
+import type {
+  CompiledEntryValidationFunction,
+  CompiledValidationFunction,
+} from '../../../types/compiledPhaseResults.type'
 import type { NodeId } from '../../../types/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'

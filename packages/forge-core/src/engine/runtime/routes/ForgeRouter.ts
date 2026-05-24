@@ -242,11 +242,7 @@ export default class ForgeRouter<TRouter> {
             functionRegistry,
             forgeDependencies.logger,
           ),
-          createAnswerPreparationPhase(
-            journeyPlan.compiledAnswerPreparation,
-            journeyPlan.path,
-            functionRegistry,
-          ),
+          createAnswerPreparationPhase(journeyPlan.compiledAnswerPreparation, journeyPlan.path, functionRegistry),
         ],
         createJourneyRedirectTerminal(
           journeyPlan.navigationPlan.compiledNavigation,
