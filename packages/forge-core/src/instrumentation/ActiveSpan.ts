@@ -14,7 +14,6 @@ export interface ActiveSpanOptions {
   spanId: string
   parentSpanId?: string
   recorder: (span: ForgeSpan) => void
-  childFactory: (name: string, parentSpanId: string, parentClockAnchor: ClockAnchor) => ActiveSpan
   clockAnchor?: ClockAnchor
 }
 
@@ -35,8 +34,6 @@ export class ActiveSpan {
 
   private readonly recorder: (span: ForgeSpan) => void
 
-  private readonly childFactory: (name: string, parentSpanId: string, parentClockAnchor: ClockAnchor) => ActiveSpan
-
   private status: ForgeSpanStatus
 
   private error?: unknown
@@ -52,13 +49,16 @@ export class ActiveSpan {
     this.attributes = {}
     this.events = []
     this.recorder = options.recorder
-    this.childFactory = options.childFactory
     this.status = ForgeSpanStatus.OK
     this.recording = true
   }
 
   getSpanId(): string {
     return this.spanId
+  }
+
+  getClockAnchor(): ClockAnchor {
+    return this.clockAnchor
   }
 
   setAttribute(key: string, value: ForgeSpanAttributeValue): this {
@@ -130,10 +130,6 @@ export class ActiveSpan {
 
   isRecording(): boolean {
     return this.recording
-  }
-
-  traceChild(name: string): ActiveSpan {
-    return this.childFactory(name, this.spanId, this.clockAnchor)
   }
 
   traceFn<T>(fn: (span: ActiveSpan) => T): T {

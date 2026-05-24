@@ -1,6 +1,7 @@
+import { AsyncLocalStorage } from 'async_hooks'
 import { randomUUID } from 'crypto'
 import type { Logger } from '../framework/types/adapter.type'
-import { ActiveSpan, type ClockAnchor } from './ActiveSpan'
+import { ActiveSpan } from './ActiveSpan'
 import LoggerSink from './LoggerSink'
 import type { ForgeInstrumentationSink, ForgeSpan } from './types'
 
@@ -11,12 +12,30 @@ export interface ForgeInstrumentationOptions {
 export class ForgeInstrumentation {
   private readonly sinks: ForgeInstrumentationSink[]
 
+  private readonly contextStore = new AsyncLocalStorage<ActiveSpan>()
+
   constructor(options: ForgeInstrumentationOptions | undefined, logger: Logger | Console) {
     this.sinks = [new LoggerSink(logger), ...resolveSinks(options?.sinks)]
   }
 
+  span<T>(name: string, fn: (span: ActiveSpan) => T): T {
+    const parent = this.contextStore.getStore()
+    const span = this.createSpan(name, parent)
+
+    return this.contextStore.run(span, () => span.traceFn(fn))
+  }
+
+  async spanAsync<T>(name: string, fn: (span: ActiveSpan) => Promise<T>): Promise<T> {
+    const parent = this.contextStore.getStore()
+    const span = this.createSpan(name, parent)
+
+    return this.contextStore.run(span, () => span.traceAsyncFn(fn))
+  }
+
   startSpan(name: string): ActiveSpan {
-    return this.createSpan(name)
+    const parent = this.contextStore.getStore()
+
+    return this.createSpan(name, parent)
   }
 
   record(span: ForgeSpan): void {
@@ -29,15 +48,13 @@ export class ForgeInstrumentation {
     return this.sinks
   }
 
-  private createSpan(name: string, parentSpanId?: string, parentClockAnchor?: ClockAnchor): ActiveSpan {
+  private createSpan(name: string, parent?: ActiveSpan): ActiveSpan {
     return new ActiveSpan({
       name,
       spanId: randomUUID(),
-      parentSpanId,
-      clockAnchor: parentClockAnchor,
+      parentSpanId: parent?.getSpanId(),
+      clockAnchor: parent?.getClockAnchor(),
       recorder: span => this.record(span),
-      childFactory: (childName, childParentSpanId, childParentClockAnchor) =>
-        this.createSpan(childName, childParentSpanId, childParentClockAnchor),
     })
   }
 }
