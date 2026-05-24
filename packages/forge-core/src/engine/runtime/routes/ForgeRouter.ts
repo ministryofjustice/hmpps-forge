@@ -2,8 +2,6 @@ import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
 import { JourneyASTNode } from '../../types/structures.type'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
-import StepController from './StepController'
-import JourneyController from './JourneyController'
 import type PackageInstance from '../../PackageInstance'
 import {
   createRouteTreeIndex,
@@ -14,6 +12,17 @@ import {
   StoredRouteTree,
 } from '../types/routes.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import RequestOrchestrator from '../orchestrator/RequestOrchestrator'
+import type { PipelineState } from '../orchestrator/types'
+import { createAccessLifecyclePhase } from '../orchestrator/phases/accessLifecyclePhase'
+import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPreparationPhase'
+import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
+import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
+import { createSubmitPhase } from '../orchestrator/phases/submitPhase'
+import { createStepRenderTerminal } from '../orchestrator/phases/stepRenderTerminal'
+import { createJourneyRedirectTerminal } from '../orchestrator/phases/journeyRedirectTerminal'
+import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/NavigationAnalyzer'
 
 export default class ForgeRouter<TRouter> {
   private readonly router: TRouter
@@ -23,6 +32,8 @@ export default class ForgeRouter<TRouter> {
   private readonly routeTreeIndex: RouteTreeIndex = createRouteTreeIndex()
 
   private readonly journeyRouters = new Map<string, { router: TRouter; journeyNode: JourneyASTNode }>()
+
+  private readonly contextPreparer = new ContextPreparer()
 
   constructor(
     private readonly forgeDependencies: ForgeDependencies,
@@ -112,21 +123,90 @@ export default class ForgeRouter<TRouter> {
       }
 
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
-      const controller = new StepController(
-        compiledStep,
-        packageDependencies,
-        forgeDependencies,
-        this.routeTreeIndex.roots,
-        ctx.routeTemplatePath,
-        ctx.routeTemplateCatalog,
+      const { functionRegistry } = packageDependencies
+      const runtimePlan = compiledStep.runtimePlan
+
+      const accessPhase = createAccessLifecyclePhase(
+        runtimePlan.compiledAccessLifecycle,
+        runtimePlan.path,
+        functionRegistry,
+        forgeDependencies.logger,
       )
 
-      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, (req, res) =>
-        controller.get(req, res),
+      const answersPhase = createAnswerPreparationPhase(
+        compiledStep.compiledAnswerPreparation,
+        runtimePlan.path,
+        functionRegistry,
       )
-      this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, (req, res) =>
-        controller.post(req, res),
+
+      const renderTerminal = createStepRenderTerminal(
+        compiledStep.compiledRender,
+        runtimePlan.path,
+        this.routeTreeIndex.roots,
+        ctx.routeTemplatePath,
+        functionRegistry,
       )
+
+      const getOrchestrator = new RequestOrchestrator(
+        [
+          accessPhase,
+          answersPhase,
+          createNavigationPhase(
+            compiledStep.navigationPlan.compiledNavigation,
+            compiledStep.navigationPlan,
+            runtimePlan.stepId,
+            ctx.routeTemplateCatalog,
+            resolveStepRequestRedirect,
+            functionRegistry,
+          ),
+          createEntryValidationPhase(
+            compiledStep.compiledEntryValidation,
+            compiledStep.compiledValidation,
+            runtimePlan.stepId,
+            runtimePlan.path,
+            functionRegistry,
+          ),
+        ],
+        renderTerminal,
+      )
+
+      const postOrchestrator = new RequestOrchestrator(
+        [
+          accessPhase,
+          answersPhase,
+          createNavigationPhase(
+            compiledStep.navigationPlan.compiledNavigation,
+            compiledStep.navigationPlan,
+            runtimePlan.stepId,
+            ctx.routeTemplateCatalog,
+            resolvePostRequestRedirect,
+            functionRegistry,
+          ),
+          createSubmitPhase(
+            runtimePlan.compiledSubmitHooks,
+            compiledStep.compiledValidation,
+            runtimePlan.stepId,
+            runtimePlan.path,
+            functionRegistry,
+            forgeDependencies.logger,
+          ),
+        ],
+        renderTerminal,
+      )
+
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, async (req, res) => {
+        const state = this.prepareRequest(req, res, runtimePlan)
+        const result = await getOrchestrator.execute(state)
+
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
+
+      this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, async (req, res) => {
+        const state = this.prepareRequest(req, res, runtimePlan)
+        const result = await postOrchestrator.execute(state)
+
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
 
       routeCount += 2
     })
@@ -152,17 +232,48 @@ export default class ForgeRouter<TRouter> {
         return
       }
 
-      const controller = new JourneyController(
-        journeyPlan,
-        packageDependencies,
-        forgeDependencies,
-        routeTemplateCatalog,
+      const { functionRegistry } = packageDependencies
+
+      const orchestrator = new RequestOrchestrator(
+        [
+          createAccessLifecyclePhase(
+            journeyPlan.compiledAccessLifecycle,
+            journeyPlan.path,
+            functionRegistry,
+            forgeDependencies.logger,
+          ),
+          createAnswerPreparationPhase(journeyPlan.compiledAnswerPreparation, journeyPlan.path, functionRegistry),
+        ],
+        createJourneyRedirectTerminal(
+          journeyPlan.navigationPlan.compiledNavigation,
+          journeyPlan.navigationPlan,
+          routeTemplateCatalog,
+          functionRegistry,
+        ),
       )
 
-      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', (req, res) => controller.get(req, res))
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', async (req, res) => {
+        const state = this.prepareRequest(req, res, journeyPlan)
+        const result = await orchestrator.execute(state)
+
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
+
       routeCount += 1
     })
 
     return routeCount
+  }
+
+  private prepareRequest(
+    req: unknown,
+    res: unknown,
+    runtimePlan: { staticData: Record<string, unknown> },
+  ): PipelineState {
+    const request = this.forgeDependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.forgeDependencies.frameworkAdapter.toStepResponse(res)
+    const context = this.contextPreparer.prepare(runtimePlan, request, response)
+
+    return { context, request }
   }
 }

@@ -13,6 +13,7 @@ import {
   StepHandler,
   StepRequest,
   StepResponse,
+  type ForgeResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from '../renderer/TemplateRenderer'
 import { RequestWithState } from './types'
@@ -292,6 +293,20 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   /** Send an HTTP redirect response */
   redirect(res: express.Response, url: string): void {
     res.redirect(url)
+  }
+
+  applyResult(
+    result: ForgeResult,
+    req: express.Request,
+    res: express.Response,
+    componentRegistry: ComponentRegistry,
+  ): void {
+    if (result.type === 'redirect') {
+      this.redirect(res, result.url)
+      return
+    }
+
+    this.render(result.context, req, res, componentRegistry)
   }
 
   /** Render a full page from RenderContext and send the HTML response */

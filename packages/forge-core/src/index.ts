@@ -5,3 +5,4 @@ export { default as EffectFunctionContext } from './engine/nodes/expressions/eff
 export { isBlockStructNode } from './engine/typeguards/structure-nodes'
 export type { ForgeOptions } from './engine/Forge'
 export type { ValidationResult } from './engine/runtime/types/ValidationResult.type'
+export type { ForgeResult } from './engine/runtime/orchestrator/types'
