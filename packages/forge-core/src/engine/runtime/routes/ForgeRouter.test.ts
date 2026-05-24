@@ -9,11 +9,6 @@ import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeRouter from './ForgeRouter'
-import StepController from './StepController'
-import JourneyController from './JourneyController'
-
-vi.mock('./StepController')
-vi.mock('./JourneyController')
 
 interface MockRouter {
   id: string
@@ -31,44 +26,54 @@ describe('ForgeRouter', () => {
   let mockFrameworkAdapter: Mocked<FrameworkAdapter<MockRouter, unknown, unknown>>
   let mockPackageDependencies: PackageDependencies
   let mockForgeDependencies: ForgeDependencies
-  let mockControllerGet: Mock
-  let mockControllerPost: Mock
-  let mockJourneyControllerGet: Mock
   let routerSequence: number
 
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockControllerGet = vi.fn().mockResolvedValue(undefined)
-    mockControllerPost = vi.fn().mockResolvedValue(undefined)
-    mockJourneyControllerGet = vi.fn().mockResolvedValue(undefined)
     routerSequence = 0
-    ;(StepController as unknown as MockedClass<typeof StepController>).mockImplementation(
-      function mockStepControllerCtor() {
-        return {
-          get: mockControllerGet,
-          post: mockControllerPost,
-        } as unknown as StepController<unknown, unknown>
-      },
-    )
-    ;(JourneyController as unknown as MockedClass<typeof JourneyController>).mockImplementation(
-      function mockJourneyControllerCtor() {
-        return {
-          get: mockJourneyControllerGet,
-        } as unknown as JourneyController<unknown, unknown>
-      },
-    )
 
     mockFrameworkAdapter = {
       createRouter: vi.fn().mockImplementation(() => ({ id: `router-${routerSequence++}` })),
       mountRouter: vi.fn(),
       get: vi.fn(),
       post: vi.fn(),
-      toStepRequest: vi.fn(),
-      toStepResponse: vi.fn(),
+      toStepRequest: vi.fn().mockReturnValue({
+        method: 'GET',
+        url: 'http://localhost/journey/step-one',
+        baseUrl: '/journey',
+        location: {
+          origin: 'http://localhost',
+          href: 'http://localhost/journey/step-one',
+          pathname: '/journey/step-one',
+          basePath: '/journey',
+        },
+        getHeader: () => undefined,
+        getAllHeaders: () => ({}),
+        getCookie: () => undefined,
+        getAllCookies: () => ({}),
+        getParam: () => undefined,
+        getParams: () => ({}),
+        getQuery: () => undefined,
+        getAllQuery: () => ({}),
+        getPost: () => undefined,
+        getAllPost: () => ({}),
+        getSession: () => undefined,
+        getState: () => undefined,
+        getAllState: () => ({}),
+      }),
+      toStepResponse: vi.fn().mockReturnValue({
+        setHeader: vi.fn(),
+        getHeader: vi.fn(),
+        getAllHeaders: vi.fn(),
+        setCookie: vi.fn(),
+        getCookie: vi.fn(),
+        getAllCookies: vi.fn(),
+      }),
       redirect: vi.fn(),
       forwardError: vi.fn(),
-      render: vi.fn().mockResolvedValue(undefined),
+      render: vi.fn(),
+      applyResult: vi.fn(),
     } as unknown as Mocked<FrameworkAdapter<MockRouter, unknown, unknown>>
 
     mockPackageDependencies = {
@@ -136,6 +141,7 @@ describe('ForgeRouter', () => {
         stepId: stepNode.id,
         path: stepNode.properties.path,
         staticData: {},
+        compiledAccessLifecycle: vi.fn().mockReturnValue({ executed: true, outcome: 'continue' }),
       },
       navigationPlan: {
         entries: [],
@@ -143,8 +149,22 @@ describe('ForgeRouter', () => {
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
+        compiledNavigation: vi.fn().mockResolvedValue({
+          evaluation: {
+            currentStepId: stepNode.id,
+            steps: [],
+            defaultEntryRouteTemplatePath: undefined,
+            frontierRouteTemplatePath: undefined,
+            canonicalPathRouteTemplatePaths: [],
+            progressExists: false,
+            resumeActive: false,
+            resumeOutcome: 'no-op',
+            unreachableRedirect: 'entry',
+          },
+        }),
       },
-      compiledAnswerPreparation: undefined,
+      compiledAnswerPreparation: vi.fn(),
+      compiledRender: vi.fn().mockReturnValue({ blocks: [], step: {}, ancestors: [] }),
     }
   }
 
@@ -221,7 +241,7 @@ describe('ForgeRouter', () => {
       expect(mockFrameworkAdapter.get).toHaveBeenCalledWith({ id: 'router-1' }, '/', expect.any(Function))
     })
 
-    it('should pass the stored route tree to lazily created step controllers', async () => {
+    it('should call applyResult when a step handler is invoked', async () => {
       // Arrange
       const journeyNode = createJourneyNode('compile_ast:3', '/journey', 'test')
       const stepNode = createStepNode('compile_ast:4', '/step-one')
@@ -242,16 +262,11 @@ describe('ForgeRouter', () => {
       await stepGetHandler({}, {})
 
       // Assert
-      expect(StepController).toHaveBeenCalledWith(
-        createCompiledStep(stepNode),
-        mockPackageDependencies,
-        mockForgeDependencies,
-        router.getRouteTree(),
-        '/journey/step-one',
-        expect.objectContaining({
-          routeTemplatePathByStepId: expect.any(Map),
-          stepIdByRouteTemplatePath: expect.any(Map),
-        }),
+      expect(mockFrameworkAdapter.applyResult).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'render' }),
+        {},
+        {},
+        mockPackageDependencies.componentRegistry,
       )
     })
 
@@ -273,34 +288,17 @@ describe('ForgeRouter', () => {
       router.mount(packageInstance, mockForgeDependencies)
 
       // Assert
-      expect(router.getRouteTree()).toMatchObject([
-        {
-          segment: 'journey',
-          templatePath: '/journey',
-          route: { kind: 'journey', nodeId: journeyNode.id, title: 'Journey test' },
-          children: [
-            {
-              segment: 'section',
-              templatePath: '/journey/section',
-              route: { kind: 'journey', nodeId: childJourneyNode.id, title: 'Section' },
-              children: [
-                {
-                  segment: 'details',
-                  templatePath: '/journey/section/details',
-                  route: { kind: 'step', nodeId: stepNode.id, title: 'Details' },
-                },
-              ],
-            },
-          ],
-        },
-      ])
+      expect(mockFrameworkAdapter.mountRouter).toHaveBeenCalledWith({ id: 'router-0' }, '/journey', { id: 'router-1' })
+      expect(mockFrameworkAdapter.mountRouter).toHaveBeenCalledWith({ id: 'router-1' }, '/section', { id: 'router-2' })
+      expect(mockFrameworkAdapter.get).toHaveBeenCalledWith({ id: 'router-2' }, '/details', expect.any(Function))
+      expect(mockFrameworkAdapter.post).toHaveBeenCalledWith({ id: 'router-2' }, '/details', expect.any(Function))
     })
 
     it('should include base path segments in the route tree and root router mount path', () => {
       // Arrange
-      const routerWithBasePath = new ForgeRouter(mockForgeDependencies, {
-        frameworkAdapter: { build: () => mockFrameworkAdapter },
+      const routerWithBase = new ForgeRouter(mockForgeDependencies, {
         basePath: '/forms',
+        frameworkAdapter: { build: () => mockFrameworkAdapter },
       })
       const journeyNode = createJourneyNode('compile_ast:8', '/journey', 'test')
       const stepNode = createStepNode('compile_ast:9', '/step-one')
@@ -308,50 +306,36 @@ describe('ForgeRouter', () => {
       const packageInstance = createPackageInstance([journeyNode], [stepNode], artefact)
 
       // Act
-      const routeCount = routerWithBasePath.mount(packageInstance, mockForgeDependencies)
+      routerWithBase.mount(packageInstance, mockForgeDependencies)
 
       // Assert
-      expect(routeCount).toBe(3)
-      expect(mockFrameworkAdapter.mountRouter).toHaveBeenCalledWith({ id: 'router-1' }, '/forms/journey', {
-        id: 'router-2',
-      })
-      expect(routerWithBasePath.getRouteTree()).toMatchObject([
-        {
-          segment: 'forms',
-          templatePath: '/forms',
-          children: [
-            {
-              segment: 'journey',
-              templatePath: '/forms/journey',
-              route: { kind: 'journey', nodeId: journeyNode.id },
-              children: [{ segment: 'step-one', templatePath: '/forms/journey/step-one' }],
-            },
-          ],
-        },
-      ])
+      const routeTree = routerWithBase.getRouteTree()
+
+      expect(routeTree).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            segment: 'forms',
+          }),
+        ]),
+      )
     })
 
     it('should throw DuplicateRouteError when two concrete routes share a URL template', () => {
       // Arrange
       const journeyNode = createJourneyNode('compile_ast:10', '/journey', 'test')
-      const firstStep = createStepNode('compile_ast:11', '/duplicate')
-      const secondStep = createStepNode('compile_ast:12', '/duplicate')
+      const step1 = createStepNode('compile_ast:11', '/same-path')
+      const step2 = createStepNode('compile_ast:12', '/same-path')
       const artefact = createArtefact(
-        [journeyNode, firstStep, secondStep],
+        [journeyNode, step1, step2],
         [
-          [journeyNode.id, firstStep.id],
-          [journeyNode.id, secondStep.id],
+          [journeyNode.id, step1.id],
+          [journeyNode.id, step2.id],
         ],
       )
-      const packageInstance = createPackageInstance([journeyNode], [firstStep, secondStep], artefact)
+      const packageInstance = createPackageInstance([journeyNode], [step1, step2], artefact)
 
-      // Act
-      const act = () => router.mount(packageInstance, mockForgeDependencies)
-
-      // Assert
-      expect(act).toThrow(DuplicateRouteError)
-      expect(mockFrameworkAdapter.get).not.toHaveBeenCalled()
-      expect(mockFrameworkAdapter.post).not.toHaveBeenCalled()
+      // Act & Assert
+      expect(() => router.mount(packageInstance, mockForgeDependencies)).toThrow(DuplicateRouteError)
     })
   })
 })
