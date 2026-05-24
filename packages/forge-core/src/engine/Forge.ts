@@ -202,6 +202,8 @@ export default class Forge {
       return this
     }
 
+    const span = this.instrumentation.startSpan('journey-registration')
+
     try {
       const packageInstance = new PackageInstance(pkg, {
         functionRegistry: this.functionRegistry,
@@ -209,31 +211,24 @@ export default class Forge {
         functionDependencies: deps,
       })
 
-      this.registerPackageInstance(packageInstance)
+      const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
+
+      span.setAttributes({
+        journeyCode: packageInstance.getJourneyCode(),
+        journeyTitle: packageInstance.getJourneyTitle(),
+        routeCount,
+      })
     } catch (e) {
-      this.handleRegistrationError(e)
+      span.recordError(e)
+
+      if (this.options.strictRegistration) {
+        throw e
+      }
+    } finally {
+      span.end()
     }
 
     return this
-  }
-
-  private registerPackageInstance(packageInstance: PackageInstance): void {
-    const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
-
-    this.instrumentation.record({
-      type: 'journey-registered',
-      journeyCode: packageInstance.getJourneyCode(),
-      journeyTitle: packageInstance.getJourneyTitle(),
-      routeCount,
-    })
-  }
-
-  private handleRegistrationError(e: unknown): void {
-    this.instrumentation.record({ type: 'registration-error', error: e })
-
-    if (this.options.strictRegistration) {
-      throw e
-    }
   }
 
   /**

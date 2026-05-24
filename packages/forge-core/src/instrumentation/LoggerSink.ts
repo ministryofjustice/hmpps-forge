@@ -1,7 +1,7 @@
 import RegistrationErrorFormatter from '../engine/errors/RegistrationErrorFormatter'
 import type { Logger } from '../framework/types/adapter.type'
-import { isForgeLifecycleEvent } from './typeguards'
-import type { ForgeInstrumentationSink } from './types'
+import type { ForgeInstrumentationSink, ForgeSpan } from './types'
+import { ForgeSpanStatus } from './types'
 
 export default class LoggerSink implements ForgeInstrumentationSink {
   private readonly logger: Logger | Console
@@ -10,23 +10,20 @@ export default class LoggerSink implements ForgeInstrumentationSink {
     this.logger = logger
   }
 
-  record(trace: unknown): void {
-    if (!isForgeLifecycleEvent(trace)) {
+  record(span: ForgeSpan): void {
+    if (span.name !== 'journey-registration') {
       return
     }
 
-    switch (trace.type) {
-      case 'journey-registered':
-        this.logger.info(
-          { journey: trace.journeyCode, routes: trace.routeCount },
-          `Forge: Registered journey '${trace.journeyTitle}' with ${trace.routeCount} routes`,
-        )
-        break
-      case 'registration-error':
-        this.logger.error(RegistrationErrorFormatter.format(trace.error))
-        break
-      default:
-        break
+    if (span.status === ForgeSpanStatus.ERROR) {
+      this.logger.error(RegistrationErrorFormatter.format(span.error))
+
+      return
     }
+
+    this.logger.info(
+      { journey: span.attributes.journeyCode, routes: span.attributes.routeCount },
+      `Forge: Registered journey '${span.attributes.journeyTitle}' with ${span.attributes.routeCount} routes`,
+    )
   }
 }

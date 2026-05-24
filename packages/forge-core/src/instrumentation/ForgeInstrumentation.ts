@@ -1,6 +1,7 @@
 import type { Logger } from '../framework/types/adapter.type'
+import { ActiveSpan } from './ActiveSpan'
 import LoggerSink from './LoggerSink'
-import type { ForgeInstrumentationSink } from './types'
+import type { ForgeInstrumentationSink, ForgeSpan } from './types'
 
 export interface ForgeInstrumentationOptions {
   sinks: ForgeInstrumentationSink | ForgeInstrumentationSink[]
@@ -13,9 +14,13 @@ export class ForgeInstrumentation {
     this.sinks = [new LoggerSink(logger), ...resolveSinks(options?.sinks)]
   }
 
-  record(trace: unknown): void {
+  startSpan(name: string): ActiveSpan {
+    return new ActiveSpan(name, span => this.record(span))
+  }
+
+  record(span: ForgeSpan): void {
     this.sinks.forEach(sink => {
-      sink.record(trace)
+      sink.record(span)
     })
   }
 
