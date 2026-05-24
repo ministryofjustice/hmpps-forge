@@ -76,7 +76,7 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = resolveStepRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
+      return this.redirect(res, request, reachabilityRedirect)
     }
 
     const entryValidationGroups = await this.evaluateEntryValidationGroups(context)
@@ -115,7 +115,7 @@ export default class StepController<TRequest, TResponse> {
     const reachabilityRedirect = resolvePostRequestRedirect(navigationEvaluation)
 
     if (reachabilityRedirect) {
-      return this.redirectToRouteTemplatePath(res, request, reachabilityRedirect)
+      return this.redirect(res, request, reachabilityRedirect)
     }
 
     const submitResult = await this.executeSubmitHooks(context)
@@ -154,17 +154,11 @@ export default class StepController<TRequest, TResponse> {
     return { request, context }
   }
 
-  private redirect(res: TResponse, request: StepRequest, redirect: string): void {
-    const resolvedTarget = resolveRedirectTarget(redirect, request.location)
+  private redirect(res: TResponse, request: StepRequest, target: string): void {
+    const withParams = resolvePathParams(target, request.getParams())
+    const resolved = resolveRedirectTarget(withParams, request.location)
 
-    return this.forgeDependencies.frameworkAdapter.redirect(res, resolvedTarget.value)
-  }
-
-  private redirectToRouteTemplatePath(res: TResponse, request: StepRequest, routeTemplatePath: string): void {
-    return this.forgeDependencies.frameworkAdapter.redirect(
-      res,
-      resolvePathParams(routeTemplatePath, request.getParams()),
-    )
+    return this.forgeDependencies.frameworkAdapter.redirect(res, resolved.value)
   }
 
   private getRedirectTarget(redirect: string | undefined): string {
