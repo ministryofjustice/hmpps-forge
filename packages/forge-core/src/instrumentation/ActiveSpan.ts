@@ -2,35 +2,52 @@ import { createSpan } from './createSpan'
 import type { ForgeSpan, ForgeSpanAttributes, ForgeSpanAttributeValue, ForgeSpanEvent } from './types'
 import { ForgeSpanStatus } from './types'
 
-export class ActiveSpan {
-  private name: string
+export interface ActiveSpanOptions {
+  name: string
+  spanId: string
+  parentSpanId?: string
+  recorder: (span: ForgeSpan) => void
+  childFactory: (name: string, parentSpanId: string) => ActiveSpan
+}
 
-  private startTime: number
+export class ActiveSpan {
+  private readonly name: string
+
+  private readonly startTime: number
+
+  private readonly spanId: string
+
+  private readonly parentSpanId?: string
+
+  private readonly attributes: ForgeSpanAttributes
+
+  private readonly events: ForgeSpanEvent[]
+
+  private readonly recorder: (span: ForgeSpan) => void
+
+  private readonly childFactory: (name: string, parentSpanId: string) => ActiveSpan
 
   private status: ForgeSpanStatus
 
   private error?: unknown
 
-  private attributes: ForgeSpanAttributes
-
-  private events: ForgeSpanEvent[]
-
-  private spanId?: string
-
-  private parentSpanId?: string
-
   private recording: boolean
 
-  private readonly recorder: (span: ForgeSpan) => void
-
-  constructor(name: string, recorder: (span: ForgeSpan) => void) {
-    this.name = name
+  constructor(options: ActiveSpanOptions) {
+    this.name = options.name
     this.startTime = Date.now()
-    this.status = ForgeSpanStatus.OK
+    this.spanId = options.spanId
+    this.parentSpanId = options.parentSpanId
     this.attributes = {}
     this.events = []
+    this.recorder = options.recorder
+    this.childFactory = options.childFactory
+    this.status = ForgeSpanStatus.OK
     this.recording = true
-    this.recorder = recorder
+  }
+
+  getSpanId(): string {
+    return this.spanId
   }
 
   setAttribute(key: string, value: ForgeSpanAttributeValue): this {
@@ -98,5 +115,33 @@ export class ActiveSpan {
 
   isRecording(): boolean {
     return this.recording
+  }
+
+  traceChild(name: string): ActiveSpan {
+    return this.childFactory(name, this.spanId)
+  }
+
+  traceFn<T>(fn: (span: ActiveSpan) => T): T {
+    try {
+      const result = fn(this)
+      this.end()
+
+      return result
+    } catch (error) {
+      this.recordError(error)
+      this.end()
+      throw error
+    }
+  }
+
+  async traceAsyncFn<T>(fn: (span: ActiveSpan) => Promise<T>): Promise<T> {
+    try {
+      return await fn(this)
+    } catch (error) {
+      this.recordError(error)
+      throw error
+    } finally {
+      this.end()
+    }
   }
 }
