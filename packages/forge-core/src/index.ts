@@ -4,6 +4,7 @@ export { default as ComponentRegistry } from './engine/registries/ComponentRegis
 export { default as EffectFunctionContext } from './engine/nodes/expressions/effect/EffectFunctionContext'
 export { isBlockStructNode } from './engine/typeguards/structure-nodes'
 export { ActiveSpan } from './instrumentation/ActiveSpan'
+export { default as FileSink } from './instrumentation/FileSink'
 export { ForgeInstrumentation } from './instrumentation/ForgeInstrumentation'
 export type { ForgeInstrumentationOptions } from './instrumentation/ForgeInstrumentation'
 export { createSpan } from './instrumentation/createSpan'

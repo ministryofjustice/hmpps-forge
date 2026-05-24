@@ -12,7 +12,7 @@ export type { ASTNode, AstNodeId, CompiledNodeId, CompileAstNodeId, NodeId, Temp
 export interface ForgeDependencies {
   logger: Logger | Console
   frameworkAdapter: FrameworkAdapter<any, any, any>
-  instrumentation?: ForgeInstrumentation
+  instrumentation: ForgeInstrumentation
 }
 
 export interface PackageDependencies {
