@@ -131,7 +131,7 @@ export default class ForgeRouter<TRouter> {
         runtimePlan.compiledAccessLifecycle,
         runtimePlan.path,
         functionRegistry,
-        forgeDependencies.logger,
+        forgeDependencies.instrumentation,
       )
 
       const answersPhase = createAnswerPreparationPhase(
@@ -190,7 +190,7 @@ export default class ForgeRouter<TRouter> {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
-            forgeDependencies.logger,
+            forgeDependencies.instrumentation,
           ),
         ],
         renderTerminal,
@@ -254,7 +254,7 @@ export default class ForgeRouter<TRouter> {
             journeyPlan.compiledAccessLifecycle,
             journeyPlan.path,
             functionRegistry,
-            forgeDependencies.logger,
+            forgeDependencies.instrumentation,
           ),
           createAnswerPreparationPhase(journeyPlan.compiledAnswerPreparation, journeyPlan.path, functionRegistry),
         ],

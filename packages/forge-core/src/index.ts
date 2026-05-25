@@ -21,4 +21,5 @@ export type {
   ForgeSpanAttributes,
   ForgeSpanAttributeValue,
   ForgeSpanEvent,
+  HrTime,
 } from './instrumentation/types'

@@ -8,6 +8,7 @@ import { TestPredicateASTNode } from '../../../../types/predicates.type'
 import type { StepRequest } from '../../../../../framework/types/request.type'
 import type { StepResponse } from '../../../../../framework/types/response.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
+import type { ForgeInstrumentation } from '../../../../../instrumentation/ForgeInstrumentation'
 import type { HookLifecycleContext } from '../../../../types/hookLifecycle.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 
@@ -81,12 +82,14 @@ function createContext(
     post: {},
     request: { url: request.url, path: request.location.pathname, method: request.method },
     conditions: functionRegistry,
-    logger: {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    },
+    instrumentation: {
+      span: vi.fn((_name: string, fn: (span: { setAttribute: () => void }) => unknown) =>
+        fn({ setAttribute: vi.fn() }),
+      ),
+      spanAsync: vi.fn(async (_name: string, fn: (span: { setAttribute: () => void }) => Promise<unknown>) =>
+        fn({ setAttribute: vi.fn() }),
+      ),
+    } as unknown as ForgeInstrumentation,
     validate: vi.fn(async () => ({
       isValid: overrides.validation?.isValid ?? true,
       fieldFailures: overrides.validation?.fieldFailures ?? [],
