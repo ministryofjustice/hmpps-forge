@@ -32,6 +32,10 @@ export class ForgeInstrumentation {
     return this.contextStore.run(span, () => span.traceAsyncFn(fn))
   }
 
+  getCurrentSpan(): ActiveSpan | undefined {
+    return this.contextStore.getStore()
+  }
+
   startSpan(name: string): ActiveSpan {
     const parent = this.contextStore.getStore()
 

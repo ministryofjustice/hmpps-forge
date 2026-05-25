@@ -87,6 +87,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     this.instrumentation = options.instrumentation
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
+      instrumentation: options.instrumentation,
       defaultTemplate: options.defaultTemplate,
     })
   }
@@ -341,7 +342,16 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       reqWithState.state = { ...res.locals, ...reqWithState.state }
 
       this.logger.debug(`${req.method} request to step at path ${requestPath}`)
-      handler(req, res).catch(next)
+
+      return (
+        this.instrumentation
+          .spanAsync('forge-request', async span => {
+            span.setAttribute('http.method', req.method)
+
+            return handler(req, res)
+          })
+          .catch(next)
+      )
     }
   }
 

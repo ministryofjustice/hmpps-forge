@@ -3,6 +3,7 @@ import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   ComponentRegistry,
+  ForgeInstrumentation,
   isBlockStructNode,
   BlockASTNode,
   Evaluated,
@@ -16,6 +17,7 @@ import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
+  instrumentation: ForgeInstrumentation
   defaultTemplate?: string
 }
 
@@ -26,6 +28,8 @@ export default class TemplateRenderer {
   private static readonly FALLBACK_TEMPLATE = 'form-step'
 
   private readonly nunjucksEnv: nunjucks.Environment
+
+  private readonly instrumentation: ForgeInstrumentation
 
   private readonly defaultTemplate: string
 
@@ -40,6 +44,7 @@ export default class TemplateRenderer {
 
   constructor(options: TemplateRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
+    this.instrumentation = options.instrumentation
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
 
     const env = this.nunjucksEnv
@@ -73,32 +78,39 @@ export default class TemplateRenderer {
 
   /** Render a full page from RenderContext and return HTML string */
   render(context: RenderContext, locals: Record<string, unknown>, componentRegistry: ComponentRegistry): string {
-    const renderedBlocks = this.renderBlocks(
-      context.blocks,
-      context.showValidationFailures,
-      componentRegistry,
-      context.hasNestedBlocks,
-    )
+    return this.instrumentation.span('forge-render', span => {
+      const renderedBlocks = this.renderBlocks(
+        context.blocks,
+        context.showValidationFailures,
+        componentRegistry,
+        context.hasNestedBlocks,
+      )
 
-    const mergedViewLocals = this.mergeViewLocals(context)
+      const mergedViewLocals = this.mergeViewLocals(context)
 
-    const templateContext: TemplateContext = {
-      ...locals,
-      ...mergedViewLocals,
-      blocks: renderedBlocks,
-      step: context.step,
-      ancestors: context.ancestors,
-      routeTree: context.routeTree,
-      navigation: buildNavigationCompatibilityTree(context.routeTree),
-      answers: context.answers,
-      data: context.data,
-      fieldValidationErrors: context.fieldValidationErrors,
-      domainValidationErrors: context.domainValidationErrors,
-    }
+      const templateContext: TemplateContext = {
+        ...locals,
+        ...mergedViewLocals,
+        blocks: renderedBlocks,
+        step: context.step,
+        ancestors: context.ancestors,
+        routeTree: context.routeTree,
+        navigation: buildNavigationCompatibilityTree(context.routeTree),
+        answers: context.answers,
+        data: context.data,
+        fieldValidationErrors: context.fieldValidationErrors,
+        domainValidationErrors: context.domainValidationErrors,
+      }
 
-    const template = this.resolveTemplate(context)
+      const template = this.resolveTemplate(context)
 
-    return this.renderTemplate(template, templateContext)
+      span.setAttributes({
+        'forge.render.template': template,
+        'forge.render.blockCount': renderedBlocks.length,
+      })
+
+      return this.renderTemplate(template, templateContext)
+    })
   }
 
   /** Resolve template from step, ancestors, or default; appends .njk if needed */
@@ -142,18 +154,20 @@ export default class TemplateRenderer {
 
   /** Render a Nunjucks template with the given context */
   private renderTemplate(template: string, context: TemplateContext): string {
-    try {
-      let tmpl = this.templateCache.get(template)
+    return this.instrumentation.span('render-template', () => {
+      try {
+        let tmpl = this.templateCache.get(template)
 
-      if (!tmpl) {
-        tmpl = this.nunjucksEnv.getTemplate(template)
-        this.templateCache.set(template, tmpl)
+        if (!tmpl) {
+          tmpl = this.nunjucksEnv.getTemplate(template)
+          this.templateCache.set(template, tmpl)
+        }
+
+        return tmpl.render(context)
+      } catch (err) {
+        throw this.wrapError(err)
       }
-
-      return tmpl.render(context)
-    } catch (err) {
-      throw this.wrapError(err)
-    }
+    })
   }
 
   /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
@@ -177,40 +191,47 @@ export default class TemplateRenderer {
     componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): string {
-    try {
-      const component = componentRegistry.get(block.variant)
+    return this.instrumentation.span('render-component', span => {
+      span.setAttributes({
+        'forge.component.variant': block.variant,
+        'forge.block.id': block.id,
+      })
 
-      if (!component) {
-        const availableVariants = Array.from(componentRegistry.getAll().keys())
+      try {
+        const component = componentRegistry.get(block.variant)
 
-        throw new Error(
-          `Component variant "${block.variant}" not found in registry. ` +
-            `Available variants: ${availableVariants.join(', ')}`,
-        )
-      }
+        if (!component) {
+          const availableVariants = Array.from(componentRegistry.getAll().keys())
 
-      const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
-      const transformedProperties = needsTransform
-        ? this.transformPropertiesWithRenderedBlocks(
-            block.properties,
-            showValidationFailures,
-            componentRegistry,
-            hasNestedBlocks,
+          throw new Error(
+            `Component variant "${block.variant}" not found in registry. ` +
+              `Available variants: ${availableVariants.join(', ')}`,
           )
-        : block.properties
+        }
 
-      const evaluatedBlock = this.toEvaluatedBlock(
-        {
-          ...block,
-          properties: transformedProperties,
-        },
-        showValidationFailures,
-      )
+        const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
+        const transformedProperties = needsTransform
+          ? this.transformPropertiesWithRenderedBlocks(
+              block.properties,
+              showValidationFailures,
+              componentRegistry,
+              hasNestedBlocks,
+            )
+          : block.properties
 
-      return component.render(evaluatedBlock, this.cachedRenderer)
-    } catch (err) {
-      throw this.wrapError(err)
-    }
+        const evaluatedBlock = this.toEvaluatedBlock(
+          {
+            ...block,
+            properties: transformedProperties,
+          },
+          showValidationFailures,
+        )
+
+        return component.render(evaluatedBlock, this.cachedRenderer)
+      } catch (err) {
+        throw this.wrapError(err)
+      }
+    })
   }
 
   /** Convert Evaluated<BlockASTNode> to EvaluatedBlock for component */
@@ -232,7 +253,7 @@ export default class TemplateRenderer {
     }
 
     return (validate as ValidationResult[])
-      .filter(result => result.passed === false)
+      .filter(result => !result.passed)
       .map(result => ({
         message: result.message,
         details: result.details,

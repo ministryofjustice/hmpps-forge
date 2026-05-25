@@ -200,7 +200,7 @@ export default class ForgeRouter<TRouter> {
       this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, async (req, res) => {
         const result = await this.runRequest(
           getOrchestrator,
-          { method: 'GET', route: ctx.routeTemplatePath, journeyCode },
+          { route: ctx.routeTemplatePath, journeyCode },
           req,
           res,
           runtimePlan,
@@ -212,7 +212,7 @@ export default class ForgeRouter<TRouter> {
       this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, async (req, res) => {
         const result = await this.runRequest(
           postOrchestrator,
-          { method: 'POST', route: ctx.routeTemplatePath, journeyCode },
+          { route: ctx.routeTemplatePath, journeyCode },
           req,
           res,
           runtimePlan,
@@ -270,7 +270,7 @@ export default class ForgeRouter<TRouter> {
       this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', async (req, res) => {
         const result = await this.runRequest(
           orchestrator,
-          { method: 'GET', route: journeyPlan.path, journeyCode },
+          { route: journeyPlan.path, journeyCode },
           req,
           res,
           journeyPlan,
@@ -299,21 +299,18 @@ export default class ForgeRouter<TRouter> {
 
   private async runRequest(
     orchestrator: RequestOrchestrator,
-    attributes: { method: 'GET' | 'POST'; route: string; journeyCode: string },
+    attributes: { route: string; journeyCode: string },
     req: unknown,
     res: unknown,
     runtimePlan: { staticData: Record<string, unknown> },
   ): Promise<ForgeResult> {
-    return this.forgeDependencies.instrumentation.spanAsync('forge-request', async span => {
-      span.setAttributes({
-        'http.method': attributes.method,
-        'http.route': attributes.route,
-        'forge.journey.code': attributes.journeyCode,
-      })
-
-      const state = this.prepareRequest(req, res, runtimePlan)
-
-      return orchestrator.execute(state)
+    this.forgeDependencies.instrumentation.getCurrentSpan()?.setAttributes({
+      'http.route': attributes.route,
+      'forge.journey.code': attributes.journeyCode,
     })
+
+    const state = this.prepareRequest(req, res, runtimePlan)
+
+    return orchestrator.execute(state)
   }
 }
