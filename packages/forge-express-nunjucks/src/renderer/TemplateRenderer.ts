@@ -12,6 +12,7 @@ import {
   RouteTreeNode,
   ValidationResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeHtmlRenderDebugBridge } from '@ministryofjustice/hmpps-forge/core'
 import createHttpError from 'http-errors'
 import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
@@ -19,6 +20,7 @@ export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
   instrumentation: ForgeInstrumentation
   defaultTemplate?: string
+  htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
 }
 
 /** Renders blocks and page templates using Nunjucks */
@@ -33,6 +35,8 @@ export default class TemplateRenderer {
 
   private readonly defaultTemplate: string
 
+  private readonly htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
+
   private readonly templateCache = new Map<string, nunjucks.Template>()
 
   /**
@@ -46,6 +50,7 @@ export default class TemplateRenderer {
     this.nunjucksEnv = options.nunjucksEnv
     this.instrumentation = options.instrumentation
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
+    this.htmlRenderDebugBridge = options.htmlRenderDebugBridge
 
     const env = this.nunjucksEnv
     const cache = this.templateCache
@@ -109,7 +114,10 @@ export default class TemplateRenderer {
         'forge.render.blockCount': renderedBlocks.length,
       })
 
-      return this.renderTemplate(template, templateContext)
+      const html = this.renderTemplate(template, templateContext)
+      const cspNonce = typeof locals.cspNonce === 'string' ? locals.cspNonce : undefined
+
+      return this.injectBridgeScript(html, cspNonce)
     })
   }
 
@@ -227,7 +235,9 @@ export default class TemplateRenderer {
           showValidationFailures,
         )
 
-        return component.render(evaluatedBlock, this.cachedRenderer)
+        const html = component.render(evaluatedBlock, this.cachedRenderer)
+
+        return this.decorateRenderedComponent(html, block.id, block.variant)
       } catch (err) {
         throw this.wrapError(err)
       }
@@ -342,6 +352,44 @@ export default class TemplateRenderer {
       },
       html,
     }
+  }
+
+  private decorateRenderedComponent(html: string, blockId: string, variant: string): string {
+    if (this.htmlRenderDebugBridge === undefined) {
+      return html
+    }
+
+    const startPayload = Buffer.from(JSON.stringify({ id: blockId, variant })).toString('base64')
+    const endPayload = Buffer.from(JSON.stringify({ id: blockId })).toString('base64')
+
+    return `<!-- forge:component:start ${startPayload} -->${html}<!-- forge:component:end ${endPayload} -->`
+  }
+
+  private injectBridgeScript(html: string, cspNonce?: string): string {
+    if (this.htmlRenderDebugBridge === undefined) {
+      return html
+    }
+
+    const scriptUrl = this.htmlRenderDebugBridge.getScriptUrl()
+
+    if (scriptUrl === undefined) {
+      return html
+    }
+
+    const bodyCloseIndex = html.lastIndexOf('</body>')
+
+    if (bodyCloseIndex === -1) {
+      return html
+    }
+
+    const safeUrl = scriptUrl
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+    const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : ''
+
+    return `${html.slice(0, bodyCloseIndex)}<script src="${safeUrl}"${nonceAttr}></script>${html.slice(bodyCloseIndex)}`
   }
 }
 
