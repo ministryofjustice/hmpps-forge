@@ -159,6 +159,7 @@ export default class ForgeRouter<TRouter> {
             ctx.routeTemplateCatalog,
             resolveStepRequestRedirect,
             functionRegistry,
+            forgeDependencies.instrumentation,
           ),
           createEntryValidationPhase(
             compiledStep.compiledEntryValidation,
@@ -183,6 +184,7 @@ export default class ForgeRouter<TRouter> {
             ctx.routeTemplateCatalog,
             resolvePostRequestRedirect,
             functionRegistry,
+            forgeDependencies.instrumentation,
           ),
           createSubmitPhase(
             runtimePlan.compiledSubmitHooks,

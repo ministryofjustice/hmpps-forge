@@ -16,7 +16,6 @@ function createEntry(options: {
   path: string
   isEntryPoint?: boolean
   entryWhenNodeId?: NodeId
-  forwardOutcomeIds?: NodeId[]
   hasValidation?: boolean
   reachabilityTieBreakers?: Array<{ priority: number; whenNodeId?: NodeId }>
 }): NavigationRuntimeEntry {
@@ -52,6 +51,7 @@ function createCompiledResult(
   overrides: {
     entryResults?: Record<number, boolean>
     outcomeValues?: Record<number, string[]>
+    declaredOutcomeValues?: Record<number, string[]>
     tieBreakerPriorities?: Record<number, number>
     resumeActive?: boolean
   } = {},
@@ -61,6 +61,10 @@ function createCompiledResult(
   return {
     entryResults: Array.from({ length: count }, (_, i) => overrides.entryResults?.[i]),
     outcomeValues: Array.from({ length: count }, (_, i) => overrides.outcomeValues?.[i] ?? []),
+    declaredOutcomeValues: Array.from(
+      { length: count },
+      (_, i) => overrides.declaredOutcomeValues?.[i] ?? overrides.outcomeValues?.[i] ?? [],
+    ),
     tieBreakerPriorities: Array.from({ length: count }, (_, i) => overrides.tieBreakerPriorities?.[i]),
     resumeActive: overrides.resumeActive ?? false,
   }
@@ -187,7 +191,6 @@ describe('evaluateGeneratedNavigation', () => {
           stepId: 'compile_ast:4',
           path: 'entry',
           isEntryPoint: true,
-          forwardOutcomeIds: ['compile_ast:5'],
         }),
         createEntry({
           stepId: 'compile_ast:6',
@@ -226,7 +229,6 @@ describe('evaluateGeneratedNavigation', () => {
           stepId: 'compile_ast:10',
           path: 'entry',
           isEntryPoint: true,
-          forwardOutcomeIds: ['compile_ast:11'],
         }),
         createEntry({
           stepId: 'compile_ast:12',
@@ -272,7 +274,6 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'entry',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:21'],
         }),
         createEntry({
           stepId: 'compile_ast:22',
@@ -318,13 +319,11 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'your-name',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:31'],
         }),
         createEntry({
           stepId: 'compile_ast:32',
           path: 'your-role',
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:33'],
         }),
         createEntry({
           stepId: 'compile_ast:34',
@@ -370,7 +369,6 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'your-name',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:41'],
         }),
         createEntry({
           stepId: 'compile_ast:42',
@@ -420,7 +418,6 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'your-name',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:52'],
           reachabilityTieBreakers: [{ priority: 100 }],
         }),
         createEntry({
@@ -468,7 +465,6 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'entry-low',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:61'],
           reachabilityTieBreakers: [{ priority: 10 }],
         }),
         createEntry({
@@ -522,20 +518,17 @@ describe('evaluateGeneratedNavigation', () => {
           stepId: 'compile_ast:70',
           path: 'entry',
           isEntryPoint: true,
-          forwardOutcomeIds: ['compile_ast:71', 'compile_ast:72'],
         }),
         createEntry({
           stepId: 'compile_ast:73',
           path: 'branch-a',
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:74'],
           reachabilityTieBreakers: [{ priority: 10 }],
         }),
         createEntry({
           stepId: 'compile_ast:75',
           path: 'branch-b',
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:76'],
           reachabilityTieBreakers: [{ priority: 100 }],
         }),
         createEntry({
@@ -601,6 +594,85 @@ describe('evaluateGeneratedNavigation', () => {
     expect(result.steps.every(step => !step.isReachable)).toBe(true)
   })
 
+  it('should propagate reachability through every cascade-resolved forward edge when multiple submit hooks contribute', async () => {
+    // Arrange
+    const plan: NavigationRuntimePlan = {
+      entries: [
+        createEntry({
+          stepId: 'compile_ast:85',
+          path: 'entry',
+          isEntryPoint: true,
+        }),
+        createEntry({ stepId: 'compile_ast:88', path: 'add' }),
+        createEntry({ stepId: 'compile_ast:89', path: 'check' }),
+      ],
+      resumeConfigured: false,
+      unreachableRedirect: 'entry',
+      compiledStepValidations: new Map(),
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['add', 'check'] },
+    })
+
+    // Act
+    const result = await analyzer.evaluate(
+      plan,
+      'compile_ast:89',
+      routeTemplateCatalog,
+      context,
+      compiledResult,
+      mockFunctionRegistry,
+    )
+
+    // Assert
+    expect(result.steps.find(step => step.stepId === 'compile_ast:88')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepId === 'compile_ast:89')?.isReachable).toBe(true)
+  })
+
+  it('should keep predecessor edges visible for unreachable steps when the cascade narrows outcomeValues', async () => {
+    // Arrange
+    const plan: NavigationRuntimePlan = {
+      entries: [
+        createEntry({
+          stepId: 'compile_ast:95',
+          path: 'entry',
+          isEntryPoint: true,
+        }),
+        createEntry({ stepId: 'compile_ast:96', path: 'add' }),
+        createEntry({ stepId: 'compile_ast:97', path: 'check' }),
+      ],
+      resumeConfigured: false,
+      unreachableRedirect: 'entry',
+      compiledStepValidations: new Map(),
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const compiledResult = createCompiledResult(plan, {
+      outcomeValues: { 0: ['add'] },
+      declaredOutcomeValues: { 0: ['add', 'check'] },
+    })
+
+    // Act
+    const result = await analyzer.evaluate(
+      plan,
+      'compile_ast:96',
+      routeTemplateCatalog,
+      context,
+      compiledResult,
+      mockFunctionRegistry,
+    )
+
+    // Assert
+    expect(result.steps.find(step => step.stepId === 'compile_ast:96')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepId === 'compile_ast:97')?.isReachable).toBe(false)
+    expect(result.steps.find(step => step.stepId === 'compile_ast:95')?.declaredForwardRouteTemplatePaths).toEqual([
+      '/journey/add',
+      '/journey/check',
+    ])
+  })
+
   it('should mark all steps reachable and skip the BFS walk when reachabilityDisabled is true', async () => {
     // Arrange
     const plan: NavigationRuntimePlan = {
@@ -642,7 +714,6 @@ describe('evaluateGeneratedNavigation', () => {
           path: 'entry',
           isEntryPoint: true,
           hasValidation: true,
-          forwardOutcomeIds: ['compile_ast:101'],
         }),
         createEntry({
           stepId: 'compile_ast:102',

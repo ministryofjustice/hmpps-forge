@@ -3,6 +3,7 @@ import type { PipelineState } from '../types'
 import type { NavigationEvaluation } from '../../../types/NavigationEvaluation.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { StepResponse } from '../../../../framework/types/response.type'
 
@@ -38,6 +39,15 @@ const createMockState = (): PipelineState => {
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry
+const mockInstrumentation = {
+  span: vi.fn((_n: string, fn: (s: { setAttribute: () => void; setAttributes: () => void }) => unknown) =>
+    fn({ setAttribute: vi.fn(), setAttributes: vi.fn() }),
+  ),
+  spanAsync: vi.fn(
+    async (_n: string, fn: (s: { setAttribute: () => void; setAttributes: () => void }) => Promise<unknown>) =>
+      fn({ setAttribute: vi.fn(), setAttributes: vi.fn() }),
+  ),
+} as unknown as ForgeInstrumentation
 
 const createMockEvaluation = (): NavigationEvaluation => ({
   currentStepId: 'compile_ast:1' as const,
@@ -65,6 +75,7 @@ describe('navigationPhase', () => {
         {} as never,
         resolveRedirect,
         mockFunctionRegistry,
+        mockInstrumentation,
       )
 
       // Act
@@ -88,6 +99,7 @@ describe('navigationPhase', () => {
         {} as never,
         resolveRedirect,
         mockFunctionRegistry,
+        mockInstrumentation,
       )
 
       // Act
@@ -110,6 +122,7 @@ describe('navigationPhase', () => {
         {} as never,
         resolveRedirect,
         mockFunctionRegistry,
+        mockInstrumentation,
       )
 
       // Act
@@ -129,10 +142,73 @@ describe('navigationPhase', () => {
         {} as never,
         vi.fn(),
         mockFunctionRegistry,
+        mockInstrumentation,
       )
 
       // Act & Assert
       await expect(phase.execute(createMockState())).rejects.toThrow('compiledNavigation function is missing from plan')
+    })
+
+    it('should record reachability span with navigation attributes', async () => {
+      // Arrange
+      const setAttributes = vi.fn()
+      const instrumentation = {
+        span: vi.fn((_n: string, fn: (s: { setAttributes: typeof setAttributes }) => unknown) => fn({ setAttributes })),
+      } as unknown as ForgeInstrumentation
+      const evaluation: NavigationEvaluation = {
+        currentStepId: 'compile_ast:1' as const,
+        steps: [
+          {
+            stepId: 'compile_ast:1' as const,
+            routeTemplatePath: '/journey/step-1',
+            declarationIndex: 0,
+            isEntryPoint: true,
+            isConditionalEntry: false,
+            hasValidation: true,
+            isValid: true,
+            isReachable: true,
+            forwardRouteTemplatePaths: ['/journey/step-2'],
+            predecessorRouteTemplatePaths: [],
+          },
+        ],
+        defaultEntryRouteTemplatePath: '/journey/step-1',
+        frontierRouteTemplatePath: '/journey/step-1',
+        canonicalPathRouteTemplatePaths: ['/journey/step-1'],
+        progressExists: true,
+        resumeActive: false,
+        resumeOutcome: 'no-op',
+        unreachableRedirect: 'entry',
+      }
+      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
+      const phase = createNavigationPhase(
+        compiledFn,
+        {} as never,
+        'compile_ast:1' as const,
+        {} as never,
+        vi.fn().mockReturnValue(undefined),
+        mockFunctionRegistry,
+        instrumentation,
+      )
+
+      // Act
+      await phase.execute(createMockState())
+
+      // Assert
+      expect(instrumentation.span).toHaveBeenCalledWith('reachability', expect.any(Function))
+      expect(setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'forge.navigation.currentStepId': 'compile_ast:1',
+          'forge.navigation.defaultEntry': '/journey/step-1',
+          'forge.navigation.frontier': '/journey/step-1',
+          'forge.navigation.progressExists': true,
+          'forge.navigation.resumeActive': false,
+          'forge.navigation.resumeOutcome': 'no-op',
+          'forge.navigation.reachableCount': 1,
+          'forge.navigation.unreachableCount': 0,
+          'forge.navigation.graph': expect.any(String),
+        }),
+      )
+      expect(JSON.parse(setAttributes.mock.calls[0][0]['forge.navigation.graph'])).toHaveLength(1)
     })
   })
 })

@@ -14,6 +14,7 @@ export interface NavigationStepState {
   isReachable: boolean
   isValid: boolean
   forwardRouteTemplatePaths: string[]
+  declaredForwardRouteTemplatePaths?: string[]
   predecessorRouteTemplatePaths: string[]
   tieBreakerPriority?: number
 }
