@@ -12,6 +12,7 @@ import { definitionsAndRuntimeStep } from './definitions-and-runtime/step'
 import { loadingSavingAndRedirectingStep } from './loading-saving-and-redirecting/step'
 import { shapingDataStep } from './shaping-data/step'
 import { validationStep } from './validation/step'
+import { testingStep } from './testing/step'
 
 export const buildingJourneysJourney = journey({
   code: 'building-journeys',
@@ -34,5 +35,6 @@ export const buildingJourneysJourney = journey({
     loadingSavingAndRedirectingStep,
     shapingDataStep,
     validationStep,
+    testingStep,
   ],
 })

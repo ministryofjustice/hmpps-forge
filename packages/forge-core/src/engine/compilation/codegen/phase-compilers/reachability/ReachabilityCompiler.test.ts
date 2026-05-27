@@ -1,4 +1,4 @@
-import { ASTTestFactory } from '../../../../../testing/ASTTestFactory'
+import { ASTTestFactory } from '../../../testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../../types/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../../authoring/types/enums'
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../../types/expressions.type'

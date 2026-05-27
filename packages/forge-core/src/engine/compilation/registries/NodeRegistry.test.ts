@@ -1,5 +1,5 @@
 import { ASTNodeType } from '../../types/enums'
-import { ASTTestFactory } from '../../../testing/ASTTestFactory'
+import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
 import { BlockType, ExpressionType, PredicateType } from '../../../authoring/types/enums'
 import NodeRegistry from './NodeRegistry'
 

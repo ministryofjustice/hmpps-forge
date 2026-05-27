@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import type { GuideDeps } from '../../effects'
 import { PatternEffectsImplementations } from './effects'
 import type { PatternEffectContext, PatternSession } from './context.type'
@@ -5,14 +6,14 @@ import type { PatternEffectContext, PatternSession } from './context.type'
 const deps = {
   guideContentStore: {
     load: async () => {},
-    getMarkdown: () => undefined,
-    getHeadings: () => [],
+    getMarkdown: (): undefined => undefined,
+    getHeadings: (): never[] => [],
   },
   guideSearch: {
-    search: async () => [],
+    search: async (): Promise<never[]> => [],
   },
   formDataStore: {
-    get: async () => null,
+    get: async (): Promise<null> => null,
     set: async () => {},
     delete: async () => {},
   },
@@ -30,7 +31,7 @@ const deps = {
       drawDate: 'Tuesday 21 April 2026',
     }),
   },
-} satisfies GuideDeps
+} as unknown as GuideDeps
 
 function createPatternEffectContext(options: {
   answers?: Record<string, unknown>
@@ -71,9 +72,7 @@ describe('PatternEffectsImplementations', () => {
   describe('AddRepeatingItem()', () => {
     it('should append a new row from live context data when no draft collection exists yet', () => {
       // Arrange
-      const session: {
-        patternDrafts?: Record<string, Record<string, unknown>>
-      } = {}
+      const session = {} as PatternSession
       const effectContext = createPatternEffectContext({
         session,
         data: {
@@ -108,9 +107,7 @@ describe('PatternEffectsImplementations', () => {
   describe('SaveRepeatingItems()', () => {
     it('should persist the current rows from live context data when saving for the first time', () => {
       // Arrange
-      const session: {
-        patternDrafts?: Record<string, Record<string, unknown>>
-      } = {}
+      const session = {} as PatternSession
       const effectContext = createPatternEffectContext({
         session,
         data: {

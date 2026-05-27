@@ -45,6 +45,12 @@
       "require": "./dist/core/framework/index.cjs",
       "default": "./dist/core/framework/index.mjs"
     },
+    "./core/testing": {
+      "types": "./dist/core/testing/index.d.ts",
+      "import": "./dist/core/testing/index.mjs",
+      "require": "./dist/core/testing/index.cjs",
+      "default": "./dist/core/testing/index.mjs"
+    },
     "./express-nunjucks": {
       "types": "./dist/express-nunjucks/index.d.ts",
       "import": "./dist/express-nunjucks/index.mjs",

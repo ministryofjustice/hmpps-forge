@@ -1,5 +1,5 @@
 import { FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import { ASTTestFactory } from '../../../../testing/ASTTestFactory'
+import { ASTTestFactory } from '../../testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import NodeCompilationDispatcher from './NodeCompilationDispatcher'

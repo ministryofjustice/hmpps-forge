@@ -1,4 +1,4 @@
-import { ASTTestFactory } from '../../../../../testing/ASTTestFactory'
+import { ASTTestFactory } from '../../../testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
 import { FormatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'

@@ -3,7 +3,7 @@ import { AstNodeId } from '../types/engine.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { HookType } from '../../authoring/types/enums'
-import { ASTTestFactory } from '../../testing/ASTTestFactory'
+import { ASTTestFactory } from './testing-helpers/ASTTestFactory'
 import CompilationPlanner from './CompilationPlanner'
 
 function createAccessHook(id: AstNodeId): AccessHookASTNode {
