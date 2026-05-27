@@ -1,7 +1,7 @@
+import { describe, expect, it } from 'vitest'
 import type { GuideDeps } from '../../effects'
 import { PatternEffectsImplementations } from './effects'
 import type { PatternEffectContext, PatternSession } from './context.type'
-import { describe, expect, it } from "vitest"
 
 const deps = {
   guideContentStore: {

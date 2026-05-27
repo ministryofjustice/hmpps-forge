@@ -1,8 +1,8 @@
 import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { describe, expect, it, vi } from 'vitest'
 import { PatternEffectsImplementations } from '../../effects'
 import { branchingDemoJourney } from './journey'
-import { describe, expect, it, vi } from 'vitest'
 
 const basePackage = {
   journey: branchingDemoJourney,

@@ -32,7 +32,7 @@ export default [
     },
   },
   {
-    files: ['**/testing/**/*.ts', 'forge-express-nunjucks/src/adapter/types.ts'],
+    files: ['**/testing-helpers/**/*.ts', 'forge-express-nunjucks/src/adapter/types.ts'],
     rules: {
       'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
     },
