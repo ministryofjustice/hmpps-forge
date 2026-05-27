@@ -237,7 +237,8 @@ export class ForgeTestClient {
         headers: res.headers,
         cookies: res.cookies,
         getBlocksByVariant: (variant: string) => context.blocks.filter(b => b.variant === variant),
-        getValidationErrorsByFieldCode: (fieldCode: string) => context.fieldValidationErrors.filter(e => e.blockCode === fieldCode),
+        getValidationErrorsByFieldCode: (fieldCode: string) =>
+          context.fieldValidationErrors.filter(e => e.blockCode === fieldCode),
       }
     }
 
