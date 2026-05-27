@@ -203,6 +203,7 @@ export default class TemplateRenderer {
       span.setAttributes({
         'forge.component.variant': block.variant,
         'forge.block.id': block.id,
+        'forge.component.blockType': block.blockType,
       })
 
       try {
@@ -234,6 +235,8 @@ export default class TemplateRenderer {
           },
           showValidationFailures,
         )
+
+        span.setAttribute('forge.component.input', safeStringify(evaluatedBlock))
 
         const html = component.render(evaluatedBlock, this.cachedRenderer)
 
@@ -415,4 +418,12 @@ function toNavigationCompatibilityItems(node: RouteTreeNode): TemplateNavigation
       children,
     },
   ]
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return '{}'
+  }
 }
