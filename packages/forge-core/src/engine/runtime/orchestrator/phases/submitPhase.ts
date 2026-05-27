@@ -34,7 +34,7 @@ export function createSubmitPhase(
           throw createHttpError(500, 'Hook redirect target is missing')
         }
 
-        return { action: 'halt-redirect', target: result.redirect }
+        return { action: 'halt-redirect', target: result.redirect, reason: 'submit' }
       }
 
       if (result.outcome === 'error') {

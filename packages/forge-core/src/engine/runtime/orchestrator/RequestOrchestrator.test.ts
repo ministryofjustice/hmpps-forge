@@ -80,7 +80,7 @@ describe('RequestOrchestrator', () => {
 
     it('should halt and redirect when a phase returns halt-redirect', async () => {
       // Arrange
-      const phase1 = createPhase('phase-1', { action: 'halt-redirect', target: '/other-step' })
+      const phase1 = createPhase('phase-1', { action: 'halt-redirect', target: '/other-step', reason: 'unreachable' })
       const phase2 = createPhase('phase-2', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
       const orchestrator = new RequestOrchestrator([phase1, phase2], terminal, instrumentation)
@@ -100,6 +100,7 @@ describe('RequestOrchestrator', () => {
       const phase1 = createPhase('phase-1', {
         action: 'halt-redirect',
         target: '/journey/:personId/next-step',
+        reason: 'unreachable',
       })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
       const orchestrator = new RequestOrchestrator([phase1], terminal, instrumentation)
@@ -147,7 +148,7 @@ describe('RequestOrchestrator', () => {
     it('should stop at the first halting phase in a chain', async () => {
       // Arrange
       const phase1 = createPhase('phase-1', { action: 'continue' })
-      const phase2 = createPhase('phase-2', { action: 'halt-redirect', target: '/stop-here' })
+      const phase2 = createPhase('phase-2', { action: 'halt-redirect', target: '/stop-here', reason: 'unreachable' })
       const phase3 = createPhase('phase-3', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
       const orchestrator = new RequestOrchestrator([phase1, phase2, phase3], terminal, instrumentation)

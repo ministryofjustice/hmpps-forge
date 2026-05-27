@@ -94,7 +94,7 @@ describe('submitPhase', () => {
       const result = await phase.execute(createMockState())
 
       // Assert
-      expect(result).toEqual({ action: 'halt-redirect', target: '/next' })
+      expect(result).toEqual({ action: 'halt-redirect', target: '/next', reason: 'submit' })
     })
 
     it('should return halt-error when submit hooks error', async () => {

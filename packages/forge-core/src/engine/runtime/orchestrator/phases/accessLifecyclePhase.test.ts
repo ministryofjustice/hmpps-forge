@@ -75,7 +75,7 @@ describe('accessLifecyclePhase', () => {
       const result = await phase.execute(createMockState())
 
       // Assert
-      expect(result).toEqual({ action: 'halt-redirect', target: '/login' })
+      expect(result).toEqual({ action: 'halt-redirect', target: '/login', reason: 'access-lifecycle' })
     })
 
     it('should throw when redirect target is missing', async () => {

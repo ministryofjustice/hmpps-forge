@@ -106,7 +106,7 @@ describe('navigationPhase', () => {
       const result = await phase.execute(createMockState())
 
       // Assert
-      expect(result).toEqual({ action: 'halt-redirect', target: '/other-step' })
+      expect(result).toEqual({ action: 'halt-redirect', target: '/other-step', reason: 'unreachable' })
     })
 
     it('should store reachability on context when present', async () => {

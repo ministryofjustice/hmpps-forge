@@ -57,7 +57,9 @@ export function createNavigationPhase(
       const redirectTarget = resolveRedirect(result.evaluation)
 
       if (redirectTarget) {
-        return { action: 'halt-redirect', target: redirectTarget }
+        const reason = result.evaluation.resumeOutcome === 'redirect' ? 'resume' : 'unreachable'
+
+        return { action: 'halt-redirect', target: redirectTarget, reason }
       }
 
       return { action: 'continue' }

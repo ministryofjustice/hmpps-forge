@@ -17,6 +17,12 @@ export default class RequestOrchestrator {
       const outcome = await this.instrumentation.spanAsync(phase.name, () => phase.execute(state))
 
       if (outcome.action === 'halt-redirect') {
+        this.instrumentation.getCurrentSpan()?.setAttributes({
+          'forge.outcome.type': 'redirected',
+          'forge.redirect.target': outcome.target,
+          'forge.redirect.reason': outcome.reason,
+        })
+
         return this.resolveRedirect(outcome.target, state.request)
       }
 
@@ -25,7 +31,11 @@ export default class RequestOrchestrator {
       }
     }
 
-    return this.instrumentation.spanAsync(this.terminal.name, () => this.terminal.execute(state))
+    const result = await this.instrumentation.spanAsync(this.terminal.name, () => this.terminal.execute(state))
+
+    this.instrumentation.getCurrentSpan()?.setAttribute('forge.outcome.type', 'rendered')
+
+    return result
   }
 
   private resolveRedirect(target: string, request: StepRequest): ForgeResult {
