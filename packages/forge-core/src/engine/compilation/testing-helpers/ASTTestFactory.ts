@@ -1,6 +1,13 @@
 // eslint-disable-next-line max-classes-per-file
-import { BlockType, ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../authoring/types/enums'
-import { AstNodeId } from '../engine/types/engine.type'
+import {
+  BlockType,
+  ExpressionType,
+  FunctionType,
+  OutcomeType,
+  PredicateType,
+  HookType,
+} from '../../../authoring/types/enums'
+import { AstNodeId } from '../../types/engine.type'
 import {
   ExpressionASTNode,
   FunctionASTNode,
@@ -10,11 +17,11 @@ import {
   SubmitHookASTNode,
   RedirectOutcomeASTNode,
   ThrowErrorOutcomeASTNode,
-} from '../engine/types/expressions.type'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '../engine/types/structures.type'
-import { ASTNodeType } from '../engine/types/enums'
-import { PredicateASTNode } from '../engine/types/predicates.type'
-import { FORMAT_STRING_GENERATOR_NAME } from '../authoring/generators/formatGenerators'
+} from '../../types/expressions.type'
+import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../types/structures.type'
+import { ASTNodeType } from '../../types/enums'
+import { PredicateASTNode } from '../../types/predicates.type'
+import { FORMAT_STRING_GENERATOR_NAME } from '../../../authoring/generators/formatGenerators'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode

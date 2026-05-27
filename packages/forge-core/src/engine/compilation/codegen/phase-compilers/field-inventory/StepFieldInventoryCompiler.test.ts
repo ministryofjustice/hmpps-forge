@@ -1,4 +1,4 @@
-import { ASTTestFactory } from '../../../../../testing/ASTTestFactory'
+import { ASTTestFactory } from '../../../testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../../types/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../../types/structures.type'
