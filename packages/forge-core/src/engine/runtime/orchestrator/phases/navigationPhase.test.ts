@@ -40,12 +40,15 @@ const createMockState = (): PipelineState => {
 
 const mockFunctionRegistry = {} as FunctionRegistry
 const mockInstrumentation = {
-  span: vi.fn((_n: string, fn: (s: { setAttribute: () => void; setAttributes: () => void }) => unknown) =>
-    fn({ setAttribute: vi.fn(), setAttributes: vi.fn() }),
+  span: vi.fn(
+    (_n: string, fn: (s: { setAttribute: () => void; setAttributes: () => void; addEvent: () => void }) => unknown) =>
+      fn({ setAttribute: vi.fn(), setAttributes: vi.fn(), addEvent: vi.fn() }),
   ),
   spanAsync: vi.fn(
-    async (_n: string, fn: (s: { setAttribute: () => void; setAttributes: () => void }) => Promise<unknown>) =>
-      fn({ setAttribute: vi.fn(), setAttributes: vi.fn() }),
+    async (
+      _n: string,
+      fn: (s: { setAttribute: () => void; setAttributes: () => void; addEvent: () => void }) => Promise<unknown>,
+    ) => fn({ setAttribute: vi.fn(), setAttributes: vi.fn(), addEvent: vi.fn() }),
   ),
 } as unknown as ForgeInstrumentation
 
@@ -149,11 +152,15 @@ describe('navigationPhase', () => {
       await expect(phase.execute(createMockState())).rejects.toThrow('compiledNavigation function is missing from plan')
     })
 
-    it('should record reachability span with navigation attributes', async () => {
+    it('should record reachability span with navigation attributes and per-step events', async () => {
       // Arrange
       const setAttributes = vi.fn()
+      const addEvent = vi.fn()
       const instrumentation = {
-        span: vi.fn((_n: string, fn: (s: { setAttributes: typeof setAttributes }) => unknown) => fn({ setAttributes })),
+        span: vi.fn(
+          (_n: string, fn: (s: { setAttributes: typeof setAttributes; addEvent: typeof addEvent }) => unknown) =>
+            fn({ setAttributes, addEvent }),
+        ),
       } as unknown as ForgeInstrumentation
       const evaluation: NavigationEvaluation = {
         currentStepId: 'compile_ast:1' as const,
@@ -205,10 +212,20 @@ describe('navigationPhase', () => {
           'forge.navigation.resumeOutcome': 'no-op',
           'forge.navigation.reachableCount': 1,
           'forge.navigation.unreachableCount': 0,
-          'forge.navigation.graph': expect.any(String),
         }),
       )
-      expect(JSON.parse(setAttributes.mock.calls[0][0]['forge.navigation.graph'])).toHaveLength(1)
+      expect(addEvent).toHaveBeenCalledTimes(1)
+      expect(addEvent).toHaveBeenCalledWith(
+        'forge.navigation.step',
+        expect.objectContaining({
+          'forge.navigation.step.id': 'compile_ast:1',
+          'forge.navigation.step.routeTemplatePath': '/journey/step-1',
+          'forge.navigation.step.isReachable': true,
+          'forge.navigation.step.isValid': true,
+          'forge.navigation.step.forwardRouteTemplatePaths': ['/journey/step-2'],
+          'forge.navigation.step.predecessorRouteTemplatePaths': [],
+        }),
+      )
     })
   })
 })

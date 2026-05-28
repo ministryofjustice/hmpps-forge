@@ -1,5 +1,6 @@
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { NavigationEvaluation } from '../../../types/NavigationEvaluation.type'
+import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
+import type { NavigationEvaluation, NavigationStepState } from '../../../types/NavigationEvaluation.type'
 import type { NavigationRuntimePlan } from '../../../types/runtimePlans.type'
 import type { NodeId } from '../../../types/engine.type'
 import type { JourneyRouteTemplateCatalog } from '../../types/routes.type'
@@ -33,6 +34,7 @@ export function createNavigationPhase(
 
       instrumentation.span('reachability', span => {
         const { evaluation } = result
+        const reachableCount = evaluation.steps.filter(s => s.isReachable).length
 
         span.setAttributes({
           'forge.navigation.currentStepId': evaluation.currentStepId ?? '',
@@ -42,9 +44,12 @@ export function createNavigationPhase(
           'forge.navigation.progressExists': evaluation.progressExists,
           'forge.navigation.resumeActive': evaluation.resumeActive,
           'forge.navigation.resumeOutcome': evaluation.resumeOutcome,
-          'forge.navigation.reachableCount': evaluation.steps.filter(s => s.isReachable).length,
-          'forge.navigation.unreachableCount': evaluation.steps.filter(s => !s.isReachable).length,
-          'forge.navigation.graph': JSON.stringify(evaluation.steps),
+          'forge.navigation.reachableCount': reachableCount,
+          'forge.navigation.unreachableCount': evaluation.steps.length - reachableCount,
+        })
+
+        evaluation.steps.forEach(step => {
+          span.addEvent('forge.navigation.step', stepEventAttributes(step))
         })
       })
 
@@ -64,5 +69,27 @@ export function createNavigationPhase(
 
       return { action: 'continue' }
     },
+  }
+}
+
+function stepEventAttributes(step: NavigationStepState): ForgeSpanAttributes {
+  return {
+    'forge.navigation.step.id': step.stepId,
+    'forge.navigation.step.routeTemplatePath': step.routeTemplatePath,
+    'forge.navigation.step.declarationIndex': step.declarationIndex,
+    'forge.navigation.step.isEntryPoint': step.isEntryPoint,
+    'forge.navigation.step.isConditionalEntry': step.isConditionalEntry,
+    'forge.navigation.step.hasValidation': step.hasValidation,
+    'forge.navigation.step.isReachable': step.isReachable,
+    'forge.navigation.step.isValid': step.isValid,
+    'forge.navigation.step.forwardRouteTemplatePaths': step.forwardRouteTemplatePaths,
+    'forge.navigation.step.predecessorRouteTemplatePaths': step.predecessorRouteTemplatePaths,
+    ...(step.code !== undefined && { 'forge.navigation.step.code': step.code }),
+    ...(step.declaredForwardRouteTemplatePaths !== undefined && {
+      'forge.navigation.step.declaredForwardRouteTemplatePaths': step.declaredForwardRouteTemplatePaths,
+    }),
+    ...(step.tieBreakerPriority !== undefined && {
+      'forge.navigation.step.tieBreakerPriority': step.tieBreakerPriority,
+    }),
   }
 }
