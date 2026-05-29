@@ -10,7 +10,6 @@ import {
   RouteTree,
   RouteTreeNode,
   RouteTreeRoute,
-  HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
 import { isRenderBlock } from './typeguards'
 import { resolvePathParams } from '../../../framework/path/routePath'
@@ -38,7 +37,6 @@ export interface RenderContextInput {
   data: Record<string, unknown>
   fieldValidationFailures?: StepValidationFailure[]
   domainValidationFailures?: DomainValidationFailure[]
-  hasNestedBlocks?: HasNestedBlocksLookup
 }
 
 /** Builds RenderContext from explicit evaluated render inputs. */
@@ -63,7 +61,6 @@ export default class RenderContextFactory {
       domainValidationErrors: domainValidationFailures,
       answers: input.answers,
       data: input.data,
-      hasNestedBlocks: input.hasNestedBlocks,
     }
   }
 }
