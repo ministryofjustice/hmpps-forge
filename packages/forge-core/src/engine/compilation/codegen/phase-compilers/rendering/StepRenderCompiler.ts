@@ -248,7 +248,6 @@ export default class StepRenderCompiler {
       emitter.code(
         `${targetArrayVar}.push({
           id: ${JSON.stringify(block.id)},
-          type: ${JSON.stringify(ASTNodeType.BLOCK)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(block.blockType)},
           properties: ${propsVar}
@@ -345,7 +344,6 @@ export default class StepRenderCompiler {
       emitter.code(
         `blocks.push({
           id: ${idExpr},
-          type: ${JSON.stringify(ASTNodeType.BLOCK)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},
           properties: ${propsVar}
@@ -429,7 +427,6 @@ export default class StepRenderCompiler {
         resultVar,
         `{
           id: ${JSON.stringify(block.id)},
-          type: ${JSON.stringify(ASTNodeType.BLOCK)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},
           properties: ${propsVar}
@@ -478,7 +475,6 @@ export default class StepRenderCompiler {
         resultVar,
         `{
           id: ${idExpr},
-          type: ${JSON.stringify(ASTNodeType.BLOCK)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},
           properties: ${propsVar}

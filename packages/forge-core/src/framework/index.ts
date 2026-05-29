@@ -20,10 +20,9 @@ export type {
   RouteTreeRoute,
   RouteTreeRouteKind,
 } from './rendering/types'
-export { isRenderBlock } from './rendering/types'
+export { isRenderBlock } from '../engine/typeguards/structure-nodes'
 export type { AstNodeId, NodeId } from '../engine/types/ast.type'
 export type { HttpMethod } from './types/request.type'
-export { ASTNodeType } from '../engine/types/enums'
 export type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'
 export {
   extractPathname,

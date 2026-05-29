@@ -4,7 +4,6 @@ import { ValidationResult } from '../types/ValidationResult.type'
 import { BlockType } from '../../../authoring/types/enums'
 import { isObjectValue } from '../../../shared/typeguards/primitives'
 import {
-  isRenderBlock,
   JourneyAncestor,
   RenderBlock,
   RenderContext,
@@ -13,6 +12,7 @@ import {
   RouteTreeRoute,
   HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
+import { isRenderBlock } from '../../typeguards/structure-nodes'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { StoredRouteTree, StoredRouteTreeNode, StoredRouteTreeRoute } from '../types/routes.type'
 

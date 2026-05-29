@@ -1,19 +1,13 @@
 import { NodeId } from '../../engine/types/ast.type'
-import { ASTNodeType } from '../../engine/types/enums'
 import { BlockType } from '../../authoring/types/enums'
 import { ValidationResult } from '../../engine/runtime/types/ValidationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
 export interface RenderBlock {
   readonly id: NodeId
-  readonly type: ASTNodeType.BLOCK
   readonly variant: string
   readonly blockType: BlockType
   readonly properties: Record<string, unknown>
-}
-
-export function isRenderBlock(obj: unknown): obj is RenderBlock {
-  return obj != null && typeof obj === 'object' && 'type' in obj && obj.type === ASTNodeType.BLOCK
 }
 
 export type RouteTreeRouteKind = 'journey' | 'step'

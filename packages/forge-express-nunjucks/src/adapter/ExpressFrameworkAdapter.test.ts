@@ -9,7 +9,6 @@ import {
   StepHandler,
   RenderBlock,
   RenderContext,
-  ASTNodeType,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
@@ -676,7 +675,6 @@ describe('ExpressFrameworkAdapter', () => {
         blocks: [
           {
             id: 'compile_ast:1',
-            type: ASTNodeType.BLOCK,
             variant: 'html',
             blockType: BlockType.BASIC,
             properties: { content: 'Hello' },

@@ -6,7 +6,6 @@ import {
   ForgeInstrumentation,
   RenderBlock,
   RenderContext,
-  ASTNodeType,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
@@ -59,7 +58,6 @@ describe('TemplateRenderer', () => {
   function createMockBlock(overrides: Partial<RenderBlock> = {}): RenderBlock {
     return {
       id: 'compile_ast:1',
-      type: ASTNodeType.BLOCK,
       variant: 'text-input',
       blockType: BlockType.FIELD,
       properties: {},
@@ -573,7 +571,6 @@ describe('TemplateRenderer', () => {
 
       const nestedBlock: RenderBlock = {
         id: 'compile_ast:10',
-        type: ASTNodeType.BLOCK,
         variant: 'fieldset',
         blockType: BlockType.BASIC,
         properties: { content: 'Nested' },
@@ -614,14 +611,12 @@ describe('TemplateRenderer', () => {
       const nestedBlocks: RenderBlock[] = [
         {
           id: 'compile_ast:20',
-          type: ASTNodeType.BLOCK,
           variant: 'html',
           blockType: BlockType.BASIC,
           properties: {},
         },
         {
           id: 'compile_ast:21',
-          type: ASTNodeType.BLOCK,
           variant: 'html',
           blockType: BlockType.BASIC,
           properties: {},
@@ -656,7 +651,6 @@ describe('TemplateRenderer', () => {
 
       const visibleBlock: RenderBlock = {
         id: 'compile_ast:20',
-        type: ASTNodeType.BLOCK,
         variant: 'html',
         blockType: BlockType.BASIC,
         properties: {},
@@ -664,7 +658,6 @@ describe('TemplateRenderer', () => {
 
       const hiddenBlock: RenderBlock = {
         id: 'compile_ast:21',
-        type: ASTNodeType.BLOCK,
         variant: 'html',
         blockType: BlockType.BASIC,
         properties: { visibleWhen: false },
@@ -698,7 +691,6 @@ describe('TemplateRenderer', () => {
 
       const nestedBlock: RenderBlock = {
         id: 'compile_ast:30',
-        type: ASTNodeType.BLOCK,
         variant: 'text-input',
         blockType: BlockType.BASIC,
         properties: {},

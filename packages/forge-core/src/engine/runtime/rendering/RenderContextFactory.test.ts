@@ -1,22 +1,20 @@
 import { AstNodeId } from '../../types/engine.type'
-import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
 import { JourneyAncestor, RenderBlock } from '../../../framework/rendering/types'
 import { StoredRouteTreeNode } from '../types/routes.type'
 
-function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}) {
+function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}): RenderBlock {
   return {
     id,
-    type: ASTNodeType.BLOCK,
     variant: 'TextInput',
     blockType: BlockType.FIELD,
     properties: {
       label: 'Test Label',
       ...overrides,
     },
-  } as RenderBlock
+  }
 }
 
 function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderContextInput {
@@ -186,9 +184,8 @@ describe('RenderContextFactory', () => {
     it('should apply validation failures to nested field blocks', () => {
       // Arrange
       const nestedBlock = createMockBlock('compile_ast:4')
-      const containerBlock = {
+      const containerBlock: RenderBlock = {
         id: 'compile_ast:container' as AstNodeId,
-        type: ASTNodeType.BLOCK,
         variant: 'SummaryCard',
         blockType: BlockType.BASIC,
         properties: {
@@ -196,7 +193,7 @@ describe('RenderContextFactory', () => {
             child: nestedBlock,
           },
         },
-      } as RenderBlock
+      }
       const input = createRenderInput({
         blocks: [containerBlock],
         fieldValidationFailures: [
