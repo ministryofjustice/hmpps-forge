@@ -12,7 +12,7 @@ jobs:
       actions: read
       security-events: write
     name: Snyk image scan (examples-app)
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@v2
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@working-directory-support
     with:
       channel_id: ${{ vars.SECURITY_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
       severity: 'HIGH,CRITICAL'
@@ -29,7 +29,7 @@ jobs:
       actions: read
       security-events: write
     name: Snyk filesystem scan (packages)
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@v2
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@working-directory-support
     with:
       channel_id: ${{ vars.SECURITY_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
       severity: 'HIGH,CRITICAL'
