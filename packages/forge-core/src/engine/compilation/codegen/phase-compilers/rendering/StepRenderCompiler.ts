@@ -10,7 +10,6 @@
  * into the render result. FILTER/FIND/MAP iterators used as property values are
  * compiled inline as expressions. No runtime node expansion is required.
  */
-import { NodeId } from '../../../../types/ast.type'
 import { ASTNodeType } from '../../../../types/enums'
 import { BlockType, IteratorType } from '../../../../../authoring/types/enums'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../../types/structures.type'
