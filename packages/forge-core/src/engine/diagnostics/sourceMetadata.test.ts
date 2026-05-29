@@ -4,7 +4,7 @@ import type { FunctionASTNode, IterateASTNode } from '../types/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import type { TemplateNode } from '../types/template.type'
 import { NodeIDCategory, NodeIDGenerator } from '../compilation/id-generators/NodeIDGenerator'
-import { NodeFactory } from '../nodes/NodeFactory'
+import { NodeFactory } from '../compilation/nodes/NodeFactory'
 import { ASTNodeType } from '../types/enums'
 import { createDSLSourceMap, getDSLSourceMetadata } from './sourceMetadata'
 
