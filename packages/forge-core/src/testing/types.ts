@@ -1,8 +1,7 @@
 import type { CookieMutation } from '../framework/types/response.type'
-import type { Evaluated, RenderContext } from '../framework/rendering/types'
+import type { RenderBlock, RenderContext } from '../framework/rendering/types'
 import type { HttpMethod } from '../framework/types/request.type'
 import type { StepHandler } from '../framework/types/adapter.type'
-import type { BlockASTNode } from '../engine/types/structures.type'
 import type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
@@ -22,7 +21,7 @@ export interface TestRenderResult {
   context: RenderContext
   headers: Map<string, string>
   cookies: Map<string, CookieMutation>
-  getBlocksByVariant(variant: string): Evaluated<BlockASTNode>[]
+  getBlocksByVariant(variant: string): RenderBlock[]
   getValidationErrorsByFieldCode(fieldCode: string): ValidationResult[]
 }
 
