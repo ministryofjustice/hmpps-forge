@@ -1,9 +1,7 @@
 import type { ValidationContext } from '../compilation/codegen/phase-compilers/validation/StepValidationCompiler'
 import type { StepValidityResult } from '../runtime/types/StepValidityResult.type'
-import type {
-  RenderCompilationContext,
-  CompiledBlock,
-} from '../compilation/codegen/phase-compilers/rendering/StepRenderCompiler'
+import type { RenderCompilationContext } from '../compilation/codegen/phase-compilers/rendering/StepRenderCompiler'
+import type { RenderBlock } from '../../framework/rendering/types'
 import type { AnswerPreparationContext } from '../compilation/codegen/phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 
 export type CompiledValidationFunction = (
@@ -15,7 +13,7 @@ export type CompiledValidationFunction = (
 export type CompiledEntryValidationFunction = (ctx: ValidationContext) => string[] | Promise<string[]>
 
 export interface CompiledRenderResult {
-  blocks: CompiledBlock[]
+  blocks: RenderBlock[]
   step: Record<string, unknown>
   ancestors: Record<string, unknown>[]
 }

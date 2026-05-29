@@ -47,15 +47,6 @@ export interface RenderCompilationContext {
   conditions: FunctionRegistry
 }
 
-/** Single evaluated block in the compiled render output. */
-export interface CompiledBlock {
-  id: NodeId
-  type: ASTNodeType.BLOCK
-  variant: string
-  blockType: BlockType
-  properties: Record<string, unknown>
-}
-
 interface RenderBlockValue {
   readonly id?: unknown
   readonly type: ASTNodeType.BLOCK

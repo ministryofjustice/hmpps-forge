@@ -1,17 +1,16 @@
 import { NodeId } from '../../types/engine.type'
 import { DomainValidationFailure, StepValidationFailure } from '../context/RuntimeEvaluationContext'
 import { ValidationResult } from '../types/ValidationResult.type'
-import { isBlockStructNode } from '../../typeguards/structure-nodes'
-import { BlockASTNode } from '../../types/structures.type'
 import { BlockType } from '../../../authoring/types/enums'
 import { isObjectValue } from '../../../shared/typeguards/primitives'
 import {
+  isRenderBlock,
   JourneyAncestor,
+  RenderBlock,
   RenderContext,
   RouteTree,
   RouteTreeNode,
   RouteTreeRoute,
-  Evaluated,
   HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
 import { resolvePathParams } from '../../../framework/path/routePath'
@@ -34,7 +33,7 @@ export interface RenderContextOptions {
 export interface RenderContextInput {
   step: RenderContext['step']
   ancestors: JourneyAncestor[]
-  blocks: Evaluated<BlockASTNode>[]
+  blocks: RenderBlock[]
   answers: Record<string, unknown>
   data: Record<string, unknown>
   fieldValidationFailures?: StepValidationFailure[]
@@ -106,9 +105,9 @@ function toRouteTreeRoute(stored: StoredRouteTreeRoute): RouteTreeRoute {
 }
 
 function attachValidationToBlocks(
-  blocks: Evaluated<BlockASTNode>[],
+  blocks: RenderBlock[],
   failures: StepValidationFailure[],
-): Evaluated<BlockASTNode>[] {
+): RenderBlock[] {
   const failuresByBlockId = groupFailuresByBlockId(failures)
 
   return blocks.map(block => attachValidationToBlock(block, failuresByBlockId))
@@ -126,9 +125,9 @@ function groupFailuresByBlockId(failures: StepValidationFailure[]): Map<NodeId, 
 }
 
 function attachValidationToBlock(
-  block: Evaluated<BlockASTNode>,
+  block: RenderBlock,
   failuresByBlockId: Map<NodeId, ValidationResult[]>,
-): Evaluated<BlockASTNode> {
+): RenderBlock {
   const properties = walkPropertiesForBlocks(block.properties, failuresByBlockId)
 
   if (block.blockType !== BlockType.FIELD) {
@@ -163,7 +162,7 @@ function walkValueForBlocks(value: unknown, failuresByBlockId: Map<NodeId, Valid
     return value.map(item => walkValueForBlocks(item, failuresByBlockId))
   }
 
-  if (isBlockStructNode(value)) {
+  if (isRenderBlock(value)) {
     return attachValidationToBlock(value, failuresByBlockId)
   }
 
