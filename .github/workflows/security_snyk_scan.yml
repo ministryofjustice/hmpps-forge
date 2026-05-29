@@ -1,0 +1,41 @@
+name: Security Snyk dependency check
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "00 5 * * MON-FRI" # Every weekday
+
+jobs:
+  security-snyk-check-image:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    name: Snyk image scan (examples-app)
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@v2
+    with:
+      channel_id: ${{ vars.SECURITY_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
+      severity: 'HIGH,CRITICAL'
+      scan_type: 'image'
+      location: 'examples-app'
+      slack_include_summary: true
+    secrets:
+      HMPPS_SNYK_API_KEY: ${{ secrets.HMPPS_SNYK_API_KEY }}
+      HMPPS_SRE_SLACK_BOT_TOKEN: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
+
+  security-snyk-check-fs:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    name: Snyk filesystem scan (packages)
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/security_snyk_scan.yml@v2
+    with:
+      channel_id: ${{ vars.SECURITY_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
+      severity: 'HIGH,CRITICAL'
+      scan_type: 'fs'
+      location: 'packages'
+      slack_include_summary: true
+    secrets:
+      HMPPS_SNYK_API_KEY: ${{ secrets.HMPPS_SNYK_API_KEY }}
+      HMPPS_SRE_SLACK_BOT_TOKEN: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
