@@ -47,15 +47,11 @@ COPY examples-app/ ./
 RUN npm run build
 
 # Stage: production image
-FROM base AS production
+FROM gcr.io/distroless/nodejs24-debian12 AS production
 
 ARG BUILD_NUMBER
 ARG GIT_REF
 ARG GIT_BRANCH
-
-RUN test -n "$BUILD_NUMBER" || (echo "BUILD_NUMBER not set" && false)
-RUN test -n "$GIT_REF" || (echo "GIT_REF not set" && false)
-RUN test -n "$GIT_BRANCH" || (echo "GIT_BRANCH not set" && false)
 
 ENV BUILD_NUMBER=${BUILD_NUMBER} \
     GIT_REF=${GIT_REF} \
@@ -64,23 +60,23 @@ ENV BUILD_NUMBER=${BUILD_NUMBER} \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup \
+COPY --from=build --chown=nonroot:nonroot \
         /app/examples-app/package.json \
         ./package.json
 
-COPY --from=build --chown=appuser:appgroup \
+COPY --from=build --chown=nonroot:nonroot \
         /app/examples-app/dist \
         ./dist
 
-COPY --from=prod-deps --chown=appuser:appgroup \
+COPY --from=prod-deps --chown=nonroot:nonroot \
         /app/examples-app/node_modules \
         ./node_modules
 
-COPY --from=model-assets --chown=appuser:appgroup \
+COPY --from=model-assets --chown=nonroot:nonroot \
         /opt/models \
         /opt/models
 
 EXPOSE 3000
-USER 2000
+USER nonroot
 
-CMD [ "npm", "start" ]
+CMD [ "node", "dist/server.js" ]
