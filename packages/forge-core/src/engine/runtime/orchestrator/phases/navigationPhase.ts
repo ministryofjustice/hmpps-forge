@@ -7,6 +7,7 @@ import type { JourneyRouteTemplateCatalog } from '../../types/routes.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { CompiledNavigationFunction } from '../../../compilation/codegen/phase-compilers/reachability/ReachabilityCompiler'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
+import type { DomainValidationFailure, StepValidationFailure } from '../../context/RuntimeEvaluationContext'
 import type { RequestPhase } from '../types'
 
 export function createNavigationPhase(
@@ -50,6 +51,22 @@ export function createNavigationPhase(
 
         evaluation.steps.forEach(step => {
           span.addEvent('forge.navigation.step', stepEventAttributes(step))
+
+          const fieldFailures = step.fieldFailures ?? []
+          const domainFailures = step.domainFailures ?? []
+
+          fieldFailures.forEach(failure => {
+            span.addEvent(
+              'forge.validation.failure',
+              validationFailureEventAttributes(step.stepId, 'field', false, failure),
+            )
+          })
+          domainFailures.forEach(failure => {
+            span.addEvent(
+              'forge.validation.failure',
+              validationFailureEventAttributes(step.stepId, 'domain', false, failure),
+            )
+          })
         })
       })
 
@@ -91,5 +108,22 @@ function stepEventAttributes(step: NavigationStepState): ForgeSpanAttributes {
     ...(step.tieBreakerPriority !== undefined && {
       'forge.navigation.step.tieBreakerPriority': step.tieBreakerPriority,
     }),
+  }
+}
+
+function validationFailureEventAttributes(
+  stepId: NodeId,
+  scope: 'field' | 'domain',
+  isSubmission: boolean,
+  failure: StepValidationFailure | DomainValidationFailure,
+): ForgeSpanAttributes {
+  return {
+    'forge.validation.failure.stepId': stepId,
+    'forge.validation.failure.scope': scope,
+    'forge.validation.failure.isSubmission': isSubmission,
+    'forge.validation.failure.message': failure.message,
+    'forge.validation.failure.submissionOnly': failure.submissionOnly,
+    ...('blockId' in failure && { 'forge.validation.failure.blockId': failure.blockId }),
+    ...(failure.blockCode !== undefined && { 'forge.validation.failure.blockCode': failure.blockCode }),
   }
 }

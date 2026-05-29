@@ -167,6 +167,7 @@ export default class ForgeRouter<TRouter> {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
+            forgeDependencies.instrumentation,
           ),
         ],
         renderTerminal,

@@ -74,6 +74,8 @@ export default class ReachabilityGraphBuilder {
         forwardRouteTemplatePaths: [],
         declaredForwardRouteTemplatePaths: [],
         predecessorRouteTemplatePaths: [],
+        fieldFailures: [],
+        domainFailures: [],
       }
     })
   }
@@ -215,6 +217,8 @@ export default class ReachabilityGraphBuilder {
         const validationResult = await compiledValidation(validationCtx, false, ['default'])
 
         current.isValid = validationResult.isValid
+        current.fieldFailures = validationResult.fieldFailures
+        current.domainFailures = validationResult.domainFailures
       }
 
       const entryIndex = stepIndexByStepId.get(current.stepId)!

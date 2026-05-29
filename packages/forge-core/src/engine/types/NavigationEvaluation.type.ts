@@ -1,5 +1,6 @@
 import { NodeId } from './ast.type'
 import type { UnreachableRedirectTarget } from '../../authoring/types/structures.type'
+import type { DomainValidationFailure, StepValidationFailure } from '../runtime/context/RuntimeEvaluationContext'
 
 export type ResumeOutcome = 'no-op' | 'redirect'
 
@@ -16,6 +17,8 @@ export interface NavigationStepState {
   forwardRouteTemplatePaths: string[]
   declaredForwardRouteTemplatePaths?: string[]
   predecessorRouteTemplatePaths: string[]
+  fieldFailures?: StepValidationFailure[]
+  domainFailures?: DomainValidationFailure[]
   tieBreakerPriority?: number
 }
 

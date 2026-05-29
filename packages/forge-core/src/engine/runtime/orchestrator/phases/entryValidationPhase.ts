@@ -4,6 +4,7 @@ import type {
 } from '../../../types/compiledPhaseResults.type'
 import type { NodeId } from '../../../types/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
 import { evaluateValidation } from './evaluateValidation'
 import type { RequestPhase } from '../types'
@@ -14,6 +15,7 @@ export function createEntryValidationPhase(
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
+  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'entry-validation',
@@ -36,6 +38,7 @@ export function createEntryValidationPhase(
         functionRegistry,
         false,
         groups,
+        instrumentation,
       )
       state.showValidationFailures = true
 

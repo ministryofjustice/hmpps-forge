@@ -227,5 +227,74 @@ describe('navigationPhase', () => {
         }),
       )
     })
+
+    it('should emit validation-failure events for steps the reachability walk found invalid', async () => {
+      // Arrange
+      const addEvent = vi.fn()
+      const instrumentation = {
+        span: vi.fn((_n: string, fn: (s: { setAttributes: () => void; addEvent: typeof addEvent }) => unknown) =>
+          fn({ setAttributes: vi.fn(), addEvent }),
+        ),
+      } as unknown as ForgeInstrumentation
+      const evaluation: NavigationEvaluation = {
+        currentStepId: 'compile_ast:1' as const,
+        steps: [
+          {
+            stepId: 'compile_ast:2' as const,
+            routeTemplatePath: '/journey/step-2',
+            declarationIndex: 1,
+            isEntryPoint: false,
+            isConditionalEntry: false,
+            hasValidation: true,
+            isValid: false,
+            isReachable: true,
+            forwardRouteTemplatePaths: [],
+            predecessorRouteTemplatePaths: ['/journey/step-1'],
+            fieldFailures: [
+              { blockId: 'compile_ast:3' as const, passed: false, message: 'Required', submissionOnly: false },
+            ],
+            domainFailures: [],
+          },
+        ],
+        defaultEntryRouteTemplatePath: '/journey/step-1',
+        frontierRouteTemplatePath: '/journey/step-1',
+        canonicalPathRouteTemplatePaths: ['/journey/step-1'],
+        progressExists: true,
+        resumeActive: false,
+        resumeOutcome: 'no-op',
+        unreachableRedirect: 'entry',
+      }
+      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
+      const phase = createNavigationPhase(
+        compiledFn,
+        {} as never,
+        'compile_ast:1' as const,
+        {} as never,
+        vi.fn().mockReturnValue(undefined),
+        mockFunctionRegistry,
+        instrumentation,
+      )
+
+      // Act
+      await phase.execute(createMockState())
+
+      // Assert
+      expect(addEvent).toHaveBeenCalledWith(
+        'forge.navigation.step',
+        expect.objectContaining({
+          'forge.navigation.step.id': 'compile_ast:2',
+          'forge.navigation.step.isValid': false,
+        }),
+      )
+      expect(addEvent).toHaveBeenCalledWith(
+        'forge.validation.failure',
+        expect.objectContaining({
+          'forge.validation.failure.stepId': 'compile_ast:2',
+          'forge.validation.failure.scope': 'field',
+          'forge.validation.failure.message': 'Required',
+          'forge.validation.failure.blockId': 'compile_ast:3',
+        }),
+      )
+    })
   })
 })
