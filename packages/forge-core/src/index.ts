@@ -1,7 +1,7 @@
 export { default as Forge } from './engine/Forge'
 export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
-export { default as EffectFunctionContext } from './engine/nodes/expressions/effect/EffectFunctionContext'
+export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'
 export { isRenderBlock } from './framework/rendering/types'
 export { ActiveSpan } from './instrumentation/ActiveSpan'
 export { default as FileSink } from './instrumentation/FileSink'

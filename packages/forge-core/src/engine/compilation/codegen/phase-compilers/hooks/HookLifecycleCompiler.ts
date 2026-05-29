@@ -10,7 +10,7 @@ import {
 } from '../../../../types/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../../../../types/structures.type'
 import { HookType as RuntimeHookType } from '../../../../runtime/types/AnswerHistory.type'
-import EffectFunctionContextCtor from '../../../../nodes/expressions/effect/EffectFunctionContext'
+import EffectFunctionContextCtor from '../../../../runtime/context/EffectFunctionContext'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../generated-functions/GeneratedFunctionCompiler'

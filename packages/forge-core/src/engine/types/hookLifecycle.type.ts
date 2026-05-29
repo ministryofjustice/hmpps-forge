@@ -1,5 +1,5 @@
 import type FunctionRegistry from '../registries/FunctionRegistry'
-import type { EffectEvaluationContext } from '../nodes/expressions/effect/EffectFunctionContext'
+import type { EffectEvaluationContext } from '../runtime/context/EffectFunctionContext'
 import type { StepValidationState } from '../runtime/context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../runtime/types/StepValidityResult.type'
 import type { ForgeInstrumentation } from '../../instrumentation/ForgeInstrumentation'

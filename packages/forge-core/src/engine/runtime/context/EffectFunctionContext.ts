@@ -1,8 +1,8 @@
-import { AnswerHistory, HookType } from '../../../runtime/types/AnswerHistory.type'
-import { JourneyReachabilityState } from '../../../types/JourneyReachabilityState.type'
-import type { StepRequest } from '../../../../framework/types/request.type'
-import type { CookieMutation, CookieOptions, StepResponse } from '../../../../framework/types/response.type'
-import { assertSerializable } from '../../../../shared/utils/asserts'
+import { AnswerHistory, HookType } from '../types/AnswerHistory.type'
+import { JourneyReachabilityState } from '../../types/JourneyReachabilityState.type'
+import type { StepRequest } from '../../../framework/types/request.type'
+import type { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
+import { assertSerializable } from '../../../shared/utils/asserts'
 import FieldsToClearResolver from './FieldsToClearResolver'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
