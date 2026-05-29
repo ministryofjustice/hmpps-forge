@@ -11,20 +11,19 @@ export type { ForgeResult } from '../engine/runtime/orchestrator/types'
 export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions, StepResponse } from './types/response.type'
 export type {
-  Evaluated,
   HasNestedBlocksLookup,
   JourneyAncestor,
+  RenderBlock,
   RenderContext,
   RouteTree,
   RouteTreeNode,
   RouteTreeRoute,
   RouteTreeRouteKind,
 } from './rendering/types'
-export type { ASTNode, AstNodeId, NodeId } from '../engine/types/ast.type'
-export type { BlockASTNode } from '../engine/types/structures.type'
+export { isRenderBlock } from './rendering/types'
+export type { AstNodeId, NodeId } from '../engine/types/ast.type'
 export type { HttpMethod } from './types/request.type'
 export { ASTNodeType } from '../engine/types/enums'
-export { isBlockStructNode } from '../engine/typeguards/structure-nodes'
 export type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'
 export {
   extractPathname,

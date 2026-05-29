@@ -1,29 +1,19 @@
-import { ASTNode, NodeId } from '../../engine/types/ast.type'
+import { NodeId } from '../../engine/types/ast.type'
 import { ASTNodeType } from '../../engine/types/enums'
+import { BlockType } from '../../authoring/types/enums'
 import { ValidationResult } from '../../engine/runtime/types/ValidationResult.type'
-import { BlockASTNode } from '../../engine/types/structures.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
-/**
- * Recursively evaluates AST node types.
- * - Structure nodes (Journey, Step, Block) keep their shape with evaluated properties
- * - Expression/Hook nodes resolve to `unknown` (their runtime value)
- * - Arrays recurse on elements
- * - Primitives pass through unchanged
- */
-export type Evaluated<T> = T extends {
-  type: ASTNodeType.JOURNEY | ASTNodeType.STEP | ASTNodeType.BLOCK
-  properties: infer P
+export interface RenderBlock {
+  readonly id: NodeId
+  readonly type: ASTNodeType.BLOCK
+  readonly variant: string
+  readonly blockType: BlockType
+  readonly properties: Record<string, unknown>
 }
-  ? Omit<T, 'properties'> & { properties: EvaluatedProperties<P> }
-  : T extends ASTNode
-    ? unknown
-    : T extends (infer E)[]
-      ? Evaluated<E>[]
-      : T
 
-type EvaluatedProperties<P> = {
-  [K in keyof P]: Evaluated<P[K]>
+export function isRenderBlock(obj: unknown): obj is RenderBlock {
+  return obj != null && typeof obj === 'object' && 'type' in obj && obj.type === ASTNodeType.BLOCK
 }
 
 export type RouteTreeRouteKind = 'journey' | 'step'
@@ -86,7 +76,7 @@ export interface RenderContext {
   ancestors: JourneyAncestor[]
 
   /** Evaluated blocks ready for rendering (data, not HTML) */
-  blocks: Evaluated<BlockASTNode>[]
+  blocks: RenderBlock[]
 
   /** Whether to show validation failures on blocks */
   showValidationFailures: boolean
