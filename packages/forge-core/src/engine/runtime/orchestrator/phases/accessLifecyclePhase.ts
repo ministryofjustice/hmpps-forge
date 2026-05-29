@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors'
-import type { Logger } from '../../../../framework/types/adapter.type'
+import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { CompiledAccessLifecycleFunction } from '../../../types/hookLifecycle.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
@@ -9,7 +9,7 @@ export function createAccessLifecyclePhase(
   compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined,
   path: string,
   functionRegistry: FunctionRegistry,
-  logger: Logger | Console,
+  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'access-lifecycle',
@@ -19,7 +19,7 @@ export function createAccessLifecyclePhase(
       }
 
       const result = await compiledAccessLifecycle(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, logger),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation),
       )
 
       if (result.outcome === 'redirect') {
@@ -27,7 +27,7 @@ export function createAccessLifecyclePhase(
           throw createHttpError(500, 'Hook redirect target is missing')
         }
 
-        return { action: 'halt-redirect', target: result.redirect }
+        return { action: 'halt-redirect', target: result.redirect, reason: 'access-lifecycle' }
       }
 
       if (result.outcome === 'error') {

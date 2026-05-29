@@ -3,6 +3,7 @@ import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   ComponentRegistry,
+  ForgeInstrumentation,
   isBlockStructNode,
   BlockASTNode,
   Evaluated,
@@ -11,12 +12,15 @@ import {
   RouteTreeNode,
   ValidationResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeHtmlRenderDebugBridge } from '@ministryofjustice/hmpps-forge/core'
 import createHttpError from 'http-errors'
 import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
+  instrumentation: ForgeInstrumentation
   defaultTemplate?: string
+  htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
 }
 
 /** Renders blocks and page templates using Nunjucks */
@@ -27,7 +31,11 @@ export default class TemplateRenderer {
 
   private readonly nunjucksEnv: nunjucks.Environment
 
+  private readonly instrumentation: ForgeInstrumentation
+
   private readonly defaultTemplate: string
+
+  private readonly htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
 
   private readonly templateCache = new Map<string, nunjucks.Template>()
 
@@ -40,7 +48,9 @@ export default class TemplateRenderer {
 
   constructor(options: TemplateRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
+    this.instrumentation = options.instrumentation
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
+    this.htmlRenderDebugBridge = options.htmlRenderDebugBridge
 
     const env = this.nunjucksEnv
     const cache = this.templateCache
@@ -73,32 +83,42 @@ export default class TemplateRenderer {
 
   /** Render a full page from RenderContext and return HTML string */
   render(context: RenderContext, locals: Record<string, unknown>, componentRegistry: ComponentRegistry): string {
-    const renderedBlocks = this.renderBlocks(
-      context.blocks,
-      context.showValidationFailures,
-      componentRegistry,
-      context.hasNestedBlocks,
-    )
+    return this.instrumentation.span('forge-render', span => {
+      const renderedBlocks = this.renderBlocks(
+        context.blocks,
+        context.showValidationFailures,
+        componentRegistry,
+        context.hasNestedBlocks,
+      )
 
-    const mergedViewLocals = this.mergeViewLocals(context)
+      const mergedViewLocals = this.mergeViewLocals(context)
 
-    const templateContext: TemplateContext = {
-      ...locals,
-      ...mergedViewLocals,
-      blocks: renderedBlocks,
-      step: context.step,
-      ancestors: context.ancestors,
-      routeTree: context.routeTree,
-      navigation: buildNavigationCompatibilityTree(context.routeTree),
-      answers: context.answers,
-      data: context.data,
-      fieldValidationErrors: context.fieldValidationErrors,
-      domainValidationErrors: context.domainValidationErrors,
-    }
+      const templateContext: TemplateContext = {
+        ...locals,
+        ...mergedViewLocals,
+        blocks: renderedBlocks,
+        step: context.step,
+        ancestors: context.ancestors,
+        routeTree: context.routeTree,
+        navigation: buildNavigationCompatibilityTree(context.routeTree),
+        answers: context.answers,
+        data: context.data,
+        fieldValidationErrors: context.fieldValidationErrors,
+        domainValidationErrors: context.domainValidationErrors,
+      }
 
-    const template = this.resolveTemplate(context)
+      const template = this.resolveTemplate(context)
 
-    return this.renderTemplate(template, templateContext)
+      span.setAttributes({
+        'forge.render.template': template,
+        'forge.render.blockCount': renderedBlocks.length,
+      })
+
+      const html = this.renderTemplate(template, templateContext)
+      const cspNonce = typeof locals.cspNonce === 'string' ? locals.cspNonce : undefined
+
+      return this.injectBridgeScript(html, cspNonce)
+    })
   }
 
   /** Resolve template from step, ancestors, or default; appends .njk if needed */
@@ -142,18 +162,20 @@ export default class TemplateRenderer {
 
   /** Render a Nunjucks template with the given context */
   private renderTemplate(template: string, context: TemplateContext): string {
-    try {
-      let tmpl = this.templateCache.get(template)
+    return this.instrumentation.span('render-template', () => {
+      try {
+        let tmpl = this.templateCache.get(template)
 
-      if (!tmpl) {
-        tmpl = this.nunjucksEnv.getTemplate(template)
-        this.templateCache.set(template, tmpl)
+        if (!tmpl) {
+          tmpl = this.nunjucksEnv.getTemplate(template)
+          this.templateCache.set(template, tmpl)
+        }
+
+        return tmpl.render(context)
+      } catch (err) {
+        throw this.wrapError(err)
       }
-
-      return tmpl.render(context)
-    } catch (err) {
-      throw this.wrapError(err)
-    }
+    })
   }
 
   /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
@@ -177,40 +199,52 @@ export default class TemplateRenderer {
     componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
   ): string {
-    try {
-      const component = componentRegistry.get(block.variant)
+    return this.instrumentation.span('render-component', span => {
+      span.setAttributes({
+        'forge.component.variant': block.variant,
+        'forge.block.id': block.id,
+        'forge.component.blockType': block.blockType,
+      })
 
-      if (!component) {
-        const availableVariants = Array.from(componentRegistry.getAll().keys())
+      try {
+        const component = componentRegistry.get(block.variant)
 
-        throw new Error(
-          `Component variant "${block.variant}" not found in registry. ` +
-            `Available variants: ${availableVariants.join(', ')}`,
-        )
-      }
+        if (!component) {
+          const availableVariants = Array.from(componentRegistry.getAll().keys())
 
-      const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
-      const transformedProperties = needsTransform
-        ? this.transformPropertiesWithRenderedBlocks(
-            block.properties,
-            showValidationFailures,
-            componentRegistry,
-            hasNestedBlocks,
+          throw new Error(
+            `Component variant "${block.variant}" not found in registry. ` +
+              `Available variants: ${availableVariants.join(', ')}`,
           )
-        : block.properties
+        }
 
-      const evaluatedBlock = this.toEvaluatedBlock(
-        {
-          ...block,
-          properties: transformedProperties,
-        },
-        showValidationFailures,
-      )
+        const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
+        const transformedProperties = needsTransform
+          ? this.transformPropertiesWithRenderedBlocks(
+              block.properties,
+              showValidationFailures,
+              componentRegistry,
+              hasNestedBlocks,
+            )
+          : block.properties
 
-      return component.render(evaluatedBlock, this.cachedRenderer)
-    } catch (err) {
-      throw this.wrapError(err)
-    }
+        const evaluatedBlock = this.toEvaluatedBlock(
+          {
+            ...block,
+            properties: transformedProperties,
+          },
+          showValidationFailures,
+        )
+
+        span.setAttribute('forge.component.input', safeStringify(evaluatedBlock))
+
+        const html = component.render(evaluatedBlock, this.cachedRenderer)
+
+        return this.decorateRenderedComponent(html, block.id, block.variant)
+      } catch (err) {
+        throw this.wrapError(err)
+      }
+    })
   }
 
   /** Convert Evaluated<BlockASTNode> to EvaluatedBlock for component */
@@ -232,7 +266,7 @@ export default class TemplateRenderer {
     }
 
     return (validate as ValidationResult[])
-      .filter(result => result.passed === false)
+      .filter(result => !result.passed)
       .map(result => ({
         message: result.message,
         details: result.details,
@@ -322,6 +356,44 @@ export default class TemplateRenderer {
       html,
     }
   }
+
+  private decorateRenderedComponent(html: string, blockId: string, variant: string): string {
+    if (this.htmlRenderDebugBridge === undefined) {
+      return html
+    }
+
+    const startPayload = Buffer.from(JSON.stringify({ id: blockId, variant })).toString('base64')
+    const endPayload = Buffer.from(JSON.stringify({ id: blockId })).toString('base64')
+
+    return `<!-- forge:component:start ${startPayload} -->${html}<!-- forge:component:end ${endPayload} -->`
+  }
+
+  private injectBridgeScript(html: string, cspNonce?: string): string {
+    if (this.htmlRenderDebugBridge === undefined) {
+      return html
+    }
+
+    const scriptUrl = this.htmlRenderDebugBridge.getScriptUrl()
+
+    if (scriptUrl === undefined) {
+      return html
+    }
+
+    const bodyCloseIndex = html.lastIndexOf('</body>')
+
+    if (bodyCloseIndex === -1) {
+      return html
+    }
+
+    const safeUrl = scriptUrl
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+    const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : ''
+
+    return `${html.slice(0, bodyCloseIndex)}<script src="${safeUrl}"${nonceAttr}></script>${html.slice(bodyCloseIndex)}`
+  }
 }
 
 function buildNavigationCompatibilityTree(routeTree: RouteTreeNode[]): TemplateNavigationItem[] {
@@ -346,4 +418,12 @@ function toNavigationCompatibilityItems(node: RouteTreeNode): TemplateNavigation
       children,
     },
   ]
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return '{}'
+  }
 }

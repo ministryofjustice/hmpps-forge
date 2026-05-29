@@ -28,6 +28,7 @@ export default class ReachabilityGraphBuilder {
         step.isReachable = true
       })
 
+      this.populateDeclaredForwardPaths(steps, compiledResult, routeTemplateCatalog)
       this.applyCompiledTieBreakers(steps, compiledResult)
 
       return steps
@@ -42,6 +43,8 @@ export default class ReachabilityGraphBuilder {
       currentStepId,
       validationContext,
     )
+    this.populateUnvisitedForwardPaths(steps, compiledResult, routeTemplateCatalog)
+    this.populateDeclaredForwardPaths(steps, compiledResult, routeTemplateCatalog)
     this.applyCompiledTieBreakers(steps, compiledResult)
 
     return steps
@@ -69,7 +72,10 @@ export default class ReachabilityGraphBuilder {
         isReachable: false,
         isValid: true,
         forwardRouteTemplatePaths: [],
+        declaredForwardRouteTemplatePaths: [],
         predecessorRouteTemplatePaths: [],
+        fieldFailures: [],
+        domainFailures: [],
       }
     })
   }
@@ -102,23 +108,47 @@ export default class ReachabilityGraphBuilder {
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ): string[] {
     const outcomeStrings = compiled.outcomeValues[stepIndex] ?? []
+
+    return this.resolveRouteTemplatePaths(outcomeStrings, currentRouteTemplatePath, routeTemplateCatalog)
+  }
+
+  private resolveDeclaredForwardPathsFromCompiled(
+    currentRouteTemplatePath: string,
+    stepIndex: number,
+    compiled: CompiledReachabilityResult,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
+  ): string[] {
+    const declaredOutcomeStrings = compiled.declaredOutcomeValues[stepIndex] ?? []
+
+    if (declaredOutcomeStrings.length === 0) {
+      return this.resolveForwardPathsFromCompiled(currentRouteTemplatePath, stepIndex, compiled, routeTemplateCatalog)
+    }
+
+    return this.resolveRouteTemplatePaths(declaredOutcomeStrings, currentRouteTemplatePath, routeTemplateCatalog)
+  }
+
+  private resolveRouteTemplatePaths(
+    outcomeStrings: readonly (string | undefined)[],
+    currentRouteTemplatePath: string,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
+  ): string[] {
     const routeTemplatePaths: string[] = []
 
-    for (const outcomeStr of outcomeStrings) {
+    outcomeStrings.forEach(outcomeStr => {
       if (outcomeStr === undefined) {
-        continue
+        return
       }
 
       const routeTemplatePath = resolveRouteTemplateTargetPath(outcomeStr, currentRouteTemplatePath)
 
       if (routeTemplatePath === undefined || !routeTemplateCatalog.stepIdByRouteTemplatePath.has(routeTemplatePath)) {
-        continue
+        return
       }
 
       if (!routeTemplatePaths.includes(routeTemplatePath)) {
         routeTemplatePaths.push(routeTemplatePath)
       }
-    }
+    })
 
     return routeTemplatePaths
   }
@@ -187,6 +217,8 @@ export default class ReachabilityGraphBuilder {
         const validationResult = await compiledValidation(validationCtx, false, ['default'])
 
         current.isValid = validationResult.isValid
+        current.fieldFailures = validationResult.fieldFailures
+        current.domainFailures = validationResult.domainFailures
       }
 
       const entryIndex = stepIndexByStepId.get(current.stepId)!
@@ -222,6 +254,52 @@ export default class ReachabilityGraphBuilder {
         }
       })
     }
+  }
+
+  private populateUnvisitedForwardPaths(
+    steps: NavigationStepState[],
+    compiled: CompiledReachabilityResult,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
+  ): void {
+    const stateByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
+
+    steps.forEach((step, index) => {
+      if (step.forwardRouteTemplatePaths.length > 0) {
+        return
+      }
+
+      step.forwardRouteTemplatePaths = this.resolveForwardPathsFromCompiled(
+        step.routeTemplatePath,
+        index,
+        compiled,
+        routeTemplateCatalog,
+      )
+
+      step.forwardRouteTemplatePaths.forEach(forwardPath => {
+        const next = stateByRouteTemplatePath.get(forwardPath)
+
+        if (!next || next.predecessorRouteTemplatePaths.includes(step.routeTemplatePath)) {
+          return
+        }
+
+        next.predecessorRouteTemplatePaths.push(step.routeTemplatePath)
+      })
+    })
+  }
+
+  private populateDeclaredForwardPaths(
+    steps: NavigationStepState[],
+    compiled: CompiledReachabilityResult,
+    routeTemplateCatalog: JourneyRouteTemplateCatalog,
+  ): void {
+    steps.forEach((step, index) => {
+      step.declaredForwardRouteTemplatePaths = this.resolveDeclaredForwardPathsFromCompiled(
+        step.routeTemplatePath,
+        index,
+        compiled,
+        routeTemplateCatalog,
+      )
+    })
   }
 
   private applyCompiledTieBreakers(steps: NavigationStepState[], compiled: CompiledReachabilityResult): void {

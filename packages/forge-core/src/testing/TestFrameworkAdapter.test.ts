@@ -1,5 +1,6 @@
 import TestFrameworkAdapter from './TestFrameworkAdapter'
 import type { TestRequest, TestResponse, TestRouter } from './types'
+import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 
 describe('TestFrameworkAdapter', () => {
   describe('configure()', () => {
@@ -20,7 +21,7 @@ describe('TestFrameworkAdapter', () => {
     it('should allow createClient after build', () => {
       const builder = TestFrameworkAdapter.configure()
 
-      builder.build({ logger: console })
+      builder.build({ logger: console, instrumentation: new ForgeInstrumentation(undefined, console) })
 
       const router: TestRouter = { routes: new Map(), children: new Map() }
       const client = builder.createClient(router)

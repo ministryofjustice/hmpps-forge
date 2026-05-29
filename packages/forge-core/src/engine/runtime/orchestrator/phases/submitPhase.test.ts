@@ -3,6 +3,7 @@ import type { PipelineState } from '../types'
 import type { CompiledSubmitHookResult } from '../../../types/hookLifecycle.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { StepResponse } from '../../../../framework/types/response.type'
 
@@ -38,7 +39,12 @@ const createMockState = (): PipelineState => {
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry
-const mockLogger = { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }
+const mockInstrumentation = {
+  span: vi.fn((_n: string, fn: (s: { setAttribute: () => void }) => unknown) => fn({ setAttribute: vi.fn() })),
+  spanAsync: vi.fn(async (_n: string, fn: (s: { setAttribute: () => void }) => Promise<unknown>) =>
+    fn({ setAttribute: vi.fn() }),
+  ),
+} as unknown as ForgeInstrumentation
 
 describe('submitPhase', () => {
   describe('execute()', () => {
@@ -55,7 +61,7 @@ describe('submitPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockLogger,
+        mockInstrumentation,
       )
 
       // Act
@@ -81,14 +87,14 @@ describe('submitPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockLogger,
+        mockInstrumentation,
       )
 
       // Act
       const result = await phase.execute(createMockState())
 
       // Assert
-      expect(result).toEqual({ action: 'halt-redirect', target: '/next' })
+      expect(result).toEqual({ action: 'halt-redirect', target: '/next', reason: 'submit' })
     })
 
     it('should return halt-error when submit hooks error', async () => {
@@ -106,7 +112,7 @@ describe('submitPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockLogger,
+        mockInstrumentation,
       )
 
       // Act
@@ -130,7 +136,7 @@ describe('submitPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockLogger,
+        mockInstrumentation,
       )
 
       // Act & Assert
@@ -145,7 +151,7 @@ describe('submitPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockLogger,
+        mockInstrumentation,
       )
 
       // Act & Assert

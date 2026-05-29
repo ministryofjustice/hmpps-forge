@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors'
-import type { Logger } from '../../../../framework/types/adapter.type'
+import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { CompiledSubmitHooksFunction } from '../../../types/hookLifecycle.type'
 import type { CompiledValidationFunction } from '../../../types/compiledPhaseResults.type'
 import type { NodeId } from '../../../types/engine.type'
@@ -14,7 +14,7 @@ export function createSubmitPhase(
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
-  logger: Logger | Console,
+  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'submit-hooks',
@@ -24,8 +24,17 @@ export function createSubmitPhase(
       }
 
       const result = await compiledSubmitHooks(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, logger, groups =>
-          evaluateValidation(compiledValidation, path, stepId, state.context, functionRegistry, true, groups),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, groups =>
+          evaluateValidation(
+            compiledValidation,
+            path,
+            stepId,
+            state.context,
+            functionRegistry,
+            true,
+            groups,
+            instrumentation,
+          ),
         ),
       )
 
@@ -34,7 +43,7 @@ export function createSubmitPhase(
           throw createHttpError(500, 'Hook redirect target is missing')
         }
 
-        return { action: 'halt-redirect', target: result.redirect }
+        return { action: 'halt-redirect', target: result.redirect, reason: 'submit' }
       }
 
       if (result.outcome === 'error') {

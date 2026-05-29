@@ -5,6 +5,7 @@ import {
   CookieMutation,
   CookieOptions,
   extractPathname,
+  ForgeInstrumentation,
   FrameworkAdapter,
   FrameworkAdapterBuilder,
   FrameworkAdapterDependencies,
@@ -15,6 +16,11 @@ import {
   StepResponse,
   type ForgeResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
+import type {
+  ForgeHtmlRenderDebugBridge,
+  ForgeHtmlRenderDebugSink,
+  ForgeInstrumentationSink,
+} from '@ministryofjustice/hmpps-forge/core'
 import TemplateRenderer from '../renderer/TemplateRenderer'
 import { RequestWithState } from './types'
 
@@ -33,6 +39,7 @@ export interface ExpressFrameworkAdapterUserOptions {
 
 export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdapterUserOptions {
   logger: Logger | Console
+  instrumentation: ForgeInstrumentation
 }
 
 /**
@@ -46,6 +53,8 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
   express.Response
 > {
   private readonly logger: Logger | Console
+
+  private readonly instrumentation: ForgeInstrumentation
 
   private readonly templateRenderer: TemplateRenderer
 
@@ -70,6 +79,7 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
         new ExpressFrameworkAdapter({
           ...options,
           logger: deps.logger,
+          instrumentation: deps.instrumentation,
         }),
     }
   }
@@ -79,9 +89,12 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
    */
   private constructor(options: ExpressFrameworkAdapterFullOptions) {
     this.logger = options.logger
+    this.instrumentation = options.instrumentation
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
+      instrumentation: options.instrumentation,
       defaultTemplate: options.defaultTemplate,
+      htmlRenderDebugBridge: findHtmlRenderDebugBridge(options.instrumentation.getSinks()),
     })
   }
 
@@ -335,7 +348,16 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       reqWithState.state = { ...res.locals, ...reqWithState.state }
 
       this.logger.debug(`${req.method} request to step at path ${requestPath}`)
-      handler(req, res).catch(next)
+
+      return (
+        this.instrumentation
+          .spanAsync('forge-request', async span => {
+            span.setAttribute('http.method', req.method)
+
+            return handler(req, res)
+          })
+          .catch(next)
+      )
     }
   }
 
@@ -347,4 +369,19 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       throw error
     }
   }
+}
+
+function findHtmlRenderDebugBridge(sinks: ForgeInstrumentationSink[]): ForgeHtmlRenderDebugBridge | undefined {
+  for (const sink of sinks) {
+    if (isHtmlRenderDebugSink(sink)) {
+      return sink.getHtmlRenderDebugBridge()
+    }
+  }
+
+  return undefined
+}
+
+function isHtmlRenderDebugSink(sink: ForgeInstrumentationSink): sink is ForgeHtmlRenderDebugSink {
+  return 'getHtmlRenderDebugBridge' in sink &&
+    typeof (sink as ForgeHtmlRenderDebugSink).getHtmlRenderDebugBridge === 'function'
 }

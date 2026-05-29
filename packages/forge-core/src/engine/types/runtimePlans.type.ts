@@ -38,9 +38,25 @@ export interface ReachabilityCompilationPlan {
 
 export interface ReachabilityCompilationEntry extends NavigationRuntimeEntry {
   entryWhenNodeId?: NodeId
-  forwardOutcomeIds: NodeId[]
+  forwardOutcomeGroups: ForwardOutcomeGroup[]
   cleardownFieldCodes: string[]
   reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
+}
+
+/**
+ * Per-submit-hook grouping of forward outcomes. Each group corresponds to one
+ * submit hook on the source step; the cascade short-circuit applies within a
+ * group but never across groups.
+ *
+ * `hookWhenNodeId` is set only when the hook's `when:` is reachability-compilable
+ * (does not reference request-time namespaces like post/params/query/request).
+ * When set, the compiler wraps the group in `if (Boolean(whenExpr))`. When
+ * unset, the group contributes its outcomes unguarded — an intentional
+ * over-approximation for non-evaluable guards.
+ */
+export interface ForwardOutcomeGroup {
+  hookWhenNodeId?: NodeId
+  outcomeIds: NodeId[]
 }
 
 export interface JourneyRuntimePlan {

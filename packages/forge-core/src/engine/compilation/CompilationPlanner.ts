@@ -1,14 +1,16 @@
 import { normalizeRelativePath } from '../../framework/path/routePath'
 import { BlockType, ExpressionType, IteratorType } from '../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../types/ast.type'
-import type { IterateASTNode, SubmitHookASTNode } from '../types/expressions.type'
+import type { IterateASTNode, ReferenceASTNode, SubmitHookASTNode } from '../types/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
 import { ASTNodeType } from '../types/enums'
+import { isASTNode } from '../typeguards/nodes'
 import { isRedirectOutcomeNode } from '../typeguards/outcome-nodes'
 import getAncestorChain from '../utils/getAncestorChain'
 import type ASTNodeTree from './node-tree/ASTNodeTree'
 import type NodeRegistry from './registries/NodeRegistry'
 import type {
+  ForwardOutcomeGroup,
   JourneyRuntimePlan,
   NavigationRuntimePlan,
   ReachabilityCompilationEntry,
@@ -196,7 +198,7 @@ export default class CompilationPlanner {
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
-    const { forwardOutcomeIds } = this.extractForwardNavigation(stepNode)
+    const { forwardOutcomeGroups } = this.extractForwardNavigation(stepNode)
     const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
@@ -207,7 +209,7 @@ export default class CompilationPlanner {
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
-      forwardOutcomeIds,
+      forwardOutcomeGroups,
       hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
@@ -291,31 +293,47 @@ export default class CompilationPlanner {
       .some(block => hasConfiguredValue(block.properties.validWhen))
   }
 
-  private extractForwardNavigation(stepNode: StepASTNode): { forwardOutcomeIds: NodeId[] } {
+  private extractForwardNavigation(stepNode: StepASTNode): { forwardOutcomeGroups: ForwardOutcomeGroup[] } {
     const submitHooks = stepNode.properties.onSubmission ?? []
-    const alwaysOutcomeIds = this.extractOutcomeIdsFromAlwaysBranch(submitHooks)
-    const validatingHooks = submitHooks.filter(t => t.properties.validate)
-    const validOutcomeIds = validatingHooks.length > 0 ? this.extractOutcomeIdsFromValidBranch(validatingHooks) : []
+
+    const forwardOutcomeGroups: ForwardOutcomeGroup[] = submitHooks
+      .map(hook => this.buildForwardOutcomeGroup(hook))
+      .filter(group => group.outcomeIds.length > 0)
+
+    return { forwardOutcomeGroups }
+  }
+
+  private buildForwardOutcomeGroup(hook: SubmitHookASTNode): ForwardOutcomeGroup {
+    const alwaysOutcomeIds = (hook.properties.onAlways?.next ?? [])
+      .filter(isRedirectOutcomeNode)
+      .map(node => node.id)
+    const validOutcomeIds = hook.properties.validate
+      ? (hook.properties.onValid?.next ?? []).filter(isRedirectOutcomeNode).map(node => node.id)
+      : []
 
     return {
-      forwardOutcomeIds: [...alwaysOutcomeIds, ...validOutcomeIds],
+      hookWhenNodeId: this.resolveReachabilityCompilableHookWhen(hook.properties.when),
+      outcomeIds: [...alwaysOutcomeIds, ...validOutcomeIds],
     }
   }
 
-  private extractOutcomeIdsFromValidBranch(hooks: SubmitHookASTNode[]): NodeId[] {
-    return hooks.flatMap(hook =>
-      (hook.properties.onValid?.next ?? [])
-        .filter(isRedirectOutcomeNode)
-        .map(node => node.id),
-    )
-  }
+  /**
+   * Returns the hook's `when:` node id only if the predicate is safe to evaluate
+   * at reachability time. Reachability runs per-step against the *current* request
+   * context, so guards that reference namespaces tied to a different request
+   * (post body, URL params, query string, request metadata) must be treated as
+   * unknown and over-approximated instead of evaluated against the wrong context.
+   */
+  private resolveReachabilityCompilableHookWhen(when: ASTNode | undefined): NodeId | undefined {
+    if (when === undefined || !isASTNode(when)) {
+      return undefined
+    }
 
-  private extractOutcomeIdsFromAlwaysBranch(hooks: SubmitHookASTNode[]): NodeId[] {
-    return hooks.flatMap(hook =>
-      (hook.properties.onAlways?.next ?? [])
-        .filter(isRedirectOutcomeNode)
-        .map(node => node.id),
-    )
+    if (containsRequestTimeReference(when)) {
+      return undefined
+    }
+
+    return when.id
   }
 
   private isAccessAncestor(node: ASTNode | undefined): node is JourneyASTNode | StepASTNode {
@@ -341,4 +359,52 @@ function hasConfiguredValue(value: unknown): boolean {
   }
 
   return true
+}
+
+// Namespaces whose values are tied to a single request and would resolve against
+// the wrong context if a predicate references them while reachability is being
+// evaluated for a step the user is not currently on. `session` and `data` are
+// stable across requests so they remain safe to evaluate.
+const REQUEST_TIME_NAMESPACES: ReadonlySet<string> = new Set(['post', 'params', 'query', 'request'])
+
+function containsRequestTimeReference(node: ASTNode): boolean {
+  if (isRequestTimeReference(node)) {
+    return true
+  }
+
+  const properties = (node as { properties?: Record<string, unknown> }).properties
+
+  if (properties === undefined) {
+    return false
+  }
+
+  return Object.values(properties).some(containsRequestTimeReferenceInValue)
+}
+
+function containsRequestTimeReferenceInValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsRequestTimeReferenceInValue)
+  }
+
+  if (isASTNode(value)) {
+    return containsRequestTimeReference(value)
+  }
+
+  return false
+}
+
+function isRequestTimeReference(node: ASTNode): boolean {
+  if (node.type !== ASTNodeType.EXPRESSION) {
+    return false
+  }
+
+  const reference = node as ReferenceASTNode
+
+  if (reference.expressionType !== ExpressionType.REFERENCE) {
+    return false
+  }
+
+  const root = reference.properties.path[0]
+
+  return typeof root === 'string' && REQUEST_TIME_NAMESPACES.has(root)
 }

@@ -8,7 +8,7 @@ export type ForgeResult = { type: 'render'; context: RenderContext } | { type: '
 
 export type PhaseOutcome =
   | { action: 'continue' }
-  | { action: 'halt-redirect'; target: string }
+  | { action: 'halt-redirect'; target: string; reason: string }
   | { action: 'halt-error'; status: number; message: string }
 
 export interface PipelineState {

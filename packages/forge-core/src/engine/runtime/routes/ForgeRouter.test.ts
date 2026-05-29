@@ -9,6 +9,7 @@ import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeRouter from './ForgeRouter'
+import { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
 interface MockRouter {
   id: string
@@ -84,6 +85,7 @@ describe('ForgeRouter', () => {
     mockForgeDependencies = {
       frameworkAdapter: mockFrameworkAdapter,
       logger: console,
+      instrumentation: new ForgeInstrumentation(undefined, console),
     }
 
     router = new ForgeRouter(mockForgeDependencies, { frameworkAdapter: { build: () => mockFrameworkAdapter } })
@@ -199,6 +201,7 @@ describe('ForgeRouter', () => {
       getCompilationContext: vi.fn().mockReturnValue(artefact),
       getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
       getJourneyRuntimePlan: vi.fn((journeyId: NodeId) => journeyPlans.get(journeyId)),
+      getJourneyCode: vi.fn().mockReturnValue('test-journey'),
     } as unknown as Mocked<PackageInstance>
   }
 

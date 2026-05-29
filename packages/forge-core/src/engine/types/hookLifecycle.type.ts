@@ -2,7 +2,7 @@ import type FunctionRegistry from '../registries/FunctionRegistry'
 import type { EffectEvaluationContext } from '../nodes/expressions/effect/EffectFunctionContext'
 import type { StepValidationState } from '../runtime/context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../runtime/types/StepValidityResult.type'
-import type { Logger } from '../../framework/types/adapter.type'
+import type { ForgeInstrumentation } from '../../instrumentation/ForgeInstrumentation'
 
 export interface HookLifecycleContext {
   answers: EffectEvaluationContext['global']['answers']
@@ -14,7 +14,7 @@ export interface HookLifecycleContext {
   post: Record<string, string | string[]>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  logger: Logger | Console
+  instrumentation: ForgeInstrumentation
   effectContext: EffectEvaluationContext
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
 }

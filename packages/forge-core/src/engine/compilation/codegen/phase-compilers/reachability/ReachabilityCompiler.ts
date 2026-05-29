@@ -6,7 +6,11 @@
  * present.
  */
 import { ASTNode } from '../../../../types/ast.type'
-import type { ReachabilityCompilationEntry, ReachabilityCompilationPlan } from '../../../../types/runtimePlans.type'
+import type {
+  ForwardOutcomeGroup,
+  ReachabilityCompilationEntry,
+  ReachabilityCompilationPlan,
+} from '../../../../types/runtimePlans.type'
 import NodeRegistry from '../../../registries/NodeRegistry'
 import NodeCompilationDispatcher from '../../expressions/NodeCompilationDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
@@ -46,8 +50,10 @@ export interface ReachabilityContext {
 export interface CompiledReachabilityResult {
   /** Per-step: result of evaluating the entryWhen predicate (undefined = no predicate) */
   entryResults: (boolean | undefined)[]
-  /** Per-step: raw path strings from forward outcome goto expressions */
+  /** Per-step: raw path strings from forward outcome goto expressions, narrowed by per-hook cascade */
   outcomeValues: (string | undefined)[][]
+  /** Per-step: every statically-declared forward goto across all hooks, regardless of any guards (devtools-only) */
+  declaredOutcomeValues: (string | undefined)[][]
   /** Per-step: resolved tie-breaker priority from the first matching rule */
   tieBreakerPriorities: (number | undefined)[]
   /** Whether the journey's resume condition evaluated to true */
@@ -180,6 +186,7 @@ export default class ReachabilityCompiler {
   ): void {
     emitter.declareConst('entryResults', `new Array(${stepCount})`)
     emitter.declareConst('outcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
+    emitter.declareConst('declaredOutcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
     emitter.declareConst('tieBreakerPriorities', `new Array(${stepCount})`)
 
     this.compileEntryPredicates(plan.entries, nodeRegistry, emitter)
@@ -204,7 +211,7 @@ export default class ReachabilityCompiler {
    * Builds the reachability result object literal.
    */
   private buildReachabilityResultExpression(): string {
-    return '{ entryResults: entryResults, outcomeValues: outcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
+    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
   }
 
   /**
@@ -240,11 +247,14 @@ export default class ReachabilityCompiler {
   /**
    * Compiles forward outcome evaluation for each step.
    *
-   * Forward outcomes are RedirectOutcomeASTNodes extracted from submit hooks
-   * during plan building. Each has an optional `when` guard (predicate) and a
-   * `goto` target (string literal or AST expression). If `when` is truthy (or
-   * absent), the generated code evaluates `goto` and pushes the string result
-   * to the step's outcome array.
+   * Forward outcomes are RedirectOutcomeASTNodes grouped by their owning submit
+   * hook. Each group cascades independently — a fresh `outcomeMatched` flag per
+   * group, optionally guarded by `if (hookWhen)` when the hook's `when:` is
+   * reachability-compilable. Hooks with non-compilable `when:` (e.g. `Post(...)`
+   * references) contribute unguarded as an intentional over-approximation.
+   *
+   * `declaredOutcomeValues` is hoisted out of the cascade so every authored
+   * static goto is recorded for the devtools graph regardless of guard state.
    *
    * Only REDIRECT outcomes contribute path candidates.
    */
@@ -256,46 +266,95 @@ export default class ReachabilityCompiler {
     emitter.comment('ReachabilityCompiler.compileForwardOutcomes')
 
     entries.forEach((entry, stepIndex) => {
-      if (entry.forwardOutcomeIds.length === 0) {
-        return
-      }
-
-      entry.forwardOutcomeIds.forEach(outcomeId => {
-        const outcomeNode = nodeRegistry.get(outcomeId)
-
-        if (!isRedirectOutcomeNode(outcomeNode)) {
-          return
-        }
-
-        this.compileForwardOutcome(outcomeNode.properties, stepIndex, emitter)
+      entry.forwardOutcomeGroups.forEach(group => {
+        this.compileForwardOutcomeGroup(group, stepIndex, nodeRegistry, emitter)
       })
     })
   }
 
+  private compileForwardOutcomeGroup(
+    group: ForwardOutcomeGroup,
+    stepIndex: number,
+    nodeRegistry: NodeRegistry,
+    emitter: CodeEmitter,
+  ): void {
+    const redirectOutcomes = group.outcomeIds
+      .map(outcomeId => nodeRegistry.get(outcomeId))
+      .filter(isRedirectOutcomeNode)
+
+    if (redirectOutcomes.length === 0) {
+      return
+    }
+
+    redirectOutcomes.forEach(outcome => {
+      this.compileDeclaredGotoResolution(outcome.properties.goto, stepIndex, emitter)
+    })
+
+    const emitCascade = () => {
+      emitter.scope(() => {
+        const outcomeMatchedVar = emitter.let('outcomeMatched', 'false')
+
+        redirectOutcomes.forEach(outcome => {
+          this.compileForwardOutcomeCascade(outcome.properties, stepIndex, outcomeMatchedVar, emitter)
+        })
+      })
+    }
+
+    const hookWhenNode = group.hookWhenNodeId !== undefined ? nodeRegistry.get(group.hookWhenNodeId) : undefined
+
+    if (hookWhenNode !== undefined && this.expr.isCompilableNode(hookWhenNode)) {
+      emitter.scope(() => {
+        const whenExpr = this.expr.compileExpression(hookWhenNode)
+        const whenVar = emitter.const('hookWhen', `Boolean(${whenExpr})`)
+
+        emitter.if(whenVar, emitCascade)
+      })
+
+      return
+    }
+
+    emitCascade()
+  }
+
   /**
-   * Emits one redirect outcome, including its optional when guard.
+   * Emits the cascade step for one redirect outcome within a hook group.
+   *
+   * The declared-paths push is hoisted to the group level, so this only runs
+   * the cascade guard (`outcomeMatched === false`) and the optional outcome-level
+   * `when:` evaluation.
    */
-  private compileForwardOutcome(
+  private compileForwardOutcomeCascade(
     properties: { readonly when?: ASTNode; readonly goto: ASTNode | string },
     stepIndex: number,
+    outcomeMatchedVar: string,
     emitter: CodeEmitter,
   ): void {
     emitter.scope(() => {
       const { when, goto } = properties
 
-      if (when !== undefined && this.expr.isCompilableNode(when)) {
-        const whenExpr = this.expr.compileExpression(when)
-        const whenVar = emitter.const('outcomeWhen', `Boolean(${whenExpr})`)
+      emitter.if(`${outcomeMatchedVar} === false`, () => {
+        if (when !== undefined && this.expr.isCompilableNode(when)) {
+          const whenExpr = this.expr.compileExpression(when)
+          const whenVar = emitter.const('outcomeWhen', `Boolean(${whenExpr})`)
 
-        emitter.if(whenVar, () => {
-          this.compileGotoResolution(goto, stepIndex, emitter)
-        })
+          emitter.if(whenVar, () => {
+            this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, emitter)
+          })
 
-        return
-      }
+          return
+        }
 
-      this.compileGotoResolution(goto, stepIndex, emitter)
+        this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, emitter)
+      })
     })
+  }
+
+  private compileDeclaredGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
+    if (typeof goto !== 'string') {
+      return
+    }
+
+    emitter.code(`declaredOutcomeValues[${stepIndex}].push(${JSON.stringify(goto)});`)
   }
 
   /**
@@ -304,7 +363,12 @@ export default class ReachabilityCompiler {
    * through the shared dispatcher. Expression failures surface as Forge runtime
    * errors with diagnostic context.
    */
-  private compileGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
+  private compileGotoResolution(
+    goto: ASTNode | string,
+    stepIndex: number,
+    outcomeMatchedVar: string,
+    emitter: CodeEmitter,
+  ): void {
     let gotoExpr: string
 
     if (typeof goto === 'string') {
@@ -319,6 +383,7 @@ export default class ReachabilityCompiler {
 
     emitter.if(`${gotoVar} !== undefined`, () => {
       emitter.code(`outcomeValues[${stepIndex}].push(String(${gotoVar}));`)
+      emitter.assign(outcomeMatchedVar, 'true')
     })
   }
 

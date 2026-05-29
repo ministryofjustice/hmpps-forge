@@ -5,6 +5,8 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { FrameworkAdapterBuilder, Logger } from '../framework/types/adapter.type'
+import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
+import type { ForgeInstrumentationOptions } from '../instrumentation/ForgeInstrumentation'
 import ForgeRouter from './runtime/routes/ForgeRouter'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
@@ -33,6 +35,9 @@ export interface ForgeOptions {
 
   /** Logger instance for forge output */
   logger?: Logger | Console
+
+  /** Instrumentation and debug trace configuration. */
+  instrumentation?: ForgeInstrumentationOptions
 
   /**
    * Base path prefix for all routes.
@@ -70,12 +75,18 @@ export interface ForgeOptions {
   frameworkAdapter: FrameworkAdapterBuilder<any, any, any>
 }
 
+interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'instrumentation'> {
+  instrumentation?: ForgeInstrumentationOptions
+}
+
 export default class Forge {
-  private readonly options: Required<ForgeOptions>
+  private readonly options: ResolvedForgeOptions
 
   private readonly functionRegistry = new FunctionRegistry()
 
   private readonly componentRegistry = new ComponentRegistry()
+
+  private readonly instrumentation: ForgeInstrumentation
 
   private readonly dependencies: ForgeDependencies
 
@@ -118,6 +129,8 @@ export default class Forge {
       ...constructorOptions,
     }
 
+    this.instrumentation = new ForgeInstrumentation(this.options.instrumentation, this.options.logger)
+
     if (!this.options.disableBuiltInFunctions) {
       this.functionRegistry.registerBuiltInFunctions()
     }
@@ -130,7 +143,9 @@ export default class Forge {
       logger: this.options.logger,
       frameworkAdapter: this.options.frameworkAdapter.build({
         logger: this.options.logger,
+        instrumentation: this.instrumentation,
       }),
+      instrumentation: this.instrumentation,
     }
 
     this.forgeRouter = new ForgeRouter(this.dependencies, this.options)
@@ -188,6 +203,8 @@ export default class Forge {
       return this
     }
 
+    const span = this.instrumentation.startSpan('journey-registration')
+
     try {
       const packageInstance = new PackageInstance(pkg, {
         functionRegistry: this.functionRegistry,
@@ -195,21 +212,25 @@ export default class Forge {
         functionDependencies: deps,
       })
 
-      this.registerPackageInstance(packageInstance)
+      const routeCount = this.registerPackageInstance(packageInstance)
+
+      span.setAttributes({
+        journeyCode: packageInstance.getJourneyCode(),
+        journeyTitle: packageInstance.getJourneyTitle(),
+        routeCount,
+      })
     } catch (e) {
+      span.recordError(e)
       this.handleRegistrationError(e)
+    } finally {
+      span.end()
     }
 
     return this
   }
 
-  private registerPackageInstance(packageInstance: PackageInstance): void {
-    const routeCount = this.forgeRouter.mount(packageInstance, this.dependencies)
-
-    this.dependencies.logger.info(
-      { journey: packageInstance.getJourneyCode(), routes: routeCount },
-      `Forge: Registered journey '${packageInstance.getJourneyTitle()}' with ${routeCount} routes`,
-    )
+  private registerPackageInstance(packageInstance: PackageInstance): number {
+    return this.forgeRouter.mount(packageInstance, this.dependencies)
   }
 
   private handleRegistrationError(e: unknown): void {

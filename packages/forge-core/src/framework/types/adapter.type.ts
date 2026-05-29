@@ -1,6 +1,7 @@
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
 import type { ForgeResult } from '../../engine/runtime/orchestrator/types'
+import type { ForgeInstrumentation } from '../../instrumentation/ForgeInstrumentation'
 import type { RenderContext } from '../rendering/types'
 import type { StepRequest } from './request.type'
 import type { StepResponse } from './response.type'
@@ -25,6 +26,7 @@ export interface ComponentRegistry {
  */
 export interface FrameworkAdapterDependencies {
   logger: Logger | Console
+  instrumentation: ForgeInstrumentation
 }
 
 /**

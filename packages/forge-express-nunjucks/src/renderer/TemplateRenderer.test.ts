@@ -3,6 +3,7 @@ import nunjucks from 'nunjucks'
 import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   ComponentRegistry,
+  ForgeInstrumentation,
   RenderContext,
   Evaluated,
   BlockASTNode,
@@ -10,6 +11,8 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
+
+const instrumentation = new ForgeInstrumentation(undefined, console)
 
 describe('TemplateRenderer', () => {
   let renderer: TemplateRenderer
@@ -31,6 +34,7 @@ describe('TemplateRenderer', () => {
 
     renderer = new TemplateRenderer({
       nunjucksEnv: mockNunjucksEnv,
+      instrumentation,
     })
   })
 

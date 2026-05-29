@@ -4,6 +4,7 @@ import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../../types/expressions.type'
 import { TestPredicateASTNode } from '../../../../types/predicates.type'
 import type {
+  ForwardOutcomeGroup,
   NavigationRuntimePlan,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
@@ -64,12 +65,16 @@ function createEntry(overrides: Partial<ReachabilityCompilationEntry> = {}): Rea
   return {
     stepId: ASTTestFactory.getId() as NodeId,
     isEntryPoint: false,
-    forwardOutcomeIds: [],
+    forwardOutcomeGroups: [],
     hasValidation: false,
     cleardownFieldCodes: [],
     reachabilityTieBreakers: [],
     ...overrides,
   }
+}
+
+function createGroup(outcomeIds: NodeId[], hookWhenNodeId?: NodeId): ForwardOutcomeGroup {
+  return { outcomeIds, hookWhenNodeId }
 }
 
 function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
@@ -219,7 +224,7 @@ describe('ReachabilityCompiler', () => {
       // Arrange
       const outcome = createRedirectOutcome(createGeneratorFunction('nextPath'))
       const plan = createPlan({
-        entries: [createEntry({ isEntryPoint: true, forwardOutcomeIds: [outcome.id] })],
+        entries: [createEntry({ isEntryPoint: true, forwardOutcomeGroups: [createGroup([outcome.id])] })],
       })
       const functionRegistry = new FunctionRegistry()
 
@@ -318,7 +323,7 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome.id, outcome)
 
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeIds: [outcome.id] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
       })
 
       // Act
@@ -327,6 +332,7 @@ describe('ReachabilityCompiler', () => {
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-2'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/step-2'])
     })
 
     it('should compile a guarded outcome that passes', async () => {
@@ -340,7 +346,7 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome.id, outcome)
 
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeIds: [outcome.id] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
@@ -364,7 +370,7 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome.id, outcome)
 
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeIds: [outcome.id] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
@@ -377,7 +383,7 @@ describe('ReachabilityCompiler', () => {
       expect(result.outcomeValues[0]).toEqual([])
     })
 
-    it('should compile multiple outcomes for one step', async () => {
+    it('should compile the first matching outcome for one step', async () => {
       // Arrange
       const outcome1 = createRedirectOutcome('/step-2')
       const outcome2 = createRedirectOutcome('/step-3')
@@ -386,7 +392,7 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome2.id, outcome2)
 
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeIds: [outcome1.id, outcome2.id] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome1.id, outcome2.id])] })],
       })
 
       // Act
@@ -394,7 +400,62 @@ describe('ReachabilityCompiler', () => {
       const result = await fn!(createCtx())
 
       // Assert
-      expect(result.outcomeValues[0]).toEqual(['/step-2', '/step-3'])
+      expect(result.outcomeValues[0]).toEqual(['/step-2'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/step-2', '/step-3'])
+    })
+
+    it('should not evaluate fallback outcomes when an earlier guard matches', async () => {
+      // Arrange
+      const whenPred = createTestPredicate(
+        createReference(['answers', 'choice']),
+        createConditionFunction('equals', ['yes']),
+      )
+      const guardedOutcome = createRedirectOutcome('/step-yes', whenPred)
+      const fallbackOutcome = createRedirectOutcome('/step-fallback')
+
+      registry.register(guardedOutcome.id, guardedOutcome)
+      registry.register(fallbackOutcome.id, fallbackOutcome)
+
+      const plan = createPlan({
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] })],
+      })
+
+      const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
+
+      // Act
+      const fn = compiler.compile(plan, registry)
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.outcomeValues[0]).toEqual(['/step-yes'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/step-yes', '/step-fallback'])
+    })
+
+    it('should evaluate fallback outcomes when earlier guards fail', async () => {
+      // Arrange
+      const whenPred = createTestPredicate(
+        createReference(['answers', 'choice']),
+        createConditionFunction('equals', ['yes']),
+      )
+      const guardedOutcome = createRedirectOutcome('/step-yes', whenPred)
+      const fallbackOutcome = createRedirectOutcome('/step-fallback')
+
+      registry.register(guardedOutcome.id, guardedOutcome)
+      registry.register(fallbackOutcome.id, fallbackOutcome)
+
+      const plan = createPlan({
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] })],
+      })
+
+      const ctx = createCtx({ answers: { choice: { current: 'no' } } })
+
+      // Act
+      const fn = compiler.compile(plan, registry)
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.outcomeValues[0]).toEqual(['/step-fallback'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/step-yes', '/step-fallback'])
     })
 
     it('should compile match expressions in dynamic goto outcomes', async () => {
@@ -421,7 +482,7 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome.id, outcome)
 
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeIds: [outcome.id] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
@@ -432,6 +493,102 @@ describe('ReachabilityCompiler', () => {
 
       // Assert
       expect(result.outcomeValues[0]).toEqual(['/step-yes'])
+    })
+
+    it('should contribute outcomes from every hook group when none have a compilable hook when', async () => {
+      // Arrange
+      const outcomeA = createRedirectOutcome('/step-a')
+      const outcomeB = createRedirectOutcome('/step-b')
+
+      registry.register(outcomeA.id, outcomeA)
+      registry.register(outcomeB.id, outcomeB)
+
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            forwardOutcomeGroups: [createGroup([outcomeA.id]), createGroup([outcomeB.id])],
+          }),
+        ],
+      })
+
+      // Act
+      const fn = compiler.compile(plan, registry)
+      const result = await fn!(createCtx())
+
+      // Assert
+      expect(result.outcomeValues[0]).toEqual(['/step-a', '/step-b'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/step-a', '/step-b'])
+    })
+
+    it('should evaluate the compilable hook when and skip outcomes when it is falsy', async () => {
+      // Arrange
+      const hookWhenA = createTestPredicate(
+        createReference(['answers', 'route']),
+        createConditionFunction('equals', ['a']),
+      )
+      const hookWhenB = createTestPredicate(
+        createReference(['answers', 'route']),
+        createConditionFunction('equals', ['b']),
+      )
+      const outcomeA = createRedirectOutcome('/route-a')
+      const outcomeB = createRedirectOutcome('/route-b')
+
+      registry.register(hookWhenA.id, hookWhenA)
+      registry.register(hookWhenB.id, hookWhenB)
+      registry.register(outcomeA.id, outcomeA)
+      registry.register(outcomeB.id, outcomeB)
+
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            forwardOutcomeGroups: [createGroup([outcomeA.id], hookWhenA.id), createGroup([outcomeB.id], hookWhenB.id)],
+          }),
+        ],
+      })
+
+      const ctx = createCtx({ answers: { route: { current: 'a' } } })
+
+      // Act
+      const fn = compiler.compile(plan, registry)
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.outcomeValues[0]).toEqual(['/route-a'])
+      expect(result.declaredOutcomeValues[0]).toEqual(['/route-a', '/route-b'])
+    })
+
+    it('should reset the cascade between hook groups so each contributes its first match', async () => {
+      // Arrange
+      const guardA = createTestPredicate(createReference(['answers', 'a']), createConditionFunction('equals', ['yes']))
+      const guardB = createTestPredicate(createReference(['answers', 'b']), createConditionFunction('equals', ['yes']))
+      const fallbackA = createRedirectOutcome('/a-fallback')
+      const fallbackB = createRedirectOutcome('/b-fallback')
+      const guardedA = createRedirectOutcome('/a-yes', guardA)
+      const guardedB = createRedirectOutcome('/b-yes', guardB)
+
+      registry.register(guardA.id, guardA)
+      registry.register(guardB.id, guardB)
+      registry.register(fallbackA.id, fallbackA)
+      registry.register(fallbackB.id, fallbackB)
+      registry.register(guardedA.id, guardedA)
+      registry.register(guardedB.id, guardedB)
+
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            forwardOutcomeGroups: [createGroup([guardedA.id, fallbackA.id]), createGroup([guardedB.id, fallbackB.id])],
+          }),
+        ],
+      })
+
+      const ctx = createCtx({ answers: { a: { current: 'no' }, b: { current: 'yes' } } })
+
+      // Act
+      const fn = compiler.compile(plan, registry)
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.outcomeValues[0]).toEqual(['/a-fallback', '/b-yes'])
     })
   })
 
@@ -621,7 +778,7 @@ describe('ReachabilityCompiler', () => {
         entries: [
           createEntry({
             entryWhenNodeId: pred.id,
-            forwardOutcomeIds: [outcome.id],
+            forwardOutcomeGroups: [createGroup([outcome.id])],
           }),
         ],
       })
@@ -689,11 +846,11 @@ describe('ReachabilityCompiler', () => {
         entries: [
           createEntry({
             isEntryPoint: true,
-            forwardOutcomeIds: [outcome1.id],
+            forwardOutcomeGroups: [createGroup([outcome1.id])],
           }),
           createEntry({
             entryWhenNodeId: entryPred.id,
-            forwardOutcomeIds: [outcome2.id],
+            forwardOutcomeGroups: [createGroup([outcome2.id])],
             reachabilityTieBreakers: [{ priority: 10 }],
           }),
           createEntry(),
