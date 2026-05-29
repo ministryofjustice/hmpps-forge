@@ -4,9 +4,8 @@ import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/au
 import {
   ComponentRegistry,
   ForgeInstrumentation,
+  RenderBlock,
   RenderContext,
-  Evaluated,
-  BlockASTNode,
   ASTNodeType,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from './TemplateRenderer'
@@ -57,7 +56,7 @@ describe('TemplateRenderer', () => {
     }
   }
 
-  function createMockBlock(overrides: Partial<Evaluated<BlockASTNode>> = {}): Evaluated<BlockASTNode> {
+  function createMockBlock(overrides: Partial<RenderBlock> = {}): RenderBlock {
     return {
       id: 'compile_ast:1',
       type: ASTNodeType.BLOCK,
@@ -572,7 +571,7 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: Evaluated<BlockASTNode> = {
+      const nestedBlock: RenderBlock = {
         id: 'compile_ast:10',
         type: ASTNodeType.BLOCK,
         variant: 'fieldset',
@@ -612,7 +611,7 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlocks: Evaluated<BlockASTNode>[] = [
+      const nestedBlocks: RenderBlock[] = [
         {
           id: 'compile_ast:20',
           type: ASTNodeType.BLOCK,
@@ -655,7 +654,7 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const visibleBlock: Evaluated<BlockASTNode> = {
+      const visibleBlock: RenderBlock = {
         id: 'compile_ast:20',
         type: ASTNodeType.BLOCK,
         variant: 'html',
@@ -663,7 +662,7 @@ describe('TemplateRenderer', () => {
         properties: {},
       }
 
-      const hiddenBlock: Evaluated<BlockASTNode> = {
+      const hiddenBlock: RenderBlock = {
         id: 'compile_ast:21',
         type: ASTNodeType.BLOCK,
         variant: 'html',
@@ -697,7 +696,7 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: Evaluated<BlockASTNode> = {
+      const nestedBlock: RenderBlock = {
         id: 'compile_ast:30',
         type: ASTNodeType.BLOCK,
         variant: 'text-input',

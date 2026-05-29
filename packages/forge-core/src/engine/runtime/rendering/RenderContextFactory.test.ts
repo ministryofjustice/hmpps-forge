@@ -2,12 +2,11 @@ import { AstNodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
-import { BlockASTNode } from '../../types/structures.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
-import { Evaluated, JourneyAncestor } from '../../../framework/rendering/types'
+import { JourneyAncestor, RenderBlock } from '../../../framework/rendering/types'
 import { StoredRouteTreeNode } from '../types/routes.type'
 
-function createMockBlock(id: AstNodeId, overrides: Partial<Evaluated<BlockASTNode>['properties']> = {}) {
+function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}) {
   return {
     id,
     type: ASTNodeType.BLOCK,
@@ -17,7 +16,7 @@ function createMockBlock(id: AstNodeId, overrides: Partial<Evaluated<BlockASTNod
       label: 'Test Label',
       ...overrides,
     },
-  } as Evaluated<BlockASTNode>
+  } as RenderBlock
 }
 
 function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderContextInput {
@@ -197,7 +196,7 @@ describe('RenderContextFactory', () => {
             child: nestedBlock,
           },
         },
-      } as Evaluated<BlockASTNode>
+      } as RenderBlock
       const input = createRenderInput({
         blocks: [containerBlock],
         fieldValidationFailures: [
@@ -215,7 +214,7 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
-      const renderedNestedBlock = (result.blocks[0].properties.content as { child: Evaluated<BlockASTNode> }).child
+      const renderedNestedBlock = (result.blocks[0].properties.content as { child: RenderBlock }).child
 
       expect(renderedNestedBlock.properties.validWhen).toEqual([
         {
