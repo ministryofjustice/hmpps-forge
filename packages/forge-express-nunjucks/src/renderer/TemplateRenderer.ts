@@ -4,10 +4,9 @@ import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjusti
 import {
   ComponentRegistry,
   ForgeInstrumentation,
-  isBlockStructNode,
-  BlockASTNode,
-  Evaluated,
+  isRenderBlock,
   HasNestedBlocksLookup,
+  RenderBlock,
   RenderContext,
   RouteTreeNode,
   ValidationResult,
@@ -180,7 +179,7 @@ export default class TemplateRenderer {
 
   /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
   private renderBlocks(
-    blocks: Evaluated<BlockASTNode>[],
+    blocks: RenderBlock[],
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
@@ -194,7 +193,7 @@ export default class TemplateRenderer {
 
   /** Render a single block to HTML using the ComponentRegistry */
   private renderBlock(
-    block: Evaluated<BlockASTNode>,
+    block: RenderBlock,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
@@ -247,8 +246,8 @@ export default class TemplateRenderer {
     })
   }
 
-  /** Convert Evaluated<BlockASTNode> to EvaluatedBlock for component */
-  private toEvaluatedBlock(block: Evaluated<BlockASTNode>, showErrors: boolean): EvaluatedBlock<BlockDefinition> {
+  /** Convert RenderBlock to EvaluatedBlock for component */
+  private toEvaluatedBlock(block: RenderBlock, showErrors: boolean): EvaluatedBlock<BlockDefinition> {
     const errors = showErrors ? this.extractErrorsFromValidations(block.properties.validWhen) : []
 
     return {
@@ -300,9 +299,9 @@ export default class TemplateRenderer {
       return value
     }
 
-    if (isBlockStructNode(value)) {
+    if (isRenderBlock(value)) {
       return this.renderNestedBlock(
-        value as Evaluated<BlockASTNode>,
+        value as RenderBlock,
         showValidationFailures,
         componentRegistry,
         hasNestedBlocks,
@@ -332,7 +331,7 @@ export default class TemplateRenderer {
 
   /** Render a nested block to RenderedBlock format (block metadata + HTML) */
   private renderNestedBlock(
-    block: Evaluated<BlockASTNode>,
+    block: RenderBlock,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
     hasNestedBlocks?: HasNestedBlocksLookup,
