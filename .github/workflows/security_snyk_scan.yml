@@ -17,7 +17,7 @@ jobs:
       channel_id: ${{ vars.SECURITY_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
       severity: 'HIGH,CRITICAL'
       scan_type: 'image'
-      location: 'examples-app'
+      subproject: 'hmpps-forge-examples-app'
       slack_include_summary: true
     secrets:
       HMPPS_SNYK_API_KEY: ${{ secrets.HMPPS_SNYK_API_KEY }}
