@@ -1,5 +1,5 @@
 import type { NodeId } from './ast.type'
-import type { JourneyASTNode, StepASTNode } from './structures.type'
+import type { JourneyRouteIndex, StepRouteIndex } from './routeDescriptors.type'
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type {
   CompiledAnswerPreparationFunction,
@@ -7,11 +7,6 @@ import type {
   CompiledRenderFunction,
   CompiledValidationFunction,
 } from './compiledPhaseResults.type'
-import type { CompilationContext } from '../compilation/CompilationContext'
-
-export type StepIndex = Map<NodeId, StepASTNode>
-
-export type JourneyIndex = Map<NodeId, JourneyASTNode>
 
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
@@ -23,10 +18,9 @@ export interface CompiledStep {
 }
 
 export interface JourneyCompilationResult {
-  readonly rootNode: JourneyASTNode
-  readonly context: CompilationContext
-  readonly stepIndex: StepIndex
-  readonly journeyIndex: JourneyIndex
+  readonly journeyCode: string
+  readonly stepRouteIndex: StepRouteIndex
+  readonly journeyRouteIndex: JourneyRouteIndex
   readonly steps: Map<NodeId, CompiledStep>
   readonly journeyPlans: Map<NodeId, JourneyRuntimePlan>
 }

@@ -2,7 +2,7 @@ import { AstNodeId } from '../../types/engine.type'
 import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../types/structures.type'
+import { BlockASTNode } from '../../types/structures.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
 import { Evaluated, JourneyAncestor } from '../../../framework/rendering/types'
 import { StoredRouteTreeNode } from '../types/routes.type'
@@ -43,14 +43,6 @@ const defaultOptions: RenderContextOptions = {
 
 function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile_ast:100'): StoredRouteTreeNode {
   const metadata = undefined
-  const stepNode: StepASTNode = {
-    id,
-    type: ASTNodeType.STEP,
-    properties: {
-      path,
-      title: title ?? 'Step',
-    },
-  }
 
   return {
     segment: getLastSegment(path),
@@ -61,7 +53,6 @@ function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile
       nodeId: id,
       title,
       metadata,
-      stepNode,
     },
     children: [],
   }
@@ -78,17 +69,6 @@ function createStoredJourney(
   }> = {},
 ): StoredRouteTreeNode {
   const id = overrides.id ?? 'compile_ast:200'
-  const journeyNode: JourneyASTNode = {
-    id,
-    type: ASTNodeType.JOURNEY,
-    properties: {
-      path,
-      code: getLastSegment(path),
-      title: overrides.title ?? 'Journey',
-      description: overrides.description,
-      metadata: overrides.metadata,
-    },
-  }
 
   return {
     segment: getLastSegment(path),
@@ -100,7 +80,6 @@ function createStoredJourney(
       title: overrides.title,
       description: overrides.description,
       metadata: overrides.metadata,
-      journeyNode,
     },
     children,
   }

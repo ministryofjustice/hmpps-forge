@@ -1,11 +1,7 @@
-import type { JourneyIndex, StepIndex } from '../../types/compilationArtefacts.type'
-import type { CompilationContext } from '../../compilation/CompilationContext'
+import type { JourneyRouteIndex, StepRouteIndex, StepRouteDescriptor } from '../../types/routeDescriptors.type'
 import type { NodeId } from '../../types/ast.type'
-import type { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import { joinPaths } from '../../../framework/path/routePath'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import getAncestorChain from '../../utils/getAncestorChain'
-import { isJourneyStructNode } from '../../typeguards/structure-nodes'
 import {
   JourneyRouteContext,
   JourneyRouteTemplateCatalog,
@@ -18,30 +14,45 @@ import {
 
 export interface RouteTreeBuilderInput {
   basePath: string
-  stepIndex: StepIndex
-  journeyIndex: JourneyIndex
-  compilationContext: CompilationContext
+  stepRouteIndex: StepRouteIndex
+  journeyRouteIndex: JourneyRouteIndex
 }
 
 export default class RouteTreeBuilder {
   constructor(private readonly routeTreeIndex: RouteTreeIndex) {}
 
   build(input: RouteTreeBuilderInput): RouteTreeBuildResult {
-    const journeyContexts = this.buildJourneyContexts(input.journeyIndex, input.compilationContext, input.basePath)
+    const journeyContexts = this.buildJourneyContexts(input.journeyRouteIndex, input.basePath)
     const catalogsByBasePath = new Map<string, JourneyRouteTemplateCatalog>()
 
     journeyContexts.forEach(context => {
-      const node = this.insertConcreteRoute(context.templatePath, this.createJourneyRoute(context))
+      const descriptor = input.journeyRouteIndex.get(context.journeyId)
+      const route: StoredRouteTreeRoute = {
+        kind: 'journey',
+        nodeId: context.journeyId,
+        title: descriptor?.title,
+        description: descriptor?.description,
+        metadata: descriptor?.metadata,
+      }
+      const node = this.insertConcreteRoute(context.templatePath, route)
 
       this.routeTreeIndex.journeyNodesById.set(context.journeyId, node)
     })
 
-    const stepContexts = Array.from(input.stepIndex.entries()).map(([stepId, stepNode]) =>
-      this.buildStepContext(stepId, stepNode, input.compilationContext, input.basePath, catalogsByBasePath),
+    const stepContexts = Array.from(input.stepRouteIndex.entries()).map(([stepId, descriptor]) =>
+      this.buildStepContext(stepId, descriptor, input.journeyRouteIndex, input.basePath, catalogsByBasePath),
     )
 
     stepContexts.forEach(context => {
-      const node = this.insertConcreteRoute(context.routeTemplatePath, this.createStepRoute(context))
+      const descriptor = input.stepRouteIndex.get(context.stepId)
+      const route: StoredRouteTreeRoute = {
+        kind: 'step',
+        nodeId: context.stepId,
+        title: descriptor?.title,
+        description: descriptor?.description,
+        metadata: descriptor?.metadata,
+      }
+      const node = this.insertConcreteRoute(context.routeTemplatePath, route)
 
       this.routeTreeIndex.stepNodesById.set(context.stepId, node)
     })
@@ -53,33 +64,28 @@ export default class RouteTreeBuilder {
     }
   }
 
-  private buildJourneyContexts(
-    journeyIndex: JourneyIndex,
-    compilationContext: CompilationContext,
-    basePath: string,
-  ): JourneyRouteContext[] {
+  private buildJourneyContexts(journeyRouteIndex: JourneyRouteIndex, basePath: string): JourneyRouteContext[] {
     const contextsById = new Map<NodeId, JourneyRouteContext>()
 
-    journeyIndex.forEach((_, journeyId) => {
-      const chain = getAncestorChain(journeyId, compilationContext.astNodeTree)
-        .map(nodeId => compilationContext.nodeRegistry.get(nodeId))
-        .filter(isJourneyStructNode)
-
+    journeyRouteIndex.forEach(descriptor => {
       let parentPath = basePath
       let parentTemplatePath: string | undefined
 
-      chain.forEach(journeyNode => {
-        const templatePath = joinPaths(parentPath, journeyNode.properties.path)
+      descriptor.ancestorJourneyIds.forEach(ancestorId => {
+        const ancestor = journeyRouteIndex.get(ancestorId)
 
-        if (!contextsById.has(journeyNode.id)) {
-          contextsById.set(journeyNode.id, {
-            journeyId: journeyNode.id,
-            journeyNode,
+        if (!ancestor) {
+          return
+        }
+
+        const templatePath = joinPaths(parentPath, ancestor.path)
+
+        if (!contextsById.has(ancestor.nodeId)) {
+          contextsById.set(ancestor.nodeId, {
+            journeyId: ancestor.nodeId,
             templatePath,
             mountPath:
-              parentTemplatePath === undefined
-                ? joinPaths(basePath, journeyNode.properties.path)
-                : joinPaths('', journeyNode.properties.path),
+              parentTemplatePath === undefined ? joinPaths(basePath, ancestor.path) : joinPaths('', ancestor.path),
             parentTemplatePath,
           })
         }
@@ -94,14 +100,13 @@ export default class RouteTreeBuilder {
 
   private buildStepContext(
     stepId: NodeId,
-    stepNode: StepASTNode,
-    compilationContext: CompilationContext,
+    descriptor: StepRouteDescriptor,
+    journeyRouteIndex: JourneyRouteIndex,
     basePath: string,
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
   ): StepRouteContext {
-    const journeyAncestry = this.getJourneyAncestry(stepId, compilationContext)
-    const journeyBasePath = this.getJourneyBasePath(journeyAncestry, basePath)
-    const routeTemplatePath = joinPaths(journeyBasePath, stepNode.properties.path)
+    const journeyBasePath = this.getJourneyBasePath(descriptor.ancestorJourneyIds, journeyRouteIndex, basePath)
+    const routeTemplatePath = joinPaths(journeyBasePath, descriptor.path)
     const routeTemplateCatalog = this.getRouteTemplateCatalog(catalogsByBasePath, journeyBasePath)
 
     routeTemplateCatalog.routeTemplatePathByStepId.set(stepId, routeTemplatePath)
@@ -109,22 +114,27 @@ export default class RouteTreeBuilder {
 
     return {
       stepId,
-      stepNode,
+      path: descriptor.path,
       routeTemplatePath,
       routeTemplateCatalog,
       journeyBasePath,
     }
   }
 
-  private getJourneyAncestry(stepId: NodeId, compilationContext: CompilationContext): JourneyASTNode[] {
-    return getAncestorChain(stepId, compilationContext.astNodeTree)
-      .filter(nodeId => nodeId !== stepId)
-      .map(nodeId => compilationContext.nodeRegistry.get(nodeId))
-      .filter(isJourneyStructNode)
-  }
+  private getJourneyBasePath(
+    ancestorJourneyIds: readonly NodeId[],
+    journeyRouteIndex: JourneyRouteIndex,
+    basePath: string,
+  ): string {
+    return ancestorJourneyIds.reduce((path, id) => {
+      const descriptor = journeyRouteIndex.get(id)
 
-  private getJourneyBasePath(journeyAncestry: JourneyASTNode[], basePath: string): string {
-    return journeyAncestry.reduce((path, journey) => joinPaths(path, journey.properties.path), basePath)
+      if (!descriptor) {
+        return path
+      }
+
+      return joinPaths(path, descriptor.path)
+    }, basePath)
   }
 
   private getRouteTemplateCatalog(
@@ -145,28 +155,6 @@ export default class RouteTreeBuilder {
     catalogsByBasePath.set(journeyBasePath, catalog)
 
     return catalog
-  }
-
-  private createJourneyRoute(context: JourneyRouteContext): StoredRouteTreeRoute {
-    return {
-      kind: 'journey',
-      nodeId: context.journeyId,
-      title: context.journeyNode.properties.title,
-      description: context.journeyNode.properties.description,
-      metadata: context.journeyNode.properties.metadata,
-      journeyNode: context.journeyNode,
-    }
-  }
-
-  private createStepRoute(context: StepRouteContext): StoredRouteTreeRoute {
-    return {
-      kind: 'step',
-      nodeId: context.stepId,
-      title: context.stepNode.properties.title,
-      description: context.stepNode.properties.description,
-      metadata: context.stepNode.properties.metadata,
-      stepNode: context.stepNode,
-    }
   }
 
   private insertConcreteRoute(templatePath: string, route: StoredRouteTreeRoute): StoredRouteTreeNode {

@@ -1,5 +1,4 @@
 import { NodeId } from '../../types/ast.type'
-import type { JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import type { RouteTreeRoute } from '../../../framework/rendering/types'
 
 export type RouteMethod = 'GET' | 'POST'
@@ -9,15 +8,7 @@ export interface JourneyRouteTemplateCatalog {
   stepIdByRouteTemplatePath: Map<string, NodeId>
 }
 
-export type StoredRouteTreeRoute =
-  | (RouteTreeRoute & {
-      kind: 'journey'
-      journeyNode: JourneyASTNode
-    })
-  | (RouteTreeRoute & {
-      kind: 'step'
-      stepNode: StepASTNode
-    })
+export type StoredRouteTreeRoute = (RouteTreeRoute & { kind: 'journey' }) | (RouteTreeRoute & { kind: 'step' })
 
 export interface StoredRouteTreeNode {
   segment: string
@@ -38,7 +29,6 @@ export interface RouteTreeIndex {
 
 export interface JourneyRouteContext {
   journeyId: NodeId
-  journeyNode: JourneyASTNode
   templatePath: string
   mountPath: string
   parentTemplatePath?: string
@@ -46,7 +36,7 @@ export interface JourneyRouteContext {
 
 export interface StepRouteContext {
   stepId: NodeId
-  stepNode: StepASTNode
+  path: string
   routeTemplatePath: string
   routeTemplateCatalog: JourneyRouteTemplateCatalog
   journeyBasePath: string

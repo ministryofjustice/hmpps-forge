@@ -1,8 +1,6 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { JourneyASTNode } from './types/structures.type'
-import type { CompilationContext } from './compilation/CompilationContext'
 import type { JourneyCompilationResult } from './types/compilationArtefacts.type'
 import JourneyCompiler from './compilation/JourneyCompiler'
 import ComponentRegistry from './registries/ComponentRegistry'
@@ -66,11 +64,10 @@ describe('PackageInstance', () => {
 
       // Assert
       const scopedFunctionRegistry = instance.getDependencies().functionRegistry
-      const packageFunction = scopedFunctionRegistry.get('WithPrefix')
 
       expect(scopedFunctionRegistry).toBeInstanceOf(ScopedFunctionRegistry)
       expect(scopedFunctionRegistry.has('GlobalFunction')).toBe(true)
-      expect(packageFunction?.evaluate('123')).toBe('case-123')
+      expect(scopedFunctionRegistry.get('WithPrefix')?.evaluate('123')).toBe('case-123')
       expect(functionRegistry.has('WithPrefix')).toBe(false)
     })
 
@@ -121,10 +118,9 @@ function createJourneyDefinition(): JourneyDefinition {
 
 function createCompilationResult(): JourneyCompilationResult {
   return {
-    rootNode: { properties: { code: 'journey' } } as JourneyASTNode,
-    context: {} as CompilationContext,
-    stepIndex: new Map(),
-    journeyIndex: new Map(),
+    journeyCode: 'journey',
+    stepRouteIndex: new Map(),
+    journeyRouteIndex: new Map(),
     steps: new Map(),
     journeyPlans: new Map(),
   }
