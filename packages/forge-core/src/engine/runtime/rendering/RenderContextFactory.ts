@@ -12,7 +12,7 @@ import {
   RouteTreeRoute,
   HasNestedBlocksLookup,
 } from '../../../framework/rendering/types'
-import { isRenderBlock } from '../../typeguards/structure-nodes'
+import { isRenderBlock } from './typeguards'
 import { resolvePathParams } from '../../../framework/path/routePath'
 import { StoredRouteTree, StoredRouteTreeNode, StoredRouteTreeRoute } from '../types/routes.type'
 

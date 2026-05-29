@@ -1,7 +1,11 @@
 import { ASTNodeType } from '../../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../../authoring/types/enums'
 import { ConditionalASTNode } from '../../../../types/expressions.type'
-import type { ConditionalExpr, PredicateTestExpr, ResolvableValue } from '../../../../../authoring/types/expressions.type'
+import type {
+  ConditionalExpr,
+  PredicateTestExpr,
+  ResolvableValue,
+} from '../../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'

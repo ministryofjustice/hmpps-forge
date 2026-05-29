@@ -9,7 +9,12 @@ import {
 } from '../../../../../authoring/types/enums'
 import type { StepDefinition } from '../../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../../components/types/structures.type'
-import type { AccessHook, SubmitHook, HookOutcome, ResolvableValue } from '../../../../../authoring/types/expressions.type'
+import type {
+  AccessHook,
+  SubmitHook,
+  HookOutcome,
+  ResolvableValue,
+} from '../../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import { BlockASTNode } from '../../../../types/structures.type'
 import { NodeFactory } from '../../NodeFactory'

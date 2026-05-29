@@ -1,5 +1,11 @@
 import { ASTNodeType } from '../../../../types/enums'
-import { ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../../../../../authoring/types/enums'
+import {
+  ExpressionType,
+  FunctionType,
+  OutcomeType,
+  PredicateType,
+  HookType,
+} from '../../../../../authoring/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import { RedirectOutcome, SubmitHook, ResolvableValue } from '../../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
