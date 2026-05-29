@@ -104,10 +104,7 @@ function toRouteTreeRoute(stored: StoredRouteTreeRoute): RouteTreeRoute {
   }
 }
 
-function attachValidationToBlocks(
-  blocks: RenderBlock[],
-  failures: StepValidationFailure[],
-): RenderBlock[] {
+function attachValidationToBlocks(blocks: RenderBlock[], failures: StepValidationFailure[]): RenderBlock[] {
   const failuresByBlockId = groupFailuresByBlockId(failures)
 
   return blocks.map(block => attachValidationToBlock(block, failuresByBlockId))
@@ -124,10 +121,7 @@ function groupFailuresByBlockId(failures: StepValidationFailure[]): Map<NodeId, 
   }, new Map<NodeId, ValidationResult[]>())
 }
 
-function attachValidationToBlock(
-  block: RenderBlock,
-  failuresByBlockId: Map<NodeId, ValidationResult[]>,
-): RenderBlock {
+function attachValidationToBlock(block: RenderBlock, failuresByBlockId: Map<NodeId, ValidationResult[]>): RenderBlock {
   const properties = walkPropertiesForBlocks(block.properties, failuresByBlockId)
 
   if (block.blockType !== BlockType.FIELD) {

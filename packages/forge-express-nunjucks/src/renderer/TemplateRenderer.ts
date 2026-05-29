@@ -300,12 +300,7 @@ export default class TemplateRenderer {
     }
 
     if (isRenderBlock(value)) {
-      return this.renderNestedBlock(
-        value as RenderBlock,
-        showValidationFailures,
-        componentRegistry,
-        hasNestedBlocks,
-      )
+      return this.renderNestedBlock(value as RenderBlock, showValidationFailures, componentRegistry, hasNestedBlocks)
     }
 
     if (Array.isArray(value)) {
