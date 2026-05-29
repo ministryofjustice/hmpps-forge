@@ -1,6 +1,5 @@
 import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
-import { JourneyASTNode } from '../../types/structures.type'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
 import type PackageInstance from '../../PackageInstance'
 import {
@@ -31,7 +30,7 @@ export default class ForgeRouter<TRouter> {
 
   private readonly routeTreeIndex: RouteTreeIndex = createRouteTreeIndex()
 
-  private readonly journeyRouters = new Map<string, { router: TRouter; journeyNode: JourneyASTNode }>()
+  private readonly journeyRouters = new Map<string, TRouter>()
 
   private readonly contextPreparer = new ContextPreparer()
 
@@ -45,15 +44,13 @@ export default class ForgeRouter<TRouter> {
 
   mount(packageInstance: PackageInstance, forgeDependencies: ForgeDependencies): number {
     const packageDependencies = packageInstance.getDependencies()
-    const stepIndex = packageInstance.getStepIndex()
-    const journeyIndex = packageInstance.getJourneyIndex()
-    const compilationContext = packageInstance.getCompilationContext()
+    const stepRouteIndex = packageInstance.getStepRouteIndex()
+    const journeyRouteIndex = packageInstance.getJourneyRouteIndex()
     const routeTreeBuilder = new RouteTreeBuilder(this.routeTreeIndex)
     const { journeyContexts, stepContexts, catalogsByBasePath } = routeTreeBuilder.build({
       basePath: this.basePath,
-      stepIndex,
-      journeyIndex,
-      compilationContext,
+      stepRouteIndex,
+      journeyRouteIndex,
     })
 
     this.createJourneyRouters(journeyContexts)
@@ -87,7 +84,7 @@ export default class ForgeRouter<TRouter> {
       const newRouter = this.forgeDependencies.frameworkAdapter.createRouter()
 
       this.forgeDependencies.frameworkAdapter.mountRouter(parentRouter, context.mountPath, newRouter)
-      this.journeyRouters.set(context.templatePath, { router: newRouter, journeyNode: context.journeyNode })
+      this.journeyRouters.set(context.templatePath, newRouter)
     })
   }
 
@@ -102,7 +99,7 @@ export default class ForgeRouter<TRouter> {
       throw new Error(`Unable to mount journey route "${context.templatePath}" before its parent router`)
     }
 
-    return parent.router
+    return parent
   }
 
   private mountStepRoutes(
@@ -115,8 +112,7 @@ export default class ForgeRouter<TRouter> {
 
     stepContexts.forEach(ctx => {
       const journeyRouter = this.journeyRouters.get(ctx.journeyBasePath)
-      const stepPath = ctx.stepNode.properties.path
-      const fullPath = joinPaths(ctx.journeyBasePath, stepPath)
+      const fullPath = joinPaths(ctx.journeyBasePath, ctx.path)
 
       if (!journeyRouter) {
         throw new Error(`Unable to mount step route "${fullPath}" before its journey router`)
@@ -200,7 +196,7 @@ export default class ForgeRouter<TRouter> {
         forgeDependencies.instrumentation,
       )
 
-      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, async (req, res) => {
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter, ctx.path, async (req, res) => {
         const result = await this.runRequest(
           getOrchestrator,
           { route: ctx.routeTemplatePath, journeyCode },
@@ -212,7 +208,7 @@ export default class ForgeRouter<TRouter> {
         this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
       })
 
-      this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, async (req, res) => {
+      this.forgeDependencies.frameworkAdapter.post(journeyRouter, ctx.path, async (req, res) => {
         const result = await this.runRequest(
           postOrchestrator,
           { route: ctx.routeTemplatePath, journeyCode },
@@ -239,9 +235,9 @@ export default class ForgeRouter<TRouter> {
   ): number {
     let routeCount = 0
 
-    journeyContexts.forEach(({ journeyNode, templatePath }) => {
+    journeyContexts.forEach(({ journeyId, templatePath }) => {
       const journeyRouter = this.journeyRouters.get(templatePath)
-      const journeyPlan = packageInstance.getJourneyRuntimePlan(journeyNode.id)
+      const journeyPlan = packageInstance.getJourneyRuntimePlan(journeyId)
       const routeTemplateCatalog = catalogsByBasePath.get(templatePath)
 
       if (!journeyRouter || !journeyPlan || !routeTemplateCatalog) {
@@ -270,7 +266,7 @@ export default class ForgeRouter<TRouter> {
         forgeDependencies.instrumentation,
       )
 
-      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', async (req, res) => {
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter, '/', async (req, res) => {
         const result = await this.runRequest(
           orchestrator,
           { route: journeyPlan.path, journeyCode },

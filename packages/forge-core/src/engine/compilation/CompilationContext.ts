@@ -1,5 +1,5 @@
 import { NodeIDCategory, NodeIDGenerator } from './id-generators/NodeIDGenerator'
-import { NodeFactory } from '../nodes/NodeFactory'
+import { NodeFactory } from './nodes/NodeFactory'
 import NodeRegistry from './registries/NodeRegistry'
 import ASTNodeTree from './node-tree/ASTNodeTree'
 

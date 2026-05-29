@@ -37,7 +37,7 @@ export function createStepRenderTerminal(
         {
           step,
           ancestors: renderResult.ancestors as RenderContext['ancestors'],
-          blocks: renderResult.blocks as unknown as RenderContext['blocks'],
+          blocks: renderResult.blocks,
           answers: state.context.global.answers,
           data: state.context.global.data,
           fieldValidationFailures: state.validation?.fieldFailures ?? [],

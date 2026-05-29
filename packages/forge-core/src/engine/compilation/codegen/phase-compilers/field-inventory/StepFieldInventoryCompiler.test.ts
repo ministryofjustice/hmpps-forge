@@ -4,7 +4,7 @@ import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../
 import { FieldBlockASTNode } from '../../../../types/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../types/expressions.type'
 import { TemplateValue } from '../../../../types/template.type'
-import TemplateFactory from '../../../../nodes/template/TemplateFactory'
+import TemplateFactory from '../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'

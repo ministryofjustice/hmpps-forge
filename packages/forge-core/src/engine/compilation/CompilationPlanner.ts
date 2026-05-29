@@ -17,13 +17,15 @@ import type {
   ReachabilityCompilationPlan,
   StepRuntimePlan,
 } from '../types/runtimePlans.type'
-import type { JourneyIndex, StepIndex } from '../types/compilationArtefacts.type'
 import type {
   CompilationPlan,
   FieldInventoryStepSource,
   JourneyCompilationInputs,
   StepCompilationInputs,
 } from '../types/compilationPlan.type'
+
+type StepIndex = Map<NodeId, StepASTNode>
+type JourneyIndex = Map<NodeId, JourneyASTNode>
 
 export default class CompilationPlanner {
   private readonly allFieldBlocks: FieldBlockASTNode[]

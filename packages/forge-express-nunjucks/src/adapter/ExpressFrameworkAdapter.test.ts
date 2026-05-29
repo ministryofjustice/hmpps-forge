@@ -7,10 +7,8 @@ import {
   ForgeInstrumentation,
   FrameworkAdapter,
   StepHandler,
-  Evaluated,
+  RenderBlock,
   RenderContext,
-  ASTNodeType,
-  BlockASTNode,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import ExpressFrameworkAdapter from './ExpressFrameworkAdapter'
 
@@ -677,7 +675,6 @@ describe('ExpressFrameworkAdapter', () => {
         blocks: [
           {
             id: 'compile_ast:1',
-            type: ASTNodeType.BLOCK,
             variant: 'html',
             blockType: BlockType.BASIC,
             properties: { content: 'Hello' },
@@ -714,7 +711,7 @@ describe('ExpressFrameworkAdapter', () => {
         routeTree: [],
         step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
-        blocks: [] as Evaluated<BlockASTNode>[],
+        blocks: [] as RenderBlock[],
         showValidationFailures: false,
         fieldValidationErrors: [],
         domainValidationErrors: [],

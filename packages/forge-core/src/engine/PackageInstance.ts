@@ -7,8 +7,8 @@ import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import JourneyCompiler from './compilation/JourneyCompiler'
-import type { CompilationContext } from './compilation/CompilationContext'
-import type { CompiledStep, JourneyCompilationResult, JourneyIndex, StepIndex } from './types/compilationArtefacts.type'
+import type { CompiledStep, JourneyCompilationResult } from './types/compilationArtefacts.type'
+import type { JourneyRouteIndex, StepRouteIndex } from './types/routeDescriptors.type'
 import type { JourneyRuntimePlan } from './types/runtimePlans.type'
 
 export interface PackageInstanceOptions<TDeps> {
@@ -57,20 +57,16 @@ export default class PackageInstance {
     return step
   }
 
-  getStepIndex(): StepIndex {
-    return new Map(this.compilation.stepIndex)
+  getStepRouteIndex(): StepRouteIndex {
+    return new Map(this.compilation.stepRouteIndex)
   }
 
-  getJourneyIndex(): JourneyIndex {
-    return new Map(this.compilation.journeyIndex)
+  getJourneyRouteIndex(): JourneyRouteIndex {
+    return new Map(this.compilation.journeyRouteIndex)
   }
 
   getJourneyRuntimePlan(journeyId: NodeId): JourneyRuntimePlan | undefined {
     return this.compilation.journeyPlans.get(journeyId)
-  }
-
-  getCompilationContext(): CompilationContext {
-    return this.compilation.context
   }
 
   getConfiguration(): JourneyDefinition {
@@ -78,7 +74,7 @@ export default class PackageInstance {
   }
 
   getJourneyCode(): string {
-    return this.compilation.rootNode.properties.code
+    return this.compilation.journeyCode
   }
 
   getJourneyTitle(): string {

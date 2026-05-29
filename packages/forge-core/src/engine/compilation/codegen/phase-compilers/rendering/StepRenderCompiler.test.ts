@@ -16,13 +16,14 @@ import { ASTNodeType } from '../../../../types/enums'
 import { BlockASTNode, StepASTNode } from '../../../../types/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../types/expressions.type'
 import { TemplateValue } from '../../../../types/template.type'
-import TemplateFactory from '../../../../nodes/template/TemplateFactory'
+import TemplateFactory from '../../../nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../id-generators/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import { attachDSLSourceMetadata } from '../../../../diagnostics/sourceMetadata'
-import type { CompiledBlock, RenderCompilationContext } from './StepRenderCompiler'
+import type { RenderCompilationContext } from './StepRenderCompiler'
+import type { RenderBlock } from '../../../../../framework/rendering/types'
 import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -642,7 +643,7 @@ describe('StepRenderCompiler', () => {
       )
 
       // Assert
-      const rows = result.blocks[0].properties.collection as Array<Array<CompiledBlock>>
+      const rows = result.blocks[0].properties.collection as Array<Array<RenderBlock>>
 
       expect(rows).toHaveLength(2)
       expect(rows[0][0].properties.code).toBe('memberName_0')

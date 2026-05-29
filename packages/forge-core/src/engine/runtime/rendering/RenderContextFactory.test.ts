@@ -1,23 +1,20 @@
 import { AstNodeId } from '../../types/engine.type'
-import { ASTNodeType } from '../../types/enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../types/structures.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
-import { Evaluated, JourneyAncestor } from '../../../framework/rendering/types'
+import { JourneyAncestor, RenderBlock } from '../../../framework/rendering/types'
 import { StoredRouteTreeNode } from '../types/routes.type'
 
-function createMockBlock(id: AstNodeId, overrides: Partial<Evaluated<BlockASTNode>['properties']> = {}) {
+function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}): RenderBlock {
   return {
     id,
-    type: ASTNodeType.BLOCK,
     variant: 'TextInput',
     blockType: BlockType.FIELD,
     properties: {
       label: 'Test Label',
       ...overrides,
     },
-  } as Evaluated<BlockASTNode>
+  }
 }
 
 function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderContextInput {
@@ -43,14 +40,6 @@ const defaultOptions: RenderContextOptions = {
 
 function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile_ast:100'): StoredRouteTreeNode {
   const metadata = undefined
-  const stepNode: StepASTNode = {
-    id,
-    type: ASTNodeType.STEP,
-    properties: {
-      path,
-      title: title ?? 'Step',
-    },
-  }
 
   return {
     segment: getLastSegment(path),
@@ -61,7 +50,6 @@ function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile
       nodeId: id,
       title,
       metadata,
-      stepNode,
     },
     children: [],
   }
@@ -78,17 +66,6 @@ function createStoredJourney(
   }> = {},
 ): StoredRouteTreeNode {
   const id = overrides.id ?? 'compile_ast:200'
-  const journeyNode: JourneyASTNode = {
-    id,
-    type: ASTNodeType.JOURNEY,
-    properties: {
-      path,
-      code: getLastSegment(path),
-      title: overrides.title ?? 'Journey',
-      description: overrides.description,
-      metadata: overrides.metadata,
-    },
-  }
 
   return {
     segment: getLastSegment(path),
@@ -100,7 +77,6 @@ function createStoredJourney(
       title: overrides.title,
       description: overrides.description,
       metadata: overrides.metadata,
-      journeyNode,
     },
     children,
   }
@@ -208,9 +184,8 @@ describe('RenderContextFactory', () => {
     it('should apply validation failures to nested field blocks', () => {
       // Arrange
       const nestedBlock = createMockBlock('compile_ast:4')
-      const containerBlock = {
+      const containerBlock: RenderBlock = {
         id: 'compile_ast:container' as AstNodeId,
-        type: ASTNodeType.BLOCK,
         variant: 'SummaryCard',
         blockType: BlockType.BASIC,
         properties: {
@@ -218,7 +193,7 @@ describe('RenderContextFactory', () => {
             child: nestedBlock,
           },
         },
-      } as Evaluated<BlockASTNode>
+      }
       const input = createRenderInput({
         blocks: [containerBlock],
         fieldValidationFailures: [
@@ -236,7 +211,7 @@ describe('RenderContextFactory', () => {
       const result = RenderContextFactory.build(input, { ...defaultOptions, showValidationFailures: true })
 
       // Assert
-      const renderedNestedBlock = (result.blocks[0].properties.content as { child: Evaluated<BlockASTNode> }).child
+      const renderedNestedBlock = (result.blocks[0].properties.content as { child: RenderBlock }).child
 
       expect(renderedNestedBlock.properties.validWhen).toEqual([
         {

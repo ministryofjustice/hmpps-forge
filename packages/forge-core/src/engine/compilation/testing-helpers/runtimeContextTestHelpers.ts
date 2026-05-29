@@ -1,4 +1,4 @@
-import { EffectEvaluationContext } from '../../nodes/expressions/effect/EffectFunctionContext'
+import { EffectEvaluationContext } from '../../runtime/context/EffectFunctionContext'
 import { AnswerHistory, AnswerSource } from '../../runtime/types/AnswerHistory.type'
 import { extractPathname } from '../../../framework/path/routePath'
 import type { StepRequest } from '../../../framework/types/request.type'
