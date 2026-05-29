@@ -56,26 +56,26 @@ for one that captures user input:
 ```typescript
 import type {
   BasicBlockProps,
-  ConditionalString,
-  ConditionalBoolean,
+  ResolvableString,
+  ResolvableBoolean,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface MyCardProps extends BasicBlockProps {
   /** The card's heading. */
-  heading: ConditionalString
+  heading: ResolvableString
   /** Body text shown below the heading. */
-  content?: ConditionalString
+  content?: ResolvableString
   /** Whether to show a subtle border. */
-  outlined?: ConditionalBoolean
+  outlined?: ResolvableBoolean
 }
 ```
 
-Use the `Conditional*` types for any prop that should accept
-expressions from the authoring language. `ConditionalString` accepts
+Use the `Resolvable*` types for any prop that should accept
+expressions from the authoring language. `ResolvableString` accepts
 a plain string, an `Answer()` or `Data()` reference, a `Format()`
 expression, a pipeline, or any other expression that resolves to a
-string. The same pattern applies to `ConditionalBoolean`,
-`ConditionalNumber`, and `ConditionalArray<T>`.
+string. The same pattern applies to `ResolvableBoolean`,
+`ResolvableNumber`, and `ResolvableArray<T>`.
 
 Properties that should stay static (an inline `attributes` record,
 for example) can use plain TypeScript types.
@@ -189,8 +189,8 @@ deal with markup.
 The block passed to your renderer is an `EvaluatedBlock`. The
 important points:
 
-- **All `Conditional*` props are resolved values.** If your prop type
-  was `ConditionalString`, `block.heading` is now a plain `string`.
+- **All `Resolvable*` props are resolved values.** If your prop type
+  was `ResolvableString`, `block.heading` is now a plain `string`.
   There is no expression object to evaluate.
 - **Props omitted in the definition are `undefined`.** Guard before
   reading them, especially for optional content.
@@ -436,7 +436,7 @@ MyCard({
 })
 ```
 
-Because the props accept `Conditional*` types, authors can pass
+Because the props accept `Resolvable*` types, authors can pass
 expressions wherever the type allows. Forge resolves them before
 calling the renderer.
 
@@ -505,7 +505,7 @@ block to exercise populated and error states separately.
 
 ## Best practices
 
-- **Use `Conditional*` types for props that should accept
+- **Use `Resolvable*` types for props that should accept
   expressions.** Plain string, boolean, number, and array types
   prevent authors from passing `Answer()`, `Data()`, or pipelines,
   which is almost never what you want for display properties.

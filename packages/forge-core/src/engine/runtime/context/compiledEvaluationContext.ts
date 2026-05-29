@@ -1,7 +1,7 @@
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { HookLifecycleContext } from '../../compilation/hooks/HookLifecycleCompiler'
+import type { HookLifecycleContext } from '../../types/hookLifecycle.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import type { JourneyInstanceDependencies } from '../../types/engine.type'
+import type { Logger } from '../../../framework/types/adapter.type'
 import RuntimeEvaluationContext, { RuntimeEvaluationGlobalState } from './RuntimeEvaluationContext'
 import type { StepValidityResult } from '../types/StepValidityResult.type'
 
@@ -84,14 +84,15 @@ export function buildCompiledRenderContext(
 
 export function buildCompiledHookLifecycleContext(
   context: RuntimeEvaluationContext,
-  dependencies: JourneyInstanceDependencies,
+  functionRegistry: FunctionRegistry,
+  logger: Logger | Console,
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
 ): HookLifecycleContext {
   return {
-    ...buildCompiledBaseContext(context, dependencies.functionRegistry),
+    ...buildCompiledBaseContext(context, functionRegistry),
     validation: context.global.validation,
     post: context.request.getAllPost(),
-    logger: dependencies.logger,
+    logger,
     validate,
     effectContext: {
       global: context.global,

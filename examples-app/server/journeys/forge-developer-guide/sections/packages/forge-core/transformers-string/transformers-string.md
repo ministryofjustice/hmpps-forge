@@ -225,13 +225,38 @@ Answer('word').pipe(Transformer.String.ToArray())
 ### ToDate
 
 Converts a date string to a Date object. Supports UK format
-(DD/MM/YYYY) and ISO-8601 format (YYYY-MM-DD). Throws on invalid
-dates.
+(DD/MM/YYYY) and ISO-8601 format (YYYY-MM-DD or full ISO timestamp).
+Throws on invalid dates.
 
 ```typescript
 Answer('startDate').pipe(Transformer.String.ToDate())
 // "15/03/2024" -> Date(2024-03-15)
 // "2024-03-15" -> Date(2024-03-15)
+// "2026-04-27t23:05:36.647z " -> Date(2026-04-27T23:05:36.647Z)
+```
+
+### FormatDate
+
+Formats a date string using native `Intl.DateTimeFormat` options.
+The locale defaults to `en-GB`; when no options are supplied, the
+output defaults to a UK long date.
+
+```typescript
+Answer('dob').pipe(Transformer.String.FormatDate())
+// "2024-03-15" -> "15 March 2024"
+
+Answer('dob').pipe(Transformer.String.FormatDate({ dateStyle: 'short' }))
+// "2024-03-15" -> "15/03/2024"
+
+Answer('createdAt').pipe(
+  Transformer.String.FormatDate({ dateStyle: 'long', timeZone: 'UTC' }),
+)
+// "2026-04-27t23:05:36.647z " -> "27 April 2026"
+
+Answer('dob').pipe(
+  Transformer.String.FormatDate({ locale: 'en-US', dateStyle: 'long' }),
+)
+// "2024-03-15" -> "March 15, 2024"
 ```
 
 ### FormatDate

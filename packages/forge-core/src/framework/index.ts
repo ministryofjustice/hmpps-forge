@@ -6,18 +6,18 @@ export type {
   Logger,
   StepHandler,
 } from './types/adapter.type'
+export type { ForgeResult } from '../engine/runtime/orchestrator/types'
 export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions, StepResponse } from './types/response.type'
 export type {
   Evaluated,
   HasNestedBlocksLookup,
   JourneyAncestor,
-  JourneyMetadata,
-  NavigationJourney,
-  NavigationStep,
-  NavigationTree,
   RenderContext,
-  StepMetadata,
+  RouteTree,
+  RouteTreeNode,
+  RouteTreeRoute,
+  RouteTreeRouteKind,
 } from './rendering/types'
 export type { ASTNode, AstNodeId, NodeId } from '../engine/types/ast.type'
 export type { BlockASTNode } from '../engine/types/structures.type'

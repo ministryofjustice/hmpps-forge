@@ -1,6 +1,6 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { PredicateOrExpr, PredicateTestExpr, ValueExpr } from '../../../../authoring/types/expressions.type'
+import type { PredicateOrExpr, PredicateTestExpr, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
@@ -28,13 +28,13 @@ describe('OrFactory', () => {
             type: PredicateType.TEST,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
           {
             type: PredicateType.TEST,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
         ],
       } satisfies PredicateOrExpr
@@ -60,13 +60,13 @@ describe('OrFactory', () => {
             type: PredicateType.TEST,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
           {
             type: PredicateType.TEST,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
         ],
       } satisfies PredicateOrExpr

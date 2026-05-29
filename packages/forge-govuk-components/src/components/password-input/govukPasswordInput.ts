@@ -1,11 +1,12 @@
 import {
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKPasswordInput component.
@@ -16,7 +17,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-password'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * The label used by the password input component.
@@ -26,18 +27,18 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * @example { text: 'Create a password', classes: 'govuk-label--l' } // Object with styling
    */
   label:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the label */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the label (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the label */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** For attribute - automatically set if not provided */
-        for?: ConditionalString
+        for?: ResolvableString
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ConditionalBoolean
+        isPageHeading?: ResolvableBoolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -50,16 +51,16 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * @example { html: 'It must contain at least one <strong>number</strong>' } // Rich HTML hint
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -68,7 +69,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * If `true`, input will be disabled and cannot be edited by the user.
    * @example true // Disable the input
    */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /**
    * Attribute to meet WCAG success criterion 1.3.5: Identify input purpose.
@@ -80,7 +81,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * @example 'current-password' // For login forms
    * @example 'new-password' // For registration or password change forms
    */
-  autocomplete?: ConditionalString
+  autocomplete?: ResolvableString
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -88,7 +89,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'password-requirements'
    */
-  describedBy?: ConditionalString
+  describedBy?: ResolvableString
 
   /**
    * Additional options for the form group containing the password input component.
@@ -99,7 +100,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
      * Classes to add to the form group wrapper.
      * Useful for custom styling or indicating error states.
      */
-    classes?: ConditionalString
+    classes?: ResolvableString
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /**
@@ -108,9 +109,9 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
      */
     beforeInput?: {
       /** Text content to add before the input */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add before the input (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
     /**
      * Content to add after the input element.
@@ -119,9 +120,9 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
      */
     afterInput?: {
       /** Text content to add after the input */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add after the input (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
   }
 
@@ -129,7 +130,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    * Additional CSS classes to add to the input element.
    * @example 'govuk-input--width-20' // Fixed width input
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the input element.
@@ -143,7 +144,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Show password'
    */
-  showPasswordText?: ConditionalString
+  showPasswordText?: ResolvableString
 
   /**
    * Button text when the password is visible.
@@ -151,7 +152,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Hide password'
    */
-  hidePasswordText?: ConditionalString
+  hidePasswordText?: ResolvableString
 
   /**
    * Button text exposed to assistive technologies, like screen readers,
@@ -160,7 +161,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Show your password'
    */
-  showPasswordAriaLabelText?: ConditionalString
+  showPasswordAriaLabelText?: ResolvableString
 
   /**
    * Button text exposed to assistive technologies, like screen readers,
@@ -169,7 +170,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Hide your password'
    */
-  hidePasswordAriaLabelText?: ConditionalString
+  hidePasswordAriaLabelText?: ResolvableString
 
   /**
    * Announcement made to screen reader users when their password
@@ -178,7 +179,7 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Password shown'
    */
-  passwordShownAnnouncementText?: ConditionalString
+  passwordShownAnnouncementText?: ResolvableString
 
   /**
    * Announcement made to screen reader users when their password
@@ -187,14 +188,14 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
    *
    * @example 'Password hidden'
    */
-  passwordHiddenAnnouncementText?: ConditionalString
+  passwordHiddenAnnouncementText?: ResolvableString
 
   /**
    * Optional object allowing customisation of the toggle button.
    */
   button?: {
     /** Additional CSS classes for the toggle button */
-    classes?: ConditionalString
+    classes?: ResolvableString
   }
 }
 
@@ -204,8 +205,8 @@ export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
     const params = {
       id: block.id ?? block.code,
       name: block.code,
-      label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
       value: block.value,
       disabled: block.disabled,
       autocomplete: block.autocomplete,
@@ -220,7 +221,7 @@ export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
       passwordShownAnnouncementText: block.passwordShownAnnouncementText,
       passwordHiddenAnnouncementText: block.passwordHiddenAnnouncementText,
       button: block.button,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
+      errorMessage: normaliseGovukErrorMessage(block.errors),
     }
 
     return nunjucksEnv.render('govuk/components/password-input/template.njk', {

@@ -14,7 +14,7 @@ import {
   RedirectOutcome,
   ReferenceExpr,
   ThrowErrorOutcome,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import AccessFactory from './AccessFactory'
@@ -39,7 +39,7 @@ describe('AccessFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies AccessHook
 
@@ -60,8 +60,8 @@ describe('AccessFactory', () => {
       const json = {
         type: HookType.ACCESS,
         effects: [
-          { type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] },
-          { type: FunctionType.EFFECT, name: 'logAccess', arguments: [] as ValueExpr[] },
+          { type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] },
+          { type: FunctionType.EFFECT, name: 'logAccess', arguments: [] as ResolvableValue[] },
         ],
       } satisfies AccessHook
 
@@ -86,12 +86,12 @@ describe('AccessFactory', () => {
       const effect1 = {
         type: FunctionType.EFFECT,
         name: 'effect1',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
       const effect2 = {
         type: FunctionType.EFFECT,
         name: 'effect2',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
 
       const json = {
@@ -126,7 +126,7 @@ describe('AccessFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             goto: '/step1',
           } satisfies RedirectOutcome,
@@ -154,7 +154,7 @@ describe('AccessFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Item not found',
@@ -183,7 +183,7 @@ describe('AccessFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Not found',
@@ -213,9 +213,9 @@ describe('AccessFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
-        effects: [{ type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ValueExpr[] }],
+        effects: [{ type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] }],
         next: [
           {
             type: OutcomeType.REDIRECT,
@@ -223,7 +223,7 @@ describe('AccessFactory', () => {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             } satisfies PredicateTestExpr,
             goto: '/step1',
           } satisfies RedirectOutcome,

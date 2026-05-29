@@ -1,5 +1,5 @@
 import { FunctionType, HookType } from '../../../authoring/types/enums'
-import FormConfigurationReferenceScopeError from '../../errors/FormConfigurationReferenceScopeError'
+import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
 import { formatDSLPath } from '../formatDSLPath'
 import type { FunctionValidationRule } from './types'
 
@@ -17,7 +17,7 @@ export const effectScopeRule: FunctionValidationRule = {
     }
 
     return [
-      new FormConfigurationReferenceScopeError({
+      new ForgeConfigurationReferenceScopeError({
         path: [...context.path],
         message: `Effect "${name}" can only be used inside a hook (onAccess or onSubmission)`,
         code: 'effect_outside_hook',

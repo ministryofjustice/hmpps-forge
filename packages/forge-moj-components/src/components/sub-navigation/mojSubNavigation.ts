@@ -2,9 +2,9 @@ import type nunjucks from 'nunjucks'
 
 import {
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalArray,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -15,19 +15,19 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJSubNavigationItem {
   /** URL of the navigation item anchor */
-  href: ConditionalString
+  href: ResolvableString
 
   /** Item text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Item HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Flag to mark the navigation item as active (aria-current="page") */
-  active?: ConditionalBoolean
+  active?: ResolvableBoolean
 
   /** Conditional visibility for this navigation item */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
@@ -57,13 +57,13 @@ export interface MOJSubNavigationItem {
  */
 export interface MOJSubNavigationProps {
   /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /** Array of navigation items */
-  items: ConditionalArray<MOJSubNavigationItem>
+  items: ResolvableArray<MOJSubNavigationItem>
 
   /** Additional CSS classes for the nav container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>

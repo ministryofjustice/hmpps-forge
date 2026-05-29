@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType, HookType } from '../../../../authoring/types/enums'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
-import { RedirectOutcome, SubmitHook, ValueExpr } from '../../../../authoring/types/expressions.type'
+import { RedirectOutcome, SubmitHook, ResolvableValue } from '../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import SubmitFactory from './SubmitFactory'
 
@@ -26,7 +26,7 @@ describe('SubmitFactory', () => {
           type: PredicateType.TEST,
           negate: false,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -52,7 +52,7 @@ describe('SubmitFactory', () => {
           type: PredicateType.TEST,
           negate: false,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -146,7 +146,7 @@ describe('SubmitFactory', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
@@ -172,7 +172,7 @@ describe('SubmitFactory', () => {
         type: HookType.SUBMIT,
         validate: true,
         onValid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ResolvableValue[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/success' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
@@ -196,7 +196,7 @@ describe('SubmitFactory', () => {
         type: HookType.SUBMIT,
         validate: true,
         onInvalid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ResolvableValue[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
@@ -220,13 +220,13 @@ describe('SubmitFactory', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ResolvableValue[] }],
         },
         onValid: {
           next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
         onInvalid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ResolvableValue[] }],
           next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
@@ -251,7 +251,7 @@ describe('SubmitFactory', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ValueExpr[] }],
+          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
         },
       } satisfies SubmitHook
 

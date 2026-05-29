@@ -2,7 +2,6 @@ import { ASTNode, NodeId } from '../../types/engine.type'
 import { NodeIDCategory, NodeIDGenerator } from '../id-generators/NodeIDGenerator'
 import NodeRegistry from '../registries/NodeRegistry'
 import { FieldBlockASTNode } from '../../types/structures.type'
-import { ASTNodeType } from '../../types/enums'
 import { isASTNode, isTemplateNode } from '../../typeguards/nodes'
 import { isFieldBlockStructNode } from '../../typeguards/structure-nodes'
 import { isReferenceExprNode } from '../../typeguards/expression-nodes'
@@ -14,7 +13,7 @@ import ASTNodeTree from '../node-tree/ASTNodeTree'
  * Normalises and indexes an AST subtree in one recursive descent.
  *
  * The walker assigns any missing compile IDs, resolves `Self()` references in
- * ordinary AST nodes, registers nodes by ID, and records parent/child edges in
+ * ordinary AST nodes, registers nodes by ID, and records parent edges in
  * ASTNodeTree. Template nodes are not registered because generated functions
  * evaluate iterator templates inline instead of materialising runtime AST nodes.
  */
@@ -29,14 +28,13 @@ export default class NodeRegistrationWalker {
   /**
    * Register a root AST node and every non-template descendant.
    */
-  register(root: ASTNode, parentNodeId?: NodeId, parentProperty?: string): void {
-    this.walk(root, parentNodeId, parentProperty, [], undefined)
+  register(root: ASTNode): void {
+    this.walk(root, undefined, [], undefined)
   }
 
   private walk(
     value: unknown,
     parentNodeId: NodeId | undefined,
-    propertyKey: string | undefined,
     fieldStack: FieldBlockASTNode[],
     codeOwnerFieldId: NodeId | undefined,
   ): void {
@@ -45,21 +43,17 @@ export default class NodeRegistrationWalker {
     }
 
     if (Array.isArray(value)) {
-      value.forEach(item => this.walk(item, parentNodeId, propertyKey, fieldStack, codeOwnerFieldId))
+      value.forEach(item => this.walk(item, parentNodeId, fieldStack, codeOwnerFieldId))
 
       return
     }
 
     if (isTemplateNode(value)) {
-      if (parentNodeId !== undefined && propertyKey !== undefined) {
-        this.scanTemplateForBlockTypes(value, parentNodeId, propertyKey)
-      }
-
       return
     }
 
     if (!isASTNode(value)) {
-      Object.values(value).forEach(v => this.walk(v, parentNodeId, propertyKey, fieldStack, codeOwnerFieldId))
+      Object.values(value).forEach(v => this.walk(v, parentNodeId, fieldStack, codeOwnerFieldId))
 
       return
     }
@@ -81,7 +75,7 @@ export default class NodeRegistrationWalker {
     }
 
     this.nodeRegistry.register(node.id, node)
-    this.astNodeTree.addNode(node.id, parentNodeId, propertyKey, node.type)
+    this.astNodeTree.addNode(node.id, parentNodeId)
 
     // Field blocks push onto the stack only while their descendants are scanned.
     if (isField) {
@@ -92,7 +86,7 @@ export default class NodeRegistrationWalker {
       Object.entries(node.properties).forEach(([key, propValue]) => {
         const codeId = isField && key === 'code' ? node.id : codeOwnerFieldId
 
-        this.walk(propValue, node.id, key, fieldStack, codeId)
+        this.walk(propValue, node.id, fieldStack, codeId)
       })
     }
 
@@ -106,7 +100,7 @@ export default class NodeRegistrationWalker {
     fieldStack: FieldBlockASTNode[],
     codeOwnerFieldId: NodeId | undefined,
   ): void {
-    const refPath = (node as any).properties?.path
+    const refPath = node.properties?.path
 
     if (!Array.isArray(refPath)) {
       return
@@ -170,48 +164,5 @@ export default class NodeRegistrationWalker {
     }
 
     Object.values(value as Record<string, unknown>).forEach(v => this.assignIdsRecursive(v))
-  }
-
-  /**
-   * Template block descendants are not registered, but the tree still needs to
-   * know that this property can yield blocks so render-time nested-block checks
-   * include iterator-generated blocks.
-   */
-  private scanTemplateForBlockTypes(
-    value: { originalType: string; properties?: Record<string, unknown> },
-    parentNodeId: NodeId,
-    propertyKey: string,
-  ): void {
-    if (value.originalType === ASTNodeType.BLOCK) {
-      this.astNodeTree.markPropertyContainsType(parentNodeId, propertyKey, ASTNodeType.BLOCK)
-
-      return
-    }
-
-    if (value.properties) {
-      Object.values(value.properties).forEach(propValue => {
-        this.scanTemplateValueForBlocks(propValue, parentNodeId, propertyKey)
-      })
-    }
-  }
-
-  private scanTemplateValueForBlocks(value: unknown, parentNodeId: NodeId, propertyKey: string): void {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return
-    }
-
-    if (isTemplateNode(value)) {
-      this.scanTemplateForBlockTypes(value, parentNodeId, propertyKey)
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(item => this.scanTemplateValueForBlocks(item, parentNodeId, propertyKey))
-
-      return
-    }
-
-    Object.values(value).forEach(v => this.scanTemplateValueForBlocks(v, parentNodeId, propertyKey))
   }
 }

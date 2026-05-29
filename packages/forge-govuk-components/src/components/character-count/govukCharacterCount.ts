@@ -1,12 +1,13 @@
 import {
-  ConditionalBoolean,
-  ConditionalNumber,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableNumber,
+  ResolvableString,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKCharacterCount component.
@@ -26,7 +27,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    * @example 'feedback-textarea'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
@@ -34,7 +35,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example 8 // Taller textarea
    * @example 3 // Shorter textarea
    */
-  rows?: ConditionalNumber | ConditionalString
+  rows?: ResolvableNumber | ResolvableString
 
   /**
    * The maximum number of characters allowed.
@@ -43,7 +44,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example 200 // Allow up to 200 characters
    * @example 1000 // Allow up to 1000 characters
    */
-  maxLength?: ConditionalNumber
+  maxLength?: ResolvableNumber
 
   /**
    * The maximum number of words allowed.
@@ -52,7 +53,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example 150 // Allow up to 150 words
    * @example 500 // Allow up to 500 words
    */
-  maxWords?: ConditionalNumber
+  maxWords?: ResolvableNumber
 
   /**
    * The percentage value of the limit at which the count message is displayed.
@@ -60,7 +61,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example '75' // Show count when 75% of limit is reached
    * @example '90' // Show count when 90% of limit is reached
    */
-  threshold?: ConditionalString
+  threshold?: ResolvableString
 
   /**
    * The label used by the character count component.
@@ -69,16 +70,16 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example { text: 'Feedback', classes: 'govuk-label--l' } // Object with styling
    */
   label:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Text content of the label */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the label (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the label */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ConditionalBoolean
+        isPageHeading?: ResolvableBoolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -90,16 +91,16 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example { html: 'See <a href="/help">guidance</a> for examples' } // Rich HTML hint
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -107,27 +108,27 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
   /** Additional options for the form group containing the character count component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ConditionalString
+    classes?: ResolvableString
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /** Content to add before the textarea input */
     beforeInput?: {
       /** Text content to add before the textarea */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add before the textarea (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
     /** Content to add after the textarea input (in addition to count message). */
     afterInput?: {
       /** Text content to add after the textarea */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add after the textarea (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
   }
 
   /** Additional CSS classes to add to the textarea element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>
@@ -138,12 +139,12 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example true // Enable spellcheck
    * @example false // Disable spellcheck
    */
-  spellcheck?: ConditionalBoolean
+  spellcheck?: ResolvableBoolean
 
   /** Additional options for the count message displayed below the textarea. */
   countMessage?: {
     /** Additional CSS classes for the count message */
-    classes?: ConditionalString
+    classes?: ResolvableString
   }
 
   /**
@@ -153,7 +154,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * @example 'You can enter up to %{count} characters'
    * @example 'Please limit your response to %{count} words'
    */
-  textareaDescriptionText?: ConditionalString
+  textareaDescriptionText?: ResolvableString
 
   /**
    * Message displayed when the number of characters is under the configured maximum.
@@ -163,9 +164,9 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    */
   charactersUnderLimitText?: {
     /** Message when exactly 1 character remains */
-    one?: ConditionalString
+    one?: ResolvableString
     /** Message when multiple characters remain */
-    other?: ConditionalString
+    other?: ResolvableString
   }
 
   /**
@@ -173,7 +174,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * This message is displayed visually and through assistive technologies.
    * @example 'You have reached the character limit'
    */
-  charactersAtLimitText?: ConditionalString
+  charactersAtLimitText?: ResolvableString
 
   /**
    * Message displayed when the number of characters exceeds the configured maximum.
@@ -183,9 +184,9 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    */
   charactersOverLimitText?: {
     /** Message when exactly 1 character over limit */
-    one?: ConditionalString
+    one?: ResolvableString
     /** Message when multiple characters over limit */
-    other?: ConditionalString
+    other?: ResolvableString
   }
 
   /**
@@ -196,9 +197,9 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    */
   wordsUnderLimitText?: {
     /** Message when exactly 1 word remains */
-    one?: ConditionalString
+    one?: ResolvableString
     /** Message when multiple words remain */
-    other?: ConditionalString
+    other?: ResolvableString
   }
 
   /**
@@ -206,7 +207,7 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    * This message is displayed visually and through assistive technologies.
    * @example 'You have reached the word limit'
    */
-  wordsAtLimitText?: ConditionalString
+  wordsAtLimitText?: ResolvableString
 
   /**
    * Message displayed when the number of words exceeds the configured maximum.
@@ -216,9 +217,9 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
    */
   wordsOverLimitText?: {
     /** Message when exactly 1 word over limit */
-    one?: ConditionalString
+    one?: ResolvableString
     /** Message when multiple words over limit */
-    other?: ConditionalString
+    other?: ResolvableString
   }
 }
 
@@ -235,9 +236,9 @@ export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
       maxlength: block.maxWords ? undefined : block.maxLength,
       maxwords: block.maxWords,
       threshold: block.threshold,
-      label: block.label ? (typeof block.label === 'object' ? block.label : { text: block.label }) : undefined,
-      hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-      errorMessage: block.errors?.length ? { text: block.errors[0].message } : undefined,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
+      errorMessage: normaliseGovukErrorMessage(block.errors),
       formGroup: block.formGroup,
       classes: block.classes,
       attributes: block.attributes,

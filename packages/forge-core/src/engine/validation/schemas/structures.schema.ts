@@ -1,8 +1,13 @@
 import { z } from 'zod'
 import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
-import { ReferenceExprSchema, FormatExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
+import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
-import { TransformerFunctionExprSchema, FunctionExprSchema, EffectFunctionExprSchema } from './base.schema'
+import {
+  TransformerFunctionExprSchema,
+  GeneratorFunctionExprSchema,
+  FunctionExprSchema,
+  EffectFunctionExprSchema,
+} from './base.schema'
 
 /**
  * @see {@link ViewConfig}
@@ -12,14 +17,14 @@ export const ViewConfigSchema = z.object({
   locals: z.record(z.string(), z.unknown()).optional(),
 })
 
-// TODO: Maybe add other Conditional like ConditionalBoolean etc.
+// TODO: Probably should add other resolvable schemas, such as ResolvableBoolean.
 /**
- * @see {@link ConditionalString}
+ * @see {@link ResolvableString}
  */
-export const ConditionalStringSchema = z.union([
+export const ResolvableStringSchema = z.union([
   z.string(),
   ReferenceExprSchema,
-  FormatExprSchema,
+  GeneratorFunctionExprSchema,
   PipelineExprSchema,
   ConditionalExprSchema,
   MatchExprSchema,
@@ -64,8 +69,8 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   })
 
   const fieldBlockProps = z.looseObject({
-    code: ConditionalStringSchema,
-    defaultValue: z.union([ConditionalStringSchema, z.array(ConditionalStringSchema), FunctionExprSchema]).optional(),
+    code: ResolvableStringSchema,
+    defaultValue: z.union([ResolvableStringSchema, z.array(ResolvableStringSchema), FunctionExprSchema]).optional(),
     formatters: z.array(TransformerFunctionExprSchema).optional(),
     parsers: z.array(TransformerFunctionExprSchema).optional(),
     errors: z
@@ -163,6 +168,7 @@ const StepEntryValidationSchema = z.object({
 const JourneyReachabilitySchema = z
   .object({
     resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    unreachableRedirect: z.enum(['entry', 'frontier']).optional(),
     disableReachabilityChecks: z.boolean().optional(),
   })
   .optional()

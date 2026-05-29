@@ -48,7 +48,7 @@ describe('ConditionalExprBuilder', () => {
       expect(result.thenValue).toBe('String value')
     })
 
-    it('accepts ValueExpr references', () => {
+    it('accepts ResolvableValue references', () => {
       const valueExpr = Answer('someField')
       const result = finaliseBuilders(when(simplePredicate()).then(valueExpr)) as ConditionalExpr
 
@@ -75,7 +75,7 @@ describe('ConditionalExprBuilder', () => {
       expect(result.elseValue).toBe('Error message')
     })
 
-    it('accepts ValueExpr references', () => {
+    it('accepts ResolvableValue references', () => {
       const valueExpr = Answer('fallbackField')
       const result = finaliseBuilders(when(simplePredicate()).else(valueExpr)) as ConditionalExpr
 

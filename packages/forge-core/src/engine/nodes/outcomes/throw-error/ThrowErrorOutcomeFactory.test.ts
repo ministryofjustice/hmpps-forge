@@ -2,16 +2,17 @@ import { ASTNodeType } from '../../../types/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
 import type {
   ConditionFunctionExpr,
-  FormatExpr,
+  GeneratorFunctionExpr,
   PredicateTestExpr,
   ReferenceExpr,
   ThrowErrorOutcome,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
+import { FORMAT_STRING_GENERATOR_NAME } from '../../../../authoring/generators/formatGenerators'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { ASTNode } from '../../../types/engine.type'
-import { ExpressionASTNode } from '../../../types/expressions.type'
+import { ExpressionASTNode, FunctionASTNode } from '../../../types/expressions.type'
 import { PredicateASTNode } from '../../../types/predicates.type'
 import ThrowErrorOutcomeFactory from './ThrowErrorOutcomeFactory'
 
@@ -55,10 +56,13 @@ describe('ThrowErrorOutcomeFactory', () => {
         type: OutcomeType.THROW_ERROR,
         status: 500,
         message: {
-          type: ExpressionType.FORMAT,
-          template: 'Failed to save: %1',
-          arguments: [{ type: ExpressionType.REFERENCE, path: ['data', 'errorMessage'] } satisfies ReferenceExpr],
-        } satisfies FormatExpr,
+          type: FunctionType.GENERATOR,
+          name: FORMAT_STRING_GENERATOR_NAME,
+          arguments: [
+            'Failed to save: %1',
+            { type: ExpressionType.REFERENCE, path: ['data', 'errorMessage'] } satisfies ReferenceExpr,
+          ],
+        } satisfies GeneratorFunctionExpr,
       } satisfies ThrowErrorOutcome
 
       // Act
@@ -72,7 +76,8 @@ describe('ThrowErrorOutcomeFactory', () => {
       expect(result.properties.status).toBe(500)
       expect(result.properties.message).toHaveProperty('id')
       expect((result.properties.message as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
-      expect((result.properties.message as ExpressionASTNode).expressionType).toBe(ExpressionType.FORMAT)
+      expect((result.properties.message as ExpressionASTNode).expressionType).toBe(FunctionType.GENERATOR)
+      expect((result.properties.message as FunctionASTNode).properties.name).toBe(FORMAT_STRING_GENERATOR_NAME)
     })
 
     it('should create a ThrowError outcome with when condition', () => {
@@ -88,7 +93,7 @@ describe('ThrowErrorOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ThrowErrorOutcome
@@ -118,7 +123,7 @@ describe('ThrowErrorOutcomeFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ThrowErrorOutcome

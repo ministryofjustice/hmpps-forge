@@ -3,12 +3,13 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
+  ResolvableString,
+  ResolvableBoolean,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Alert variant types that determine styling and icon.
@@ -44,7 +45,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example 'warning' // Yellow warning alert
    * @example 'error' // Red error alert
    */
-  alertVariant?: MOJAlertVariant | ConditionalString
+  alertVariant?: MOJAlertVariant | ResolvableString
 
   /**
    * The title of the alert. Used for the aria-label and optionally as a heading.
@@ -52,7 +53,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example 'Important information'
    * @example 'Application submitted'
    */
-  title: ConditionalString
+  title: ResolvableString
 
   /**
    * Plain text content for the alert message.
@@ -60,7 +61,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    *
    * @example 'Your application has been received.'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the alert message.
@@ -68,7 +69,13 @@ export interface MOJAlertProps extends BasicBlockProps {
    *
    * @example '<p>You have <strong>unsaved changes</strong>.</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /**
+   * Child blocks to render in the alert message.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Whether to display the title as a heading element.
@@ -76,7 +83,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    *
    * @example true // Show title as heading
    */
-  showTitleAsHeading?: ConditionalBoolean
+  showTitleAsHeading?: ResolvableBoolean
 
   /**
    * The heading level when showTitleAsHeading is true.
@@ -85,7 +92,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example 'h2' // Default heading level
    * @example 'h3' // Smaller heading
    */
-  headingTag?: MOJAlertHeadingTag | ConditionalString
+  headingTag?: MOJAlertHeadingTag | ResolvableString
 
   /**
    * Whether the alert can be dismissed by the user.
@@ -93,7 +100,7 @@ export interface MOJAlertProps extends BasicBlockProps {
    *
    * @example true // Show dismiss button
    */
-  dismissible?: ConditionalBoolean
+  dismissible?: ResolvableBoolean
 
   /**
    * Text for the dismiss button.
@@ -102,21 +109,21 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example 'Close'
    * @example 'Hide this message'
    */
-  dismissText?: ConditionalString
+  dismissText?: ResolvableString
 
   /**
    * Whether to disable auto-focus on the alert when it appears.
    *
    * @example true // Disable auto-focus
    */
-  disableAutoFocus?: ConditionalBoolean
+  disableAutoFocus?: ResolvableBoolean
 
   /**
    * CSS selector for the element to focus when the alert is dismissed.
    *
    * @example '#main-content'
    */
-  focusOnDismissSelector?: ConditionalString
+  focusOnDismissSelector?: ResolvableString
 
   /**
    * ARIA role for the alert container.
@@ -125,21 +132,21 @@ export interface MOJAlertProps extends BasicBlockProps {
    * @example 'alert' // For urgent notifications
    * @example 'status' // For status updates
    */
-  role?: ConditionalString
+  role?: ResolvableString
 
   /**
    * Additional CSS classes for the alert container.
    *
    * @example 'app-alert--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the alert container.
    *
    * @example { 'data-module': 'custom-alert' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**
@@ -157,11 +164,16 @@ export interface MOJAlert extends BlockDefinition, MOJAlertProps {
  * Renders an MOJ Alert component using Nunjucks template
  */
 function alertRenderer(block: EvaluatedBlock<MOJAlert>, nunjucksEnv: nunjucks.Environment): string {
+  const content = normaliseMojTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.blocks,
+  })
   const params = {
     variant: block.alertVariant,
     title: block.title,
-    text: block.text,
-    html: block.html,
+    text: content.text,
+    html: content.html,
     showTitleAsHeading: block.showTitleAsHeading,
     headingTag: block.headingTag,
     dismissible: block.dismissible,

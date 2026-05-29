@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PredicateType, ExpressionType, OutcomeType } from '../../../authoring/types/enums'
-import { ValueExprSchema, FormatExprSchema } from './expressions.schema'
+import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
 /**
@@ -21,7 +21,7 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
  */
 export const PredicateTestExprSchema = z.object({
   type: z.literal(PredicateType.TEST),
-  subject: ValueExprSchema,
+  subject: ResolvableValueSchema,
   negate: z.boolean(),
   condition: ConditionFunctionExprSchema,
 })
@@ -65,8 +65,8 @@ export const ConditionalExprSchema = z.lazy(() =>
   z.object({
     type: z.literal(ExpressionType.CONDITIONAL),
     predicate: PredicateExprSchema,
-    thenValue: ValueExprSchema.optional(),
-    elseValue: ValueExprSchema.optional(),
+    thenValue: ResolvableValueSchema.optional(),
+    elseValue: ResolvableValueSchema.optional(),
   }),
 )
 
@@ -75,7 +75,7 @@ export const ConditionalExprSchema = z.lazy(() =>
  */
 export const MatchBranchSchema = z.object({
   condition: ConditionFunctionExprSchema,
-  value: ValueExprSchema,
+  value: ResolvableValueSchema,
 })
 
 /**
@@ -84,9 +84,9 @@ export const MatchBranchSchema = z.object({
 export const MatchExprSchema = z.lazy(() =>
   z.object({
     type: z.literal(ExpressionType.MATCH),
-    subject: ValueExprSchema,
+    subject: ResolvableValueSchema,
     branches: z.array(MatchBranchSchema).min(1),
-    otherwise: ValueExprSchema.optional(),
+    otherwise: ResolvableValueSchema.optional(),
   }),
 )
 
@@ -96,7 +96,7 @@ export const MatchExprSchema = z.lazy(() =>
 export const RedirectOutcomeSchema = z.object({
   type: z.literal(OutcomeType.REDIRECT),
   when: PredicateExprSchema.optional(),
-  goto: z.union([z.string(), FormatExprSchema, ValueExprSchema]),
+  goto: z.union([z.string(), ResolvableValueSchema]),
 })
 
 /**
@@ -106,7 +106,7 @@ export const ThrowErrorOutcomeSchema = z.object({
   type: z.literal(OutcomeType.THROW_ERROR),
   when: PredicateExprSchema.optional(),
   status: z.number().int().min(100).max(599),
-  message: z.union([z.string(), FormatExprSchema, ValueExprSchema]),
+  message: z.union([z.string(), ResolvableValueSchema]),
 })
 
 /**

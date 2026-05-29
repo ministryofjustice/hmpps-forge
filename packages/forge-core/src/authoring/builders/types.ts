@@ -7,7 +7,7 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 
 /**
@@ -52,7 +52,7 @@ export interface ChainableIterable {
  * Public interface for chainable value expressions.
  * Only exposes the fluent API methods - internal methods like build() are hidden.
  */
-export interface ChainableExpr<T extends ValueExpr> {
+export interface ChainableExpr<T extends ResolvableValue> {
   /**
    * Navigate into a property of the expression result.
    * Creates a reference with this expression as its base.

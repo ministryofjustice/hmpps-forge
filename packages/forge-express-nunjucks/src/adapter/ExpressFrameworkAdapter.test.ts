@@ -38,7 +38,7 @@ describe('ExpressFrameworkAdapter', () => {
 
     const builder = ExpressFrameworkAdapter.configure({ nunjucksEnv: mockNunjucksEnv })
 
-    adapter = builder.build({ componentRegistry: mockComponentRegistry, logger: mockLogger })
+    adapter = builder.build({ logger: mockLogger })
   })
 
   describe('createRouter()', () => {
@@ -670,7 +670,7 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
-        navigation: [],
+        routeTree: [],
         step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [
@@ -690,7 +690,7 @@ describe('ExpressFrameworkAdapter', () => {
       }
 
       // Act
-      await adapter.render(renderContext, mockReq, mockRes)
+      await adapter.render(renderContext, mockReq, mockRes, mockComponentRegistry)
 
       // Assert
       expect(mockComponentRegistry.get).toHaveBeenCalledWith('html')
@@ -710,7 +710,7 @@ describe('ExpressFrameworkAdapter', () => {
       } as unknown as express.Response
 
       const renderContext: RenderContext = {
-        navigation: [],
+        routeTree: [],
         step: { path: '/step', title: 'Test Step', view: { template: 'test.njk' } },
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [] as Evaluated<BlockASTNode>[],
@@ -722,7 +722,7 @@ describe('ExpressFrameworkAdapter', () => {
       }
 
       // Act
-      await adapter.render(renderContext, mockReq, mockRes)
+      await adapter.render(renderContext, mockReq, mockRes, mockComponentRegistry)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('test.njk')

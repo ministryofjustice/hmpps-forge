@@ -1,24 +1,41 @@
 import {
-  ConditionalArray,
-  ConditionalBoolean,
-  ConditionalNumber,
-  ConditionalString,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableNumber,
+  ResolvableString,
 } from '../../components/types/structures.type'
-import { isReferenceExpr, isFormatExpr, isPipelineExpr, isConditionalExpr } from './expressions'
+import { isReferenceExpr, isPipelineExpr, isConditionalExpr } from './expressions'
+import { isGeneratorFunctionExpr } from './functions'
 import { isStringValue, isNumberValue, isBooleanValue, isArrayValue } from '../../shared/typeguards/primitives'
 
-export function isConditionalString(obj: any): obj is ConditionalString {
-  return isStringValue(obj) || isReferenceExpr(obj) || isFormatExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
+export function isResolvableString(obj: any): obj is ResolvableString {
+  return isStringValue(obj) ||
+    isReferenceExpr(obj) ||
+    isPipelineExpr(obj) ||
+    isConditionalExpr(obj) ||
+    isGeneratorFunctionExpr(obj)
 }
 
-export function isConditionalBoolean(obj: any): obj is ConditionalBoolean {
-  return isBooleanValue(obj) || isReferenceExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
+export function isResolvableBoolean(obj: any): obj is ResolvableBoolean {
+  return isBooleanValue(obj) ||
+    isReferenceExpr(obj) ||
+    isPipelineExpr(obj) ||
+    isConditionalExpr(obj) ||
+    isGeneratorFunctionExpr(obj)
 }
 
-export function isConditionalNumber(obj: any): obj is ConditionalNumber {
-  return isNumberValue(obj) || isReferenceExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
+export function isResolvableNumber(obj: any): obj is ResolvableNumber {
+  return isNumberValue(obj) ||
+    isReferenceExpr(obj) ||
+    isPipelineExpr(obj) ||
+    isConditionalExpr(obj) ||
+    isGeneratorFunctionExpr(obj)
 }
 
-export function isConditionalArray<T = any>(obj: any): obj is ConditionalArray<T> {
-  return isArrayValue(obj) || isReferenceExpr(obj) || isPipelineExpr(obj) || isConditionalExpr(obj)
+export function isResolvableArray<T = any>(obj: any): obj is ResolvableArray<T> {
+  return isArrayValue(obj) ||
+    isReferenceExpr(obj) ||
+    isPipelineExpr(obj) ||
+    isConditionalExpr(obj) ||
+    isGeneratorFunctionExpr(obj)
 }

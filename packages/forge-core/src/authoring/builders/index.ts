@@ -4,7 +4,7 @@ import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
 import { LoopReferenceBuilder } from './LoopReferenceBuilder'
 import { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef } from './types'
 import { finaliseBuilders } from './utils/finaliseBuilders'
-import { BlockDefinition, ConditionalString, FieldBlockDefinition } from '../../components/types/structures.type'
+import { BlockDefinition, ResolvableString, FieldBlockDefinition } from '../../components/types/structures.type'
 import {
   JourneyDefinition,
   StepDefinition,
@@ -16,14 +16,15 @@ import {
 import { ForgePackage } from '../types/package.type'
 import {
   AccessHook,
-  FormatExpr,
+  GeneratorFunctionExpr,
   RedirectOutcome,
   SubmitHook,
   ThrowErrorOutcome,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { BlockType, ExpressionType, OutcomeType, StructureType, HookType } from '../types/enums'
+import { BlockType, ExpressionType, OutcomeType, StructureType, HookType, FunctionType } from '../types/enums'
+import { FORMAT_STRING_GENERATOR_NAME } from '../generators/formatGenerators'
 
 // Re-export public interfaces (for type annotations)
 export type { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
@@ -290,7 +291,7 @@ export function Session(key: string): ChainableRef {
  * Answer(emailField)  // Reference by field definition
  * Answer('user.address.postcode')  // Nested path
  */
-export function Answer(target: FieldBlockDefinition | ConditionalString): ChainableRef {
+export function Answer(target: FieldBlockDefinition | ResolvableString): ChainableRef {
   // If it's a field block definition, use its code property
   if (isFieldBlockDefinition(target)) {
     const { code } = target
@@ -355,11 +356,11 @@ export function Self(): ChainableRef {
  * Format('Hello %1!', Answer('name'))
  * Format('%1 %2', Answer('firstName'), Answer('lastName'))
  */
-export function Format(template: string, ...args: ConditionalString[]): FormatExpr {
+export function Format(template: string, ...args: ResolvableString[]): GeneratorFunctionExpr {
   return {
-    type: ExpressionType.FORMAT,
-    template,
-    arguments: args,
+    type: FunctionType.GENERATOR,
+    name: FORMAT_STRING_GENERATOR_NAME,
+    arguments: [template, ...args],
   }
 }
 
@@ -382,6 +383,6 @@ export function Format(template: string, ...args: ConditionalString[]): FormatEx
  * // Use with .each() for iteration
  * Literal([1, 2, 3]).each(Iterator.Map(Item().value()))
  */
-export function Literal<T extends ValueExpr>(value: T): ChainableExpr<T> {
+export function Literal<T extends ResolvableValue>(value: T): ChainableExpr<T> {
   return ExpressionBuilder.from(value)
 }

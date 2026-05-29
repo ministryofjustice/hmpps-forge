@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojBanner } from './mojBanner'
@@ -8,6 +11,14 @@ describe('mojBanner', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(mojBanner)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Data transformation', () => {
     it('should pass through text content', async () => {
@@ -50,6 +61,19 @@ describe('mojBanner', () => {
       // Assert
       expect(params.text).toBe('Plain text')
       expect(params.html).toBe('<p>HTML content</p>')
+    })
+
+    it('should use blocks over text and html when provided', async () => {
+      // Arrange & Act
+      const params = await helper.getParams({
+        text: 'This is ignored',
+        html: '<p>This is also ignored</p>',
+        blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+      })
+
+      // Assert
+      expect(params.text).toBeUndefined()
+      expect(params.html).toBe('<p>First block</p><p>Second block</p>')
     })
   })
 

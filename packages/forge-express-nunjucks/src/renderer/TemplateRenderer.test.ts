@@ -31,13 +31,16 @@ describe('TemplateRenderer', () => {
 
     renderer = new TemplateRenderer({
       nunjucksEnv: mockNunjucksEnv,
-      componentRegistry: mockComponentRegistry,
     })
   })
 
+  function render(context: RenderContext, locals: Record<string, unknown> = {}): string {
+    return renderer.render(context, locals, mockComponentRegistry)
+  }
+
   function createRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
     return {
-      navigation: [],
+      routeTree: [],
       step: { path: '/step', title: 'Test Step' },
       ancestors: [{ code: 'test-journey', path: '/journey', title: 'Test Journey' }],
       blocks: [],
@@ -74,7 +77,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      const result = renderer.render(context)
+      const result = render(context)
 
       // Assert
       expect(result).toBe('<html>rendered</html>')
@@ -93,14 +96,14 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.blocks).toEqual(['<input type="text" />'])
     })
 
-    it('should include step, ancestors, navigation, answers, and data in template context', () => {
+    it('should include step, ancestors, route tree, answers, and data in template context', () => {
       // Arrange
       const context = createRenderContext({
         answers: { email: 'test@example.com' },
@@ -108,15 +111,89 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
       expect(templateContext.step).toEqual({ path: '/step', title: 'Test Step' })
       expect(templateContext.ancestors).toEqual([{ code: 'test-journey', path: '/journey', title: 'Test Journey' }])
+      expect(templateContext.routeTree).toEqual([])
       expect(templateContext.navigation).toEqual([])
       expect(templateContext.answers).toEqual({ email: 'test@example.com' })
       expect(templateContext.data).toEqual({ userId: '123' })
+    })
+
+    it('should expose old navigation shape from route tree in template context', () => {
+      // Arrange
+      const context = createRenderContext({
+        routeTree: [
+          {
+            segment: 'apply',
+            path: '/apply',
+            templatePath: '/apply',
+            active: true,
+            metadata: { navGroup: 'Top' },
+            route: {
+              kind: 'journey',
+              nodeId: 'compile_ast:1',
+              title: 'Apply',
+              description: 'Application journey',
+              metadata: { navGroup: 'Top' },
+            },
+            children: [
+              {
+                segment: 'personal',
+                path: '/apply/personal',
+                templatePath: '/apply/personal',
+                active: true,
+                children: [
+                  {
+                    segment: 'name',
+                    path: '/apply/personal/name',
+                    templatePath: '/apply/personal/name',
+                    active: true,
+                    metadata: { hiddenFromNav: false },
+                    route: {
+                      kind: 'step',
+                      nodeId: 'compile_ast:2',
+                      title: 'Name',
+                      metadata: { hiddenFromNav: false },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+
+      // Act
+      render(context)
+
+      // Assert
+      const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
+      expect(templateContext.navigation).toEqual([
+        {
+          type: 'journey',
+          title: 'Apply',
+          description: 'Application journey',
+          path: '/apply',
+          active: true,
+          metadata: { navGroup: 'Top' },
+          children: [
+            {
+              type: 'step',
+              title: 'Name',
+              description: undefined,
+              path: '/apply/personal/name',
+              active: true,
+              metadata: { hiddenFromNav: false },
+              children: [],
+            },
+          ],
+        },
+      ])
     })
 
     it('should merge provided locals into template context', () => {
@@ -125,7 +202,7 @@ describe('TemplateRenderer', () => {
       const locals = { csrfToken: 'abc123', applicationName: 'My App' }
 
       // Act
-      renderer.render(context, locals)
+      render(context, locals)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -151,7 +228,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -167,7 +244,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext()
 
       // Act & Assert
-      expect(() => renderer.render(context)).toThrow('Template syntax error')
+      expect(() => render(context)).toThrow('Template syntax error')
     })
   })
 
@@ -179,7 +256,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-step.njk')
@@ -196,7 +273,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('parent-template.njk')
@@ -213,7 +290,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('root-template.njk')
@@ -227,7 +304,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
@@ -240,7 +317,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
@@ -253,7 +330,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('custom-template.njk')
@@ -271,7 +348,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -287,7 +364,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -305,7 +382,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -319,7 +396,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -343,7 +420,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act & Assert
-      expect(() => renderer.render(context)).toThrow(
+      expect(() => render(context)).toThrow(
         'Component variant "unknown-component" not found in registry. Available variants: html, radios',
       )
     })
@@ -366,7 +443,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -407,7 +484,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -441,7 +518,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -470,7 +547,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -512,7 +589,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledTimes(2)
@@ -558,7 +635,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[2][0]
@@ -600,7 +677,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
@@ -640,7 +717,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const parentCallArgs = mockRender.mock.calls[1][0]
@@ -668,7 +745,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -702,7 +779,7 @@ describe('TemplateRenderer', () => {
       })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockRender).toHaveBeenCalledWith(
@@ -722,7 +799,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext({ blocks: [] })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       const templateContext = mockTemplate.render.mock.calls[0][0] as TemplateContext
@@ -734,7 +811,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext({ ancestors: [] })
 
       // Act
-      renderer.render(context)
+      render(context)
 
       // Assert
       expect(mockNunjucksEnv.getTemplate).toHaveBeenCalledWith('form-step.njk')
@@ -747,7 +824,7 @@ describe('TemplateRenderer', () => {
       const context = createRenderContext()
 
       // Act
-      const result = renderer.render(context)
+      const result = render(context)
 
       // Assert
       expect(result).toBe('')

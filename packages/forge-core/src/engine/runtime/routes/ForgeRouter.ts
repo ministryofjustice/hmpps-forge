@@ -1,257 +1,279 @@
-import { CompilationArtefact, JourneyIndex } from '../../compilation/CompilationFactory'
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
 import { ForgeOptions } from '../../Forge'
-import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
+import { JourneyASTNode } from '../../types/structures.type'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
-import { JourneyMetadata, StepMetadata } from '../../../framework/rendering/types'
-import StepController from './StepController'
-import JourneyController from './JourneyController'
-import getAncestorChain from '../../utils/getAncestorChain'
-import { isJourneyStructNode } from '../../typeguards/structure-nodes'
-import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import type JourneyInstance from '../../JourneyInstance'
-import { JourneyRouteTemplateCatalog, RouteMapEntry } from '../types/routes.type'
-
-interface StepRouteContext {
-  stepId: NodeId
-  stepNode: StepASTNode
-  routeTemplatePath: string
-  routeTemplateCatalog: JourneyRouteTemplateCatalog
-  journeyBasePath: string
-}
+import type PackageInstance from '../../PackageInstance'
+import {
+  createRouteTreeIndex,
+  JourneyRouteContext,
+  JourneyRouteTemplateCatalog,
+  RouteTreeIndex,
+  StepRouteContext,
+  StoredRouteTree,
+} from '../types/routes.type'
+import RouteTreeBuilder from './RouteTreeBuilder'
+import ContextPreparer from '../lifecycle/ContextPreparer'
+import RequestOrchestrator from '../orchestrator/RequestOrchestrator'
+import type { PipelineState } from '../orchestrator/types'
+import { createAccessLifecyclePhase } from '../orchestrator/phases/accessLifecyclePhase'
+import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPreparationPhase'
+import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
+import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
+import { createSubmitPhase } from '../orchestrator/phases/submitPhase'
+import { createStepRenderTerminal } from '../orchestrator/phases/stepRenderTerminal'
+import { createJourneyRedirectTerminal } from '../orchestrator/phases/journeyRedirectTerminal'
+import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/NavigationAnalyzer'
 
 export default class ForgeRouter<TRouter> {
   private readonly router: TRouter
 
   private readonly basePath: string
 
-  private readonly routeMap: Map<string, RouteMapEntry> = new Map()
-
-  private readonly registeredRoutes: Array<{ method: 'GET' | 'POST'; path: string }> = []
+  private readonly routeTreeIndex: RouteTreeIndex = createRouteTreeIndex()
 
   private readonly journeyRouters = new Map<string, { router: TRouter; journeyNode: JourneyASTNode }>()
 
-  private readonly navigationMetadata: JourneyMetadata[] = []
+  private readonly contextPreparer = new ContextPreparer()
 
   constructor(
-    private readonly dependencies: JourneyInstanceDependencies,
+    private readonly forgeDependencies: ForgeDependencies,
     options: ForgeOptions,
   ) {
-    this.router = dependencies.frameworkAdapter.createRouter()
+    this.router = forgeDependencies.frameworkAdapter.createRouter()
     this.basePath = normalizeBasePath(options.basePath)
   }
 
-  mount(journeyInstance: JourneyInstance, journeyDependencies?: JourneyInstanceDependencies): void {
-    const stepIndex = journeyInstance.getStepIndex()
-    const journeyIndex = journeyInstance.getJourneyIndex()
-    const artefact = journeyInstance.getSharedCompilationArtefact()
-    const deps = journeyDependencies ?? this.dependencies
+  mount(packageInstance: PackageInstance, forgeDependencies: ForgeDependencies): number {
+    const packageDependencies = packageInstance.getDependencies()
+    const stepIndex = packageInstance.getStepIndex()
+    const journeyIndex = packageInstance.getJourneyIndex()
+    const compilationContext = packageInstance.getCompilationContext()
+    const routeTreeBuilder = new RouteTreeBuilder(this.routeTreeIndex)
+    const { journeyContexts, stepContexts, catalogsByBasePath } = routeTreeBuilder.build({
+      basePath: this.basePath,
+      stepIndex,
+      journeyIndex,
+      compilationContext,
+    })
 
-    const { stepContexts, catalogsByBasePath } = this.buildStepRouteContexts(stepIndex, artefact)
+    this.createJourneyRouters(journeyContexts)
+    const stepRouteCount = this.mountStepRoutes(stepContexts, packageInstance, packageDependencies, forgeDependencies)
+    const journeyRootRouteCount = this.mountJourneyRootHandlers(
+      packageInstance,
+      journeyContexts,
+      catalogsByBasePath,
+      packageDependencies,
+      forgeDependencies,
+    )
 
-    this.createJourneyRouters(journeyIndex, artefact)
-    this.mountStepRoutes(stepContexts, journeyInstance, deps)
-    this.mountJourneyRootHandlers(journeyInstance, catalogsByBasePath, deps)
-    this.storeNavigationMetadata(journeyInstance.getConfiguration())
+    return stepRouteCount + journeyRootRouteCount
   }
 
   getRouter(): TRouter {
     return this.router
   }
 
-  getRegisteredRoutes(): Array<{ method: 'GET' | 'POST'; path: string }> {
-    return this.registeredRoutes
+  getRouteTree(): StoredRouteTree {
+    return this.routeTreeIndex.roots
   }
 
-  getNavigationMetadata(): JourneyMetadata[] {
-    return this.navigationMetadata
-  }
-
-  // ── Pass 1: Compute route paths and catalogs ─────────────────────
-
-  private buildStepRouteContexts(
-    stepIndex: Map<NodeId, StepASTNode>,
-    artefact: CompilationArtefact,
-  ): {
-    stepContexts: StepRouteContext[]
-    catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>
-  } {
-    const catalogsByBasePath = new Map<string, JourneyRouteTemplateCatalog>()
-    const stepContexts: StepRouteContext[] = []
-
-    stepIndex.forEach((stepNode, stepId) => {
-      const journeyAncestry = this.getJourneyAncestry(stepId, artefact)
-      const journeyBasePath = this.getJourneyBasePath(journeyAncestry)
-      const routeTemplatePath = joinPaths(journeyBasePath, stepNode.properties.path)
-      const routeTemplateCatalog = catalogsByBasePath.get(journeyBasePath) ?? {
-        routeTemplatePathByStepId: new Map<NodeId, string>(),
-        stepIdByRouteTemplatePath: new Map<string, NodeId>(),
-      }
-
-      routeTemplateCatalog.routeTemplatePathByStepId.set(stepId, routeTemplatePath)
-      routeTemplateCatalog.stepIdByRouteTemplatePath.set(routeTemplatePath, stepId)
-      catalogsByBasePath.set(journeyBasePath, routeTemplateCatalog)
-
-      stepContexts.push({ stepId, stepNode, routeTemplatePath, routeTemplateCatalog, journeyBasePath })
-    })
-
-    return { stepContexts, catalogsByBasePath }
-  }
-
-  // ── Pass 2: Create journey sub-routers ────────────────────────────
-
-  private createJourneyRouters(journeyIndex: JourneyIndex, artefact: CompilationArtefact): void {
-    journeyIndex.forEach((_, journeyId) => {
-      const chain = getAncestorChain(journeyId, artefact.astNodeTree)
-        .map(id => artefact.nodeRegistry.get(id))
-        .filter(isJourneyStructNode)
-
-      let currentRouter = this.router
-      let basePath = this.basePath
-
-      chain.forEach(journey => {
-        const journeyPath = journey.properties.path
-        basePath = joinPaths(basePath, journeyPath)
-
-        if (!this.journeyRouters.has(basePath)) {
-          const newRouter = this.dependencies.frameworkAdapter.createRouter()
-          const mountPath =
-            currentRouter === this.router ? joinPaths(this.basePath, journeyPath) : joinPaths('', journeyPath)
-
-          this.dependencies.frameworkAdapter.mountRouter(currentRouter, mountPath, newRouter)
-          this.journeyRouters.set(basePath, { router: newRouter, journeyNode: journey })
-        }
-
-        currentRouter = this.journeyRouters.get(basePath)!.router
-      })
-    })
-  }
-
-  // ── Pass 3: Mount step routes ─────────────────────────────────────
-
-  private mountStepRoutes(
-    stepContexts: StepRouteContext[],
-    journeyInstance: JourneyInstance,
-    dependencies: JourneyInstanceDependencies,
-  ): void {
-    stepContexts.forEach(ctx => {
-      const router = this.journeyRouters.get(ctx.journeyBasePath)!.router
-      const stepPath = ctx.stepNode.properties.path
-      const fullPath = joinPaths(ctx.journeyBasePath, stepPath)
-
-      if (this.routeMap.has(fullPath)) {
-        throw new DuplicateRouteError({ path: fullPath })
-      }
-
-      const resolveCompiledStep = () => journeyInstance.getCompiledStep(ctx.stepId)
-
-      this.routeMap.set(fullPath, { stepId: ctx.stepId, resolveCompiledStep })
-
-      let controller: StepController<unknown, unknown> | undefined
-
-      const getController = () => {
-        if (!controller) {
-          controller = new StepController(
-            resolveCompiledStep(),
-            dependencies,
-            this.navigationMetadata,
-            ctx.routeTemplatePath,
-            ctx.routeTemplateCatalog,
-          )
-        }
-
-        return controller
-      }
-
-      this.dependencies.frameworkAdapter.get(router, stepPath, (req, res) => getController().get(req, res))
-      this.registeredRoutes.push({ method: 'GET', path: fullPath })
-
-      this.dependencies.frameworkAdapter.post(router, stepPath, (req, res) => getController().post(req, res))
-      this.registeredRoutes.push({ method: 'POST', path: fullPath })
-    })
-  }
-
-  // ── Pass 4: Mount journey root handlers ───────────────────────────
-
-  private mountJourneyRootHandlers(
-    journeyInstance: JourneyInstance,
-    catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
-    dependencies: JourneyInstanceDependencies,
-  ): void {
-    this.journeyRouters.forEach(({ router, journeyNode }, basePath) => {
-      const journeyPlan = journeyInstance.getJourneyRuntimePlan(journeyNode.id)
-      const routeTemplateCatalog = catalogsByBasePath.get(basePath)
-
-      if (!journeyPlan || !routeTemplateCatalog) {
+  private createJourneyRouters(journeyContexts: JourneyRouteContext[]): void {
+    journeyContexts.forEach(context => {
+      if (this.journeyRouters.has(context.templatePath)) {
         return
       }
 
-      let controller: JourneyController<unknown, unknown> | undefined
+      const parentRouter = this.resolveParentRouter(context)
+      const newRouter = this.forgeDependencies.frameworkAdapter.createRouter()
 
-      const getController = () => {
-        if (!controller) {
-          controller = new JourneyController(
-            journeyPlan,
-            journeyInstance.getJourneyCompilationArtefact(),
-            dependencies,
-            routeTemplateCatalog,
-          )
-        }
+      this.forgeDependencies.frameworkAdapter.mountRouter(parentRouter, context.mountPath, newRouter)
+      this.journeyRouters.set(context.templatePath, { router: newRouter, journeyNode: context.journeyNode })
+    })
+  }
 
-        return controller
+  private resolveParentRouter(context: JourneyRouteContext): TRouter {
+    if (context.parentTemplatePath === undefined) {
+      return this.router
+    }
+
+    const parent = this.journeyRouters.get(context.parentTemplatePath)
+
+    if (!parent) {
+      throw new Error(`Unable to mount journey route "${context.templatePath}" before its parent router`)
+    }
+
+    return parent.router
+  }
+
+  private mountStepRoutes(
+    stepContexts: StepRouteContext[],
+    packageInstance: PackageInstance,
+    packageDependencies: PackageDependencies,
+    forgeDependencies: ForgeDependencies,
+  ): number {
+    let routeCount = 0
+
+    stepContexts.forEach(ctx => {
+      const journeyRouter = this.journeyRouters.get(ctx.journeyBasePath)
+      const stepPath = ctx.stepNode.properties.path
+      const fullPath = joinPaths(ctx.journeyBasePath, stepPath)
+
+      if (!journeyRouter) {
+        throw new Error(`Unable to mount step route "${fullPath}" before its journey router`)
       }
 
-      this.dependencies.frameworkAdapter.get(router, '/', (req, res) => getController().get(req, res))
-      this.registeredRoutes.push({ method: 'GET', path: basePath })
+      const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
+      const { functionRegistry } = packageDependencies
+      const runtimePlan = compiledStep.runtimePlan
+
+      const accessPhase = createAccessLifecyclePhase(
+        runtimePlan.compiledAccessLifecycle,
+        runtimePlan.path,
+        functionRegistry,
+        forgeDependencies.logger,
+      )
+
+      const answersPhase = createAnswerPreparationPhase(
+        compiledStep.compiledAnswerPreparation,
+        runtimePlan.path,
+        functionRegistry,
+      )
+
+      const renderTerminal = createStepRenderTerminal(
+        compiledStep.compiledRender,
+        runtimePlan.path,
+        this.routeTreeIndex.roots,
+        ctx.routeTemplatePath,
+        functionRegistry,
+      )
+
+      const getOrchestrator = new RequestOrchestrator(
+        [
+          accessPhase,
+          answersPhase,
+          createNavigationPhase(
+            compiledStep.navigationPlan.compiledNavigation,
+            compiledStep.navigationPlan,
+            runtimePlan.stepId,
+            ctx.routeTemplateCatalog,
+            resolveStepRequestRedirect,
+            functionRegistry,
+          ),
+          createEntryValidationPhase(
+            compiledStep.compiledEntryValidation,
+            compiledStep.compiledValidation,
+            runtimePlan.stepId,
+            runtimePlan.path,
+            functionRegistry,
+          ),
+        ],
+        renderTerminal,
+      )
+
+      const postOrchestrator = new RequestOrchestrator(
+        [
+          accessPhase,
+          answersPhase,
+          createNavigationPhase(
+            compiledStep.navigationPlan.compiledNavigation,
+            compiledStep.navigationPlan,
+            runtimePlan.stepId,
+            ctx.routeTemplateCatalog,
+            resolvePostRequestRedirect,
+            functionRegistry,
+          ),
+          createSubmitPhase(
+            runtimePlan.compiledSubmitHooks,
+            compiledStep.compiledValidation,
+            runtimePlan.stepId,
+            runtimePlan.path,
+            functionRegistry,
+            forgeDependencies.logger,
+          ),
+        ],
+        renderTerminal,
+      )
+
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, stepPath, async (req, res) => {
+        const state = this.prepareRequest(req, res, runtimePlan)
+        const result = await getOrchestrator.execute(state)
+
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
+
+      this.forgeDependencies.frameworkAdapter.post(journeyRouter.router, stepPath, async (req, res) => {
+        const state = this.prepareRequest(req, res, runtimePlan)
+        const result = await postOrchestrator.execute(state)
+
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
+
+      routeCount += 2
     })
+
+    return routeCount
   }
 
-  // ── Pass 5: Store navigation metadata ─────────────────────────────
+  private mountJourneyRootHandlers(
+    packageInstance: PackageInstance,
+    journeyContexts: JourneyRouteContext[],
+    catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
+    packageDependencies: PackageDependencies,
+    forgeDependencies: ForgeDependencies,
+  ): number {
+    let routeCount = 0
 
-  private storeNavigationMetadata(config: JourneyDefinition): void {
-    this.navigationMetadata.push(this.extractJourneyMetadata(config, this.basePath))
-  }
+    journeyContexts.forEach(({ journeyNode, templatePath }) => {
+      const journeyRouter = this.journeyRouters.get(templatePath)
+      const journeyPlan = packageInstance.getJourneyRuntimePlan(journeyNode.id)
+      const routeTemplateCatalog = catalogsByBasePath.get(templatePath)
 
-  // ── Helpers ───────────────────────────────────────────────────────
+      if (!journeyRouter || !journeyPlan || !routeTemplateCatalog) {
+        return
+      }
 
-  private getJourneyAncestry(stepId: NodeId, artefact: CompilationArtefact): JourneyASTNode[] {
-    return getAncestorChain(stepId, artefact.astNodeTree)
-      .filter(nodeId => nodeId !== stepId)
-      .map(nodeId => artefact.nodeRegistry.get(nodeId))
-      .filter(isJourneyStructNode)
-  }
+      const { functionRegistry } = packageDependencies
 
-  private getJourneyBasePath(journeyAncestry: JourneyASTNode[]): string {
-    return journeyAncestry.reduce((path, journey) => joinPaths(path, journey.properties.path), this.basePath)
-  }
+      const orchestrator = new RequestOrchestrator(
+        [
+          createAccessLifecyclePhase(
+            journeyPlan.compiledAccessLifecycle,
+            journeyPlan.path,
+            functionRegistry,
+            forgeDependencies.logger,
+          ),
+          createAnswerPreparationPhase(journeyPlan.compiledAnswerPreparation, journeyPlan.path, functionRegistry),
+        ],
+        createJourneyRedirectTerminal(
+          journeyPlan.navigationPlan.compiledNavigation,
+          journeyPlan.navigationPlan,
+          routeTemplateCatalog,
+          functionRegistry,
+        ),
+      )
 
-  private extractJourneyMetadata(journey: JourneyDefinition, parentPath: string): JourneyMetadata {
-    const journeyPath = joinPaths(parentPath, journey.path)
-    const children: Array<JourneyMetadata | StepMetadata> = []
+      this.forgeDependencies.frameworkAdapter.get(journeyRouter.router, '/', async (req, res) => {
+        const state = this.prepareRequest(req, res, journeyPlan)
+        const result = await orchestrator.execute(state)
 
-    journey.steps?.forEach(step => {
-      children.push(this.extractStepMetadata(step, journeyPath))
+        this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)
+      })
+
+      routeCount += 1
     })
 
-    journey.children?.forEach(childJourney => {
-      children.push(this.extractJourneyMetadata(childJourney, journeyPath))
-    })
-
-    return {
-      title: journey.title,
-      description: journey.description,
-      path: journeyPath,
-      metadata: journey.metadata,
-      children,
-    }
+    return routeCount
   }
 
-  private extractStepMetadata(step: StepDefinition, parentPath: string): StepMetadata {
-    return {
-      title: step.title,
-      path: joinPaths(parentPath, step.path),
-      metadata: step.metadata,
-    }
+  private prepareRequest(
+    req: unknown,
+    res: unknown,
+    runtimePlan: { staticData: Record<string, unknown> },
+  ): PipelineState {
+    const request = this.forgeDependencies.frameworkAdapter.toStepRequest(req)
+    const response = this.forgeDependencies.frameworkAdapter.toStepResponse(res)
+    const context = this.contextPreparer.prepare(runtimePlan, request, response)
+
+    return { context, request }
   }
 }

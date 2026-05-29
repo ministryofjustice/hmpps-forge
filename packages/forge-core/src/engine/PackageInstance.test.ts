@@ -1,0 +1,131 @@
+import { buildComponent } from '../components/utils/buildComponent'
+import { StructureType } from '../authoring/types/enums'
+import type { JourneyDefinition } from '../authoring/types/structures.type'
+import type { JourneyASTNode } from './types/structures.type'
+import type { CompilationContext } from './compilation/CompilationContext'
+import type { JourneyCompilationResult } from './types/compilationArtefacts.type'
+import JourneyCompiler from './compilation/JourneyCompiler'
+import ComponentRegistry from './registries/ComponentRegistry'
+import FunctionRegistry from './registries/FunctionRegistry'
+import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
+import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
+import PackageInstance from './PackageInstance'
+
+describe('PackageInstance', () => {
+  describe('constructor()', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('should use global dependencies when package has no scoped registrations', () => {
+      // Arrange
+      const functionRegistry = new FunctionRegistry()
+      const componentRegistry = new ComponentRegistry()
+
+      mockCompilation()
+
+      // Act
+      const instance = new PackageInstance(
+        { journey: createJourneyDefinition() },
+        { functionRegistry, componentRegistry },
+      )
+
+      // Assert
+      expect(instance.getDependencies().functionRegistry).toBe(functionRegistry)
+      expect(instance.getDependencies().componentRegistry).toBe(componentRegistry)
+    })
+
+    it('should scope package functions with provided dependencies', () => {
+      // Arrange
+      const functionRegistry = new FunctionRegistry()
+      const componentRegistry = new ComponentRegistry()
+
+      functionRegistry.register({
+        GlobalFunction: {
+          name: 'GlobalFunction',
+          evaluate: () => true,
+          isAsync: false,
+        },
+      })
+      mockCompilation()
+
+      // Act
+      const instance = new PackageInstance(
+        {
+          journey: createJourneyDefinition(),
+          functions: {
+            WithPrefix: (deps: { prefix: string }) => (value: unknown) => `${deps.prefix}${String(value)}`,
+          },
+        },
+        {
+          functionRegistry,
+          componentRegistry,
+          functionDependencies: { prefix: 'case-' },
+        },
+      )
+
+      // Assert
+      const scopedFunctionRegistry = instance.getDependencies().functionRegistry
+      const packageFunction = scopedFunctionRegistry.get('WithPrefix')
+
+      expect(scopedFunctionRegistry).toBeInstanceOf(ScopedFunctionRegistry)
+      expect(scopedFunctionRegistry.has('GlobalFunction')).toBe(true)
+      expect(packageFunction?.evaluate('123')).toBe('case-123')
+      expect(functionRegistry.has('WithPrefix')).toBe(false)
+    })
+
+    it('should scope package components without registering them globally', () => {
+      // Arrange
+      const functionRegistry = new FunctionRegistry()
+      const componentRegistry = new ComponentRegistry()
+      const globalComponent = buildComponent('global-component', () => '<div>Global</div>')
+      const packageComponent = buildComponent('package-component', () => '<div>Package</div>')
+
+      componentRegistry.registerMany([globalComponent])
+      mockCompilation()
+
+      // Act
+      const instance = new PackageInstance(
+        {
+          journey: createJourneyDefinition(),
+          components: [packageComponent],
+        },
+        { functionRegistry, componentRegistry },
+      )
+
+      // Assert
+      const scopedComponentRegistry = instance.getDependencies().componentRegistry
+
+      expect(scopedComponentRegistry).toBeInstanceOf(ScopedComponentRegistry)
+      expect(scopedComponentRegistry.get('global-component')).toBe(globalComponent)
+      expect(scopedComponentRegistry.get('package-component')).toBe(packageComponent)
+      expect(componentRegistry.has('package-component')).toBe(false)
+    })
+  })
+})
+
+function mockCompilation(): void {
+  vi.spyOn(JourneyCompiler.prototype, 'compile')
+    .mockReturnValue(createCompilationResult())
+}
+
+function createJourneyDefinition(): JourneyDefinition {
+  return {
+    type: StructureType.JOURNEY,
+    path: '/journey',
+    code: 'journey',
+    title: 'Journey',
+    steps: [],
+  }
+}
+
+function createCompilationResult(): JourneyCompilationResult {
+  return {
+    rootNode: { properties: { code: 'journey' } } as JourneyASTNode,
+    context: {} as CompilationContext,
+    stepIndex: new Map(),
+    journeyIndex: new Map(),
+    steps: new Map(),
+    journeyPlans: new Map(),
+  }
+}

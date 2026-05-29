@@ -2,11 +2,12 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKWarningText component.
@@ -24,16 +25,19 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface GovUKWarningTextProps extends BasicBlockProps {
   /** Plain text content for the warning. Required unless html is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the warning. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /** Child blocks to render in the warning. Takes precedence over text/html. */
+  blocks?: BlockDefinition[]
 
   /** Fallback text for the warning icon (for screen readers). Defaults to "Warning". */
-  iconFallbackText?: ConditionalString
+  iconFallbackText?: ResolvableString
 
   /** Additional CSS classes for the warning text container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the warning text container */
   attributes?: Record<string, any>
@@ -54,9 +58,14 @@ export interface GovUKWarningText extends BlockDefinition, GovUKWarningTextProps
  * Renders the GOV.UK Warning Text component using the official Nunjucks template.
  */
 function warningTextRenderer(block: EvaluatedBlock<GovUKWarningText>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    text: block.html ? undefined : block.text,
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
     html: block.html,
+    blocks: block.blocks,
+  })
+  const params: Record<string, any> = {
+    text: content.text,
+    html: content.html,
     iconFallbackText: block.iconFallbackText,
     classes: block.classes,
     attributes: block.attributes,

@@ -38,28 +38,28 @@ export const summaryList = GovUKSummaryList({
       },
     },
     {
+      visibleWhen: Answer('visitType').match(Condition.Equals('in-person')),
       key: { text: 'Office' },
       value: { text: Answer('location').pipe(Transformer.String.Capitalize()) },
       actions: {
         items: [{ href: 'location', text: 'Change', visuallyHiddenText: 'office' }],
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('in-person')),
     },
     {
+      visibleWhen: Answer('visitType').match(Condition.Equals('video')),
       key: { text: 'Invite email' },
       value: { text: Answer('videoEmail') },
       actions: {
         items: [{ href: 'video-email', text: 'Change', visuallyHiddenText: 'invite email' }],
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('video')),
     },
     {
+      visibleWhen: Answer('visitType').match(Condition.Equals('phone')),
       key: { text: 'Phone number' },
       value: { text: Answer('phoneNumber') },
       actions: {
         items: [{ href: 'phone-number', text: 'Change', visuallyHiddenText: 'phone number' }],
       },
-      visibleWhen: Answer('visitType').match(Condition.Equals('phone')),
     },
   ],
 })

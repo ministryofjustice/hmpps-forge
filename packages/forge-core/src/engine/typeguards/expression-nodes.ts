@@ -3,7 +3,6 @@ import { ASTNodeType } from '../types/enums'
 import {
   ConditionalASTNode,
   ExpressionASTNode,
-  FormatASTNode,
   FunctionASTNode,
   IterateASTNode,
   MatchASTNode,
@@ -25,13 +24,6 @@ export function isExpressionNode(obj: any): obj is ExpressionASTNode {
  */
 export function isReferenceExprNode(obj: any): obj is ReferenceASTNode {
   return isExpressionNode(obj) && obj.expressionType === ExpressionType.REFERENCE
-}
-
-/**
- * Check if an AST node is a Format Expression node
- */
-export function isFormatExprNode(obj: any): obj is FormatASTNode {
-  return isExpressionNode(obj) && obj.expressionType === ExpressionType.FORMAT
 }
 
 /**

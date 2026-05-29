@@ -81,17 +81,6 @@ export interface PipelineASTNode extends ExpressionASTNode {
 }
 
 /**
- * Format Expression AST node
- */
-export interface FormatASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.FORMAT
-  properties: {
-    template: string
-    arguments: (ASTNode | any)[]
-  }
-}
-
-/**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
  * Iterator templates are compiled once and instantiated with fresh runtime IDs
@@ -157,11 +146,10 @@ export interface ValidationASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.VALIDATION
   properties: {
     condition: ASTNode // Required: the predicate — truthy means validation passes
-    message: ASTNode | string // Can be a plain string or a ConditionalString expression
+    message: ASTNode | string // Can be a plain string or a ResolvableString expression
     submissionOnly?: boolean
     groups?: string[]
     details?: Record<string, any>
-    resolvedBlockCode?: string | ASTNode // Computed during normalization
   }
 }
 

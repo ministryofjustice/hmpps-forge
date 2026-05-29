@@ -112,6 +112,47 @@ test.describe('Resuming journey', () => {
     })
   })
 
+  test.describe('reachability redirects', () => {
+    test('should redirect to overview when visiting role before answering name', async ({
+      page,
+    }) => {
+      // Act
+      await page.goto(`${basePath}/your-role`)
+
+      // Assert
+      await form.expectHeading('Resuming a partially-completed journey')
+      await form.expectUrl(`${basePath}/overview`)
+    })
+
+    test('should redirect to resume frontier when visiting check answers with partial progress', async ({
+      page,
+    }) => {
+      // Arrange
+      await form.clickButton('Seed partial progress')
+
+      // Act
+      await page.goto(`${basePath}/check-answers?resume=true`)
+
+      // Assert
+      await form.expectHeading('What is your role?')
+      await form.expectUrl(`${basePath}/your-role`)
+    })
+
+    test('should redirect to check answers when visiting confirmation with complete unsubmitted progress', async ({
+      page,
+    }) => {
+      // Arrange
+      await form.clickButton('Seed complete progress')
+
+      // Act
+      await page.goto(`${basePath}/confirmation?resume=true`)
+
+      // Assert
+      await form.expectHeading('Check your answers')
+      await form.expectUrl(`${basePath}/check-answers`)
+    })
+  })
+
   test.describe('validation', () => {
     test('should show error when name is empty', async () => {
       // Arrange

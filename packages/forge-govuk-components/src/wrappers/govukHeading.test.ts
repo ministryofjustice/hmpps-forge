@@ -1,3 +1,4 @@
+import { FunctionType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKHeading } from './govukHeading'
 
 describe('GovUKHeading', () => {
@@ -59,7 +60,9 @@ describe('GovUKHeading', () => {
       expect(result.classes).toBe('govuk-heading-l')
       expect(result.content).toEqual(
         expect.objectContaining({
-          template: '<span class="govuk-caption-l">%1</span>%2',
+          type: FunctionType.GENERATOR,
+          name: 'FormatString',
+          arguments: ['<span class="govuk-caption-l">%1</span>%2', 'Section', 'Page title'],
         }),
       )
     })
@@ -107,7 +110,9 @@ describe('GovUKHeading', () => {
       expect(result.classes).toBe('govuk-heading-l govuk-!-margin-bottom-0')
       expect(result.content).toEqual(
         expect.objectContaining({
-          template: '<span class="govuk-caption-l">%1</span>%2',
+          type: FunctionType.GENERATOR,
+          name: 'FormatString',
+          arguments: ['<span class="govuk-caption-l">%1</span>%2', 'Section', 'Title'],
         }),
       )
     })

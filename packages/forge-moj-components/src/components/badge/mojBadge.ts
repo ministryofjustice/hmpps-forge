@@ -3,7 +3,7 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -54,7 +54,7 @@ export interface MOJBadgeProps extends BasicBlockProps {
    * @example 'Complete'
    * @example 'In progress'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the badge.
@@ -62,7 +62,7 @@ export interface MOJBadgeProps extends BasicBlockProps {
    *
    * @example '<strong>Urgent</strong>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * CSS classes for the badge container.
@@ -71,7 +71,7 @@ export interface MOJBadgeProps extends BasicBlockProps {
    * @example 'moj-badge--blue'
    * @example 'moj-badge--red moj-badge--large'
    */
-  classes?: MOJBadgeColour | ConditionalString
+  classes?: MOJBadgeColour | ResolvableString
 
   /**
    * Accessible label for the badge.
@@ -79,14 +79,14 @@ export interface MOJBadgeProps extends BasicBlockProps {
    *
    * @example 'Status: Complete'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /**
    * Additional HTML attributes for the badge container.
    *
    * @example { 'data-status': 'complete' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**

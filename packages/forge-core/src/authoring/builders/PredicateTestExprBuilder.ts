@@ -6,7 +6,7 @@ import {
   PredicateXorExpr,
   PredicateNotExpr,
   PredicateTestExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../types/expressions.type'
 import { PredicateType } from '../types/enums'
 
@@ -15,11 +15,11 @@ import { PredicateType } from '../types/enums'
  * Allows chaining of negation and condition matching against a subject value.
  */
 export class PredicateTestExprBuilder {
-  private readonly subject: ValueExpr
+  private readonly subject: ResolvableValue
 
   private negateNext = false
 
-  constructor(subject: ValueExpr) {
+  constructor(subject: ResolvableValue) {
     this.subject = subject
   }
 

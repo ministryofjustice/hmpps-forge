@@ -13,6 +13,7 @@ import {
   StepHandler,
   StepRequest,
   StepResponse,
+  type ForgeResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from '../renderer/TemplateRenderer'
 import { RequestWithState } from './types'
@@ -31,7 +32,6 @@ export interface ExpressFrameworkAdapterUserOptions {
 }
 
 export interface ExpressFrameworkAdapterFullOptions extends ExpressFrameworkAdapterUserOptions {
-  componentRegistry: ComponentRegistry
   logger: Logger | Console
 }
 
@@ -69,7 +69,6 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
       build: (deps: FrameworkAdapterDependencies) =>
         new ExpressFrameworkAdapter({
           ...options,
-          componentRegistry: deps.componentRegistry,
           logger: deps.logger,
         }),
     }
@@ -82,7 +81,6 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     this.logger = options.logger
     this.templateRenderer = new TemplateRenderer({
       nunjucksEnv: options.nunjucksEnv,
-      componentRegistry: options.componentRegistry,
       defaultTemplate: options.defaultTemplate,
     })
   }
@@ -297,14 +295,33 @@ export default class ExpressFrameworkAdapter implements FrameworkAdapter<
     res.redirect(url)
   }
 
+  applyResult(
+    result: ForgeResult,
+    req: express.Request,
+    res: express.Response,
+    componentRegistry: ComponentRegistry,
+  ): void {
+    if (result.type === 'redirect') {
+      this.redirect(res, result.url)
+      return
+    }
+
+    this.render(result.context, req, res, componentRegistry)
+  }
+
   /** Render a full page from RenderContext and send the HTML response */
-  render(context: RenderContext, req: express.Request, res: express.Response): void {
+  render(
+    context: RenderContext,
+    req: express.Request,
+    res: express.Response,
+    componentRegistry: ComponentRegistry,
+  ): void {
     const locals = {
       ...req.app.locals,
       ...res.locals,
     }
 
-    const html = this.templateRenderer.render(context, locals)
+    const html = this.templateRenderer.render(context, locals, componentRegistry)
 
     res.type('html').send(html)
   }

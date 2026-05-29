@@ -2,11 +2,12 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKInsetText component.
@@ -28,26 +29,32 @@ export interface GovUKInsetTextProps extends BasicBlockProps {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the inset text.
    * Takes precedence over `text` if both are provided.
    * Use this when you need to include links or other HTML elements.
    */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /**
+   * Child blocks to render in the inset text.
+   * Takes precedence over `text` and `html`.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * ID attribute to add to the inset text container.
    * Useful for linking to this specific section or for testing.
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Additional CSS classes to add to the inset text container.
    * Use this to apply custom styling or spacing classes.
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * HTML attributes (for example data attributes) to add to the inset text container.
@@ -71,9 +78,14 @@ export interface GovUKInsetText extends BlockDefinition, GovUKInsetTextProps {
  * Renders the GOV.UK Inset Text component using the official Nunjucks template.
  */
 function insetTextRenderer(block: EvaluatedBlock<GovUKInsetText>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    text: block.html ? undefined : block.text,
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
     html: block.html,
+    blocks: block.blocks,
+  })
+  const params: Record<string, any> = {
+    text: content.text,
+    html: content.html,
     id: block.id,
     classes: block.classes,
     attributes: block.attributes,

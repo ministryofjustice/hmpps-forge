@@ -2,8 +2,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -26,37 +26,37 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface GovUKButtonProps extends BasicBlockProps {
   /** Text content for the button */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the button */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional CSS classes */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes */
   attributes?: Record<string, any>
 
   /** Style as start/call-to-action button */
-  isStartButton?: ConditionalBoolean
+  isStartButton?: ResolvableBoolean
 
   /** Button ID */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /** Name attribute for form submission, defaults to 'action' */
-  name?: ConditionalString
+  name?: ResolvableString
 
   /** Type attribute for button/input elements - defaults to 'submit' */
   buttonType?: 'button' | 'submit' | 'reset'
 
   /** Value attribute for button elements */
-  value?: ConditionalString
+  value?: ResolvableString
 
   /** Whether the button is disabled */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /** Prevent double-click submission */
-  preventDoubleClick?: ConditionalBoolean
+  preventDoubleClick?: ResolvableBoolean
 }
 
 /**
@@ -75,25 +75,25 @@ export interface GovUKButtonProps extends BasicBlockProps {
  */
 export interface GovUKLinkButtonProps extends BasicBlockProps {
   /** Text content for the button */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the button */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional CSS classes */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes */
   attributes?: Record<string, any>
 
   /** Style as start/call-to-action button */
-  isStartButton?: ConditionalBoolean
+  isStartButton?: ResolvableBoolean
 
   /** Button ID */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /** URL for the link */
-  href: ConditionalString
+  href: ResolvableString
 }
 
 /**

@@ -7,6 +7,7 @@ const subpaths = {
   'core/authoring': 'forge-core/src/authoring/index.ts',
   'core/components': 'forge-core/src/components/index.ts',
   'core/framework': 'forge-core/src/framework/index.ts',
+  'core/testing': 'forge-core/src/testing/index.ts',
   'express-nunjucks': 'forge-express-nunjucks/src/index.ts',
   'govuk-components': 'forge-govuk-components/src/index.ts',
   'moj-components': 'forge-moj-components/src/index.ts',
@@ -37,6 +38,7 @@ const dtsOwnershipRules = [
   { match: '/forge-core/src/engine/types/structures.type', entrypoint: 'core/framework' },
   { match: '/forge-core/src/engine/types/template.type', entrypoint: 'core/framework' },
   { match: '/forge-core/src/engine/nodes/expressions/validation/ValidationHandler', entrypoint: 'core/framework' },
+  { match: '/forge-core/src/testing/', entrypoint: 'core/testing' },
   { match: '/forge-core/src/index.ts', entrypoint: 'core' },
   { match: '/forge-core/src/engine/', entrypoint: 'core' },
 ]

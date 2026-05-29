@@ -4,7 +4,7 @@ import type {
   ConditionFunctionExpr,
   PredicateTestExpr,
   ReferenceExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import type { ValidationExpr } from '../../../../authoring/types/structures.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
@@ -32,7 +32,7 @@ describe('ValidationFactory', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ValueExpr[] },
+          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
 
@@ -58,7 +58,7 @@ describe('ValidationFactory', () => {
         condition: {
           type: FunctionType.CONDITION,
           name: 'IsNotEmpty',
-          arguments: [] as ValueExpr[],
+          arguments: [] as ResolvableValue[],
         } satisfies ConditionFunctionExpr,
       } satisfies PredicateTestExpr
 
@@ -90,7 +90,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
         submissionOnly: true,
@@ -116,7 +116,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
         submissionOnly: false,
@@ -142,7 +142,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
@@ -166,7 +166,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
@@ -190,7 +190,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
         groups: ['lookup', 'default'],
@@ -215,7 +215,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
         details: { code: 'VALIDATION_001', severity: 'error' },
@@ -244,7 +244,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
@@ -268,7 +268,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsTrue',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
@@ -291,7 +291,7 @@ describe('ValidationFactory', () => {
           condition: {
             type: FunctionType.CONDITION,
             name: 'IsNotEmpty',
-            arguments: [] as ValueExpr[],
+            arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
         } satisfies PredicateTestExpr,
         message: 'Custom error message',

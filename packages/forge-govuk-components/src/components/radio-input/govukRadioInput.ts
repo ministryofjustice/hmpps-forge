@@ -1,14 +1,20 @@
 import {
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
-  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  normaliseGovukErrorMessage,
+  normaliseGovukFieldset,
+  normaliseGovukTextParam,
+  renderGovukBlocksToHtml,
+  type GovukRenderedBlockContent,
+} from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKRadioInput component.
@@ -32,7 +38,7 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
    * @example 'How would you like to be contacted?'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /**
    * Can be used to add a fieldset to the radios component.
@@ -45,20 +51,20 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
      */
     legend?: {
       /** Text content of the legend */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content of the legend (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
       /** Additional CSS classes for the legend */
-      classes?: ConditionalString
+      classes?: ResolvableString
       /** Whether to render the legend as a page heading (wrapped in h1) */
-      isPageHeading?: ConditionalBoolean
+      isPageHeading?: ResolvableBoolean
     }
     /** Additional CSS classes for the fieldset wrapper */
-    classes?: ConditionalString
+    classes?: ResolvableString
     /** HTML attributes to add to the fieldset */
     attributes?: Record<string, any>
     /** Element IDs to add to the fieldset's aria-describedby attribute */
-    describedBy?: ConditionalString
+    describedBy?: ResolvableString
   }
 
   /**
@@ -69,16 +75,16 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
    * @example { html: 'Choose the <strong>most appropriate</strong> option' } // Rich HTML hint
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -92,7 +98,7 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
      * Classes to add to the form group wrapper.
      * Useful for custom styling or indicating error states.
      */
-    classes?: ConditionalString
+    classes?: ResolvableString
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /**
@@ -101,11 +107,11 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
      */
     beforeInputs?: {
       /** Text content to add before all radio items */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add before all radio items (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
       /** Additional CSS classes for the before inputs content */
-      classes?: ConditionalString
+      classes?: ResolvableString
     }
     /**
      * Content to add after all radio items within the radios component.
@@ -113,11 +119,11 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
      */
     afterInputs?: {
       /** Text content to add after all radio items */
-      text?: ConditionalString
+      text?: ResolvableString
       /** HTML content to add after all radio items (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
       /** Additional CSS classes for the after inputs content */
-      classes?: ConditionalString
+      classes?: ResolvableString
     }
   }
 
@@ -126,14 +132,14 @@ export interface GovUKRadioInputProps extends FieldBlockProps {
    * hint and error message, separated by `-`. Defaults to the `code` value.
    * @example 'contact-method' // Creates IDs like 'contact-method-email', 'contact-method-phone'
    */
-  idPrefix?: ConditionalString
+  idPrefix?: ResolvableString
 
   /**
    * Additional CSS classes to add to the radio container.
    * @example 'govuk-radios--inline' // Display radios horizontally
    * @example 'govuk-radios--small' // Smaller radio buttons
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the radio input tag.
@@ -164,28 +170,28 @@ interface GovUKRadioInputItem {
    * @example 'email'
    * @example 'phone'
    */
-  value: ConditionalString
+  value: ResolvableString
 
   /**
    * Text to use within the radio item label.
    * If `html` is provided, this will be ignored.
    * @example 'Email'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML to use within the radio item label.
    * Takes precedence over `text` if both are provided.
    * @example 'Email <span class="govuk-caption-m">Fastest response</span>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Specific ID attribute for the radio item.
    * If omitted, then `idPrefix` string will be applied with the value.
    * @example 'contact-email'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Can be used to add a hint to each radio item within the radios component.
@@ -193,16 +199,16 @@ interface GovUKRadioInputItem {
    * @example 'We'll send updates to this email address'
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -212,13 +218,13 @@ interface GovUKRadioInputItem {
    * Takes precedence over the top-level `value` option.
    * @example true // Pre-select this option
    */
-  checked?: ConditionalBoolean
+  checked?: ResolvableBoolean
 
   /**
    * If `true`, radio will be disabled and cannot be selected.
    * @example true // Disable this option
    */
-  disabled?: ConditionalBoolean
+  disabled?: ResolvableBoolean
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the radio input tag.
@@ -234,7 +240,7 @@ interface GovUKRadioInputItem {
   block?: BlockDefinition | BlockDefinition[]
 
   /** Conditional visibility for this radio item */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -247,10 +253,10 @@ interface GovUKRadioInputDivider {
    * @example 'or'
    * @example 'Alternative options'
    */
-  divider: ConditionalString
+  divider: ResolvableString
 
   /** Conditional visibility for this divider */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRadioInput', (block, nunjucksEnv) => {
@@ -259,20 +265,16 @@ export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRad
     .map(option => makeOption(option, block.value as string))
 
   const params = {
-    fieldset: block.fieldset || {
-      legend: {
-        text: block.label,
-      },
-    },
+    fieldset: normaliseGovukFieldset(block.fieldset, block.label),
     idPrefix: block.idPrefix || block.code,
     name: block.code,
     value: block.value,
     formGroup: block.formGroup,
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
+    hint: normaliseGovukTextParam(block.hint),
     items,
     classes: block.classes,
     attributes: block.attributes,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    errorMessage: normaliseGovukErrorMessage(block.errors),
   }
 
   return nunjucksEnv.render('govuk/components/radios/template.njk', {
@@ -280,16 +282,14 @@ export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRad
   })
 })
 
-const getConditionalContent = (block: RenderedBlock | RenderedBlock[] | undefined) => {
-  if (!block) {
+const getConditionalContent = (block: GovukRenderedBlockContent) => {
+  const html = renderGovukBlocksToHtml(block)
+
+  if (html === undefined) {
     return undefined
   }
 
-  if (Array.isArray(block)) {
-    return { html: block.map(b => b.html).join('') }
-  }
-
-  return { html: block.html }
+  return { html }
 }
 
 const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInputDivider>, checkedValue: string) => {
@@ -304,7 +304,7 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
     text: option.text,
     html: option.html,
     id: option.id,
-    hint: typeof option.hint === 'object' ? option.hint : { text: option.hint },
+    hint: normaliseGovukTextParam(option.hint),
     checked: checkedValue === option.value || (option.checked ?? false),
     conditional: getConditionalContent(option.block),
     disabled: option.disabled,

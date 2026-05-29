@@ -1,5 +1,5 @@
-import { JourneyInstanceDependencies, NodeId } from '../../types/engine.type'
-import { CompilationDependencies } from '../../compilation/CompilationDependencies'
+import { NodeId } from '../../types/engine.type'
+import { JourneyReachabilityState } from '../../types/JourneyReachabilityState.type'
 import { AnswerHistory } from '../types/AnswerHistory.type'
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { StepResponse } from '../../../framework/types/response.type'
@@ -21,19 +21,6 @@ export interface StepValidationState {
   domainFailures: DomainValidationFailure[]
 }
 
-export interface ReachabilityStep {
-  path: string
-  code?: string
-  fieldCodes?: string[]
-  cleardownFieldCodes?: string[]
-  backPath?: string
-}
-
-export interface JourneyReachabilityState {
-  reachableSteps: ReachabilityStep[]
-  unreachableSteps: ReachabilityStep[]
-}
-
 /**
  * Global mutable state shared by the compiled functions for one request.
  */
@@ -46,8 +33,6 @@ export interface RuntimeEvaluationGlobalState {
 
 export default class RuntimeEvaluationContext {
   constructor(
-    private readonly compilationDependencies: CompilationDependencies,
-    private readonly journeyInstanceDependencies: JourneyInstanceDependencies,
     readonly request: StepRequest,
     readonly response: StepResponse,
     readonly global: RuntimeEvaluationGlobalState = {
@@ -55,20 +40,4 @@ export default class RuntimeEvaluationContext {
       answers: {},
     },
   ) {}
-
-  get nodeRegistry() {
-    return this.compilationDependencies.nodeRegistry
-  }
-
-  get logger() {
-    return this.journeyInstanceDependencies.logger
-  }
-
-  get functionRegistry() {
-    return this.journeyInstanceDependencies.functionRegistry
-  }
-
-  get astNodeTree() {
-    return this.compilationDependencies.astNodeTree
-  }
 }

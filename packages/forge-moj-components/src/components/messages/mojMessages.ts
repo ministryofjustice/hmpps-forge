@@ -3,13 +3,14 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
-  ConditionalArray,
+  ResolvableBoolean,
+  ResolvableString,
+  ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Message type indicating whether the message was sent or received.
@@ -36,21 +37,27 @@ export interface MOJMessageItem {
    * Use either text or html, not both.
    * @example 'Hello, how can I help you today?'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content of the message.
    * Use either text or html, not both.
    * @example '<p>Please see the <strong>attached document</strong>.</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /**
+   * Child blocks to render as the message content.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Message type indicating direction.
    * - 'sent': Outgoing message (blue, right-aligned)
    * - 'received': Incoming message (grey, left-aligned)
    */
-  type: MOJMessageType | ConditionalString
+  type: MOJMessageType | ResolvableString
 
   /**
    * The sender of the message.
@@ -58,7 +65,7 @@ export interface MOJMessageItem {
    * @example 'John Smith'
    * @example 'Support Agent'
    */
-  sender: ConditionalString
+  sender: ResolvableString
 
   /**
    * Timestamp of when the message was sent.
@@ -66,10 +73,10 @@ export interface MOJMessageItem {
    * @example '2019-06-14T14:01:00.000Z'
    * @example '2023-12-25T09:30:00.000Z'
    */
-  timestamp: ConditionalString
+  timestamp: ResolvableString
 
   /** Conditional visibility for this message */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -107,33 +114,33 @@ export interface MOJMessagesProps extends BasicBlockProps {
    * Array of message items to display.
    * Messages are displayed in the order provided, grouped by date.
    */
-  items: ConditionalArray<MOJMessageItem>
+  items: ResolvableArray<MOJMessageItem>
 
   /**
    * ID for the messages container element.
    * Defaults to 'messages' if not specified.
    * @example 'case-messages'
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Accessible label for the messages container.
    * Applied as aria-label attribute.
    * @example 'Case correspondence'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /**
    * Additional CSS classes for the messages container.
    * @example 'app-messages--compact'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the messages container.
    * @example { 'data-module': 'app-messages' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**
@@ -147,12 +154,14 @@ export interface MOJMessages extends BlockDefinition, MOJMessagesProps {
   variant: 'mojMessages'
 }
 
+type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
+
 /**
  * Renders an MOJ Messages component using Nunjucks template
  */
 function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunjucks.Environment): string {
   const params = {
-    items: block.items.filter(item => item.visibleWhen !== false),
+    items: block.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
     id: block.id,
     label: block.label,
     classes: block.classes,
@@ -160,6 +169,20 @@ function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunju
   }
 
   return nunjucksEnv.render('moj/components/messages/template.njk', { params })
+}
+
+function normaliseMessageItem(item: EvaluatedMOJMessageItem) {
+  const { blocks, ...itemParams } = item
+  const content = normaliseMojTextHtmlContent({
+    text: item.text,
+    html: item.html,
+    blocks,
+  })
+
+  return {
+    ...itemParams,
+    ...content,
+  }
 }
 
 export const mojMessages = buildNunjucksComponent<MOJMessages>('mojMessages', messagesRenderer)

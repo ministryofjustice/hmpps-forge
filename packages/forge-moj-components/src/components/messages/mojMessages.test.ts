@@ -1,3 +1,6 @@
+import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { mojMessages } from './mojMessages'
@@ -8,6 +11,14 @@ describe('mojMessages', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(mojMessages)
+  const renderedBlock = (html: string): RenderedBlock => ({
+    block: {
+      type: StructureType.BLOCK,
+      blockType: BlockType.BASIC,
+      variant: 'html',
+    },
+    html,
+  })
 
   describe('Item data transformation', () => {
     it('should pass through single message', async () => {
@@ -153,6 +164,28 @@ describe('mojMessages', () => {
 
       // Assert
       expect(params.items?.[0].text).toBeUndefined()
+    })
+
+    it('should use blocks over text and html when provided', async () => {
+      // Arrange
+      const items = [
+        {
+          text: 'This is ignored',
+          html: '<p>This is also ignored</p>',
+          blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+          type: 'sent',
+          sender: 'User',
+          timestamp: '2019-06-14T10:00:00.000Z',
+        },
+      ]
+
+      // Act
+      const params = await helper.getParams({ items })
+
+      // Assert
+      expect(params.items?.[0].text).toBeUndefined()
+      expect(params.items?.[0].html).toBe('<p>First block</p><p>Second block</p>')
+      expect(params.items?.[0].blocks).toBeUndefined()
     })
 
     it('should leave html undefined when not provided', async () => {

@@ -2,11 +2,12 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKPanel component.
@@ -29,14 +30,14 @@ export interface GovUKPanelProps extends BasicBlockProps {
    * Required unless `titleHtml` is provided.
    * If `titleHtml` is provided, this option will be ignored.
    */
-  titleText?: ConditionalString
+  titleText?: ResolvableString
 
   /**
    * HTML to use within the panel title.
    * Takes precedence over `titleText`.
    * If `titleHtml` is provided, the `titleText` option will be ignored.
    */
-  titleHtml?: ConditionalString
+  titleHtml?: ResolvableString
 
   /**
    * Heading level for the panel title, from 1 to 6.
@@ -49,19 +50,25 @@ export interface GovUKPanelProps extends BasicBlockProps {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the panel body.
    * Takes precedence over `text`.
    * If `html` is provided, the `text` option will be ignored.
    */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /**
+   * Child blocks to render in the panel body.
+   * Takes precedence over `text` and `html`.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Additional CSS classes for the panel container.
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Custom HTML attributes (for example data attributes) to add to the panel container.
@@ -84,12 +91,17 @@ export interface GovUKPanel extends BlockDefinition, GovUKPanelProps {
  * Renders the GOV.UK Panel component using the official Nunjucks template.
  */
 function panelRenderer(block: EvaluatedBlock<GovUKPanel>, nunjucksEnv: nunjucks.Environment): string {
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.blocks,
+  })
   const params: Record<string, any> = {
     titleText: block.titleHtml ? undefined : block.titleText,
     titleHtml: block.titleHtml,
     headingLevel: block.headingLevel,
-    text: block.html ? undefined : block.text,
-    html: block.html,
+    text: content.text,
+    html: content.html,
     classes: block.classes,
     attributes: block.attributes,
   }

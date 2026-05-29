@@ -3,11 +3,12 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
  * Banner type that determines styling and icon.
@@ -36,7 +37,7 @@ export interface MOJBannerProps extends BasicBlockProps {
    * @example 'warning' // Yellow banner with warning icon
    * @example 'information' // Blue banner with info icon
    */
-  bannerType?: MOJBannerType | ConditionalString
+  bannerType?: MOJBannerType | ResolvableString
 
   /**
    * Plain text content for the banner message.
@@ -44,7 +45,7 @@ export interface MOJBannerProps extends BasicBlockProps {
    *
    * @example 'Your application has been submitted.'
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * HTML content for the banner message.
@@ -52,7 +53,13 @@ export interface MOJBannerProps extends BasicBlockProps {
    *
    * @example '<p>Your application has been <strong>submitted</strong>.</p>'
    */
-  html?: ConditionalString
+  html?: ResolvableString
+
+  /**
+   * Child blocks to render in the banner message.
+   * Takes precedence over text/html.
+   */
+  blocks?: BlockDefinition[]
 
   /**
    * Fallback text for the icon used in the aria-label.
@@ -61,21 +68,21 @@ export interface MOJBannerProps extends BasicBlockProps {
    * @example 'Success'
    * @example 'Warning'
    */
-  iconFallbackText?: ConditionalString
+  iconFallbackText?: ResolvableString
 
   /**
    * Additional CSS classes for the banner container.
    *
    * @example 'app-banner--custom'
    */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /**
    * Additional HTML attributes for the banner container.
    *
    * @example { 'data-module': 'custom-banner' }
    */
-  attributes?: Record<string, ConditionalString>
+  attributes?: Record<string, ResolvableString>
 }
 
 /**
@@ -93,10 +100,15 @@ export interface MOJBanner extends BlockDefinition, MOJBannerProps {
  * Renders an MOJ Banner component using Nunjucks template
  */
 function bannerRenderer(block: EvaluatedBlock<MOJBanner>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    type: block.bannerType,
+  const content = normaliseMojTextHtmlContent({
     text: block.text,
     html: block.html,
+    blocks: block.blocks,
+  })
+  const params = {
+    type: block.bannerType,
+    text: content.text,
+    html: content.html,
     iconFallbackText: block.iconFallbackText,
     classes: block.classes,
     attributes: block.attributes,

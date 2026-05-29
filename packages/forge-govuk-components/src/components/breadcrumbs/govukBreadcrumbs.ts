@@ -2,8 +2,8 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -14,13 +14,13 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface BreadcrumbItem {
   /** Plain text content for the breadcrumb. Required unless html is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the breadcrumb. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Link URL for the breadcrumb. If not specified, renders as plain text. */
-  href?: ConditionalString
+  href?: ResolvableString
 
   /** Custom HTML attributes for the breadcrumb item. */
   attributes?: Record<string, any>
@@ -29,7 +29,7 @@ export interface BreadcrumbItem {
    * Conditional visibility for this breadcrumb. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -58,10 +58,10 @@ export interface GovUKBreadcrumbsProps extends BasicBlockProps {
   collapseOnMobile?: boolean
 
   /** Accessibility label for the navigation landmark. Defaults to "Breadcrumb". */
-  labelText?: ConditionalString
+  labelText?: ResolvableString
 
   /** Additional CSS classes for the breadcrumbs container. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the breadcrumbs container. */
   attributes?: Record<string, any>

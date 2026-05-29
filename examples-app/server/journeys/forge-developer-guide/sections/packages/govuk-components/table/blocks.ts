@@ -1,5 +1,5 @@
 import { Data } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GovUKTable } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKTable, GovUKTag } from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
   TemplateWrapper,
   type BlockDefinition,
@@ -43,6 +43,10 @@ const captionExample = GovUKTable({
   ],
 })
 
+const nestedBlockExample = GovUKTable({
+  rows: [[{ text: 'Status' }, { blocks: [GovUKTag({ text: 'Completed' })] }]],
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
@@ -50,5 +54,6 @@ export const content = GovUKMarkdownBlock({
     'basic-example': [liveDisplay([basicExample])],
     'header-example': [liveDisplay([headerExample])],
     'caption-example': [liveDisplay([captionExample])],
+    'nested-block-example': [liveDisplay([nestedBlockExample])],
   },
 })

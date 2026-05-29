@@ -28,7 +28,8 @@ permissions:
   packages: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   static_checks:
@@ -115,20 +116,6 @@ jobs:
         run: npm run build
       - name: Run end-to-end tests
         run: make e2e-ci
-  validate:
-    name: Validate
-    if: always()
-    runs-on: ubuntu-latest
-    needs:
-      - static_checks
-      - packages_tests
-      - examples_app_tests
-    steps:
-      - name: Check validation jobs
-        run: |
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
-            exit 1
-          fi
   helm_lint:
     if: github.event_name != 'pull_request'
     strategy:
@@ -140,11 +127,25 @@ jobs:
     with:
       environment: ${{ matrix.environments }}
       chart_name: hmpps-forge-examples-app
+  approve_build_and_deploy:
+    name: Approve build and deploy to dev
+    if: github.event_name != 'pull_request'
+    needs:
+      - static_checks
+      - packages_tests
+      - examples_app_tests
+    runs-on: ubuntu-latest
+    # Configure required reviewers on the GitHub `dev` environment to make this a manual approval gate.
+    environment:
+      name: dev
+    steps:
+      - name: Confirm approval
+        run: echo "Build and deploy to dev approved"
   build:
     name: Build and push docker image
     if: github.event_name != 'pull_request'
     needs:
-      - validate
+      - approve_build_and_deploy
     runs-on: ubuntu-latest
     outputs:
       app_version: ${{ steps.version.outputs.version }}

@@ -1,12 +1,17 @@
 import {
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField, Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
+import {
+  normaliseGovukErrorMessage,
+  normaliseGovukFieldset,
+  normaliseGovukTextParam,
+} from '../../utils/govukParamNormalisers'
 
 /**
  * Props for GOV.UK Date Input Components.
@@ -39,7 +44,7 @@ export interface GovUKDateInputProps extends FieldBlockProps {
    * @example 'Date of birth'
    * @example 'When did this happen?'
    */
-  label?: ConditionalString
+  label?: ResolvableString
 
   /** Fieldset wrapper for the date input component. */
   fieldset?: {
@@ -49,26 +54,26 @@ export interface GovUKDateInputProps extends FieldBlockProps {
      */
     legend?: {
       /** Text content of the legend */
-      text?: ConditionalString
+      text?: ResolvableString
 
       /** HTML content of the legend (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
 
       /** Additional CSS classes for the legend */
-      classes?: ConditionalString
+      classes?: ResolvableString
 
       /** Whether to render the legend as a page heading (wrapped in h1) */
-      isPageHeading?: ConditionalBoolean
+      isPageHeading?: ResolvableBoolean
     }
 
     /** Additional CSS classes for the fieldset wrapper */
-    classes?: ConditionalString
+    classes?: ResolvableString
 
     /** HTML attributes to add to the fieldset */
     attributes?: Record<string, any>
 
     /** Element IDs to add to the fieldsets aria-describedby attribute */
-    describedBy?: ConditionalString
+    describedBy?: ResolvableString
   }
 
   /**
@@ -78,19 +83,19 @@ export interface GovUKDateInputProps extends FieldBlockProps {
    * @example { html: 'Enter the date as shown on your <strong>passport</strong>' } // Rich hint
    */
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ConditionalString
+        id?: ResolvableString
 
         /** Text content of the hint */
-        text?: ConditionalString
+        text?: ResolvableString
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ConditionalString
+        html?: ResolvableString
 
         /** Additional CSS classes for the hint */
-        classes?: ConditionalString
+        classes?: ResolvableString
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -99,7 +104,7 @@ export interface GovUKDateInputProps extends FieldBlockProps {
   /** Additional options for the form group containing the date input component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ConditionalString
+    classes?: ResolvableString
 
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
@@ -107,19 +112,19 @@ export interface GovUKDateInputProps extends FieldBlockProps {
     /** Content to add before the date inputs. */
     beforeInputs?: {
       /** Text content to add before the inputs */
-      text?: ConditionalString
+      text?: ResolvableString
 
       /** HTML content to add before the inputs (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
 
     /** Content to add after the date inputs */
     afterInputs?: {
       /** Text content to add after the inputs */
-      text?: ConditionalString
+      text?: ResolvableString
 
       /** HTML content to add after the inputs (takes precedence over text) */
-      html?: ConditionalString
+      html?: ResolvableString
     }
   }
 
@@ -129,7 +134,7 @@ export interface GovUKDateInputProps extends FieldBlockProps {
    *
    * @example 'birthday' // Creates IDs like 'birthday-day', 'birthday-month', etc.
    */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /**
    * Optional prefix for the name attributes of individual date inputs.
@@ -137,10 +142,10 @@ export interface GovUKDateInputProps extends FieldBlockProps {
    *
    * @example 'start-date' // Creates names like 'start-date[day]', 'start-date[month]', etc.
    */
-  namePrefix?: ConditionalString
+  namePrefix?: ResolvableString
 
   /** Additional CSS classes to add to the date-input container. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes (such as data attributes) to add to the date-input container. */
   attributes?: Record<string, any>
@@ -241,13 +246,9 @@ function buildParams(
 ) {
   return {
     id: block.id || block.code,
-    fieldset: block.fieldset || {
-      legend: {
-        text: block.label,
-      },
-    },
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-    errorMessage: block.errors?.length && { text: block.errors[0].message },
+    fieldset: normaliseGovukFieldset(block.fieldset, block.label),
+    hint: normaliseGovukTextParam(block.hint),
+    errorMessage: normaliseGovukErrorMessage(block.errors),
     formGroup: block.formGroup,
     items,
     classes: block.classes,

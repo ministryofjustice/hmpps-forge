@@ -1,6 +1,6 @@
 import { assertArray } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { ConditionFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * Array conditions for collection validation
@@ -16,7 +16,7 @@ export interface ArrayConditionGroup {
    * @param expected - The array of options to search within
    * @returns true if the value is found in the expected array
    */
-  IsIn: (expected: ValueExpr) => ConditionFunctionExpr
+  IsIn: (expected: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if an array contains a specific value
@@ -24,7 +24,7 @@ export interface ArrayConditionGroup {
    * @param expected - The value to search for
    * @returns true if the array contains the expected value
    */
-  Contains: (expected: ValueExpr) => ConditionFunctionExpr
+  Contains: (expected: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if an array contains any of the items from another array
@@ -33,7 +33,7 @@ export interface ArrayConditionGroup {
    * @param expected - The array of values to search for
    * @returns true if the value array contains at least one item from the expected array
    */
-  ContainsAny: (expected: ValueExpr) => ConditionFunctionExpr
+  ContainsAny: (expected: ResolvableValue) => ConditionFunctionExpr
 
   /**
    * Checks if all items in the value array exist in the expected array
@@ -43,24 +43,24 @@ export interface ArrayConditionGroup {
    * @param expected - The array that should contain all items from value
    * @returns true if every item in the value array exists in the expected array
    */
-  ContainsAll: (expected: ValueExpr) => ConditionFunctionExpr
+  ContainsAll: (expected: ResolvableValue) => ConditionFunctionExpr
 }
 
 export const { conditions: ArrayConditions, implementations: ArrayConditionsImplementations } =
   defineConditionFunctions<ArrayConditionGroup>({
-    IsIn: () => (value: unknown, expected: ValueExpr) => {
+    IsIn: () => (value: unknown, expected: ResolvableValue) => {
       assertArray(expected, 'Condition.Array.IsIn (expected)')
 
       return expected.some(item => item === value)
     },
 
-    Contains: () => (value: unknown, expected: ValueExpr) => {
+    Contains: () => (value: unknown, expected: ResolvableValue) => {
       assertArray(value, 'Condition.Array.Contains')
 
       return value.includes(expected)
     },
 
-    ContainsAny: () => (value: unknown, expected: ValueExpr) => {
+    ContainsAny: () => (value: unknown, expected: ResolvableValue) => {
       assertArray(value, 'Condition.Array.ContainsAny')
       assertArray(expected, 'Condition.Array.ContainsAny (expected)')
       if (value.length === 0 && expected.length === 0) {
@@ -70,7 +70,7 @@ export const { conditions: ArrayConditions, implementations: ArrayConditionsImpl
       return expected.some(item => value.includes(item))
     },
 
-    ContainsAll: () => (value: unknown, expected: ValueExpr) => {
+    ContainsAll: () => (value: unknown, expected: ResolvableValue) => {
       assertArray(value, 'Condition.Array.ContainsAll')
       assertArray(expected, 'Condition.Array.ContainsAll (expected)')
       if (value.length === 0 && expected.length === 0) {

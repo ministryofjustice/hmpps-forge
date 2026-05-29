@@ -29,7 +29,6 @@ export default function createApp(services: Services): express.Application {
   const forge = new Forge({
     logger,
     frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-    lazyStepCompilation: !config.production,
   })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)

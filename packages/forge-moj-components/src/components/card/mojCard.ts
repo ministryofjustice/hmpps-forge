@@ -3,9 +3,9 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalString,
-  ConditionalBoolean,
-  ConditionalObject,
+  ResolvableString,
+  ResolvableBoolean,
+  ResolvableObject,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -16,16 +16,16 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface MOJCardHeading {
   /** Heading text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Heading HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Heading level 1-6 (default: 2) */
   level?: 1 | 2 | 3 | 4 | 5 | 6
 
   /** Additional classes for the heading element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 }
 
 /**
@@ -33,13 +33,13 @@ export interface MOJCardHeading {
  */
 export interface MOJCardDescription {
   /** Description text (required if html not set) */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** Description HTML content (required if text not set) */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Additional classes for the description element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 }
 
 /**
@@ -61,23 +61,23 @@ export interface MOJCardProps extends BasicBlockProps {
    * @example 'Search cases'
    * @example { text: 'Search cases', level: 3 }
    */
-  heading: ConditionalString | MOJCardHeading | ConditionalObject<MOJCardHeading>
+  heading: ResolvableString | MOJCardHeading | ResolvableObject<MOJCardHeading>
 
   /** Link URL for the card heading */
-  href: ConditionalString
+  href: ResolvableString
 
   /**
    * Optional description - can be a simple string or object with additional options.
    * @example 'Find and manage case records'
    * @example { html: '<strong>Find</strong> records' }
    */
-  description?: ConditionalString | MOJCardDescription | ConditionalObject<MOJCardDescription>
+  description?: ResolvableString | MOJCardDescription | ResolvableObject<MOJCardDescription>
 
   /** Makes the entire card clickable via CSS (default: true) */
-  clickable?: ConditionalBoolean
+  clickable?: ResolvableBoolean
 
   /** Additional CSS classes for the card container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>

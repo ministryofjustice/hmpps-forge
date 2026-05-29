@@ -5,7 +5,7 @@ import type {
   EffectFunctionExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import { NodeIDCategory, NodeIDGenerator } from '../../../compilation/id-generators/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
@@ -28,7 +28,7 @@ describe('FunctionFactory', () => {
       const json = {
         type: FunctionType.CONDITION,
         name: 'IsTrue',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       }
 
       // Act
@@ -50,7 +50,7 @@ describe('FunctionFactory', () => {
       const json = {
         type: FunctionType.TRANSFORMER,
         name: 'Uppercase',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       } satisfies TransformerFunctionExpr
 
       // Act
@@ -66,7 +66,7 @@ describe('FunctionFactory', () => {
       const json = {
         type: FunctionType.EFFECT,
         name: 'SaveData',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
 
       // Act
@@ -82,7 +82,7 @@ describe('FunctionFactory', () => {
       const json = {
         type: FunctionType.GENERATOR,
         name: 'GenerateID',
-        arguments: [] as ValueExpr[],
+        arguments: [] as ResolvableValue[],
       }
 
       // Act

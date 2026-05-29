@@ -54,7 +54,7 @@ interface NunjucksStringGeneratorProps {
 
 export interface NunjucksGeneratorShape {
   /**
-   * Render a Nunjucks template to a ConditionalString expression.
+   * Render a Nunjucks template to a ResolvableString expression.
    *
    * Values interpolated via `{{ name }}` are HTML-escaped automatically. Use
    * `{{ name | safe }}` when the value is trusted HTML. Forge evaluates

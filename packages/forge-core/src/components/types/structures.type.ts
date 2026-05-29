@@ -5,10 +5,10 @@ import {
   PredicateExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  FormatExpr,
+  GeneratorFunctionExpr,
   ConditionalExpr,
   MatchExpr,
-  ValueExpr,
+  ResolvableValue,
 } from '../../authoring/types/expressions.type'
 import { PredicateTestExprBuilder } from '../../authoring/builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../../authoring/builders/ConditionalExprBuilder'
@@ -32,7 +32,7 @@ export interface BasicBlockProps {
    * @example false // Always hidden
    * @example Answer('contactMethod').match(Condition.Equals('email')) // Visible when email selected
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 
   /**
    * Optional metadata for the field.
@@ -72,7 +72,7 @@ export interface FieldBlockProps extends BasicBlockProps {
    * @example 'date_of_birth'
    * @example Format('task_%1_status', Item().path('id')) // Dynamic code in iterators
    */
-  code: ConditionalString
+  code: ResolvableString
 
   /**
    * Initial or computed value for the field.
@@ -82,7 +82,7 @@ export interface FieldBlockProps extends BasicBlockProps {
    * @example Answer('previousEmail') // Copy from another field
    * @example Data('user.name') // From loaded data
    */
-  defaultValue?: ConditionalString | ConditionalString[] | FunctionExpr<any>
+  defaultValue?: ResolvableString | ResolvableString[] | FunctionExpr<any>
 
   /**
    * Array of transformers to format/process the field value before rendering/storing.
@@ -156,29 +156,27 @@ type DynamicExpression =
   | MatchExpr
   | ConditionalExprBuilder
   | MatchExprBuilder
-  | GeneratorBuilder<ValueExpr[]>
+  | GeneratorFunctionExpr
+  | GeneratorBuilder<ResolvableValue[]>
   | ChainableRef
   | ChainableExpr<any>
 
-export type ConditionalString = string | DynamicExpression | FormatExpr
+export type ResolvableString = string | DynamicExpression
 
-export type ConditionalBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
+export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
 
-export type ConditionalNumber = number | DynamicExpression
+export type ResolvableNumber = number | DynamicExpression
 
-export type ConditionalArray<T> = T[] | DynamicExpression | ChainableIterable
+export type ResolvableArray<T> = T[] | DynamicExpression | ChainableIterable
 
-export type ConditionalObject<T extends object> = T | DynamicExpression
+export type ResolvableObject<T extends object> = T | DynamicExpression
 
 export type RenderedBlock = {
   block: BlockDefinition
   html: string
 }
 
-type Resolved<T> = Exclude<
-  T,
-  DynamicExpression | FormatExpr | ChainableIterable | PredicateExpr | PredicateTestExprBuilder
->
+type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr | PredicateTestExprBuilder>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true> =
   Resolved<T> extends infer R

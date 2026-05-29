@@ -1,86 +1,19 @@
-import { ReachabilityRuntimePlan } from '../../compilation/RuntimePlanBuilder'
-import RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
-import { NodeId } from '../../types/ast.type'
-import NavigationPathAnalyzer from './NavigationPathAnalyzer'
-import { NavigationEvaluation, ResumeOutcome } from '../types/NavigationEvaluation.type'
-import { JourneyRouteTemplateCatalog } from '../types/routes.type'
-import ReachabilityGraphBuilder from '../reachability/ReachabilityGraphBuilder'
-import { CompiledReachabilityResult } from '../../compilation/reachability/ReachabilityCompiler'
-import FunctionRegistry from '../../registries/FunctionRegistry'
+import { NavigationEvaluation } from '../../types/NavigationEvaluation.type'
 
-export default class NavigationAnalyzer {
-  private readonly reachabilityGraphBuilder = new ReachabilityGraphBuilder()
+export function resolveBacklinkRouteTemplatePath(evaluation: NavigationEvaluation): string | undefined {
+  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
 
-  private readonly navigationPathAnalyzer = new NavigationPathAnalyzer()
-
-  async evaluate(
-    plan: ReachabilityRuntimePlan,
-    currentStepId: NodeId | undefined,
-    routeTemplateCatalog: JourneyRouteTemplateCatalog,
-    context: RuntimeEvaluationContext,
-    compiledResult: CompiledReachabilityResult,
-    functionRegistry: FunctionRegistry,
-  ): Promise<NavigationEvaluation> {
-    const steps = await this.reachabilityGraphBuilder.build(
-      plan,
-      currentStepId,
-      routeTemplateCatalog,
-      context,
-      compiledResult,
-      functionRegistry,
-    )
-    const defaultEntryRouteTemplatePath = this.reachabilityGraphBuilder.resolveDefaultEntryRouteTemplatePath(steps)
-
-    const resumeActive = compiledResult.resumeActive
-    const pathAnalysis = this.navigationPathAnalyzer.analyze(
-      steps,
-      currentStepId,
-      defaultEntryRouteTemplatePath,
-      resumeActive,
-    )
-    const resumeOutcome = this.resolveResumeOutcome(
-      steps,
-      currentStepId,
-      resumeActive,
-      pathAnalysis.progressExists,
-      pathAnalysis.frontierRouteTemplatePath,
-    )
-
-    return {
-      currentStepId,
-      steps,
-      defaultEntryRouteTemplatePath,
-      frontierRouteTemplatePath: pathAnalysis.frontierRouteTemplatePath,
-      canonicalPathRouteTemplatePaths: pathAnalysis.canonicalPathRouteTemplatePaths,
-      progressExists: pathAnalysis.progressExists,
-      resumeActive,
-      resumeOutcome,
-    }
+  if (!currentStep) {
+    return undefined
   }
 
-  private resolveResumeOutcome(
-    steps: NavigationEvaluation['steps'],
-    currentStepId: NodeId | undefined,
-    resumeActive: boolean,
-    progressExists: boolean,
-    frontierRouteTemplatePath: string | undefined,
-  ): ResumeOutcome {
-    if (!resumeActive || !progressExists || !frontierRouteTemplatePath) {
-      return 'no-op'
-    }
+  const currentIndex = evaluation.canonicalPathRouteTemplatePaths.indexOf(currentStep.routeTemplatePath)
 
-    if (currentStepId === undefined) {
-      return 'redirect'
-    }
-
-    const currentStep = steps.find(step => step.stepId === currentStepId)
-
-    if (!currentStep) {
-      return 'no-op'
-    }
-
-    return currentStep.routeTemplatePath === frontierRouteTemplatePath ? 'no-op' : 'redirect'
+  if (currentIndex <= 0) {
+    return undefined
   }
+
+  return evaluation.canonicalPathRouteTemplatePaths[currentIndex - 1]
 }
 
 export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
@@ -98,7 +31,7 @@ export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): st
     return undefined
   }
 
-  return evaluation.defaultEntryRouteTemplatePath
+  return resolveUnreachableRedirect(evaluation)
 }
 
 export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
@@ -110,6 +43,14 @@ export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): st
 
   if (currentStep.isReachable) {
     return undefined
+  }
+
+  return resolveUnreachableRedirect(evaluation)
+}
+
+function resolveUnreachableRedirect(evaluation: NavigationEvaluation): string | undefined {
+  if (evaluation.unreachableRedirect === 'frontier') {
+    return evaluation.frontierRouteTemplatePath ?? evaluation.defaultEntryRouteTemplatePath
   }
 
   return evaluation.defaultEntryRouteTemplatePath

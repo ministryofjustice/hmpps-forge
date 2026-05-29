@@ -2,12 +2,13 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKNotificationBanner component.
@@ -36,14 +37,14 @@ export interface GovUKNotificationBannerProps extends BasicBlockProps {
    * You can use any string with this option.
    * If you set `html`, this option is not required and is ignored.
    */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /**
    * The HTML to use within the notification banner.
    * You can use any string with this option.
    * If you set `html`, `text` is not required and is ignored.
    */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /**
    * Child blocks to render in the notification banner content area.
@@ -61,7 +62,7 @@ export interface GovUKNotificationBannerProps extends BasicBlockProps {
    * - if you set `bannerType` to "success", `titleText` defaults to "Success"
    * - if you set `titleHtml`, this option is ignored
    */
-  titleText?: ConditionalString
+  titleText?: ResolvableString
 
   /**
    * The title HTML to use within the notification banner.
@@ -69,14 +70,14 @@ export interface GovUKNotificationBannerProps extends BasicBlockProps {
    * Use this option to set text that contains HTML.
    * If you set `titleHtml`, the `titleText` option is ignored.
    */
-  titleHtml?: ConditionalString
+  titleHtml?: ResolvableString
 
   /**
    * Sets heading level for the title only.
    * You can only use values between 1 and 6 with this option.
    * The default is 2.
    */
-  titleHeadingLevel?: ConditionalString
+  titleHeadingLevel?: ResolvableString
 
   /**
    * The type of notification to render.
@@ -90,30 +91,30 @@ export interface GovUKNotificationBannerProps extends BasicBlockProps {
    * Note: This property is named `bannerType` instead of `type` to avoid conflict
    * with the forge block definition type discriminator.
    */
-  bannerType?: ConditionalString
+  bannerType?: ResolvableString
 
   /**
    * Overrides the value of the `role` attribute for the notification banner.
    * Defaults to "region".
    * If you set `bannerType` to "success", `role` defaults to "alert".
    */
-  role?: ConditionalString
+  role?: ResolvableString
 
   /**
    * The `id` for the banner title, and the `aria-labelledby` attribute in the banner.
    * Defaults to "govuk-notification-banner-title".
    */
-  titleId?: ConditionalString
+  titleId?: ResolvableString
 
   /**
    * If you set `bannerType` to "success", or `role` to "alert", JavaScript moves
    * the keyboard focus to the notification banner when the page loads.
    * To disable this behaviour, set `disableAutoFocus` to true.
    */
-  disableAutoFocus?: ConditionalBoolean
+  disableAutoFocus?: ResolvableBoolean
 
   /** Additional CSS classes for the notification banner container */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the notification banner container */
   attributes?: Record<string, any>
@@ -137,16 +138,14 @@ function notificationBannerRenderer(
   block: EvaluatedBlock<GovUKNotificationBanner>,
   nunjucksEnv: nunjucks.Environment,
 ): string {
-  // If content blocks are provided, render them and use as HTML
-  let contentHtml: string | undefined
-
-  if (block.content && block.content.length > 0) {
-    contentHtml = block.content.map(b => b.html).join('')
-  }
-
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.content,
+  })
   const params: Record<string, any> = {
-    text: contentHtml || block.html ? undefined : block.text,
-    html: contentHtml || block.html,
+    text: content.text,
+    html: content.html,
     titleText: block.titleHtml ? undefined : block.titleText,
     titleHtml: block.titleHtml,
     titleHeadingLevel: block.titleHeadingLevel,

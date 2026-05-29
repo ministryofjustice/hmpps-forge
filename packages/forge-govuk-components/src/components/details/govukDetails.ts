@@ -2,12 +2,13 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Props for the GovUKDetails component.
@@ -24,28 +25,28 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface GovUKDetailsProps extends BasicBlockProps {
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
-  summaryText?: ConditionalString
+  summaryText?: ResolvableString
 
   /** HTML to display in the summary (clickable part). Takes precedence over summaryText. */
-  summaryHtml?: ConditionalString
+  summaryHtml?: ResolvableString
 
   /** Plain text content for the expandable section */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the expandable section. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Child blocks to render in the expandable section. Takes precedence over text/html. */
   content?: BlockDefinition[]
 
   /** Whether the details should be expanded by default */
-  open?: ConditionalBoolean
+  open?: ResolvableBoolean
 
   /** ID attribute for the details element */
-  id?: ConditionalString
+  id?: ResolvableString
 
   /** Additional CSS classes for the details element */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the details element */
   attributes?: Record<string, any>
@@ -66,18 +67,16 @@ export interface GovUKDetails extends BlockDefinition, GovUKDetailsProps {
  * Renders the GOV.UK Details component using the official Nunjucks template.
  */
 function detailsRenderer(block: EvaluatedBlock<GovUKDetails>, nunjucksEnv: nunjucks.Environment): string {
-  // If content blocks are provided, render them and use as HTML
-  let contentHtml: string | undefined
-
-  if (block.content && block.content.length > 0) {
-    contentHtml = block.content.map(b => b.html).join('')
-  }
-
+  const content = normaliseGovukTextHtmlContent({
+    text: block.text,
+    html: block.html,
+    blocks: block.content,
+  })
   const params: Record<string, any> = {
     summaryText: block.summaryHtml ? undefined : block.summaryText,
     summaryHtml: block.summaryHtml,
-    text: contentHtml || block.html ? undefined : block.text,
-    html: contentHtml || block.html,
+    text: content.text,
+    html: content.html,
     open: block.open,
     id: block.id,
     classes: block.classes,

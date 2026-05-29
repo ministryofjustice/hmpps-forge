@@ -65,33 +65,33 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
     // so field-specific validation can run when any field is empty.
     if (paths.year && paths.month && paths.day) {
       if (!year || !month || !day) {
-        throw new Error('Transformer.Object.ToISO: Full date requested but not all fields provided')
+        throw new TypeError('Transformer.Object.ToISO: Full date requested but not all fields provided')
       }
     }
 
     if (year && !/^\d{1,4}$/.test(year)) {
-      throw new Error(`Transformer.Object.ToISO: Invalid year value "${year}"`)
+      throw new TypeError(`Transformer.Object.ToISO: Invalid year value "${year}"`)
     }
 
     if (month && !/^\d{1,2}$/.test(month)) {
-      throw new Error(`Transformer.Object.ToISO: Invalid month value "${month}"`)
+      throw new TypeError(`Transformer.Object.ToISO: Invalid month value "${month}"`)
     }
 
     if (day && !/^\d{1,2}$/.test(day)) {
-      throw new Error(`Transformer.Object.ToISO: Invalid day value "${day}"`)
+      throw new TypeError(`Transformer.Object.ToISO: Invalid day value "${day}"`)
     }
 
     if (month) {
       const monthNum = parseInt(month, 10)
       if (monthNum < 1 || monthNum > 12) {
-        throw new Error(`Transformer.Object.ToISO: Month must be between 1 and 12, got "${month}"`)
+        throw new TypeError(`Transformer.Object.ToISO: Month must be between 1 and 12, got "${month}"`)
       }
     }
 
     if (day) {
       const dayNum = parseInt(day, 10)
       if (dayNum < 1 || dayNum > 31) {
-        throw new Error(`Transformer.Object.ToISO: Day must be between 1 and 31, got "${day}"`)
+        throw new TypeError(`Transformer.Object.ToISO: Day must be between 1 and 31, got "${day}"`)
       }
     }
 
@@ -118,7 +118,7 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
       return year.padStart(4, '0')
     }
 
-    throw new Error('Transformer.Object.ToISO: No valid date components found in object')
+    throw new TypeError('Transformer.Object.ToISO: No valid date components found in object')
   },
 
   FromISO: () => (value: any, paths: DateParts) => {

@@ -1,8 +1,8 @@
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type {
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   FieldBlockDefinition,
   FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -16,25 +16,25 @@ export interface RichTextEditorToolbar {
 }
 
 export interface RichTextEditorProps extends FieldBlockProps {
-  id?: ConditionalString
-  rows?: ConditionalString
+  id?: ResolvableString
+  rows?: ResolvableString
   toolbar?: RichTextEditorToolbar
   label?:
-    | ConditionalString
+    | ResolvableString
     | {
-        text?: ConditionalString
-        html?: ConditionalString
-        classes?: ConditionalString
-        isPageHeading?: ConditionalBoolean
+        text?: ResolvableString
+        html?: ResolvableString
+        classes?: ResolvableString
+        isPageHeading?: ResolvableBoolean
       }
   hint?:
-    | ConditionalString
+    | ResolvableString
     | {
-        text?: ConditionalString
-        html?: ConditionalString
-        classes?: ConditionalString
+        text?: ResolvableString
+        html?: ResolvableString
+        classes?: ResolvableString
       }
-  classes?: ConditionalString
+  classes?: ResolvableString
 }
 
 export interface RichTextEditor extends FieldBlockDefinition, RichTextEditorProps {

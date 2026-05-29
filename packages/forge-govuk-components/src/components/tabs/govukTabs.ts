@@ -2,13 +2,13 @@ import type nunjucks from 'nunjucks'
 import {
   BasicBlockProps,
   BlockDefinition,
-  ConditionalBoolean,
-  ConditionalString,
+  ResolvableBoolean,
+  ResolvableString,
   EvaluatedBlock,
-  RenderedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
  * Panel content configuration for a tab.
@@ -16,10 +16,10 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  */
 export interface TabPanel {
   /** Plain text content for the panel. Required unless html or blocks is provided. */
-  text?: ConditionalString
+  text?: ResolvableString
 
   /** HTML content for the panel. Takes precedence over text. */
-  html?: ConditionalString
+  html?: ResolvableString
 
   /** Child blocks to render in the panel. Takes precedence over text/html. */
   blocks?: BlockDefinition[]
@@ -36,10 +36,10 @@ export interface TabItem {
    * Specific ID attribute for the tab item.
    * This is used as the panel's ID and for the tab link's href.
    */
-  id: ConditionalString
+  id: ResolvableString
 
   /** The text label displayed on the tab. Required. */
-  label: ConditionalString
+  label: ResolvableString
 
   /** The content of the tab panel. Required. */
   panel: TabPanel
@@ -51,7 +51,7 @@ export interface TabItem {
    * Conditional visibility for this tab. When the evaluated value is `false`,
    * the tab is omitted from rendering.
    */
-  visibleWhen?: ConditionalBoolean
+  visibleWhen?: ResolvableBoolean
 }
 
 /**
@@ -84,20 +84,20 @@ export interface GovUKTabsProps extends BasicBlockProps {
    * Unique ID for the tabs component.
    * This is used for the main component and to compose the ID attribute for each item.
    */
-  id: ConditionalString
+  id: ResolvableString
 
   /**
    * Title for the tabs table of contents.
    * Displayed on mobile where tabs become a table of contents.
    * Defaults to "Contents".
    */
-  title?: ConditionalString
+  title?: ResolvableString
 
   /** The individual tabs within the tabs component. Required. */
   items: TabItem[]
 
   /** Additional CSS classes for the tabs element. */
-  classes?: ConditionalString
+  classes?: ResolvableString
 
   /** Custom HTML attributes for the tabs element. */
   attributes?: Record<string, any>
@@ -122,20 +122,19 @@ function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.En
   const processedItems = block.items
     .filter(item => item.visibleWhen !== false)
     .map(item => {
-      let panelHtml: string | undefined
-
-      // If panel blocks are provided, render them and use as HTML
-      if (item.panel.blocks && item.panel.blocks.length > 0) {
-        panelHtml = (item.panel.blocks as RenderedBlock[]).map(b => b.html).join('')
-      }
+      const panel = normaliseGovukTextHtmlContent({
+        text: item.panel.text,
+        html: item.panel.html,
+        blocks: item.panel.blocks,
+      })
 
       return {
         id: item.id,
         label: item.label,
         attributes: item.attributes,
         panel: {
-          text: panelHtml || item.panel.html ? undefined : item.panel.text,
-          html: panelHtml || item.panel.html,
+          text: panel.text,
+          html: panel.html,
           attributes: item.panel.attributes,
         },
       }

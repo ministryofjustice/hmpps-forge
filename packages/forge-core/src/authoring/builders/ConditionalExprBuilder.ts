@@ -1,11 +1,11 @@
-import { ConditionalExpr, PredicateExpr, PredicateTestExpr, ValueExpr } from '../types/expressions.type'
+import { ConditionalExpr, PredicateExpr, PredicateTestExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 
 /**
  * Represents a value that can be returned from a conditional branch.
  * Can be a literal string or a value expression.
  */
-export type BranchValue = string | ValueExpr
+export type BranchValue = string | ResolvableValue
 
 /**
  * Fluent builder for creating conditional expressions.

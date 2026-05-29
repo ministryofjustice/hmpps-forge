@@ -1,5 +1,6 @@
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
+import type { ForgeResult } from '../../engine/runtime/orchestrator/types'
 import type { RenderContext } from '../rendering/types'
 import type { StepRequest } from './request.type'
 import type { StepResponse } from './response.type'
@@ -23,7 +24,6 @@ export interface ComponentRegistry {
  * Dependencies provided by Forge when building an adapter.
  */
 export interface FrameworkAdapterDependencies {
-  componentRegistry: ComponentRegistry
   logger: Logger | Console
 }
 
@@ -51,5 +51,6 @@ export interface FrameworkAdapter<TRouter, TRequest, TResponse> {
   toStepResponse(res: TResponse): StepResponse
   redirect(res: TResponse, url: string): void
   forwardError(res: TResponse, error: unknown, next?: (error?: unknown) => void): void
-  render(context: RenderContext, req: TRequest, res: TResponse): void
+  render(context: RenderContext, req: TRequest, res: TResponse, componentRegistry: ComponentRegistry): void
+  applyResult(result: ForgeResult, req: TRequest, res: TResponse, componentRegistry: ComponentRegistry): void
 }

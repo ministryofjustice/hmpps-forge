@@ -1,10 +1,11 @@
 import { assertNumber, assertString } from '../../shared/utils/asserts'
 import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
 import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
-import { TransformerFunctionExpr, ValueExpr } from '../types/expressions.type'
+import { TransformerFunctionExpr, ResolvableValue } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
 const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
+const DEFAULT_FORMAT_DATE_TIME_ZONE = 'Europe/London'
 const DEFAULT_FORMAT_DATE_OPTIONS: StringDateFormatOptions = {
   dateStyle: 'long',
 }
@@ -30,11 +31,11 @@ const assertStringDateFormatOptions: (
 
 const parseDateString = (value: string, functionName: string): Date => {
   const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
-  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
+  const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/
   const trimmed = value.trim()
 
   if (!trimmed) {
-    throw new Error(`${functionName}: "${value}" is not a valid date`)
+    throw new TypeError(`${functionName}: "${value}" is not a valid date`)
   }
 
   const ukMatch = UK_DATE_RE.exec(trimmed)
@@ -47,33 +48,38 @@ const parseDateString = (value: string, functionName: string): Date => {
     const date = new Date(year, month - 1, day)
 
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`${functionName}: "${value}" is not a valid date`)
+      throw new TypeError(`${functionName}: "${value}" is not a valid date`)
     }
 
     return date
   }
 
-  if (ISO_DATE_RE.test(trimmed)) {
-    const [datePart] = trimmed.split('T')
-    const [yearStr, monthStr, dayStr] = datePart.split('-')
-    const year = Number(yearStr)
-    const month = Number(monthStr)
-    const day = Number(dayStr)
+  const isoMatch = ISO_DATE_RE.exec(trimmed)
 
-    const date = new Date(trimmed)
+  if (isoMatch) {
+    const year = Number(isoMatch[1])
+    const month = Number(isoMatch[2])
+    const day = Number(isoMatch[3])
+    const dateOnly = new Date(Date.UTC(year, month - 1, day))
 
-    if (Number.isNaN(date.getTime())) {
-      throw new Error(`${functionName}: "${value}" is not a valid ISO date`)
+    if (dateOnly.getUTCFullYear() !== year || dateOnly.getUTCMonth() !== month - 1 || dateOnly.getUTCDate() !== day) {
+      throw new TypeError(`${functionName}: "${value}" is not a valid date`)
     }
 
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`${functionName}: "${value}" is not a valid date`)
+    if (!trimmed.includes('T')) {
+      return dateOnly
     }
 
-    return date
+    const dateTime = new Date(trimmed)
+
+    if (Number.isNaN(dateTime.getTime())) {
+      throw new TypeError(`${functionName}: "${value}" is not a valid ISO date`)
+    }
+
+    return dateTime
   }
 
-  throw new Error(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
+  throw new TypeError(`${functionName}: "${value}" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)`)
 }
 
 /**
@@ -136,7 +142,7 @@ export interface StringTransformerGroup {
    * @example
    * // Substring(1, 4) applied to "hello" returns "ell"
    */
-  Substring: (start: number | ValueExpr, end?: number | ValueExpr) => TransformerFunctionExpr
+  Substring: (start: number | ResolvableValue, end?: number | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Replaces all occurrences of a search string with a replacement string
@@ -145,7 +151,7 @@ export interface StringTransformerGroup {
    * @example
    * // Replace("world", "universe") applied to "hello world" returns "hello universe"
    */
-  Replace: (searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => TransformerFunctionExpr
+  Replace: (searchValue: string | ResolvableValue, replaceValue: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Pads the string to a specified length with a given string on the left
@@ -154,7 +160,7 @@ export interface StringTransformerGroup {
    * @example
    * // PadStart(3) applied to "5" returns "  5"
    */
-  PadStart: (targetLength: number | ValueExpr, padString?: string | ValueExpr) => TransformerFunctionExpr
+  PadStart: (targetLength: number | ResolvableValue, padString?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Pads the string to a specified length with a given string on the right
@@ -163,7 +169,7 @@ export interface StringTransformerGroup {
    * @example
    * // PadEnd(3) applied to "5" returns "5  "
    */
-  PadEnd: (targetLength: number | ValueExpr, padString?: string | ValueExpr) => TransformerFunctionExpr
+  PadEnd: (targetLength: number | ResolvableValue, padString?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Converts a string to an integer
@@ -199,7 +205,7 @@ export interface StringTransformerGroup {
    * // ToArray(",") on "hello,world" returns ["hello", "world"]
    * // ToArray("-") on "a-b-c" returns ["a", "b", "c"]
    */
-  ToArray: (separator?: string | ValueExpr) => TransformerFunctionExpr
+  ToArray: (separator?: string | ResolvableValue) => TransformerFunctionExpr
 
   /**
    * Converts a date string to a Date object (local time).
@@ -300,7 +306,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     return `${value}'s`
   },
 
-  Substring: () => (value: any, start: number | ValueExpr, end?: number | ValueExpr) => {
+  Substring: () => (value: any, start: number | ResolvableValue, end?: number | ResolvableValue) => {
     assertString(value, 'Transformer.String.Substring')
     assertNumber(start, 'Transformer.String.Substring (start)')
     if (end !== undefined) {
@@ -310,7 +316,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     return value.substring(start)
   },
 
-  Replace: () => (value: any, searchValue: string | ValueExpr, replaceValue: string | ValueExpr) => {
+  Replace: () => (value: any, searchValue: string | ResolvableValue, replaceValue: string | ResolvableValue) => {
     assertString(value, 'Transformer.String.Replace')
     assertString(searchValue, 'Transformer.String.Replace (searchValue)')
     assertString(replaceValue, 'Transformer.String.Replace (replaceValue)')
@@ -319,7 +325,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
 
   PadStart:
     () =>
-    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+    (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
       assertString(value, 'Transformer.String.PadStart')
       assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
       assertString(padString, 'Transformer.String.PadStart (padString)')
@@ -328,7 +334,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
 
   PadEnd:
     () =>
-    (value: any, targetLength: number | ValueExpr, padString: string | ValueExpr = ' ') => {
+    (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
       assertString(value, 'Transformer.String.PadEnd')
       assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
       assertString(padString, 'Transformer.String.PadEnd (padString)')
@@ -344,7 +350,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const parsed = Number(trimmed)
 
     if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-      throw new Error(`Transformer.String.ToInt: "${value}" is not a valid number`)
+      throw new TypeError(`Transformer.String.ToInt: "${value}" is not a valid number`)
     }
 
     return Math.trunc(parsed)
@@ -357,13 +363,13 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const parsed = Number(trimmed)
 
     if (trimmed === '' || Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-      throw new Error(`Transformer.String.ToFloat: "${value}" is not a valid number`)
+      throw new TypeError(`Transformer.String.ToFloat: "${value}" is not a valid number`)
     }
 
     return parsed
   },
 
-  ToArray: () => (value: any, separator?: string | ValueExpr) => {
+  ToArray: () => (value: any, separator?: string | ResolvableValue) => {
     assertString(value, 'Transformer.String.ToArray')
     if (separator === undefined) {
       return value.split('')
@@ -383,13 +389,18 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     assertString(value, 'Transformer.String.FormatDate')
     assertStringDateFormatOptions(options, 'Transformer.String.FormatDate')
 
-    const { locale = DEFAULT_FORMAT_DATE_LOCALE, ...dateTimeFormatOptions } = options ?? DEFAULT_FORMAT_DATE_OPTIONS
+    const {
+      locale = DEFAULT_FORMAT_DATE_LOCALE,
+      timeZone = DEFAULT_FORMAT_DATE_TIME_ZONE,
+      ...dateTimeFormatOptions
+    } = options ?? DEFAULT_FORMAT_DATE_OPTIONS
 
     assertString(locale, 'Transformer.String.FormatDate (locale)')
+    assertString(timeZone, 'Transformer.String.FormatDate (timeZone)')
 
     const date = parseDateString(value, 'Transformer.String.FormatDate')
 
-    return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(date)
+    return new Intl.DateTimeFormat(locale, { ...dateTimeFormatOptions, timeZone }).format(date)
   },
 
   ToISODate: () => (value: any) => {
@@ -399,13 +410,13 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const trimmed = value.trim()
 
     if (!trimmed) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid date`)
     }
 
     const match = UK_DATE_RE.exec(trimmed)
 
     if (!match) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid UK date (expected DD/MM/YYYY)`)
     }
 
     const day = Number(match[1])
@@ -415,7 +426,7 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     const date = new Date(year, month - 1, day)
 
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      throw new Error(`Transformer.String.ToISODate: "${value}" is not a valid date`)
+      throw new TypeError(`Transformer.String.ToISODate: "${value}" is not a valid date`)
     }
 
     const paddedYear = String(year).padStart(4, '0')
@@ -429,19 +440,19 @@ const { transformers: StringTransformers, implementations } = defineTransformerF
     assertString(value, 'Transformer.String.ToTimestampDate')
 
     if (!/^\d+$/.test(value)) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
     }
 
     const epoch = Number(value)
 
     if (!Number.isSafeInteger(epoch)) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a valid timestamp`)
     }
 
     const date = new Date(epoch)
 
     if (Number.isNaN(date.getTime())) {
-      throw new Error(`Transformer.String.ToTimestampDate: "${value}" is not a valid epoch timestamp`)
+      throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a valid epoch timestamp`)
     }
 
     return date
