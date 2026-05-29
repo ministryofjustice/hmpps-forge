@@ -4,9 +4,10 @@ import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
 import { JourneyAncestor, RenderBlock } from '../../../framework/rendering/types'
 import { StoredRouteTreeNode } from '../types/routes.type'
+import { RENDER_BLOCK_BRAND } from './typeguards'
 
 function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}): RenderBlock {
-  return {
+  const block: RenderBlock = {
     id,
     variant: 'TextInput',
     blockType: BlockType.FIELD,
@@ -15,6 +16,10 @@ function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properti
       ...overrides,
     },
   }
+
+  Object.assign(block, { [RENDER_BLOCK_BRAND]: true })
+
+  return block
 }
 
 function createRenderInput(overrides: Partial<RenderContextInput> = {}): RenderContextInput {

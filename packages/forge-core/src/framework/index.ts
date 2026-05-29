@@ -20,7 +20,7 @@ export type {
   RouteTreeRoute,
   RouteTreeRouteKind,
 } from './rendering/types'
-export { isRenderBlock } from '../engine/runtime/rendering/typeguards'
+export { isRenderBlock, RENDER_BLOCK_BRAND } from '../engine/runtime/rendering/typeguards'
 export type { AstNodeId, NodeId } from '../engine/types/ast.type'
 export type { HttpMethod } from './types/request.type'
 export type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'

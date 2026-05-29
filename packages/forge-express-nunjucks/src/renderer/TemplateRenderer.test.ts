@@ -4,6 +4,7 @@ import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/au
 import {
   ComponentRegistry,
   ForgeInstrumentation,
+  RENDER_BLOCK_BRAND,
   RenderBlock,
   RenderContext,
 } from '@ministryofjustice/hmpps-forge/core/framework'
@@ -56,13 +57,17 @@ describe('TemplateRenderer', () => {
   }
 
   function createMockBlock(overrides: Partial<RenderBlock> = {}): RenderBlock {
-    return {
+    const block: RenderBlock = {
       id: 'compile_ast:1',
       variant: 'text-input',
       blockType: BlockType.FIELD,
       properties: {},
       ...overrides,
     }
+
+    Object.assign(block, { [RENDER_BLOCK_BRAND]: true })
+
+    return block
   }
 
   describe('render()', () => {
@@ -569,12 +574,12 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: RenderBlock = {
+      const nestedBlock = createMockBlock({
         id: 'compile_ast:10',
         variant: 'fieldset',
         blockType: BlockType.BASIC,
         properties: { content: 'Nested' },
-      }
+      })
 
       const context = createRenderContext({
         blocks: [
@@ -608,19 +613,9 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlocks: RenderBlock[] = [
-        {
-          id: 'compile_ast:20',
-          variant: 'html',
-          blockType: BlockType.BASIC,
-          properties: {},
-        },
-        {
-          id: 'compile_ast:21',
-          variant: 'html',
-          blockType: BlockType.BASIC,
-          properties: {},
-        },
+      const nestedBlocks = [
+        createMockBlock({ id: 'compile_ast:20', variant: 'html', blockType: BlockType.BASIC }),
+        createMockBlock({ id: 'compile_ast:21', variant: 'html', blockType: BlockType.BASIC }),
       ]
 
       const context = createRenderContext({
@@ -649,19 +644,14 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const visibleBlock: RenderBlock = {
-        id: 'compile_ast:20',
-        variant: 'html',
-        blockType: BlockType.BASIC,
-        properties: {},
-      }
+      const visibleBlock = createMockBlock({ id: 'compile_ast:20', variant: 'html', blockType: BlockType.BASIC })
 
-      const hiddenBlock: RenderBlock = {
+      const hiddenBlock = createMockBlock({
         id: 'compile_ast:21',
         variant: 'html',
         blockType: BlockType.BASIC,
         properties: { visibleWhen: false },
-      }
+      })
 
       const context = createRenderContext({
         blocks: [
@@ -689,12 +679,11 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: RenderBlock = {
+      const nestedBlock = createMockBlock({
         id: 'compile_ast:30',
         variant: 'text-input',
         blockType: BlockType.BASIC,
-        properties: {},
-      }
+      })
 
       const context = createRenderContext({
         blocks: [
