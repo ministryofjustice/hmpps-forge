@@ -6,6 +6,7 @@ import {
   ComponentRegistry,
   ForgeInstrumentation,
   FrameworkAdapter,
+  RENDER_BLOCK_BRAND,
   StepHandler,
   RenderBlock,
   RenderContext,
@@ -674,11 +675,12 @@ describe('ExpressFrameworkAdapter', () => {
         ancestors: [{ code: 'test', path: '/test', title: 'Test Journey' }],
         blocks: [
           {
+            [RENDER_BLOCK_BRAND]: true,
             id: 'compile_ast:1',
             variant: 'html',
             blockType: BlockType.BASIC,
             properties: { content: 'Hello' },
-          },
+          } as unknown as RenderBlock,
         ],
         showValidationFailures: false,
         fieldValidationErrors: [],

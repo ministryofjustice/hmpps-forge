@@ -177,7 +177,7 @@ export default class TemplateRenderer {
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
   ): string[] {
-    const visibleBlocks = blocks.filter(block => block.properties.visibleWhen !== false)
+    const visibleBlocks = blocks.filter(block => isRenderBlock(block) && block.properties.visibleWhen !== false)
 
     return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures, componentRegistry))
   }
