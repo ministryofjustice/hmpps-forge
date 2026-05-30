@@ -1,6 +1,6 @@
 import type ComponentRegistry from '../../registries/ComponentRegistry'
 import UnregisteredComponentError from '../../errors/UnregisteredComponentError'
-import { formatDSLPath } from '../formatDSLPath'
+import { formatDSLPath } from '../../diagnostics/formatDSLPath'
 import type { BlockValidationRule } from './types'
 
 export const createComponentRegistrationRule = (componentRegistry: ComponentRegistry): BlockValidationRule => ({

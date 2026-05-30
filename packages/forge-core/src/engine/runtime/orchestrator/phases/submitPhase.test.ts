@@ -1,6 +1,6 @@
 import { createSubmitPhase } from './submitPhase'
 import type { PipelineState } from '../types'
-import type { CompiledSubmitHookResult } from '../../../types/hookLifecycle.type'
+import type { CompiledSubmitHookResult } from '../../../contracts/runtime/hookLifecycle.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'

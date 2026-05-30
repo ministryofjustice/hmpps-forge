@@ -1,12 +1,12 @@
-import type { CompiledValidationFunction } from '../../../types/compiledPhaseResults.type'
-import type { NodeId } from '../../../types/engine.type'
+import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
-import type { DomainValidationFailure, StepValidationFailure } from '../../context/RuntimeEvaluationContext'
+import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
-import type { StepValidityResult } from '../../types/StepValidityResult.type'
+import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 
 export async function evaluateValidation(
   compiledValidation: CompiledValidationFunction | undefined,

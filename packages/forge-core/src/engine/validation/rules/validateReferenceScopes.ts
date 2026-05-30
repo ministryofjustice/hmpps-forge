@@ -1,6 +1,6 @@
 import { BlockType, ExpressionType, StructureType } from '../../../authoring/types/enums'
 import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
-import { formatDSLPath } from '../formatDSLPath'
+import { formatDSLPath } from '../../diagnostics/formatDSLPath'
 import type { ReferenceValidationRule, TraversalContext } from './types'
 
 const LOOP_PROPERTIES: ReadonlySet<string> = new Set([

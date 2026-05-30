@@ -1,6 +1,6 @@
-import { NodeId } from '../../engine/types/ast.type'
+import { NodeId } from '../../engine/contracts/ast/ast.type'
 import { BlockType } from '../../authoring/types/enums'
-import { ValidationResult } from '../../engine/runtime/types/ValidationResult.type'
+import { ValidationResult } from '../../engine/contracts/runtime/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
 export interface RenderBlock {

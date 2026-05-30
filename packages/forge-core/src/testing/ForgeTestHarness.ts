@@ -1,5 +1,5 @@
 import Forge from '../engine/Forge'
-import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/types/engine.type'
+import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import type { TestRouter } from './types'

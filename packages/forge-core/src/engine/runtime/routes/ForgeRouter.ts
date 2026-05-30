@@ -1,4 +1,4 @@
-import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
+import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engine.type'
 import { ForgeOptions } from '../../Forge'
 import { joinPaths, normalizeBasePath } from '../../../framework/path/routePath'
 import type PackageInstance from '../../PackageInstance'
@@ -9,7 +9,7 @@ import {
   RouteTreeIndex,
   StepRouteContext,
   StoredRouteTree,
-} from '../types/routes.type'
+} from '../../contracts/routing/routeTree.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
 import ContextPreparer from '../lifecycle/ContextPreparer'
 import RequestOrchestrator from '../orchestrator/RequestOrchestrator'
@@ -19,9 +19,9 @@ import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPrepa
 import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
 import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
 import { createSubmitPhase } from '../orchestrator/phases/submitPhase'
-import { createStepRenderTerminal } from '../orchestrator/phases/stepRenderTerminal'
-import { createJourneyRedirectTerminal } from '../orchestrator/phases/journeyRedirectTerminal'
-import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/NavigationAnalyzer'
+import { createStepRenderTerminal } from '../orchestrator/terminals/stepRenderTerminal'
+import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
+import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/navigationRedirects'
 
 export default class ForgeRouter<TRouter> {
   private readonly router: TRouter
@@ -124,7 +124,7 @@ export default class ForgeRouter<TRouter> {
       const journeyCode = packageInstance.getJourneyCode()
 
       const accessPhase = createAccessLifecyclePhase(
-        runtimePlan.compiledAccessLifecycle,
+        compiledStep.compiledAccessLifecycle,
         runtimePlan.path,
         functionRegistry,
         forgeDependencies.instrumentation,
@@ -184,7 +184,7 @@ export default class ForgeRouter<TRouter> {
             forgeDependencies.instrumentation,
           ),
           createSubmitPhase(
-            runtimePlan.compiledSubmitHooks,
+            compiledStep.compiledSubmitHooks,
             compiledStep.compiledValidation,
             runtimePlan.stepId,
             runtimePlan.path,
@@ -237,29 +237,30 @@ export default class ForgeRouter<TRouter> {
 
     journeyContexts.forEach(({ journeyId, templatePath }) => {
       const journeyRouter = this.journeyRouters.get(templatePath)
-      const journeyPlan = packageInstance.getJourneyRuntimePlan(journeyId)
+      const compiledJourney = packageInstance.getCompiledJourney(journeyId)
       const routeTemplateCatalog = catalogsByBasePath.get(templatePath)
 
-      if (!journeyRouter || !journeyPlan || !routeTemplateCatalog) {
+      if (!journeyRouter || !compiledJourney || !routeTemplateCatalog) {
         return
       }
 
       const { functionRegistry } = packageDependencies
+      const runtimePlan = compiledJourney.runtimePlan
       const journeyCode = packageInstance.getJourneyCode()
 
       const orchestrator = new RequestOrchestrator(
         [
           createAccessLifecyclePhase(
-            journeyPlan.compiledAccessLifecycle,
-            journeyPlan.path,
+            compiledJourney.compiledAccessLifecycle,
+            runtimePlan.path,
             functionRegistry,
             forgeDependencies.instrumentation,
           ),
-          createAnswerPreparationPhase(journeyPlan.compiledAnswerPreparation, journeyPlan.path, functionRegistry),
+          createAnswerPreparationPhase(compiledJourney.compiledAnswerPreparation, runtimePlan.path, functionRegistry),
         ],
         createJourneyRedirectTerminal(
-          journeyPlan.navigationPlan.compiledNavigation,
-          journeyPlan.navigationPlan,
+          compiledJourney.navigationPlan.compiledNavigation,
+          compiledJourney.navigationPlan,
           routeTemplateCatalog,
           functionRegistry,
         ),
@@ -269,10 +270,10 @@ export default class ForgeRouter<TRouter> {
       this.forgeDependencies.frameworkAdapter.get(journeyRouter, '/', async (req, res) => {
         const result = await this.runRequest(
           orchestrator,
-          { route: journeyPlan.path, journeyCode },
+          { route: runtimePlan.path, journeyCode },
           req,
           res,
-          journeyPlan,
+          runtimePlan,
         )
 
         this.forgeDependencies.frameworkAdapter.applyResult(result, req, res, packageDependencies.componentRegistry)

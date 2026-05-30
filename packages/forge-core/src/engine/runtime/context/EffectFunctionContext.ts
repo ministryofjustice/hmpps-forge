@@ -1,7 +1,6 @@
-import { AnswerHistory, HookType } from '../types/AnswerHistory.type'
-import { JourneyReachabilityState } from '../../types/JourneyReachabilityState.type'
-import type { StepRequest } from '../../../framework/types/request.type'
-import type { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
+import { AnswerHistory, HookType } from '../../contracts/runtime/answerHistory.type'
+import type { CookieMutation, CookieOptions } from '../../../framework/types/response.type'
+import type { EffectEvaluationContext } from '../../contracts/runtime/effectEvaluationContext.type'
 import { assertSerializable } from '../../../shared/utils/asserts'
 import FieldsToClearResolver from './FieldsToClearResolver'
 
@@ -9,16 +8,6 @@ function assertStringParam(value: unknown, method: string, param: string): void 
   if (typeof value !== 'string') {
     throw new TypeError(`${method}: ${param} must be a string, got ${typeof value}`)
   }
-}
-
-export interface EffectEvaluationContext {
-  global: {
-    data: Record<string, unknown>
-    answers: Record<string, AnswerHistory>
-    reachability?: JourneyReachabilityState
-  }
-  request: StepRequest
-  response: StepResponse
 }
 
 /**

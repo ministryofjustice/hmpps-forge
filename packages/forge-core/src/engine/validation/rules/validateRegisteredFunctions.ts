@@ -1,6 +1,6 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import UnregisteredFunctionError from '../../errors/UnregisteredFunctionError'
-import { formatDSLPath } from '../formatDSLPath'
+import { formatDSLPath } from '../../diagnostics/formatDSLPath'
 import type { FunctionValidationRule } from './types'
 
 export const createFunctionRegistrationRule = (functionRegistry: FunctionRegistry): FunctionValidationRule => ({

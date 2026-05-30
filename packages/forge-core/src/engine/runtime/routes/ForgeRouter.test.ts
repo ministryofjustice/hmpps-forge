@@ -1,9 +1,8 @@
 import type { FrameworkAdapter } from '../../../framework/types/adapter.type'
-import { CompileAstNodeId, NodeId } from '../../types/ast.type'
-import { ForgeDependencies, PackageDependencies } from '../../types/engine.type'
-import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../types/routeDescriptors.type'
-import type { JourneyRuntimePlan } from '../../types/runtimePlans.type'
-import type { CompiledStep } from '../../types/compilationArtefacts.type'
+import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
+import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engine.type'
+import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
+import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeRouter from './ForgeRouter'
@@ -106,8 +105,8 @@ describe('ForgeRouter', () => {
         stepId: descriptor.nodeId,
         path: descriptor.path,
         staticData: {},
-        compiledAccessLifecycle: vi.fn().mockReturnValue({ executed: true, outcome: 'continue' }),
       },
+      compiledAccessLifecycle: vi.fn().mockReturnValue({ executed: true, outcome: 'continue' }),
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
@@ -133,10 +132,13 @@ describe('ForgeRouter', () => {
     }
   }
 
-  function createJourneyRuntimePlan(descriptor: JourneyRouteDescriptor): JourneyRuntimePlan {
+  function createCompiledJourney(descriptor: JourneyRouteDescriptor): CompiledJourney {
     return {
-      path: descriptor.path,
-      staticData: {},
+      runtimePlan: {
+        journeyId: descriptor.nodeId,
+        path: descriptor.path,
+        staticData: {},
+      },
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
@@ -152,8 +154,8 @@ describe('ForgeRouter', () => {
     steps: StepRouteDescriptor[],
   ): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
-    const journeyPlans = new Map<NodeId, JourneyRuntimePlan>(
-      journeys.map(journey => [journey.nodeId, createJourneyRuntimePlan(journey)]),
+    const compiledJourneys = new Map<NodeId, CompiledJourney>(
+      journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
     )
 
     return {
@@ -161,7 +163,7 @@ describe('ForgeRouter', () => {
       getStepRouteIndex: vi.fn().mockReturnValue(new Map(steps.map(step => [step.nodeId, step]))),
       getJourneyRouteIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.nodeId, journey]))),
       getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
-      getJourneyRuntimePlan: vi.fn((journeyId: NodeId) => journeyPlans.get(journeyId)),
+      getCompiledJourney: vi.fn((journeyId: NodeId) => compiledJourneys.get(journeyId)),
       getJourneyCode: vi.fn().mockReturnValue('test-journey'),
     } as unknown as Mocked<PackageInstance>
   }

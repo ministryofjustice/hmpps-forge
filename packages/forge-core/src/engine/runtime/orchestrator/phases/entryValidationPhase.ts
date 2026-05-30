@@ -1,8 +1,8 @@
 import type {
   CompiledEntryValidationFunction,
   CompiledValidationFunction,
-} from '../../../types/compiledPhaseResults.type'
-import type { NodeId } from '../../../types/engine.type'
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'

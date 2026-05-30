@@ -1,11 +1,11 @@
 import { BlockType, ExpressionType, FunctionType, IteratorType, StructureType } from '../../authoring/types/enums'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import type { FunctionASTNode, IterateASTNode } from '../types/expressions.type'
-import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../types/structures.type'
-import type { TemplateNode } from '../types/template.type'
-import { NodeIDCategory, NodeIDGenerator } from '../compilation/id-generators/NodeIDGenerator'
-import { NodeFactory } from '../compilation/nodes/NodeFactory'
-import { ASTNodeType } from '../types/enums'
+import type { FunctionASTNode, IterateASTNode } from '../contracts/ast/expressions.type'
+import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
+import type { TemplateNode } from '../contracts/ast/template.type'
+import { NodeIDCategory, NodeIDGenerator } from '../ast/ast-state/NodeIDGenerator'
+import { NodeFactory } from '../ast/nodes/NodeFactory'
+import { ASTNodeType } from '../contracts/ast/enums'
 import { createDSLSourceMap, getDSLSourceMetadata } from './sourceMetadata'
 
 const createFactory = (journey: JourneyDefinition): NodeFactory => {

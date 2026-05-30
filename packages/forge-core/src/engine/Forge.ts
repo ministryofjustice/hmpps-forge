@@ -1,5 +1,9 @@
 import PackageInstance from './PackageInstance'
-import type { ForgeDependencies, ForgeFunctionImplementations, ForgePackageRegistration } from './types/engine.type'
+import type {
+  ForgeDependencies,
+  ForgeFunctionImplementations,
+  ForgePackageRegistration,
+} from './contracts/ast/engine.type'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'

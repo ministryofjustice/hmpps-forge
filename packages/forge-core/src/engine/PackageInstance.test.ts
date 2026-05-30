@@ -1,8 +1,8 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { JourneyCompilationResult } from './types/compilationArtefacts.type'
-import JourneyCompiler from './compilation/JourneyCompiler'
+import type { JourneyCompilationResult } from './contracts/plans/compilationArtefacts.type'
+import JourneyCompiler from './JourneyCompiler'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
@@ -122,6 +122,6 @@ function createCompilationResult(): JourneyCompilationResult {
     stepRouteIndex: new Map(),
     journeyRouteIndex: new Map(),
     steps: new Map(),
-    journeyPlans: new Map(),
+    journeys: new Map(),
   }
 }

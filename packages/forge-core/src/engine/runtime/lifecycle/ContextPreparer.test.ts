@@ -1,4 +1,4 @@
-import type { StepRuntimePlan } from '../../types/runtimePlans.type'
+import type { StepRuntimePlan } from '../../contracts/plans/runtimePlans.type'
 import type { StepRequest, StepResponse } from '../../../framework'
 import ContextPreparer from './ContextPreparer'
 

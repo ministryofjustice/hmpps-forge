@@ -1,6 +1,6 @@
 import { FunctionType, HookType } from '../../../authoring/types/enums'
 import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
-import { formatDSLPath } from '../formatDSLPath'
+import { formatDSLPath } from '../../diagnostics/formatDSLPath'
 import type { FunctionValidationRule } from './types'
 
 const HOOK_TYPES: ReadonlySet<string> = new Set(Object.values(HookType))

@@ -3,7 +3,7 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/types/adapter.type'
 import ForgeRouter from './runtime/routes/ForgeRouter'
-import type { PackageDependencies } from './types/engine.type'
+import type { PackageDependencies } from './contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
 import Forge from './Forge'
 

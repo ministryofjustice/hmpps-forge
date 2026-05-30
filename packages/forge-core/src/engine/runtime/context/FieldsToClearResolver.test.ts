@@ -1,4 +1,4 @@
-import { AnswerHistory } from '../types/AnswerHistory.type'
+import { AnswerHistory } from '../../contracts/runtime/answerHistory.type'
 import FieldsToClearResolver from './FieldsToClearResolver'
 
 describe('FieldsToClearResolver', () => {

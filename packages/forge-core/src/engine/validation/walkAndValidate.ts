@@ -2,13 +2,13 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import { BlockType, ExpressionType, FunctionType, StructureType } from '../../authoring/types/enums'
 import type {
   AncestorNode,
-  DSLPathSegment,
   TraversalContext,
   ValidationRule,
   ReferenceValidationRule,
   FunctionValidationRule,
   BlockValidationRule,
 } from './rules/types'
+import type { DSLPathSegment } from '../diagnostics/sourceMetadata'
 
 const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionType))
 
