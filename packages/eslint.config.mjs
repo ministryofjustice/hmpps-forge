@@ -49,6 +49,50 @@ export default [
     },
   },
   {
+    // Engine layer boundaries. The compile-time/runtime separation is physical:
+    //   contracts/  — runtime-free sink; depends on nothing in the engine layers
+    //   ast/        — builds the AST; may depend only on contracts/
+    //   lowering/   — codegen; may depend on ast/ + contracts/ but NOT runtime/.
+    //   runtime/    — execution; may depend only on contracts/
+    // Tests and testing-helpers are exempt: they wire mocks across layers.
+    files: ['forge-core/src/engine/**/*.ts'],
+    ignores: ['**/*.test.ts', 'forge-core/src/engine/**/testing-helpers/**'],
+    rules: {
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: './forge-core/src/engine/contracts',
+              from: [
+                './forge-core/src/engine/ast',
+                './forge-core/src/engine/lowering',
+                './forge-core/src/engine/runtime',
+              ],
+              message: 'contracts/ is a runtime-free sink and must not import from ast/, lowering/, or runtime/.',
+            },
+            {
+              target: './forge-core/src/engine/ast',
+              from: ['./forge-core/src/engine/lowering', './forge-core/src/engine/runtime'],
+              message: 'ast/ builds the AST and may depend only on contracts/, not lowering/ or runtime/.',
+            },
+            {
+              target: './forge-core/src/engine/runtime',
+              from: ['./forge-core/src/engine/ast', './forge-core/src/engine/lowering'],
+              message: 'runtime/ executes compiled output and may depend only on contracts/, not ast/ or lowering/.',
+            },
+            {
+              target: './forge-core/src/engine/lowering',
+              from: ['./forge-core/src/engine/runtime'],
+              message:
+                'lowering/ (codegen) may depend on ast/ + contracts/ but not runtime/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['forge-express-nunjucks/**/*.ts'],
     rules: {
       'no-restricted-imports': [
