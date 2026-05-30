@@ -2,9 +2,6 @@ import Forge from '../engine/Forge'
 import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
-import type { TestRouter } from './types'
-import TestFrameworkAdapter from './TestFrameworkAdapter'
-import type { TestFrameworkAdapterBuilder } from './TestFrameworkAdapter'
 import { ForgeTestClient } from './ForgeTestClient'
 
 const silentLogger = {
@@ -32,14 +29,10 @@ const silentLogger = {
  * ```
  */
 export class ForgeTestHarness {
-  private readonly adapter: TestFrameworkAdapterBuilder
-
   private readonly forge: Forge
 
   constructor() {
-    this.adapter = TestFrameworkAdapter.configure()
     this.forge = new Forge({
-      frameworkAdapter: this.adapter,
       logger: silentLogger,
     })
   }
@@ -63,6 +56,6 @@ export class ForgeTestHarness {
   }
 
   createClient(): ForgeTestClient {
-    return this.adapter.createClient(this.forge.getRouter() as TestRouter)
+    return new ForgeTestClient(this.forge)
   }
 }
