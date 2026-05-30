@@ -87,8 +87,4 @@ export interface RenderContext {
   /** Current data state */
   data: Record<string, unknown>
 
-  /** Lookup to check if a block has nested blocks in its properties (used to skip unnecessary property walks) */
-  hasNestedBlocks?: HasNestedBlocksLookup
 }
-
-export type HasNestedBlocksLookup = (blockId: NodeId) => boolean

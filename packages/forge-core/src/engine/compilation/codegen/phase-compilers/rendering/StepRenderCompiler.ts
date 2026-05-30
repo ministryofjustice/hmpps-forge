@@ -247,6 +247,7 @@ export default class StepRenderCompiler {
 
       emitter.code(
         `${targetArrayVar}.push({
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
           id: ${JSON.stringify(block.id)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(block.blockType)},
@@ -343,6 +344,7 @@ export default class StepRenderCompiler {
 
       emitter.code(
         `blocks.push({
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
           id: ${idExpr},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},
@@ -426,6 +428,7 @@ export default class StepRenderCompiler {
       emitter.assign(
         resultVar,
         `{
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
           id: ${JSON.stringify(block.id)},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},
@@ -474,6 +477,7 @@ export default class StepRenderCompiler {
       emitter.assign(
         resultVar,
         `{
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
           id: ${idExpr},
           variant: ${JSON.stringify(block.variant)},
           blockType: ${JSON.stringify(blockType)},

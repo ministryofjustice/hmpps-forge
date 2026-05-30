@@ -5,6 +5,7 @@ import type {
 } from '../../../types/GeneratedNavigationEvaluation.type'
 import type { CompiledReachabilityResult } from '../phase-compilers/reachability/ReachabilityCompiler'
 import type { ValidationContext } from '../phase-compilers/validation/StepValidationCompiler'
+import { RENDER_BLOCK_BRAND } from '../../../runtime/rendering/typeguards'
 
 interface AnswerHistory {
   current: unknown
@@ -62,6 +63,7 @@ const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
 const EFFECT_FUNCTION_TYPE = 'FunctionType.Effect'
 
 export interface GeneratedFunctionHelpers {
+  renderBlockBrand: symbol
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
@@ -100,6 +102,8 @@ export interface GeneratedFunctionHelpers {
 }
 
 export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
+  renderBlockBrand: RENDER_BLOCK_BRAND,
+
   ensureAnswerHistory(ctx, code) {
     let answerHistory = ctx.answers[code]
 
