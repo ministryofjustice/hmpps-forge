@@ -79,4 +79,4 @@ COPY --from=model-assets --chown=nonroot:nonroot \
 EXPOSE 3000
 USER nonroot
 
-CMD [ "node", "dist/server.js" ]
+CMD [ "dist/server.js" ]
