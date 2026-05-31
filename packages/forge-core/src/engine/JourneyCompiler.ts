@@ -9,7 +9,6 @@ import type {
 } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 import type { CompilationDependencies } from './lowering/compilationDependencies.type'
-import type ComponentRegistry from './registries/ComponentRegistry'
 import { NodeIDCategory, NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from './ast/nodes/NodeFactory'
 import ASTNodeIndex from './ast/ast-state/ASTNodeIndex'
@@ -21,12 +20,8 @@ import ASTSemanticValidator from './ast/validation/ASTSemanticValidator'
 import { createDSLSourceMap } from './diagnostics/sourceMetadata'
 import getAncestorChain from './ast/ast-state/getAncestorChain'
 
-interface JourneyCompilerDependencies extends CompilationDependencies {
-  readonly componentRegistry: ComponentRegistry
-}
-
 export default class JourneyCompiler {
-  constructor(private readonly dependencies: JourneyCompilerDependencies) {}
+  constructor(private readonly dependencies: CompilationDependencies) {}
 
   compile(journeyDef: JourneyDefinition): JourneyCompilationResult {
     const { rootNode, nodeRegistry, astNodeTree } = this.buildAstTree(journeyDef)

@@ -12,6 +12,7 @@ import type {
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import { NodeId } from '../../../contracts/ast/ast.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler from './ReachabilityCompiler'
@@ -138,7 +139,10 @@ function createCtx(overrides: Partial<ReachabilityContext> = {}): ReachabilityCo
 describe('ReachabilityCompiler', () => {
   let compiler: ReachabilityCompiler
   let registry: ASTNodeIndex
-  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+  const dependencies: CompilationDependencies = {
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -167,7 +171,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateSource(plan, registry)
@@ -204,7 +208,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateSource(plan, registry)
@@ -238,7 +242,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateSource(plan, registry)
@@ -810,7 +814,7 @@ describe('ReachabilityCompiler', () => {
         stepIdByRouteTemplatePath: new Map([[routeTemplatePath, entry.stepId]]),
       }
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateNavigationSource(plan, [], registry)

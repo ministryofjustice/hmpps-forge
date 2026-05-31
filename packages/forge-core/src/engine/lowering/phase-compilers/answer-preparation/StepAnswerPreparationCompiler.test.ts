@@ -13,6 +13,7 @@ import { TemplateValue } from '../../../contracts/ast/template.type'
 import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import { generatedFunctionHelpers } from '../../function-construction/GeneratedFunctionHelpers'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
@@ -32,7 +33,7 @@ function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
 }
 
 function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompiler {
-  return new StepAnswerPreparationCompiler({ functionRegistry: createSyncRegistry(...funcNames) })
+  return new StepAnswerPreparationCompiler({ functionRegistry: createSyncRegistry(...funcNames), componentRegistry: new ComponentRegistry() })
 }
 
 function createFieldBlock(code: unknown, props: Record<string, unknown> = {}): FieldBlockASTNode {
@@ -157,7 +158,10 @@ function runGeneratedSource(source: string, ctx: AnswerPreparationContext): void
 
 describe('StepAnswerPreparationCompiler', () => {
   let compiler: StepAnswerPreparationCompiler
-  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+  const dependencies: CompilationDependencies = {
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -183,7 +187,10 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+      const localCompiler = new StepAnswerPreparationCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
 
       // Act
       const source = localCompiler.generateSource([block], [])
@@ -214,7 +221,10 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+      const localCompiler = new StepAnswerPreparationCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
 
       // Act
       const source = localCompiler.generateSource([block], [])
@@ -250,7 +260,10 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+      const localCompiler = new StepAnswerPreparationCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
 
       // Act
       const source = localCompiler.generateSource([block], [])
@@ -282,7 +295,10 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepAnswerPreparationCompiler({ functionRegistry })
+      const localCompiler = new StepAnswerPreparationCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
 
       // Act
       const source = localCompiler.generateSource([block], [])

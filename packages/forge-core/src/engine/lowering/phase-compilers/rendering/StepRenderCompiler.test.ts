@@ -13,6 +13,7 @@ import { TemplateValue } from '../../../contracts/ast/template.type'
 import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import { attachDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
@@ -98,7 +99,10 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
 
 describe('StepRenderCompiler', () => {
   let compiler: StepRenderCompiler
-  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+  const dependencies: CompilationDependencies = {
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -122,7 +126,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const syncCompiler = new StepRenderCompiler({ functionRegistry })
+      const syncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = syncCompiler.generateSource(createStepWithBlocks([block]), [], [])
@@ -156,7 +160,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const asyncCompiler = new StepRenderCompiler({ functionRegistry })
+      const asyncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = asyncCompiler.generateSource(createStepWithBlocks([block]), [], [])
@@ -654,7 +658,7 @@ describe('StepRenderCompiler', () => {
         Equals: { name: 'Equals', isAsync: false, evaluate: () => undefined },
       })
 
-      const localCompiler = new StepRenderCompiler({ functionRegistry })
+      const localCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const visitType = createReference(['answers', 'visitType'])
       const equalsPhone = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone'])
       const equalsVideo = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['video'])
@@ -886,7 +890,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const pipelineCompiler = new StepRenderCompiler({ functionRegistry })
+      const pipelineCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = pipelineCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
@@ -967,7 +971,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const findCompiler = new StepRenderCompiler({ functionRegistry })
+      const findCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = findCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
@@ -1047,7 +1051,7 @@ describe('StepRenderCompiler', () => {
         FormatDate: StringTransformersRegistry.FormatDate,
       })
 
-      const formatCompiler = new StepRenderCompiler({ functionRegistry })
+      const formatCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = formatCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
@@ -1085,7 +1089,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const skipCompiler = new StepRenderCompiler({ functionRegistry })
+      const skipCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = skipCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
@@ -1117,7 +1121,7 @@ describe('StepRenderCompiler', () => {
         FormatDate: StringTransformersRegistry.FormatDate,
       })
 
-      const typeErrorCompiler = new StepRenderCompiler({ functionRegistry })
+      const typeErrorCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = typeErrorCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {
@@ -1176,7 +1180,7 @@ describe('StepRenderCompiler', () => {
         },
       })
 
-      const throwCompiler = new StepRenderCompiler({ functionRegistry })
+      const throwCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const compiled = throwCompiler.compile(createStepWithBlocks([block]), [], [])
 
       if (!compiled) {

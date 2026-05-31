@@ -23,6 +23,7 @@ import {
   XorPredicateASTNode,
 } from '../../../contracts/ast/predicates.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepValidationCompiler from './StepValidationCompiler'
@@ -153,7 +154,10 @@ function createCtx(overrides: Partial<ValidationContext> = {}): ValidationContex
 
 describe('StepValidationCompiler', () => {
   let compiler: StepValidationCompiler
-  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+  const dependencies: CompilationDependencies = {
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -193,7 +197,7 @@ describe('StepValidationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepValidationCompiler({ functionRegistry })
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const fn = localCompiler.compileOnEntryValidation(entries)
 
       // Act
@@ -226,7 +230,7 @@ describe('StepValidationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepValidationCompiler({ functionRegistry })
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const fn = localCompiler.compileOnEntryValidation(entries)
 
       // Act
@@ -273,7 +277,7 @@ describe('StepValidationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepValidationCompiler({ functionRegistry })
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
@@ -316,7 +320,7 @@ describe('StepValidationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepValidationCompiler({ functionRegistry })
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
@@ -383,7 +387,7 @@ describe('StepValidationCompiler', () => {
         },
       })
 
-      const localCompiler = new StepValidationCompiler({ functionRegistry })
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
       const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
