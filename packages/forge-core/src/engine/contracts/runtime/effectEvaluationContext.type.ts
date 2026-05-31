@@ -1,7 +1,7 @@
 import type { AnswerHistory } from './answerHistory.type'
 import type { JourneyReachabilityState } from '../navigation/journeyReachabilityState.type'
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { StepResponse } from '../../../framework/types/response.type'
+import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 
 export interface EffectEvaluationContext {
   global: {
@@ -10,5 +10,5 @@ export interface EffectEvaluationContext {
     reachability?: JourneyReachabilityState
   }
   request: StepRequest
-  response: StepResponse
+  response: ResponseBindings
 }
