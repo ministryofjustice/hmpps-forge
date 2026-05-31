@@ -24,10 +24,10 @@ import { createStepRenderTerminal } from '../orchestrator/terminals/stepRenderTe
 import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
 import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/navigationRedirects'
 import SnapshotStepRequest from '../snapshot/SnapshotStepRequest'
-import RecordingStepResponse from '../snapshot/RecordingStepResponse'
+import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import type { ForgeEffects, ForgeErrorCode, ForgeOutcome } from '../../../framework/types/outcome.type'
+import type { ForgeErrorCode, ForgeOutcome } from '../../../framework/types/outcome.type'
 import type { ForgeRoute, ForgeTopology } from '../../../framework/types/topology.type'
 
 interface NodeExecutor {
@@ -90,7 +90,7 @@ export default class ForgeEvaluator {
     return { routes: this.routes }
   }
 
-  async evaluate(snapshot: RequestSnapshot): Promise<ForgeOutcome> {
+  async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome> {
     const executor = this.executorsByNodeId.get(snapshot.nodeId as NodeId)
 
     if (!executor) {
@@ -109,21 +109,19 @@ export default class ForgeEvaluator {
     })
 
     const request = new SnapshotStepRequest(snapshot)
-    const response = new RecordingStepResponse()
-    const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request, response)
-    const state: PipelineState = { context, request }
+    const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request)
+    const state: PipelineState = { context, request, responseBindings }
 
     const result = await orchestrator.execute(state)
 
     if (result.type === 'redirect') {
-      return { kind: 'navigate', url: result.url, effects: response.toEffects() }
+      return { kind: 'navigate', url: result.url }
     }
 
     return {
       kind: 'render',
       context: result.context,
       componentRegistry: executor.componentRegistry,
-      effects: response.toEffects(),
     }
   }
 
@@ -304,10 +302,6 @@ export default class ForgeEvaluator {
   }
 
   private errorOutcome(code: ForgeErrorCode, message: string): ForgeOutcome {
-    return { kind: 'error', error: { code, message }, effects: this.emptyEffects() }
-  }
-
-  private emptyEffects(): ForgeEffects {
-    return { headers: new Map(), cookies: new Map() }
+    return { kind: 'error', error: { code, message } }
   }
 }
