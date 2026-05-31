@@ -33,7 +33,10 @@ function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
 }
 
 function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompiler {
-  return new StepAnswerPreparationCompiler({ functionRegistry: createSyncRegistry(...funcNames), componentRegistry: new ComponentRegistry() })
+  return new StepAnswerPreparationCompiler({
+    functionRegistry: createSyncRegistry(...funcNames),
+    componentRegistry: new ComponentRegistry(),
+  })
 }
 
 function createFieldBlock(code: unknown, props: Record<string, unknown> = {}): FieldBlockASTNode {
