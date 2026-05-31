@@ -9,7 +9,7 @@ import {
   IteratorType,
 } from '../../../authoring/types/enums'
 import type { ReferenceExpr } from '../../../authoring/types/expressions.type'
-import type { JourneyDefinition, StepDefinition, ValidationExpr } from '../../../authoring/types/structures.type'
+import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, BlockDefinition } from '../../../components/types/structures.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
@@ -75,17 +75,6 @@ describe('ASTSemanticValidator', () => {
       blockType: BlockType.FIELD,
       variant: 'GovUKInput',
       ...properties,
-    })
-
-    const createRequiredValidation = (subject: ReferenceExpr): ValidationExpr => ({
-      type: ExpressionType.VALIDATION,
-      message: 'Required',
-      condition: {
-        type: PredicateType.TEST,
-        negate: false,
-        subject,
-        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
-      },
     })
 
     it('should reject Item references outside iterators', () => {

@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType, HookType } from '../../../../authoring/types/enums'
+import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'

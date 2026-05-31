@@ -1,7 +1,6 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import { isFieldBlockStructNode } from '../../../contracts/ast/structure-nodes'
 import { isIterateExprNode } from '../../../contracts/ast/expression-nodes'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import { getDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
@@ -9,6 +8,7 @@ import type { DSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import getAncestorChain from '../../ast-state/getAncestorChain'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
+import type { TemplateNode } from '../../../contracts/ast/template.type'
 import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
 
 const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
@@ -44,10 +44,7 @@ function parseReferenceLevel(value: unknown): number | undefined {
   return Number.isInteger(level) && level >= 0 ? level : undefined
 }
 
-function getIteratorDepthForNode(
-  nodeId: NodeId,
-  context: ASTValidationContext,
-): number {
+function getIteratorDepthForNode(nodeId: NodeId, context: ASTValidationContext): number {
   const ancestors = getAncestorChain(nodeId, context.nodeTree)
 
   let depth = 0
@@ -150,10 +147,7 @@ function validateLoopReference(
   return errors
 }
 
-function validateRegisteredReference(
-  node: ReferenceASTNode,
-  context: ASTValidationContext,
-): readonly Error[] {
+function validateRegisteredReference(node: ReferenceASTNode, context: ASTValidationContext): readonly Error[] {
   const path = node.properties.path
   const namespace = path[0]
 
@@ -172,50 +166,74 @@ function validateRegisteredReference(
   return []
 }
 
-function validateTemplateReferences(
-  iterateNode: IterateASTNode,
-  parentIterateDepth: number,
-  context: ASTValidationContext,
-): readonly Error[] {
-  const errors: Error[] = []
-  const { iterator } = iterateNode.properties
-  const templateDepth = parentIterateDepth + 1
-
+function walkIterateTemplateReferences(
+  iterator: IterateASTNode['properties']['iterator'],
+  currentDepth: number,
+  errors: Error[],
+): void {
   const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
     (t): t is NonNullable<typeof t> => t !== undefined,
   )
 
   templates.forEach(template => {
-    walkTemplateValue(template, {
-      onTemplateNode(templateNode, templateMetadata) {
+    const visitor = {
+      onTemplateNode(templateNode: TemplateNode, templateMetadata: DSLSourceMetadata | undefined): boolean | void {
         if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
-          return
+          return undefined
         }
 
         const expressionType = (templateNode as Record<string, unknown>).expressionType as string | undefined
 
+        if (expressionType === ExpressionType.ITERATE) {
+          if (templateNode.properties?.input) {
+            walkTemplateValue(templateNode.properties.input, visitor)
+          }
+
+          const nestedIterator = templateNode.properties?.iterator as
+            | IterateASTNode['properties']['iterator']
+            | undefined
+
+          if (nestedIterator) {
+            walkIterateTemplateReferences(nestedIterator, currentDepth + 1, errors)
+          }
+
+          return false
+        }
+
         if (expressionType !== ExpressionType.REFERENCE) {
-          return
+          return undefined
         }
 
         const refPath = templateNode.properties?.path
 
         if (!Array.isArray(refPath)) {
-          return
+          return undefined
         }
 
-        const namespace = refPath[0]
+        const templateRefPath = refPath as (string | number)[]
+        const namespace = templateRefPath[0]
 
         if (namespace === '@scope') {
-          errors.push(...validateItemReference(refPath, templateDepth, templateMetadata))
+          errors.push(...validateItemReference(templateRefPath, currentDepth, templateMetadata))
         }
 
         if (namespace === '@loop') {
-          errors.push(...validateLoopReference(refPath, templateDepth, templateMetadata))
+          errors.push(...validateLoopReference(templateRefPath, currentDepth, templateMetadata))
         }
+
+        return undefined
       },
-    })
+    }
+
+    walkTemplateValue(template, visitor)
   })
+}
+
+function validateTemplateReferences(iterateNode: IterateASTNode, parentIterateDepth: number): readonly Error[] {
+  const errors: Error[] = []
+  const templateDepth = parentIterateDepth + 1
+
+  walkIterateTemplateReferences(iterateNode.properties.iterator, templateDepth, errors)
 
   return errors
 }
@@ -235,7 +253,7 @@ export const validateReferenceScopes: ASTValidationRule = (context: ASTValidatio
   iterateNodes.forEach(iterateNode => {
     const parentDepth = getIteratorDepthForNode(iterateNode.id, context)
 
-    errors.push(...validateTemplateReferences(iterateNode, parentDepth, context))
+    errors.push(...validateTemplateReferences(iterateNode, parentDepth))
   })
 
   return errors

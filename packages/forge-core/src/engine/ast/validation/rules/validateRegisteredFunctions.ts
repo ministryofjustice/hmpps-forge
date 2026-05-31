@@ -1,7 +1,6 @@
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { ExpressionType } from '../../../../authoring/types/enums'
 import UnregisteredFunctionError from '../../../errors/UnregisteredFunctionError'
 import { getDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { ASTValidationContext, ASTValidationRule } from './types'
@@ -9,7 +8,11 @@ import { walkTemplateValue } from './templateWalker'
 
 const FUNCTION_TYPES = Object.values(FunctionType)
 
-function buildError(name: string, functionType: string, metadata: { dslPath?: readonly (string | number)[]; formattedDslPath?: string }): UnregisteredFunctionError {
+function buildError(
+  name: string,
+  functionType: string,
+  metadata: { dslPath?: readonly (string | number)[]; formattedDslPath?: string },
+): UnregisteredFunctionError {
   return new UnregisteredFunctionError({
     path: metadata.dslPath ? [...metadata.dslPath] : [],
     formattedPath: metadata.formattedDslPath,
@@ -29,10 +32,12 @@ export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValid
       if (!functionRegistry.has(node.properties.name)) {
         const metadata = getDSLSourceMetadata(node)
 
-        errors.push(buildError(node.properties.name, functionType, {
-          dslPath: metadata?.dslPath,
-          formattedDslPath: metadata?.formattedDslPath,
-        }))
+        errors.push(
+          buildError(node.properties.name, functionType, {
+            dslPath: metadata?.dslPath,
+            formattedDslPath: metadata?.formattedDslPath,
+          }),
+        )
       }
     })
   })
@@ -62,10 +67,12 @@ export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValid
           const name = (templateNode.properties?.name as string) ?? ''
 
           if (!functionRegistry.has(name)) {
-            errors.push(buildError(name, expressionType, {
-              dslPath: templateMetadata?.dslPath,
-              formattedDslPath: templateMetadata?.formattedDslPath,
-            }))
+            errors.push(
+              buildError(name, expressionType, {
+                dslPath: templateMetadata?.dslPath,
+                formattedDslPath: templateMetadata?.formattedDslPath,
+              }),
+            )
           }
         },
       })

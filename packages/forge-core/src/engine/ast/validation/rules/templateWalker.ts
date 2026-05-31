@@ -4,7 +4,8 @@ import type { DSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import { getDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 
 export interface TemplateVisitor {
-  onTemplateNode(node: TemplateNode, metadata: DSLSourceMetadata | undefined): void
+  /** Return false to skip walking this node's children. */
+  onTemplateNode(node: TemplateNode, metadata: DSLSourceMetadata | undefined): boolean | void
 }
 
 export function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor): void {
@@ -19,8 +20,11 @@ export function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor
   }
 
   if (isTemplateNode(value)) {
-    visitor.onTemplateNode(value, getDSLSourceMetadata(value))
-    walkTemplateProperties(value, visitor)
+    const shouldWalkChildren = visitor.onTemplateNode(value, getDSLSourceMetadata(value))
+
+    if (shouldWalkChildren !== false) {
+      walkTemplateProperties(value, visitor)
+    }
 
     return
   }
