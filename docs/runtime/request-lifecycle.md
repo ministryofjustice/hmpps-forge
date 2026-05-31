@@ -57,9 +57,9 @@ The sections below describe those flows.
 
 A GET evaluation renders a step.
 
-Forge wraps the `RequestSnapshot` in a `SnapshotStepRequest` and a
-`RecordingStepResponse`, then creates a `RuntimeEvaluationContext` for the
-request and merges static journey data into that context.
+Forge wraps the `RequestSnapshot` in a `SnapshotStepRequest`, then creates a
+`RuntimeEvaluationContext` for the request and merges static journey data into
+that context.
 
 Forge runs the compiled access lifecycle before doing any step evaluation. If an
 access hook returns a redirect, the outcome is a navigation. If it returns an
@@ -78,8 +78,7 @@ After navigation, Forge may run entry validation. Entry validation is used when
 a step is configured to show validation failures before submission.
 
 Finally, Forge calls the compiled render function, builds the render context,
-and returns a render outcome containing the context, the component registry,
-and any recorded effects.
+and returns a render outcome containing the context and the component registry.
 
 ## POST step evaluations
 
@@ -119,9 +118,9 @@ The main inputs are:
 
 The main outputs (as a `ForgeOutcome`) are:
 
-- a navigation (redirect URL + effects)
-- an error (error code + message + effects)
-- a render (render context + component registry + effects)
+- a navigation (redirect URL)
+- an error (error code + message)
+- a render (render context + component registry)
 
 Runtime also mutates the per-request evaluation context. This mutation is local
 to the request. It records prepared answers, validation state, and reachability
@@ -159,8 +158,8 @@ Missing compiled functions fail fast. There is no interpreted fallback.
 
 `RuntimeEvaluationContext` is the mutable state for one request.
 
-It holds the shared compilation structures, journey dependencies, request,
-response, and global request state.
+It holds the shared compilation structures, journey dependencies, the request,
+and global request state.
 
 The global state contains:
 
@@ -239,4 +238,4 @@ navigate outcome, or an error outcome for the adapter to dispatch.
 The next request starts again from the compiled journey and a new request
 context. Any persistence, external state, or cross-request data must be loaded
 back into context by application code, framework integration, middleware, or
-effects.
+effect hooks.

@@ -39,7 +39,7 @@ The adapter consumes three things from a configured `Forge` instance:
 | Method | What it provides |
 |--------|-----------------|
 | `forge.getTopology()` | A `ForgeTopology` containing every registrable route (node ID, path template, methods, kind) |
-| `forge.evaluate(snapshot)` | Takes a `RequestSnapshot`, returns a `ForgeOutcome` |
+| `forge.evaluate(snapshot, options?)` | Takes a `RequestSnapshot` and optional `EvaluateOptions` (including `ResponseBindings`), returns a `ForgeOutcome` |
 | `forge.getInstrumentation()` | The instrumentation instance, so adapters can nest request spans |
 | `forge.getLogger()` | The configured logger |
 
@@ -57,12 +57,13 @@ The adapter provides a `RequestSnapshot` to the engine. A snapshot contains:
 
 The engine returns a `ForgeOutcome`:
 
-- `{ kind: 'render', context, componentRegistry, effects }` - render a page
-- `{ kind: 'navigate', url, effects }` - redirect to a URL
-- `{ kind: 'error', error, effects }` - surface a structured error
+- `{ kind: 'render', context, componentRegistry }` - render a page
+- `{ kind: 'navigate', url }` - redirect to a URL
+- `{ kind: 'error', error }` - surface a structured error
 
-Every outcome carries `ForgeEffects` (recorded headers and cookies) that the
-adapter must flush onto the framework response before dispatching the outcome.
+The outcome is pure data. Response IO (headers, cookies) is handled live
+during evaluation through the adapter-provided `ResponseBindings`, not
+carried on the outcome.
 
 ## Key concepts
 
@@ -90,15 +91,20 @@ variants:
 
 The adapter interprets this outcome into the framework's response model.
 
-### `ForgeEffects`
+### `ResponseBindings`
 
-Response side-effects (headers and cookies) are recorded during evaluation rather
-than written to a live response. They are returned on the outcome as
-`ForgeEffects`. The adapter flushes these onto the framework response before
-dispatching.
+The adapter provides a `ResponseBindings` implementation when calling
+`forge.evaluate(snapshot, { response })`. This is a callback interface
+with methods like `setHeader`, `getHeader`, `setCookie`, `getCookie`,
+`getAllHeaders`, and `getAllCookies`.
 
-This means the engine never touches the real response object, and the adapter
-has full control over when and how effects are applied.
+Effect hooks call these bindings directly during evaluation. The engine
+never touches the real response object -- the adapter decides what each
+method does. The Express adapter writes live to `res`; the test client
+records into local Maps for assertions.
+
+This mirrors how session already works: the adapter owns the mutable
+reference, and the engine calls into it during evaluation.
 
 ### `ForgeTopology`
 
@@ -123,13 +129,16 @@ Each adapter creates its own route handlers. A handler:
 
 1. Converts the framework request into a `RequestSnapshot` (using the matched
    route's `nodeId` and `basePath`, plus request data)
-2. Calls `forge.evaluate(snapshot)`
-3. Flushes `outcome.effects` onto the framework response
+2. Creates a `ResponseBindings` implementation for this request
+3. Calls `forge.evaluate(snapshot, { response })`
 4. Dispatches the outcome:
    - render: resolve blocks through the component registry, render a template,
      send the HTML response
    - navigate: perform a framework redirect
    - error: forward to the framework's error model
+
+Response writes (headers, cookies) happen live during step 3 via the bindings.
+There is no post-evaluate flush step.
 
 ### Express/Nunjucks reference adapter
 
@@ -140,8 +149,9 @@ It:
 - reads routes from `forge.getTopology()`
 - registers an Express handler for each route's methods
 - builds a `RequestSnapshot` from each Express request (including `res.locals` as state)
-- calls `forge.evaluate(snapshot)`
-- flushes `ForgeEffects` onto the Express response
+- creates `ResponseBindings` that write live to the Express `res` (with a
+  local cookie cache for read-after-set, since `res.cookie` has no getter)
+- calls `forge.evaluate(snapshot, { response })`
 - renders with Nunjucks through `TemplateRenderer`, redirects with `res.redirect`,
   or forwards errors with `next(createHttpError(...))`
 
@@ -168,14 +178,15 @@ It follows the same contract as a real adapter:
 - extracts params from the matched path template
 - builds a `RequestSnapshot` from the matched route and test options (session,
   state, body, headers, cookies)
-- calls `forge.evaluate(snapshot)`
-- maps the `ForgeOutcome` to a `TestResult` (render context, redirect URL, or
-  thrown HTTP error)
+- creates recording `ResponseBindings` (Maps for headers and cookies)
+- calls `forge.evaluate(snapshot, { response })`
+- maps the `ForgeOutcome` to a `TestResult`, sourcing headers and cookies from
+  the recording bindings
 
 Because it consumes the same `evaluate` + `getTopology` surface as the Express
 adapter, tests exercise the full engine pipeline without framework dependencies.
-The only difference is that the test adapter skips rendering and effect flushing,
-exposing the raw outcome data for assertions.
+The test adapter provides its own recording bindings instead of live framework
+writes, exposing captured response data for assertions alongside the outcome.
 
 ## What can fail
 
@@ -187,7 +198,7 @@ Important failure cases include:
 - a request cannot be converted into a `RequestSnapshot`
 - `forge.evaluate()` throws (internal engine error)
 - the adapter cannot interpret a `ForgeOutcome` variant
-- `ForgeEffects` cannot be applied to the framework response
+- the adapter's `ResponseBindings` implementation fails during evaluation
 - rendering fails inside the adapter's template layer
 - redirect targets cannot be written to the response
 - errors cannot be forwarded into the framework's error model
