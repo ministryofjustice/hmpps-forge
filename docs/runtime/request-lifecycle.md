@@ -137,23 +137,19 @@ metadata used later when render contexts are built.
 The router does not evaluate journey logic itself. Its job is to connect
 compiled plans to framework routes.
 
-### `StepController`
+### `RequestOrchestrator`
 
-`StepController` handles GET and POST requests for a step route.
+`RequestOrchestrator` runs a sequence of phases in order for each request.
 
-It coordinates the step request lifecycle described above. The controller always
-calls compiled functions for the compiled work. Missing compiled functions fail
-fast because there is no interpreted fallback for the main request lifecycle.
+Each phase returns `continue`, `halt-redirect`, or `halt-error`. If all phases
+continue, the orchestrator falls through to a terminal (render or redirect).
 
-### `JourneyController`
+`ForgeRouter` creates a GET orchestrator and a POST orchestrator for each step
+route, each wired with the appropriate phases and terminal. Journey-root routes
+use a simpler orchestrator with just access and answer-preparation phases, plus
+a redirect terminal.
 
-`JourneyController` handles GET requests for journey roots.
-
-A journey-root request does not have a current step. It uses the journey runtime
-plan to run access hooks, prepare answers for the direct steps in that journey,
-evaluate reachability, and redirect into the correct step.
-
-This is used for entry into a journey and for resume behaviour.
+Missing compiled functions fail fast — there is no interpreted fallback.
 
 ### `RuntimeEvaluationContext`
 
@@ -182,7 +178,7 @@ answers, data, session, params, query, request snapshots, post data, and the
 function registry.
 
 This keeps the generated-function boundary explicit. It also prevents
-controller-only objects from becoming part of the code-generation contract.
+orchestrator-only objects from becoming part of the code-generation contract.
 
 ### Navigation and reachability
 

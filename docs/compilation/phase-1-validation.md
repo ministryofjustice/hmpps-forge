@@ -19,7 +19,7 @@ DSL validation protects the compiler from invalid journey structure.
 
 ## Pipeline position
 
-Validation runs when Forge creates a `JourneyInstance` from a journey
+Validation runs when Forge creates a `PackageInstance` from a journey
 definition. It runs before Forge builds the intermediate representation,
 compiles route artefacts, or mounts routes.
 
