@@ -4,7 +4,7 @@ services:
   ui:
     build:
       target: production
-    command: npm run start
+    command: ["dist/server.js"]
     environment:
       NODE_ENV: production
       GUIDE_SEMANTIC_SEARCH_ENABLED: false
