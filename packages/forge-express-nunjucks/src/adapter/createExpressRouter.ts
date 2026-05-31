@@ -10,13 +10,14 @@ import type {
 } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
-  ForgeEffects,
+  CookieMutation,
   ForgeErrorCode,
   ForgeOutcome,
   ForgeRoute,
   HttpMethod,
   Logger,
   RequestSnapshot,
+  ResponseBindings,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from '../renderer/TemplateRenderer'
 import { RequestWithState } from './types'
@@ -89,13 +90,14 @@ function createHandler(
     logger.debug(`${req.method} request to step at path ${requestPath}`)
 
     const snapshot = toSnapshot(route, req, res)
+    const response = createExpressResponseBindings(res)
 
     return (
       instrumentation
         .spanAsync('forge-request', async span => {
           span.setAttribute('http.method', req.method)
 
-          const outcome = await forge.evaluate(snapshot)
+          const outcome = await forge.evaluate(snapshot, { response })
 
           applyOutcome(outcome, req, res, next, templateRenderer)
         })
@@ -130,6 +132,41 @@ function toSnapshot(route: ForgeRoute, req: express.Request, res: express.Respon
   }
 }
 
+function createExpressResponseBindings(res: express.Response): ResponseBindings {
+  const cookieCache = new Map<string, CookieMutation>()
+
+  return {
+    setHeader(name, value) {
+      res.setHeader(name, value)
+    },
+    getHeader(name) {
+      return res.getHeader(name) as string | undefined
+    },
+    getAllHeaders() {
+      const headers = new Map<string, string>()
+      const raw = res.getHeaders()
+
+      Object.entries(raw).forEach(([name, value]) => {
+        if (typeof value === 'string') {
+          headers.set(name, value)
+        }
+      })
+
+      return headers
+    },
+    setCookie(name, value, options) {
+      res.cookie(name, value, options ?? {})
+      cookieCache.set(name, { value, options })
+    },
+    getCookie(name) {
+      return cookieCache.get(name)
+    },
+    getAllCookies() {
+      return cookieCache
+    },
+  }
+}
+
 function applyOutcome(
   outcome: ForgeOutcome,
   req: express.Request,
@@ -137,8 +174,6 @@ function applyOutcome(
   next: express.NextFunction,
   templateRenderer: TemplateRenderer,
 ): void {
-  flushEffects(outcome.effects, res)
-
   if (outcome.kind === 'navigate') {
     res.redirect(outcome.url)
     return
@@ -157,20 +192,6 @@ function applyOutcome(
   const html = templateRenderer.render(outcome.context, locals, outcome.componentRegistry)
 
   res.type('html').send(html)
-}
-
-function flushEffects(effects: ForgeEffects, res: express.Response): void {
-  effects.headers.forEach((value, name) => {
-    res.setHeader(name, value)
-  })
-  effects.cookies.forEach((cookie, name) => {
-    if (cookie.options) {
-      res.cookie(name, cookie.value, cookie.options)
-      return
-    }
-
-    res.cookie(name, cookie.value)
-  })
 }
 
 function normalizeParams(params: Record<string, string | string[] | undefined>): Record<string, string> {

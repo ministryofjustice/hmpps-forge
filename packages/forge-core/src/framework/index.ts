@@ -1,10 +1,12 @@
 export type { ComponentRegistry, Logger } from './types/adapter.type'
 export { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 export type { RequestSnapshot } from './types/snapshot.type'
-export type { ForgeEffects, ForgeError, ForgeErrorCode, ForgeOutcome } from './types/outcome.type'
+export type { ForgeError, ForgeErrorCode, ForgeOutcome } from './types/outcome.type'
 export type { ForgeRoute, ForgeTopology, RouteMethod } from './types/topology.type'
 export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions, StepResponse } from './types/response.type'
+export type { ResponseBindings } from './types/responseBindings.type'
+export { NO_OP_RESPONSE_BINDINGS } from './types/responseBindings.type'
 export type {
   JourneyAncestor,
   RenderBlock,
