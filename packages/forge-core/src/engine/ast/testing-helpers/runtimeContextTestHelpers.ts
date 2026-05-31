@@ -2,7 +2,8 @@ import { EffectEvaluationContext } from '../../contracts/runtime/effectEvaluatio
 import { AnswerHistory, AnswerSource } from '../../contracts/runtime/answerHistory.type'
 import { extractPathname } from '../../../framework/path/routePath'
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { CookieMutation, CookieOptions, StepResponse } from '../../../framework/types/response.type'
+import type { CookieMutation, CookieOptions } from '../../../framework/types/response.type'
+import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 
 export type MockAnswerInput = unknown | AnswerHistory
 
@@ -61,7 +62,7 @@ export function createMockContext(options: MockContextOptions = {}): EffectEvalu
     getAllState: () => state,
   }
 
-  const response: StepResponse = {
+  const response: ResponseBindings = {
     setHeader: (name: string, value: string) => {
       responseHeaders.set(name, value)
     },
