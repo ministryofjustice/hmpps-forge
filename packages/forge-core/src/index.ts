@@ -10,7 +10,7 @@ export { ForgeInstrumentation } from './instrumentation/ForgeInstrumentation'
 export type { ForgeInstrumentationOptions } from './instrumentation/ForgeInstrumentation'
 export { createSpan } from './instrumentation/createSpan'
 export { ForgeSpanStatus } from './instrumentation/types'
-export type { ForgeOptions, ForgeRouterAdapter } from './engine/Forge'
+export type { EvaluateOptions, ForgeOptions, ForgeRouterAdapter } from './engine/Forge'
 export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
 export type { ForgePackageRegistration, ForgeFunctionImplementations } from './engine/contracts/ast/engine.type'
 export type {
