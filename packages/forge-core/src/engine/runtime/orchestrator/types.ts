@@ -1,5 +1,6 @@
 import type { RenderContext } from '../../../framework/rendering/types'
 import type { StepRequest } from '../../../framework/types/request.type'
+import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { NavigationEvaluation } from '../../contracts/navigation/navigationEvaluation.type'
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
@@ -14,6 +15,7 @@ export type PhaseOutcome =
 export interface PipelineState {
   readonly context: RuntimeEvaluationContext
   readonly request: StepRequest
+  readonly responseBindings: ResponseBindings
   navigationEvaluation?: NavigationEvaluation
   validation?: StepValidityResult
   showValidationFailures?: boolean

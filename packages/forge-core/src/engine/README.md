@@ -2,7 +2,8 @@
 
 The engine is a compiler. An author writes a journey as plain definitions
 (steps, blocks, expressions, hooks); the engine turns those definitions into
-JavaScript functions and runs those functions to serve HTTP requests.
+JavaScript functions and evaluates those functions against a request snapshot
+to produce an outcome.
 
 These docs are for people working **on the engine**. They name internal types
 freely. If you're building a journey, you want the author docs instead.
@@ -19,7 +20,7 @@ freely. If you're building a journey, you want the author docs instead.
   lowering/   codegen                ASTNode tree ──▶  compiled JS functions
           │
           ▼
-  runtime/    execution              compiled fns + HTTP request ──▶  response
+  runtime/    execution              compiled fns + RequestSnapshot ──▶  ForgeOutcome
 
   contracts/  the shared type vocabulary every layer above speaks
 ```
@@ -29,7 +30,7 @@ freely. If you're building a journey, you want the author docs instead.
 | `contracts/` | Declares the types that cross layer boundaries - no logic | [`contracts/`](./contracts/README.md) |
 | `ast/` | Normalises author definitions into a frozen, id'd node tree | [`ast/`](./ast/README.md) |
 | `lowering/` | Generates JavaScript source from the AST, compiles it with `new Function` | [`lowering/`](./lowering/README.md) |
-| `runtime/` | Runs compiled functions per HTTP request, returns a render or redirect | [`runtime/`](./runtime/README.md) |
+| `runtime/` | Runs compiled functions against a RequestSnapshot, returns a ForgeOutcome (render/navigate/error) | [`runtime/`](./runtime/README.md) |
 
 ## Layer boundaries
 
@@ -60,7 +61,7 @@ These sit outside the pipeline but are used across it:
 
 - **Follow a journey from definition to running code:** read the layer READMEs
   top to bottom - `ast/` → `lowering/` → `runtime/`.
-- **Follow a single HTTP request:** start at
-  [`runtime/routes/ForgeRouter.ts`](./runtime/routes/ForgeRouter.ts).
+- **Follow a single evaluation:** start at
+  [`runtime/routes/ForgeEvaluator.ts`](./runtime/routes/ForgeEvaluator.ts).
 - **Follow compilation:** start at
   [`lowering/CompilationPlanner.ts`](./lowering/CompilationPlanner.ts).

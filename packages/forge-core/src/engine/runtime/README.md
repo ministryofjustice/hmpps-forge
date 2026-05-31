@@ -1,9 +1,9 @@
 # runtime - execution
 
-Runtime serves HTTP requests. It takes the compiled functions that
+Runtime evaluates request snapshots. It takes the compiled functions that
 [`lowering/`](../lowering/README.md) produced, runs them in a fixed order, and
-returns either a rendered page or a redirect. It never sees the AST, never knows
-how the functions were built - it just calls them.
+returns a `ForgeOutcome` (render, navigate, or error). It never sees the AST,
+never knows how the functions were built - it just calls them.
 
 ## Why a separate layer?
 
@@ -15,15 +15,19 @@ lowering and runtime can change independently: lowering can rewrite its codegen
 without touching the request path, and runtime can restructure its phase
 pipeline without touching compilation.
 
-## Follow one GET request
+## Follow one evaluation
 
-A user visits `/demo/name`. Here's what happens.
+A user visits `/demo/name`. The adapter matches the URL against the topology,
+builds a `RequestSnapshot`, and calls `forge.evaluate(snapshot)`. Here's what
+happens inside the engine.
 
-[`ForgeRouter`](./routes/ForgeRouter.ts) registered a GET handler for that path
-at startup. The handler calls
+[`ForgeEvaluator`](./routes/ForgeEvaluator.ts) resolves the matching
+`NodeExecutor` for the snapshot's `nodeId`. It wraps the snapshot in a
+[`SnapshotStepRequest`](./snapshot/SnapshotStepRequest.ts) and a
+[`RecordingStepResponse`](./snapshot/RecordingStepResponse.ts), then calls
 [`ContextPreparer`](./lifecycle/ContextPreparer.ts) to build a
 `RuntimeEvaluationContext` (request, response, and the mutable global state -
-answers, data, validation), then hands it to a `RequestOrchestrator`.
+answers, data, validation) and hands it to a `RequestOrchestrator`.
 
 The orchestrator ([`RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts))
 is a `for` loop over an ordered list of phases. Each phase runs a compiled
@@ -48,7 +52,7 @@ For a GET request to a step, the phases are:
    stepRenderTerminal   run the compiled render → produce blocks, step metadata, backlink
         │
         ▼
-   ForgeResult { type: 'render', context: RenderContext }
+   ForgeOutcome { kind: 'render', context, componentRegistry, effects }
 ```
 
 If any phase halts, the pipeline stops early. For example, if the navigation
@@ -65,15 +69,18 @@ answer-preparation, with a
 [`journeyRedirectTerminal`](./orchestrator/terminals/journeyRedirectTerminal.ts)
 that evaluates navigation and redirects to the entry step or resume frontier.
 
-The result (`ForgeResult`) is always either `{ type: 'render', context }` or
-`{ type: 'redirect', url }`. The framework adapter applies it to the HTTP
-response.
+The orchestrator's internal result is mapped by `ForgeEvaluator` into a
+`ForgeOutcome`: either `{ kind: 'render', context, componentRegistry, effects }`,
+`{ kind: 'navigate', url, effects }`, or `{ kind: 'error', error, effects }`.
+The external adapter dispatches the outcome onto its framework's response.
 
 ## Key files
 
 | File | Role |
 |------|------|
-| [`routes/ForgeRouter.ts`](./routes/ForgeRouter.ts) | Mounts journey/step GET and POST handlers; wires up orchestrators per step |
+| [`routes/ForgeEvaluator.ts`](./routes/ForgeEvaluator.ts) | Stores NodeExecutor records keyed by node ID; exposes `evaluate(snapshot)` and `getTopology()` |
+| [`snapshot/SnapshotStepRequest.ts`](./snapshot/SnapshotStepRequest.ts) | Wraps a `RequestSnapshot` as a `StepRequest` for the evaluation pipeline |
+| [`snapshot/RecordingStepResponse.ts`](./snapshot/RecordingStepResponse.ts) | Records response side-effects (headers, cookies) in memory; flushed into `ForgeOutcome.effects` |
 | [`routes/RouteTreeBuilder.ts`](./routes/RouteTreeBuilder.ts) | Builds the hierarchical route tree from step/journey route indices |
 | [`orchestrator/RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
 | [`orchestrator/types.ts`](./orchestrator/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
@@ -82,7 +89,7 @@ response.
 | [`context/RuntimeEvaluationContext.ts`](./context/RuntimeEvaluationContext.ts) | Request-scoped mutable state: answers, data, validation, reachability |
 | [`context/compiledEvaluationContext.ts`](./context/compiledEvaluationContext.ts) | Snapshot builders that extract what each compiled function needs from the full context |
 | [`context/EffectFunctionContext.ts`](./context/EffectFunctionContext.ts) | The typed wrapper passed to author-defined effect functions |
-| [`lifecycle/ContextPreparer.ts`](./lifecycle/ContextPreparer.ts) | Creates the evaluation context from the HTTP request + static data |
+| [`lifecycle/ContextPreparer.ts`](./lifecycle/ContextPreparer.ts) | Creates the evaluation context from the snapshot-derived request/response + static data |
 | [`navigation/navigationRedirects.ts`](./navigation/navigationRedirects.ts) | Resolves redirect targets from navigation evaluation (backlink, unreachable, resume) |
 | [`rendering/RenderContextFactory.ts`](./rendering/RenderContextFactory.ts) | Hydrates `RenderContext` from render results + validation + route tree |
 
