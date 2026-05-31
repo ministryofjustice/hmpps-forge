@@ -1,12 +1,11 @@
-import type { StepRuntimePlan } from '../../types/runtimePlans.type'
-import type { StepRequest, StepResponse } from '../../../framework'
+import type { StepRuntimePlan } from '../../contracts/plans/runtimePlans.type'
+import type { StepRequest } from '../../../framework'
 import ContextPreparer from './ContextPreparer'
 
 function setupMocks(staticData: Record<string, unknown> = {}): {
   preparer: ContextPreparer
   runtimePlan: StepRuntimePlan
   request: StepRequest
-  response: StepResponse
 } {
   const runtimePlan: StepRuntimePlan = {
     stepId: 'compile_ast:1',
@@ -14,32 +13,30 @@ function setupMocks(staticData: Record<string, unknown> = {}): {
     staticData,
   }
   const request = {} as StepRequest
-  const response = {} as StepResponse
   const preparer = new ContextPreparer()
 
-  return { preparer, runtimePlan, request, response }
+  return { preparer, runtimePlan, request }
 }
 
 describe('ContextPreparer', () => {
   describe('prepare()', () => {
-    it('should create context from request and response', () => {
+    it('should create context from request', () => {
       // Arrange
-      const { preparer, runtimePlan, request, response } = setupMocks()
+      const { preparer, runtimePlan, request } = setupMocks()
 
       // Act
-      const result = preparer.prepare(runtimePlan, request, response)
+      const result = preparer.prepare(runtimePlan, request)
 
       // Assert
       expect(result.request).toBe(request)
-      expect(result.response).toBe(response)
     })
 
     it('should not modify data when the runtime plan has no static data', () => {
       // Arrange
-      const { preparer, runtimePlan, request, response } = setupMocks()
+      const { preparer, runtimePlan, request } = setupMocks()
 
       // Act
-      const context = preparer.prepare(runtimePlan, request, response)
+      const context = preparer.prepare(runtimePlan, request)
 
       // Assert
       expect(context.global.data).toEqual({})
@@ -52,10 +49,10 @@ describe('ContextPreparer', () => {
         apiUrl: 'https://step-api',
         stepKey: 'value',
       }
-      const { preparer, runtimePlan, request, response } = setupMocks(staticData)
+      const { preparer, runtimePlan, request } = setupMocks(staticData)
 
       // Act
-      const context = preparer.prepare(runtimePlan, request, response)
+      const context = preparer.prepare(runtimePlan, request)
 
       // Assert
       expect(context.global.data).toEqual(staticData)

@@ -179,9 +179,12 @@ today because their renderers use Nunjucks component helpers from
 | Integration boundary for web frameworks                     |
 +-------------------------------------------------------------+
 | Engine                                                      |
-| Validation and schemas | AST nodes and factories            |
-| Compilation/codegen   | Registries and scoping              |
-| Runtime and routing   | Diagnostics and errors              |
+|   contracts/  — shared types (no logic)                     |
+|   ast/        — AST construction (depends on contracts/)    |
+|   lowering/   — codegen (depends on contracts/ + ast/)      |
+|   runtime/    — execution (depends on contracts/ only)      |
+|   + registries, validation, errors, diagnostics             |
+|   Layer boundaries enforced by eslint                       |
 +-------------------------------------------------------------+
 | Shared                                                      |
 | Generic type guards and utilities used across core layers   |

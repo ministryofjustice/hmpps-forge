@@ -4,10 +4,9 @@ import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/au
 import {
   ComponentRegistry,
   ForgeInstrumentation,
+  RENDER_BLOCK_BRAND,
+  RenderBlock,
   RenderContext,
-  Evaluated,
-  BlockASTNode,
-  ASTNodeType,
 } from '@ministryofjustice/hmpps-forge/core/framework'
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
@@ -57,15 +56,18 @@ describe('TemplateRenderer', () => {
     }
   }
 
-  function createMockBlock(overrides: Partial<Evaluated<BlockASTNode>> = {}): Evaluated<BlockASTNode> {
-    return {
+  function createMockBlock(overrides: Partial<RenderBlock> = {}): RenderBlock {
+    const block: RenderBlock = {
       id: 'compile_ast:1',
-      type: ASTNodeType.BLOCK,
       variant: 'text-input',
       blockType: BlockType.FIELD,
       properties: {},
       ...overrides,
     }
+
+    Object.assign(block, { [RENDER_BLOCK_BRAND]: true })
+
+    return block
   }
 
   describe('render()', () => {
@@ -572,13 +574,12 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: Evaluated<BlockASTNode> = {
+      const nestedBlock = createMockBlock({
         id: 'compile_ast:10',
-        type: ASTNodeType.BLOCK,
         variant: 'fieldset',
         blockType: BlockType.BASIC,
         properties: { content: 'Nested' },
-      }
+      })
 
       const context = createRenderContext({
         blocks: [
@@ -612,21 +613,9 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlocks: Evaluated<BlockASTNode>[] = [
-        {
-          id: 'compile_ast:20',
-          type: ASTNodeType.BLOCK,
-          variant: 'html',
-          blockType: BlockType.BASIC,
-          properties: {},
-        },
-        {
-          id: 'compile_ast:21',
-          type: ASTNodeType.BLOCK,
-          variant: 'html',
-          blockType: BlockType.BASIC,
-          properties: {},
-        },
+      const nestedBlocks = [
+        createMockBlock({ id: 'compile_ast:20', variant: 'html', blockType: BlockType.BASIC }),
+        createMockBlock({ id: 'compile_ast:21', variant: 'html', blockType: BlockType.BASIC }),
       ]
 
       const context = createRenderContext({
@@ -655,21 +644,14 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const visibleBlock: Evaluated<BlockASTNode> = {
-        id: 'compile_ast:20',
-        type: ASTNodeType.BLOCK,
-        variant: 'html',
-        blockType: BlockType.BASIC,
-        properties: {},
-      }
+      const visibleBlock = createMockBlock({ id: 'compile_ast:20', variant: 'html', blockType: BlockType.BASIC })
 
-      const hiddenBlock: Evaluated<BlockASTNode> = {
+      const hiddenBlock = createMockBlock({
         id: 'compile_ast:21',
-        type: ASTNodeType.BLOCK,
         variant: 'html',
         blockType: BlockType.BASIC,
         properties: { visibleWhen: false },
-      }
+      })
 
       const context = createRenderContext({
         blocks: [
@@ -697,13 +679,11 @@ describe('TemplateRenderer', () => {
         render: mockRender,
       })
 
-      const nestedBlock: Evaluated<BlockASTNode> = {
+      const nestedBlock = createMockBlock({
         id: 'compile_ast:30',
-        type: ASTNodeType.BLOCK,
         variant: 'text-input',
         blockType: BlockType.BASIC,
-        properties: {},
-      }
+      })
 
       const context = createRenderContext({
         blocks: [

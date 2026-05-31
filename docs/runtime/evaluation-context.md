@@ -36,7 +36,7 @@ Rendering can then read the same request-local state.
 
 The evaluation context is created near the start of request handling.
 
-For step requests and journey-root requests, the controller first converts the
+For step requests and journey-root requests, the orchestrator first converts the
 framework request and response into Forge request objects. `ContextPreparer`
 then creates a `RuntimeEvaluationContext` and merges static journey data into
 it.
@@ -92,12 +92,11 @@ to see the answers produced by answer preparation.
 
 ### Static data preparation
 
-`ContextPreparer` merges static data into `context.global.data`.
-
-It uses the access ancestor IDs from the runtime plan to find the journey and
-step ancestors for the current route. Static data is merged from outer ancestors
-to inner ancestors, so inner data can override outer data. Static data is defined 
-through the `data` property on a journey/step definition.
+`ContextPreparer` merges static data from the runtime plan into
+`context.global.data`. Static data is defined through the `data` property on a
+journey/step definition. The ancestor merging (outer ancestors overridden by
+inner ancestors) is done at compile time by `CompilationPlanner`, which bakes
+the merged result into `runtimePlan.staticData`.
 
 This happens before access hooks run so hooks and effects can read the same
 prepared data as the rest of the request lifecycle.
@@ -140,7 +139,7 @@ lifecycle contexts include validation state, logger access, a validation
 callback, and an effect context.
 
 Keeping these shapes small makes the generated-function boundary explicit. It
-also stops controller-only objects from becoming part of the code generation
+also stops orchestrator-only objects from becoming part of the code generation
 contract.
 
 ### Effect context

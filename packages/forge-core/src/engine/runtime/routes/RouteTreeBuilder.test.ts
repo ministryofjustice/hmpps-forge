@@ -1,10 +1,7 @@
-import { ASTNodeType } from '../../types/enums'
-import { CompileAstNodeId, NodeId } from '../../types/ast.type'
-import { JourneyASTNode, StepASTNode } from '../../types/structures.type'
-import type { CompilationContext } from '../../compilation/CompilationContext'
-import ASTNodeTree from '../../compilation/node-tree/ASTNodeTree'
+import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
+import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../types/routes.type'
+import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../../contracts/routing/routeTree.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
 
 interface BuildFixture {
@@ -13,64 +10,45 @@ interface BuildFixture {
 }
 
 describe('RouteTreeBuilder', () => {
-  function createJourneyNode(
+  function createJourneyDescriptor(
     id: CompileAstNodeId,
     path: string,
-    code: string,
-    title = `Journey ${code}`,
-  ): JourneyASTNode {
+    ancestorJourneyIds: readonly NodeId[],
+    title = `Journey ${path}`,
+  ): JourneyRouteDescriptor {
     return {
-      id,
-      type: ASTNodeType.JOURNEY,
-      properties: {
-        path,
-        code,
-        title,
-      },
+      nodeId: id,
+      path,
+      title,
+      ancestorJourneyIds,
     }
   }
 
-  function createStepNode(id: CompileAstNodeId, path: string, title = `Step ${path}`): StepASTNode {
+  function createStepDescriptor(
+    id: CompileAstNodeId,
+    path: string,
+    ancestorJourneyIds: readonly NodeId[],
+    title = `Step ${path}`,
+  ): StepRouteDescriptor {
     return {
-      id,
-      type: ASTNodeType.STEP,
-      properties: {
-        path,
-        title,
-      },
+      nodeId: id,
+      path,
+      title,
+      ancestorJourneyIds,
     }
   }
 
   function buildRouteTree(
-    journeys: JourneyASTNode[],
-    steps: StepASTNode[],
-    chains: NodeId[][],
+    journeys: JourneyRouteDescriptor[],
+    steps: StepRouteDescriptor[],
     basePath = '',
   ): BuildFixture {
     const index = createRouteTreeIndex()
     const builder = new RouteTreeBuilder(index)
-    const nodesById = new Map<NodeId, JourneyASTNode | StepASTNode>(
-      [...journeys, ...steps].map(node => [node.id, node]),
-    )
-    const astNodeTree = new ASTNodeTree()
-
-    chains.forEach(chain => {
-      chain.forEach((nodeId, nodeIndex) => {
-        astNodeTree.addNode(nodeId, chain[nodeIndex - 1])
-      })
-    })
-
-    const compilationContext = {
-      nodeRegistry: {
-        get: (nodeId: NodeId) => nodesById.get(nodeId),
-      },
-      astNodeTree,
-    } as unknown as CompilationContext
     const result = builder.build({
       basePath,
-      journeyIndex: new Map(journeys.map(journey => [journey.id, journey])),
-      stepIndex: new Map(steps.map(step => [step.id, step])),
-      compilationContext,
+      journeyRouteIndex: new Map(journeys.map(j => [j.nodeId, j])),
+      stepRouteIndex: new Map(steps.map(s => [s.nodeId, s])),
     })
 
     return { index, result }
@@ -78,11 +56,11 @@ describe('RouteTreeBuilder', () => {
 
   it('should include the base path as route segment nodes', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:1', '/journey', 'journey')
-    const step = createStepNode('compile_ast:2', '/start', 'Start')
+    const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'])
+    const step = createStepDescriptor('compile_ast:2', '/start', ['compile_ast:1'], 'Start')
 
     // Act
-    const { index } = buildRouteTree([journey], [step], [[journey.id, step.id]], '/forms')
+    const { index } = buildRouteTree([journey], [step], '/forms')
 
     // Assert
     expect(index.roots).toMatchObject([
@@ -93,7 +71,7 @@ describe('RouteTreeBuilder', () => {
           {
             segment: 'journey',
             templatePath: '/forms/journey',
-            route: { kind: 'journey', nodeId: journey.id },
+            route: { kind: 'journey', nodeId: journey.nodeId },
             children: [{ segment: 'start', templatePath: '/forms/journey/start' }],
           },
         ],
@@ -103,19 +81,17 @@ describe('RouteTreeBuilder', () => {
 
   it('should merge shared route segments for sibling routes', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:3', '/apply', 'apply')
-    const nameStep = createStepNode('compile_ast:4', '/personal/name', 'Name')
-    const dateOfBirthStep = createStepNode('compile_ast:5', '/personal/date-of-birth', 'Date of birth')
+    const journey = createJourneyDescriptor('compile_ast:3', '/apply', ['compile_ast:3'])
+    const nameStep = createStepDescriptor('compile_ast:4', '/personal/name', ['compile_ast:3'], 'Name')
+    const dateOfBirthStep = createStepDescriptor(
+      'compile_ast:5',
+      '/personal/date-of-birth',
+      ['compile_ast:3'],
+      'Date of birth',
+    )
 
     // Act
-    const { index } = buildRouteTree(
-      [journey],
-      [nameStep, dateOfBirthStep],
-      [
-        [journey.id, nameStep.id],
-        [journey.id, dateOfBirthStep.id],
-      ],
-    )
+    const { index } = buildRouteTree([journey], [nameStep, dateOfBirthStep])
 
     // Assert
     expect(index.roots[0].children).toMatchObject([
@@ -133,31 +109,32 @@ describe('RouteTreeBuilder', () => {
 
   it('should build nested journey and step routes from compiled ancestry', () => {
     // Arrange
-    const guideJourney = createJourneyNode('compile_ast:6', '/guide', 'guide')
-    const sectionJourney = createJourneyNode('compile_ast:7', '/building-journeys', 'building-journeys')
-    const overviewStep = createStepNode('compile_ast:8', '/overview', 'Overview')
+    const guideJourney = createJourneyDescriptor('compile_ast:6', '/guide', ['compile_ast:6'])
+    const sectionJourney = createJourneyDescriptor('compile_ast:7', '/building-journeys', [
+      'compile_ast:6',
+      'compile_ast:7',
+    ])
+    const overviewStep = createStepDescriptor(
+      'compile_ast:8',
+      '/overview',
+      ['compile_ast:6', 'compile_ast:7'],
+      'Overview',
+    )
 
     // Act
-    const { index, result } = buildRouteTree(
-      [guideJourney, sectionJourney],
-      [overviewStep],
-      [
-        [guideJourney.id, sectionJourney.id],
-        [guideJourney.id, sectionJourney.id, overviewStep.id],
-      ],
-    )
+    const { index, result } = buildRouteTree([guideJourney, sectionJourney], [overviewStep])
 
     // Assert
     expect(result.journeyContexts.map(context => context.templatePath)).toEqual(['/guide', '/guide/building-journeys'])
     expect(index.roots).toMatchObject([
       {
         segment: 'guide',
-        route: { kind: 'journey', nodeId: guideJourney.id },
+        route: { kind: 'journey', nodeId: guideJourney.nodeId },
         children: [
           {
             segment: 'building-journeys',
-            route: { kind: 'journey', nodeId: sectionJourney.id },
-            children: [{ segment: 'overview', route: { kind: 'step', nodeId: overviewStep.id } }],
+            route: { kind: 'journey', nodeId: sectionJourney.nodeId },
+            children: [{ segment: 'overview', route: { kind: 'step', nodeId: overviewStep.nodeId } }],
           },
         ],
       },
@@ -166,11 +143,11 @@ describe('RouteTreeBuilder', () => {
 
   it('should preserve parameterised path segments in template paths', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:9', '/users/:userId', 'user')
-    const step = createStepNode('compile_ast:10', '/items/:itemId', 'Item')
+    const journey = createJourneyDescriptor('compile_ast:9', '/users/:userId', ['compile_ast:9'])
+    const step = createStepDescriptor('compile_ast:10', '/items/:itemId', ['compile_ast:9'], 'Item')
 
     // Act
-    const { index, result } = buildRouteTree([journey], [step], [[journey.id, step.id]])
+    const { index, result } = buildRouteTree([journey], [step])
 
     // Assert
     expect(index.nodesByTemplatePath.has('/users/:userId/items/:itemId')).toBe(true)
@@ -179,45 +156,30 @@ describe('RouteTreeBuilder', () => {
 
   it('should allow a concrete route node to have children', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:11', '/guide', 'guide')
-    const searchStep = createStepNode('compile_ast:12', '/search', 'Search')
-    const resultsStep = createStepNode('compile_ast:13', '/search/results', 'Results')
+    const journey = createJourneyDescriptor('compile_ast:11', '/guide', ['compile_ast:11'])
+    const searchStep = createStepDescriptor('compile_ast:12', '/search', ['compile_ast:11'], 'Search')
+    const resultsStep = createStepDescriptor('compile_ast:13', '/search/results', ['compile_ast:11'], 'Results')
 
     // Act
-    const { index } = buildRouteTree(
-      [journey],
-      [searchStep, resultsStep],
-      [
-        [journey.id, searchStep.id],
-        [journey.id, resultsStep.id],
-      ],
-    )
+    const { index } = buildRouteTree([journey], [searchStep, resultsStep])
     const searchNode = index.nodesByTemplatePath.get('/guide/search')
 
     // Assert
     expect(searchNode).toMatchObject({
       segment: 'search',
-      route: { kind: 'step', nodeId: searchStep.id },
-      children: [{ segment: 'results', route: { kind: 'step', nodeId: resultsStep.id } }],
+      route: { kind: 'step', nodeId: searchStep.nodeId },
+      children: [{ segment: 'results', route: { kind: 'step', nodeId: resultsStep.nodeId } }],
     })
   })
 
   it('should throw DuplicateRouteError when two concrete routes use the same template path', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:14', '/journey', 'journey')
-    const firstStep = createStepNode('compile_ast:15', '/duplicate')
-    const secondStep = createStepNode('compile_ast:16', '/duplicate')
+    const journey = createJourneyDescriptor('compile_ast:14', '/journey', ['compile_ast:14'])
+    const firstStep = createStepDescriptor('compile_ast:15', '/duplicate', ['compile_ast:14'])
+    const secondStep = createStepDescriptor('compile_ast:16', '/duplicate', ['compile_ast:14'])
 
     // Act
-    const act = () =>
-      buildRouteTree(
-        [journey],
-        [firstStep, secondStep],
-        [
-          [journey.id, firstStep.id],
-          [journey.id, secondStep.id],
-        ],
-      )
+    const act = () => buildRouteTree([journey], [firstStep, secondStep])
 
     // Assert
     expect(act).toThrow(DuplicateRouteError)
@@ -225,38 +187,31 @@ describe('RouteTreeBuilder', () => {
 
   it('should allow a step to occupy the same path as its parent journey', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:20', '/', 'example')
-    const step = createStepNode('compile_ast:21', '/', 'Home')
+    const journey = createJourneyDescriptor('compile_ast:20', '/', ['compile_ast:20'])
+    const step = createStepDescriptor('compile_ast:21', '/', ['compile_ast:20'], 'Home')
 
     // Act
-    const { index } = buildRouteTree([journey], [step], [[journey.id, step.id]])
+    const { index } = buildRouteTree([journey], [step])
 
     // Assert
     expect(index.roots).toMatchObject([
       {
         segment: '',
         templatePath: '/',
-        route: { kind: 'step', nodeId: step.id },
+        route: { kind: 'step', nodeId: step.nodeId },
       },
     ])
-    expect(index.journeyNodesById.get(journey.id)).toBe(index.stepNodesById.get(step.id))
+    expect(index.journeyNodesById.get(journey.nodeId)).toBe(index.stepNodesById.get(step.nodeId))
   })
 
   it('should expose contexts that replace registered route counting', () => {
     // Arrange
-    const journey = createJourneyNode('compile_ast:17', '/journey', 'journey')
-    const firstStep = createStepNode('compile_ast:18', '/first')
-    const secondStep = createStepNode('compile_ast:19', '/second')
+    const journey = createJourneyDescriptor('compile_ast:17', '/journey', ['compile_ast:17'])
+    const firstStep = createStepDescriptor('compile_ast:18', '/first', ['compile_ast:17'])
+    const secondStep = createStepDescriptor('compile_ast:19', '/second', ['compile_ast:17'])
 
     // Act
-    const { result } = buildRouteTree(
-      [journey],
-      [firstStep, secondStep],
-      [
-        [journey.id, firstStep.id],
-        [journey.id, secondStep.id],
-      ],
-    )
+    const { result } = buildRouteTree([journey], [firstStep, secondStep])
     const routeCount = result.stepContexts.length * 2 + result.catalogsByBasePath.size
 
     // Assert

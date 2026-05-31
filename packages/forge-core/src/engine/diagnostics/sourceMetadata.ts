@@ -1,4 +1,4 @@
-import { formatDSLPath } from '../validation/formatDSLPath'
+import { formatDSLPath } from './formatDSLPath'
 
 export type DSLPathSegment = string | number
 

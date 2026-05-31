@@ -1,29 +1,13 @@
-import { ASTNode, NodeId } from '../../engine/types/ast.type'
-import { ASTNodeType } from '../../engine/types/enums'
-import { ValidationResult } from '../../engine/runtime/types/ValidationResult.type'
-import { BlockASTNode } from '../../engine/types/structures.type'
+import { NodeId } from '../../engine/contracts/ast/ast.type'
+import { BlockType } from '../../authoring/types/enums'
+import { ValidationResult } from '../../engine/contracts/runtime/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 
-/**
- * Recursively evaluates AST node types.
- * - Structure nodes (Journey, Step, Block) keep their shape with evaluated properties
- * - Expression/Hook nodes resolve to `unknown` (their runtime value)
- * - Arrays recurse on elements
- * - Primitives pass through unchanged
- */
-export type Evaluated<T> = T extends {
-  type: ASTNodeType.JOURNEY | ASTNodeType.STEP | ASTNodeType.BLOCK
-  properties: infer P
-}
-  ? Omit<T, 'properties'> & { properties: EvaluatedProperties<P> }
-  : T extends ASTNode
-    ? unknown
-    : T extends (infer E)[]
-      ? Evaluated<E>[]
-      : T
-
-type EvaluatedProperties<P> = {
-  [K in keyof P]: Evaluated<P[K]>
+export interface RenderBlock {
+  readonly id: NodeId
+  readonly variant: string
+  readonly blockType: BlockType
+  readonly properties: Record<string, unknown>
 }
 
 export type RouteTreeRouteKind = 'journey' | 'step'
@@ -86,7 +70,7 @@ export interface RenderContext {
   ancestors: JourneyAncestor[]
 
   /** Evaluated blocks ready for rendering (data, not HTML) */
-  blocks: Evaluated<BlockASTNode>[]
+  blocks: RenderBlock[]
 
   /** Whether to show validation failures on blocks */
   showValidationFailures: boolean
@@ -103,8 +87,4 @@ export interface RenderContext {
   /** Current data state */
   data: Record<string, unknown>
 
-  /** Lookup to check if a block has nested blocks in its properties (used to skip unnecessary property walks) */
-  hasNestedBlocks?: HasNestedBlocksLookup
 }
-
-export type HasNestedBlocksLookup = (blockId: NodeId) => boolean

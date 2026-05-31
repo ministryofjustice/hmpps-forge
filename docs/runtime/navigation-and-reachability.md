@@ -10,7 +10,7 @@ conditions, redirects, validation state, resume behaviour, and cleared-down
 answers can all affect the path a request should take.
 
 This work is now plan-driven. Compilation builds a navigation plan and attaches
-a compiled navigation function to it. Runtime controllers call that function
+a compiled navigation function to it. Runtime orchestrators call that function
 with the current request context, then use the result to render, redirect, or
 resume progress.
 
@@ -88,7 +88,7 @@ That evaluation contains:
 - whether the current request should redirect for resume
 
 Step requests can also receive projected reachability state. When the compiled
-navigation function returns that state, the controller writes it back to
+navigation function returns that state, the orchestrator writes it back to
 `context.global.reachability` for later runtime work.
 
 ## Key concepts
@@ -116,7 +116,7 @@ It then delegates to the generated-navigation helpers that build step state,
 walk reachability, resolve paths, apply resume behaviour, and project
 reachability state when the caller provides request params.
 
-The important boundary is that controllers do not assemble navigation
+The important boundary is that orchestrators do not assemble navigation
 themselves. They call the compiled function attached to the plan.
 
 ### Dynamic reachability values
@@ -260,12 +260,12 @@ Some unresolved redirect targets are ignored rather than treated as graph edges.
 This prevents external or unknown URLs from becoming internal navigation edges.
 
 The rule to preserve is that navigation should stay plan-driven. Runtime
-controllers should call the compiled navigation function and act on its result,
+orchestrators should call the compiled navigation function and act on its result,
 not rebuild navigation from the original definition.
 
 ## Connection to other runtime docs
 
-The request lifecycle doc explains when controllers call navigation.
+The request lifecycle doc explains when orchestrators call navigation.
 
 The evaluation context doc explains where navigation reads request state from
 and where projected reachability state is stored.

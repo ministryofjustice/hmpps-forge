@@ -1,5 +1,5 @@
 import { createTestPackage } from './createTestPackage'
-import type { ForgePackageRegistration } from '../engine/types/engine.type'
+import type { ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 
 describe('createTestPackage()', () => {
   it('should return the package unchanged when no overrides are provided', () => {

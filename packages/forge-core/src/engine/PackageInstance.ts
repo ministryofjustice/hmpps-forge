@@ -1,15 +1,19 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { ForgePackageRegistration, PackageDependencies, NodeId } from './types/engine.type'
+import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
 import { DSLValidator } from './validation/DSLValidator'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import JourneyCompiler from './compilation/JourneyCompiler'
-import type { CompilationContext } from './compilation/CompilationContext'
-import type { CompiledStep, JourneyCompilationResult, JourneyIndex, StepIndex } from './types/compilationArtefacts.type'
-import type { JourneyRuntimePlan } from './types/runtimePlans.type'
+import JourneyCompiler from './JourneyCompiler'
+
+import type {
+  CompiledJourney,
+  CompiledStep,
+  JourneyCompilationResult,
+} from './contracts/plans/compilationArtefacts.type'
+import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 
 export interface PackageInstanceOptions<TDeps> {
   readonly functionRegistry: FunctionRegistry
@@ -32,13 +36,10 @@ export default class PackageInstance {
 
     this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
 
-    DSLValidator.validateTree(
-      this.rawConfiguration,
-      this.dependencies.functionRegistry,
-      this.dependencies.componentRegistry,
-    )
-
-    const compiler = new JourneyCompiler({ functionRegistry: this.dependencies.functionRegistry })
+    const compiler = new JourneyCompiler({
+      functionRegistry: this.dependencies.functionRegistry,
+      componentRegistry: this.dependencies.componentRegistry,
+    })
 
     this.compilation = compiler.compile(this.rawConfiguration)
   }
@@ -57,20 +58,16 @@ export default class PackageInstance {
     return step
   }
 
-  getStepIndex(): StepIndex {
-    return new Map(this.compilation.stepIndex)
+  getStepRouteIndex(): StepRouteIndex {
+    return new Map(this.compilation.stepRouteIndex)
   }
 
-  getJourneyIndex(): JourneyIndex {
-    return new Map(this.compilation.journeyIndex)
+  getJourneyRouteIndex(): JourneyRouteIndex {
+    return new Map(this.compilation.journeyRouteIndex)
   }
 
-  getJourneyRuntimePlan(journeyId: NodeId): JourneyRuntimePlan | undefined {
-    return this.compilation.journeyPlans.get(journeyId)
-  }
-
-  getCompilationContext(): CompilationContext {
-    return this.compilation.context
+  getCompiledJourney(journeyId: NodeId): CompiledJourney | undefined {
+    return this.compilation.journeys.get(journeyId)
   }
 
   getConfiguration(): JourneyDefinition {
@@ -78,7 +75,7 @@ export default class PackageInstance {
   }
 
   getJourneyCode(): string {
-    return this.compilation.rootNode.properties.code
+    return this.compilation.journeyCode
   }
 
   getJourneyTitle(): string {

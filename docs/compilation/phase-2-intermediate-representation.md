@@ -64,7 +64,7 @@ The flow is:
 3. `NodeRegistrationWalker` walks the AST and records it in the shared
    compilation structures.
 
-4. `NodeRegistry` and `ASTNodeTree` become the main inputs for plan building
+4. `ASTNodeIndex` and `ASTNodeTree` become the main inputs for plan building
    and code generation.
 
 ## Inputs and outputs
@@ -74,15 +74,15 @@ The main input is the validated `JourneyDefinition`.
 The main outputs are:
 
 - the root journey AST node
-- a `NodeRegistry` containing registered AST nodes by ID
-- an `ASTNodeTree` containing parent-child and property-edge information
+- an `ASTNodeIndex` containing registered AST nodes by ID
+- an `ASTNodeTree` containing parent-child relationships
 - step and journey indexes used by later compilation phases
 
 These outputs are part of the shared compiled form for a journey. Route-level
 compilation reuses them when it builds step handlers and journey-root handlers.
 
-The registry answers "which node is this?" and "which nodes match this type?".
-The tree answers "where does this node sit?" and "which nodes belong under this
+The index answers "which node is this?" and "which nodes match this type?".
+The tree answers "where does this node sit?" and "who is the parent of this
 node?".
 
 ## Key concepts
@@ -165,7 +165,7 @@ It:
 
 - assigns missing compile-time IDs
 - resolves `Self()` references
-- registers AST nodes in `NodeRegistry`
+- registers AST nodes in `ASTNodeIndex`
 - records parent-child edges in `ASTNodeTree`
 - records which properties contain child nodes of particular types
 
@@ -174,9 +174,9 @@ descendants as runtime AST nodes, but the tree still records when a property can
 produce blocks. Later compilers use that information when deciding which plan
 owns nested blocks.
 
-### `NodeRegistry`
+### `ASTNodeIndex`
 
-`NodeRegistry` stores AST nodes by ID.
+`ASTNodeIndex` stores AST nodes by ID.
 
 It also indexes nodes by broad AST type and by authoring sub-type. This lets
 later compilers ask for groups such as all field blocks, all iterator
@@ -187,25 +187,11 @@ lifetime of the compiled journey.
 
 ### `ASTNodeTree`
 
-`ASTNodeTree` stores relationships between registered nodes.
+`ASTNodeTree` stores parent-child relationships between registered nodes.
 
-It records:
-
-- root nodes
-- parent-child edges
-- child order
-- node types
-- property-level edges
-
-The property-level edges are important. They let plan builders ask structural
-questions without inspecting raw AST objects. For example, a compiler can check
-which properties contain blocks, or whether one node is a descendant of another
-node.
-
-A normal parent-child tree can tell Forge that one node sits below another. A
-property edge also records which property created that relationship. This means
-Forge can distinguish blocks under `blocks`, hooks under `onAccess`, and
-expressions nested inside component properties.
+It records parent edges and supports ancestry queries (`getParent`,
+`getAncestors`). This lets plan builders check whether one node is a descendant
+of another without inspecting raw AST objects.
 
 ## What can fail
 
@@ -228,11 +214,17 @@ compile-time ID and a clear position in the tree.
 
 ## Connection to the next phase
 
-After the IR is built, Forge builds runtime plans from the registry and tree.
+After the IR is built, Forge runs semantic analysis on the frozen AST. This
+validates rules that depend on typed node structure and ancestry: reference
+scopes, effect placement, and function/component registration.
 
-Plan building uses the registry to find relevant nodes and the tree to decide
-ownership, ancestry, and nesting. Code generation then uses those plans to
-compile the functions used during request evaluation.
+Semantic analysis runs here rather than on the raw DSL because the AST provides
+the typed nodes, ancestry queries, and scope information that these rules need.
+See [phase 3 - semantic analysis](./phase-3-semantic-analysis.md).
+
+After semantic analysis passes, plan building uses the registry to find relevant
+nodes and the tree to decide ownership, ancestry, and nesting. Code generation
+then uses those plans to compile the functions used during request evaluation.
 
 The IR phase is therefore the handoff from "definition as authored" to
 "definition as compiled structure". Later phases should use the registry and

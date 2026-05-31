@@ -4,10 +4,8 @@ import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjusti
 import {
   ComponentRegistry,
   ForgeInstrumentation,
-  isBlockStructNode,
-  BlockASTNode,
-  Evaluated,
-  HasNestedBlocksLookup,
+  isRenderBlock,
+  RenderBlock,
   RenderContext,
   RouteTreeNode,
   ValidationResult,
@@ -84,12 +82,7 @@ export default class TemplateRenderer {
   /** Render a full page from RenderContext and return HTML string */
   render(context: RenderContext, locals: Record<string, unknown>, componentRegistry: ComponentRegistry): string {
     return this.instrumentation.span('forge-render', span => {
-      const renderedBlocks = this.renderBlocks(
-        context.blocks,
-        context.showValidationFailures,
-        componentRegistry,
-        context.hasNestedBlocks,
-      )
+      const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures, componentRegistry)
 
       const mergedViewLocals = this.mergeViewLocals(context)
 
@@ -180,24 +173,20 @@ export default class TemplateRenderer {
 
   /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
   private renderBlocks(
-    blocks: Evaluated<BlockASTNode>[],
+    blocks: RenderBlock[],
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
-    hasNestedBlocks?: HasNestedBlocksLookup,
   ): string[] {
-    const visibleBlocks = blocks.filter(block => block.properties.visibleWhen !== false)
+    const visibleBlocks = blocks.filter(block => isRenderBlock(block) && block.properties.visibleWhen !== false)
 
-    return visibleBlocks.map(block =>
-      this.renderBlock(block, showValidationFailures, componentRegistry, hasNestedBlocks),
-    )
+    return visibleBlocks.map(block => this.renderBlock(block, showValidationFailures, componentRegistry))
   }
 
   /** Render a single block to HTML using the ComponentRegistry */
   private renderBlock(
-    block: Evaluated<BlockASTNode>,
+    block: RenderBlock,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
-    hasNestedBlocks?: HasNestedBlocksLookup,
   ): string {
     return this.instrumentation.span('render-component', span => {
       span.setAttributes({
@@ -218,15 +207,11 @@ export default class TemplateRenderer {
           )
         }
 
-        const needsTransform = !hasNestedBlocks || hasNestedBlocks(block.id)
-        const transformedProperties = needsTransform
-          ? this.transformPropertiesWithRenderedBlocks(
-              block.properties,
-              showValidationFailures,
-              componentRegistry,
-              hasNestedBlocks,
-            )
-          : block.properties
+        const transformedProperties = this.transformPropertiesWithRenderedBlocks(
+          block.properties,
+          showValidationFailures,
+          componentRegistry,
+        )
 
         const evaluatedBlock = this.toEvaluatedBlock(
           {
@@ -247,8 +232,8 @@ export default class TemplateRenderer {
     })
   }
 
-  /** Convert Evaluated<BlockASTNode> to EvaluatedBlock for component */
-  private toEvaluatedBlock(block: Evaluated<BlockASTNode>, showErrors: boolean): EvaluatedBlock<BlockDefinition> {
+  /** Convert RenderBlock to EvaluatedBlock for component */
+  private toEvaluatedBlock(block: RenderBlock, showErrors: boolean): EvaluatedBlock<BlockDefinition> {
     const errors = showErrors ? this.extractErrorsFromValidations(block.properties.validWhen) : []
 
     return {
@@ -278,12 +263,11 @@ export default class TemplateRenderer {
     properties: Record<string, unknown>,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
-    hasNestedBlocks?: HasNestedBlocksLookup,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
     Object.entries(properties).forEach(([key, value]) => {
-      result[key] = this.transformValue(value, showValidationFailures, componentRegistry, hasNestedBlocks)
+      result[key] = this.transformValue(value, showValidationFailures, componentRegistry)
     })
 
     return result
@@ -294,27 +278,18 @@ export default class TemplateRenderer {
     value: unknown,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
-    hasNestedBlocks?: HasNestedBlocksLookup,
   ): unknown {
     if (value === null || value === undefined) {
       return value
     }
 
-    if (isBlockStructNode(value)) {
-      return this.renderNestedBlock(
-        value as Evaluated<BlockASTNode>,
-        showValidationFailures,
-        componentRegistry,
-        hasNestedBlocks,
-      )
+    if (isRenderBlock(value)) {
+      return this.renderNestedBlock(value as RenderBlock, showValidationFailures, componentRegistry)
     }
 
     if (Array.isArray(value)) {
-      const transformed = value.map(element =>
-        this.transformValue(element, showValidationFailures, componentRegistry, hasNestedBlocks),
-      )
+      const transformed = value.map(element => this.transformValue(element, showValidationFailures, componentRegistry))
 
-      // Filter out null values (non-visible nested blocks)
       return transformed.filter(item => item !== null)
     }
 
@@ -323,7 +298,6 @@ export default class TemplateRenderer {
         value as Record<string, unknown>,
         showValidationFailures,
         componentRegistry,
-        hasNestedBlocks,
       )
     }
 
@@ -332,19 +306,17 @@ export default class TemplateRenderer {
 
   /** Render a nested block to RenderedBlock format (block metadata + HTML) */
   private renderNestedBlock(
-    block: Evaluated<BlockASTNode>,
+    block: RenderBlock,
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
-    hasNestedBlocks?: HasNestedBlocksLookup,
   ): RenderedBlock | null {
     const { visibleWhen, ...properties } = block.properties
 
-    // Skip blocks where visibleWhen is false
     if (block.properties.visibleWhen === false) {
       return null
     }
 
-    const html = this.renderBlock(block, showValidationFailures, componentRegistry, hasNestedBlocks)
+    const html = this.renderBlock(block, showValidationFailures, componentRegistry)
 
     return {
       block: {
