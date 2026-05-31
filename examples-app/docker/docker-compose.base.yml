@@ -25,12 +25,12 @@ services:
         BUILD_NUMBER: "1.0.0"
         GIT_REF: "a1b2c3"
         GIT_BRANCH: main
-    command: npm run start
+    command: ["dist/server.js"]
     ports:
       - "3000:3000"
       - "9229:9229"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://localhost:3000/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
       interval: 5s
       retries: 20
     environment:
