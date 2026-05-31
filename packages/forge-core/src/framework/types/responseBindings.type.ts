@@ -10,14 +10,18 @@ export interface ResponseBindings {
 }
 
 export const NO_OP_RESPONSE_BINDINGS: ResponseBindings = {
-  setHeader() {},
+  setHeader(_name, _value) {
+    /* no-op */
+  },
   getHeader() {
     return undefined
   },
   getAllHeaders() {
     return new Map()
   },
-  setCookie() {},
+  setCookie(_name, _value, _options) {
+    /* no-op */
+  },
   getCookie() {
     return undefined
   },

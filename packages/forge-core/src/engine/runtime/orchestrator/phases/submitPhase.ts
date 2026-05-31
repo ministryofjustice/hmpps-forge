@@ -24,17 +24,23 @@ export function createSubmitPhase(
       }
 
       const result = await compiledSubmitHooks(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, 'submit', state.responseBindings, groups =>
-          evaluateValidation(
-            compiledValidation,
-            path,
-            stepId,
-            state.context,
-            functionRegistry,
-            true,
-            groups,
-            instrumentation,
-          ),
+        buildCompiledHookLifecycleContext(
+          state.context,
+          functionRegistry,
+          instrumentation,
+          'submit',
+          state.responseBindings,
+          groups =>
+            evaluateValidation(
+              compiledValidation,
+              path,
+              stepId,
+              state.context,
+              functionRegistry,
+              true,
+              groups,
+              instrumentation,
+            ),
         ),
       )
 

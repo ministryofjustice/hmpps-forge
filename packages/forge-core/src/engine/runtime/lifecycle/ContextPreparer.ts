@@ -7,10 +7,7 @@ interface StaticDataRuntimeInputs {
 
 export default class ContextPreparer {
 
-  prepare(
-    runtimePlan: StaticDataRuntimeInputs,
-    request: StepRequest,
-  ): RuntimeEvaluationContext {
+  prepare(runtimePlan: StaticDataRuntimeInputs, request: StepRequest): RuntimeEvaluationContext {
     const context = new RuntimeEvaluationContext(request)
 
     Object.assign(context.global.data, runtimePlan.staticData)
