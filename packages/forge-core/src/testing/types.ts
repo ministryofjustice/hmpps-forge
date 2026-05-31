@@ -4,11 +4,12 @@ import type { ValidationResult } from '../engine/contracts/runtime/validationRes
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
+import type { EvaluateOptions } from '../engine/Forge'
 
 /** The subset of the Forge engine that {@link ForgeTestClient} drives. */
 export interface ForgeEvaluationEngine {
   getTopology(): ForgeTopology
-  evaluate(snapshot: RequestSnapshot): Promise<ForgeOutcome>
+  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome>
 }
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */

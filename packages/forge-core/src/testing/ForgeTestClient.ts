@@ -1,6 +1,8 @@
 import createHttpError from 'http-errors'
 import type { HttpMethod, RequestLocation } from '../framework/types/request.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
+import type { ResponseBindings } from '../framework/types/responseBindings.type'
+import type { CookieMutation } from '../framework/types/response.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import { extractPathname, resolvePathParams } from '../framework/path/routePath'
@@ -103,9 +105,10 @@ export class ForgeTestClient {
 
     const params = { ...match.params, ...options?.params }
     const snapshot = this.buildSnapshot(method, path, match.route, params, options)
-    const outcome = await this.forge.evaluate(snapshot)
+    const response = createTestResponseBindings()
+    const outcome = await this.forge.evaluate(snapshot, { response })
 
-    return this.toResult(outcome)
+    return this.toResult(outcome, response)
   }
 
   private resolveRoute(path: string): RouteMatch | undefined {
@@ -162,13 +165,13 @@ export class ForgeTestClient {
     return normalized
   }
 
-  private toResult(outcome: ForgeOutcome): TestResult {
+  private toResult(outcome: ForgeOutcome, response: TestResponseBindings): TestResult {
     if (outcome.kind === 'navigate') {
       return {
         type: 'redirect',
         url: outcome.url,
-        headers: outcome.effects.headers,
-        cookies: outcome.effects.cookies,
+        headers: response.getAllHeaders(),
+        cookies: response.getAllCookies(),
       }
     }
 
@@ -181,12 +184,43 @@ export class ForgeTestClient {
     return {
       type: 'render',
       context,
-      headers: outcome.effects.headers,
-      cookies: outcome.effects.cookies,
+      headers: response.getAllHeaders(),
+      cookies: response.getAllCookies(),
       getBlocksByVariant: (variant: string) => context.blocks.filter(b => b.variant === variant),
       getValidationErrorsByFieldCode: (fieldCode: string) =>
         context.fieldValidationErrors.filter(e => e.blockCode === fieldCode),
     }
+  }
+}
+
+interface TestResponseBindings extends ResponseBindings {
+  getAllHeaders(): Map<string, string>
+  getAllCookies(): Map<string, CookieMutation>
+}
+
+function createTestResponseBindings(): TestResponseBindings {
+  const headers = new Map<string, string>()
+  const cookies = new Map<string, CookieMutation>()
+
+  return {
+    setHeader(name, value) {
+      headers.set(name, value)
+    },
+    getHeader(name) {
+      return headers.get(name)
+    },
+    getAllHeaders() {
+      return headers
+    },
+    setCookie(name, value, options) {
+      cookies.set(name, { value, options })
+    },
+    getCookie(name) {
+      return cookies.get(name)
+    },
+    getAllCookies() {
+      return cookies
+    },
   }
 }
 
