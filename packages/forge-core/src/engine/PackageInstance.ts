@@ -7,6 +7,7 @@ import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import JourneyCompiler from './JourneyCompiler'
+
 import type {
   CompiledJourney,
   CompiledStep,
@@ -35,14 +36,9 @@ export default class PackageInstance {
 
     this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
 
-    DSLValidator.validateTree(
-      this.rawConfiguration,
-      this.dependencies.functionRegistry,
-      this.dependencies.componentRegistry,
-    )
-
     const compiler = new JourneyCompiler({
       functionRegistry: this.dependencies.functionRegistry,
+      componentRegistry: this.dependencies.componentRegistry,
     })
 
     this.compilation = compiler.compile(this.rawConfiguration)
