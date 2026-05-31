@@ -2,6 +2,7 @@ import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../authoring/types/enums'
 import { FormatGeneratorsRegistry } from '../../../../authoring/generators/formatGenerators'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
@@ -108,7 +109,7 @@ describe('HookLifecycleCompiler', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
     functionRegistry = new FunctionRegistry()
-    compiler = new HookLifecycleCompiler({ functionRegistry })
+    compiler = new HookLifecycleCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
     functionRegistry.register({
       ...FormatGeneratorsRegistry,
       isRequired: {

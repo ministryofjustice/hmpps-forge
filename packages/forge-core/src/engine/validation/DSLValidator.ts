@@ -1,16 +1,8 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import type FunctionRegistry from '../registries/FunctionRegistry'
-import type ComponentRegistry from '../registries/ComponentRegistry'
 import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
 import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
 import { formatDSLPath } from '../diagnostics/formatDSLPath'
-import { walkAndValidate } from './walkAndValidate'
-import { referenceScopeRule } from './rules/validateReferenceScopes'
-import { createFunctionRegistrationRule } from './rules/validateRegisteredFunctions'
-import { createComponentRegistrationRule } from './rules/validateRegisteredComponents'
-import { effectScopeRule } from './rules/validateEffectScope'
-import type { ValidationRule } from './rules/types'
 
 export class DSLValidator {
   static validateSchema(input: unknown): asserts input is JourneyDefinition {
@@ -30,25 +22,6 @@ export class DSLValidator {
       })
 
       throw new AggregateError(schemaErrors, 'Schema validation failed')
-    }
-  }
-
-  static validateTree(
-    input: JourneyDefinition,
-    functionRegistry: FunctionRegistry,
-    componentRegistry: ComponentRegistry,
-  ): void {
-    const rules: readonly ValidationRule[] = [
-      referenceScopeRule,
-      effectScopeRule,
-      createFunctionRegistrationRule(functionRegistry),
-      createComponentRegistrationRule(componentRegistry),
-    ]
-
-    const errors = walkAndValidate(input, rules)
-
-    if (errors.length > 0) {
-      throw new AggregateError(errors, 'Tree validation failed')
     }
   }
 

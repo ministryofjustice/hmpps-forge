@@ -15,6 +15,7 @@ freely. If you're building a journey, you want the author docs instead.
           │
           ▼
   ast/        build the AST          definitions  ──▶  frozen ASTNode tree
+              validate the AST       semantic rules on typed nodes
           │
           ▼
   lowering/   codegen                ASTNode tree ──▶  compiled JS functions
@@ -28,7 +29,7 @@ freely. If you're building a journey, you want the author docs instead.
 | Layer | What it does | README |
 |-------|--------------|--------|
 | `contracts/` | Declares the types that cross layer boundaries - no logic | [`contracts/`](./contracts/README.md) |
-| `ast/` | Normalises author definitions into a frozen, id'd node tree | [`ast/`](./ast/README.md) |
+| `ast/` | Normalises author definitions into a frozen, id'd node tree; runs semantic validation on the result | [`ast/`](./ast/README.md) |
 | `lowering/` | Generates JavaScript source from the AST, compiles it with `new Function` | [`lowering/`](./lowering/README.md) |
 | `runtime/` | Runs compiled functions against a RequestSnapshot, returns a ForgeOutcome (render/navigate/error) | [`runtime/`](./runtime/README.md) |
 
@@ -53,7 +54,7 @@ These sit outside the pipeline but are used across it:
 | Directory | What it does | README |
 |-----------|--------------|--------|
 | `registries/` | Lookup tables for functions and components, populated at startup | [`registries/`](./registries/README.md) |
-| `validation/` | Schema + rule checks on the authored definition before it reaches the AST | [`validation/`](./validation/README.md) |
+| `validation/` | Schema checks (Zod) on the authored definition before it reaches the AST | [`validation/`](./validation/README.md) |
 | `errors/` | Error classes for each failure mode (configuration, compilation, runtime) | [`errors/`](./errors/README.md) |
 | `diagnostics/` | Source location metadata and DSL path formatting for error messages | [`diagnostics/`](./diagnostics/README.md) |
 
