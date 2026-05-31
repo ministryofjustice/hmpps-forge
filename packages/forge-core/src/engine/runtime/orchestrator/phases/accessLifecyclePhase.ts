@@ -19,7 +19,7 @@ export function createAccessLifecyclePhase(
       }
 
       const result = await compiledAccessLifecycle(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, 'access'),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, 'access', state.responseBindings),
       )
 
       if (result.outcome === 'redirect') {
