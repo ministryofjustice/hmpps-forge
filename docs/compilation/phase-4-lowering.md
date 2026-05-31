@@ -1,11 +1,11 @@
-# Compilation
+# Lowering
 
 ## Purpose
 
-Compilation turns the intermediate representation into runtime plans and
+Lowering turns the intermediate representation into runtime plans and
 generated functions.
 
-The IR tells Forge what the journey is. Compilation decides what each runtime
+The IR tells Forge what the journey is. Lowering decides what each runtime
 handler will need in order to evaluate a request.
 
 This phase builds runtime plans and generated functions. Plans describe the
@@ -45,7 +45,8 @@ functions are resolved through the function registry at runtime.
 
 ## Pipeline position
 
-Compilation runs after the intermediate representation has been built.
+Lowering runs after the intermediate representation has been built and semantic
+analysis has passed.
 
 It uses the `ASTNodeIndex` and `ASTNodeTree` from phase 2. The registry tells
 compilers which nodes exist. The tree tells compilers where those nodes sit in

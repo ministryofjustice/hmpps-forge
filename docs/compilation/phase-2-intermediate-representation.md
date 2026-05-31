@@ -214,11 +214,17 @@ compile-time ID and a clear position in the tree.
 
 ## Connection to the next phase
 
-After the IR is built, Forge builds runtime plans from the registry and tree.
+After the IR is built, Forge runs semantic analysis on the frozen AST. This
+validates rules that depend on typed node structure and ancestry: reference
+scopes, effect placement, and function/component registration.
 
-Plan building uses the registry to find relevant nodes and the tree to decide
-ownership, ancestry, and nesting. Code generation then uses those plans to
-compile the functions used during request evaluation.
+Semantic analysis runs here rather than on the raw DSL because the AST provides
+the typed nodes, ancestry queries, and scope information that these rules need.
+See [phase 3 - semantic analysis](./phase-3-semantic-analysis.md).
+
+After semantic analysis passes, plan building uses the registry to find relevant
+nodes and the tree to decide ownership, ancestry, and nesting. Code generation
+then uses those plans to compile the functions used during request evaluation.
 
 The IR phase is therefore the handoff from "definition as authored" to
 "definition as compiled structure". Later phases should use the registry and
