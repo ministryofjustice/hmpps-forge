@@ -173,15 +173,35 @@ What happened:
 - **The tree is frozen.** After registration every node is `Object.freeze`d -
   it's shared, read-only input from here on.
 
+## Semantic validation
+
+After the tree is built and registered, `JourneyCompiler` runs
+[`ASTSemanticValidator`](./validation/ASTSemanticValidator.ts) on the frozen AST.
+This validates rules that need typed nodes and ancestry information:
+
+- **Reference scopes** - `Self()` only inside field blocks, `Item()` and `Loop`
+  only inside iterators with sufficient nesting depth.
+- **Effect scope** - effect functions only inside access/submit hooks.
+- **Registered functions** - every condition, transformer, generator, and effect
+  name exists in the function registry.
+- **Registered components** - every block variant exists in the component
+  registry.
+
+Rules query the `ASTNodeIndex` and `ASTNodeTree` directly instead of
+re-walking raw objects. Template subtrees (inside iterate `yieldTemplate` /
+`predicateTemplate`) are not registered in the index, so a focused
+[template walker](./validation/rules/templateWalker.ts) handles them separately.
+
 ## Key files
 
 | File | Role |
 |------|------|
 | [`nodes/NodeFactory.ts`](./nodes/NodeFactory.ts) | Dispatcher; routes authored input to per-kind factories under `nodes/` (`structures/`, `expressions/`, `predicates/`, `outcomes/`, `hooks/`, `template/`) |
 | [`ast-state/NodeRegistrationWalker.ts`](./ast-state/NodeRegistrationWalker.ts) | One-pass normalisation walk: assigns ids, resolves `Self()`, records parent edges, registers + freezes nodes |
-| [`ast-state/ASTNodeIndex.ts`](./ast-state/ASTNodeIndex.ts) | Node registry; lookup by id and by type (`findByType`). This is what `lowering/` queries |
+| [`ast-state/ASTNodeIndex.ts`](./ast-state/ASTNodeIndex.ts) | Node registry; lookup by id and by type (`findByType`). This is what `lowering/` and `validation/` query |
 | [`ast-state/ASTNodeTree.ts`](./ast-state/ASTNodeTree.ts) | Parent/child edges for ancestry queries |
 | [`ast-state/NodeIDGenerator.ts`](./ast-state/NodeIDGenerator.ts) | Deterministic id counter (`compile_ast:` and `template:` namespaces) |
+| [`validation/ASTSemanticValidator.ts`](./validation/ASTSemanticValidator.ts) | Runs semantic rules on the frozen AST (reference scopes, effect scope, function/component registration) |
 | [`testing-helpers/`](./testing-helpers/) | `ASTTestFactory` and matchers for building/asserting nodes in tests (exempt from layer boundaries) |
 
 `ast/` may depend on `contracts/` and `authoring/`, never on `lowering/` or

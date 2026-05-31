@@ -7,6 +7,7 @@ import { TemplateValue } from '../../../contracts/ast/template.type'
 import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepFieldInventoryCompiler, {
   FieldInventoryContext,
@@ -74,7 +75,10 @@ function createContext(
 
 describe('StepFieldInventoryCompiler', () => {
   let compiler: StepFieldInventoryCompiler
-  const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+  const dependencies: CompilationDependencies = {
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -130,7 +134,10 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const localCompiler = new StepFieldInventoryCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
       const compiled = localCompiler.compile(steps)
 
       // Act
@@ -167,7 +174,10 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const localCompiler = new StepFieldInventoryCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
       const compiled = localCompiler.compile(steps)
 
       // Act
@@ -206,7 +216,10 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const localCompiler = new StepFieldInventoryCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
       const compiled = localCompiler.compile(steps)
 
       // Act
@@ -255,7 +268,10 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const localCompiler = new StepFieldInventoryCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
       const compiled = localCompiler.compile(steps)
 
       // Act
@@ -303,7 +319,10 @@ describe('StepFieldInventoryCompiler', () => {
         },
       })
 
-      const localCompiler = new StepFieldInventoryCompiler({ functionRegistry })
+      const localCompiler = new StepFieldInventoryCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
 
       // Act
       const source = localCompiler.generateSource(steps)

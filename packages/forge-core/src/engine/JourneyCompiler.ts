@@ -16,6 +16,7 @@ import ASTNodeTree from './ast/ast-state/ASTNodeTree'
 import NodeRegistrationWalker from './ast/ast-state/NodeRegistrationWalker'
 import CompilationPlanner from './lowering/CompilationPlanner'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
+import ASTSemanticValidator from './ast/validation/ASTSemanticValidator'
 import { createDSLSourceMap } from './diagnostics/sourceMetadata'
 import getAncestorChain from './ast/ast-state/getAncestorChain'
 
@@ -24,6 +25,15 @@ export default class JourneyCompiler {
 
   compile(journeyDef: JourneyDefinition): JourneyCompilationResult {
     const { rootNode, nodeRegistry, astNodeTree } = this.buildAstTree(journeyDef)
+
+    const validator = new ASTSemanticValidator(
+      nodeRegistry,
+      astNodeTree,
+      this.dependencies.functionRegistry,
+      this.dependencies.componentRegistry,
+    )
+
+    validator.validate()
 
     const stepNodes = nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
     const journeyNodes = nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)

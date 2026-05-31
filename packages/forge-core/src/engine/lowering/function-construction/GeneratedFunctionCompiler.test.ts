@@ -3,12 +3,16 @@ import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
 } from '../../errors/ForgeRuntimeEvaluationError'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import ComponentRegistry from '../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
 
-const dependencies: CompilationDependencies = { functionRegistry: new FunctionRegistry() }
+const dependencies: CompilationDependencies = {
+  functionRegistry: new FunctionRegistry(),
+  componentRegistry: new ComponentRegistry(),
+}
 
 describe('GeneratedFunctionCompiler', () => {
   describe('compileGeneratedFunction()', () => {
