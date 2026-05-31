@@ -1,5 +1,9 @@
-import type { JourneyRouteIndex, StepRouteIndex, StepRouteDescriptor } from '../../types/routeDescriptors.type'
-import type { NodeId } from '../../types/ast.type'
+import type {
+  JourneyRouteIndex,
+  StepRouteIndex,
+  StepRouteDescriptor,
+} from '../../contracts/routing/routeDescriptors.type'
+import type { NodeId } from '../../contracts/ast/ast.type'
 import { joinPaths } from '../../../framework/path/routePath'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import {
@@ -10,7 +14,7 @@ import {
   StepRouteContext,
   StoredRouteTreeNode,
   StoredRouteTreeRoute,
-} from '../types/routes.type'
+} from '../../contracts/routing/routeTree.type'
 
 export interface RouteTreeBuilderInput {
   basePath: string

@@ -1,10 +1,10 @@
-import { AstNodeId } from '../../types/engine.type'
+import { AstNodeId } from '../../contracts/ast/engine.type'
 import { BlockType } from '../../../authoring/types/enums'
-import { StepValidationFailure } from '../context/RuntimeEvaluationContext'
+import { StepValidationFailure } from '../../contracts/runtime/evaluationState.type'
 import RenderContextFactory, { RenderContextInput, RenderContextOptions } from './RenderContextFactory'
 import { JourneyAncestor, RenderBlock } from '../../../framework/rendering/types'
-import { StoredRouteTreeNode } from '../types/routes.type'
-import { RENDER_BLOCK_BRAND } from './typeguards'
+import { StoredRouteTreeNode } from '../../contracts/routing/routeTree.type'
+import { RENDER_BLOCK_BRAND } from '../../contracts/compiled/renderBlock.brand'
 
 function createMockBlock(id: AstNodeId, overrides: Partial<RenderBlock['properties']> = {}): RenderBlock {
   const block: RenderBlock = {

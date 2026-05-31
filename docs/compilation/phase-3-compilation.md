@@ -47,13 +47,13 @@ functions are resolved through the function registry at runtime.
 
 Compilation runs after the intermediate representation has been built.
 
-It uses the `NodeRegistry` and `ASTNodeTree` from phase 2. The registry tells
+It uses the `ASTNodeIndex` and `ASTNodeTree` from phase 2. The registry tells
 compilers which nodes exist. The tree tells compilers where those nodes sit in
 the journey.
 
 The flow is:
 
-1. `RuntimePlanBuilder` builds runtime plans from the registry and tree.
+1. `CompilationPlanner` builds runtime plans from the registry and tree.
 
 2. Phase compilers use those plans to decide which nodes to compile.
 
@@ -68,7 +68,7 @@ The flow is:
 The main inputs are:
 
 - the root journey AST node
-- the shared `NodeRegistry`
+- the shared `ASTNodeIndex`
 - the shared `ASTNodeTree`
 - the step and journey indexes
 - the function registry for the journey being compiled
@@ -104,9 +104,9 @@ runtime plan records:
 This keeps planning separate from code generation. The plan says which nodes
 matter. The phase compilers decide how to evaluate them.
 
-### `RuntimePlanBuilder`
+### `CompilationPlanner`
 
-`RuntimePlanBuilder` builds plans from the registry and tree.
+`CompilationPlanner` builds plans from the registry and tree.
 
 It uses the registry to find nodes by type, and the tree to answer ownership and
 ancestry questions. For example, it can find field blocks under a step, iterator
@@ -146,7 +146,7 @@ ordinary TypeScript runtime code.
 
 Most phase compilers need to evaluate authored expressions.
 
-`NodeCompilationDispatcher` is the shared entry point for compiling expression
+`ExpressionDispatcher` is the shared entry point for compiling expression
 nodes. It dispatches to compilers for references, predicates, pipelines,
 conditionals, matches, and function calls.
 

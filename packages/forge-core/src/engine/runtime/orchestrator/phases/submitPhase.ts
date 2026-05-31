@@ -1,8 +1,8 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { CompiledSubmitHooksFunction } from '../../../types/hookLifecycle.type'
-import type { CompiledValidationFunction } from '../../../types/compiledPhaseResults.type'
-import type { NodeId } from '../../../types/engine.type'
+import type { CompiledSubmitHooksFunction } from '../../../contracts/runtime/hookLifecycle.type'
+import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
 import { evaluateValidation } from './evaluateValidation'
@@ -24,7 +24,7 @@ export function createSubmitPhase(
       }
 
       const result = await compiledSubmitHooks(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, groups =>
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, 'submit', groups =>
           evaluateValidation(
             compiledValidation,
             path,

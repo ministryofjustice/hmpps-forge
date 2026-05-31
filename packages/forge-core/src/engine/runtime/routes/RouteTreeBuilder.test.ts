@@ -1,7 +1,7 @@
-import { CompileAstNodeId, NodeId } from '../../types/ast.type'
-import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../types/routeDescriptors.type'
+import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
+import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../types/routes.type'
+import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../../contracts/routing/routeTree.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
 
 interface BuildFixture {

@@ -1,4 +1,4 @@
-import type { CompiledAnswerPreparationFunction } from '../../../types/compiledPhaseResults.type'
+import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledAnswerPreparationContext } from '../../context/compiledEvaluationContext'
 import type { RequestPhase } from '../types'

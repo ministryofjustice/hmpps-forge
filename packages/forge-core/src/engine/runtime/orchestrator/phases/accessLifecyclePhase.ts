@@ -1,6 +1,6 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { CompiledAccessLifecycleFunction } from '../../../types/hookLifecycle.type'
+import type { CompiledAccessLifecycleFunction } from '../../../contracts/runtime/hookLifecycle.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
 import type { RequestPhase } from '../types'
@@ -19,7 +19,7 @@ export function createAccessLifecyclePhase(
       }
 
       const result = await compiledAccessLifecycle(
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, instrumentation, 'access'),
       )
 
       if (result.outcome === 'redirect') {

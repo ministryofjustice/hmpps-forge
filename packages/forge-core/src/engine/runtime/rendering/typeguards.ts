@@ -1,6 +1,5 @@
 import type { RenderBlock } from '../../../framework/rendering/types'
-
-export const RENDER_BLOCK_BRAND: symbol = Symbol.for('forge:RenderBlock')
+import { RENDER_BLOCK_BRAND } from '../../contracts/compiled/renderBlock.brand'
 
 export function isRenderBlock(obj: unknown): obj is RenderBlock {
   return obj != null && typeof obj === 'object' && RENDER_BLOCK_BRAND in obj

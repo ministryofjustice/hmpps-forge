@@ -1,6 +1,6 @@
 import { createNavigationPhase } from './navigationPhase'
 import type { PipelineState } from '../types'
-import type { NavigationEvaluation } from '../../../types/NavigationEvaluation.type'
+import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'

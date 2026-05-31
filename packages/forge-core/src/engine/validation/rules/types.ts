@@ -1,6 +1,5 @@
 import type { JourneyDefinition } from '../../../authoring/types/structures.type'
-
-export type DSLPathSegment = string | number
+import type { DSLPathSegment } from '../../diagnostics/sourceMetadata'
 
 export interface AncestorNode {
   readonly type: string

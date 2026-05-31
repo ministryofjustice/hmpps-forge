@@ -1,8 +1,8 @@
 import type { RenderContext } from '../../../framework/rendering/types'
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { NavigationEvaluation } from '../../types/NavigationEvaluation.type'
+import type { NavigationEvaluation } from '../../contracts/navigation/navigationEvaluation.type'
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
-import type { StepValidityResult } from '../types/StepValidityResult.type'
+import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
 
 export type ForgeResult = { type: 'render'; context: RenderContext } | { type: 'redirect'; url: string }
 

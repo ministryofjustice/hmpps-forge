@@ -1,0 +1,194 @@
+<mxfile host="app.diagrams.net" modified="2026-05-31T00:00:00.000Z" agent="Codex" version="26.0.0" type="device">
+  <diagram id="journey-compiler-flow" name="Journey Compiler Flow">
+    <mxGraphModel dx="1820" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1820" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="journey-definition" value="&lt;div style=&quot;color:#4c1d95;font-size:40px;font-weight:700;&quot;&gt;&amp;lt;/&amp;gt;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;Journey Definition&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;Author's code:&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;journey({ ...&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;steps, blocks,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;hooks })&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#fbf9ff;strokeColor=#4c1d95;strokeWidth=2;align=center;verticalAlign=top;spacingTop=22;" vertex="1" parent="1">
+          <mxGeometry x="28" y="112" width="168" height="228" as="geometry"/>
+        </mxCell>
+        <mxCell id="functions-components" value="&lt;div style=&quot;color:#4c1d95;font-size:40px;font-weight:700;&quot;&gt;&amp;#9856;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;Functions &amp;amp;&lt;/div&gt;&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;Components&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;Registered&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;conditions,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;transformers,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;effects, component&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;renderers&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#fbf9ff;strokeColor=#4c1d95;strokeWidth=2;align=center;verticalAlign=top;spacingTop=24;" vertex="1" parent="1">
+          <mxGeometry x="28" y="372" width="168" height="258" as="geometry"/>
+        </mxCell>
+        <mxCell id="package-instance" value="&lt;div style=&quot;color:#4c1d95;font-size:42px;font-weight:700;&quot;&gt;&amp;#9633;&lt;/div&gt;&lt;div style=&quot;color:#4c1d95;font-size:15px;font-weight:700;&quot;&gt;PackageInstance&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#fbf9ff;strokeColor=#4c1d95;strokeWidth=2;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="308" width="146" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="journey-to-package" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#4c1d95;strokeWidth=4;endArrow=classic;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="196" y="230" as="sourcePoint"/>
+            <mxPoint x="270" y="338" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="232" y="230"/>
+              <mxPoint x="232" y="338"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="functions-to-package" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#4c1d95;strokeWidth=4;endArrow=classic;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="196" y="483" as="sourcePoint"/>
+            <mxPoint x="270" y="368" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="232" y="483"/>
+              <mxPoint x="232" y="368"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="validation-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=7;fillColor=#fbf9ff;strokeColor=#4c1d95;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="450" y="110" width="146" height="440" as="geometry"/>
+        </mxCell>
+        <mxCell id="validation-title" value="&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;DSL&lt;/div&gt;&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;Validation&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="481" y="136" width="84" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="validation-card" value="&lt;div style=&quot;color:#059669;font-size:35px;font-weight:700;&quot;&gt;&amp;#10003;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;font-weight:700;&quot;&gt;Schema check&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;(Zod)&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;border-top:1px solid #8ab4f8;margin:10px 0 8px 0;&quot;&gt;&amp;nbsp;&lt;/div&gt;&lt;div style=&quot;color:#059669;font-size:35px;font-weight:700;&quot;&gt;&amp;#10003;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;font-weight:700;&quot;&gt;Rule check&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:13px;&quot;&gt;(registered&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:13px;&quot;&gt;functions exist?&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:13px;&quot;&gt;references in&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:13px;&quot;&gt;scope? effects in&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:13px;&quot;&gt;right hooks?)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#8ab4f8;strokeWidth=1.5;align=center;verticalAlign=top;spacingTop=18;" vertex="1" parent="1">
+          <mxGeometry x="462" y="196" width="122" height="337" as="geometry"/>
+        </mxCell>
+        <mxCell id="package-to-validation" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#4c1d95;strokeWidth=4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="416" y="353" as="sourcePoint"/>
+            <mxPoint x="450" y="353" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="configuration-error" value="&lt;div style=&quot;color:#c81e1e;font-size:31px;font-weight:700;&quot;&gt;&amp;#10005;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#c81e1e;font-size:16px;font-weight:700;&quot;&gt;Configuration&lt;/div&gt;&lt;div style=&quot;color:#c81e1e;font-size:16px;font-weight:700;&quot;&gt;Error&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;Journey never&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;compiles&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#fffafa;strokeColor=#c81e1e;strokeWidth=1.5;align=center;verticalAlign=top;spacingTop=14;" vertex="1" parent="1">
+          <mxGeometry x="433" y="592" width="164" height="146" as="geometry"/>
+        </mxCell>
+        <mxCell id="validation-to-error" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#c81e1e;strokeWidth=2;dashed=1;dashPattern=4 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="523" y="560" as="sourcePoint"/>
+            <mxPoint x="523" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="compiler-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#0f5ad7;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="624" y="110" width="670" height="596" as="geometry"/>
+        </mxCell>
+        <mxCell id="compiler-icon" value="&amp;#9874;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#1f2937;fontSize=55;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="808" y="132" width="70" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="compiler-title" value="&lt;div style=&quot;font-size:27px;color:#0f3ea8;font-weight:700;&quot;&gt;JourneyCompiler&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="880" y="143" width="300" height="46" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ast-card" value="&lt;div style=&quot;color:#059669;font-size:40px;font-weight:700;&quot;&gt;&amp;#9900;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:20px;font-weight:700;&quot;&gt;AST&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:20px;font-weight:700;&quot;&gt;Construction&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;NodeFactory + Walker&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;normalise, assign ids,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;resolve Self(), freeze&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=top;spacingTop=22;" vertex="1" parent="1">
+          <mxGeometry x="648" y="218" width="183" height="258" as="geometry"/>
+        </mxCell>
+        <mxCell id="planning-card" value="&lt;div style=&quot;color:#059669;font-size:40px;font-weight:700;&quot;&gt;&amp;#9902;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:20px;font-weight:700;&quot;&gt;Planning&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;CompilationPlanner&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;build CompilationPlan:&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;per-step inputs,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;reachability plans,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;field inventories&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=top;spacingTop=22;" vertex="1" parent="1">
+          <mxGeometry x="859" y="218" width="183" height="258" as="geometry"/>
+        </mxCell>
+        <mxCell id="code-generation-card" value="&lt;div style=&quot;color:#059669;font-size:42px;font-weight:700;&quot;&gt;&amp;lt;/&amp;gt;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:20px;font-weight:700;&quot;&gt;Code&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:20px;font-weight:700;&quot;&gt;Generation&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:14px;&quot;&gt;CodegenOrchestrator&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;emit JS source strings,&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;compile with&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;&quot;&gt;new Function&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=top;spacingTop=22;" vertex="1" parent="1">
+          <mxGeometry x="1074" y="218" width="190" height="258" as="geometry"/>
+        </mxCell>
+        <mxCell id="validation-to-compiler" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#4c1d95;strokeWidth=4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="596" y="353" as="sourcePoint"/>
+            <mxPoint x="624" y="353" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ast-to-planning" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#0f5ad7;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="831" y="353" as="sourcePoint"/>
+            <mxPoint x="859" y="353" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="planning-to-codegen" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#0f5ad7;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1042" y="353" as="sourcePoint"/>
+            <mxPoint x="1074" y="353" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="render-function" value="render" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=middle;fontSize=14;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1076" y="496" width="146" height="27" as="geometry"/>
+        </mxCell>
+        <mxCell id="validation-function" value="validation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=middle;fontSize=14;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1076" y="532" width="146" height="27" as="geometry"/>
+        </mxCell>
+        <mxCell id="answer-preparation-function" value="answer-preparation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=middle;fontSize=14;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1076" y="568" width="146" height="27" as="geometry"/>
+        </mxCell>
+        <mxCell id="hooks-function" value="hooks" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=middle;fontSize=14;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1076" y="604" width="146" height="27" as="geometry"/>
+        </mxCell>
+        <mxCell id="reachability-function" value="reachability" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#3b82f6;strokeWidth=1.5;align=center;verticalAlign=middle;fontSize=14;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1076" y="640" width="146" height="27" as="geometry"/>
+        </mxCell>
+        <mxCell id="function-bracket-top" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=1 4;strokeColor=#0f5ad7;strokeWidth=2;endArrow=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1222" y="509" as="sourcePoint"/>
+            <mxPoint x="1257" y="476" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1257" y="509"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="function-bracket-validation" value="" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#0f5ad7;strokeWidth=2;dashPattern=1 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1222" y="545" as="sourcePoint"/>
+            <mxPoint x="1257" y="545" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="function-bracket-answer" value="" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#0f5ad7;strokeWidth=2;dashPattern=1 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1222" y="581" as="sourcePoint"/>
+            <mxPoint x="1257" y="581" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="function-bracket-hooks" value="" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#0f5ad7;strokeWidth=2;dashPattern=1 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1222" y="617" as="sourcePoint"/>
+            <mxPoint x="1257" y="617" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="function-bracket-bottom" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=1 4;strokeColor=#0f5ad7;strokeWidth=2;endArrow=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1222" y="653" as="sourcePoint"/>
+            <mxPoint x="1257" y="476" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1257" y="653"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="artifacts-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#fbf9ff;strokeColor=#4c1d95;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1336" y="110" width="254" height="617" as="geometry"/>
+        </mxCell>
+        <mxCell id="artifacts-title" value="&lt;div style=&quot;color:#4c1d95;font-size:17px;font-weight:700;&quot;&gt;Compiled Artefacts&lt;/div&gt;&lt;div style=&quot;color:#4c1d95;font-size:13px;&quot;&gt;(stored in PackageInstance)&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1376" y="128" width="175" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="compiled-step-card" value="&lt;div style=&quot;text-align:left;&quot;&gt;&lt;span style=&quot;color:#059669;font-size:39px;font-weight:700;&quot;&gt;&amp;#9634;&lt;/span&gt;&lt;span style=&quot;color:#0f3ea8;font-size:17px;font-weight:700;&quot;&gt;&amp;nbsp;&amp;nbsp;CompiledStep&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;margin-left:67px;&quot;&gt;(one per step)&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#0f5ad7;font-size:12px;text-align:left;&quot;&gt;contains:&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledRender&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledValidation&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledAnswerPreparation&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledAccessLifecycle&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledSubmitHooks&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;runtimePlan&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;navigationPlan&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#8ab4f8;strokeWidth=1.5;align=left;verticalAlign=top;spacing=16;spacingTop=16;" vertex="1" parent="1">
+          <mxGeometry x="1349" y="177" width="222" height="248" as="geometry"/>
+        </mxCell>
+        <mxCell id="compiled-journey-card" value="&lt;div style=&quot;text-align:left;&quot;&gt;&lt;span style=&quot;color:#059669;font-size:38px;font-weight:700;&quot;&gt;&amp;#9636;&lt;/span&gt;&lt;span style=&quot;color:#0f3ea8;font-size:17px;font-weight:700;&quot;&gt;&amp;nbsp;&amp;nbsp;CompiledJourney&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:15px;margin-left:67px;&quot;&gt;(one per journey)&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#0f5ad7;font-size:12px;text-align:left;&quot;&gt;contains:&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledAccessLifecycle&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;compiledAnswerPreparation&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;runtimePlan&lt;/div&gt;&lt;div style=&quot;color:#111827;font-size:14px;text-align:left;&quot;&gt;navigationPlan&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#ffffff;strokeColor=#8ab4f8;strokeWidth=1.5;align=left;verticalAlign=top;spacing=16;spacingTop=16;" vertex="1" parent="1">
+          <mxGeometry x="1349" y="440" width="222" height="188" as="geometry"/>
+        </mxCell>
+        <mxCell id="runtime-note-divider" value="" style="line;strokeWidth=1;html=1;strokeColor=#8b5cf6;" vertex="1" parent="1">
+          <mxGeometry x="1336" y="643" width="254" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="runtime-note" value="&lt;span style=&quot;color:#8b5cf6;font-size:31px;font-weight:700;&quot;&gt;&amp;#9678;&lt;/span&gt;&lt;span style=&quot;color:#111827;font-size:13px;&quot;&gt;&amp;nbsp;&amp;nbsp;Ready for request handling -&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#111827;font-size:13px;&quot;&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;these are the functions&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#111827;font-size:13px;&quot;&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;runtime/ will call&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1352" y="654" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="compiler-to-artifacts" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#4c1d95;strokeWidth=4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1294" y="353" as="sourcePoint"/>
+            <mxPoint x="1336" y="353" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="forge-router" value="&lt;div style=&quot;color:#8b5cf6;font-size:35px;font-weight:700;&quot;&gt;&amp;#9842;&lt;/div&gt;&lt;br&gt;&lt;div style=&quot;color:#8b5cf6;font-size:15px;font-weight:700;&quot;&gt;ForgeRouter&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=7;fillColor=#fbf9ff;strokeColor=#8b5cf6;strokeWidth=2;dashed=1;dashPattern=4 4;align=center;verticalAlign=middle;opacity=75;" vertex="1" parent="1">
+          <mxGeometry x="1654" y="635" width="134" height="96" as="geometry"/>
+        </mxCell>
+        <mxCell id="artifacts-to-router" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#4c1d95;strokeWidth=3;dashed=1;dashPattern=4 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1598" y="681" as="sourcePoint"/>
+            <mxPoint x="1650" y="681" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="startup-note" value="&lt;span style=&quot;color:#4c1d95;font-size:27px;font-weight:700;&quot;&gt;&amp;#9711;&lt;/span&gt;&lt;span style=&quot;color:#4c1d95;font-size:14px;font-weight:700;&quot;&gt;&amp;nbsp;&amp;nbsp;Compilation happens once at startup, not per request.&lt;/span&gt;&lt;span style=&quot;color:#111827;font-size:14px;&quot;&gt;&amp;nbsp; The compiled functions are stored and reused for every request.&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#fbf9ff;strokeColor=#8b5cf6;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="432" y="763" width="864" height="44" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

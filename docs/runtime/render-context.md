@@ -57,7 +57,7 @@ The main inputs are:
 
 The main output is a `RenderContext`.
 
-The controller passes that context to the framework adapter. The adapter and
+The orchestrator passes that context to the framework adapter. The adapter and
 component renderers decide how to turn the context into a response.
 
 ## Key concepts

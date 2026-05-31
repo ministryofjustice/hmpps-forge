@@ -2,7 +2,7 @@ import type { CookieMutation } from '../framework/types/response.type'
 import type { RenderBlock, RenderContext } from '../framework/rendering/types'
 import type { HttpMethod } from '../framework/types/request.type'
 import type { StepHandler } from '../framework/types/adapter.type'
-import type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'
+import type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
 export interface TestRequestOptions {

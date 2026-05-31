@@ -1,9 +1,12 @@
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { HookLifecycleContext } from '../../types/hookLifecycle.type'
+import type { HookLifecycleContext } from '../../contracts/runtime/hookLifecycle.type'
+import type { HookType } from '../../contracts/runtime/answerHistory.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
-import RuntimeEvaluationContext, { RuntimeEvaluationGlobalState } from './RuntimeEvaluationContext'
-import type { StepValidityResult } from '../types/StepValidityResult.type'
+import RuntimeEvaluationContext from './RuntimeEvaluationContext'
+import EffectFunctionContextImpl from './EffectFunctionContext'
+import type { RuntimeEvaluationGlobalState } from '../../contracts/runtime/evaluationState.type'
+import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
 
 type CompiledRequestSnapshot = Record<string, unknown> & {
   url: string
@@ -86,6 +89,7 @@ export function buildCompiledHookLifecycleContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
   instrumentation: ForgeInstrumentation,
+  hookType: HookType,
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
 ): HookLifecycleContext {
   return {
@@ -94,10 +98,9 @@ export function buildCompiledHookLifecycleContext(
     post: context.request.getAllPost(),
     instrumentation,
     validate,
-    effectContext: {
-      global: context.global,
-      request: context.request,
-      response: context.response,
-    },
+    effectFunctionContext: new EffectFunctionContextImpl(
+      { global: context.global, request: context.request, response: context.response },
+      hookType,
+    ),
   }
 }

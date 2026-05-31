@@ -19,10 +19,11 @@ export type {
   RouteTreeRoute,
   RouteTreeRouteKind,
 } from './rendering/types'
-export { isRenderBlock, RENDER_BLOCK_BRAND } from '../engine/runtime/rendering/typeguards'
-export type { AstNodeId, NodeId } from '../engine/types/ast.type'
+export { isRenderBlock } from '../engine/runtime/rendering/typeguards'
+export { RENDER_BLOCK_BRAND } from '../engine/contracts/compiled/renderBlock.brand'
+export type { AstNodeId, NodeId } from '../engine/contracts/ast/ast.type'
 export type { HttpMethod } from './types/request.type'
-export type { ValidationResult } from '../engine/runtime/types/ValidationResult.type'
+export type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
 export {
   extractPathname,
   joinPaths,
