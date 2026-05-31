@@ -3,7 +3,7 @@ import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { StepResponse } from '../../../../framework/types/response.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
 const createMockState = (overrides: Partial<PipelineState> = {}): PipelineState => {
   const request = {
@@ -30,10 +30,9 @@ const createMockState = (overrides: Partial<PipelineState> = {}): PipelineState 
     getState: () => undefined,
     getAllState: () => ({}),
   } as unknown as StepRequest
-  const response = {} as StepResponse
-  const context = new RuntimeEvaluationContext(request, response)
+  const context = new RuntimeEvaluationContext(request)
 
-  return { context, request, ...overrides }
+  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS, ...overrides }
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry

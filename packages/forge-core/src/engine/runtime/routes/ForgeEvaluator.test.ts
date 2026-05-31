@@ -3,6 +3,7 @@ import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engi
 import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeEvaluator from './ForgeEvaluator'
@@ -243,7 +244,7 @@ describe('ForgeEvaluator', () => {
       evaluator.mount(packageInstance)
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:4', 'GET'))
+      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:4', 'GET'), NO_OP_RESPONSE_BINDINGS)
 
       // Assert
       expect(outcome.kind).toBe('render')
@@ -259,7 +260,7 @@ describe('ForgeEvaluator', () => {
       evaluator.mount(createPackageInstance([journey], [step]))
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:999', 'GET'))
+      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:999', 'GET'), NO_OP_RESPONSE_BINDINGS)
 
       // Assert
       expect(outcome).toEqual(
@@ -274,7 +275,7 @@ describe('ForgeEvaluator', () => {
       evaluator.mount(createPackageInstance([journey], [step]))
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:3', 'POST'))
+      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:3', 'POST'), NO_OP_RESPONSE_BINDINGS)
 
       // Assert
       expect(outcome).toEqual(

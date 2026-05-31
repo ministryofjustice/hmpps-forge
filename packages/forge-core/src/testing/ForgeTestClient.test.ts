@@ -1,6 +1,6 @@
 import { ForgeTestClient } from './ForgeTestClient'
 import type Forge from '../engine/Forge'
-import type { CookieMutation } from '../framework/types/response.type'
+import type { EvaluateOptions } from '../engine/Forge'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
@@ -17,41 +17,38 @@ const ROUTES: ForgeRoute[] = [
   { nodeId: 'journey-root', kind: 'journey', templatePath: '/journey', basePath: '/journey', methods: ['GET'] },
 ]
 
-function renderOutcome(effects?: {
-  headers?: Map<string, string>
-  cookies?: Map<string, CookieMutation>
-}): ForgeOutcome {
+function renderOutcome(): ForgeOutcome {
   return {
     kind: 'render',
     context: { blocks: [], fieldValidationErrors: [] } as never,
     componentRegistry: {} as never,
-    effects: { headers: effects?.headers ?? new Map(), cookies: effects?.cookies ?? new Map() },
   }
 }
 
 function navigateOutcome(url: string): ForgeOutcome {
-  return { kind: 'navigate', url, effects: { headers: new Map(), cookies: new Map() } }
+  return { kind: 'navigate', url }
 }
 
 function errorOutcome(): ForgeOutcome {
   return {
     kind: 'error',
     error: { code: 'node-not-found', message: 'boom' },
-    effects: { headers: new Map(), cookies: new Map() },
   }
 }
 
-function createClient(resolve: ForgeOutcome | ((snapshot: RequestSnapshot) => ForgeOutcome)): {
+function createClient(
+  resolve: ForgeOutcome | ((snapshot: RequestSnapshot, options?: EvaluateOptions) => ForgeOutcome),
+): {
   client: ForgeTestClient
   snapshots: RequestSnapshot[]
 } {
   const snapshots: RequestSnapshot[] = []
   const fakeForge = {
     getTopology: () => ({ routes: ROUTES }),
-    evaluate: async (snapshot: RequestSnapshot) => {
+    evaluate: async (snapshot: RequestSnapshot, options?: EvaluateOptions) => {
       snapshots.push(snapshot)
 
-      return typeof resolve === 'function' ? resolve(snapshot) : resolve
+      return typeof resolve === 'function' ? resolve(snapshot, options) : resolve
     },
   } as unknown as Forge
 
@@ -187,11 +184,14 @@ describe('ForgeTestClient', () => {
   })
 
   describe('response capture', () => {
-    it('should expose headers and cookies recorded as effects', async () => {
+    it('should expose headers and cookies written via response bindings', async () => {
       // Arrange
-      const headers = new Map([['x-custom', 'test-value']])
-      const cookies = new Map([['token', { value: 'abc', options: { httpOnly: true } }]])
-      const { client } = createClient(renderOutcome({ headers, cookies }))
+      const { client } = createClient((_snapshot, options) => {
+        options?.response?.setHeader('x-custom', 'test-value')
+        options?.response?.setCookie('token', 'abc', { httpOnly: true })
+
+        return renderOutcome()
+      })
 
       // Act
       const result = await client.get('/step-one')

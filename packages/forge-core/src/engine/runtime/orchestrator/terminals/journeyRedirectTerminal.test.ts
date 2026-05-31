@@ -4,7 +4,7 @@ import type { NavigationEvaluation } from '../../../contracts/navigation/navigat
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { StepResponse } from '../../../../framework/types/response.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
 const createMockState = (params: Record<string, string> = {}): PipelineState => {
   const request = {
@@ -31,10 +31,9 @@ const createMockState = (params: Record<string, string> = {}): PipelineState => 
     getState: () => undefined,
     getAllState: () => ({}),
   } as unknown as StepRequest
-  const response = {} as StepResponse
-  const context = new RuntimeEvaluationContext(request, response)
+  const context = new RuntimeEvaluationContext(request)
 
-  return { context, request }
+  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS }
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry
