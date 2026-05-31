@@ -10,6 +10,8 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
+import type { ResponseBindings } from '../framework/types/responseBindings.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
 import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
@@ -90,6 +92,10 @@ export interface ForgeOptions {
  */
 export interface ForgeRouterAdapter {
   build(forge: Forge): unknown
+}
+
+export interface EvaluateOptions {
+  response?: ResponseBindings
 }
 
 interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'instrumentation' | 'frameworkAdapter'> {
@@ -261,11 +267,10 @@ export default class Forge {
    *
    * Takes a framework-agnostic {@link RequestSnapshot} (built by an adapter from
    * its native request) and returns a {@link ForgeOutcome} describing what to
-   * render, where to navigate, or which error to surface. The engine performs
-   * no I/O and touches no native request or response.
+   * render, where to navigate, or which error to surface.
    */
-  evaluate(snapshot: RequestSnapshot): Promise<ForgeOutcome> {
-    return this.forgeEvaluator.evaluate(snapshot)
+  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome> {
+    return this.forgeEvaluator.evaluate(snapshot, options?.response ?? NO_OP_RESPONSE_BINDINGS)
   }
 
   /**
