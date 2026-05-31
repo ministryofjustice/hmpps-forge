@@ -11,6 +11,7 @@ const subpaths = {
   'express-nunjucks': 'forge-express-nunjucks/src/index.ts',
   'govuk-components': 'forge-govuk-components/src/index.ts',
   'moj-components': 'forge-moj-components/src/index.ts',
+  'static': 'forge-static/src/index.ts',
 }
 
 const packageName = '@ministryofjustice/hmpps-forge'
@@ -20,12 +21,13 @@ const jsFormats = [
   { extension: 'cjs', format: 'cjs' },
 ]
 
-const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
+const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'node:fs', 'node:path', 'nunjucks', 'rolldown', 'rollup-plugin-sass', 'sass-embedded', 'zod']
 const externalPrefixes = [
   '@ministryofjustice/hmpps-forge/core/',
   '@ministryofjustice/hmpps-forge/express-nunjucks',
   '@ministryofjustice/hmpps-forge/govuk-components',
   '@ministryofjustice/hmpps-forge/moj-components',
+  '@ministryofjustice/hmpps-forge/static',
 ]
 
 const dtsOwnershipRules = [
