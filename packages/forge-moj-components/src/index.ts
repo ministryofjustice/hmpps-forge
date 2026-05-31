@@ -10,15 +10,14 @@
  * @example
  * ```typescript
  * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+ * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
  * import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
  *
- * const forge = new Forge({
- *   logger,
- *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
- * })
+ * const forge = new Forge({ logger })
  *   .registerGlobalComponents(mojComponents)
  *   .registerPackage(myPackage)
+ *
+ * app.use(createExpressRouter(forge, { nunjucksEnv }))
  * ```
  */
 

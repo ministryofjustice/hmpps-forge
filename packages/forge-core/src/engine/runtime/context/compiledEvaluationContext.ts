@@ -1,4 +1,5 @@
 import type { StepRequest } from '../../../framework/types/request.type'
+import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { HookLifecycleContext } from '../../contracts/runtime/hookLifecycle.type'
 import type { HookType } from '../../contracts/runtime/answerHistory.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
@@ -90,6 +91,7 @@ export function buildCompiledHookLifecycleContext(
   functionRegistry: FunctionRegistry,
   instrumentation: ForgeInstrumentation,
   hookType: HookType,
+  responseBindings: ResponseBindings,
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
 ): HookLifecycleContext {
   return {
@@ -99,7 +101,7 @@ export function buildCompiledHookLifecycleContext(
     instrumentation,
     validate,
     effectFunctionContext: new EffectFunctionContextImpl(
-      { global: context.global, request: context.request, response: context.response },
+      { global: context.global, request: context.request, response: responseBindings },
       hookType,
     ),
   }

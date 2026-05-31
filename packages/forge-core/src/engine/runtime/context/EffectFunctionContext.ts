@@ -264,9 +264,7 @@ class EffectFunctionContext<
   }
 
   /**
-   * Set a response header
-   *
-   * Headers are written directly to the response via the framework adapter.
+   * Set a response header via the adapter-provided response bindings.
    * Setting the same header multiple times will overwrite the previous value.
    */
   setResponseHeader(name: string, value: string): void {
@@ -291,9 +289,7 @@ class EffectFunctionContext<
   }
 
   /**
-   * Set a cookie in the response
-   *
-   * Cookies are written directly to the response via the framework adapter.
+   * Set a cookie via the adapter-provided response bindings.
    * To clear a cookie, use maxAge: 0.
    *
    * @example

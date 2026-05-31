@@ -4,13 +4,13 @@
 
 The adapter contract is the boundary between `forge-core` and a web framework.
 
-Forge needs to mount routes, read requests, write responses, redirect, forward
-errors, and hand off render contexts. It does not need to depend on a specific
-HTTP framework to do those things.
+Forge evaluates journeys and returns structured outcomes. It does not mount
+routes, read HTTP requests, or write HTTP responses. The adapter owns those
+responsibilities, consuming the engine's public surface to bridge the gap.
 
-The adapter contract lets the core runtime stay framework-independent while
-still giving framework integrations enough control over routing and response
-handling.
+The contract lets the core runtime stay framework-independent while giving
+framework integrations full control over routing, request handling, and response
+dispatch.
 
 ## Why Forge uses adapters
 
@@ -23,152 +23,141 @@ test.
 
 Adapters keep that boundary explicit:
 
-- `forge-core` decides which route handlers are needed
-- the adapter mounts those handlers into the host framework
-- the adapter converts framework requests into Forge request objects
-- the adapter converts framework responses into Forge response objects
-- the adapter owns redirects, errors, and final rendering
+- `forge-core` exposes routes as data (`ForgeTopology`) and an `evaluate` function
+- the adapter registers those routes in the host framework
+- the adapter converts framework requests into a `RequestSnapshot`
+- the adapter calls `forge.evaluate(snapshot)` and receives a `ForgeOutcome`
+- the adapter dispatches the outcome (render, redirect, or error) using framework APIs
 
 The Express/Nunjucks package is the reference implementation. It is not the only
 shape the contract allows.
 
-## Pipeline position
+## Engine surface
 
-The adapter is used at two points.
+The adapter consumes three things from a configured `Forge` instance:
 
-First, Forge uses it during route mounting. `ForgeRouter` asks the adapter to
-create routers, mount child routers, and register GET and POST handlers.
-
-Second, Forge uses it during request handling. Controllers use the adapter to
-convert requests and responses, perform redirects, forward errors, and render
-the final response.
+| Method | What it provides |
+|--------|-----------------|
+| `forge.getTopology()` | A `ForgeTopology` containing every registrable route (node ID, path template, methods, kind) |
+| `forge.evaluate(snapshot, options?)` | Takes a `RequestSnapshot` and optional `EvaluateOptions` (including `ResponseBindings`), returns a `ForgeOutcome` |
+| `forge.getInstrumentation()` | The instrumentation instance, so adapters can nest request spans |
+| `forge.getLogger()` | The configured logger |
 
 ## Inputs and outputs
 
-The main input to an adapter builder is `FrameworkAdapterDependencies`.
+The adapter provides a `RequestSnapshot` to the engine. A snapshot contains:
 
-Those dependencies include:
-
-- the component registry
-- the logger
-
-The main output is a `FrameworkAdapter`.
-
-The adapter then provides the concrete framework objects and behaviours needed
-by the runtime:
-
-- routers
-- route registration
-- request conversion
-- response conversion
-- redirects
-- error forwarding
-- rendering
-
-## Key concepts
-
-### `FrameworkAdapterBuilder`
-
-`FrameworkAdapterBuilder` builds an adapter when Forge has the dependencies the
-adapter needs.
-
-This lets adapter configuration stay separate from Forge-owned dependencies.
-For example, the Express/Nunjucks adapter is configured with a Nunjucks
-environment first. Forge later supplies the component registry and logger when
-it builds the adapter.
-
-### `FrameworkAdapter`
-
-`FrameworkAdapter` is the runtime contract used by `forge-core`.
-
-It covers:
-
-- router creation
-- router mounting
-- GET route registration
-- POST route registration
-- request conversion
-- response conversion
-- redirects
-- error forwarding
-- rendering
-
-Each adapter method should translate between Forge's framework-independent
-contract and the host framework's native APIs.
-
-### Router creation and mounting
-
-Forge builds routes from compiled journey and step plans.
-
-The adapter decides how those routes are represented in the host framework. In
-Express, this means creating routers with merged params, mounting child routers,
-and registering handlers with `router.get` and `router.post`.
-
-The core router owns the route structure. The adapter owns the framework calls
-that mount that structure.
-
-### Step handlers
-
-Forge route handlers are asynchronous functions that receive the framework's
-native request and response objects.
-
-The adapter registers those handlers with the host framework. It should also
-handle the framework's error model. In Express, the adapter wraps handlers so
-rejected promises are passed to `next`.
-
-### `StepRequest`
-
-`StepRequest` is the request shape used by Forge runtime.
-
-The adapter converts the framework request into this shape. It exposes:
-
-- method
-- URL and location data
-- headers
-- cookies
-- route params
-- query values
-- POST values
+- `nodeId` (which compiled node to evaluate, taken from the matched route)
+- method (GET or POST)
+- location (origin, href, pathname, basePath)
+- params, query, post body
+- headers, cookies
 - session
 - request state
 
-This keeps generated functions and runtime controllers away from framework
-request objects.
+The engine returns a `ForgeOutcome`:
 
-### `StepResponse`
+- `{ kind: 'render', context, componentRegistry }` - render a page
+- `{ kind: 'navigate', url }` - redirect to a URL
+- `{ kind: 'error', error }` - surface a structured error
 
-`StepResponse` is the response shape used by Forge runtime.
+The outcome is pure data. Response IO (headers, cookies) is handled live
+during evaluation through the adapter-provided `ResponseBindings`, not
+carried on the outcome.
 
-The adapter converts the framework response into this shape. It exposes the
-response operations Forge effects need, such as setting headers and cookies.
+## Key concepts
 
-The native response object still belongs to the framework. `StepResponse` is the
-small Forge-facing surface over it.
+### `RequestSnapshot`
 
-### Redirects
+`RequestSnapshot` is the framework-agnostic input to evaluation.
 
-Controllers ask the adapter to redirect.
+The adapter builds it from whatever the host framework provides. It contains
+everything the engine needs to evaluate a step: the node to evaluate, the HTTP
+method, location data, all request values, and the session.
 
-Forge resolves the target route before calling the adapter. The adapter then
-performs the framework-specific redirect. In Express, this is `res.redirect`.
+This keeps compiled functions and runtime evaluation away from framework request
+objects.
 
-### Error forwarding
+### `ForgeOutcome`
 
-The adapter owns the framework-specific error handoff.
+`ForgeOutcome` is the engine's output. It is a discriminated union with three
+variants:
 
-For Express, errors are forwarded to `next` when that callback is available.
-Other framework integrations can forward or throw according to their own error
-model.
+- **render** - includes a `RenderContext` and the `ComponentRegistry` needed to
+  resolve block variants into rendered HTML
+- **navigate** - includes the resolved redirect URL
+- **error** - includes a `ForgeError` with a typed `ForgeErrorCode`
+  (`node-not-found`, `method-not-supported`)
 
-### Render handoff
+The adapter interprets this outcome into the framework's response model.
 
-Controllers pass a `RenderContext` to `FrameworkAdapter.render`.
+### `ResponseBindings`
 
-The adapter decides how to turn that context into a response. The
-Express/Nunjucks adapter delegates to `TemplateRenderer`, then sends the HTML
-through the Express response.
+The adapter provides a `ResponseBindings` implementation when calling
+`forge.evaluate(snapshot, { response })`. This is a callback interface
+with methods like `setHeader`, `getHeader`, `setCookie`, `getCookie`,
+`getAllHeaders`, and `getAllCookies`.
 
-Rendering details are covered in the framework integration rendering doc.
+Effect hooks call these bindings directly during evaluation. The engine
+never touches the real response object -- the adapter decides what each
+method does. The Express adapter writes live to `res`; the test client
+records into local Maps for assertions.
+
+This mirrors how session already works: the adapter owns the mutable
+reference, and the engine calls into it during evaluation.
+
+### `ForgeTopology`
+
+`ForgeTopology` is the route table exposed by the engine after packages are
+registered.
+
+Each `ForgeRoute` contains:
+
+- `nodeId` - the identifier to pass back on a `RequestSnapshot`
+- `kind` - `'step'` or `'journey'`
+- `templatePath` - the full URL path template (e.g. `/forms/order/:id/details`)
+- `basePath` - the owning journey's base path template
+- `methods` - which HTTP methods apply (`['GET', 'POST']` for steps, `['GET']` for journey roots)
+- `title` - optional display title
+
+The adapter registers one route per entry, using the template path and methods
+to wire up the framework's routing table.
+
+### Route handler pattern
+
+Each adapter creates its own route handlers. A handler:
+
+1. Converts the framework request into a `RequestSnapshot` (using the matched
+   route's `nodeId` and `basePath`, plus request data)
+2. Creates a `ResponseBindings` implementation for this request
+3. Calls `forge.evaluate(snapshot, { response })`
+4. Dispatches the outcome:
+   - render: resolve blocks through the component registry, render a template,
+     send the HTML response
+   - navigate: perform a framework redirect
+   - error: forward to the framework's error model
+
+Response writes (headers, cookies) happen live during step 3 via the bindings.
+There is no post-evaluate flush step.
+
+### Express/Nunjucks reference adapter
+
+`createExpressRouter(forge, { nunjucksEnv })` is the reference implementation.
+
+It:
+
+- reads routes from `forge.getTopology()`
+- registers an Express handler for each route's methods
+- builds a `RequestSnapshot` from each Express request (including `res.locals` as state)
+- creates `ResponseBindings` that write live to the Express `res` (with a
+  local cookie cache for read-after-set, since `res.cookie` has no getter)
+- calls `forge.evaluate(snapshot, { response })`
+- renders with Nunjucks through `TemplateRenderer`, redirects with `res.redirect`,
+  or forwards errors with `next(createHttpError(...))`
+
+`ExpressFrameworkAdapter.configure({ nunjucksEnv })` is a back-compat wrapper
+that returns a builder conforming to the `ForgeRouterAdapter` interface. Both
+produce the same router.
 
     # Note
     We've never tried to implement anything but Express/Nunjucks here. We think
@@ -177,48 +166,54 @@ Rendering details are covered in the framework integration rendering doc.
     the official GOVUK packages, there's not really much push to explore this 
     currently.
 
-### Express/Nunjucks reference adapter
+### Test adapter (`ForgeTestClient`)
 
-`ExpressFrameworkAdapter` shows one complete implementation of the contract.
+`ForgeTestClient` is an in-memory adapter used for testing journeys without HTTP
+or HTML rendering.
 
-It:
+It follows the same contract as a real adapter:
 
-- creates Express routers
-- mounts child routers
-- registers GET and POST handlers
-- converts Express requests to `StepRequest`
-- converts Express responses to `StepResponse`
-- redirects with Express
-- forwards errors into Express error handling
-- renders with Nunjucks through `TemplateRenderer`
+- reads routes from `forge.getTopology()`
+- matches a test path against route template paths to find the target node
+- extracts params from the matched path template
+- builds a `RequestSnapshot` from the matched route and test options (session,
+  state, body, headers, cookies)
+- creates recording `ResponseBindings` (Maps for headers and cookies)
+- calls `forge.evaluate(snapshot, { response })`
+- maps the `ForgeOutcome` to a `TestResult`, sourcing headers and cookies from
+  the recording bindings
 
-It also copies `res.locals` into request state before route handling. This makes
-framework-provided locals available through the Forge request snapshot.
+Because it consumes the same `evaluate` + `getTopology` surface as the Express
+adapter, tests exercise the full engine pipeline without framework dependencies.
+The test adapter provides its own recording bindings instead of live framework
+writes, exposing captured response data for assertions alongside the outcome.
 
 ## What can fail
 
 Adapter integration should fail when the host framework cannot satisfy the
-contract Forge expects.
+contract the engine expects.
 
 Important failure cases include:
 
-- routes cannot be mounted
-- a request cannot be converted into `StepRequest`
-- a response cannot be converted into `StepResponse`
+- a request cannot be converted into a `RequestSnapshot`
+- `forge.evaluate()` throws (internal engine error)
+- the adapter cannot interpret a `ForgeOutcome` variant
+- the adapter's `ResponseBindings` implementation fails during evaluation
+- rendering fails inside the adapter's template layer
 - redirect targets cannot be written to the response
 - errors cannot be forwarded into the framework's error model
-- rendering fails inside the adapter
 
 The main rule to preserve is that framework-specific objects should not leak
-into `forge-core`. Convert them at the adapter boundary.
+into `forge-core`. The `RequestSnapshot` is the inbound boundary; the
+`ForgeOutcome` is the outbound boundary.
 
 ## Connection to other docs
 
-The request lifecycle doc explains when controllers call adapter methods during
-runtime.
+The request lifecycle doc explains what happens inside `forge.evaluate()` for
+each request type.
 
-The framework integration rendering doc explains how `FrameworkAdapter.render`
-turns a `RenderContext` into a response.
+The framework integration rendering doc explains how an adapter turns a render
+outcome's `RenderContext` into a response.
 
-The component system docs explain how component registry entries are supplied to
-the adapter.
+The component system docs explain how component registry entries are supplied
+through the render outcome.

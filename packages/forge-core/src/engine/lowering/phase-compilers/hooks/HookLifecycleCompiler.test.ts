@@ -7,7 +7,7 @@ import { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.t
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { StepResponse } from '../../../../framework/types/response.type'
+import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { HookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
@@ -72,7 +72,7 @@ function createContext(
     setCookie: vi.fn(),
     getCookie: vi.fn(),
     getAllCookies: vi.fn(() => new Map()),
-  } as unknown as StepResponse
+  } as unknown as ResponseBindings
 
   return {
     answers,

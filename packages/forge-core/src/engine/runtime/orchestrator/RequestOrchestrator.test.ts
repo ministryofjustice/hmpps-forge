@@ -1,6 +1,7 @@
 import RequestOrchestrator from './RequestOrchestrator'
 import type { PipelineState, RequestPhase, TerminalPhase, ForgeResult, PhaseOutcome } from './types'
 import type { StepRequest } from '../../../framework/types/request.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
@@ -43,6 +44,7 @@ const createMockRequest = (
 const createMockState = (overrides: Partial<PipelineState> = {}): PipelineState => ({
   context: {} as RuntimeEvaluationContext,
   request: createMockRequest(overrides.request ? { params: overrides.request.getParams() } : {}),
+  responseBindings: NO_OP_RESPONSE_BINDINGS,
   ...overrides,
 })
 

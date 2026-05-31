@@ -1,8 +1,7 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
-import type { FrameworkAdapter, FrameworkAdapterBuilder } from '../framework/types/adapter.type'
-import ForgeRouter from './runtime/routes/ForgeRouter'
+import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
 import type { PackageDependencies } from './contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
 import Forge from './Forge'
@@ -10,16 +9,13 @@ import Forge from './Forge'
 vi.mock('./PackageInstance')
 vi.mock('./registries/ComponentRegistry')
 vi.mock('./registries/FunctionRegistry')
-vi.mock('./runtime/routes/ForgeRouter')
+vi.mock('./runtime/routes/ForgeEvaluator')
 
 describe('Forge', () => {
   let mockLogger: Mocked<Console>
-  let mockRouter: unknown
   let mockPackageInstance: Mocked<PackageInstance>
   let mockPackageDependencies: PackageDependencies
-  let mockForgeRouter: Mocked<ForgeRouter<unknown>>
-  let mockFrameworkAdapter: Mocked<FrameworkAdapter<unknown, unknown, unknown>>
-  let mockFrameworkAdapterBuilder: Mocked<FrameworkAdapterBuilder<unknown, unknown, unknown>>
+  let mockForgeEvaluator: Mocked<ForgeEvaluator>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -33,32 +29,13 @@ describe('Forge', () => {
       debug: vi.fn(),
     } as any
 
-    // Mock router (opaque object since it's framework-specific)
-    mockRouter = { _type: 'main-router' }
-
-    // Mock framework adapter
-    mockFrameworkAdapter = {
-      createRouter: vi.fn().mockReturnValue(mockRouter),
-      mountRouter: vi.fn(),
-      get: vi.fn(),
-      post: vi.fn(),
-      toStepRequest: vi.fn(),
-      redirect: vi.fn(),
-      forwardError: vi.fn(),
-      render: vi.fn().mockResolvedValue(undefined),
-    } as any
-
-    // Mock framework adapter builder (returns adapter when build() is called)
-    mockFrameworkAdapterBuilder = {
-      build: vi.fn().mockReturnValue(mockFrameworkAdapter),
-    } as any
-
-    mockForgeRouter = {
+    mockForgeEvaluator = {
       mount: vi.fn().mockReturnValue(3),
-      getRouter: vi.fn().mockReturnValue(mockRouter),
+      getTopology: vi.fn().mockReturnValue({ routes: [] }),
+      evaluate: vi.fn(),
     } as any
-    ;(ForgeRouter as MockedClass<typeof ForgeRouter>).mockImplementation(function mockForgeRouterCtor() {
-      return mockForgeRouter as any
+    ;(ForgeEvaluator as MockedClass<typeof ForgeEvaluator>).mockImplementation(function mockForgeEvaluatorCtor() {
+      return mockForgeEvaluator as any
     })
 
     mockPackageDependencies = {
@@ -82,7 +59,6 @@ describe('Forge', () => {
    */
   function createDefaultOptions(overrides: Record<string, unknown> = {}) {
     return {
-      frameworkAdapter: mockFrameworkAdapterBuilder,
       ...overrides,
     }
   }
@@ -94,7 +70,7 @@ describe('Forge', () => {
 
       expect(ComponentRegistry).toHaveBeenCalledTimes(1)
       expect(FunctionRegistry).toHaveBeenCalledTimes(1)
-      expect(ForgeRouter).toHaveBeenCalledTimes(1)
+      expect(ForgeEvaluator).toHaveBeenCalledTimes(1)
     })
 
     it('should use custom options when provided', () => {
@@ -219,7 +195,7 @@ describe('Forge', () => {
           functionDependencies,
         }),
       )
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockPackageInstance, expect.any(Object))
+      expect(mockForgeEvaluator.mount).toHaveBeenCalledWith(mockPackageInstance)
     })
 
     it('should skip registration when enabled is false', () => {
@@ -273,12 +249,37 @@ describe('Forge', () => {
     })
   })
 
-  describe('getRouter', () => {
-    it('should return the main router', () => {
+  describe('getTopology', () => {
+    it('should return the topology from the evaluator', () => {
       const engine = new Forge(createDefaultOptions())
+      const topology = engine.getTopology()
+
+      expect(topology).toEqual({ routes: [] })
+      expect(mockForgeEvaluator.getTopology).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('getRouter', () => {
+    it('should build the router from the configured frameworkAdapter', () => {
+      // Arrange
+      const mockRouter = { _type: 'router' }
+      const frameworkAdapter = { build: vi.fn().mockReturnValue(mockRouter) }
+      const engine = new Forge(createDefaultOptions({ frameworkAdapter }))
+
+      // Act
       const router = engine.getRouter()
 
+      // Assert
+      expect(frameworkAdapter.build).toHaveBeenCalledWith(engine)
       expect(router).toBe(mockRouter)
+    })
+
+    it('should throw when no frameworkAdapter is configured', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+
+      // Act & Assert
+      expect(() => engine.getRouter()).toThrow('getRouter() requires a frameworkAdapter')
     })
   })
 
@@ -303,7 +304,7 @@ describe('Forge', () => {
         .registerPackage({ journey: 'config-2' })
 
       expect(result).toBe(engine)
-      expect(mockForgeRouter.mount).toHaveBeenCalledTimes(2)
+      expect(mockForgeEvaluator.mount).toHaveBeenCalledTimes(2)
     })
 
     it('should support chaining even when package registration fails', () => {
@@ -325,7 +326,7 @@ describe('Forge', () => {
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockForgeRouter.mount).toHaveBeenCalledTimes(1)
+      expect(mockForgeEvaluator.mount).toHaveBeenCalledTimes(1)
     })
 
     it('should handle complete registration workflow with chaining', () => {
@@ -351,7 +352,7 @@ describe('Forge', () => {
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
         CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
       })
-      expect(mockForgeRouter.mount).toHaveBeenCalledWith(mockPackageInstance, expect.any(Object))
+      expect(mockForgeEvaluator.mount).toHaveBeenCalledWith(mockPackageInstance)
     })
   })
 })

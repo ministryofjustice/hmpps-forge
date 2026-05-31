@@ -1,20 +1,21 @@
-import type { HttpMethod } from '../framework/types/request.type'
+import createHttpError from 'http-errors'
+import type { HttpMethod, RequestLocation } from '../framework/types/request.type'
+import type { RequestSnapshot } from '../framework/types/snapshot.type'
+import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { CookieMutation } from '../framework/types/response.type'
-import type { TestRequest, TestRequestOptions, TestResponse, TestResult, TestRouter, TestRoute } from './types'
+import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
+import type { ForgeRoute } from '../framework/types/topology.type'
+import { extractPathname, resolvePathParams } from '../framework/path/routePath'
+import type { ForgeEvaluationEngine, TestRequestOptions, TestResult } from './types'
 
 interface PathSegment {
   type: 'static' | 'param'
   value: string
 }
 
-interface PathMatchResult {
+interface RouteMatch {
+  route: ForgeRoute
   params: Record<string, string>
-}
-
-interface ResolvedRoute {
-  route: TestRoute
-  params: Record<string, string>
-  basePath: string
 }
 
 function parseSegments(pattern: string): PathSegment[] {
@@ -35,7 +36,10 @@ function parseSegments(pattern: string): PathSegment[] {
   )
 }
 
-function matchSegments(patternSegments: PathSegment[], pathSegments: string[]): PathMatchResult | undefined {
+function matchPath(pattern: string, path: string): Record<string, string> | undefined {
+  const patternSegments = parseSegments(pattern)
+  const pathSegments = (path.startsWith('/') ? path : `/${path}`).split('/').filter(Boolean)
+
   if (patternSegments.length !== pathSegments.length) {
     return undefined
   }
@@ -53,42 +57,16 @@ function matchSegments(patternSegments: PathSegment[], pathSegments: string[]): 
     }
   }
 
-  return { params }
-}
-
-function matchPath(pattern: string, path: string): PathMatchResult | undefined {
-  const patternSegments = parseSegments(pattern)
-  const pathSegments = (path.startsWith('/') ? path : `/${path}`).split('/').filter(Boolean)
-
-  return matchSegments(patternSegments, pathSegments)
-}
-
-function matchPrefix(pattern: string, path: string): { params: Record<string, string>; remaining: string } | undefined {
-  const patternSegments = parseSegments(pattern)
-  const pathSegments = (path.startsWith('/') ? path : `/${path}`).split('/').filter(Boolean)
-
-  if (pathSegments.length < patternSegments.length) {
-    return undefined
-  }
-
-  const result = matchSegments(patternSegments, pathSegments.slice(0, patternSegments.length))
-
-  if (!result) {
-    return undefined
-  }
-
-  const remainingSegments = pathSegments.slice(patternSegments.length)
-  const remaining = remainingSegments.length > 0 ? `/${remainingSegments.join('/')}` : '/'
-
-  return { params: result.params, remaining }
+  return params
 }
 
 /**
  * Test client for sending requests to a Forge instance and inspecting the results.
  *
- * Each call returns a {@link TestResult} containing either the
- * {@link RenderContext} or redirect URL, plus any response headers and
- * cookies set during the request.
+ * It matches a path against the engine's {@link Forge.getTopology} routes, builds
+ * a {@link RequestSnapshot}, runs {@link Forge.evaluate}, and maps the outcome to
+ * a {@link TestResult} — exercising the exact path a real adapter takes, without
+ * HTTP or HTML rendering.
  *
  * @example
  * ```typescript
@@ -102,8 +80,11 @@ function matchPrefix(pattern: string, path: string): { params: Record<string, st
  * ```
  */
 export class ForgeTestClient {
+  private readonly routes: ForgeRoute[]
 
-  constructor(private readonly router: TestRouter) {}
+  constructor(private readonly forge: ForgeEvaluationEngine) {
+    this.routes = forge.getTopology().routes
+  }
 
   /** Dispatch a GET request to the given path. */
   async get(path: string, options?: TestRequestOptions): Promise<TestResult> {
@@ -116,88 +97,61 @@ export class ForgeTestClient {
   }
 
   private async dispatch(method: HttpMethod, path: string, options?: TestRequestOptions): Promise<TestResult> {
-    const resolved = this.resolveRoute(path)
+    const match = this.resolveRoute(path)
 
-    if (!resolved) {
+    if (!match) {
       throw new Error(`No route matched for path: ${path}`)
     }
 
-    const routeHandler = method === 'GET' ? resolved.route.get : resolved.route.post
+    const params = { ...match.params, ...options?.params }
+    const snapshot = this.buildSnapshot(method, path, match.route, params, options)
+    const response = createTestResponseBindings()
+    const outcome = await this.forge.evaluate(snapshot, { response })
 
-    if (!routeHandler) {
-      throw new Error(`No ${method} handler registered for path: ${path}`)
-    }
-
-    const mergedParams = { ...resolved.params, ...options?.params }
-
-    const req = this.buildRequest(method, path, resolved.basePath, mergedParams, options)
-    const res = this.buildResponse()
-
-    await routeHandler.handler(req, res)
-
-    return this.buildResult(res)
+    return this.toResult(outcome, response)
   }
 
-  private resolveRoute(path: string): ResolvedRoute | undefined {
-    return this.resolveRouteInRouter(this.router, path, '', {})
-  }
+  private resolveRoute(path: string): RouteMatch | undefined {
+    const pathname = extractPathname(path)
 
-  private resolveRouteInRouter(
-    router: TestRouter,
-    remainingPath: string,
-    currentBase: string,
-    inheritedParams: Record<string, string>,
-  ): ResolvedRoute | undefined {
-    for (const [routePath, route] of router.routes) {
-      const fullPattern = routePath === '/' ? '' : routePath
-      const match = matchPath(fullPattern, remainingPath)
+    for (const route of this.routes) {
+      const params = matchPath(route.templatePath, pathname)
 
-      if (match) {
-        return {
-          route,
-          params: { ...inheritedParams, ...match.params },
-          basePath: currentBase,
-        }
-      }
-    }
-
-    for (const [mountPath, childRouter] of router.children) {
-      const prefixMatch = matchPrefix(mountPath, remainingPath)
-
-      if (prefixMatch) {
-        const newBase = `${currentBase}${mountPath}`
-        const mergedParams = { ...inheritedParams, ...prefixMatch.params }
-        const childResult = this.resolveRouteInRouter(childRouter, prefixMatch.remaining, newBase, mergedParams)
-
-        if (childResult) {
-          return childResult
-        }
+      if (params) {
+        return { route, params }
       }
     }
 
     return undefined
   }
 
-  private buildRequest(
+  private buildSnapshot(
     method: HttpMethod,
     path: string,
-    basePath: string,
+    route: ForgeRoute,
     params: Record<string, string>,
     options?: TestRequestOptions,
-  ): TestRequest {
-    const url = `http://localhost${path}`
+  ): RequestSnapshot {
+    const origin = 'http://localhost'
+    const pathname = extractPathname(path)
+    const location: RequestLocation = {
+      origin,
+      href: `${origin}${path}`,
+      pathname,
+      basePath: resolvePathParams(route.basePath, params),
+    }
 
     return {
+      nodeId: route.nodeId,
       method,
-      url,
-      baseUrl: basePath,
-      headers: this.normalizeHeaders(options?.headers ?? {}),
-      cookies: options?.cookies ?? {},
+      location,
       params,
       query: options?.query ?? {},
-      body: options?.body ?? {},
-      session: options?.session,
+      post: options?.body ?? {},
+      headers: this.normalizeHeaders(options?.headers ?? {}),
+      cookies: options?.cookies ?? {},
       state: options?.state ?? {},
+      session: options?.session,
     }
   }
 
@@ -211,37 +165,70 @@ export class ForgeTestClient {
     return normalized
   }
 
-  private buildResponse(): TestResponse {
-    return {
-      headers: new Map<string, string>(),
-      cookies: new Map<string, CookieMutation>(),
-    }
-  }
-
-  private buildResult(res: TestResponse): TestResult {
-    if (res.redirectUrl !== undefined) {
+  private toResult(outcome: ForgeOutcome, response: TestResponseBindings): TestResult {
+    if (outcome.kind === 'navigate') {
       return {
         type: 'redirect',
-        url: res.redirectUrl,
-        headers: res.headers,
-        cookies: res.cookies,
+        url: outcome.url,
+        headers: response.getAllHeaders(),
+        cookies: response.getAllCookies(),
       }
     }
 
-    if (res.renderContext !== undefined) {
-      const context = res.renderContext
-
-      return {
-        type: 'render',
-        context,
-        headers: res.headers,
-        cookies: res.cookies,
-        getBlocksByVariant: (variant: string) => context.blocks.filter(b => b.variant === variant),
-        getValidationErrorsByFieldCode: (fieldCode: string) =>
-          context.fieldValidationErrors.filter(e => e.blockCode === fieldCode),
-      }
+    if (outcome.kind === 'error') {
+      throw createHttpError(errorCodeToStatus(outcome.error.code), outcome.error.message)
     }
 
-    throw new Error('Request handler completed without rendering or redirecting')
+    const { context } = outcome
+
+    return {
+      type: 'render',
+      context,
+      headers: response.getAllHeaders(),
+      cookies: response.getAllCookies(),
+      getBlocksByVariant: (variant: string) => context.blocks.filter(b => b.variant === variant),
+      getValidationErrorsByFieldCode: (fieldCode: string) =>
+        context.fieldValidationErrors.filter(e => e.blockCode === fieldCode),
+    }
   }
+}
+
+interface TestResponseBindings extends ResponseBindings {
+  getAllHeaders(): Map<string, string>
+  getAllCookies(): Map<string, CookieMutation>
+}
+
+function createTestResponseBindings(): TestResponseBindings {
+  const headers = new Map<string, string>()
+  const cookies = new Map<string, CookieMutation>()
+
+  return {
+    setHeader(name, value) {
+      headers.set(name, value)
+    },
+    getHeader(name) {
+      return headers.get(name)
+    },
+    getAllHeaders() {
+      return headers
+    },
+    setCookie(name, value, options) {
+      cookies.set(name, { value, options })
+    },
+    getCookie(name) {
+      return cookies.get(name)
+    },
+    getAllCookies() {
+      return cookies
+    },
+  }
+}
+
+const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
+  'node-not-found': 404,
+  'method-not-supported': 405,
+}
+
+function errorCodeToStatus(code: ForgeErrorCode): number {
+  return ERROR_CODE_STATUS[code]
 }

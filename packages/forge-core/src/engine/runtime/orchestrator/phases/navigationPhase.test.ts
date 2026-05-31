@@ -5,7 +5,7 @@ import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { StepResponse } from '../../../../framework/types/response.type'
+import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
 const createMockState = (): PipelineState => {
   const request = {
@@ -32,10 +32,9 @@ const createMockState = (): PipelineState => {
     getState: () => undefined,
     getAllState: () => ({}),
   } as unknown as StepRequest
-  const response = {} as StepResponse
-  const context = new RuntimeEvaluationContext(request, response)
+  const context = new RuntimeEvaluationContext(request)
 
-  return { context, request }
+  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS }
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry
