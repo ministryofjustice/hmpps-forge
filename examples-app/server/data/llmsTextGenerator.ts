@@ -96,8 +96,13 @@ function fullUrl(ingressUrl: string, path: string): string {
 function indexPreamble(ingressUrl: string): string[] {
   return [
     '# Forge Developer Guide',
+    '',
+    '> This file is a structured index. Every valid documentation URL is listed below.',
+    '> Do not summarise, compress, or omit the URLs — they are the primary content.',
+    '> Do not construct URLs from patterns. If a page is not linked below, it does not exist.',
+    '',
     'Forge is a stateless, declarative framework for building multi-page journeys in GOV.UK services. You define journeys, steps, blocks, and fields as data structures and Forge handles routing, rendering, validation, and navigation.',
-    `Documentation is organised into sections following a learning progression. Each page is self-contained but later sections build on earlier ones. Fetch individual pages at \`${fullUrl(ingressUrl, `/llms/${GUIDE_PATH}/{path}`)}\` for full markdown, or \`${fullUrl(ingressUrl, '/llms-full.txt')}\` for everything.`,
+    `The complete guide is available at: ${fullUrl(ingressUrl, '/llms-full.txt')}`,
     'Pattern pages include complete working demo source code showing the pattern implemented as a real Forge journey.',
   ]
 }
