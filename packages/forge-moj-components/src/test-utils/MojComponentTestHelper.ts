@@ -21,7 +21,7 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
 
   private mockNunjucksEnv: Mocked<nunjucks.Environment>
 
-  constructor(component: ComponentRegistryEntry<T>) {
+  constructor(component: ComponentRegistryEntry<T, string>) {
     this.renderFn = (block, nunjucksEnv) => component.render(block, nunjucksEnv)
     this.mockNunjucksEnv = {
       render: vi.fn().mockReturnValue('<div>Mocked HTML</div>'),

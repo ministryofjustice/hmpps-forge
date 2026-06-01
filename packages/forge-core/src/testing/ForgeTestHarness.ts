@@ -37,7 +37,7 @@ export class ForgeTestHarness {
     })
   }
 
-  registerGlobalComponents(components: ComponentRegistryEntry<BlockDefinition>[]): this {
+  registerGlobalComponents(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): this {
     this.forge.registerGlobalComponents(components)
 
     return this

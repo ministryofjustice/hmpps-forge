@@ -7,6 +7,7 @@ import type {
 import FunctionRegistry from './registries/FunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
+import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
@@ -169,14 +170,14 @@ export default class Forge {
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
-  registerGlobalComponent(component: ComponentRegistryEntry<any>): this {
+  registerGlobalComponent(component: ComponentRegistryEntry<BlockDefinition, unknown>): this {
     this.componentRegistry.registerMany([component])
 
     return this
   }
 
   /** Add components to the global registry, making them available to all journeys. */
-  registerGlobalComponents(components: ComponentRegistryEntry<any>[]): this {
+  registerGlobalComponents(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): this {
     this.componentRegistry.registerMany(components)
 
     return this

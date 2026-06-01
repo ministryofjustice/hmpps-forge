@@ -16,7 +16,7 @@ import type { JourneyDefinition } from './structures.type'
 export interface ForgePackage<TDeps = Record<string, never>> {
   journey: JourneyDefinition
   functions?: FunctionImplementations<FunctionShapeMap, TDeps>
-  components?: ComponentRegistryEntry<BlockDefinition>[]
+  components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
 
   /**
    * Whether this package should be registered. Default: true

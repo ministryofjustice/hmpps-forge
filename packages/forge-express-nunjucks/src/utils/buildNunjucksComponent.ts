@@ -31,7 +31,7 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
 export const buildNunjucksComponent = <T extends BlockDefinition>(
   variant: string,
   render: NunjucksComponentRenderer<T>,
-): ComponentRegistryEntry<T> => ({
+): ComponentRegistryEntry<T, string> => ({
   variant,
   render: (block, renderer) => render(block, renderer as nunjucks.Environment),
 })
