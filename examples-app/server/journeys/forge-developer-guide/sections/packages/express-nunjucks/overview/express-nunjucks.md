@@ -2,7 +2,7 @@
 title: Express-Nunjucks Adapter
 section: packages
 path: packages/express-nunjucks/overview
-teaches: [express-nunjucks, ExpressFrameworkAdapter]
+teaches: [express-nunjucks, createExpressRouter]
 prerequisites: [packages, journey, step, block]
 ---
 
@@ -23,7 +23,7 @@ application.
 
 ```typescript
 import {
-  ExpressFrameworkAdapter,
+  createExpressRouter,
   buildNunjucksComponent,
   NunjucksGenerators,
   nunjucksFunctions,
@@ -32,27 +32,24 @@ import {
 
 ---
 
-## Setting up the adapter
+## Setting up the router
 
-Pass `ExpressFrameworkAdapter.configure()` as the `frameworkAdapter`
-when creating a Forge instance:
+Pass your Forge instance and Nunjucks environment to
+`createExpressRouter` to produce an Express router:
 
 ```typescript
 import nunjucks from 'nunjucks'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 const nunjucksEnv = nunjucks.configure(['server/views'], {
   autoescape: true,
   express: app,
 })
 
-const forge = new Forge({
-  logger,
-  frameworkAdapter: ExpressFrameworkAdapter.configure({
-    nunjucksEnv,
-  }),
-})
+const forge = new Forge({ logger })
+
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
 ### Configuration options

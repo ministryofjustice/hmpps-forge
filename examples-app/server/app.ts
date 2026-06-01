@@ -2,7 +2,7 @@ import express from 'express'
 import createError from 'http-errors'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import {
-  ExpressFrameworkAdapter,
+  createExpressRouter,
   nunjucksFunctions,
 } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
@@ -24,10 +24,7 @@ export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
 
-  const forge = new Forge({
-    logger,
-    frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-  })
+  const forge = new Forge({ logger })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
     .registerGlobalFunctions(nunjucksFunctions)
@@ -53,7 +50,7 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpStaticResources())
   app.use(setUpCsrf())
   app.get('/', (req, res) => res.redirect('/forge-developer-guide/get-started'))
-  app.use(forge.getRouter() as express.Router)
+  app.use(createExpressRouter(forge, { nunjucksEnv }))
 
   app.use(llmsTxtRouter(services.guideContentStore, services.llmsTextGenerator))
 

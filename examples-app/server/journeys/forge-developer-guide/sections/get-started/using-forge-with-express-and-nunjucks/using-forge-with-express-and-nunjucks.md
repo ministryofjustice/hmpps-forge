@@ -2,7 +2,7 @@
 title: Using Forge with Express and Nunjucks
 section: get-started
 path: get-started/using-forge-with-express-and-nunjucks
-teaches: [ExpressFrameworkAdapter, getRouter, nunjucks-setup, page-template]
+teaches: [createExpressRouter, nunjucks-setup, page-template]
 prerequisites: [Forge, registerGlobalComponents]
 ---
 
@@ -51,18 +51,18 @@ first so your templates can override defaults when needed.
 
 ---
 
-## Create the framework adapter
+## Create the Express router
 
-Pass the Nunjucks environment to `ExpressFrameworkAdapter` and use it
-when creating your Forge instance:
+Pass your Forge instance and Nunjucks environment to
+`createExpressRouter` to produce an Express router:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-const forge = new Forge({
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-})
+const forge = new Forge({ logger })
+
+const router = createExpressRouter(forge, { nunjucksEnv })
 ```
 
 ---
@@ -117,7 +117,7 @@ submissions can be read. Mount this before the Forge router:
 
 ```typescript
 app.use(express.urlencoded({ extended: true }))
-app.use(forge.getRouter())
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
 Place the Forge router after any middleware but before your error
@@ -134,7 +134,7 @@ import express from 'express'
 import nunjucks from 'nunjucks'
 import path from 'node:path'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 
@@ -153,9 +153,7 @@ const nunjucksEnv = nunjucks.configure(
 )
 
 // Forge
-const forge = new Forge({
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-})
+const forge = new Forge({ logger })
 
 forge.registerGlobalComponents(govukComponents)
 forge.registerGlobalComponents(mojComponents)
@@ -165,7 +163,7 @@ forge.registerGlobalComponents(mojComponents)
 
 // Middleware and routes
 app.use(express.urlencoded({ extended: true }))
-app.use(forge.getRouter())
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000')

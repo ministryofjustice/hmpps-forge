@@ -28,8 +28,8 @@ three places in order:
 2. **Ancestor journeys** - starting from the nearest parent and
    walking up, the first ancestor with a `view.template` wins.
 3. **Default template** - falls back to the `defaultTemplate`
-   option passed to `ExpressFrameworkAdapter.configure()`, or
-   `'form-step'` if not configured.
+   option passed to `createExpressRouter`, or `'form-step'` if
+   not configured.
 
 The `.njk` extension is appended automatically if the template
 name doesn't already end with it.

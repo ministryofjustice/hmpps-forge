@@ -2,7 +2,7 @@
 title: Initialisation
 section: packages
 path: packages/forge-core/forge-class
-teaches: [Forge, ForgeOptions, ForgePackage, registerPackage, registerGlobalComponents, registerGlobalFunctions, getRouter, createForgePackage]
+teaches: [Forge, ForgeOptions, ForgePackage, registerPackage, registerGlobalComponents, registerGlobalFunctions, createForgePackage]
 prerequisites: [forge-core]
 ---
 
@@ -22,19 +22,14 @@ application.
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-const forge = new Forge({
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-  logger,
-})
+const forge = new Forge({ logger })
 ```
 
 ### Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `frameworkAdapter` | `FrameworkAdapterBuilder` | *required* | Builder for the web framework adapter. Use the static `configure()` method on your adapter class. |
 | `logger` | `Logger \| Console` | `console` | Logger instance for Forge output. Compatible with pino, bunyan, or any logger with `info`, `error`, `warn`, and `debug` methods. |
 | `basePath` | `string` | `''` | Base path prefix for all routes. When set, all routes are mounted under this path and the route tree includes the prefix. |
 | `strictRegistration` | `boolean` | `true` | When `true`, registration errors throw immediately. When `false`, errors are logged and the failing journey is skipped. |
@@ -122,15 +117,15 @@ All registration methods return `this`, so they can be chained.
 
 ---
 
-## Getting the router
+## Creating the Express router
 
-Once all journeys are registered, get the framework router and
-mount it on your application:
+Once all journeys are registered, use `createExpressRouter` to
+produce an Express router and mount it on your application:
 
 ```typescript
-const router = forge.getRouter() as express.Router
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-app.use(router)
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
 If you configured a `basePath`, the routes are already prefixed:
@@ -138,9 +133,9 @@ If you configured a `basePath`, the routes are already prefixed:
 ```typescript
 const forge = new Forge({
   basePath: '/forms',
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+  logger,
 })
 
 // Routes will be at /forms/my-journey/step-one, etc.
-app.use(forge.getRouter() as express.Router)
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```

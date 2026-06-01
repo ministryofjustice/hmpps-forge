@@ -68,9 +68,8 @@ describe('LlmsTextGenerator', () => {
 
       // Assert
       expect(index).toContain(
-        'https://forge.example/llms/forge-developer-guide/{path}` for full markdown',
+        'The complete guide is available at: https://forge.example/llms-full.txt',
       )
-      expect(index).toContain('`https://forge.example/llms-full.txt` for everything')
     })
 
     it('should group nested entries under overview headings when path segments contain groups', () => {

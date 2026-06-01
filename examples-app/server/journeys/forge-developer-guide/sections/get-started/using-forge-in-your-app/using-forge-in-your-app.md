@@ -2,7 +2,7 @@
 title: Using Forge in your app
 section: get-started
 path: get-started/using-forge-in-your-app
-teaches: [Forge, frameworkAdapter, registerGlobalComponents, registerPackage]
+teaches: [Forge, createExpressRouter, registerGlobalComponents, registerPackage]
 prerequisites: [installation]
 ---
 
@@ -18,24 +18,19 @@ component libraries, and register your journey packages.
 
 ## Create a Forge instance
 
-Forge connects to your web framework through a **framework adapter**.
-The adapter handles template rendering, request parsing, and response
-delivery. Forge itself is not tied to any particular framework.
-
-Create a Forge instance by passing it an adapter:
+Create a Forge instance and register your component libraries and
+journey packages. Forge itself is framework-agnostic — connecting
+it to Express happens separately via `createExpressRouter`.
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 
-const forge = new Forge({
-  frameworkAdapter: myAdapter,
-})
+const forge = new Forge({ logger })
 ```
 
-Forge ships with an Express and Nunjucks adapter. The next guide,
+The next guide,
 [Using Forge with Express and Nunjucks](using-forge-with-express-and-nunjucks), covers
-how to configure it. If you are using a different stack, you can
-provide your own adapter implementation.
+how to create the Express router and wire everything together.
 
 ---
 
@@ -93,5 +88,4 @@ references.
 
 You now have a Forge instance with component libraries registered.
 Continue to [Using Forge with Express and Nunjucks](using-forge-with-express-and-nunjucks)
-to wire Forge into your web application using the provided framework
-adapter.
+to create the Express router and wire Forge into your web application.

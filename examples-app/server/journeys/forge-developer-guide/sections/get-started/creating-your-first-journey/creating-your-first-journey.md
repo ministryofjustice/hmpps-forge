@@ -3,7 +3,7 @@ title: Creating your first journey
 section: get-started
 path: get-started/creating-your-first-journey
 teaches: []
-prerequisites: [installation, Forge, ExpressFrameworkAdapter]
+prerequisites: [installation, Forge, createExpressRouter]
 ---
 
 <p class="govuk-caption-xl">Get started</p>
@@ -154,7 +154,7 @@ import feedbackPackage from './journeys/feedback'
 forge.registerPackage(feedbackPackage)
 
 app.use(express.urlencoded({ extended: true }))
-app.use(forge.getRouter())
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000')
