@@ -223,9 +223,13 @@ export default class TemplateRenderer {
 
         span.setAttribute('forge.component.input', safeStringify(evaluatedBlock))
 
-        const html = component.render(evaluatedBlock, this.cachedRenderer)
+        const rendered = component.render(evaluatedBlock, this.cachedRenderer)
 
-        return this.decorateRenderedComponent(html, block.id, block.variant)
+        if (!isStringValue(rendered)) {
+          throw new Error(`Component variant "${block.variant}" must render an HTML string for the Nunjucks adapter.`)
+        }
+
+        return this.decorateRenderedComponent(rendered, block.id, block.variant)
       } catch (err) {
         throw this.wrapError(err)
       }
@@ -398,4 +402,8 @@ function safeStringify(value: unknown): string {
   } catch {
     return '{}'
   }
+}
+
+function isStringValue(value: unknown): value is string {
+  return typeof value === 'string'
 }

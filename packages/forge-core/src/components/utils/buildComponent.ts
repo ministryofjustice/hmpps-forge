@@ -19,10 +19,10 @@ import type { BlockDefinition } from '../types/structures.type'
  * })
  * ```
  */
-export const buildComponent = <T extends BlockDefinition>(
+export const buildComponent = <T extends BlockDefinition, TRenderOutput = string>(
   variant: string,
-  renderer: ComponentRenderer<T>,
-): ComponentRegistryEntry<T> => ({
+  renderer: ComponentRenderer<T, TRenderOutput>,
+): ComponentRegistryEntry<T, TRenderOutput> => ({
   variant,
   render: renderer,
 })

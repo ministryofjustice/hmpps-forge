@@ -15,6 +15,8 @@ export interface Logger {
  * Read-only view of the components an adapter can render, keyed by variant.
  */
 export interface ComponentRegistry {
-  get<T extends BlockDefinition>(variant: string): ComponentRegistryEntry<T> | undefined
-  getAll(): ReadonlyMap<string, ComponentRegistryEntry<BlockDefinition>>
+  get<T extends BlockDefinition, TRenderOutput = unknown>(
+    variant: string,
+  ): ComponentRegistryEntry<T, TRenderOutput> | undefined
+  getAll(): ReadonlyMap<string, ComponentRegistryEntry<BlockDefinition, unknown>>
 }

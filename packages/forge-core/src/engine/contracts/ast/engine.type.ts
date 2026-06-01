@@ -24,6 +24,6 @@ export type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) =
 export interface ForgePackageRegistration<TDeps = Record<string, never>> {
   journey: string | JourneyDefinition
   functions?: ForgeFunctionImplementations<TDeps>
-  components?: ComponentRegistryEntry<BlockDefinition>[]
+  components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
   enabled?: boolean
 }

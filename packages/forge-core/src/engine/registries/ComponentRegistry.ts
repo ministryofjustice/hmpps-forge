@@ -9,7 +9,7 @@ import { coreComponents } from '../../components/builtins'
  * Components are stored by their variant name and can be retrieved during form rendering.
  */
 export default class ComponentRegistry {
-  private readonly components = new Map<string, ComponentRegistryEntry<any>>()
+  private readonly components = new Map<string, ComponentRegistryEntry<BlockDefinition, unknown>>()
 
   /**
    * Register multiple components at once
@@ -18,7 +18,7 @@ export default class ComponentRegistry {
    * @throws RegistryValidationError if a component is invalid
    * @throws AggregateError if multiple validation errors occur
    */
-  registerMany(components: ComponentRegistryEntry<any>[]): void {
+  registerMany(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): void {
     if (!components || components.length === 0) {
       return
     }
@@ -71,8 +71,10 @@ export default class ComponentRegistry {
    * @param variant - The variant of the component to retrieve
    * @returns The component or undefined if not found
    */
-  get<T extends BlockDefinition>(variant: string): ComponentRegistryEntry<T> | undefined {
-    return this.components.get(variant) as ComponentRegistryEntry<T> | undefined
+  get<T extends BlockDefinition, TRenderOutput = unknown>(
+    variant: string,
+  ): ComponentRegistryEntry<T, TRenderOutput> | undefined {
+    return this.components.get(variant) as ComponentRegistryEntry<T, TRenderOutput> | undefined
   }
 
   /**
@@ -88,7 +90,7 @@ export default class ComponentRegistry {
    * Get all registered components
    * @returns Map of all registered components
    */
-  getAll(): Map<string, ComponentRegistryEntry<any>> {
+  getAll(): Map<string, ComponentRegistryEntry<BlockDefinition, unknown>> {
     return new Map(this.components)
   }
 

@@ -1,4 +1,4 @@
-import { ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { mojAlert } from './alert/mojAlert'
 import { mojBadge } from './badge/mojBadge'
@@ -70,7 +70,7 @@ export { MOJMultiSelect } from './multi-select/mojMultiSelect'
 export { MOJSortableTable } from './sortable-table/mojSortableTable'
 
 /** All MOJ component definitions */
-export const mojComponents: ComponentRegistryEntry<any>[] = [
+export const mojComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
   mojAlert,
   mojBadge,
   mojBanner,

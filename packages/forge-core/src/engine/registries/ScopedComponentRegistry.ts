@@ -15,15 +15,17 @@ export default class ScopedComponentRegistry extends ComponentRegistry {
     super()
   }
 
-  override get<T extends BlockDefinition>(variant: string): ComponentRegistryEntry<T> | undefined {
-    return super.get<T>(variant) ?? this.parent.get<T>(variant)
+  override get<T extends BlockDefinition, TRenderOutput = unknown>(
+    variant: string,
+  ): ComponentRegistryEntry<T, TRenderOutput> | undefined {
+    return super.get<T, TRenderOutput>(variant) ?? this.parent.get<T, TRenderOutput>(variant)
   }
 
   override has(variant: string): boolean {
     return super.has(variant) || this.parent.has(variant)
   }
 
-  override getAll(): Map<string, ComponentRegistryEntry<any>> {
+  override getAll(): Map<string, ComponentRegistryEntry<BlockDefinition, unknown>> {
     const merged = this.parent.getAll()
 
     for (const [variant, entry] of super.getAll()) {
