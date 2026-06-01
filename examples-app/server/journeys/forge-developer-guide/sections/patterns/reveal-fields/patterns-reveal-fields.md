@@ -35,7 +35,7 @@ It fits well when:
 
 If the follow-up is a full set of questions or has its own validation
 and integration concerns, prefer
-[Branching based on an earlier answer](patterns/branching) and give
+[Branching based on an earlier answer](branching) and give
 each branch its own step.
 
 ---

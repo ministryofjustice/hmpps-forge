@@ -166,7 +166,7 @@ not(Answer('status').match(Condition.Equals('closed')))
 ```
 
 These combinators are covered in more detail on the
-[Matching and combinators](matching-and-combinators) page.
+[Matching and combinators](combinators) page.
 
 ---
 
@@ -177,7 +177,7 @@ the built-in set does not cover, you can define your own
 conditions. They are used through `.match()` on references in
 exactly the same way as built-ins.
 
-See [Building custom conditions](building-functions-and-components/custom-conditions)
+See [Building custom conditions](../building-functions-and-components/custom-conditions)
 for the shape interface, implementation, type-checking conventions,
 and registration details.
 

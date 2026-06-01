@@ -246,7 +246,7 @@ parsers: [Transformer.Object.FromISO({ year: 'year', month: 'month', day: 'day' 
 
 Parsers do not modify the stored answer. Conditions and other
 references to the answer always see the canonical form. See
-[Transformers](authoring-language/transformers) for details.
+[Transformers](../authoring-language/transformers) for details.
 
 ### `validWhen` (Optional)
 
@@ -377,7 +377,7 @@ If a block references a variant that isn't registered, Forge will throw an error
 during validation - before the journey is even compiled. This surfaces missing
 components at startup, not when a user happens to visit the page.
 
-See the [Components](rendering-components) section for full details on building
+See the [Components](../building-functions-and-components/custom-components) section for full details on building
 and registering components.
 
 ---

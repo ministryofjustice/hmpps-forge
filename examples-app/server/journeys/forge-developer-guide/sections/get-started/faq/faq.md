@@ -335,7 +335,7 @@ the core authoring API and register them with your own variants.
 The framework adapter handles rendering - if you write a custom
 adapter, you can target any templating system.
 
-See [Building custom components](../building-functions-and-components/building-custom-components)
+See [Building custom components](../building-functions-and-components/custom-components)
 for the full component authoring guide.
 
 ---

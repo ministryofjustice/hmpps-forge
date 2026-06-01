@@ -37,24 +37,24 @@ assembled.
 
 ## Patterns available
 
-- [Single question per page](patterns/single-question-per-page) - A
+- [Single question per page](single-question-per-page) - A
   sequential flow that asks one question per page, validates each
   submission, and ends on a check-your-answers summary.
-- [Branching based on an earlier answer](patterns/branching) - A
+- [Branching based on an earlier answer](branching) - A
   flow that routes users down different paths based on an earlier
   answer, then converges on a shared check-your-answers summary.
-- [Reveal fields](patterns/reveal-fields) - A radio question that
+- [Reveal fields](reveal-fields) - A radio question that
   reveals an extra input inline when the user picks an option that
   needs more detail, without leaving the page.
-- [Multi-part composite fields](patterns/composite-fields) - Fields
+- [Multi-part composite fields](composite-fields) - Fields
   that are conceptually one value but collected through several
   inputs, covering both component-owned (date) and author-owned
   (address) flavours.
-- [Resuming a partially-completed journey](patterns/resuming) - A
+- [Resuming a partially-completed journey](resuming) - A
   landing page that detects saved progress and lets the user
   continue where they left off or clear their answers and start
   again.
-- [Add another](patterns/add-another) - A list page that lets users
+- [Add another](add-another) - A list page that lets users
   build a collection one item at a time, displaying each entry as a
   summary card with a remove link.
 

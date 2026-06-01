@@ -94,7 +94,7 @@ numbers, computed defaults), you can define your own. Custom
 generators plug into the same `.pipe()` pipeline as the built-ins
 and are used in definitions the same way.
 
-See [Building custom generators](building-functions-and-components/custom-generators)
+See [Building custom generators](../building-functions-and-components/custom-generators)
 for the shape interface, implementation, and registration details.
 
 ---

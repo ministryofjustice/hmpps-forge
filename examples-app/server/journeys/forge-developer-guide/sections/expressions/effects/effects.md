@@ -149,7 +149,7 @@ which API to call, which data store to write to, which audit events
 to send. You define the effects your application needs and register
 them in its package.
 
-See [Building custom effects](building-functions-and-components/custom-effects)
+See [Building custom effects](../building-functions-and-components/custom-effects)
 for the shape interface, implementation, context API, typed
 contexts, and registration details.
 

@@ -34,7 +34,7 @@ It fits well when:
 
 If the service is strictly linear (each step must follow the previous
 one), prefer a single sequential journey with a
-[resume](patterns/resuming) pattern instead.
+[resume](resuming) pattern instead.
 
 ---
 
@@ -373,7 +373,7 @@ list page always evaluate against the latest saved state.
 ## Variations
 
 - **Resuming within a section.** Combine with the
-  [resume](patterns/resuming) pattern inside each section so users
+  [resume](resuming) pattern inside each section so users
   who abandon mid-section pick up where they left off.
 - **Dynamic task list.** Use `visibleWhen` on task items to show or
   hide tasks based on earlier answers (for example, a "Business
