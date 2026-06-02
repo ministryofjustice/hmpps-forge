@@ -1,7 +1,7 @@
 import { FunctionEvaluator } from '../types/functions.type'
 import { ResolvableValue } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { extractFactories, extractValidator } from './defineFunction'
+import { extractFactories, extractPrepare } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -27,9 +27,10 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * the configuration arguments. The returned builders create `GeneratorBuilder` instances
  * that support chaining via `.pipe()`.
  *
- * Each factory entry can be a plain factory function or `{ validate?, factory }`. When
- * `validate` is provided, it runs synchronously when the author calls the builder —
- * failing early at module-load time rather than at render time.
+ * Each factory entry can be a plain factory function or `{ prepare?, factory }`. When
+ * `prepare` is provided, it runs synchronously when the author calls the builder —
+ * sanitising/reshaping arguments before they enter the expression tree, and/or
+ * throwing to reject invalid arguments at module-load time rather than at render time.
  *
  * @param factories - Generator factories keyed by function name
  *
@@ -41,10 +42,13 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  *   PrefixedId: () => (prefix: string) => `${prefix}${crypto.randomUUID()}`,
  * })
  *
- * // With author-time validation:
+ * // With author-time preparation:
  * const { generators } = defineGeneratorFunctions<{ Slug: (input: string) => string }>({
  *   Slug: {
- *     validate: (input) => { if (!input) throw new Error('input required') },
+ *     prepare: (input) => {
+ *       if (!input) throw new Error('input required')
+ *       return [input]
+ *     },
  *     factory: () => (input) => input.toLowerCase().replace(/\s+/g, '-'),
  *   },
  * })
@@ -77,11 +81,11 @@ export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps
 
   Object.keys(factories).forEach(name => {
     const key = name as keyof TShapes & string
-    const validate = extractValidator(factories[key])
+    const prepare = extractPrepare(factories[key])
     generators[key] = ((...args: GeneratorArguments<TShapes[typeof key]>) => {
-      validate?.(...args)
+      const prepared = prepare ? prepare(...args) : args
 
-      return GeneratorBuilder.create(name, args)
+      return GeneratorBuilder.create(name, prepared as GeneratorArguments<TShapes[typeof key]>)
     }) as GeneratorFunctions<TShapes>[typeof key]
   })
 

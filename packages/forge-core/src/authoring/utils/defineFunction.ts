@@ -14,15 +14,15 @@ function extractFactory(entry: unknown): (deps: unknown) => unknown {
 }
 
 /**
- * Extract the optional `validate` hook from a factory entry. Returns
+ * Extract the optional `prepare` hook from a factory entry. Returns
  * `undefined` for plain-function factories (back-compat).
  */
-export function extractValidator(entry: unknown): ((...args: unknown[]) => void) | undefined {
+export function extractPrepare(entry: unknown): ((...args: unknown[]) => unknown[]) | undefined {
   if (typeof entry === 'function') {
     return undefined
   }
 
-  return (entry as { validate?: (...args: unknown[]) => void }).validate
+  return (entry as { prepare?: (...args: unknown[]) => unknown[] }).prepare
 }
 
 /**
@@ -51,8 +51,9 @@ export function extractFactories<TMap extends Record<string, unknown>>(
  * that the engine evaluates at runtime. The factories themselves are not called here - only
  * their keys are used to generate the corresponding builder functions.
  *
- * If a factory entry provides a `validate` hook, it runs synchronously when the
- * builder is invoked, before the expression object is returned.
+ * If a factory entry provides a `prepare` hook, it runs synchronously when the
+ * builder is invoked. The hook can sanitise or reshape arguments before they
+ * enter the expression, and/or throw to reject invalid arguments.
  *
  * This is the shared implementation behind `defineConditionFunctions`,
  * `defineTransformerFunctions`, and `defineEffectFunctions`.
@@ -64,11 +65,11 @@ export function buildExpressionFunctions<TShapes extends FunctionShapeMap, TDeps
   const functions = {} as Record<string, (...args: unknown[]) => unknown>
 
   Object.keys(factories).forEach(name => {
-    const validate = extractValidator((factories as Record<string, unknown>)[name])
+    const prepare = extractPrepare((factories as Record<string, unknown>)[name])
     functions[name] = (...args: unknown[]) => {
-      validate?.(...args)
+      const prepared = prepare ? prepare(...args) : args
 
-      return { type: functionType, name, arguments: args }
+      return { type: functionType, name, arguments: prepared }
     }
   })
 

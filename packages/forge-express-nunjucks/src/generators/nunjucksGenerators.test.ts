@@ -153,7 +153,7 @@ describe('nunjucksGenerators', () => {
       expect(() => assertTemplateIsAllowed('{% set includes = [] %}')).not.toThrow()
     })
 
-    it('should reject at render time when a forbidden tag slips past the validate hook', () => {
+    it('should reject at render time when a forbidden tag slips past the prepare hook', () => {
       // Arrange
       const evaluate = nunjucksFunctions.String({})
 
@@ -175,7 +175,7 @@ describe('nunjucksGenerators', () => {
       expect(typeof expr).toBe('object')
     })
 
-    it('should reject forbidden tags at author-call time via the validate hook', () => {
+    it('should reject forbidden tags at author-call time via the prepare hook', () => {
       // Arrange / Act / Assert
       expect(() =>
         NunjucksGenerators.String({

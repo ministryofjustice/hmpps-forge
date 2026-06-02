@@ -134,21 +134,29 @@ Answer('date').not.match(MyConditions.IsBeforeDeadline('2026-12-31'))
 
 ---
 
-## Author-time validation
+## Author-time preparation
 
-Factory entries can also be written as `{ validate, factory }`,
-where `validate` is an optional hook that runs synchronously when
-the condition builder is called. This lets configuration errors
-surface when the journey module loads rather than at render time.
+Factory entries can also be written as `{ prepare, factory }`,
+where `prepare` is an optional hook that runs synchronously when
+the condition builder is called. Use it to sanitise or reshape
+arguments before they enter the expression tree, and to reject
+invalid arguments early — when the journey module loads rather
+than at render time.
+
+`prepare` receives only the arguments the author passed to the
+builder and returns them as an array. The returned array replaces
+the original arguments in the built expression.
 
 ```typescript
 export const { conditions: MyConditions, implementations: myConditionImplementations } =
   defineConditionFunctions<MyConditionShape, MyDeps>({
     IsEligible: {
-      validate: (minScore: number) => {
+      prepare: (minScore: number): [number] => {
         if (!Number.isInteger(minScore) || minScore < 0) {
           throw new Error('IsEligible requires a non-negative integer')
         }
+
+        return [minScore]
       },
       factory: (deps) => (value: unknown, minScore: number) => {
         if (typeof value !== 'number') {
@@ -168,12 +176,11 @@ A bad call fails as soon as the definition is imported:
 MyConditions.IsEligible(-1)
 ```
 
-`validate` receives only the arguments the author passed to the
-builder. It does not see injected dependencies or the runtime
-value, so it can only check structural properties of the
-arguments: required fields, numeric ranges, enum membership, or
-combinations like `min <= max`. Checks that depend on the resolved
-value belong inside the evaluator.
+`prepare` does not see injected dependencies or the runtime value,
+so it can only check structural properties of the arguments:
+required fields, numeric ranges, enum membership, or combinations
+like `min <= max`. Checks that depend on the resolved value belong
+inside the evaluator.
 
 If an argument is itself an expression like `Data('minimumScore')`,
 its resolved value is not available at author time. Validate the
@@ -361,7 +368,6 @@ describe('MyConditions', () => {
 - **Accept arguments for thresholds and boundaries.** A condition
   like `IsEligible(minScore)` is reusable across different
   contexts. A condition that hardcodes a threshold is not.
-- **Validate static arguments at author time.** Use the
-  `{ validate, factory }` form when the argument is a plain value,
-  so configuration errors surface at module load rather than at
-  render time.
+- **Prepare arguments at author time.** Use the
+  `{ prepare, factory }` form to sanitise arguments and catch
+  configuration errors at module load rather than at render time.

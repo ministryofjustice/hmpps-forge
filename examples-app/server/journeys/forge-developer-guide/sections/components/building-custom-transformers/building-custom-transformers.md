@@ -148,18 +148,24 @@ type at runtime.
 
 ---
 
-## Author-time validation
+## Author-time preparation
 
-Factory entries can also be written as `{ validate, factory }`,
-where `validate` is an optional hook that runs synchronously when
-the transformer builder is called. This lets configuration errors
-surface when the journey module loads rather than at render time.
+Factory entries can also be written as `{ prepare, factory }`,
+where `prepare` is an optional hook that runs synchronously when
+the transformer builder is called. Use it to sanitise or reshape
+arguments before they enter the expression tree, and to reject
+invalid arguments early — when the journey module loads rather
+than at render time.
+
+`prepare` receives only the arguments the author passed to the
+builder and returns them as an array. The returned array replaces
+the original arguments in the built expression.
 
 ```typescript
 export const { transformers: MyTransformers, implementations: myTransformerImplementations } =
   defineTransformerFunctions<MyTransformerShape, MyDeps>({
     Truncate: {
-      validate: (maxLength: number, suffix: string) => {
+      prepare: (maxLength: number, suffix: string): [number, string] => {
         if (!Number.isInteger(maxLength) || maxLength < 1) {
           throw new Error('Truncate requires a positive integer maxLength')
         }
@@ -167,6 +173,8 @@ export const { transformers: MyTransformers, implementations: myTransformerImple
         if (typeof suffix !== 'string') {
           throw new Error('Truncate requires a string suffix')
         }
+
+        return [maxLength, suffix]
       },
       factory: (deps) => (value: unknown, maxLength: number, suffix: string) => {
         if (typeof value !== 'string') {
@@ -188,12 +196,11 @@ A bad call fails as soon as the definition is imported:
 MyTransformers.Truncate(0, '...')
 ```
 
-`validate` receives only the arguments the author passed to the
-builder. It does not see injected dependencies or the runtime
-value, so it can only check structural properties of the
-arguments: required fields, numeric ranges, enum membership, or
-combinations of arguments. Checks that depend on the resolved
-value belong inside the evaluator.
+`prepare` does not see injected dependencies or the runtime value,
+so it can only check structural properties of the arguments:
+required fields, numeric ranges, enum membership, or combinations
+of arguments. Checks that depend on the resolved value belong
+inside the evaluator.
 
 If an argument is itself an expression like `Data('maxBioLength')`,
 its resolved value is not available at author time. Validate the
@@ -368,7 +375,6 @@ expect(formatCurrency(42.5, 'GBP')).toBe('GBP 42.50')
   output.** Formatters run during the submission pipeline before
   validation. `.pipe()` runs at evaluation time for display and
   conditions.
-- **Validate static arguments at author time.** Use the
-  `{ validate, factory }` form when the argument is a plain value,
-  so configuration errors surface at module load rather than at
-  render time.
+- **Prepare arguments at author time.** Use the
+  `{ prepare, factory }` form to sanitise arguments and catch
+  configuration errors at module load rather than at render time.

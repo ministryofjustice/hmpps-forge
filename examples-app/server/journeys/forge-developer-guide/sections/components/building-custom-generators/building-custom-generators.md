@@ -113,21 +113,29 @@ NextSequenceNumber: (deps) => () => {
 
 ---
 
-## Author-time validation
+## Author-time preparation
 
-Factory entries can also be written as `{ validate, factory }`,
-where `validate` is an optional hook that runs synchronously when
-the generator builder is called. This lets configuration errors
-surface when the journey module loads rather than at render time.
+Factory entries can also be written as `{ prepare, factory }`,
+where `prepare` is an optional hook that runs synchronously when
+the generator builder is called. Use it to sanitise or reshape
+arguments before they enter the expression tree, and to reject
+invalid arguments early — when the journey module loads rather
+than at render time.
+
+`prepare` receives the same arguments as the evaluator and returns
+them as an array. The returned array replaces the original
+arguments in the built expression.
 
 ```typescript
 export const { generators: MyGenerators, implementations: myGeneratorImplementations } =
   defineGeneratorFunctions<MyGeneratorShape, MyDeps>({
     NewReferenceNumber: {
-      validate: (prefix: string) => {
+      prepare: (prefix: string): [string] => {
         if (typeof prefix !== 'string' || prefix.length === 0) {
           throw new Error('NewReferenceNumber requires a non-empty prefix')
         }
+
+        return [prefix]
       },
       factory: (deps) => (prefix: string) => {
         const timestamp = Date.now().toString(36)
@@ -146,12 +154,12 @@ A bad call fails as soon as the definition is imported:
 MyGenerators.NewReferenceNumber('')
 ```
 
-`validate` receives the same arguments as the evaluator. Since
-generators have no injected first parameter, both see exactly what
-the author passed to the builder. Use `validate` for structural
-checks that hold regardless of runtime state, such as required
-fields, numeric ranges, or enum membership. Checks that depend on
-injected dependencies belong inside the evaluator.
+Since generators have no injected first parameter, `prepare` sees
+exactly what the author passed to the builder. Use it for
+structural checks (required fields, numeric ranges, enum
+membership) and for stripping properties that are not needed at
+runtime. Checks that depend on injected dependencies belong inside
+the evaluator.
 
 If an argument is itself an expression like `Data('referencePrefix')`,
 its resolved value is not available at author time. Validate the
@@ -336,7 +344,6 @@ describe('MyGenerators', () => {
 - **Return consistent types.** A generator that sometimes returns a
   string and sometimes returns a number makes pipeline chaining
   unpredictable. Pick a return type and stick with it.
-- **Validate static arguments at author time.** Use the
-  `{ validate, factory }` form when the argument is a plain value,
-  so configuration errors surface at module load rather than at
-  render time.
+- **Prepare arguments at author time.** Use the
+  `{ prepare, factory }` form to sanitise arguments and catch
+  configuration errors at module load rather than at render time.
