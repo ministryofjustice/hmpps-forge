@@ -7,12 +7,24 @@ import { validateReferenceScopes } from './rules/validateReferenceScopes'
 import { validateEffectScope } from './rules/validateEffectScope'
 import { validateRegisteredFunctions } from './rules/validateRegisteredFunctions'
 import { validateRegisteredComponents } from './rules/validateRegisteredComponents'
+import { validateValidationScope } from './rules/validateValidationScope'
+import { validateOutcomeScope } from './rules/validateOutcomeScope'
+import { validateHookScope } from './rules/validateHookScope'
+import { validateTieBreakerScope } from './rules/validateTieBreakerScope'
+import { validateFunctionArguments } from './rules/validateFunctionArguments'
+import { validateContainerTypes } from './rules/validateContainerTypes'
 
 const RULES: readonly ASTValidationRule[] = [
   validateReferenceScopes,
   validateEffectScope,
   validateRegisteredFunctions,
   validateRegisteredComponents,
+  validateValidationScope,
+  validateOutcomeScope,
+  validateHookScope,
+  validateTieBreakerScope,
+  validateFunctionArguments,
+  validateContainerTypes,
 ]
 
 export default class ASTSemanticValidator {
