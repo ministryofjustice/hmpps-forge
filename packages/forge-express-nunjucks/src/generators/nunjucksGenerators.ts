@@ -3,7 +3,7 @@ import { defineGeneratorFunctions, type GeneratorBuilder } from '@ministryofjust
 
 /**
  * Throws if the template uses any forbidden tags. Wired into the generator's
- * `validate` hook so errors surface at journey-definition time, before any
+ * `prepare` hook so errors surface at journey-definition time, before any
  * request is served.
  *
  * Tags that reach outside the template (loader-driven) or define reusable
@@ -84,7 +84,11 @@ export const {
   }
 } = defineGeneratorFunctions<NunjucksGeneratorShape>({
   String: {
-    validate: (props: NunjucksStringGeneratorProps) => assertTemplateIsAllowed(props.template),
+    prepare: (props: NunjucksStringGeneratorProps) => {
+      assertTemplateIsAllowed(props.template)
+
+      return [props]
+    },
     factory: () => (props: NunjucksStringGeneratorProps) => {
       let compiled = templateCache.get(props.template)
 

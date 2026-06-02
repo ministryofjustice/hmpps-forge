@@ -167,15 +167,15 @@ describe('typed function wrappers', () => {
   })
 })
 
-describe('factory validate hook', () => {
-  it('should run validate synchronously when a condition builder is called', () => {
+describe('factory prepare hook', () => {
+  it('should run prepare synchronously when a condition builder is called', () => {
     // Arrange
-    const validate = vi.fn()
+    const prepare = vi.fn((threshold: number): [number] => [threshold])
     const { conditions } = defineConditionFunctions<{
       GreaterThan: (threshold: number) => ConditionFunctionExpr<[number]>
     }>({
       GreaterThan: {
-        validate,
+        prepare,
         factory: () => (value: unknown, threshold: number) => Number(value) > threshold,
       },
     })
@@ -183,21 +183,23 @@ describe('factory validate hook', () => {
     // Act
     conditions.GreaterThan(10)
 
-    // Assert: validate is called with the author-passed args, not the runtime value.
-    expect(validate).toHaveBeenCalledTimes(1)
-    expect(validate).toHaveBeenCalledWith(10)
+    // Assert
+    expect(prepare).toHaveBeenCalledTimes(1)
+    expect(prepare).toHaveBeenCalledWith(10)
   })
 
-  it('should propagate validate errors from condition builders at author-call time', () => {
+  it('should propagate prepare errors from condition builders at author-call time', () => {
     // Arrange
     const { conditions } = defineConditionFunctions<{
       Between: (min: number, max: number) => ConditionFunctionExpr<[number, number]>
     }>({
       Between: {
-        validate: (min: number, max: number) => {
+        prepare: (min: number, max: number): [number, number] => {
           if (min > max) {
             throw new Error('min must be <= max')
           }
+
+          return [min, max]
         },
         factory: () => (value: unknown, min: number, max: number) => {
           return Number(value) >= min && Number(value) <= max
@@ -209,11 +211,41 @@ describe('factory validate hook', () => {
     expect(() => conditions.Between(5, 1)).toThrow('min must be <= max')
   })
 
-  it('should still build a working registry from a validated condition factory', () => {
+  it('should use prepared args in the built expression', () => {
     // Arrange
-    const { implementations } = defineConditionFunctions({
+    type ListItem = { value: string; divider?: boolean }
+
+    const { conditions } = defineConditionFunctions<{
+      IsIn: (items: ListItem[]) => ConditionFunctionExpr<[ListItem[]]>
+    }>({
+      IsIn: {
+        prepare: (items: ListItem[]): [ListItem[]] => {
+          return [items.filter(item => !item.divider)]
+        },
+        factory: () => (value: unknown, items: Array<{ value: string }>) => {
+          return items.some(item => item.value === value)
+        },
+      },
+    })
+
+    // Act
+    const expr = conditions.IsIn([{ value: 'a' }, { value: '', divider: true }, { value: 'b' }])
+
+    // Assert
+    expect(expr).toEqual({
+      type: FunctionType.CONDITION,
+      name: 'IsIn',
+      arguments: [[{ value: 'a' }, { value: 'b' }]],
+    })
+  })
+
+  it('should still build a working registry from a factory with prepare', () => {
+    // Arrange
+    const { implementations } = defineConditionFunctions<{
+      IsPositive: () => ConditionFunctionExpr<[]>
+    }>({
       IsPositive: {
-        validate: () => {},
+        prepare: (): [] => [] as [],
         factory: () => (value: unknown) => Number(value) > 0,
       },
     })
@@ -226,14 +258,14 @@ describe('factory validate hook', () => {
     expect(registry.IsPositive.evaluate(-1)).toBe(false)
   })
 
-  it('should run validate when a transformer builder is called', () => {
+  it('should run prepare when a transformer builder is called', () => {
     // Arrange
-    const validate = vi.fn()
+    const prepare = vi.fn((prefix: string): [string] => [prefix])
     const { transformers, implementations } = defineTransformerFunctions<{
       AddPrefix: (prefix: string) => TransformerFunctionExpr<[string]>
     }>({
       AddPrefix: {
-        validate,
+        prepare,
         factory: () => (value: unknown, prefix: string) => `${prefix}${String(value)}`,
       },
     })
@@ -243,18 +275,18 @@ describe('factory validate hook', () => {
     const registry = createFunctionsRegistry(implementations)
 
     // Assert
-    expect(validate).toHaveBeenCalledWith('hello-')
+    expect(prepare).toHaveBeenCalledWith('hello-')
     expect(registry.AddPrefix.evaluate('world', 'hello-')).toBe('hello-world')
   })
 
-  it('should run validate when an effect builder is called', () => {
+  it('should run prepare when an effect builder is called', () => {
     // Arrange
-    const validate = vi.fn()
+    const prepare = vi.fn((action: string): [string] => [action])
     const { effects } = defineEffectFunctions<{
       LogAction: (action: string) => EffectFunctionExpr<[string]>
     }>({
       LogAction: {
-        validate,
+        prepare,
         factory: () => () => {},
       },
     })
@@ -262,18 +294,18 @@ describe('factory validate hook', () => {
     // Act
     effects.LogAction('SUBMIT')
 
-    // Assert: effect validate receives author args only (not the runtime context).
-    expect(validate).toHaveBeenCalledWith('SUBMIT')
+    // Assert
+    expect(prepare).toHaveBeenCalledWith('SUBMIT')
   })
 
-  it('should run validate when a generator builder is called', () => {
+  it('should run prepare when a generator builder is called', () => {
     // Arrange
-    const validate = vi.fn()
+    const prepare = vi.fn((prefix: string): [string] => [prefix])
     const { generators, implementations } = defineGeneratorFunctions<{
       PrefixedId: (prefix: string) => GeneratorBuilder<[string]>
     }>({
       PrefixedId: {
-        validate,
+        prepare,
         factory: () => (prefix: string) => `${prefix}123`,
       },
     })
@@ -283,7 +315,7 @@ describe('factory validate hook', () => {
     const registry = createFunctionsRegistry(implementations)
 
     // Assert
-    expect(validate).toHaveBeenCalledWith('id-')
+    expect(prepare).toHaveBeenCalledWith('id-')
     expect(expr).toEqual({
       type: FunctionType.GENERATOR,
       name: 'PrefixedId',
@@ -292,8 +324,51 @@ describe('factory validate hook', () => {
     expect(registry.PrefixedId.evaluate('id-')).toBe('id-123')
   })
 
-  it('should not require validate on the object-form factory', () => {
-    // Arrange / Act: object form without validate is fine.
+  it('should use prepared args in generator expression', () => {
+    // Arrange
+    type ListItem = { value: string; text: string; divider?: boolean }
+
+    const { generators } = defineGeneratorFunctions<{
+      LookupText: (items: ListItem[], selected: string) => GeneratorBuilder<[ListItem[], string]>
+    }>({
+      LookupText: {
+        prepare: (items: ListItem[], selected: string): [ListItem[], string] => {
+          return [items.filter(item => !item.divider).map(item => ({ value: item.value, text: item.text })), selected]
+        },
+        factory: () => (items: Array<{ value: string; text: string }>, selected: string) => {
+          return items.find(item => item.value === selected)?.text ?? ''
+        },
+      },
+    })
+
+    // Act
+    const expr = generators
+      .LookupText(
+        [
+          { value: 'a', text: 'Alpha' },
+          { value: '', text: '', divider: true },
+          { value: 'b', text: 'Beta' },
+        ],
+        'b',
+      )
+      .build()
+
+    // Assert
+    expect(expr).toEqual({
+      type: FunctionType.GENERATOR,
+      name: 'LookupText',
+      arguments: [
+        [
+          { value: 'a', text: 'Alpha' },
+          { value: 'b', text: 'Beta' },
+        ],
+        'b',
+      ],
+    })
+  })
+
+  it('should not require prepare on the object-form factory', () => {
+    // Arrange / Act
     const { generators } = defineGeneratorFunctions<{
       Today: () => GeneratorBuilder<[]>
     }>({

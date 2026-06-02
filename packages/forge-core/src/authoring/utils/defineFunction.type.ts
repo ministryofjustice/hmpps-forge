@@ -28,13 +28,20 @@ export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = No
 
 /**
  * A factory entry can be a plain factory function (backward-compatible) or an
- * object that also exposes a synchronous `validate` hook.
+ * object that also exposes a synchronous `prepare` hook.
  *
- * `validate` runs at author-call time — when `conditions.Name(...)`, `generators.Name(...)`
+ * `prepare` runs at author-call time — when `conditions.Name(...)`, `generators.Name(...)`
  * etc. are invoked to build the expression — and receives the same args the
  * author passed. It does not see runtime dependencies or the injected `value` /
- * `context` first parameter, so it can only catch structural problems (bad
- * template syntax, missing required arg, etc.).
+ * `context` first parameter.
+ *
+ * Use it to sanitise or reshape arguments before they enter the expression tree
+ * (e.g. stripping `block` / `divider` properties from radio items), and/or to
+ * throw when arguments are structurally invalid (bad template syntax, missing
+ * required arg, etc.).
+ *
+ * Return the (possibly cleaned) arguments as an array. The returned array
+ * replaces the original arguments in the built expression.
  */
 export type FunctionFactoryEntry<
   TEvaluator extends FunctionEvaluator<unknown>,
@@ -43,7 +50,7 @@ export type FunctionFactoryEntry<
 > =
   | ((deps: TDeps) => TEvaluator)
   | {
-      validate?: (...args: TPublicArgs) => void
+      prepare?: (...args: TPublicArgs) => [...TPublicArgs]
       factory: (deps: TDeps) => TEvaluator
     }
 
