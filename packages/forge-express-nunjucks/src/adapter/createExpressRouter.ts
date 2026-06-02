@@ -113,7 +113,7 @@ function toSnapshot(route: ForgeRoute, req: express.Request, res: express.Respon
   const query = (req.query as Record<string, string | string[]>) ?? {}
   const post = (req.body as Record<string, string | string[]>) ?? {}
   const state = { ...res.locals, ...(req as RequestWithState).state }
-  const origin = `${req.protocol}://${req.host}`
+  const origin = `${req.protocol}://${req.hostname}`
   const href = `${origin}${req.originalUrl}`
   const pathname = extractPathname(req.originalUrl)
   const basePath = resolvePathParams(route.basePath, params)
