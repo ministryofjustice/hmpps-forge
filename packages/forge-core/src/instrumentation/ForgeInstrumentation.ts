@@ -9,13 +9,19 @@ export interface ForgeInstrumentationOptions {
   sinks: ForgeInstrumentationSink | ForgeInstrumentationSink[]
 }
 
+export interface ForgeInstrumentationForgeOptions {
+  logger: Logger | Console
+  strictRegistration: boolean
+  instrumentation?: ForgeInstrumentationOptions
+}
+
 export class ForgeInstrumentation {
   private readonly sinks: ForgeInstrumentationSink[]
 
   private readonly contextStore = new AsyncLocalStorage<ActiveSpan>()
 
-  constructor(options: ForgeInstrumentationOptions | undefined, logger: Logger | Console) {
-    this.sinks = [new LoggerSink(logger), ...resolveSinks(options?.sinks)]
+  constructor(forgeOptions: ForgeInstrumentationForgeOptions) {
+    this.sinks = [new LoggerSink(forgeOptions), ...resolveSinks(forgeOptions.instrumentation?.sinks)]
   }
 
   span<T>(name: string, fn: (span: ActiveSpan) => T): T {

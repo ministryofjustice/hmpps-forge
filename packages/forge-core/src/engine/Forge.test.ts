@@ -221,7 +221,7 @@ describe('Forge', () => {
 
       // Act & Assert
       expect(() => engine.registerPackage({ journey: mockJourneyDef })).toThrow(error)
-      expect(mockLogger.error).toHaveBeenCalledWith(error)
+      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should swallow errors when strictRegistration is false', () => {

@@ -58,7 +58,7 @@ const createTerminal = (name: string, result: ForgeResult): TerminalPhase => ({
   execute: vi.fn().mockResolvedValue(result),
 })
 
-const instrumentation = new ForgeInstrumentation(undefined, console)
+const instrumentation = new ForgeInstrumentation({ logger: console, strictRegistration: true })
 
 describe('RequestOrchestrator', () => {
   describe('execute()', () => {

@@ -11,7 +11,7 @@ import {
 import TemplateRenderer from './TemplateRenderer'
 import { TemplateContext } from './types'
 
-const instrumentation = new ForgeInstrumentation(undefined, console)
+const instrumentation = new ForgeInstrumentation({ logger: console, strictRegistration: true })
 
 describe('TemplateRenderer', () => {
   let renderer: TemplateRenderer
