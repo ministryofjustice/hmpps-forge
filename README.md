@@ -7,9 +7,6 @@ Define your journeys as plain data structures. Forge compiles them into routes,
 renders GOV.UK-styled pages, validates submissions, builds a route tree, and 
 manages page flow - so you focus on what to ask, not how to wire it up.
 
-> Note: 'Forge' is temporary name, if you can think of a better one, please 
-> suggest it!
-
 ## What it does
 
 - **Declarative journeys** - describe pages, fields, validation rules, and 
