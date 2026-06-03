@@ -17,6 +17,7 @@ import { searchAndSelectPatternStep } from './search-and-select/step'
 import { paginationPatternStep } from './pagination/step'
 import { inlineFunctionsPatternStep } from './inline-functions/step'
 import { cmsContentPatternStep } from './cms-content/step'
+import { collectionValidationPatternStep } from './collection-validation/step'
 import { patternDemosJourney } from './demos/journey'
 
 export const patternsGuideJourney = journey({
@@ -45,6 +46,7 @@ export const patternsGuideJourney = journey({
     paginationPatternStep,
     inlineFunctionsPatternStep,
     cmsContentPatternStep,
+    collectionValidationPatternStep,
   ],
   children: [patternDemosJourney],
 })
