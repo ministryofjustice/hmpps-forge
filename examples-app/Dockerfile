@@ -77,6 +77,6 @@ COPY --from=model-assets --chown=nonroot:nonroot \
         /opt/models
 
 EXPOSE 3000
-USER nonroot
+USER 65532
 
 CMD [ "dist/server.js" ]
