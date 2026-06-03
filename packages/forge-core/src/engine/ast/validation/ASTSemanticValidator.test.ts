@@ -1404,6 +1404,62 @@ describe('ASTSemanticValidator', () => {
       // Act / Assert
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
+
+    it('should allow validations inside iterator yield templates when the iterator is in validWhen', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                validWhen: [
+                  {
+                    type: ExpressionType.ITERATE,
+                    input: {
+                      type: ExpressionType.ITERATE,
+                      input: { type: ExpressionType.REFERENCE, path: ['answers', 'goals'] },
+                      iterator: {
+                        type: IteratorType.FILTER,
+                        predicate: {
+                          type: PredicateType.TEST,
+                          subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'status'] },
+                          negate: false,
+                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        },
+                      },
+                    },
+                    iterator: {
+                      type: IteratorType.MAP,
+                      yield: {
+                        type: ExpressionType.VALIDATION,
+                        message: 'Must have steps',
+                        condition: {
+                          type: PredicateType.TEST,
+                          subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'steps'] },
+                          negate: false,
+                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        },
+                      },
+                    },
+                  },
+                ],
+              } as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+    })
   })
 
   describe('outcome scope', () => {
