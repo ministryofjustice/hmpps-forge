@@ -177,7 +177,7 @@ describe('ForgeEvaluator', () => {
       // Assert
       expect(routes).toEqual([
         {
-          nodeId: 'compile_ast:2',
+          nodeId: 'test-journey::compile_ast:2',
           kind: 'step',
           templatePath: '/journey/step-one',
           basePath: '/journey',
@@ -185,7 +185,7 @@ describe('ForgeEvaluator', () => {
           title: 'Step One',
         },
         {
-          nodeId: 'compile_ast:1',
+          nodeId: 'test-journey::compile_ast:1',
           kind: 'journey',
           templatePath: '/journey',
           basePath: '/journey',
@@ -242,9 +242,10 @@ describe('ForgeEvaluator', () => {
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       const packageInstance = createPackageInstance([journey], [step])
       evaluator.mount(packageInstance)
+      const stepRoute = evaluator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:4', 'GET'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await evaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
 
       // Assert
       expect(outcome.kind).toBe('render')
@@ -273,9 +274,10 @@ describe('ForgeEvaluator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       evaluator.mount(createPackageInstance([journey], [step]))
+      const journeyRoute = evaluator.getTopology().routes.find(r => r.kind === 'journey')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:3', 'POST'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await evaluator.evaluate(buildSnapshot(journeyRoute.nodeId, 'POST'), NO_OP_RESPONSE_BINDINGS)
 
       // Assert
       expect(outcome).toEqual(
