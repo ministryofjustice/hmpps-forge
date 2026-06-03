@@ -125,6 +125,15 @@ export interface PatternEffectShape {
 
   /** Reads the title and body answers, creates a new blog post, and appends it to the session. */
   SaveBlogPost: () => EffectFunctionExpr
+
+  /** Loads plan goals from the session (or seeds defaults) and sets them as Data for the collection-validation pattern demo. */
+  LoadPlanGoals: () => EffectFunctionExpr
+
+  /** Filters active goals from the session and sets them as Data('activeGoals') for the manage-plan step. */
+  InitializePlanActions: () => EffectFunctionExpr
+
+  /** Reads indexed action answers, adds non-empty values to the corresponding active goal, and persists the updated goals in the session. */
+  SavePlanActions: () => EffectFunctionExpr
 }
 
 export const { effects: PatternEffects, implementations: PatternEffectsImplementations } =
@@ -1033,7 +1042,104 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setAnswer('postTitle', undefined)
       context.setAnswer('postBody', undefined)
     },
+
+    LoadPlanGoals: () => (context: PatternEffectContext) => {
+      const session = context.getSession()
+      const stored = session?.patternDrafts?.['collection-validation']?.goals as
+        | typeof planGoals
+        | undefined
+      const goals = stored ?? planGoals
+
+      context.setData('goals', goals)
+      context.setData('activeGoalCount', goals.filter(g => g.status === 'ACTIVE').length)
+      context.setData('totalGoalCount', goals.length)
+    },
+
+    InitializePlanActions: () => (context: PatternEffectContext) => {
+      const session = context.getSession()
+      const stored = session?.patternDrafts?.['collection-validation']?.goals as
+        | typeof planGoals
+        | undefined
+      const goals = stored ?? planGoals
+      const activeGoals = goals.filter(g => g.status === 'ACTIVE')
+
+      context.setData('activeGoals', activeGoals)
+
+      activeGoals.forEach((goal, index) => {
+        if (goal.actions.length > 0 && !context.hasAnswer(`action_${index}`)) {
+          context.setAnswer(`action_${index}`, goal.actions.join(', '))
+        }
+      })
+    },
+
+    SavePlanActions: () => (context: PatternEffectContext) => {
+      const session = context.getSession()
+
+      if (!session) {
+        return
+      }
+
+      if (!session.patternDrafts) {
+        session.patternDrafts = {}
+      }
+
+      if (!session.patternDrafts['collection-validation']) {
+        session.patternDrafts['collection-validation'] = {}
+      }
+
+      const stored =
+        (session.patternDrafts['collection-validation'].goals as typeof planGoals | undefined) ??
+        planGoals.map(g => ({ ...g, actions: [...g.actions] }))
+
+      let activeIndex = 0
+
+      const updated = stored.map(goal => {
+        if (goal.status !== 'ACTIVE') {
+          return goal
+        }
+
+        const action = context.getAnswer(`action_${activeIndex}`) as string | undefined
+        context.setAnswer(`action_${activeIndex}`, undefined)
+        activeIndex += 1
+
+        if (action?.trim()) {
+          const actions = action
+            .split(',')
+            .map(a => a.trim())
+            .filter(Boolean)
+
+          return { ...goal, actions }
+        }
+
+        return goal
+      })
+
+      session.patternDrafts['collection-validation'].goals = updated
+    },
   })
+
+const planGoals = [
+  {
+    title: 'Improve English skills',
+    status: 'ACTIVE',
+    actions: ['Attend weekly literacy class', 'Complete practice exercises'],
+  },
+  {
+    title: 'Find stable housing',
+    status: 'ACTIVE',
+    actions: [],
+  },
+  {
+    title: 'Build employment skills',
+    status: 'ACTIVE',
+    actions: [],
+  },
+  {
+    title: 'Develop support network',
+    status: 'FUTURE',
+    actions: [],
+  },
+]
 
 const caseOverviewData = {
   name: { firstName: 'Sam', lastName: 'Jones' },

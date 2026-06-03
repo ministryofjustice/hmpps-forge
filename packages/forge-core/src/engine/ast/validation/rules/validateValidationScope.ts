@@ -7,6 +7,8 @@ import { getDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { DSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
+import type { AstNodeId } from '../../../contracts/ast/ast.type'
+import getAncestorChain from '../../ast-state/getAncestorChain'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function buildError(metadata: DSLSourceMetadata | undefined): ForgeConfigurationReferenceScopeError {
@@ -18,7 +20,7 @@ function buildError(metadata: DSLSourceMetadata | undefined): ForgeConfiguration
   })
 }
 
-function collectValidationIdsFromValidWhen(validWhen: unknown): string[] {
+function collectNodeIdsFromValidWhen(validWhen: unknown): string[] {
   if (!Array.isArray(validWhen)) {
     return []
   }
@@ -30,9 +32,7 @@ function collectValidationIdsFromValidWhen(validWhen: unknown): string[] {
       entry != null &&
       typeof entry === 'object' &&
       'id' in entry &&
-      typeof (entry as { id: unknown }).id === 'string' &&
-      'expressionType' in entry &&
-      (entry as { expressionType: unknown }).expressionType === ExpressionType.VALIDATION
+      typeof (entry as { id: unknown }).id === 'string'
     ) {
       ids.push((entry as { id: string }).id)
     }
@@ -89,26 +89,36 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
   })
 }
 
+function hasValidWhenAncestor(
+  context: ASTValidationContext,
+  nodeId: AstNodeId,
+  validWhenEntryIds: Set<string>,
+): boolean {
+  const ancestors = getAncestorChain(nodeId, context.nodeTree)
+
+  return ancestors.some(ancestorId => validWhenEntryIds.has(ancestorId))
+}
+
 export const validateValidationScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  const validValidationIds = new Set<string>()
+  const validWhenEntryIds = new Set<string>()
 
   nodeIndex.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(block => {
-    collectValidationIdsFromValidWhen(block.properties.validWhen).forEach(id => {
-      validValidationIds.add(id)
+    collectNodeIdsFromValidWhen(block.properties.validWhen).forEach(id => {
+      validWhenEntryIds.add(id)
     })
   })
 
   nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(step => {
-    collectValidationIdsFromValidWhen(step.properties.validWhen).forEach(id => {
-      validValidationIds.add(id)
+    collectNodeIdsFromValidWhen(step.properties.validWhen).forEach(id => {
+      validWhenEntryIds.add(id)
     })
   })
 
   nodeIndex.findByType<ValidationASTNode>(ExpressionType.VALIDATION).forEach(node => {
-    if (!validValidationIds.has(node.id)) {
+    if (!validWhenEntryIds.has(node.id)) {
       errors.push(buildError(getDSLSourceMetadata(node)))
     }
   })
@@ -116,6 +126,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
+    const insideValidWhen = hasValidWhenAncestor(context, iterateNode.id, validWhenEntryIds)
     const { iterator } = iterateNode.properties
 
     const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
@@ -123,7 +134,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
     )
 
     templates.forEach(template => {
-      walkTemplateForValidationScope(template, false, errors)
+      walkTemplateForValidationScope(template, insideValidWhen, errors)
     })
   })
 

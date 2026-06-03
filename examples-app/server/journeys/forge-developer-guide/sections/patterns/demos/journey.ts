@@ -16,6 +16,7 @@ import { searchAndSelectDemoJourney } from '../search-and-select/demo/journey'
 import { paginationDemoJourney } from '../pagination/demo/journey'
 import { inlineFunctionsDemoJourney } from '../inline-functions/demo/journey'
 import { cmsContentDemoJourney } from '../cms-content/demo/journey'
+import { collectionValidationDemoJourney } from '../collection-validation/demo/journey'
 
 export const patternDemosJourney = journey({
   code: 'pattern-demos',
@@ -42,5 +43,6 @@ export const patternDemosJourney = journey({
     paginationDemoJourney,
     inlineFunctionsDemoJourney,
     cmsContentDemoJourney,
+    collectionValidationDemoJourney,
   ],
 })
