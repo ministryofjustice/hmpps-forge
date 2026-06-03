@@ -24,7 +24,7 @@ describe('ForgeEvaluator', () => {
 
     mockForgeDependencies = {
       logger: console,
-      instrumentation: new ForgeInstrumentation(undefined, console),
+      instrumentation: new ForgeInstrumentation({ logger: console, strictRegistration: true }),
     }
 
     evaluator = new ForgeEvaluator(mockForgeDependencies, {})

@@ -151,7 +151,7 @@ export default class Forge {
       ...constructorOptions,
     }
 
-    this.instrumentation = new ForgeInstrumentation(this.options.instrumentation, this.options.logger)
+    this.instrumentation = new ForgeInstrumentation(this.options)
 
     if (!this.options.disableBuiltInFunctions) {
       this.functionRegistry.registerBuiltInFunctions()
@@ -252,15 +252,18 @@ export default class Forge {
   }
 
   private handleRegistrationError(e: unknown): void {
-    this.logRegistrationError(e)
+    const formatted = RegistrationErrorFormatter.format(e)
 
     if (this.options.strictRegistration) {
+      if (typeof formatted === 'string') {
+        const clean = new Error(formatted)
+        clean.stack = clean.message
+
+        throw clean
+      }
+
       throw e
     }
-  }
-
-  private logRegistrationError(e: unknown): void {
-    this.dependencies.logger.error(RegistrationErrorFormatter.format(e))
   }
 
   /**
