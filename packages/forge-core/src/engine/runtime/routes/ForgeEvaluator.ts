@@ -52,7 +52,7 @@ export default class ForgeEvaluator {
 
   private readonly contextPreparer = new ContextPreparer()
 
-  private readonly executorsByNodeId = new Map<NodeId, NodeExecutor>()
+  private readonly executorsByRouteKey = new Map<string, NodeExecutor>()
 
   private readonly routes: ForgeRoute[] = []
 
@@ -91,7 +91,7 @@ export default class ForgeEvaluator {
   }
 
   async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome> {
-    const executor = this.executorsByNodeId.get(snapshot.nodeId as NodeId)
+    const executor = this.executorsByRouteKey.get(snapshot.nodeId)
 
     if (!executor) {
       return this.errorOutcome('node-not-found', `No route registered for node "${snapshot.nodeId}"`)
@@ -213,7 +213,9 @@ export default class ForgeEvaluator {
         instrumentation,
       )
 
-      this.executorsByNodeId.set(ctx.stepId, {
+      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, ctx.stepId)
+
+      this.executorsByRouteKey.set(routeKey, {
         route: ctx.routeTemplatePath,
         journeyCode,
         staticData: runtimePlan.staticData,
@@ -223,7 +225,7 @@ export default class ForgeEvaluator {
       })
 
       this.routes.push({
-        nodeId: ctx.stepId,
+        nodeId: routeKey,
         kind: 'step',
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
@@ -278,7 +280,9 @@ export default class ForgeEvaluator {
         instrumentation,
       )
 
-      this.executorsByNodeId.set(journeyId, {
+      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyId)
+
+      this.executorsByRouteKey.set(routeKey, {
         route: runtimePlan.path,
         journeyCode,
         staticData: runtimePlan.staticData,
@@ -287,7 +291,7 @@ export default class ForgeEvaluator {
       })
 
       this.routes.push({
-        nodeId: journeyId,
+        nodeId: routeKey,
         kind: 'journey',
         templatePath,
         basePath: templatePath,
@@ -299,6 +303,10 @@ export default class ForgeEvaluator {
     })
 
     return count
+  }
+
+  private static scopedRouteKey(journeyCode: string, nodeId: NodeId): string {
+    return `${journeyCode}::${nodeId}`
   }
 
   private errorOutcome(code: ForgeErrorCode, message: string): ForgeOutcome {
