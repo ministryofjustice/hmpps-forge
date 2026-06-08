@@ -153,10 +153,7 @@ export default class ScopedTemplateCompiler {
     return this.findTemplateNodes(template, predicate).length > 0
   }
 
-  /**
-   * Normalizes object and array iterator inputs before emitted template loops run.
-   */
-  private compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
+  compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
     emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
       emitter.assign(
         inputVar,
@@ -168,10 +165,7 @@ export default class ScopedTemplateCompiler {
     })
   }
 
-  /**
-   * Produces the scoped iterator item object exposed to @item references.
-   */
-  private compileIteratorItemScope(rawItemExpr: string): string {
+  compileIteratorItemScope(rawItemExpr: string): string {
     return `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`
   }
 

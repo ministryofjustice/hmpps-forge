@@ -1,9 +1,6 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 
-/**
- * Runtime context passed to the compiled validation function.
- */
-export interface ValidationContext {
+export interface BasePhaseContext {
   answers: Record<string, { current: unknown }>
   data: Record<string, unknown>
   session: Record<string, unknown>
@@ -12,6 +9,8 @@ export interface ValidationContext {
   request: Record<string, unknown>
   conditions: FunctionRegistry
 }
+
+export type ValidationContext = BasePhaseContext
 
 /**
  * Runtime context passed to the compiled render function.
@@ -47,16 +46,4 @@ export interface AnswerPreparationContext {
   post: Record<string, string | string[]>
 }
 
-/**
- * Context passed to the compiled reachability function. Reachability expressions
- * run at journey scope, so no iterator scope stack is needed here.
- */
-export interface ReachabilityContext {
-  answers: Record<string, { current: unknown }>
-  data: Record<string, unknown>
-  session: Record<string, unknown>
-  params: Record<string, unknown>
-  query: Record<string, unknown>
-  request: Record<string, unknown>
-  conditions: FunctionRegistry
-}
+export type ReachabilityContext = BasePhaseContext

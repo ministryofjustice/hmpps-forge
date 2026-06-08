@@ -31,9 +31,17 @@ import type {
   CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
   CompiledFieldValidationFunction,
+  CompiledIteratorFieldValidationFunction,
+  CompiledIteratorInputFunction,
   CompiledValidationFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
-import type { FieldValidationEntry, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type {
+  FieldValidationEntry,
+  IteratorFieldValidationEntry,
+  IteratorValidationGroup,
+  ValidationPlan,
+} from '../../../contracts/plans/compilationArtefacts.type'
+import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
 /**
  * Phase compiler for step-level validation generated functions.
@@ -118,45 +126,48 @@ export default class StepValidationCompiler {
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
   ): ValidationPlan | undefined {
-    const entries: FieldValidationEntry[] = []
+    const fields: FieldValidationEntry[] = []
 
     for (const block of fieldBlocks) {
       if (!hasConfiguredValue(block.properties.validWhen)) {
         continue
       }
 
-      entries.push({
+      fields.push({
         nodeId: block.id,
         validate: this.compileSingleFieldValidation(block),
       })
     }
 
-    for (const iterateNode of iterateNodes) {
-      if (!this.hasIterateValidation(iterateNode)) {
-        continue
-      }
+    const iteratorGroups: IteratorValidationGroup[] = []
 
-      entries.push({
-        nodeId: iterateNode.id,
-        validate: this.compileSingleIterateValidation(iterateNode),
-      })
+    for (const iterateNode of iterateNodes) {
+      const group = this.compileIteratorGroup(iterateNode)
+
+      if (group !== undefined) {
+        iteratorGroups.push(group)
+      }
     }
 
     const domain = this.compileSingleDomainValidation(domainValidWhen)
 
-    if (entries.length === 0 && domain === undefined) {
+    if (fields.length === 0 && iteratorGroups.length === 0 && domain === undefined) {
       return undefined
     }
 
-    return { fields: entries, domain }
+    return { fields, iteratorGroups, domain }
   }
 
   generateFieldValidationSource(block: FieldBlockASTNode): string {
     return buildGeneratedSource(this.expr, () => this.buildSingleFieldValidationSource(block))
   }
 
-  generateIterateValidationSource(iterateNode: IterateASTNode): string {
-    return buildGeneratedSource(this.expr, () => this.buildSingleIterateValidationSource(iterateNode))
+  generateIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildIteratorInputEvaluatorSource(iterateNode))
+  }
+
+  generateIteratorFieldValidationSource(field: TemplateNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildIteratorFieldValidationSource(field))
   }
 
   generateDomainValidationSource(domainValidWhen: unknown): string {
@@ -565,34 +576,101 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
-  private hasIterateValidation(iterateNode: IterateASTNode): boolean {
+  private compileIteratorGroup(iterateNode: IterateASTNode): IteratorValidationGroup | undefined {
     const template = iterateNode.properties.iterator.yieldTemplate
 
     if (template === undefined) {
-      return false
+      return undefined
     }
 
-    return this.findTemplateFieldsWithValidation(template).length > 0
+    const templateFields = this.findTemplateFieldsWithValidation(template)
+
+    if (templateFields.length === 0) {
+      return undefined
+    }
+
+    const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
+    const fields: IteratorFieldValidationEntry[] = templateFields.map(field => ({
+      templateNodeId: String(field.id),
+      validate: this.compileIteratorFieldValidation(field),
+    }))
+
+    return { nodeId: iterateNode.id, evaluateInput, fields }
   }
 
-  private compileSingleIterateValidation(iterateNode: IterateASTNode): CompiledFieldValidationFunction {
-    return compileGeneratedFunction<CompiledFieldValidationFunction>(
+  private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
+    return compileGeneratedFunction<CompiledIteratorInputFunction>(
       this.expr,
-      ['ctx', 'isSubmission', 'groups'],
-      () => this.buildSingleIterateValidationSource(iterateNode),
+      ['ctx'],
+      () => this.buildIteratorInputEvaluatorSource(iterateNode),
+      { phase: 'iterator-input' },
+    )
+  }
+
+  private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepValidationCompiler.buildIteratorInputEvaluatorSource')
+
+    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
+
+    this.templates.compileNormalizeIteratorInput(inputVar, emitter)
+
+    emitter.declareConst('result', '[]')
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      const indexVar = emitter.let('i', '0')
+
+      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
+        const rawItemVar = emitter.const('rawItem', `${inputVar}[${indexVar}]`)
+
+        emitter.assign(indexVar, `${indexVar} + 1`)
+        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
+
+        const itemVar = emitter.const('item', this.templates.compileIteratorItemScope(rawItemVar))
+
+        emitter.code(
+          `result.push({ item: ${itemVar}, index: ${indexVar} - 1, rawItem: ${rawItemVar}, inputLength: ${inputVar}.length });`,
+        )
+      })
+    })
+    emitter.emitBlank()
+    emitter.return('result')
+
+    return emitter.toString()
+  }
+
+  private compileIteratorFieldValidation(field: TemplateNode): CompiledIteratorFieldValidationFunction {
+    return compileGeneratedFunction<CompiledIteratorFieldValidationFunction>(
+      this.expr,
+      ['ctx', 'isSubmission', 'groups', 'iteratorScope'],
+      () => this.buildIteratorFieldValidationSource(field),
       { phase: 'field-validation' },
     )
   }
 
-  private buildSingleIterateValidationSource(iterateNode: IterateASTNode): string {
+  private buildIteratorFieldValidationSource(field: TemplateNode): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleIterateValidationSource')
+    emitter.comment('StepValidationCompiler.buildIteratorFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('errors', '[]')
-    this.compileIterateBlock(iterateNode, emitter)
+
+    const frame: IteratorScopeFrame = {
+      itemVar: 'iteratorScope.item',
+      indexVar: 'iteratorScope.index',
+      inputLengthExpr: 'iteratorScope.inputLength',
+      rawItemExpr: 'iteratorScope.rawItem',
+    }
+
+    this.expr.withIteratorFrame(frame, () => {
+      const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
+
+      this.compileTemplateFieldValidations(field, codeExpr, emitter)
+    })
+
     emitter.emitBlank()
     emitter.return('errors')
 

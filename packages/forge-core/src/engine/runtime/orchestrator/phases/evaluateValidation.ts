@@ -4,7 +4,8 @@ import type RuntimeEvaluationContext from '../../context/RuntimeEvaluationContex
 import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { IteratorValidationGroup, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 
@@ -25,7 +26,10 @@ export async function evaluateValidation(
   const ctx = buildCompiledBaseContext(context, functionRegistry)
 
   const fieldResults = await Promise.all(validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, groups)))
-  const fieldFailures = fieldResults.flat()
+
+  const iteratorResults = await evaluateIteratorGroups(validationPlan.iteratorGroups, ctx, isSubmission, groups)
+
+  const fieldFailures = [...fieldResults.flat(), ...iteratorResults]
 
   const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, groups) : []
 
@@ -69,6 +73,42 @@ export async function evaluateValidation(
   })
 
   return result
+}
+
+async function evaluateIteratorGroups(
+  iteratorGroups: readonly IteratorValidationGroup[],
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups: string[],
+): Promise<StepValidationFailure[]> {
+  if (iteratorGroups.length === 0) {
+    return []
+  }
+
+  const groupResults = await Promise.all(
+    iteratorGroups.map(group => evaluateSingleIteratorGroup(group, ctx, isSubmission, groups)),
+  )
+
+  return groupResults.flat()
+}
+
+async function evaluateSingleIteratorGroup(
+  group: IteratorValidationGroup,
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups: string[],
+): Promise<StepValidationFailure[]> {
+  const items = await group.evaluateInput(ctx)
+
+  if (items.length === 0) {
+    return []
+  }
+
+  const results = await Promise.all(
+    items.flatMap(itemScope => group.fields.map(field => field.validate(ctx, isSubmission, groups, itemScope))),
+  )
+
+  return results.flat()
 }
 
 function validationFailureEventAttributes(

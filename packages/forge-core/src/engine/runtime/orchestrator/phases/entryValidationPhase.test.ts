@@ -87,6 +87,7 @@ describe('entryValidationPhase', () => {
       // Arrange
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
       const validationPlan: ValidationPlan = {
+        iteratorGroups: [],
         fields: [
           {
             nodeId: 'compile_ast:2' as const,
@@ -136,6 +137,7 @@ describe('entryValidationPhase', () => {
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
       const validationPlan: ValidationPlan = {
+        iteratorGroups: [],
         fields: [
           {
             nodeId: 'compile_ast:2' as const,
@@ -196,6 +198,7 @@ describe('entryValidationPhase', () => {
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
       const validationPlan: ValidationPlan = {
+        iteratorGroups: [],
         fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
       }
       const phase = createEntryValidationPhase(
@@ -227,6 +230,7 @@ describe('entryValidationPhase', () => {
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
       const validationPlan: ValidationPlan = {
+        iteratorGroups: [],
         fields: [],
         domain: vi.fn().mockReturnValue([{ passed: false, message: 'Domain rule', submissionOnly: true }]),
       }

@@ -7,6 +7,8 @@ import type {
   CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
   CompiledFieldValidationFunction,
+  CompiledIteratorFieldValidationFunction,
+  CompiledIteratorInputFunction,
   CompiledRenderFunction,
 } from '../compiled/compiledFunctions.type'
 
@@ -15,8 +17,20 @@ export interface FieldValidationEntry {
   readonly validate: CompiledFieldValidationFunction
 }
 
+export interface IteratorFieldValidationEntry {
+  readonly templateNodeId: string
+  readonly validate: CompiledIteratorFieldValidationFunction
+}
+
+export interface IteratorValidationGroup {
+  readonly nodeId: NodeId
+  readonly evaluateInput: CompiledIteratorInputFunction
+  readonly fields: readonly IteratorFieldValidationEntry[]
+}
+
 export interface ValidationPlan {
   readonly fields: readonly FieldValidationEntry[]
+  readonly iteratorGroups: readonly IteratorValidationGroup[]
   readonly domain?: CompiledDomainValidationFunction
 }
 

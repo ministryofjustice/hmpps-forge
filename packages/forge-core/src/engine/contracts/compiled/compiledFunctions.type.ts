@@ -1,5 +1,6 @@
 import type {
   AnswerPreparationContext,
+  BasePhaseContext,
   ReachabilityContext,
   RenderCompilationContext,
   ValidationContext,
@@ -70,3 +71,21 @@ export type CompiledDomainValidationFunction = (
   isSubmission: boolean,
   groups?: string[],
 ) => DomainValidationFailure[] | Promise<DomainValidationFailure[]>
+
+export interface IteratorItemScope {
+  readonly item: unknown
+  readonly index: number
+  readonly rawItem: unknown
+  readonly inputLength: number
+}
+
+export type CompiledIteratorInputFunction = (
+  ctx: BasePhaseContext,
+) => IteratorItemScope[] | Promise<IteratorItemScope[]>
+
+export type CompiledIteratorFieldValidationFunction = (
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups: string[] | undefined,
+  iteratorScope: IteratorItemScope,
+) => StepValidationFailure[] | Promise<StepValidationFailure[]>
