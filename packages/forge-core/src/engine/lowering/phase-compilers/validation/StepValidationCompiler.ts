@@ -1,24 +1,22 @@
 /**
- * Compiles the validation functions needed by one step.
+ * Compiles validation functions for one step.
  *
- * On-entry validation is a small group selector for validateOnEntry. Submit
- * validation evaluates the field/domain `validWhen` slots, recursively flattens
- * arrays produced by iterators, and turns failing validation results into field
- * or domain failures.
+ * The primary output is a {@link ValidationPlan}: per-field and per-iterate
+ * compiled functions plus an optional domain validation function. The runtime
+ * orchestrator walks the plan, calling each entry independently and collecting
+ * failures into a {@link StepValidityResult}.
  *
- * Static fields are already present in the shared AST, while fields inside MAP
- * iterators remain as template nodes. Iterator field validation emits loops over
- * the iterator input and evaluates the yield template in-place, so no runtime AST
- * nodes or overlays are created.
+ * A separate bulk validation function ({@link compileOnSubmitValidation}) is
+ * compiled only for navigation reachability checks, where per-field granularity
+ * is unnecessary.
+ *
+ * On-entry validation is a small group selector for `validateOnEntry`.
  *
  * Function calls stay indirect through FunctionRegistry because journey authors
  * provide those implementations. Registry metadata decides whether generated
- * source remains sync or becomes async; controllers await both shapes.
- *
- * Generated-function construction failures throw ForgeCompilationError. There is
- * no secondary validation execution path.
+ * source remains sync or becomes async.
  */
-import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
+import { FieldBlockASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import CodeEmitter from '../../emitters/CodeEmitter'
@@ -30,9 +28,12 @@ import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type {
+  CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
+  CompiledFieldValidationFunction,
   CompiledValidationFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
+import type { FieldValidationEntry, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 
 /**
  * Phase compiler for step-level validation generated functions.
@@ -64,7 +65,6 @@ export default class StepValidationCompiler {
    * Builds the generated validation function used by submit hooks and reachability checks.
    */
   compileOnSubmitValidation(
-    stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
@@ -97,7 +97,6 @@ export default class StepValidationCompiler {
    * Produces inspectable submit-validation source for tests and local debugging.
    */
   generateOnSubmitValidationSource(
-    stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
@@ -112,6 +111,56 @@ export default class StepValidationCompiler {
    */
   generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
     return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
+  }
+
+  compileValidationPlan(
+    fieldBlocks: FieldBlockASTNode[],
+    domainValidWhen: unknown,
+    iterateNodes: IterateASTNode[] = [],
+  ): ValidationPlan | undefined {
+    const entries: FieldValidationEntry[] = []
+
+    for (const block of fieldBlocks) {
+      if (!hasConfiguredValue(block.properties.validWhen)) {
+        continue
+      }
+
+      entries.push({
+        nodeId: block.id,
+        validate: this.compileSingleFieldValidation(block),
+      })
+    }
+
+    for (const iterateNode of iterateNodes) {
+      if (!this.hasIterateValidation(iterateNode)) {
+        continue
+      }
+
+      entries.push({
+        nodeId: iterateNode.id,
+        validate: this.compileSingleIterateValidation(iterateNode),
+      })
+    }
+
+    const domain = this.compileSingleDomainValidation(domainValidWhen)
+
+    if (entries.length === 0 && domain === undefined) {
+      return undefined
+    }
+
+    return { fields: entries, domain }
+  }
+
+  generateFieldValidationSource(block: FieldBlockASTNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildSingleFieldValidationSource(block))
+  }
+
+  generateIterateValidationSource(iterateNode: IterateASTNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildSingleIterateValidationSource(iterateNode))
+  }
+
+  generateDomainValidationSource(domainValidWhen: unknown): string {
+    return buildGeneratedSource(this.expr, () => this.buildSingleDomainValidationSource(domainValidWhen))
   }
 
   /**
@@ -462,6 +511,92 @@ export default class StepValidationCompiler {
       emitter.if(`${messageVar} === undefined`, () => emitter.assign(messageVar, '""'))
       emitFailure(resultVar, messageVar, detailsVar)
     })
+  }
+
+  private compileSingleFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
+    return compileGeneratedFunction<CompiledFieldValidationFunction>(
+      this.expr,
+      ['ctx', 'isSubmission', 'groups'],
+      () => this.buildSingleFieldValidationSource(block),
+      { phase: 'field-validation' },
+    )
+  }
+
+  private buildSingleFieldValidationSource(block: FieldBlockASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepValidationCompiler.buildSingleFieldValidationSource')
+    this.compileActiveGroups(emitter)
+    this.compileValidationRuntimeHelpers(emitter)
+    emitter.declareConst('errors', '[]')
+    this.compileFieldBlock(block, emitter)
+    emitter.emitBlank()
+    emitter.return('errors')
+
+    return emitter.toString()
+  }
+
+  private compileSingleDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
+    if (!hasConfiguredValue(domainValidWhen)) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledDomainValidationFunction>(
+      this.expr,
+      ['ctx', 'isSubmission', 'groups'],
+      () => this.buildSingleDomainValidationSource(domainValidWhen),
+      { phase: 'domain-validation' },
+    )
+  }
+
+  private buildSingleDomainValidationSource(domainValidWhen: unknown): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepValidationCompiler.buildSingleDomainValidationSource')
+    this.compileActiveGroups(emitter)
+    this.compileValidationRuntimeHelpers(emitter)
+    emitter.declareConst('domainErrors', '[]')
+    this.compileDomainValidationSlot(domainValidWhen, emitter)
+    emitter.emitBlank()
+    emitter.return('domainErrors')
+
+    return emitter.toString()
+  }
+
+  private hasIterateValidation(iterateNode: IterateASTNode): boolean {
+    const template = iterateNode.properties.iterator.yieldTemplate
+
+    if (template === undefined) {
+      return false
+    }
+
+    return this.findTemplateFieldsWithValidation(template).length > 0
+  }
+
+  private compileSingleIterateValidation(iterateNode: IterateASTNode): CompiledFieldValidationFunction {
+    return compileGeneratedFunction<CompiledFieldValidationFunction>(
+      this.expr,
+      ['ctx', 'isSubmission', 'groups'],
+      () => this.buildSingleIterateValidationSource(iterateNode),
+      { phase: 'field-validation' },
+    )
+  }
+
+  private buildSingleIterateValidationSource(iterateNode: IterateASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepValidationCompiler.buildSingleIterateValidationSource')
+    this.compileActiveGroups(emitter)
+    this.compileValidationRuntimeHelpers(emitter)
+    emitter.declareConst('errors', '[]')
+    this.compileIterateBlock(iterateNode, emitter)
+    emitter.emitBlank()
+    emitter.return('errors')
+
+    return emitter.toString()
   }
 
   /**

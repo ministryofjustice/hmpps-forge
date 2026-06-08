@@ -1,15 +1,15 @@
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 
 export async function evaluateValidation(
-  compiledValidation: CompiledValidationFunction | undefined,
+  validationPlan: ValidationPlan | undefined,
   path: string,
   stepId: NodeId,
   context: RuntimeEvaluationContext,
@@ -18,11 +18,22 @@ export async function evaluateValidation(
   groups: string[],
   instrumentation: ForgeInstrumentation,
 ): Promise<StepValidityResult> {
-  if (!compiledValidation) {
-    throw new Error(`[Forge] Validation fallback is disabled — compiledValidation is missing for step "${path}"`)
+  if (!validationPlan) {
+    throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
   }
 
-  const result = await compiledValidation(buildCompiledBaseContext(context, functionRegistry), isSubmission, groups)
+  const ctx = buildCompiledBaseContext(context, functionRegistry)
+
+  const fieldResults = await Promise.all(validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, groups)))
+  const fieldFailures = fieldResults.flat()
+
+  const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, groups) : []
+
+  const result: StepValidityResult = {
+    isValid: fieldFailures.length === 0 && domainFailures.length === 0,
+    fieldFailures,
+    domainFailures,
+  }
 
   context.global.validation = {
     stepId,

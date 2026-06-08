@@ -4,6 +4,7 @@ import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
 const createMockState = (): PipelineState => {
@@ -85,16 +86,21 @@ describe('entryValidationPhase', () => {
     it('should run validation and set state when groups are active', async () => {
       // Arrange
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
-      const compiledValidation = vi.fn().mockReturnValue({
-        isValid: false,
-        fieldFailures: [
-          { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
+      const validationPlan: ValidationPlan = {
+        fields: [
+          {
+            nodeId: 'compile_ast:2' as const,
+            validate: vi
+              .fn()
+              .mockReturnValue([
+                { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
+              ]),
+          },
         ],
-        domainFailures: [],
-      })
+      }
       const phase = createEntryValidationPhase(
         compiledEntryValidation,
-        compiledValidation,
+        validationPlan,
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
@@ -129,16 +135,21 @@ describe('entryValidationPhase', () => {
         ),
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
-      const compiledValidation = vi.fn().mockReturnValue({
-        isValid: false,
-        fieldFailures: [
-          { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
+      const validationPlan: ValidationPlan = {
+        fields: [
+          {
+            nodeId: 'compile_ast:2' as const,
+            validate: vi
+              .fn()
+              .mockReturnValue([
+                { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
+              ]),
+          },
         ],
-        domainFailures: [],
-      })
+      }
       const phase = createEntryValidationPhase(
         compiledEntryValidation,
-        compiledValidation,
+        validationPlan,
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
@@ -184,10 +195,12 @@ describe('entryValidationPhase', () => {
         ),
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
-      const compiledValidation = vi.fn().mockReturnValue({ isValid: true, fieldFailures: [], domainFailures: [] })
+      const validationPlan: ValidationPlan = {
+        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
+      }
       const phase = createEntryValidationPhase(
         compiledEntryValidation,
-        compiledValidation,
+        validationPlan,
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
@@ -213,14 +226,13 @@ describe('entryValidationPhase', () => {
         ),
       } as unknown as ForgeInstrumentation
       const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
-      const compiledValidation = vi.fn().mockReturnValue({
-        isValid: false,
-        fieldFailures: [],
-        domainFailures: [{ passed: false, message: 'Domain rule', submissionOnly: true }],
-      })
+      const validationPlan: ValidationPlan = {
+        fields: [],
+        domain: vi.fn().mockReturnValue([{ passed: false, message: 'Domain rule', submissionOnly: true }]),
+      }
       const phase = createEntryValidationPhase(
         compiledEntryValidation,
-        compiledValidation,
+        validationPlan,
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,

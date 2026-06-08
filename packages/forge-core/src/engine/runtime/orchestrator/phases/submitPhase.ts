@@ -1,7 +1,7 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { CompiledSubmitHooksFunction } from '../../../contracts/runtime/hookLifecycle.type'
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
@@ -10,7 +10,7 @@ import type { RequestPhase } from '../types'
 
 export function createSubmitPhase(
   compiledSubmitHooks: CompiledSubmitHooksFunction | undefined,
-  compiledValidation: CompiledValidationFunction | undefined,
+  validationPlan: ValidationPlan | undefined,
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
@@ -32,7 +32,7 @@ export function createSubmitPhase(
           state.responseBindings,
           groups =>
             evaluateValidation(
-              compiledValidation,
+              validationPlan,
               path,
               stepId,
               state.context,

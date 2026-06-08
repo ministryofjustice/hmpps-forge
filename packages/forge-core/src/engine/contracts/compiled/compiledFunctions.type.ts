@@ -5,6 +5,7 @@ import type {
   ValidationContext,
 } from './phaseContexts.type'
 import type { StepValidityResult } from '../runtime/stepValidityResult.type'
+import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
 import type { RenderBlock } from '../../../framework/rendering/types'
 import type {
   NavigationEvaluationInput,
@@ -57,3 +58,15 @@ export type CompiledNavigationFunction = (
   ctx: ReachabilityContext,
   navigation: NavigationEvaluationInput,
 ) => Promise<NavigationEvaluationResult>
+
+export type CompiledFieldValidationFunction = (
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups?: string[],
+) => StepValidationFailure[] | Promise<StepValidationFailure[]>
+
+export type CompiledDomainValidationFunction = (
+  ctx: ValidationContext,
+  isSubmission: boolean,
+  groups?: string[],
+) => DomainValidationFailure[] | Promise<DomainValidationFailure[]>

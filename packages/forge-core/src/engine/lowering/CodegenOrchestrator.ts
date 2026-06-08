@@ -18,9 +18,6 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    // Navigation must compile before steps: compileStep reuses the per-step
-    // validation functions that compileNavigation attaches to each shared
-    // NavigationRuntimePlan.
     this.compileNavigation(plan, nodeRegistry)
     const journeys = this.compileJourneys(plan)
 
@@ -78,16 +75,13 @@ export default class CodegenOrchestrator {
     const compiledAnswerPreparation = answerPrepCompiler.compile(inputs.fieldBlocks, inputs.mapIterateNodes)
 
     const validationCompiler = new StepValidationCompiler(this.dependencies)
-    const compiledValidation =
-      navigationPlan.compiledStepValidations.get(inputs.stepNode.id) ??
-      validationCompiler.compileOnSubmitValidation(
-        inputs.stepNode,
-        inputs.validatingFieldBlocks,
-        inputs.stepNode.properties.validWhen,
-        inputs.mapIterateNodes,
-      )
     const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
       inputs.stepNode.properties.validateOnEntry,
+    )
+    const validationPlan = validationCompiler.compileValidationPlan(
+      inputs.validatingFieldBlocks,
+      inputs.stepNode.properties.validWhen,
+      inputs.mapIterateNodes,
     )
 
     const renderCompiler = new StepRenderCompiler(this.dependencies)
@@ -99,9 +93,9 @@ export default class CodegenOrchestrator {
       compiledAccessLifecycle,
       compiledSubmitHooks,
       compiledAnswerPreparation,
-      compiledValidation,
       compiledEntryValidation,
       compiledRender,
+      validationPlan,
     }
   }
 
@@ -122,7 +116,6 @@ export default class CodegenOrchestrator {
         }
 
         const compiled = compiler.compileOnSubmitValidation(
-          stepInputs.stepNode,
           stepInputs.validatingFieldBlocks,
           stepInputs.stepNode.properties.validWhen,
           stepInputs.mapIterateNodes,

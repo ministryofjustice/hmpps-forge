@@ -176,7 +176,7 @@ export default class ForgeEvaluator {
           ),
           createEntryValidationPhase(
             compiledStep.compiledEntryValidation,
-            compiledStep.compiledValidation,
+            compiledStep.validationPlan,
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
@@ -202,7 +202,7 @@ export default class ForgeEvaluator {
           ),
           createSubmitPhase(
             compiledStep.compiledSubmitHooks,
-            compiledStep.compiledValidation,
+            compiledStep.validationPlan,
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,

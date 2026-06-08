@@ -4,10 +4,21 @@ import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from 
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
+  CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
+  CompiledFieldValidationFunction,
   CompiledRenderFunction,
-  CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
+
+export interface FieldValidationEntry {
+  readonly nodeId: NodeId
+  readonly validate: CompiledFieldValidationFunction
+}
+
+export interface ValidationPlan {
+  readonly fields: readonly FieldValidationEntry[]
+  readonly domain?: CompiledDomainValidationFunction
+}
 
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
@@ -15,9 +26,9 @@ export interface CompiledStep {
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
-  compiledValidation?: CompiledValidationFunction
   compiledEntryValidation?: CompiledEntryValidationFunction
   compiledRender?: CompiledRenderFunction
+  validationPlan?: ValidationPlan
 }
 
 export interface CompiledJourney {

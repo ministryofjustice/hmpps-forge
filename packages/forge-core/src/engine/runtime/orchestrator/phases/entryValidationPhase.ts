@@ -1,7 +1,5 @@
-import type {
-  CompiledEntryValidationFunction,
-  CompiledValidationFunction,
-} from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledEntryValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
@@ -11,7 +9,7 @@ import type { RequestPhase } from '../types'
 
 export function createEntryValidationPhase(
   compiledEntryValidation: CompiledEntryValidationFunction | undefined,
-  compiledValidation: CompiledValidationFunction | undefined,
+  validationPlan: ValidationPlan | undefined,
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
@@ -31,7 +29,7 @@ export function createEntryValidationPhase(
       }
 
       state.validation = await evaluateValidation(
-        compiledValidation,
+        validationPlan,
         path,
         stepId,
         state.context,
