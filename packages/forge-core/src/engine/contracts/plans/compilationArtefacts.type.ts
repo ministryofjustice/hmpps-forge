@@ -19,18 +19,16 @@ import type {
 /**
  * One compiled validation function for a single non-iterator field. `nodeId`
  * identifies the field block so the runtime can attribute the verdict in the
- * request trace; `code` carries the authored field code when statically known.
+ * request trace.
  */
 export interface FieldValidationEntry {
   readonly nodeId: NodeId
-  readonly code?: string
   readonly validate: CompiledFieldValidationFunction
 }
 
 /** One compiled validation function for a field inside an iterator, invoked once per item scope. */
 export interface IteratorFieldValidationEntry {
   readonly nodeId: TemplateNodeId
-  readonly code?: string
   readonly validate: CompiledIteratorFieldValidationFunction
 }
 

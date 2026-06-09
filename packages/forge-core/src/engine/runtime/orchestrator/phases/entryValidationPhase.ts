@@ -47,6 +47,7 @@ export function createEntryValidationPhase(
         functionRegistry,
         false,
         groups,
+        state.trace,
       )
       state.showValidationFailures = true
 

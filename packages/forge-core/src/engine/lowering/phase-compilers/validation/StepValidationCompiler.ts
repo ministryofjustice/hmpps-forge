@@ -138,7 +138,6 @@ export default class StepValidationCompiler {
 
       fields.push({
         nodeId: block.id,
-        code: staticFieldCode(block.properties.code),
         validate: this.compileSingleFieldValidation(block),
       })
     }
@@ -493,7 +492,6 @@ export default class StepValidationCompiler {
       if (isTemplateFieldNode(node)) {
         entries.push({
           nodeId: node.id,
-          code: staticFieldCode(node.properties?.code),
           validate: this.compileIteratorFieldValidation(node, ancestorIterates),
         })
 
@@ -630,15 +628,6 @@ export default class StepValidationCompiler {
       this.emitNestedLoopsAndCompileValidation(field, ancestorIterates, depth + 1, emitter)
     })
   }
-}
-
-/**
- * The authored field code when it is a plain string; dynamic codes (expressions
- * resolved per request or per iterator item) yield undefined, leaving the entry
- * identified by nodeId alone.
- */
-function staticFieldCode(code: unknown): string | undefined {
-  return typeof code === 'string' ? code : undefined
 }
 
 /**

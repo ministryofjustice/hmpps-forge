@@ -34,7 +34,7 @@ export function createSubmitPhase(
       const result = await evaluateSubmitLifecycle(
         submitLifecyclePlan,
         buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, groups =>
-          evaluateValidation(validationPlan, path, stepId, state.context, functionRegistry, true, groups),
+          evaluateValidation(validationPlan, path, stepId, state.context, functionRegistry, true, groups, state.trace),
         ),
       )
 

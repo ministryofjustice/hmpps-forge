@@ -86,6 +86,7 @@ describe('entryValidationPhase', () => {
         iteratorGroups: [],
         fields: [
           {
+            nodeId: 'compile_ast:2' as const,
             validate: vi
               .fn()
               .mockReturnValue([
