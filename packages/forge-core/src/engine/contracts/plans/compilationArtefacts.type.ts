@@ -1,4 +1,4 @@
-import type { NodeId } from '../ast/ast.type'
+import type { NodeId, TemplateNodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type { CompiledAccessHookFunction, CompiledSubmitHookFunction } from '../runtime/hookLifecycle.type'
@@ -16,21 +16,31 @@ import type {
   CompiledStepMetadataFunction,
 } from '../compiled/compiledFunctions.type'
 
-/** One compiled validation function for a single non-iterator field. */
+/**
+ * One compiled validation function for a single non-iterator field. `nodeId`
+ * identifies the field block so the runtime can attribute the verdict in the
+ * request trace; `code` carries the authored field code when statically known.
+ */
 export interface FieldValidationEntry {
+  readonly nodeId: NodeId
+  readonly code?: string
   readonly validate: CompiledFieldValidationFunction
 }
 
 /** One compiled validation function for a field inside an iterator, invoked once per item scope. */
 export interface IteratorFieldValidationEntry {
+  readonly nodeId: TemplateNodeId
+  readonly code?: string
   readonly validate: CompiledIteratorFieldValidationFunction
 }
 
 /**
  * A MAP iterator's validation work: `evaluateInput` expands the collection into
  * per-item scopes, then every entry in `fields` runs once for each scope.
+ * `nodeId` identifies the iterate node for trace attribution.
  */
 export interface IteratorValidationGroup {
+  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly fields: readonly IteratorFieldValidationEntry[]
 }
