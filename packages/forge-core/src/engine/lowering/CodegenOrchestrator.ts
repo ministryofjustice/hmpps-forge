@@ -52,7 +52,7 @@ export default class CodegenOrchestrator {
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
         navigationPlan: inputs.navigationPlan,
-        compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessAncestors),
+        accessLifecyclePlan: hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors),
         answerPreparationPlan: answerPrepCompiler.compileAnswerPreparationPlan(
           inputs.stepFieldBlocks,
           inputs.stepMapIterateNodes,
@@ -71,7 +71,7 @@ export default class CodegenOrchestrator {
     }
 
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
-    const compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(inputs.accessAncestors)
+    const accessLifecyclePlan = hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors)
     const compiledSubmitHooks = hookCompiler.compileSubmitHooks(inputs.submitHooks)
 
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
@@ -96,7 +96,7 @@ export default class CodegenOrchestrator {
     return {
       runtimePlan: inputs.runtimePlan,
       navigationPlan,
-      compiledAccessLifecycle,
+      accessLifecyclePlan,
       compiledSubmitHooks,
       answerPreparationPlan,
       entryValidationPlan,

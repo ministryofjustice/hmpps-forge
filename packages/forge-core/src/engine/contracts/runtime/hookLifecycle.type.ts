@@ -37,6 +37,10 @@ export interface CompiledSubmitHookResult {
   message?: string
 }
 
+export type CompiledAccessHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
+
 export type CompiledAccessLifecycleFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>

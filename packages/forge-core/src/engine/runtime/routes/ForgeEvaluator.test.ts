@@ -55,7 +55,7 @@ describe('ForgeEvaluator', () => {
         path: descriptor.path,
         staticData: {},
       },
-      compiledAccessLifecycle: vi.fn().mockReturnValue({ executed: true, outcome: 'continue' }),
+      accessLifecyclePlan: { hooks: [] },
       navigationPlan: {
         entries: [],
         resumeConfigured: false,

@@ -141,7 +141,7 @@ export default class ForgeEvaluator {
       const runtimePlan = compiledStep.runtimePlan
 
       const accessPhase = createAccessLifecyclePhase(
-        compiledStep.compiledAccessLifecycle,
+        compiledStep.accessLifecyclePlan,
         runtimePlan.path,
         functionRegistry,
         instrumentation,
@@ -260,7 +260,7 @@ export default class ForgeEvaluator {
       const orchestrator = new RequestOrchestrator(
         [
           createAccessLifecyclePhase(
-            compiledJourney.compiledAccessLifecycle,
+            compiledJourney.accessLifecyclePlan,
             runtimePlan.path,
             functionRegistry,
             instrumentation,

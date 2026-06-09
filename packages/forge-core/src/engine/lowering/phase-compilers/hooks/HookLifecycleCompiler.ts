@@ -15,15 +15,36 @@ import { buildGeneratedSource, compileGeneratedFunction } from '../../function-c
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
 import type {
+  CompiledAccessHookFunction,
   CompiledAccessLifecycleFunction,
   CompiledSubmitHooksFunction,
 } from '../../../contracts/runtime/hookLifecycle.type'
+import type { AccessHookEntry, AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 
 export default class HookLifecycleCompiler {
   private readonly expr: ExpressionDispatcher
 
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
+  }
+
+  compileAccessLifecyclePlan(accessAncestors: (JourneyASTNode | StepASTNode)[]): AccessLifecyclePlan | undefined {
+    const hooks: AccessHookEntry[] = []
+
+    accessAncestors.forEach(ancestor => {
+      ;(ancestor.properties.onAccess ?? []).forEach(hook => {
+        hooks.push({
+          nodeId: hook.id,
+          evaluate: this.compileSingleAccessHook(hook),
+        })
+      })
+    })
+
+    if (hooks.length === 0) {
+      return undefined
+    }
+
+    return { hooks }
   }
 
   compileAccessLifecycle(
@@ -52,6 +73,34 @@ export default class HookLifecycleCompiler {
 
   generateSubmitSource(hooks: SubmitHookASTNode[]): string {
     return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks))
+  }
+
+  generateSingleAccessHookSource(hook: AccessHookASTNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildSingleAccessHookSource(hook))
+  }
+
+  private compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
+    return compileGeneratedFunction<CompiledAccessHookFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleAccessHookSource(hook),
+      { forceAsync: true, phase: 'hooks' },
+    )!
+  }
+
+  private buildSingleAccessHookSource(hook: AccessHookASTNode): string {
+    const emitter = this.createEmitter()
+
+    const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
+
+    emitter.if(whenVar, () => {
+      this.compileEffects(hook.properties.effects, emitter)
+      this.compileOutcomeReturns(hook.properties.next, emitter, 'executed: true, ')
+    })
+
+    emitter.return('{ executed: true, outcome: "continue" }')
+
+    return emitter.toString()
   }
 
   private buildAccessSource(accessAncestors: (JourneyASTNode | StepASTNode)[]): string {
