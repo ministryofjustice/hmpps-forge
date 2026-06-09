@@ -218,9 +218,7 @@ export default class CodegenOrchestrator {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, {
-              evaluate: compiler.compileSingleAccessHook(hook),
-            })
+            accessHookEntries.set(hook.id, compiler.compileSingleAccessHook(hook))
           }
         })
       })
@@ -238,9 +236,7 @@ export default class CodegenOrchestrator {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, {
-              evaluate: compiler.compileSingleAccessHook(hook),
-            })
+            accessHookEntries.set(hook.id, compiler.compileSingleAccessHook(hook))
           }
         })
       })

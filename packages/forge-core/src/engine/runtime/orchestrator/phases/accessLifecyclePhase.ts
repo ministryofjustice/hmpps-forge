@@ -27,6 +27,7 @@ export function createAccessLifecyclePhase(
       const result = await evaluateAccessLifecycle(
         accessLifecyclePlan,
         buildCompiledHookLifecycleContext(state.context, functionRegistry, 'access', state.responseBindings),
+        state.trace,
       )
 
       if (result.outcome === 'redirect') {

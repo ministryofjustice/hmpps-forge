@@ -101,7 +101,7 @@ describe('HookLifecycleCompiler', () => {
 
   async function runAccess(ancestors: Array<JourneyASTNode | StepASTNode>, ctx: HookLifecycleContext) {
     const hooks = ancestors.flatMap(ancestor =>
-      (ancestor.properties.onAccess ?? []).map(hook => ({ evaluate: compiler.compileSingleAccessHook(hook) })),
+      (ancestor.properties.onAccess ?? []).map(hook => compiler.compileSingleAccessHook(hook)),
     )
 
     return evaluateAccessLifecycle({ hooks }, ctx)

@@ -143,8 +143,13 @@ export interface EntryValidationPlan {
   readonly rules: readonly EntryValidationRule[]
 }
 
-/** One compiled access hook, run during the access-lifecycle phase. */
+/**
+ * One compiled access hook, run during the access-lifecycle phase. `nodeId`
+ * identifies the hook node so the runtime can attribute the decision in the
+ * request trace.
+ */
 export interface AccessHookEntry {
+  readonly nodeId: NodeId
   readonly evaluate: CompiledAccessHookFunction
 }
 

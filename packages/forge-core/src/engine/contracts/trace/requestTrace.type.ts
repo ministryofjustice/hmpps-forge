@@ -46,6 +46,23 @@ export interface AnswerPreparationTraceUnit {
 }
 
 /**
+ * One access hook's run: recorded for every hook the access-lifecycle walk
+ * executes, in run order. `outcome` is the hook's own verdict — a 'redirect'
+ * or 'error' halts the phase, so hooks after a halting one never ran and are
+ * absent. `redirect` carries the target and `status`/`message` the error
+ * payload when the hook halted.
+ */
+export interface AccessHookTraceUnit {
+  readonly kind: 'access-hook'
+  readonly nodeId: NodeId
+  readonly outcome: 'continue' | 'redirect' | 'error'
+  readonly redirect?: string
+  readonly status?: number
+  readonly message?: string
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -55,6 +72,7 @@ export type TraceUnit =
   | IteratorInputTraceUnit
   | DomainValidationTraceUnit
   | AnswerPreparationTraceUnit
+  | AccessHookTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

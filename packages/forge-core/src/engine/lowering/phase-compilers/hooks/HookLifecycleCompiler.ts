@@ -17,6 +17,7 @@ import type {
   CompiledAccessHookFunction,
   CompiledSubmitHookFunction,
 } from '../../../contracts/runtime/hookLifecycle.type'
+import type { AccessHookEntry } from '../../../contracts/plans/compilationArtefacts.type'
 
 /**
  * Lowers a single access or submit hook AST node into a self-contained compiled
@@ -32,17 +33,21 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one access hook into a CompiledAccessHookFunction. The hook's `when`
-   * predicate gates its effects and outcome resolution; when no outcome resolves to
-   * a redirect or error the function falls through to `{ executed: true, outcome: "continue" }`.
+   * Compiles one access hook into an AccessHookEntry carrying the hook node's id
+   * and its compiled function. The hook's `when` predicate gates its effects and
+   * outcome resolution; when no outcome resolves to a redirect or error the
+   * function falls through to `{ executed: true, outcome: "continue" }`.
    */
-  compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
-    return compileGeneratedFunction<CompiledAccessHookFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleAccessHookSource(hook),
-      { forceAsync: true, phase: 'hooks' },
-    )!
+  compileSingleAccessHook(hook: AccessHookASTNode): AccessHookEntry {
+    return {
+      nodeId: hook.id,
+      evaluate: compileGeneratedFunction<CompiledAccessHookFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildSingleAccessHookSource(hook),
+        { forceAsync: true, phase: 'hooks' },
+      )!,
+    }
   }
 
   /**

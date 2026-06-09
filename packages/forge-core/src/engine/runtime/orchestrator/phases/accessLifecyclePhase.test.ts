@@ -1,4 +1,5 @@
 import { createAccessLifecyclePhase } from './accessLifecyclePhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import type { CompiledAccessHookResult } from '../../../contracts/runtime/hookLifecycle.type'
@@ -41,7 +42,7 @@ const mockFunctionRegistry = {} as FunctionRegistry
 
 function mockHook(result: CompiledAccessHookResult): AccessLifecyclePlan {
   return {
-    hooks: [{ evaluate: vi.fn().mockReturnValue(result) }],
+    hooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
   }
 }
 
@@ -102,6 +103,26 @@ describe('accessLifecyclePhase', () => {
 
       // Assert
       expect(result).toEqual({ action: 'halt-error', status: 500, message: 'Access denied' })
+    })
+
+    it('should record access-hook units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const plan = mockHook({ executed: true, outcome: 'continue' })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+
+      recorder.beginPhase('access-lifecycle')
+
+      // Act
+      await phase.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('continue')
+
+      // Assert
+      const trace = recorder.finish('render')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'access-hook', nodeId: 'compile_ast:1', outcome: 'continue' }),
+      ])
     })
 
     it('should throw when plan is missing', async () => {
