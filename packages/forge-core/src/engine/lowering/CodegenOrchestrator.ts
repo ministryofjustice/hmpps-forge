@@ -24,11 +24,22 @@ import StepRenderCompiler from './phase-compilers/rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 
+/**
+ * Hoisted answer-preparation entries keyed by NodeId: every field/block and MAP
+ * iterator group is compiled once and shared across the steps and journeys that
+ * reference it. Per-step/per-journey AnswerPreparationPlans are assembled by
+ * looking up these entries.
+ */
 interface AnswerPreparationEntries {
   readonly fieldEntries: Map<NodeId, FieldAnswerPreparationEntry>
   readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
 }
 
+/**
+ * Hoisted hook entries keyed by NodeId. Access hooks may be shared by every step
+ * under a journey-level onAccess; submit hooks belong to individual steps. Each
+ * hook is compiled once and looked up when assembling lifecycle plans.
+ */
 interface HookEntries {
   readonly accessHookEntries: Map<NodeId, AccessHookEntry>
   readonly submitHookEntries: Map<NodeId, SubmitHookEntry>
@@ -37,6 +48,13 @@ interface HookEntries {
 export default class CodegenOrchestrator {
   constructor(private readonly dependencies: CompilationDependencies) {}
 
+  /**
+   * Entry point driving every phase compiler. Compiles validation, answer-prep
+   * and hook entries once (hoisted by NodeId), then assembles per-step and
+   * per-journey plans by looking them up. Navigation is compiled before steps
+   * because it attaches per-step validation functions onto the shared
+   * NavigationRuntimePlan that compileStep reuses.
+   */
   compileAll(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
@@ -57,6 +75,11 @@ export default class CodegenOrchestrator {
     return { steps, journeys }
   }
 
+  /**
+   * Compiles each reachability plan's navigation function and attaches it, along
+   * with the per-step validation functions it needs, directly onto the shared
+   * NavigationRuntimePlan. Mutates each reachabilityPlan.navigationPlan in place.
+   */
   private compileNavigation(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
@@ -77,6 +100,11 @@ export default class CodegenOrchestrator {
     })
   }
 
+  /**
+   * Assembles a CompiledJourney per journey-root by looking up the hoisted
+   * access-hook and answer-preparation entries. A journey root carries only
+   * access and answer-preparation plans (it runs those phases then redirects).
+   */
   private compileJourneys(
     plan: CompilationPlan,
     answerPrepEntries: AnswerPreparationEntries,
@@ -100,6 +128,12 @@ export default class CodegenOrchestrator {
     return compiledJourneys
   }
 
+  /**
+   * Assembles one CompiledStep: reuses the shared navigation plan, compiles the
+   * step-specific entry-validation and render plans, and looks up the hoisted
+   * access/submit/answer-prep/validation entries. Throws if no navigation plan is
+   * registered for the step.
+   */
   private compileStep(
     inputs: StepCompilationInputs,
     plan: CompilationPlan,
@@ -137,6 +171,11 @@ export default class CodegenOrchestrator {
     }
   }
 
+  /**
+   * Compiles each distinct field/block and MAP iterator group across all steps
+   * exactly once, deduplicating by NodeId so entries shared across steps are not
+   * recompiled. An iterator group whose compiler yields undefined is skipped.
+   */
   private compileAnswerPreparationEntries(plan: CompilationPlan): AnswerPreparationEntries {
     const compiler = new StepAnswerPreparationCompiler(this.dependencies)
     const fieldEntries = new Map<NodeId, FieldAnswerPreparationEntry>()
@@ -167,6 +206,11 @@ export default class CodegenOrchestrator {
     return { fieldEntries, iteratorGroups }
   }
 
+  /**
+   * Compiles each distinct access and submit hook once, deduplicating by NodeId.
+   * Access hooks are gathered from both step and journey access-ancestors so a
+   * journey-level onAccess hook shared by every step is compiled a single time.
+   */
   private compileHookEntries(plan: CompilationPlan): HookEntries {
     const compiler = new HookLifecycleCompiler(this.dependencies)
     const accessHookEntries = new Map<NodeId, AccessHookEntry>()
@@ -207,6 +251,12 @@ export default class CodegenOrchestrator {
     return { accessHookEntries, submitHookEntries }
   }
 
+  /**
+   * Selects the hoisted prepare entries for the given fields and iterator nodes,
+   * preserving their declared order. Iterator nodes that produced no hoisted group
+   * (e.g. an iterator with no fields) are skipped, so the plan may hold fewer
+   * iterator groups than the input nodes.
+   */
   private assembleAnswerPreparationPlan(
     fieldBlocks: readonly FieldBlockASTNode[],
     mapIterateNodes: readonly IterateASTNode[],
@@ -223,6 +273,11 @@ export default class CodegenOrchestrator {
     return { fields, iteratorGroups: groups }
   }
 
+  /**
+   * Collects the hoisted access-hook entries for every onAccess hook on the
+   * given ancestors, in ancestor-then-declared order. Returns undefined when no
+   * hooks apply so the runtime can skip the access-lifecycle phase entirely.
+   */
   private assembleAccessLifecyclePlan(
     accessAncestors: readonly (JourneyASTNode | StepASTNode)[],
     entries: Map<NodeId, AccessHookEntry>,
@@ -246,6 +301,11 @@ export default class CodegenOrchestrator {
     return { hooks }
   }
 
+  /**
+   * Selects the hoisted submit-hook entries for the step's submit hooks, in
+   * declared order. Returns undefined when the step has no submit hooks so the
+   * runtime can skip the submit-lifecycle phase.
+   */
   private assembleSubmitLifecyclePlan(
     submitHooks: readonly SubmitHookASTNode[],
     entries: Map<NodeId, SubmitHookEntry>,
@@ -261,6 +321,11 @@ export default class CodegenOrchestrator {
     return { hooks }
   }
 
+  /**
+   * Compiles a ValidationPlan per step from its validating fields, step-level
+   * validWhen domain rule and MAP iterator nodes. The result is keyed by stepId
+   * for reuse both as the step's validationPlan and by navigation reachability.
+   */
   private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {
     const validationPlans = new Map<NodeId, ValidationPlan | undefined>()
 
@@ -280,6 +345,11 @@ export default class CodegenOrchestrator {
     return validationPlans
   }
 
+  /**
+   * Builds the per-step validation callbacks navigation needs to decide whether
+   * an earlier step is still valid. Only steps flagged hasValidation with an
+   * existing ValidationPlan are wrapped; the rest are omitted from the map.
+   */
   private wrapValidationPlansForReachability(
     reachabilityPlan: ReachabilityCompilationPlan,
     validationPlans: Map<NodeId, ValidationPlan | undefined>,
@@ -301,6 +371,13 @@ export default class CodegenOrchestrator {
     return compiledValidations
   }
 
+  /**
+   * Wraps a ValidationPlan as a single async StepValidityResult function for
+   * navigation to call. Field validations run in parallel; each iterator group
+   * expands its input into per-item scopes and validates every field once per
+   * item, flattening the results. The step is valid only when no field or domain
+   * failures remain.
+   */
   private wrapValidationPlanAsFunction(validationPlan: ValidationPlan): CompiledValidationFunction {
     return async (ctx, isSubmission, groups) => {
       const fieldResults = await Promise.all(

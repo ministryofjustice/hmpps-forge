@@ -6,6 +6,12 @@ import CodeEmitter from '../emitters/CodeEmitter'
 import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
 import ExpressionDispatcher, { IteratorScopeFrame } from '../expressions/ExpressionDispatcher'
 
+/**
+ * The names of the generated-source variables/expressions in scope for one
+ * iterated item: the normalized input array, the current index, the item scope
+ * object, the raw (pre-scope) item, and the input length expression. Callers
+ * splice these into the JS source they emit for each item.
+ */
 export interface IteratorCompileScope {
   readonly inputVar: string
   readonly indexVar: string
@@ -14,12 +20,15 @@ export interface IteratorCompileScope {
   readonly inputLengthExpr: string
 }
 
+/** Selects which template nodes a traversal collects. */
 type TemplateNodePredicate = (node: TemplateNode) => boolean
 
+/** Tunes traversal: when `descendIntoMatches` is false, a matched branch is not searched deeper (defaults to true). */
 interface TemplateSearchOptions {
   readonly descendIntoMatches?: boolean
 }
 
+/** Loosely-typed view of an iterate template node's properties, narrowed before reading the MAP input and yield template. */
 interface TemplateMapIteratorProperties {
   readonly input?: unknown
   readonly iterator?: {
@@ -132,7 +141,9 @@ export default class ScopedTemplateCompiler {
   }
 
   /**
-   * Finds template nodes matching a predicate, optionally stopping at the first matched branch.
+   * Collects every template node matching a predicate. With `descendIntoMatches`
+   * false, a matched node is collected but its subtree is not searched, so only
+   * the outermost match on each branch is returned (nested matches are skipped).
    */
   findTemplateNodes(
     template: TemplateValue,
@@ -146,6 +157,11 @@ export default class ScopedTemplateCompiler {
     return results
   }
 
+  /**
+   * Extracts the yield template of a MAP iterate node so callers can descend into
+   * it for recursive (nested-iterator) compilation. Returns undefined for any
+   * non-MAP iterator or a MAP with no yield template.
+   */
   getMapIterateYieldTemplate(node: TemplateNode): TemplateValue | undefined {
     const properties = (node.properties ?? {}) as TemplateMapIteratorProperties
     const iterator = properties.iterator
@@ -164,6 +180,12 @@ export default class ScopedTemplateCompiler {
     return this.findTemplateNodes(template, predicate).length > 0
   }
 
+  /**
+   * Emits source that normalizes the iterator input variable in place before looping:
+   * a plain object becomes an array of per-entry items (each carrying its `@key`, and
+   * scalars wrapped under `@value`), and an array is filtered of null/undefined entries.
+   * Non-array, non-object inputs are left untouched so the loop guard skips them.
+   */
   compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
     emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
       emitter.assign(
@@ -176,6 +198,11 @@ export default class ScopedTemplateCompiler {
     })
   }
 
+  /**
+   * Builds the source expression for one item's scope object: a shallow copy of an
+   * object item, or a scalar wrapped under `@value`. The copy keeps the runtime item
+   * scope isolated from the raw collection element.
+   */
   compileIteratorItemScope(rawItemExpr: string): string {
     return `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`
   }
@@ -225,14 +252,17 @@ export default class ScopedTemplateCompiler {
   }
 }
 
+/** Predicate matching a template node that wraps a field block. */
 export function isTemplateFieldNode(node: TemplateNode): boolean {
   return node.originalType === ASTNodeType.BLOCK && node.blockType === BlockType.FIELD
 }
 
+/** Predicate matching any template node that wraps a block (field or otherwise). */
 export function isTemplateBlockNode(node: TemplateNode): boolean {
   return node.originalType === ASTNodeType.BLOCK
 }
 
+/** Predicate matching a template node that wraps an iterate expression. */
 export function isTemplateIterateNode(node: TemplateNode): boolean {
   return node.originalType === ASTNodeType.EXPRESSION && node.expressionType === ExpressionType.ITERATE
 }

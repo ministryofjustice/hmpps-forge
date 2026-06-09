@@ -1,5 +1,16 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 
+/**
+ * Per-request state shared by every compiled phase function.
+ *
+ * Holds the resolved answer history and journey-global `data` alongside the
+ * request surfaces (session, params, query, request) that expressions read
+ * against. `conditions` is the registry of authored functions (conditions,
+ * transformers, generators, effects) that compiled expressions invoke by name.
+ * Each answer carries only `current` here; phases that need parsed values or
+ * mutation provenance widen this shape (see RenderCompilationContext,
+ * AnswerPreparationContext).
+ */
 export interface BasePhaseContext {
   answers: Record<string, { current: unknown }>
   data: Record<string, unknown>
@@ -10,6 +21,7 @@ export interface BasePhaseContext {
   conditions: FunctionRegistry
 }
 
+/** Context for compiled field validation functions; carries no extra state beyond the base. */
 export type ValidationContext = BasePhaseContext
 
 /**
@@ -46,4 +58,5 @@ export interface AnswerPreparationContext {
   post: Record<string, string | string[]>
 }
 
+/** Context for compiled entry-validation reachability predicates; carries no extra state beyond the base. */
 export type ReachabilityContext = BasePhaseContext

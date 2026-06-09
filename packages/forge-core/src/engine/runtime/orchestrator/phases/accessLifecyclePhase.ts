@@ -6,6 +6,13 @@ import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluat
 import { evaluateAccessLifecycle } from './evaluateAccessLifecycle'
 import type { RequestPhase } from '../types'
 
+/**
+ * Builds the access-lifecycle phase: runs the compiled access hooks and maps
+ * their combined result onto a PhaseOutcome. A `'redirect'` outcome halts with
+ * the hook's target (throwing a 500 if the target is absent), an `'error'`
+ * outcome halts with its status/message (defaulting to 500 / 'Access denied'),
+ * and anything else continues. Throws when no plan was compiled for `path`.
+ */
 export function createAccessLifecyclePhase(
   accessLifecyclePlan: AccessLifecyclePlan | undefined,
   path: string,

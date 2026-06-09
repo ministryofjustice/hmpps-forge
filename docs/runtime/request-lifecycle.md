@@ -2,26 +2,28 @@
 
 ## Purpose
 
-Runtime uses the compiled plans and functions to evaluate each request.
+Runtime uses the compiled phase plans to evaluate each request.
 
 The earlier phases decide what the journey is and how it should be evaluated.
 Runtime applies those decisions to a specific request snapshot: session, answers,
 data, route params, and query string.
 
-This phase does not rebuild the journey structure. It prepares context, runs
-compiled functions, evaluates navigation, and returns a `ForgeOutcome`
-(render, navigate, or error) for the adapter to dispatch.
+This phase does not rebuild the journey structure. It prepares context, walks
+the per-phase execution plans (calling each compiled function), evaluates
+navigation, and returns a `ForgeOutcome` (render, navigate, or error) for the
+adapter to dispatch.
 
 ## Why runtime is driven by plans/compiled-functions
 
 Runtime is the request path. It should do the minimum work needed for the
 current request.
 
-Forge keeps runtime plan-driven/compiled-function-driven so evaluation 
-does not need to inspect the original DSL. The evaluator already knows which 
-step or journey-root plan a given node owns. It can call the compiled functions 
-attached to that plan, then use runtime code for policy decisions such 
-as redirect handling, reachability graph walking, and render-context assembly.
+Forge keeps runtime plan-driven so evaluation does not need to inspect the
+original DSL. The evaluator already knows which step or journey-root plan a
+given node owns. Each phase has a dedicated evaluator that walks the phase plan
+and calls its compiled functions — one per field, block, hook, or iterator
+group. Runtime code handles policy decisions such as redirect handling,
+reachability graph walking, and render-context assembly.
 
 This keeps the split between compilation and runtime clear:
 
@@ -42,8 +44,8 @@ It starts when the adapter matches an incoming request to a route from
 `forge.evaluate(snapshot)`. The engine resolves the matching `NodeExecutor` by
 node ID and runs the appropriate pipeline.
 
-The executors do not compile the journey. They receive the plans and compiled
-functions produced by phase 3 and apply them to the current snapshot.
+The executors do not compile the journey. They receive the phase plans produced
+by compilation and apply them to the current snapshot.
 
 Runtime has three evaluation entry points:
 
@@ -77,8 +79,10 @@ reachable.
 After navigation, Forge may run entry validation. Entry validation is used when
 a step is configured to show validation failures before submission.
 
-Finally, Forge calls the compiled render function, builds the render context,
-and returns a render outcome containing the context and the component registry.
+Finally, Forge walks the step's render plan — calling each per-block compiled
+function, each iterator group, and the optional metadata functions — builds the
+render context, and returns a render outcome containing the context and the
+component registry.
 
 ## POST step evaluations
 
@@ -97,7 +101,8 @@ run.
 
 Submit hooks run after answers and navigation are prepared. Hooks can validate,
 run effects, return errors, or redirect. Validation called from submit hooks
-uses the compiled validation function for the step.
+walks the step's validation plan — calling each per-field compiled function,
+each iterator group, and the optional domain validator.
 
 If a submit hook redirects, the outcome is a navigation. If it returns an error,
 the outcome is an error.
@@ -110,9 +115,8 @@ render outcome.
 
 The main inputs are:
 
-- the compiled step or journey plan
-- compiled functions attached to that plan
-- the shared compilation structures
+- the compiled step or journey artefact (`CompiledStep` / `CompiledJourney`),
+  containing the runtime plan and per-phase execution plans
 - a `RequestSnapshot` from the adapter
 - the function and component registries for the journey
 
@@ -152,7 +156,7 @@ step node, each wired with the appropriate phases and terminal. Journey-root
 nodes use a simpler orchestrator with just access and answer-preparation phases,
 plus a redirect terminal.
 
-Missing compiled functions fail fast. There is no interpreted fallback.
+Missing phase plans fail fast. There is no interpreted fallback.
 
 ### `RuntimeEvaluationContext`
 
@@ -197,12 +201,14 @@ ordinary TypeScript code that is easier to inspect and test.
 
 ### Rendering
 
-Rendering starts with the compiled render function for the current step.
+Rendering starts with the step's `RenderPlan`.
 
-That function evaluates step metadata, ancestor metadata, and renderable blocks.
-`RenderContextFactory` then attaches validation failures, builds navigation
-metadata, resolves active navigation state, and produces the final render
-context.
+The dedicated evaluator (`evaluateRender`) walks the plan, calling each
+per-block compiled function, each iterator group's input evaluator and template
+block functions, and the optional step and ancestor metadata functions. All
+independent entries run concurrently. `RenderContextFactory` then attaches
+validation failures, builds navigation metadata, resolves active navigation
+state, and produces the final render context.
 
 The engine returns the render context inside the outcome. The adapter decides
 how that context becomes an HTTP response.
@@ -216,7 +222,7 @@ Important failure cases include:
 
 - access hooks return an error outcome
 - submit hooks return an error outcome
-- a required compiled function is missing
+- a required phase plan is missing
 - reachability cannot resolve a route-template path for a step
 - journey-root navigation cannot find a reachable step
 - a generated function throws while evaluating request data
@@ -225,8 +231,8 @@ Generated-function failures are wrapped with runtime diagnostics when Forge has
 metadata for the failing node or function.
 
 The main rule to preserve is that request handling stays context-driven.
-Runtime should use the compiled plans, compiled functions, and current request
-context rather than reading durable state from the framework runtime.
+Runtime should use the phase plans and current request context rather than
+reading durable state from the framework runtime.
 
 ## Connection to the next phase
 

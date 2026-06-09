@@ -1,8 +1,10 @@
 # contracts - the shared vocabulary
 
-Contracts is where the engine's types live. It contains no logic - just
-interfaces, type aliases, enums, and type guard functions. Every other engine
-layer imports from here; contracts imports from none of them.
+Contracts is where the engine's types live. It contains almost no logic -
+mostly interfaces, type aliases, enums, and type guard functions, plus a few
+trivial constants and factories (the `RENDER_BLOCK_BRAND` symbol and
+`createRouteTreeIndex`). Every other engine layer imports from here; contracts
+imports from none of them.
 
 ## Why a separate layer?
 

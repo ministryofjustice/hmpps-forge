@@ -44,6 +44,11 @@ import type {
   RenderPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
 
+/**
+ * Shape of a block-typed AST value embedded directly inside an authored
+ * property (for example a conditional reveal), distinguished from generic
+ * values by its BLOCK node type so the render compiler can own its lowering.
+ */
 interface RenderBlockValue {
   readonly id?: unknown
   readonly type: ASTNodeType.BLOCK
@@ -305,6 +310,15 @@ export default class StepRenderCompiler {
     return obj.type === ASTNodeType.BLOCK && typeof obj.variant === 'string' && typeof obj.blockType === 'string'
   }
 
+  /**
+   * Compiles a step into its RenderPlan: optional step and ancestor metadata
+   * functions, one CompiledRenderBlockFunction per top-level block, and a render
+   * group per block-yielding MAP iterator.
+   *
+   * Block-yielding iterates consumed inline as property values are tracked while
+   * compiling blocks and skipped here so they are not emitted a second time as
+   * top-level iterator groups.
+   */
   compileRenderPlan(
     stepNode: StepASTNode,
     ancestorNodes: JourneyASTNode[],
@@ -336,6 +350,11 @@ export default class StepRenderCompiler {
     return { compiledStepMetadata, compiledAncestorMetadata, blocks, iteratorGroups }
   }
 
+  /**
+   * Compiles the step metadata function, or undefined when the step carries no
+   * renderable metadata once executable structure (hooks, blocks, reachability)
+   * is excluded.
+   */
   private compileStepMetadataFunction(stepNode: StepASTNode): CompiledStepMetadataFunction | undefined {
     const hasProperties = Object.keys(stepNode.properties).some(key => !StepRenderCompiler.STEP_SKIP_PROPS.has(key))
 
@@ -351,6 +370,10 @@ export default class StepRenderCompiler {
     )
   }
 
+  /**
+   * Builds the JS source string for the step metadata function, returning a
+   * `step` object of evaluated metadata properties.
+   */
   private buildStepMetadataSource(stepNode: StepASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -365,6 +388,10 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles the ancestor metadata function, or undefined when the step has no
+   * journey ancestors.
+   */
   private compileAncestorMetadataFunction(
     ancestorNodes: JourneyASTNode[],
   ): CompiledAncestorMetadataFunction | undefined {
@@ -380,6 +407,11 @@ export default class StepRenderCompiler {
     )
   }
 
+  /**
+   * Builds the JS source for the ancestor metadata function, returning an
+   * `ancestors` array ordered root-first with each ancestor's path composed
+   * relative to its parents.
+   */
   private buildAncestorMetadataSource(ancestorNodes: JourneyASTNode[]): string {
     const emitter = new CodeEmitter()
 
@@ -394,6 +426,9 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles one top-level block into a function producing a single RenderBlock.
+   */
   private compileSingleBlock(block: BlockASTNode): CompiledRenderBlockFunction {
     return compileGeneratedFunction<CompiledRenderBlockFunction>(
       this.expr,
@@ -403,6 +438,12 @@ export default class StepRenderCompiler {
     )
   }
 
+  /**
+   * Builds the JS source for one block's render function: evaluates each
+   * authored property (skipping non-render concerns) and returns a branded
+   * RenderBlock. Field blocks compile their code expression and resolve the
+   * answer value when no explicit value is authored.
+   */
   private buildSingleBlockSource(block: BlockASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -442,6 +483,12 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles a block-yielding MAP iterate into a render group pairing its input
+   * evaluator with one render function per leaf block. Returns undefined for
+   * non-MAP iterators, iterators with no yield template, or templates that yield
+   * no blocks.
+   */
   private compileIteratorRenderGroup(iterateNode: IterateASTNode): IteratorRenderBlockGroup | undefined {
     if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
       return undefined
@@ -466,6 +513,12 @@ export default class StepRenderCompiler {
     return { evaluateInput, blocks }
   }
 
+  /**
+   * Walks a yield template collecting each leaf block into `entries`, recursing
+   * through nested MAP iterates without descending past matched nodes. Each leaf
+   * is compiled with the chain of enclosing iterates so it can emit its own
+   * inline loops, accumulated outermost-first in `ancestorIterates`.
+   */
   private collectLeafBlocks(
     template: TemplateValue,
     entries: IteratorRenderBlockEntry[],
@@ -494,6 +547,10 @@ export default class StepRenderCompiler {
     })
   }
 
+  /**
+   * Compiles the function that evaluates an iterate's input into the per-item
+   * IteratorItemScope array driving the group's render blocks.
+   */
   private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
     return compileGeneratedFunction<CompiledIteratorInputFunction>(
       this.expr,
@@ -503,6 +560,12 @@ export default class StepRenderCompiler {
     )
   }
 
+  /**
+   * Builds the JS source for an iterate input evaluator: normalizes the input
+   * (objects become keyed entries, arrays drop nullish items), then returns one
+   * scope per surviving item carrying item, index, rawItem, and inputLength.
+   * A non-array input yields an empty array.
+   */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -536,6 +599,12 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles one leaf block of an iterate render group into a function invoked
+   * once per outer IteratorItemScope. The result is a single RenderBlock when
+   * the block is directly under the group's iterate, or a RenderBlock array when
+   * intermediate iterates expand into inline loops.
+   */
   private compileIteratorRenderBlock(
     block: TemplateNode,
     ancestorIterates: readonly TemplateNode[],
@@ -548,6 +617,13 @@ export default class StepRenderCompiler {
     )
   }
 
+  /**
+   * Builds the JS source for an iterate render block under the outer scope
+   * frame bound to the passed-in iteratorScope argument. With no intermediate
+   * iterates it returns one RenderBlock; otherwise it pushes blocks into a
+   * `nestedBlocks` array as each intermediate iterate's inline loops run, and
+   * returns that array.
+   */
   private buildIteratorRenderBlockSource(block: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
     const emitter = new CodeEmitter()
 
@@ -576,6 +652,11 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Emits one inline MAP loop per intermediate iterate from `depth` downward,
+   * each pushing an iterator frame for its nesting level, then emits the leaf
+   * block (pushed onto `nestedBlocks`) at the innermost depth.
+   */
   private emitNestedLoopsAndCompileBlock(
     block: TemplateNode,
     ancestorIterates: readonly TemplateNode[],
@@ -593,6 +674,13 @@ export default class StepRenderCompiler {
     })
   }
 
+  /**
+   * Emits the branded RenderBlock for a leaf template block, evaluating its
+   * authored properties under the active iterator frames. Field blocks derive a
+   * per-item id from their resolved code and resolve the answer value when none
+   * is authored. When `asReturn` is true the block is returned; otherwise it is
+   * pushed onto `nestedBlocks`.
+   */
   private emitRenderBlock(block: TemplateNode, emitter: CodeEmitter, asReturn: boolean): void {
     const blockType = block.blockType
     const codeExpr = this.templates.compileTemplateCodeExpression(block, emitter)

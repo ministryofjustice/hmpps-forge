@@ -9,8 +9,9 @@
  * On-entry validation is a small group selector for `validateOnEntry`.
  *
  * Function calls stay indirect through FunctionRegistry because journey authors
- * provide those implementations. Registry metadata decides whether generated
- * source remains sync or becomes async.
+ * provide those implementations. A generated function is sync unless an awaited
+ * call is reached while compiling its body, at which point the whole function
+ * becomes async.
  */
 import type { ASTNode } from '../../../contracts/ast/ast.type'
 import { FieldBlockASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
@@ -70,6 +71,12 @@ export default class StepValidationCompiler {
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
+  /**
+   * Builds the on-GET-entry group selector: one rule per authored `validateOnEntry`
+   * clause, each carrying the validation groups to run plus a compiled `when` predicate.
+   * A `when` of literal `true` yields no predicate (the groups run unconditionally).
+   * Returns undefined when there are no entry-validation clauses.
+   */
   compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan | undefined {
     if (entries === undefined || entries.length === 0) {
       return undefined
@@ -83,6 +90,9 @@ export default class StepValidationCompiler {
     return { rules }
   }
 
+  /**
+   * Compiles one entry-validation `when` predicate into a boolean-returning function over `ctx`.
+   */
   private compileSingleEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
     return compileGeneratedFunction<CompiledEntryValidationRuleFunction>(
       this.expr,
@@ -92,6 +102,9 @@ export default class StepValidationCompiler {
     )
   }
 
+  /**
+   * Emits the source for an entry-validation predicate, coercing the result to a strict boolean.
+   */
   private buildSingleEntryValidationRuleSource(when: ASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -105,6 +118,12 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Assembles the step's {@link ValidationPlan}: one compiled validation function per
+   * field that declares `validWhen`, one iterator group per MAP iterate node, and an
+   * optional step-level domain validation function. Fields and iterate nodes without
+   * configured validation contribute nothing. Returns undefined when nothing validates.
+   */
   compileValidationPlan(
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
@@ -354,6 +373,11 @@ export default class StepValidationCompiler {
     })
   }
 
+  /**
+   * Compiles one field's `validWhen` into a function returning that field's
+   * {@link StepValidationFailure} list (empty when the field passes or is gated out
+   * by `dependentWhen`). The function is async iff any awaited registry call is reached.
+   */
   private compileSingleFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
     return compileGeneratedFunction<CompiledFieldValidationFunction>(
       this.expr,
@@ -363,6 +387,10 @@ export default class StepValidationCompiler {
     )
   }
 
+  /**
+   * Emits the field-validation function body: resolve the caller's active groups, declare
+   * the group helpers and `errors` accumulator, run the field's slot, then return `errors`.
+   */
   private buildSingleFieldValidationSource(block: FieldBlockASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -378,6 +406,11 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles the step's domain `validWhen` into a function returning its
+   * {@link DomainValidationFailure} list. Returns undefined when no domain validation
+   * is configured, so the plan omits a `domain` entry entirely.
+   */
   private compileSingleDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
     if (!hasConfiguredValue(domainValidWhen)) {
       return undefined
@@ -391,6 +424,9 @@ export default class StepValidationCompiler {
     )
   }
 
+  /**
+   * Emits the domain-validation function body, accumulating failures into `domainErrors`.
+   */
   private buildSingleDomainValidationSource(domainValidWhen: unknown): string {
     const emitter = new CodeEmitter()
 
@@ -406,6 +442,12 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Builds one {@link IteratorValidationGroup} for a MAP iterate node: an `evaluateInput`
+   * function that expands the collection into per-item scopes, plus one validation function
+   * per leaf field that declares `validWhen`, gathered through any nested iterate levels.
+   * Returns undefined when the node has no yield template or no validating leaf fields.
+   */
   private compileIteratorGroup(iterateNode: IterateASTNode): IteratorValidationGroup | undefined {
     const template = iterateNode.properties.iterator.yieldTemplate
 
@@ -426,6 +468,13 @@ export default class StepValidationCompiler {
     return { evaluateInput, fields }
   }
 
+  /**
+   * Walks the iterator template (without descending into matched nodes), compiling each
+   * validating field into an entry and recursing through every nested MAP iterate so that
+   * leaf fields at any depth are collected. `ancestorIterates` records the chain of
+   * intermediate iterate nodes so the compiled field can re-emit the enclosing loops.
+   * Appends to `entries` in place.
+   */
   private collectLeafValidationFields(
     template: TemplateValue,
     entries: IteratorFieldValidationEntry[],
@@ -455,6 +504,10 @@ export default class StepValidationCompiler {
     })
   }
 
+  /**
+   * Compiles the group's input evaluator: a function producing the {@link IteratorItemScope}
+   * array (item, index, rawItem, inputLength) the runtime iterates over.
+   */
   private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
     return compileGeneratedFunction<CompiledIteratorInputFunction>(
       this.expr,
@@ -464,6 +517,11 @@ export default class StepValidationCompiler {
     )
   }
 
+  /**
+   * Emits the input-evaluator body: normalize the iterate input, then for each non-null
+   * array entry push an item scope (skipping nullish entries). A non-array input yields an
+   * empty result.
+   */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
     const emitter = new CodeEmitter()
 
@@ -497,6 +555,11 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Compiles one leaf iterator field's validation into a function that takes the outer
+   * {@link IteratorItemScope} and returns its failures. Any nested iterate levels above
+   * the field are re-emitted as inline loops inside the body.
+   */
   private compileIteratorFieldValidation(
     field: TemplateNode,
     ancestorIterates: readonly TemplateNode[],
@@ -509,6 +572,11 @@ export default class StepValidationCompiler {
     )
   }
 
+  /**
+   * Emits the leaf iterator field's body: pushes the outer iterator frame (mapping
+   * `@scope`/`@loop` onto `iteratorScope`), then descends through the ancestor iterate
+   * chain emitting a loop per level before running the field's validation slot.
+   */
   private buildIteratorFieldValidationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
     const emitter = new CodeEmitter()
 
@@ -535,6 +603,11 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
+  /**
+   * Recursively emits one map-iterator loop per remaining ancestor level, then at the leaf
+   * (depth past the last ancestor) resolves the field's code expression and emits its
+   * validation checks within the innermost scope.
+   */
   private emitNestedLoopsAndCompileValidation(
     field: TemplateNode,
     ancestorIterates: readonly TemplateNode[],
@@ -555,6 +628,11 @@ export default class StepValidationCompiler {
   }
 }
 
+/**
+ * Treats an authored slot as configured when it is present and non-empty: `undefined` and
+ * empty arrays count as nothing to validate, while any other value (including a non-empty
+ * array) counts as configured.
+ */
 function hasConfiguredValue(value: unknown): boolean {
   if (value === undefined) {
     return false

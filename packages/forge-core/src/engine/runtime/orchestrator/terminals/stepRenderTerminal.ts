@@ -11,6 +11,15 @@ import type { NavigationEvaluation } from '../../../contracts/navigation/navigat
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { TerminalPhase } from '../types'
 
+/**
+ * Builds the terminal render phase for a step: it runs the step's compiled
+ * RenderPlan to produce blocks plus step/ancestor metadata, then assembles a
+ * render ForgeResult carrying the RenderContext.
+ *
+ * Validation failures from the pipeline state are attached to blocks only when
+ * showValidationFailures is set. Throws if the step has no RenderPlan, which is
+ * a compilation invariant rather than a request-time condition.
+ */
 export function createStepRenderTerminal(
   renderPlan: RenderPlan | undefined,
   path: string,
@@ -55,6 +64,13 @@ export function createStepRenderTerminal(
   }
 }
 
+/**
+ * Derives the step's backlink when the render did not already supply one. Falls
+ * back to the navigation evaluation's resolved previous step, with its route
+ * template params filled from the current request. Returns the step unchanged
+ * when it already has a backlink, when there is no navigation evaluation, or
+ * when no previous step path can be resolved.
+ */
 function resolveStepMetadata(
   step: RenderContext['step'],
   request: StepRequest,

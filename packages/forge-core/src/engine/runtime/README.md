@@ -52,6 +52,9 @@ For a GET request to a step, the phases are:
    stepRenderTerminal   run the compiled render → produce blocks, step metadata, backlink
         │
         ▼
+   ForgeResult { type: 'render', context }   (orchestrator's internal result)
+        │ mapped by ForgeEvaluator
+        ▼
    ForgeOutcome { kind: 'render', context, componentRegistry }
 ```
 

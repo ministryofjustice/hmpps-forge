@@ -30,7 +30,13 @@ import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../../../framework/types/outcome.type'
 import type { ForgeRoute, ForgeTopology } from '../../../framework/types/topology.type'
 
+/**
+ * One resolved node's runnable pipelines plus the immutable data needed to
+ * evaluate and instrument it. `get` always exists for both steps and journey
+ * roots; `post` is present only for steps (the submit pipeline).
+ */
 interface NodeExecutor {
+  /** Resolved route template path, surfaced as the `http.route` span attribute. */
   readonly route: string
   readonly journeyCode: string
   readonly staticData: Record<string, unknown>
@@ -63,6 +69,12 @@ export default class ForgeEvaluator {
     this.basePath = normalizeBasePath(options.basePath)
   }
 
+  /**
+   * Registers every step and journey-root node of one compiled package as a
+   * runnable {@link NodeExecutor} keyed by journey-scoped route key, and records
+   * its {@link ForgeRoute} in the topology. Returns the number of executor
+   * entries added (two per step for GET and POST, one per journey root).
+   */
   mount(packageInstance: PackageInstance): number {
     const packageDependencies = packageInstance.getDependencies()
     const stepRouteIndex = packageInstance.getStepRouteIndex()
@@ -86,10 +98,19 @@ export default class ForgeEvaluator {
     return stepCount + journeyCount
   }
 
+  /** The routes-as-data view of every mounted node, for adapters to register. */
   getTopology(): ForgeTopology {
     return { routes: this.routes }
   }
 
+  /**
+   * Resolves the executor for `snapshot.nodeId`, picks the GET or POST
+   * orchestrator by method, prepares a fresh per-request context, and runs the
+   * pipeline. Returns a `navigate` outcome for a redirect result or a `render`
+   * outcome (carrying the node's component registry) otherwise; yields an
+   * `error` outcome when the node is unknown or the method is unsupported.
+   * Tags the current instrumentation span with the route and journey code.
+   */
   async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome> {
     const executor = this.executorsByRouteKey.get(snapshot.nodeId)
 
@@ -125,6 +146,14 @@ export default class ForgeEvaluator {
     }
   }
 
+  /**
+   * For each step context, assembles its GET orchestrator (access ->
+   * answer-preparation -> navigation -> entry-validation, then the shared render
+   * terminal) and POST orchestrator (access -> answer-preparation -> navigation
+   * -> submit, same render terminal), registers both under one scoped route key,
+   * and pushes a step {@link ForgeRoute}. Returns the executor count (two per
+   * step).
+   */
   private buildStepExecutors(
     stepContexts: StepRouteContext[],
     stepRouteIndex: StepRouteIndex,
@@ -235,6 +264,13 @@ export default class ForgeEvaluator {
     return count
   }
 
+  /**
+   * For each journey root, assembles a GET-only orchestrator (access ->
+   * answer-preparation, then a redirect terminal that sends the visitor to the
+   * resolved entry step), registers it, and pushes a journey {@link ForgeRoute}.
+   * Skips any journey whose compiled artefact or template catalog is missing.
+   * Returns the executor count (one per journey root).
+   */
   private buildJourneyExecutors(
     journeyContexts: JourneyRouteContext[],
     journeyRouteIndex: JourneyRouteIndex,
@@ -301,10 +337,12 @@ export default class ForgeEvaluator {
     return count
   }
 
+  /** Namespaces a node id under its journey so route keys stay unique across journeys. */
   private static scopedRouteKey(journeyCode: string, nodeId: NodeId): string {
     return `${journeyCode}::${nodeId}`
   }
 
+  /** Wraps a code/message pair as an `error` {@link ForgeOutcome}. */
   private errorOutcome(code: ForgeErrorCode, message: string): ForgeOutcome {
     return { kind: 'error', error: { code, message } }
   }

@@ -37,10 +37,11 @@ Compilation happens in three steps:
    `CompilationPlan` - per-step/journey inputs, reachability plans, field
    inventories. No code emitted yet.
 2. [`CodegenOrchestrator.compileAll(plan, nodeRegistry)`](./CodegenOrchestrator.ts)
-   drives the phase compilers. Navigation compiles first, because it attaches
-   per-step validation functions to the shared `NavigationRuntimePlan` that
-   `compileStep` reuses (commented at
-   [`CodegenOrchestrator.ts:21`](./CodegenOrchestrator.ts)).
+   drives the phase compilers. Navigation compiles before the per-step plans,
+   because it attaches per-step validation functions to the shared
+   `NavigationRuntimePlan` that `compileStep` reuses - and it consumes those
+   already-compiled validation plans itself (see the `compileAll` JSDoc in
+   [`CodegenOrchestrator.ts`](./CodegenOrchestrator.ts)).
 3. [`createCompiledFunction`](./function-construction/compiledFunctionFactory.ts)
    turns each emitted source string into a real function, choosing `Function` or
    `AsyncFunction`.
@@ -50,7 +51,7 @@ output also wraps the formatter in a `TypeError`-tolerant `try/catch`, and
 prefixes each comment with the full class name):
 
 ```js
-(ctx, _forgeHelpers) => {
+(ctx, _forgeHelpers, _forgeRuntimeDiagnostics) => {
   "use strict";
   const isPost = ctx.request.method === "POST";
   if (isPost) {
@@ -83,13 +84,15 @@ prefixes each comment with the full class name):
 
 What happened:
 
-- **`(ctx, _forgeHelpers)`** - the generated function closes over nothing. Every
-  dependency arrives as a parameter: `ctx` is the request-scoped state, and
-  `_forgeHelpers` is the runtime helper library the emitted code calls into (so
+- **`(ctx, _forgeHelpers, _forgeRuntimeDiagnostics)`** - the generated function
+  closes over nothing. Every dependency arrives as a parameter: `ctx` is the
+  request-scoped state, and `_forgeHelpers` is the runtime helper library the
+  emitted code calls into (so
   the generated string stays small, and the hard logic stays in real, testable
   functions). This is what lets a compiled function cross into `runtime/` as an
-  opaque value. (`_forgeRuntimeDiagnostics` is an optional extra parameter,
-  which is why it's referenced defensively.)
+  opaque value. (`_forgeRuntimeDiagnostics` is always passed as the third
+  parameter, but emitted fragments reference it through a `typeof` guard so they
+  stay safe when reused inside nested callbacks where it isn't in lexical scope.)
 - **The `// --- … ---` comments are emitted by the compiler.** Every block is
   stamped with the method that wrote it (e.g.
   `StepAnswerPreparationCompiler.compilePostPath`). When you're reading or

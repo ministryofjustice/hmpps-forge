@@ -8,6 +8,16 @@ import { evaluateValidation } from './evaluateValidation'
 import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
 
+/**
+ * Builds the POST step's submit phase: runs the step's submit hooks, wiring a
+ * `validate(groups)` callback that runs the step's ValidationPlan on demand from
+ * within a hook. Branches on the first executed hook's outcome — 'redirect'
+ * halts with its target (500 if the target is missing), 'error' halts with its
+ * status/message (defaulting to 500), otherwise records on the pipeline state
+ * whether the hook triggered validation (`showValidationFailures`) and the
+ * verdict left on `context.global.validation` by the validation run, then
+ * continues. Throws when the submit lifecycle plan is missing.
+ */
 export function createSubmitPhase(
   submitLifecyclePlan: SubmitLifecyclePlan | undefined,
   validationPlan: ValidationPlan | undefined,
