@@ -44,7 +44,7 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const prepareFn = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        fields: [{ prepare: prepareFn }],
         iteratorGroups: [],
       }
       const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
@@ -65,7 +65,7 @@ describe('answerPreparationPhase', () => {
         prepared = true
       })
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        fields: [{ prepare: prepareFn }],
         iteratorGroups: [],
       }
       const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)

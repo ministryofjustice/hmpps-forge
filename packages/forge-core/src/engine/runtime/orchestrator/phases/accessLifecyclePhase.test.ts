@@ -48,7 +48,7 @@ const mockInstrumentation = {
 
 function mockHook(result: CompiledAccessHookResult): AccessLifecyclePlan {
   return {
-    hooks: [{ nodeId: 'compile_ast:99' as const, evaluate: vi.fn().mockReturnValue(result) }],
+    hooks: [{ evaluate: vi.fn().mockReturnValue(result) }],
   }
 }
 

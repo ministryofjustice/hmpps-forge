@@ -19,19 +19,11 @@ export type CompiledValidationFunction = (
   groups?: string[],
 ) => StepValidityResult | Promise<StepValidityResult>
 
-export type CompiledEntryValidationFunction = (ctx: ValidationContext) => string[] | Promise<string[]>
-
 export interface CompiledRenderResult {
   blocks: RenderBlock[]
   step: Record<string, unknown>
   ancestors: Record<string, unknown>[]
 }
-
-export type CompiledRenderFunction = (
-  ctx: RenderCompilationContext,
-) => CompiledRenderResult | Promise<CompiledRenderResult>
-
-export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
 
 /**
  * The result of calling the compiled reachability function. Arrays are indexed

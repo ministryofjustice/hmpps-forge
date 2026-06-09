@@ -147,7 +147,6 @@ export default class CodegenOrchestrator {
       inputs.fieldBlocks.forEach(block => {
         if (!fieldEntries.has(block.id)) {
           fieldEntries.set(block.id, {
-            nodeId: block.id,
             prepare: compiler.compileSingleFieldPreparation(block),
           })
         }
@@ -178,7 +177,6 @@ export default class CodegenOrchestrator {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
             accessHookEntries.set(hook.id, {
-              nodeId: hook.id,
               evaluate: compiler.compileSingleAccessHook(hook),
             })
           }
@@ -188,7 +186,6 @@ export default class CodegenOrchestrator {
       inputs.submitHooks.forEach(hook => {
         if (!submitHookEntries.has(hook.id)) {
           submitHookEntries.set(hook.id, {
-            nodeId: hook.id,
             evaluate: compiler.compileSingleSubmitHook(hook),
           })
         }
@@ -200,7 +197,6 @@ export default class CodegenOrchestrator {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
             accessHookEntries.set(hook.id, {
-              nodeId: hook.id,
               evaluate: compiler.compileSingleAccessHook(hook),
             })
           }

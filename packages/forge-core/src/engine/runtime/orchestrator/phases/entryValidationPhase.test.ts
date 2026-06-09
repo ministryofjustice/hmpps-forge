@@ -94,7 +94,6 @@ describe('entryValidationPhase', () => {
         iteratorGroups: [],
         fields: [
           {
-            nodeId: 'compile_ast:2' as const,
             validate: vi
               .fn()
               .mockReturnValue([
@@ -146,7 +145,6 @@ describe('entryValidationPhase', () => {
         iteratorGroups: [],
         fields: [
           {
-            nodeId: 'compile_ast:2' as const,
             validate: vi
               .fn()
               .mockReturnValue([
@@ -207,7 +205,7 @@ describe('entryValidationPhase', () => {
       }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
-        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
+        fields: [{ validate: vi.fn().mockReturnValue([]) }],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,

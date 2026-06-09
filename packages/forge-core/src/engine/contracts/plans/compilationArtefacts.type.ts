@@ -17,17 +17,14 @@ import type {
 } from '../compiled/compiledFunctions.type'
 
 export interface FieldValidationEntry {
-  readonly nodeId: NodeId
   readonly validate: CompiledFieldValidationFunction
 }
 
 export interface IteratorFieldValidationEntry {
-  readonly templateNodeId: string
   readonly validate: CompiledIteratorFieldValidationFunction
 }
 
 export interface IteratorValidationGroup {
-  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly fields: readonly IteratorFieldValidationEntry[]
 }
@@ -39,17 +36,14 @@ export interface ValidationPlan {
 }
 
 export interface FieldAnswerPreparationEntry {
-  readonly nodeId: NodeId
   readonly prepare: CompiledFieldAnswerPreparationFunction
 }
 
 export interface IteratorFieldAnswerPreparationEntry {
-  readonly templateNodeId: string
   readonly prepare: CompiledIteratorFieldAnswerPreparationFunction
 }
 
 export interface IteratorAnswerPreparationGroup {
-  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly fields: readonly IteratorFieldAnswerPreparationEntry[]
 }
@@ -60,17 +54,14 @@ export interface AnswerPreparationPlan {
 }
 
 export interface RenderBlockEntry {
-  readonly nodeId: NodeId
   readonly render: CompiledRenderBlockFunction
 }
 
 export interface IteratorRenderBlockEntry {
-  readonly templateNodeId: string
   readonly render: CompiledIteratorRenderBlockFunction
 }
 
 export interface IteratorRenderBlockGroup {
-  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly blocks: readonly IteratorRenderBlockEntry[]
 }
@@ -92,7 +83,6 @@ export interface EntryValidationPlan {
 }
 
 export interface AccessHookEntry {
-  readonly nodeId: NodeId
   readonly evaluate: CompiledAccessHookFunction
 }
 
@@ -101,7 +91,6 @@ export interface AccessLifecyclePlan {
 }
 
 export interface SubmitHookEntry {
-  readonly nodeId: NodeId
   readonly evaluate: CompiledSubmitHookFunction
 }
 

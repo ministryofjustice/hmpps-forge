@@ -48,7 +48,7 @@ const mockInstrumentation = {
 
 function mockHook(result: CompiledSubmitHookResult): SubmitLifecyclePlan {
   return {
-    hooks: [{ nodeId: 'compile_ast:99' as const, evaluate: vi.fn().mockReturnValue(result) }],
+    hooks: [{ evaluate: vi.fn().mockReturnValue(result) }],
   }
 }
 

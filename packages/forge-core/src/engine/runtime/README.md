@@ -8,8 +8,8 @@ never knows how the functions were built - it just calls them.
 ## Why a separate layer?
 
 The compiled functions are opaque values. Runtime receives them through
-[`contracts/`](../contracts) types (`CompiledRenderFunction`,
-`CompiledAccessLifecycleFunction`, etc.) and calls them - it can't inspect their
+[`contracts/`](../contracts) types (`CompiledRenderBlockFunction`,
+`CompiledAccessHookFunction`, etc.) and calls them - it can't inspect their
 source, their dependencies, or how they were generated. That isolation means
 lowering and runtime can change independently: lowering can rewrite its codegen
 without touching the request path, and runtime can restructure its phase

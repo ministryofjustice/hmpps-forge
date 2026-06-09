@@ -111,14 +111,15 @@ What happened:
   generated function is built with `AsyncFunction`. Hooks always force async,
   because effect calls are always awaited.
 
-Every other compiler follows the same pattern. There is one per output function:
+Every other compiler follows the same pattern. The phase compilers emit a plan
+of per-entry compiled functions; navigation stays a single function:
 
 | Compiled by | Output | Does, at request time |
 |---|---|---|
-| `StepRenderCompiler` | `CompiledRenderFunction` | build the render blocks + step/ancestor metadata |
-| `StepValidationCompiler` | `CompiledValidationFunction` / `CompiledEntryValidationFunction` | run validation / pick entry-validation groups |
-| `StepAnswerPreparationCompiler` | `CompiledAnswerPreparationFunction` | format submitted answers into state *(shown above)* |
-| `HookLifecycleCompiler` | `CompiledAccessLifecycleFunction` / `CompiledSubmitHooksFunction` | run access / submit hooks + effects |
+| `StepRenderCompiler` | `RenderPlan` | build the render blocks + step/ancestor metadata |
+| `StepValidationCompiler` | `ValidationPlan` / `EntryValidationPlan` | run validation / pick entry-validation groups |
+| `StepAnswerPreparationCompiler` | `AnswerPreparationPlan` | format submitted answers into state *(shown above)* |
+| `HookLifecycleCompiler` | `AccessLifecyclePlan` / `SubmitLifecyclePlan` | run access / submit hooks + effects |
 | `ReachabilityCompiler` | `CompiledReachabilityFunction` / `CompiledNavigationFunction` | evaluate reachability + navigation |
 
 All output types are declared in [`contracts/`](../contracts), never here.

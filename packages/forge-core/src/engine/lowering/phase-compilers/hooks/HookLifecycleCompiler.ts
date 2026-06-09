@@ -8,102 +8,21 @@ import {
   SubmitHookASTNode,
   ThrowErrorOutcomeASTNode,
 } from '../../../contracts/ast/expressions.type'
-import { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
+import { compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
 import type {
   CompiledAccessHookFunction,
-  CompiledAccessLifecycleFunction,
   CompiledSubmitHookFunction,
-  CompiledSubmitHooksFunction,
 } from '../../../contracts/runtime/hookLifecycle.type'
-import type {
-  AccessHookEntry,
-  AccessLifecyclePlan,
-  SubmitHookEntry,
-  SubmitLifecyclePlan,
-} from '../../../contracts/plans/compilationArtefacts.type'
 
 export default class HookLifecycleCompiler {
   private readonly expr: ExpressionDispatcher
 
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
-  }
-
-  compileAccessLifecyclePlan(accessAncestors: (JourneyASTNode | StepASTNode)[]): AccessLifecyclePlan | undefined {
-    const hooks: AccessHookEntry[] = []
-
-    accessAncestors.forEach(ancestor => {
-      ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-        hooks.push({
-          nodeId: hook.id,
-          evaluate: this.compileSingleAccessHook(hook),
-        })
-      })
-    })
-
-    if (hooks.length === 0) {
-      return undefined
-    }
-
-    return { hooks }
-  }
-
-  compileSubmitLifecyclePlan(submitHooks: SubmitHookASTNode[]): SubmitLifecyclePlan | undefined {
-    const hooks: SubmitHookEntry[] = []
-
-    submitHooks.forEach(hook => {
-      hooks.push({
-        nodeId: hook.id,
-        evaluate: this.compileSingleSubmitHook(hook),
-      })
-    })
-
-    if (hooks.length === 0) {
-      return undefined
-    }
-
-    return { hooks }
-  }
-
-  compileAccessLifecycle(
-    accessAncestors: (JourneyASTNode | StepASTNode)[],
-  ): CompiledAccessLifecycleFunction | undefined {
-    return compileGeneratedFunction<CompiledAccessLifecycleFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildAccessSource(accessAncestors),
-      { forceAsync: true, phase: 'hooks' },
-    )
-  }
-
-  compileSubmitHooks(hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction | undefined {
-    return compileGeneratedFunction<CompiledSubmitHooksFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSubmitSource(hooks),
-      { forceAsync: true, phase: 'hooks' },
-    )
-  }
-
-  generateAccessSource(accessAncestors: (JourneyASTNode | StepASTNode)[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildAccessSource(accessAncestors))
-  }
-
-  generateSubmitSource(hooks: SubmitHookASTNode[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks))
-  }
-
-  generateSingleAccessHookSource(hook: AccessHookASTNode): string {
-    return buildGeneratedSource(this.expr, () => this.buildSingleAccessHookSource(hook))
-  }
-
-  generateSingleSubmitHookSource(hook: SubmitHookASTNode): string {
-    return buildGeneratedSource(this.expr, () => this.buildSingleSubmitHookSource(hook))
   }
 
   compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
@@ -163,73 +82,12 @@ export default class HookLifecycleCompiler {
     return emitter.toString()
   }
 
-  private buildAccessSource(accessAncestors: (JourneyASTNode | StepASTNode)[]): string {
-    const emitter = this.createEmitter()
-
-    emitter.comment('HookLifecycleCompiler.buildAccessSource')
-    accessAncestors.forEach(ancestor => {
-      ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-        this.compileAccessHook(hook, emitter)
-      })
-    })
-
-    emitter.return('{ executed: true, outcome: "continue" }')
-
-    return emitter.toString()
-  }
-
-  private buildSubmitSource(hooks: SubmitHookASTNode[]): string {
-    const emitter = this.createEmitter()
-
-    emitter.comment('HookLifecycleCompiler.buildSubmitSource')
-    hooks.forEach(hook => {
-      this.compileSubmitHook(hook, emitter)
-    })
-
-    emitter.return('{ executed: false, validated: false, outcome: "continue" }')
-
-    return emitter.toString()
-  }
-
   private createEmitter(): CodeEmitter {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
 
     return emitter
-  }
-
-  private compileAccessHook(hook: AccessHookASTNode, emitter: CodeEmitter): void {
-    emitter.comment('HookLifecycleCompiler.compileAccessHook')
-    emitter.scope(() => {
-      const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
-
-      emitter.if(whenVar, () => {
-        this.compileEffects(hook.properties.effects, emitter)
-        this.compileOutcomeReturns(hook.properties.next, emitter, 'executed: true, ')
-      })
-    })
-  }
-
-  private compileSubmitHook(hook: SubmitHookASTNode, emitter: CodeEmitter): void {
-    emitter.comment('HookLifecycleCompiler.compileSubmitHook')
-    emitter.scope(() => {
-      const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
-
-      emitter.if(whenVar, () => {
-        const guardsVar = this.compilePredicate(hook.properties.guards, true, emitter, 'guardPredicate')
-
-        emitter.if(guardsVar, () => {
-          if (hook.properties.validate) {
-            this.compileValidatedSubmitBranches(hook, emitter)
-
-            return
-          }
-
-          this.compileNonValidatingSubmitBranch(hook, emitter)
-        })
-      })
-    })
   }
 
   private compileValidatedSubmitBranches(hook: SubmitHookASTNode, emitter: CodeEmitter): void {
@@ -270,7 +128,7 @@ export default class HookLifecycleCompiler {
         const branchOutcomeVar = emitter.let('branchOutcome')
 
         this.compileValidationOutcomeBranches(hook, validVar, branchOutcomeVar, emitter)
-        this.emitSubmitReturn(true, validVar, branchOutcomeVar, emitter)
+        this.emitSubmitReturn(true, branchOutcomeVar, emitter)
       },
     )
   }
@@ -310,7 +168,7 @@ export default class HookLifecycleCompiler {
     emitter.comment('HookLifecycleCompiler.compileNonValidatingSubmitBranch')
     const outcomeVar = this.compileBranch(hook.properties.onAlways, emitter)
 
-    this.emitSubmitReturn(false, undefined, outcomeVar, emitter)
+    this.emitSubmitReturn(false, outcomeVar, emitter)
   }
 
   private compileBranch(branch: { effects?: ASTNode[]; next?: ASTNode[] } | undefined, emitter: CodeEmitter): string {
@@ -450,33 +308,26 @@ export default class HookLifecycleCompiler {
     return this.expr.compileExpression(value)
   }
 
-  private emitSubmitReturn(
-    validated: boolean,
-    validVar: string | undefined,
-    outcomeVar: string,
-    emitter: CodeEmitter,
-  ): void {
-    const validPart = validVar === undefined ? '' : `, isValid: ${validVar}`
-
+  private emitSubmitReturn(validated: boolean, outcomeVar: string, emitter: CodeEmitter): void {
     emitter.ifChain(
       [
         {
           condition: `${outcomeVar} && ${outcomeVar}.type === "redirect"`,
           body: () =>
             emitter.return(
-              `{ executed: true, validated: ${JSON.stringify(validated)}${validPart}, outcome: "redirect", redirect: ${outcomeVar}.value }`,
+              `{ executed: true, validated: ${JSON.stringify(validated)}, outcome: "redirect", redirect: ${outcomeVar}.value }`,
             ),
         },
         {
           condition: `${outcomeVar} && ${outcomeVar}.type === "error"`,
           body: () =>
             emitter.return(
-              `{ executed: true, validated: ${JSON.stringify(validated)}${validPart}, outcome: "error", status: ${outcomeVar}.value.status, message: ${outcomeVar}.value.message }`,
+              `{ executed: true, validated: ${JSON.stringify(validated)}, outcome: "error", status: ${outcomeVar}.value.status, message: ${outcomeVar}.value.message }`,
             ),
         },
       ],
       () => {
-        emitter.return(`{ executed: true, validated: ${JSON.stringify(validated)}${validPart}, outcome: "continue" }`)
+        emitter.return(`{ executed: true, validated: ${JSON.stringify(validated)}, outcome: "continue" }`)
       },
     )
   }

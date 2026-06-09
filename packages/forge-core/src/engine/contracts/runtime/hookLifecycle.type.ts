@@ -30,7 +30,6 @@ export interface CompiledAccessHookResult {
 export interface CompiledSubmitHookResult {
   executed: boolean
   validated: boolean
-  isValid?: boolean
   outcome: 'continue' | 'redirect' | 'error'
   redirect?: string
   status?: number
@@ -41,14 +40,6 @@ export type CompiledAccessHookFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
 
-export type CompiledAccessLifecycleFunction = (
-  ctx: HookLifecycleContext,
-) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
-
 export type CompiledSubmitHookFunction = (
-  ctx: HookLifecycleContext,
-) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
-
-export type CompiledSubmitHooksFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
