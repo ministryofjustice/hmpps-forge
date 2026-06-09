@@ -1,6 +1,15 @@
 import type { NodeId } from '../contracts/ast/engine.type'
+import type { IterateASTNode } from '../contracts/ast/expressions.type'
+import type { FieldBlockASTNode } from '../contracts/ast/structures.type'
 import type { CompiledValidationFunction } from '../contracts/compiled/compiledFunctions.type'
-import type { CompiledJourney, CompiledStep, ValidationPlan } from '../contracts/plans/compilationArtefacts.type'
+import type {
+  AnswerPreparationPlan,
+  CompiledJourney,
+  CompiledStep,
+  FieldAnswerPreparationEntry,
+  IteratorAnswerPreparationGroup,
+  ValidationPlan,
+} from '../contracts/plans/compilationArtefacts.type'
 import type { ReachabilityCompilationPlan } from '../contracts/plans/runtimePlans.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
 import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
@@ -11,6 +20,11 @@ import StepRenderCompiler from './phase-compilers/rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 
+interface AnswerPreparationEntries {
+  readonly fieldEntries: Map<NodeId, FieldAnswerPreparationEntry>
+  readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
+}
+
 export default class CodegenOrchestrator {
   constructor(private readonly dependencies: CompilationDependencies) {}
 
@@ -19,14 +33,15 @@ export default class CodegenOrchestrator {
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
     const validationPlans = this.compileValidationPlans(plan)
+    const answerPrepEntries = this.compileAnswerPreparationEntries(plan)
 
     this.compileNavigation(plan, nodeRegistry, validationPlans)
-    const journeys = this.compileJourneys(plan)
+    const journeys = this.compileJourneys(plan, answerPrepEntries)
 
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan, validationPlans))
+      steps.set(stepId, this.compileStep(inputs, plan, validationPlans, answerPrepEntries))
     })
 
     return { steps, journeys }
@@ -52,9 +67,11 @@ export default class CodegenOrchestrator {
     })
   }
 
-  private compileJourneys(plan: CompilationPlan): Map<NodeId, CompiledJourney> {
+  private compileJourneys(
+    plan: CompilationPlan,
+    answerPrepEntries: AnswerPreparationEntries,
+  ): Map<NodeId, CompiledJourney> {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
-    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
     plan.journeyInputs.forEach((inputs, journeyId) => {
@@ -62,9 +79,10 @@ export default class CodegenOrchestrator {
         runtimePlan: inputs.runtimePlan,
         navigationPlan: inputs.navigationPlan,
         accessLifecyclePlan: hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors),
-        answerPreparationPlan: answerPrepCompiler.compileAnswerPreparationPlan(
+        answerPreparationPlan: this.assembleAnswerPreparationPlan(
           inputs.stepFieldBlocks,
           inputs.stepMapIterateNodes,
+          answerPrepEntries,
         ),
       })
     })
@@ -76,6 +94,7 @@ export default class CodegenOrchestrator {
     inputs: StepCompilationInputs,
     plan: CompilationPlan,
     validationPlans: Map<NodeId, ValidationPlan | undefined>,
+    answerPrepEntries: AnswerPreparationEntries,
   ): CompiledStep {
     const navigationPlan = plan.navigationPlansByStepId.get(inputs.stepNode.id)
 
@@ -86,12 +105,6 @@ export default class CodegenOrchestrator {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const accessLifecyclePlan = hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors)
     const submitLifecyclePlan = hookCompiler.compileSubmitLifecyclePlan(inputs.submitHooks)
-
-    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
-    const answerPreparationPlan = answerPrepCompiler.compileAnswerPreparationPlan(
-      inputs.fieldBlocks,
-      inputs.mapIterateNodes,
-    )
 
     const validationCompiler = new StepValidationCompiler(this.dependencies)
     const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
@@ -106,11 +119,62 @@ export default class CodegenOrchestrator {
       navigationPlan,
       accessLifecyclePlan,
       submitLifecyclePlan,
-      answerPreparationPlan,
+      answerPreparationPlan: this.assembleAnswerPreparationPlan(
+        inputs.fieldBlocks,
+        inputs.mapIterateNodes,
+        answerPrepEntries,
+      ),
       entryValidationPlan,
       renderPlan,
       validationPlan: validationPlans.get(inputs.stepNode.id),
     }
+  }
+
+  private compileAnswerPreparationEntries(plan: CompilationPlan): AnswerPreparationEntries {
+    const compiler = new StepAnswerPreparationCompiler(this.dependencies)
+    const fieldEntries = new Map<NodeId, FieldAnswerPreparationEntry>()
+    const iteratorGroups = new Map<NodeId, IteratorAnswerPreparationGroup>()
+    const visitedIterateNodes = new Set<NodeId>()
+
+    plan.stepInputs.forEach(inputs => {
+      inputs.fieldBlocks.forEach(block => {
+        if (!fieldEntries.has(block.id)) {
+          fieldEntries.set(block.id, {
+            nodeId: block.id,
+            prepare: compiler.compileSingleFieldPreparation(block),
+          })
+        }
+      })
+
+      inputs.mapIterateNodes.forEach(iterateNode => {
+        if (!visitedIterateNodes.has(iterateNode.id)) {
+          visitedIterateNodes.add(iterateNode.id)
+          const group = compiler.compileIteratorGroup(iterateNode)
+
+          if (group !== undefined) {
+            iteratorGroups.set(iterateNode.id, group)
+          }
+        }
+      })
+    })
+
+    return { fieldEntries, iteratorGroups }
+  }
+
+  private assembleAnswerPreparationPlan(
+    fieldBlocks: readonly FieldBlockASTNode[],
+    mapIterateNodes: readonly IterateASTNode[],
+    entries: AnswerPreparationEntries,
+  ): AnswerPreparationPlan {
+    const fields = fieldBlocks
+      .map(block => entries.fieldEntries.get(block.id))
+      .filter((entry): entry is FieldAnswerPreparationEntry => entry !== undefined)
+
+    const groups = mapIterateNodes
+      .map(node => entries.iteratorGroups.get(node.id))
+      .filter((group): group is IteratorAnswerPreparationGroup => group !== undefined)
+
+    return { fields, iteratorGroups: groups }
   }
 
   private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {

@@ -463,7 +463,7 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
+  compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
     return compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
       this.expr,
       ['ctx'],
@@ -488,7 +488,7 @@ export default class StepAnswerPreparationCompiler {
     return emitter.toString()
   }
 
-  private compileIteratorGroup(iterateNode: IterateASTNode): IteratorAnswerPreparationGroup | undefined {
+  compileIteratorGroup(iterateNode: IterateASTNode): IteratorAnswerPreparationGroup | undefined {
     const template = iterateNode.properties.iterator.yieldTemplate
 
     if (template === undefined || !this.containsTemplateField(template)) {
