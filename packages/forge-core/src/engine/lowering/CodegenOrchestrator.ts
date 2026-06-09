@@ -1,13 +1,17 @@
 import type { NodeId } from '../contracts/ast/engine.type'
-import type { IterateASTNode } from '../contracts/ast/expressions.type'
-import type { FieldBlockASTNode } from '../contracts/ast/structures.type'
+import type { IterateASTNode, SubmitHookASTNode } from '../contracts/ast/expressions.type'
+import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import type { CompiledValidationFunction } from '../contracts/compiled/compiledFunctions.type'
 import type {
+  AccessHookEntry,
+  AccessLifecyclePlan,
   AnswerPreparationPlan,
   CompiledJourney,
   CompiledStep,
   FieldAnswerPreparationEntry,
   IteratorAnswerPreparationGroup,
+  SubmitHookEntry,
+  SubmitLifecyclePlan,
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
 import type { ReachabilityCompilationPlan } from '../contracts/plans/runtimePlans.type'
@@ -25,6 +29,11 @@ interface AnswerPreparationEntries {
   readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
 }
 
+interface HookEntries {
+  readonly accessHookEntries: Map<NodeId, AccessHookEntry>
+  readonly submitHookEntries: Map<NodeId, SubmitHookEntry>
+}
+
 export default class CodegenOrchestrator {
   constructor(private readonly dependencies: CompilationDependencies) {}
 
@@ -34,14 +43,15 @@ export default class CodegenOrchestrator {
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
     const validationPlans = this.compileValidationPlans(plan)
     const answerPrepEntries = this.compileAnswerPreparationEntries(plan)
+    const hookEntries = this.compileHookEntries(plan)
 
     this.compileNavigation(plan, nodeRegistry, validationPlans)
-    const journeys = this.compileJourneys(plan, answerPrepEntries)
+    const journeys = this.compileJourneys(plan, answerPrepEntries, hookEntries)
 
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan, validationPlans, answerPrepEntries))
+      steps.set(stepId, this.compileStep(inputs, plan, validationPlans, answerPrepEntries, hookEntries))
     })
 
     return { steps, journeys }
@@ -70,15 +80,15 @@ export default class CodegenOrchestrator {
   private compileJourneys(
     plan: CompilationPlan,
     answerPrepEntries: AnswerPreparationEntries,
+    hookEntries: HookEntries,
   ): Map<NodeId, CompiledJourney> {
-    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
     plan.journeyInputs.forEach((inputs, journeyId) => {
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
         navigationPlan: inputs.navigationPlan,
-        accessLifecyclePlan: hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors),
+        accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
         answerPreparationPlan: this.assembleAnswerPreparationPlan(
           inputs.stepFieldBlocks,
           inputs.stepMapIterateNodes,
@@ -95,16 +105,13 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     validationPlans: Map<NodeId, ValidationPlan | undefined>,
     answerPrepEntries: AnswerPreparationEntries,
+    hookEntries: HookEntries,
   ): CompiledStep {
     const navigationPlan = plan.navigationPlansByStepId.get(inputs.stepNode.id)
 
     if (!navigationPlan) {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan not found`)
     }
-
-    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
-    const accessLifecyclePlan = hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors)
-    const submitLifecyclePlan = hookCompiler.compileSubmitLifecyclePlan(inputs.submitHooks)
 
     const validationCompiler = new StepValidationCompiler(this.dependencies)
     const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
@@ -117,8 +124,8 @@ export default class CodegenOrchestrator {
     return {
       runtimePlan: inputs.runtimePlan,
       navigationPlan,
-      accessLifecyclePlan,
-      submitLifecyclePlan,
+      accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
+      submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hookEntries.submitHookEntries),
       answerPreparationPlan: this.assembleAnswerPreparationPlan(
         inputs.fieldBlocks,
         inputs.mapIterateNodes,
@@ -161,6 +168,49 @@ export default class CodegenOrchestrator {
     return { fieldEntries, iteratorGroups }
   }
 
+  private compileHookEntries(plan: CompilationPlan): HookEntries {
+    const compiler = new HookLifecycleCompiler(this.dependencies)
+    const accessHookEntries = new Map<NodeId, AccessHookEntry>()
+    const submitHookEntries = new Map<NodeId, SubmitHookEntry>()
+
+    plan.stepInputs.forEach(inputs => {
+      inputs.accessAncestors.forEach(ancestor => {
+        ;(ancestor.properties.onAccess ?? []).forEach(hook => {
+          if (!accessHookEntries.has(hook.id)) {
+            accessHookEntries.set(hook.id, {
+              nodeId: hook.id,
+              evaluate: compiler.compileSingleAccessHook(hook),
+            })
+          }
+        })
+      })
+
+      inputs.submitHooks.forEach(hook => {
+        if (!submitHookEntries.has(hook.id)) {
+          submitHookEntries.set(hook.id, {
+            nodeId: hook.id,
+            evaluate: compiler.compileSingleSubmitHook(hook),
+          })
+        }
+      })
+    })
+
+    plan.journeyInputs.forEach(inputs => {
+      inputs.accessAncestors.forEach(ancestor => {
+        ;(ancestor.properties.onAccess ?? []).forEach(hook => {
+          if (!accessHookEntries.has(hook.id)) {
+            accessHookEntries.set(hook.id, {
+              nodeId: hook.id,
+              evaluate: compiler.compileSingleAccessHook(hook),
+            })
+          }
+        })
+      })
+    })
+
+    return { accessHookEntries, submitHookEntries }
+  }
+
   private assembleAnswerPreparationPlan(
     fieldBlocks: readonly FieldBlockASTNode[],
     mapIterateNodes: readonly IterateASTNode[],
@@ -175,6 +225,44 @@ export default class CodegenOrchestrator {
       .filter((group): group is IteratorAnswerPreparationGroup => group !== undefined)
 
     return { fields, iteratorGroups: groups }
+  }
+
+  private assembleAccessLifecyclePlan(
+    accessAncestors: readonly (JourneyASTNode | StepASTNode)[],
+    entries: Map<NodeId, AccessHookEntry>,
+  ): AccessLifecyclePlan | undefined {
+    const hooks: AccessHookEntry[] = []
+
+    accessAncestors.forEach(ancestor => {
+      ;(ancestor.properties.onAccess ?? []).forEach(hook => {
+        const entry = entries.get(hook.id)
+
+        if (entry !== undefined) {
+          hooks.push(entry)
+        }
+      })
+    })
+
+    if (hooks.length === 0) {
+      return undefined
+    }
+
+    return { hooks }
+  }
+
+  private assembleSubmitLifecyclePlan(
+    submitHooks: readonly SubmitHookASTNode[],
+    entries: Map<NodeId, SubmitHookEntry>,
+  ): SubmitLifecyclePlan | undefined {
+    const hooks = submitHooks
+      .map(hook => entries.get(hook.id))
+      .filter((entry): entry is SubmitHookEntry => entry !== undefined)
+
+    if (hooks.length === 0) {
+      return undefined
+    }
+
+    return { hooks }
   }
 
   private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {

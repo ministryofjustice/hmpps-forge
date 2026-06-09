@@ -106,7 +106,7 @@ export default class HookLifecycleCompiler {
     return buildGeneratedSource(this.expr, () => this.buildSingleSubmitHookSource(hook))
   }
 
-  private compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
+  compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
     return compileGeneratedFunction<CompiledAccessHookFunction>(
       this.expr,
       ['ctx'],
@@ -130,7 +130,7 @@ export default class HookLifecycleCompiler {
     return emitter.toString()
   }
 
-  private compileSingleSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHookFunction {
+  compileSingleSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHookFunction {
     return compileGeneratedFunction<CompiledSubmitHookFunction>(
       this.expr,
       ['ctx'],
