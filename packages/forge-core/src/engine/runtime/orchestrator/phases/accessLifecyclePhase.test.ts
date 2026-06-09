@@ -1,4 +1,5 @@
 import { createAccessLifecyclePhase } from './accessLifecyclePhase'
+import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import type { CompiledAccessHookResult } from '../../../contracts/runtime/hookLifecycle.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
@@ -45,14 +46,18 @@ const mockInstrumentation = {
   ),
 } as unknown as ForgeInstrumentation
 
+function mockHook(result: CompiledAccessHookResult): AccessLifecyclePlan {
+  return {
+    hooks: [{ evaluate: vi.fn().mockReturnValue(result) }],
+  }
+}
+
 describe('accessLifecyclePhase', () => {
   describe('execute()', () => {
     it('should return continue when access lifecycle passes', async () => {
       // Arrange
-      const compiledFn = vi
-        .fn()
-        .mockReturnValue({ executed: true, outcome: 'continue' } satisfies CompiledAccessHookResult)
-      const phase = createAccessLifecyclePhase(compiledFn, '/step', mockFunctionRegistry, mockInstrumentation)
+      const plan = mockHook({ executed: true, outcome: 'continue' })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -63,12 +68,8 @@ describe('accessLifecyclePhase', () => {
 
     it('should return halt-redirect when access lifecycle redirects', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        outcome: 'redirect',
-        redirect: '/login',
-      } satisfies CompiledAccessHookResult)
-      const phase = createAccessLifecyclePhase(compiledFn, '/step', mockFunctionRegistry, mockInstrumentation)
+      const plan = mockHook({ executed: true, outcome: 'redirect', redirect: '/login' })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -79,12 +80,8 @@ describe('accessLifecyclePhase', () => {
 
     it('should throw when redirect target is missing', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        outcome: 'redirect',
-        redirect: undefined,
-      } satisfies CompiledAccessHookResult)
-      const phase = createAccessLifecyclePhase(compiledFn, '/step', mockFunctionRegistry, mockInstrumentation)
+      const plan = mockHook({ executed: true, outcome: 'redirect', redirect: undefined })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act & Assert
       await expect(phase.execute(createMockState())).rejects.toThrow('Hook redirect target is missing')
@@ -92,13 +89,8 @@ describe('accessLifecyclePhase', () => {
 
     it('should return halt-error when access lifecycle errors', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        outcome: 'error',
-        status: 403,
-        message: 'Forbidden',
-      } satisfies CompiledAccessHookResult)
-      const phase = createAccessLifecyclePhase(compiledFn, '/step', mockFunctionRegistry, mockInstrumentation)
+      const plan = mockHook({ executed: true, outcome: 'error', status: 403, message: 'Forbidden' })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -109,11 +101,8 @@ describe('accessLifecyclePhase', () => {
 
     it('should default error status to 500 when not provided', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        outcome: 'error',
-      } satisfies CompiledAccessHookResult)
-      const phase = createAccessLifecyclePhase(compiledFn, '/step', mockFunctionRegistry, mockInstrumentation)
+      const plan = mockHook({ executed: true, outcome: 'error' })
+      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -122,12 +111,12 @@ describe('accessLifecyclePhase', () => {
       expect(result).toEqual({ action: 'halt-error', status: 500, message: 'Access denied' })
     })
 
-    it('should throw when compiled function is missing', async () => {
+    it('should throw when plan is missing', async () => {
       // Arrange
       const phase = createAccessLifecyclePhase(undefined, '/step', mockFunctionRegistry, mockInstrumentation)
 
       // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('compiledAccessLifecycle is missing for "/step"')
+      await expect(phase.execute(createMockState())).rejects.toThrow('Access lifecycle plan is missing for "/step"')
     })
   })
 })

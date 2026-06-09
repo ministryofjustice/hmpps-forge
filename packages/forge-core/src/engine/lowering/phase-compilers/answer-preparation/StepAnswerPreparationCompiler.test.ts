@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
@@ -15,7 +14,6 @@ import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import { generatedFunctionHelpers } from '../../function-construction/GeneratedFunctionHelpers'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
@@ -153,12 +151,6 @@ function createIterateNode(input: unknown, yieldTemplate: TemplateValue): Iterat
   } as unknown as IterateASTNode
 }
 
-function runGeneratedSource(source: string, ctx: AnswerPreparationContext): void {
-  const fn = new Function('ctx', '_forgeHelpers', source)
-
-  fn(ctx, generatedFunctionHelpers)
-}
-
 describe('StepAnswerPreparationCompiler', () => {
   let compiler: StepAnswerPreparationCompiler
   const dependencies: CompilationDependencies = {
@@ -170,6 +162,26 @@ describe('StepAnswerPreparationCompiler', () => {
     ASTTestFactory.resetIds()
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
+
+  // Mirrors runtime/orchestrator/phases/evaluateAnswerPreparation against the test's bare context.
+  async function runPrep(
+    runCompiler: StepAnswerPreparationCompiler,
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[],
+    ctx: AnswerPreparationContext,
+  ): Promise<void> {
+    await Promise.all(fieldBlocks.map(block => runCompiler.compileSingleFieldPreparation(block)(ctx)))
+
+    const groups = iterateNodes
+      .map(node => runCompiler.compileIteratorGroup(node))
+      .filter((group): group is NonNullable<typeof group> => group !== undefined)
+
+    for (const group of groups) {
+      const items = await group.evaluateInput(ctx)
+
+      await Promise.all(items.flatMap(itemScope => group.fields.map(field => field.prepare(ctx, itemScope))))
+    }
+  }
 
   describe('hybrid async compilation', () => {
     it('should keep compiled answer preparation synchronous when registry functions are sync', async () => {
@@ -196,12 +208,9 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
-      const result = await fn!(ctx)
+      const result = localCompiler.compileSingleFieldPreparation(block)(ctx)
 
       // Assert
-      expect(source).not.toContain('await')
       expect(result).not.toBeInstanceOf(Promise)
       expect(ctx.answers.name.current).toBe('Ada')
     })
@@ -230,13 +239,9 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
-
-      await fn!(ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
-      expect(source).toContain('await')
       expect(ctx.answers.name.current).toBe('Ada')
       expect(ctx.answers.name.mutations[1]).toEqual({ value: 'Ada', source: 'processed' })
     })
@@ -269,13 +274,9 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
-
-      await fn!(ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
-      expect(source).toContain('await')
       expect(ctx.answers.email.current).toBeUndefined()
       expect(ctx.answers.email.mutations[ctx.answers.email.mutations.length - 1])
         .toEqual({ value: undefined, source: 'dependentWhen' })
@@ -304,27 +305,22 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
-
-      await fn!(ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
-      expect(source).toContain('await')
       expect(ctx.answers.reference.current).toBe('ABC-123')
       expect(ctx.answers.reference.mutations[0]).toEqual({ value: 'ABC-123', source: 'default' })
     })
   })
 
   describe('POST path', () => {
-    it('should extract POST value and push post mutation', () => {
+    it('should extract POST value and push post mutation', async () => {
       // Arrange
       const block = createFieldBlock('firstName')
       const ctx = createCtx({ post: { firstName: 'John' } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.firstName).toBeDefined()
@@ -333,7 +329,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.firstName.mutations[0]).toEqual({ value: 'John', source: 'post' })
     })
 
-    it('should extract POST value when a registered field has dynamic code', () => {
+    it('should extract POST value when a registered field has dynamic code', async () => {
       // Arrange
       const dynamicCode = createGeneratorFunction('fieldCode')
       const block = createFieldBlock(dynamicCode)
@@ -352,107 +348,71 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
-      // Assert
-      expect(source).toContain('const fieldCode = String(')
+      // Assert — dynamic code resolved to 'firstName' and the POST value landed there
       expect(ctx.answers.firstName).toBeDefined()
       expect(ctx.answers.firstName.current).toBe('John')
       expect(ctx.answers.firstName.mutations[0]).toEqual({ value: 'John', source: 'post' })
     })
 
-    it('should extract POST value when a registered field has dynamic code', () => {
-      // Arrange
-      const dynamicCode = createGeneratorFunction('fieldCode')
-      const block = createFieldBlock(dynamicCode)
-      const localCompiler = createSyncCompiler('fieldCode')
-      const ctx = createCtx({
-        post: { firstName: 'John' },
-        conditions: {
-          get: vi.fn((name: string) => {
-            if (name === 'fieldCode') {
-              return { evaluate: () => 'firstName' }
-            }
-
-            return { evaluate: () => undefined }
-          }),
-        } as unknown as AnswerPreparationContext['conditions'],
-      })
-
-      // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
-
-      // Assert
-      expect(source).toContain('const fieldCode = String(')
-      expect(ctx.answers.firstName).toBeDefined()
-      expect(ctx.answers.firstName.current).toBe('John')
-      expect(ctx.answers.firstName.mutations[0]).toEqual({ value: 'John', source: 'post' })
-    })
-
-    it('should process multiple fields in order', () => {
+    it('should process multiple fields in order', async () => {
       // Arrange
       const block1 = createFieldBlock('firstName')
       const block2 = createFieldBlock('lastName')
       const ctx = createCtx({ post: { firstName: 'John', lastName: 'Doe' } })
 
       // Act
-      const source = compiler.generateSource([block1, block2])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block1, block2], [], ctx)
 
       // Assert
       expect(ctx.answers.firstName.current).toBe('John')
       expect(ctx.answers.lastName.current).toBe('Doe')
     })
 
-    it('should extract first non-empty for non-multiple fields when POST is array', () => {
+    it('should extract first non-empty for non-multiple fields when POST is array', async () => {
       // Arrange
       const block = createFieldBlock('colour')
       const ctx = createCtx({ post: { colour: ['', ' ', 'red', 'blue'] as unknown as string } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.colour.current).toBe('red')
     })
 
-    it('should keep full array for multiple: true fields', () => {
+    it('should keep full array for multiple: true fields', async () => {
       // Arrange
       const block = createFieldBlock('tags', { multiple: true })
       const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.tags.current).toEqual(['a', 'b', 'c'])
     })
 
-    it('should normalize single value to array for multiple: true', () => {
+    it('should normalize single value to array for multiple: true', async () => {
       // Arrange
       const block = createFieldBlock('tags', { multiple: true })
       const ctx = createCtx({ post: { tags: 'single' } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.tags.current).toEqual(['single'])
     })
 
-    it('should push mutation with undefined when field not in POST data', () => {
+    it('should push mutation with undefined when field not in POST data', async () => {
       // Arrange
       const block = createFieldBlock('missing')
       const ctx = createCtx({ post: {} })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.missing.current).toBeUndefined()
@@ -461,7 +421,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('formatters', () => {
-    it('should apply a single formatter and push processed mutation', () => {
+    it('should apply a single formatter and push processed mutation', async () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
@@ -469,8 +429,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  John  ' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('John')
@@ -479,7 +438,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.name.mutations[1]).toEqual({ value: 'John', source: 'processed' })
     })
 
-    it('should chain multiple formatters in sequence', () => {
+    it('should chain multiple formatters in sequence', async () => {
       // Arrange
       const trim = createTransformerFunction('trim')
       const upper = createTransformerFunction('toUpperCase')
@@ -488,14 +447,13 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  hello  ' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('HELLO')
     })
 
-    it('should not push processed mutation if formatter did not change value', () => {
+    it('should not push processed mutation if formatter did not change value', async () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
@@ -503,15 +461,14 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'NoSpaces' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('NoSpaces')
       expect(ctx.answers.name.mutations).toHaveLength(1)
     })
 
-    it('should keep previous value when formatter returns undefined', () => {
+    it('should keep previous value when formatter returns undefined', async () => {
       // Arrange
       const noopFormatter = createTransformerFunction('nonexistent')
       const block = createFieldBlock('name', { formatters: [noopFormatter] })
@@ -519,14 +476,13 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'original' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('original')
     })
 
-    it('should keep submitted value and skip remaining formatters when a formatter throws TypeError', () => {
+    it('should keep submitted value and skip remaining formatters when a formatter throws TypeError', async () => {
       // Arrange
       const toNumberFormatter = createTransformerFunction('toNumber')
       const afterFormatter = createTransformerFunction('after')
@@ -555,9 +511,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
-
-      fn!(ctx)
+      localCompiler.compileSingleFieldPreparation(block)(ctx)
 
       // Assert
       expect(afterEvaluate).not.toHaveBeenCalled()
@@ -582,10 +536,10 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compileSingleFieldPreparation(block)
 
       // Assert
-      const evaluate = () => fn!(ctx)
+      const evaluate = () => fn(ctx)
 
       expect(evaluate).toThrow('Formatter failed')
 
@@ -604,7 +558,7 @@ describe('StepAnswerPreparationCompiler', () => {
       }
     })
 
-    it('should pass additional arguments to formatter', () => {
+    it('should pass additional arguments to formatter', async () => {
       // Arrange
       const truncate = createTransformerFunction('truncate', [3])
       const block = createFieldBlock('name', { formatters: [truncate] })
@@ -612,8 +566,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'hello world' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('hel')
@@ -621,7 +574,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('dependentWhen', () => {
-    it('should keep value when dependentWhen evaluates to true', () => {
+    it('should keep value when dependentWhen evaluates to true', async () => {
       // Arrange
       const ref = createReference(['answers', 'showEmail'])
       const cond = createConditionFunction('isRequired')
@@ -634,14 +587,13 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.email.current).toBe('test@example.com')
     })
 
-    it('should clear value when dependentWhen evaluates to false', () => {
+    it('should clear value when dependentWhen evaluates to false', async () => {
       // Arrange
       const ref = createReference(['answers', 'showEmail'])
       const cond = createConditionFunction('isRequired')
@@ -654,8 +606,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.email.current).toBeUndefined()
@@ -684,10 +635,10 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compileSingleFieldPreparation(block)
 
       // Assert
-      const evaluate = () => fn!(ctx)
+      const evaluate = () => fn(ctx)
 
       expect(evaluate).toThrow('boom')
 
@@ -708,7 +659,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('GET path', () => {
-    it('should return existing answer without mutation', () => {
+    it('should return existing answer without mutation', async () => {
       // Arrange
       const block = createFieldBlock('name')
       const ctx = createCtx({
@@ -717,29 +668,27 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('existing')
       expect(ctx.answers.name.mutations).toHaveLength(0)
     })
 
-    it('should resolve literal defaultValue and push default mutation', () => {
+    it('should resolve literal defaultValue and push default mutation', async () => {
       // Arrange
       const block = createFieldBlock('country', { defaultValue: 'UK' })
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('UK')
       expect(ctx.answers.country.mutations[0]).toEqual({ value: 'UK', source: 'default' })
     })
 
-    it('should resolve expression defaultValue', () => {
+    it('should resolve expression defaultValue', async () => {
       // Arrange
       const defaultRef = createReference(['data', 'defaultCountry'])
       const block = createFieldBlock('country', { defaultValue: defaultRef })
@@ -749,15 +698,14 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('US')
       expect(ctx.answers.country.mutations[0]).toEqual({ value: 'US', source: 'default' })
     })
 
-    it('should resolve match expressions in defaultValue', () => {
+    it('should resolve match expressions in defaultValue', async () => {
       // Arrange
       const defaultMatch = ASTTestFactory.expression(ExpressionType.MATCH)
         .withProperty('branches', [
@@ -790,22 +738,20 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('United States')
       expect(ctx.answers.country.mutations[0]).toEqual({ value: 'United States', source: 'default' })
     })
 
-    it('should push default mutation with undefined when no defaultValue', () => {
+    it('should push default mutation with undefined when no defaultValue', async () => {
       // Arrange
       const block = createFieldBlock('optional')
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = compiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [block], [], ctx)
 
       // Assert
       expect(ctx.answers.optional.current).toBeUndefined()
@@ -818,7 +764,7 @@ describe('StepAnswerPreparationCompiler', () => {
       return new TemplateFactory(new NodeIDGenerator()).compile(value)
     }
 
-    it('should process fields with static codes inside iterator', () => {
+    it('should process fields with static codes inside iterator', async () => {
       // Arrange
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
@@ -835,15 +781,14 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([], [iterateNode])
-      runGeneratedSource(source, ctx)
+      await runPrep(compiler, [], [iterateNode], ctx)
 
       // Assert
       expect(ctx.answers.staticField).toBeDefined()
       expect(ctx.answers.staticField.current).toBe('value')
     })
 
-    it('should resolve dynamic field codes from scope references', () => {
+    it('should resolve dynamic field codes from scope references', async () => {
       // Arrange
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
@@ -867,8 +812,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([], [iterateNode])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [], [iterateNode], ctx)
 
       // Assert
       expect(ctx.answers.person_0).toBeDefined()
@@ -877,7 +821,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.person_1.current).toBe('Bob')
     })
 
-    it('should process fields inside nested iterators with parent and child loop scope', () => {
+    it('should process fields inside nested iterators with parent and child loop scope', async () => {
       // Arrange
       const memberField = createFieldBlock(
         ASTTestFactory.formatExpression('team_%1_member_%2', [
@@ -907,9 +851,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([], [iterateNode])
-
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [], [iterateNode], ctx)
 
       // Assert
       expect(ctx.answers.team_0_member_0.current).toBe('Ada')
@@ -919,7 +861,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('formatters do not run on GET', () => {
-    it('should not apply formatters on GET request', () => {
+    it('should not apply formatters on GET request', async () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter], defaultValue: '  spaced  ' })
@@ -927,8 +869,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
-      runGeneratedSource(source, ctx)
+      await runPrep(localCompiler, [block], [], ctx)
 
       // Assert — defaultValue is set as-is, no trimming
       expect(ctx.answers.name.current).toBe('  spaced  ')

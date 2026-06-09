@@ -1,12 +1,20 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { CompiledAccessLifecycleFunction } from '../../../contracts/runtime/hookLifecycle.type'
+import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
+import { evaluateAccessLifecycle } from './evaluateAccessLifecycle'
 import type { RequestPhase } from '../types'
 
+/**
+ * Builds the access-lifecycle phase: runs the compiled access hooks and maps
+ * their combined result onto a PhaseOutcome. A `'redirect'` outcome halts with
+ * the hook's target (throwing a 500 if the target is absent), an `'error'`
+ * outcome halts with its status/message (defaulting to 500 / 'Access denied'),
+ * and anything else continues. Throws when no plan was compiled for `path`.
+ */
 export function createAccessLifecyclePhase(
-  compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined,
+  accessLifecyclePlan: AccessLifecyclePlan | undefined,
   path: string,
   functionRegistry: FunctionRegistry,
   instrumentation: ForgeInstrumentation,
@@ -14,11 +22,12 @@ export function createAccessLifecyclePhase(
   return {
     name: 'access-lifecycle',
     async execute(state) {
-      if (!compiledAccessLifecycle) {
-        throw new Error(`[Forge] Hook fallback is disabled — compiledAccessLifecycle is missing for "${path}"`)
+      if (!accessLifecyclePlan) {
+        throw new Error(`[Forge] Access lifecycle plan is missing for "${path}"`)
       }
 
-      const result = await compiledAccessLifecycle(
+      const result = await evaluateAccessLifecycle(
+        accessLifecyclePlan,
         buildCompiledHookLifecycleContext(
           state.context,
           functionRegistry,

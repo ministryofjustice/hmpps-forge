@@ -1,4 +1,5 @@
 import { createSubmitPhase } from './submitPhase'
+import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import type { CompiledSubmitHookResult } from '../../../contracts/runtime/hookLifecycle.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
@@ -45,17 +46,19 @@ const mockInstrumentation = {
   ),
 } as unknown as ForgeInstrumentation
 
+function mockHook(result: CompiledSubmitHookResult): SubmitLifecyclePlan {
+  return {
+    hooks: [{ evaluate: vi.fn().mockReturnValue(result) }],
+  }
+}
+
 describe('submitPhase', () => {
   describe('execute()', () => {
     it('should return continue and set showValidationFailures when hooks pass', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        validated: true,
-        outcome: 'continue',
-      } satisfies CompiledSubmitHookResult)
+      const plan = mockHook({ executed: true, validated: true, outcome: 'continue' })
       const phase = createSubmitPhase(
-        compiledFn,
+        plan,
         undefined,
         'compile_ast:1' as const,
         '/step',
@@ -74,14 +77,9 @@ describe('submitPhase', () => {
 
     it('should return halt-redirect when submit hooks redirect', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        validated: false,
-        outcome: 'redirect',
-        redirect: '/next',
-      } satisfies CompiledSubmitHookResult)
+      const plan = mockHook({ executed: true, validated: false, outcome: 'redirect', redirect: '/next' })
       const phase = createSubmitPhase(
-        compiledFn,
+        plan,
         undefined,
         'compile_ast:1' as const,
         '/step',
@@ -98,15 +96,9 @@ describe('submitPhase', () => {
 
     it('should return halt-error when submit hooks error', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        validated: false,
-        outcome: 'error',
-        status: 400,
-        message: 'Bad request',
-      } satisfies CompiledSubmitHookResult)
+      const plan = mockHook({ executed: true, validated: false, outcome: 'error', status: 400, message: 'Bad request' })
       const phase = createSubmitPhase(
-        compiledFn,
+        plan,
         undefined,
         'compile_ast:1' as const,
         '/step',
@@ -123,14 +115,9 @@ describe('submitPhase', () => {
 
     it('should throw when redirect target is missing', async () => {
       // Arrange
-      const compiledFn = vi.fn().mockReturnValue({
-        executed: true,
-        validated: false,
-        outcome: 'redirect',
-        redirect: undefined,
-      } satisfies CompiledSubmitHookResult)
+      const plan = mockHook({ executed: true, validated: false, outcome: 'redirect', redirect: undefined })
       const phase = createSubmitPhase(
-        compiledFn,
+        plan,
         undefined,
         'compile_ast:1' as const,
         '/step',
@@ -142,7 +129,7 @@ describe('submitPhase', () => {
       await expect(phase.execute(createMockState())).rejects.toThrow('Hook redirect target is missing')
     })
 
-    it('should throw when compiled function is missing', async () => {
+    it('should throw when plan is missing', async () => {
       // Arrange
       const phase = createSubmitPhase(
         undefined,
@@ -154,7 +141,9 @@ describe('submitPhase', () => {
       )
 
       // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('compiledSubmitHooks is missing for step "/step"')
+      await expect(phase.execute(createMockState())).rejects.toThrow(
+        'Submit lifecycle plan is missing for step "/step"',
+      )
     })
   })
 })

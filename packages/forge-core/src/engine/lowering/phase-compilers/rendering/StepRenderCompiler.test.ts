@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
@@ -19,6 +18,7 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import { attachDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { RenderCompilationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { RenderBlock } from '../../../../framework/rendering/types'
+import { evaluateRender } from '../../../runtime/orchestrator/phases/evaluateRender'
 import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -129,19 +129,17 @@ describe('StepRenderCompiler', () => {
       const syncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = syncCompiler.generateSource(createStepWithBlocks([block]), [], [])
-      const compiled = syncCompiler.compile(createStepWithBlocks([block]), [], [])
-      const result = compiled!(createCtx({ conditions: functionRegistry }))
+      const plan = syncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
 
       // Assert
-      expect(source).not.toContain('await')
-      expect(result).not.toBeInstanceOf(Promise)
+      expect(blockResult).not.toBeInstanceOf(Promise)
 
-      if (result instanceof Promise) {
+      if (blockResult instanceof Promise) {
         throw new Error('Expected sync render result')
       }
 
-      expect(result.blocks[0].properties.content).toBe('Hello Ada')
+      expect(blockResult.properties.content).toBe('Hello Ada')
     })
 
     it('should await async generator expressions when registry functions are async', async () => {
@@ -163,12 +161,12 @@ describe('StepRenderCompiler', () => {
       const asyncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = asyncCompiler.generateSource(createStepWithBlocks([block]), [], [])
-      const compiled = asyncCompiler.compile(createStepWithBlocks([block]), [], [])
-      const result = await compiled!(createCtx({ conditions: functionRegistry }))
+      const plan = asyncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
+      const result = await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
 
       // Assert
-      expect(source).toContain('await')
+      expect(blockResult).toBeInstanceOf(Promise)
       expect(result.blocks[0].properties.content).toBe('Hello Ada')
     })
 
@@ -178,14 +176,12 @@ describe('StepRenderCompiler', () => {
       const members = [member]
       const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
       const iterateNode = createIterateNode(createTemplate([field]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ data: { members } }))
+      const result = await evaluateRender(
+        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
+        createCtx({ data: { members } }),
+      )
 
       // Assert
       expect(result.blocks).toHaveLength(1)
@@ -199,23 +195,18 @@ describe('StepRenderCompiler', () => {
       const members = [member]
       const field = createFieldBlock('memberName_0', createReference(['@scope', '0']))
       const iterateNode = createIterateNode(createTemplate([field]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-      const source = compiler.generateSource(createStep(), [], [iterateNode])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ data: { members } }))
+      const result = await evaluateRender(
+        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
+        createCtx({ data: { members } }),
+      )
 
       // Assert
       expect(result.blocks[0].properties.defaultValue).toBe(member)
       expect(result.blocks[0].properties.value).toBe(member)
       expect(result.blocks[0].properties.value).not.toHaveProperty('@index')
       expect(result.blocks[0].properties.value).not.toHaveProperty('@item')
-      expect(source).not.toContain('"@type"')
-      expect(source).not.toContain('"@item"')
     })
 
     it('should evaluate generator expressions when rendering block properties', async () => {
@@ -232,11 +223,7 @@ describe('StepRenderCompiler', () => {
       const block = ASTTestFactory.block('summary-row', BlockType.BASIC)
         .withProperty('html', addressDisplay)
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       const get = vi.fn((name: string) => {
         if (name === 'renderAddress') {
@@ -252,7 +239,8 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           answers: {
             addressLine1: { current: '123 Example Street' },
@@ -271,14 +259,12 @@ describe('StepRenderCompiler', () => {
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', createReference(['post', 'action']))
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ post: { action: 'find-address' }, request: { method: 'POST' } }))
+      const result = await evaluateRender(
+        compiler.compileRenderPlan(createStepWithBlocks([block]), []),
+        createCtx({ post: { action: 'find-address' }, request: { method: 'POST' } }),
+      )
 
       // Assert
       expect(result.blocks[0].properties.content).toBe('find-address')
@@ -294,12 +280,7 @@ describe('StepRenderCompiler', () => {
         .withProperty('content', answerReference)
         .build()
       const step = createStepWithBlocks([block])
-      const compiled = compiler.compile(step, [])
-      const source = compiler.generateSource(step, [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(step, [])
 
       const get = vi.fn((name: string) => {
         if (name === 'answerCode') {
@@ -312,7 +293,8 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           answers: {
             '123': { current: 'Ada' },
@@ -322,7 +304,6 @@ describe('StepRenderCompiler', () => {
       )
 
       // Assert
-      expect(source).toContain('ctx.answers[String(')
       expect(result.blocks[0].properties.content).toBe('Ada')
     })
 
@@ -331,14 +312,11 @@ describe('StepRenderCompiler', () => {
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('addressTown')
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           request: { method: 'POST' },
           answers: {
@@ -362,14 +340,11 @@ describe('StepRenderCompiler', () => {
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('email')
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           request: { method: 'POST' },
           answers: {
@@ -395,12 +370,7 @@ describe('StepRenderCompiler', () => {
         .withProperty('code', dynamicCode)
         .build()
       const step = createStepWithBlocks([block])
-      const compiled = compiler.compile(step, [])
-      const source = compiler.generateSource(step, [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(step, [])
 
       const get = vi.fn((name: string) => {
         if (name === 'fieldCode') {
@@ -413,7 +383,8 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           answers: {
             '123': { current: 'Ada' },
@@ -423,7 +394,6 @@ describe('StepRenderCompiler', () => {
       )
 
       // Assert
-      expect(source).toContain('blockProps["code"] = String(')
       expect(result.blocks[0].properties.code).toBe('123')
       expect(result.blocks[0].properties.value).toBe('Ada')
     })
@@ -445,11 +415,7 @@ describe('StepRenderCompiler', () => {
         )
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStep(), [], [iterateNode])
 
       const get = vi.fn((name: string) => {
         if (name === 'renderMember') {
@@ -463,7 +429,8 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           data: { members },
           conditions: { get } as unknown as RenderCompilationContext['conditions'],
@@ -488,14 +455,12 @@ describe('StepRenderCompiler', () => {
         .withProperty('memberName', createReference(['@scope', '0', 'memberName']))
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ data: { members } }))
+      const result = await evaluateRender(
+        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
+        createCtx({ data: { members } }),
+      )
 
       // Assert
       expect(result.blocks.map(block => block.properties)).toMatchObject([
@@ -561,14 +526,12 @@ describe('StepRenderCompiler', () => {
         .withProperty('members', innerIterateNode)
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]), createReference(['data', 'teams']))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ data: { teams } }))
+      const result = await evaluateRender(
+        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
+        createCtx({ data: { teams } }),
+      )
 
       // Assert
       expect(result.blocks[0].properties.members).toEqual([
@@ -611,14 +574,11 @@ describe('StepRenderCompiler', () => {
           ]),
         ),
       )
-      const compiled = compiler.compile(createStepWithBlocks([collection]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([collection]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           data: {
             members: [{ memberName: 'Alice' }, { memberName: '' }],
@@ -650,7 +610,7 @@ describe('StepRenderCompiler', () => {
       expect(rows[1][0].properties.value).toBe('')
     })
 
-    it('should compile summary-list rows with match expressions and visibleWhen predicates', () => {
+    it('should compile summary-list rows with match expressions and visibleWhen predicates', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
 
@@ -698,10 +658,13 @@ describe('StepRenderCompiler', () => {
           },
         ])
         .build()
-      const source = localCompiler.generateSource(createStepWithBlocks([block]), [])
+      const plan = localCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
-      // Act / Assert
-      expect(() => new Function('ctx', source)).not.toThrow()
+      // Act
+      const result = await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
+
+      // Assert
+      expect(result.blocks).toHaveLength(1)
     })
 
     it('should evaluate conditional expressions in block properties', async () => {
@@ -721,14 +684,11 @@ describe('StepRenderCompiler', () => {
             .build(),
         )
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           answers: {
             visitType: { current: 'phone' },
@@ -765,14 +725,11 @@ describe('StepRenderCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           data: {
             currentPage: 2,
@@ -812,14 +769,11 @@ describe('StepRenderCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           data: {
             activeGoalsCount: 2,
@@ -891,14 +845,11 @@ describe('StepRenderCompiler', () => {
       })
 
       const pipelineCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = pipelineCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = pipelineCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           conditions: functionRegistry,
           data: {
@@ -972,14 +923,11 @@ describe('StepRenderCompiler', () => {
       })
 
       const findCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = findCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = findCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
 
       // Act
-      const result = await compiled(
+      const result = await evaluateRender(
+        plan,
         createCtx({
           conditions: functionRegistry,
           params: {
@@ -1016,14 +964,9 @@ describe('StepRenderCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx())
+      const result = await evaluateRender(compiler.compileRenderPlan(createStepWithBlocks([block]), []), createCtx())
 
       // Assert
       expect(result.blocks[0].properties.items).toEqual([
@@ -1052,14 +995,12 @@ describe('StepRenderCompiler', () => {
       })
 
       const formatCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = formatCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ conditions: functionRegistry }))
+      const result = await evaluateRender(
+        formatCompiler.compileRenderPlan(createStepWithBlocks([block]), [], []),
+        createCtx({ conditions: functionRegistry }),
+      )
 
       // Assert
       expect(result.blocks[0].properties.html).toBe('Date: ')
@@ -1090,14 +1031,12 @@ describe('StepRenderCompiler', () => {
       })
 
       const skipCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = skipCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
 
       // Act
-      const result = await compiled(createCtx({ conditions: functionRegistry }))
+      const result = await evaluateRender(
+        skipCompiler.compileRenderPlan(createStepWithBlocks([block]), [], []),
+        createCtx({ conditions: functionRegistry }),
+      )
 
       // Assert
       expect(result.blocks[0].properties.html).toBe('Date: ')
@@ -1122,17 +1061,13 @@ describe('StepRenderCompiler', () => {
       })
 
       const typeErrorCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = typeErrorCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = typeErrorCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
 
       // Act
       let thrown: unknown
 
       try {
-        await compiled(createCtx({ conditions: functionRegistry, data: { date: 123 } }))
+        await evaluateRender(plan, createCtx({ conditions: functionRegistry, data: { date: 123 } }))
       } catch (error) {
         thrown = error
       }
@@ -1181,17 +1116,13 @@ describe('StepRenderCompiler', () => {
       })
 
       const throwCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = throwCompiler.compile(createStepWithBlocks([block]), [], [])
-
-      if (!compiled) {
-        throw new Error('Expected render compiler to produce a function')
-      }
+      const plan = throwCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
 
       // Act
       let thrown: unknown
 
       try {
-        await compiled(createCtx({ conditions: functionRegistry }))
+        await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
       } catch (error) {
         thrown = error
       }
