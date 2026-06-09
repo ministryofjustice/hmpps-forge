@@ -55,7 +55,7 @@ describe('ForgeEvaluator', () => {
         path: descriptor.path,
         staticData: {},
       },
-      compiledAccessLifecycle: vi.fn().mockReturnValue({ executed: true, outcome: 'continue' }),
+      accessLifecyclePlan: { hooks: [] },
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
@@ -76,8 +76,8 @@ describe('ForgeEvaluator', () => {
           },
         }),
       },
-      compiledAnswerPreparation: vi.fn(),
-      compiledRender: vi.fn().mockReturnValue({ blocks: [], step: {}, ancestors: [] }),
+      answerPreparationPlan: { fields: [], iteratorGroups: [] },
+      renderPlan: { blocks: [], iteratorGroups: [] },
     }
   }
 
@@ -95,6 +95,7 @@ describe('ForgeEvaluator', () => {
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
       },
+      answerPreparationPlan: { fields: [], iteratorGroups: [] },
     }
   }
 

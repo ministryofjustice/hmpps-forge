@@ -1,16 +1,26 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { CompiledSubmitHooksFunction } from '../../../contracts/runtime/hookLifecycle.type'
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
 import { evaluateValidation } from './evaluateValidation'
+import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
 
+/**
+ * Builds the POST step's submit phase: runs the step's submit hooks, wiring a
+ * `validate(groups)` callback that runs the step's ValidationPlan on demand from
+ * within a hook. Branches on the first executed hook's outcome — 'redirect'
+ * halts with its target (500 if the target is missing), 'error' halts with its
+ * status/message (defaulting to 500), otherwise records on the pipeline state
+ * whether the hook triggered validation (`showValidationFailures`) and the
+ * verdict left on `context.global.validation` by the validation run, then
+ * continues. Throws when the submit lifecycle plan is missing.
+ */
 export function createSubmitPhase(
-  compiledSubmitHooks: CompiledSubmitHooksFunction | undefined,
-  compiledValidation: CompiledValidationFunction | undefined,
+  submitLifecyclePlan: SubmitLifecyclePlan | undefined,
+  validationPlan: ValidationPlan | undefined,
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
@@ -19,11 +29,12 @@ export function createSubmitPhase(
   return {
     name: 'submit-hooks',
     async execute(state) {
-      if (!compiledSubmitHooks) {
-        throw new Error(`[Forge] Hook fallback is disabled — compiledSubmitHooks is missing for step "${path}"`)
+      if (!submitLifecyclePlan) {
+        throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
       }
 
-      const result = await compiledSubmitHooks(
+      const result = await evaluateSubmitLifecycle(
+        submitLifecyclePlan,
         buildCompiledHookLifecycleContext(
           state.context,
           functionRegistry,
@@ -32,7 +43,7 @@ export function createSubmitPhase(
           state.responseBindings,
           groups =>
             evaluateValidation(
-              compiledValidation,
+              validationPlan,
               path,
               stepId,
               state.context,

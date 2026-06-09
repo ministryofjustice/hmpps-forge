@@ -17,7 +17,8 @@ response.
 Render context assembly has two distinct responsibilities.
 
 First, Forge evaluates the dynamic values in the compiled journey. This is done
-by the compiled render function for the current step.
+by walking the step's `RenderPlan` — calling each per-block compiled function,
+each iterator group, and the optional step and ancestor metadata functions.
 
 Second, Forge assembles the final `RenderContext`. This is done by runtime code
 that attaches validation failures, resolves navigation metadata, adds backlinks,
@@ -48,7 +49,7 @@ adapter produces the HTTP response.
 
 The main inputs are:
 
-- the compiled render function for the current step
+- the `RenderPlan` for the current step
 - the runtime evaluation context
 - the current navigation evaluation
 - validation failures for the current request
@@ -62,22 +63,26 @@ component renderers decide how to turn the context into a response.
 
 ## Key concepts
 
-### Compiled render function
+### Render plan
 
-The compiled render function evaluates the renderable parts of a step.
+The `RenderPlan` contains the compiled functions needed to evaluate one step's
+renderable output. Rather than a single monolithic function, it holds:
 
-It produces:
+- an optional `compiledStepMetadata` function for step-level properties
+- an optional `compiledAncestorMetadata` function for journey ancestor metadata
+- a `RenderBlockEntry` per static block, each with a `render` function
+- an `IteratorRenderBlockGroup` per MAP iterator, each with an input evaluator
+  and per-template-block render functions
 
-- evaluated step metadata
-- evaluated journey ancestor metadata
-- evaluated blocks
+The runtime evaluator (`evaluateRender`) calls all of these concurrently —
+step metadata, ancestor metadata, static blocks, and iterator groups all run in
+parallel. Iterator groups expand their collection into per-item scopes and
+render each template block once per item.
 
 Static values are emitted directly into generated source. Expression values are
 compiled through the shared expression compiler and evaluated against the
-compiled render context.
-
-The compiled render function may be synchronous or asynchronous depending on
-the registered functions used by render expressions.
+compiled render context. Each compiled function may be synchronous or
+asynchronous depending on the registered functions used by its expressions.
 
 ### Evaluated step metadata
 
@@ -94,9 +99,9 @@ evaluation.
 
 Ancestor metadata describes the parent journeys for the current step.
 
-The compiled render function evaluates each ancestor and composes ancestor paths
-relative to their parents. The result gives the framework adapter enough
-context to render journey-level metadata around the current step.
+The compiled ancestor metadata function evaluates each ancestor and composes
+ancestor paths relative to their parents. The result gives the framework adapter
+enough context to render journey-level metadata around the current step.
 
 ### Evaluated blocks
 
@@ -113,9 +118,9 @@ formatters, parsers, validation rules, and dependency checks.
 
 Field blocks can receive values from prepared answers.
 
-When a field block has no explicit value, the compiled render function uses the
-shared field value resolver. This reads the answer history produced earlier in
-the request lifecycle.
+When a field block has no explicit value, the compiled block render function
+uses the shared field value resolver. This reads the answer history produced
+earlier in the request lifecycle.
 
 This keeps field values in the render context aligned with answer preparation.
 
@@ -123,9 +128,13 @@ This keeps field values in the render context aligned with answer preparation.
 
 MAP iterators can produce blocks.
 
-The render compiler emits loops for MAP iterators that yield block templates.
-Those loops push evaluated blocks directly into the render result. Runtime does
-not expand iterator templates into AST nodes.
+Each MAP iterator is compiled as an `IteratorRenderBlockGroup` containing an
+input evaluator and per-template-block render functions. At runtime, the input
+evaluator expands the collection into per-item scopes, and each template block
+renders once per item. Nested MAP iterators are supported at any depth — the
+compiled function body handles intermediate iterator levels internally.
+
+Runtime does not expand iterator templates into AST nodes.
 
 Iterator-generated field blocks use deterministic compiled IDs so validation
 failures can attach to the evaluated blocks.
@@ -182,8 +191,8 @@ compiled step and current request state.
 
 Important failure cases include:
 
-- the compiled render function is missing
-- a generated render expression throws
+- the render plan is missing
+- a compiled block render function throws
 - field value resolution receives answer state it cannot handle
 - validation failures reference blocks that are not present in the render result
 - the framework adapter cannot render the final context

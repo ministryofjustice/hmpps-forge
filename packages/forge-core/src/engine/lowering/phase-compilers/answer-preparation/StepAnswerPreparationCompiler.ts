@@ -1,28 +1,40 @@
-import { ExpressionType, FunctionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { FunctionType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+  isTemplateIterateNode,
+} from '../../structures/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import {
-  buildGeneratedSource,
   compileGeneratedFunction,
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../function-construction/GeneratedFunctionCompiler'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  CompiledFieldAnswerPreparationFunction,
+  CompiledIteratorFieldAnswerPreparationFunction,
+  CompiledIteratorInputFunction,
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  IteratorAnswerPreparationGroup,
+  IteratorFieldAnswerPreparationEntry,
+} from '../../../contracts/plans/compilationArtefacts.type'
+import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
+/** A resolved transformer invocation read from a field's formatter chain: the registered formatter name and its authored extra arguments (the value being formatted is threaded in separately). */
 interface FormatterFunctionCall {
   readonly name: string
   readonly arguments: unknown[]
 }
 
+/** Selects which answer-preparation path to emit: 'post' formats the submitted value, 'get' seeds defaults. */
 type AnswerPreparationMode = 'post' | 'get'
 
 /**
@@ -35,12 +47,11 @@ type AnswerPreparationMode = 'post' | 'get'
  * author-facing formatter contract with no extra request-time wrapper state.
  *
  * Registered fields compile from FieldBlockASTNodes. MAP iterator fields compile
- * from their templates and run inline over the iterator input. Registry metadata keeps
- * sync-only functions as normal Functions and switches only async-dependent source
- * to AsyncFunction.
+ * from their templates and run inline over the iterator input. A field compiles
+ * to a plain Function unless one of its threaded expressions awaits, in which case
+ * the whole generated function becomes an AsyncFunction.
  *
- * Generated-function construction failures throw ForgeCompilationError. Runtime
- * callers still fail fast if defensive checks find a missing generated function.
+ * Generated-function construction failures throw ForgeCompilationError.
  */
 export default class StepAnswerPreparationCompiler {
   private readonly expr: ExpressionDispatcher
@@ -60,72 +71,6 @@ export default class StepAnswerPreparationCompiler {
       omitUndefinedArrayItems: false,
     })
     this.templates = new ScopedTemplateCompiler(this.expr)
-  }
-
-  /**
-   * Builds the generated answer-preparation function for a step.
-   */
-  compile(
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-  ): CompiledAnswerPreparationFunction | undefined {
-    return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSource(fieldBlocks, iterateNodes),
-      { phase: 'answer-preparation' },
-    )
-  }
-
-  /**
-   * Produces inspectable generated source for tests and local debugging.
-   */
-  generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
-  }
-
-  /**
-   * Emits the request-method split and delegates field preparation to the selected mode.
-   */
-  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-
-    emitter.comment('StepAnswerPreparationCompiler.buildSource')
-    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
-
-    if (fieldBlocks.length > 0 || iterateNodes.length > 0) {
-      emitter.if(
-        'isPost',
-        () => this.compileMode('post', fieldBlocks, iterateNodes, emitter),
-        () => this.compileMode('get', fieldBlocks, iterateNodes, emitter),
-      )
-    }
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits either the POST or GET side of answer preparation for all fields.
-   */
-  private compileMode(
-    mode: AnswerPreparationMode,
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[],
-    emitter: CodeEmitter,
-  ): void {
-    emitter.comment(`StepAnswerPreparationCompiler.compile${mode === 'post' ? 'Post' : 'Get'}Mode`)
-
-    for (const block of fieldBlocks) {
-      this.compileRegisteredField(block, emitter, mode)
-      emitter.emitBlank()
-    }
-
-    for (const iterateNode of iterateNodes) {
-      this.compileIterateBlock(iterateNode, emitter, mode)
-      emitter.emitBlank()
-    }
   }
 
   /**
@@ -248,7 +193,9 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Emits dependentWhen clearing after POST/default processing has produced a value.
+   * Emits the dependentWhen guard at the tail of the POST path: when the authored
+   * condition evaluates falsy, push an undefined mutation to clear the answer. A
+   * missing or non-expression dependentWhen emits nothing.
    */
   private compileDependentWhen(
     dependentWhen: unknown,
@@ -291,82 +238,6 @@ export default class StepAnswerPreparationCompiler {
     }
 
     this.emitPushMutationCall(emitter, historyVar, 'undefined', 'default')
-  }
-
-  /**
-   * MAP-yielded fields are prepared inside the same loop that render and
-   * validation use, so dynamic field codes and scoped item references resolve
-   * without request-time node registration.
-   */
-  private compileIterateBlock(iterateNode: IterateASTNode, emitter: CodeEmitter, mode: AnswerPreparationMode): void {
-    const template = iterateNode.properties.iterator.yieldTemplate
-
-    if (template === undefined || !this.containsTemplateField(template)) {
-      return
-    }
-
-    emitter.comment('StepAnswerPreparationCompiler.compileIterateBlock')
-    this.templates.compileMapIterator(iterateNode, emitter, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode)
-    })
-  }
-
-  /**
-   * Walks template values and emits answer preparation at the iterator scope where each field appears.
-   */
-  private compileTemplateAnswerPreparation(
-    template: TemplateValue,
-    emitter: CodeEmitter,
-    mode: AnswerPreparationMode,
-  ): void {
-    if (template === null || template === undefined || typeof template !== 'object') {
-      return
-    }
-
-    if (this.expr.isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
-        this.compileTemplateMapIterator(template, emitter, mode)
-
-        return
-      }
-
-      if (isTemplateFieldNode(template)) {
-        const codeExpr = this.templates.compileTemplateCodeExpression(template, emitter)
-
-        this.compileTemplateField(template, codeExpr, emitter, mode)
-      }
-
-      Object.values(template.properties ?? {}).forEach(child => {
-        this.compileTemplateAnswerPreparation(child as TemplateValue, emitter, mode)
-      })
-
-      return
-    }
-
-    if (Array.isArray(template)) {
-      template.forEach(item => {
-        this.compileTemplateAnswerPreparation(item, emitter, mode)
-      })
-
-      return
-    }
-
-    Object.values(template as Record<string, TemplateValue>).forEach(item => {
-      this.compileTemplateAnswerPreparation(item, emitter, mode)
-    })
-  }
-
-  /**
-   * Emits answer preparation for a nested MAP iterator template.
-   */
-  private compileTemplateMapIterator(
-    templateNode: TemplateNode,
-    emitter: CodeEmitter,
-    mode: AnswerPreparationMode,
-  ): void {
-    this.templates.compileTemplateMapIterator(templateNode, emitter, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode)
-    })
   }
 
   /**
@@ -427,6 +298,214 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
+   * Compiles one registered field into a standalone prepare function that branches on request method
+   * at call time, formatting the submitted value on POST or seeding the default on GET. The compiled
+   * function mutates ctx.answers in place and is async only if any threaded expression awaits.
+   */
+  compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
+    return compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleFieldPreparationSource(block),
+      { phase: 'answer-preparation' },
+    )
+  }
+
+  /** Emits the source for a registered field's prepare function: a runtime branch on request method into the POST or GET path. */
+  private buildSingleFieldPreparationSource(block: FieldBlockASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildSingleFieldPreparationSource')
+    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
+
+    emitter.if(
+      'isPost',
+      () => this.compileRegisteredField(block, emitter, 'post'),
+      () => this.compileRegisteredField(block, emitter, 'get'),
+    )
+
+    return emitter.toString()
+  }
+
+  /**
+   * Compiles a MAP iterator into an answer-preparation group: an evaluateInput function that expands the
+   * collection into per-item scopes plus one prepare function per leaf field, gathered through any nesting.
+   * Returns undefined when the iterator yields no fields, so empty iterators emit no group.
+   */
+  compileIteratorGroup(iterateNode: IterateASTNode): IteratorAnswerPreparationGroup | undefined {
+    const template = iterateNode.properties.iterator.yieldTemplate
+
+    if (template === undefined || !this.containsTemplateField(template)) {
+      return undefined
+    }
+
+    const fields: IteratorFieldAnswerPreparationEntry[] = []
+
+    this.collectLeafFields(template, fields, [])
+
+    if (fields.length === 0) {
+      return undefined
+    }
+
+    const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
+
+    return { evaluateInput, fields }
+  }
+
+  /**
+   * Walks a yield template one level at a time, appending a prepare entry for each direct field and
+   * recursing into each nested MAP iterator with that iterator pushed onto ancestorIterates. The
+   * accumulated ancestor chain lets each leaf field reconstruct the inline loops for its enclosing levels.
+   */
+  private collectLeafFields(
+    template: TemplateValue,
+    entries: IteratorFieldAnswerPreparationEntry[],
+    ancestorIterates: readonly TemplateNode[],
+  ): void {
+    const directNodes = this.templates.findTemplateNodes(
+      template,
+      node => isTemplateFieldNode(node) || isTemplateIterateNode(node),
+      { descendIntoMatches: false },
+    )
+
+    directNodes.forEach(node => {
+      if (isTemplateFieldNode(node)) {
+        entries.push({
+          prepare: this.compileIteratorFieldPreparation(node, ancestorIterates),
+        })
+
+        return
+      }
+
+      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
+
+      if (yieldTemplate !== undefined) {
+        this.collectLeafFields(yieldTemplate, entries, [...ancestorIterates, node])
+      }
+    })
+  }
+
+  /** Compiles the iterator's input expression into a function that yields the per-item scopes the group's prepare functions run over. */
+  private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
+    return compileGeneratedFunction<CompiledIteratorInputFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildIteratorInputEvaluatorSource(iterateNode),
+      { phase: 'iterator-input' },
+    )
+  }
+
+  /**
+   * Emits the input evaluator source: normalize the input (an object becomes an array of per-entry
+   * items), then if the normalized value is an array build one scope { item, index, rawItem, inputLength }
+   * per element, skipping null/undefined entries. Returns an empty array for any input that does not
+   * normalize to an array.
+   */
+  private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildIteratorInputEvaluatorSource')
+
+    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
+
+    this.templates.compileNormalizeIteratorInput(inputVar, emitter)
+
+    emitter.declareConst('result', '[]')
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      const indexVar = emitter.let('i', '0')
+
+      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
+        const rawItemVar = emitter.const('rawItem', `${inputVar}[${indexVar}]`)
+
+        emitter.assign(indexVar, `${indexVar} + 1`)
+        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
+
+        const itemVar = emitter.const('item', this.templates.compileIteratorItemScope(rawItemVar))
+
+        emitter.code(
+          `result.push({ item: ${itemVar}, index: ${indexVar} - 1, rawItem: ${rawItemVar}, inputLength: ${inputVar}.length });`,
+        )
+      })
+    })
+    emitter.emitBlank()
+    emitter.return('result')
+
+    return emitter.toString()
+  }
+
+  /**
+   * Compiles one iterator leaf field into a prepare function taking the outer item scope, mutating
+   * ctx.answers in place once per item. ancestorIterates are the intermediate MAP levels between the
+   * group root and this field, emitted as inline loops so deeper @scope/@loop references resolve.
+   */
+  private compileIteratorFieldPreparation(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+  ): CompiledIteratorFieldAnswerPreparationFunction {
+    return compileGeneratedFunction<CompiledIteratorFieldAnswerPreparationFunction>(
+      this.expr,
+      ['ctx', 'iteratorScope'],
+      () => this.buildIteratorFieldPreparationSource(field, ancestorIterates),
+      { phase: 'answer-preparation' },
+    )
+  }
+
+  /**
+   * Emits an iterator leaf field's prepare source: binds the outer iterator frame to the passed-in
+   * iteratorScope, then descends through any intermediate iterator levels before compiling the field.
+   */
+  private buildIteratorFieldPreparationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildIteratorFieldPreparationSource')
+    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
+
+    const outerFrame: IteratorScopeFrame = {
+      itemVar: 'iteratorScope.item',
+      indexVar: 'iteratorScope.index',
+      inputLengthExpr: 'iteratorScope.inputLength',
+      rawItemExpr: 'iteratorScope.rawItem',
+    }
+
+    this.expr.withIteratorFrame(outerFrame, () => {
+      this.emitNestedLoopsAndCompileField(field, ancestorIterates, 0, emitter)
+    })
+
+    return emitter.toString()
+  }
+
+  /**
+   * Recursively emits an inline MAP loop for each ancestor iterator above the given depth, pushing its
+   * frame, then at the innermost level compiles the field's code expression and branches on request method
+   * into the POST or GET path.
+   */
+  private emitNestedLoopsAndCompileField(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+    depth: number,
+    emitter: CodeEmitter,
+  ): void {
+    if (depth >= ancestorIterates.length) {
+      const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
+
+      emitter.if(
+        'isPost',
+        () => this.compileTemplateField(field, codeExpr, emitter, 'post'),
+        () => this.compileTemplateField(field, codeExpr, emitter, 'get'),
+      )
+
+      return
+    }
+
+    this.templates.compileTemplateMapIterator(ancestorIterates[depth], emitter, () => {
+      this.emitNestedLoopsAndCompileField(field, ancestorIterates, depth + 1, emitter)
+    })
+  }
+
+  /**
    * Fast pre-check used to avoid emitting iterator loops for templates with no fields.
    */
   private containsTemplateField(template: TemplateValue): boolean {
@@ -434,6 +513,7 @@ export default class StepAnswerPreparationCompiler {
   }
 }
 
+/** Reads a formatter node into a FormatterFunctionCall, or undefined when it is not a named transformer. */
 function readFormatterTransformerCall(value: unknown): FormatterFunctionCall | undefined {
   if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
     return undefined
@@ -453,6 +533,7 @@ function readFormatterTransformerCall(value: unknown): FormatterFunctionCall | u
   }
 }
 
+/** Reads a node's discriminator, tolerating both expressionType and type field names. */
 function readExpressionType(value: unknown): unknown {
   if (!isRecord(value)) {
     return undefined
@@ -461,6 +542,7 @@ function readExpressionType(value: unknown): unknown {
   return value.expressionType ?? value.type
 }
 
+/** Returns a node's nested properties record, or undefined when absent or not an object. */
 function readProperties(value: unknown): Record<string, unknown> | undefined {
   if (!isRecord(value) || !isRecord(value.properties)) {
     return undefined

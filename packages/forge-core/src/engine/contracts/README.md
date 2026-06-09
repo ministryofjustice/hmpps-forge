@@ -1,13 +1,15 @@
 # contracts - the shared vocabulary
 
-Contracts is where the engine's types live. It contains no logic - just
-interfaces, type aliases, enums, and type guard functions. Every other engine
-layer imports from here; contracts imports from none of them.
+Contracts is where the engine's types live. It contains almost no logic -
+mostly interfaces, type aliases, enums, and type guard functions, plus a few
+trivial constants and factories (the `RENDER_BLOCK_BRAND` symbol and
+`createRouteTreeIndex`). Every other engine layer imports from here; contracts
+imports from none of them.
 
 ## Why a separate layer?
 
 Without contracts, the layers would import types from each other and create
-circular dependencies. `lowering/` needs to know what a `CompiledRenderFunction`
+circular dependencies. `lowering/` needs to know what a `CompiledRenderBlockFunction`
 looks like so it can produce one; `runtime/` needs to know the same type so it
 can call one. If either layer owned the type, the other would have to import
 from it - and the boundary would break.
@@ -21,7 +23,7 @@ the pipeline speaks.
 | Folder | What it defines |
 |--------|-----------------|
 | [`ast/`](./ast/) | AST node types (`ASTNode`, `JourneyASTNode`, `StepASTNode`, `ExpressionASTNode`, etc.), the `ASTNodeType` enum, and type guard functions (`isReferenceExprNode`, `isFieldBlockStructNode`, etc.) |
-| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledRenderFunction`, `CompiledValidationFunction`, `CompiledNavigationFunction`, etc.), the phase context types each function receives (`ValidationContext`, `RenderCompilationContext`, `AnswerPreparationContext`), and the render block brand symbol |
+| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledRenderBlockFunction`, `CompiledValidationFunction`, `CompiledNavigationFunction`, etc.), the phase context types each function receives (`ValidationContext`, `RenderCompilationContext`, `AnswerPreparationContext`), and the render block brand symbol |
 | [`plans/`](./plans/) | `CompilationPlan` (the handoff from planner to codegen), `StepRuntimePlan` / `JourneyRuntimePlan` / `NavigationRuntimePlan` (minimal metadata that survives into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
 | [`navigation/`](./navigation/) | `NavigationEvaluation` and `NavigationStepState` (the result of evaluating reachability at request time), plus the input/output types for the compiled navigation function |
 | [`routing/`](./routing/) | Route descriptors (`JourneyRouteDescriptor`, `StepRouteDescriptor`), the route tree structures (`StoredRouteTreeNode`, `RouteTreeIndex`), and the route template catalog |

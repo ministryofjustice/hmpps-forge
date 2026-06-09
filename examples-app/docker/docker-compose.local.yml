@@ -7,6 +7,8 @@ services:
       target: development
     working_dir: /app/examples-app
     command: npm run start:dev
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
     volumes:
       - ../../:/app
       - examples_app_node_modules:/app/examples-app/node_modules

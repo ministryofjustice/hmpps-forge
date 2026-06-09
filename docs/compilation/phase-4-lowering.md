@@ -3,14 +3,16 @@
 ## Purpose
 
 Lowering turns the intermediate representation into runtime plans and
-generated functions.
+per-phase execution plans containing compiled functions.
 
 The IR tells Forge what the journey is. Lowering decides what each runtime
 handler will need in order to evaluate a request.
 
-This phase builds runtime plans and generated functions. Plans describe the
-shape of the work. Generated functions perform the repeated expression
-evaluation work during request handling.
+This phase builds runtime plans and phase-specific execution plans. Runtime
+plans describe the shape of the work (node IDs, topology, routing). Phase plans
+contain the compiled functions that perform the repeated expression evaluation
+work during request handling — one function per field, block, hook, or iterator
+group.
 
 ## Why Forge compiles generated functions
 
@@ -56,13 +58,20 @@ The flow is:
 
 1. `CompilationPlanner` builds runtime plans from the registry and tree.
 
-2. Phase compilers use those plans to decide which nodes to compile.
+2. `CodegenOrchestrator` drives the phase compilers. It compiles each distinct
+   field, block, hook, and iterator group exactly once, deduplicating by node
+   ID. The compiled entries are stored in hoisted lookup maps.
 
 3. Expression compilers turn AST expressions into JavaScript source.
 
 4. `GeneratedFunctionCompiler` turns that source into executable functions.
 
-5. The compiled functions are attached back to the runtime plans.
+5. `CodegenOrchestrator` assembles per-step and per-journey phase plans by
+   looking up the hoisted entries. Each step receives its own `ValidationPlan`,
+   `AnswerPreparationPlan`, `RenderPlan`, `AccessLifecyclePlan`,
+   `SubmitLifecyclePlan`, and `EntryValidationPlan` — but the compiled
+   functions inside those plans are shared across steps that reference the same
+   fields, blocks, or hooks.
 
 ## Inputs and outputs
 
@@ -76,14 +85,15 @@ The main inputs are:
 
 The main outputs are:
 
-- step runtime plans
-- journey runtime plans
-- reachability runtime plans
-- compiled functions attached to those plans
+- step runtime plans and per-phase execution plans (`CompiledStep`)
+- journey runtime plans and per-phase execution plans (`CompiledJourney`)
+- reachability runtime plans with compiled navigation functions
 
-The plans are the contract between compilation and runtime. Controllers do not
-need to inspect the original DSL. They can use the plan for the current route
-and call the compiled functions attached to it.
+Each `CompiledStep` carries phase plans that contain the compiled functions for
+that step's fields, blocks, hooks, and iterator groups. The plans are the
+contract between compilation and runtime. Runtime does not need to inspect the
+original DSL. It walks each phase plan and calls the compiled functions inside
+it.
 
 ## Key concepts
 
@@ -92,18 +102,18 @@ and call the compiled functions attached to it.
 Runtime plans are small objects that describe what a handler needs to do.
 
 They store node IDs and topology, not generated source. For example, a step
-runtime plan records:
+runtime plan records the current step ID, the route path, and static data.
 
-- the current step ID
-- the route path
-- access ancestors
-- submit hooks
-- iterator nodes
-- validation nodes
-- render ancestors
+Phase plans sit alongside the runtime plan and contain the compiled functions
+for each phase of the request lifecycle. For example, a `ValidationPlan`
+contains a `FieldValidationEntry` per field and an `IteratorValidationGroup`
+per MAP iterator, each holding a compiled function. An `AccessLifecyclePlan`
+contains an `AccessHookEntry` per hook. A `RenderPlan` contains a
+`RenderBlockEntry` per block plus optional step and ancestor metadata functions.
 
-This keeps planning separate from code generation. The plan says which nodes
-matter. The phase compilers decide how to evaluate them.
+This keeps planning separate from code generation. The runtime plan says which
+node this is. The phase plans say how to evaluate it — one compiled function per
+unit of work.
 
 ### `CompilationPlanner`
 
@@ -126,22 +136,43 @@ whole journey branch, not just the current step.
 
 Phase compilers each own one part of request evaluation.
 
-They take a runtime plan, find the AST nodes they need, and produce a generated
-function for that part of the request lifecycle.
+They receive AST nodes and produce per-entry compiled functions.
+`CodegenOrchestrator` calls each compiler once per distinct node (field, block,
+hook, or iterator group), deduplicating by node ID, then assembles the results
+into per-step phase plans.
 
 The main phase compilers are:
 
-- `StepAnswerPreparationCompiler`
-- `StepFieldInventoryCompiler`
-- `HookLifecycleCompiler`
-- `ReachabilityCompiler`
-- `StepRenderCompiler`
-- `StepValidationCompiler`
+| Compiler | Output plan | Compiled per |
+|----------|-------------|--------------|
+| `StepValidationCompiler` | `ValidationPlan` / `EntryValidationPlan` | field, iterator group, domain rule, entry rule |
+| `StepAnswerPreparationCompiler` | `AnswerPreparationPlan` | field, iterator group |
+| `StepRenderCompiler` | `RenderPlan` | block, iterator group, step metadata, ancestor metadata |
+| `HookLifecycleCompiler` | `AccessLifecyclePlan` / `SubmitLifecyclePlan` | hook |
+| `ReachabilityCompiler` | compiled navigation function | journey branch (single function) |
+| `StepFieldInventoryCompiler` | field inventory sources | step |
 
 Each compiler should keep its responsibility narrow. Validation compiles
 validation. Rendering compiles render-context evaluation. Reachability compiles
 the expression values needed by navigation, while the graph policy stays in
 ordinary TypeScript runtime code.
+
+### `CodegenOrchestrator`
+
+`CodegenOrchestrator` drives the full compilation pass.
+
+Its `compileAll` method coordinates the phase compilers in two stages. First, it
+compiles every distinct field, block, hook, and iterator group once, storing the
+results in hoisted lookup maps keyed by node ID. Second, it assembles per-step
+and per-journey phase plans by selecting entries from those maps.
+
+This means a field shared by multiple steps is compiled once and referenced by
+each step's plan. A journey-level access hook is compiled once and shared by
+every step under that journey. Validation plans are compiled once and reused
+both by step execution and by navigation reachability checks.
+
+The hoisting pattern keeps compilation time proportional to the number of
+distinct nodes, not the number of steps times nodes per step.
 
 ### Expression compilation
 
@@ -213,13 +244,18 @@ and functions. They should not reinterpret the original DSL.
 
 ## Connection to the next phase
 
-After compilation, Forge has the plans and functions needed by runtime route
-handlers.
+After compilation, Forge has the plans needed by runtime route handlers.
 
-Step handlers receive a step plan and compiled functions for access, answer
-preparation, validation, submit hooks, rendering, and reachability. Journey-root
-handlers receive journey plans for access, answer preparation, and navigation
-into the first reachable step.
+Each step receives a `CompiledStep` containing its runtime plan and per-phase
+execution plans: `AccessLifecyclePlan`, `AnswerPreparationPlan`,
+`ValidationPlan`, `EntryValidationPlan`, `SubmitLifecyclePlan`, and
+`RenderPlan`. Each journey root receives a `CompiledJourney` with its runtime
+plan, `AccessLifecyclePlan`, and `AnswerPreparationPlan`.
+
+Runtime walks these phase plans and calls the compiled functions inside them.
+Each phase has a dedicated evaluator that knows the plan shape — for example,
+`evaluateValidation` walks the validation plan's field entries and iterator
+groups, calling each compiled function and collecting failures.
 
 Runtime then evaluates each request using those plans, the request context, and
 the registered functions and components for the journey.

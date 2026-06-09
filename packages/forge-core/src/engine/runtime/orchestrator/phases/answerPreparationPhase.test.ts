@@ -1,4 +1,5 @@
-import { createAnswerPreparationPhase } from './answerPreparationPhase'
+import { createAnswerPreparationPlanPhase } from './answerPreparationPhase'
+import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -39,27 +40,35 @@ const mockFunctionRegistry = {} as FunctionRegistry
 
 describe('answerPreparationPhase', () => {
   describe('execute()', () => {
-    it('should call compiled function and return continue', async () => {
+    it('should call field preparation functions and return continue', async () => {
       // Arrange
-      const compiledFn = vi.fn()
-      const phase = createAnswerPreparationPhase(compiledFn, '/step', mockFunctionRegistry)
+      const prepareFn = vi.fn()
+      const plan: AnswerPreparationPlan = {
+        fields: [{ prepare: prepareFn }],
+        iteratorGroups: [],
+      }
+      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
 
       // Assert
-      expect(compiledFn).toHaveBeenCalled()
+      expect(prepareFn).toHaveBeenCalled()
       expect(result).toEqual({ action: 'continue' })
     })
 
-    it('should await async answer preparation', async () => {
+    it('should await async field preparation', async () => {
       // Arrange
       let prepared = false
-      const compiledFn = vi.fn().mockImplementation(async () => {
+      const prepareFn = vi.fn().mockImplementation(async () => {
         await Promise.resolve()
         prepared = true
       })
-      const phase = createAnswerPreparationPhase(compiledFn, '/step', mockFunctionRegistry)
+      const plan: AnswerPreparationPlan = {
+        fields: [{ prepare: prepareFn }],
+        iteratorGroups: [],
+      }
+      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
 
       // Act
       await phase.execute(createMockState())
@@ -68,12 +77,16 @@ describe('answerPreparationPhase', () => {
       expect(prepared).toBe(true)
     })
 
-    it('should throw when compiled function is missing', async () => {
+    it('should no-op when plan has no fields', async () => {
       // Arrange
-      const phase = createAnswerPreparationPhase(undefined, '/step', mockFunctionRegistry)
+      const plan: AnswerPreparationPlan = { fields: [], iteratorGroups: [] }
+      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
 
-      // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('compiledAnswerPreparation is missing for "/step"')
+      // Act
+      const result = await phase.execute(createMockState())
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
     })
   })
 })

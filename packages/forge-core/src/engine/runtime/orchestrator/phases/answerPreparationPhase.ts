@@ -1,23 +1,22 @@
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import { buildCompiledAnswerPreparationContext } from '../../context/compiledEvaluationContext'
+import { evaluateAnswerPreparation } from './evaluateAnswerPreparation'
 import type { RequestPhase } from '../types'
 
-export function createAnswerPreparationPhase(
-  compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined,
-  path: string,
+/**
+ * Builds the `prepare-answers` request phase. On execute it runs the compiled
+ * answer-preparation plan, which mutates `state.context` answers in place
+ * (formatting each field's submitted or default answer), then always returns
+ * `{ action: 'continue' }` so the pipeline proceeds to the next phase.
+ */
+export function createAnswerPreparationPlanPhase(
+  answerPreparationPlan: AnswerPreparationPlan,
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
     name: 'prepare-answers',
     async execute(state) {
-      if (!compiledAnswerPreparation) {
-        throw new Error(
-          `[Forge] Answer preparation compilation is required — compiledAnswerPreparation is missing for "${path}"`,
-        )
-      }
-
-      await compiledAnswerPreparation(buildCompiledAnswerPreparationContext(state.context, functionRegistry))
+      await evaluateAnswerPreparation(answerPreparationPlan, state.context, functionRegistry)
 
       return { action: 'continue' }
     },

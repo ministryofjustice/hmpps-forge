@@ -1,9 +1,17 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 
 /**
- * Runtime context passed to the compiled validation function.
+ * Per-request state shared by every compiled phase function.
+ *
+ * Holds the resolved answer history and journey-global `data` alongside the
+ * request surfaces (session, params, query, request) that expressions read
+ * against. `conditions` is the registry of authored functions (conditions,
+ * transformers, generators, effects) that compiled expressions invoke by name.
+ * Each answer carries only `current` here; phases that need parsed values or
+ * mutation provenance widen this shape (see RenderCompilationContext,
+ * AnswerPreparationContext).
  */
-export interface ValidationContext {
+export interface BasePhaseContext {
   answers: Record<string, { current: unknown }>
   data: Record<string, unknown>
   session: Record<string, unknown>
@@ -12,6 +20,9 @@ export interface ValidationContext {
   request: Record<string, unknown>
   conditions: FunctionRegistry
 }
+
+/** Context for compiled field validation functions; carries no extra state beyond the base. */
+export type ValidationContext = BasePhaseContext
 
 /**
  * Runtime context passed to the compiled render function.
@@ -47,16 +58,5 @@ export interface AnswerPreparationContext {
   post: Record<string, string | string[]>
 }
 
-/**
- * Context passed to the compiled reachability function. Reachability expressions
- * run at journey scope, so no iterator scope stack is needed here.
- */
-export interface ReachabilityContext {
-  answers: Record<string, { current: unknown }>
-  data: Record<string, unknown>
-  session: Record<string, unknown>
-  params: Record<string, unknown>
-  query: Record<string, unknown>
-  request: Record<string, unknown>
-  conditions: FunctionRegistry
-}
+/** Context for compiled entry-validation reachability predicates; carries no extra state beyond the base. */
+export type ReachabilityContext = BasePhaseContext

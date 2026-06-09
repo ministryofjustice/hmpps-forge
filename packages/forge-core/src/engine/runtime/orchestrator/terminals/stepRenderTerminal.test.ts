@@ -1,4 +1,5 @@
 import { createStepRenderTerminal } from './stepRenderTerminal'
+import type { RenderPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -41,12 +42,13 @@ describe('stepRenderTerminal', () => {
   describe('execute()', () => {
     it('should return a render result with built context', async () => {
       // Arrange
-      const compiledRender = vi.fn().mockReturnValue({
+      const renderPlan: RenderPlan = {
+        compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
+        compiledAncestorMetadata: vi.fn().mockReturnValue([]),
         blocks: [],
-        step: { title: 'Test Step' },
-        ancestors: [],
-      })
-      const terminal = createStepRenderTerminal(compiledRender, '/step', [], '/journey/step', mockFunctionRegistry)
+        iteratorGroups: [],
+      }
+      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = createMockState()
@@ -54,17 +56,17 @@ describe('stepRenderTerminal', () => {
 
       // Assert
       expect(result.type).toBe('render')
-      expect(compiledRender).toHaveBeenCalled()
     })
 
     it('should include validation failures in render context', async () => {
       // Arrange
-      const compiledRender = vi.fn().mockReturnValue({
+      const renderPlan: RenderPlan = {
+        compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
+        compiledAncestorMetadata: vi.fn().mockReturnValue([]),
         blocks: [],
-        step: { title: 'Test Step' },
-        ancestors: [],
-      })
-      const terminal = createStepRenderTerminal(compiledRender, '/step', [], '/journey/step', mockFunctionRegistry)
+        iteratorGroups: [],
+      }
+      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = createMockState({
@@ -87,14 +89,12 @@ describe('stepRenderTerminal', () => {
       }
     })
 
-    it('should throw when compiled render is missing', async () => {
+    it('should throw when render plan is missing', async () => {
       // Arrange
       const terminal = createStepRenderTerminal(undefined, '/step', [], '/journey/step', mockFunctionRegistry)
 
       // Act & Assert
-      await expect(terminal.execute(createMockState())).rejects.toThrow(
-        'compiledRender function is missing for step "/step"',
-      )
+      await expect(terminal.execute(createMockState())).rejects.toThrow('Render plan is missing for step "/step"')
     })
   })
 })
