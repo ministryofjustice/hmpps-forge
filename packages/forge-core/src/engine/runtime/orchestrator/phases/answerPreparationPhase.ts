@@ -16,7 +16,7 @@ export function createAnswerPreparationPlanPhase(
   return {
     name: 'prepare-answers',
     async execute(state) {
-      await evaluateAnswerPreparation(answerPreparationPlan, state.context, functionRegistry)
+      await evaluateAnswerPreparation(answerPreparationPlan, state.context, functionRegistry, state.trace)
 
       return { action: 'continue' }
     },

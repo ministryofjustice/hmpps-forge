@@ -170,7 +170,9 @@ describe('StepAnswerPreparationCompiler', () => {
     iterateNodes: IterateASTNode[],
     ctx: AnswerPreparationContext,
   ): Promise<void> {
-    await Promise.all(fieldBlocks.map(block => runCompiler.compileSingleFieldPreparation(block)(ctx)))
+    for (const block of fieldBlocks) {
+      await runCompiler.compileSingleFieldPreparation(block).prepare(ctx)
+    }
 
     const groups = iterateNodes
       .map(node => runCompiler.compileIteratorGroup(node))
@@ -179,7 +181,11 @@ describe('StepAnswerPreparationCompiler', () => {
     for (const group of groups) {
       const items = await group.evaluateInput(ctx)
 
-      await Promise.all(items.flatMap(itemScope => group.fields.map(field => field.prepare(ctx, itemScope))))
+      for (const itemScope of items) {
+        for (const field of group.fields) {
+          await field.prepare(ctx, itemScope)
+        }
+      }
     }
   }
 
@@ -208,7 +214,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const result = localCompiler.compileSingleFieldPreparation(block)(ctx)
+      const result = localCompiler.compileSingleFieldPreparation(block).prepare(ctx)
 
       // Assert
       expect(result).not.toBeInstanceOf(Promise)
@@ -511,7 +517,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      localCompiler.compileSingleFieldPreparation(block)(ctx)
+      localCompiler.compileSingleFieldPreparation(block).prepare(ctx)
 
       // Assert
       expect(afterEvaluate).not.toHaveBeenCalled()
@@ -536,7 +542,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compileSingleFieldPreparation(block)
+      const fn = localCompiler.compileSingleFieldPreparation(block).prepare
 
       // Assert
       const evaluate = () => fn(ctx)
@@ -635,7 +641,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compileSingleFieldPreparation(block)
+      const fn = localCompiler.compileSingleFieldPreparation(block).prepare
 
       // Assert
       const evaluate = () => fn(ctx)

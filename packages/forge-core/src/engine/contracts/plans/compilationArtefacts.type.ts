@@ -57,8 +57,11 @@ export interface ValidationPlan {
 /**
  * One compiled prepare function for a single non-iterator field. Formats the
  * field's submitted or default answer and mutates `ctx.answers` in place.
+ * `nodeId` identifies the field block so the runtime can attribute the decision
+ * in the request trace.
  */
 export interface FieldAnswerPreparationEntry {
+  readonly nodeId: NodeId
   readonly prepare: CompiledFieldAnswerPreparationFunction
 }
 
@@ -67,14 +70,17 @@ export interface FieldAnswerPreparationEntry {
  * item scope; mutates `ctx.answers` in place for that item.
  */
 export interface IteratorFieldAnswerPreparationEntry {
+  readonly nodeId: TemplateNodeId
   readonly prepare: CompiledIteratorFieldAnswerPreparationFunction
 }
 
 /**
  * A MAP iterator's answer-preparation work: `evaluateInput` expands the
  * collection into per-item scopes, then every prepare entry runs once per scope.
+ * `nodeId` identifies the iterate node for trace attribution.
  */
 export interface IteratorAnswerPreparationGroup {
+  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly fields: readonly IteratorFieldAnswerPreparationEntry[]
 }

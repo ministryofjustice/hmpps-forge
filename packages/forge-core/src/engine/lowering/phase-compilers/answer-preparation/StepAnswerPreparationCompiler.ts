@@ -23,6 +23,7 @@ import type {
   CompiledIteratorInputFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
+  FieldAnswerPreparationEntry,
   IteratorAnswerPreparationGroup,
   IteratorFieldAnswerPreparationEntry,
 } from '../../../contracts/plans/compilationArtefacts.type'
@@ -298,17 +299,21 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Compiles one registered field into a standalone prepare function that branches on request method
-   * at call time, formatting the submitted value on POST or seeding the default on GET. The compiled
-   * function mutates ctx.answers in place and is async only if any threaded expression awaits.
+   * Compiles one registered field into an identified prepare entry whose function branches on
+   * request method at call time, formatting the submitted value on POST or seeding the default on
+   * GET. The compiled function mutates ctx.answers in place and is async only if any threaded
+   * expression awaits.
    */
-  compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
-    return compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleFieldPreparationSource(block),
-      { phase: 'answer-preparation' },
-    )
+  compileSingleFieldPreparation(block: FieldBlockASTNode): FieldAnswerPreparationEntry {
+    return {
+      nodeId: block.id,
+      prepare: compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildSingleFieldPreparationSource(block),
+        { phase: 'answer-preparation' },
+      ),
+    }
   }
 
   /** Emits the source for a registered field's prepare function: a runtime branch on request method into the POST or GET path. */
@@ -350,7 +355,7 @@ export default class StepAnswerPreparationCompiler {
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
 
-    return { evaluateInput, fields }
+    return { nodeId: iterateNode.id, evaluateInput, fields }
   }
 
   /**
@@ -372,6 +377,7 @@ export default class StepAnswerPreparationCompiler {
     directNodes.forEach(node => {
       if (isTemplateFieldNode(node)) {
         entries.push({
+          nodeId: node.id,
           prepare: this.compileIteratorFieldPreparation(node, ancestorIterates),
         })
 

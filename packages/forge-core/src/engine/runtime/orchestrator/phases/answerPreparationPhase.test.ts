@@ -1,4 +1,5 @@
 import { createAnswerPreparationPlanPhase } from './answerPreparationPhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
@@ -44,7 +45,7 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const prepareFn = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fields: [{ prepare: prepareFn }],
+        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
         iteratorGroups: [],
       }
       const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
@@ -65,7 +66,7 @@ describe('answerPreparationPhase', () => {
         prepared = true
       })
       const plan: AnswerPreparationPlan = {
-        fields: [{ prepare: prepareFn }],
+        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
         iteratorGroups: [],
       }
       const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
@@ -75,6 +76,29 @@ describe('answerPreparationPhase', () => {
 
       // Assert
       expect(prepared).toBe(true)
+    })
+
+    it('should record answer-preparation units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const plan: AnswerPreparationPlan = {
+        fields: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
+        iteratorGroups: [],
+      }
+      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+
+      recorder.beginPhase('prepare-answers')
+
+      // Act
+      await phase.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('continue')
+
+      // Assert
+      const trace = recorder.finish('render')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'compile_ast:1' }),
+      ])
     })
 
     it('should no-op when plan has no fields', async () => {

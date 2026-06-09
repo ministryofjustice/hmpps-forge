@@ -185,9 +185,7 @@ export default class CodegenOrchestrator {
     plan.stepInputs.forEach(inputs => {
       inputs.fieldBlocks.forEach(block => {
         if (!fieldEntries.has(block.id)) {
-          fieldEntries.set(block.id, {
-            prepare: compiler.compileSingleFieldPreparation(block),
-          })
+          fieldEntries.set(block.id, compiler.compileSingleFieldPreparation(block))
         }
       })
 

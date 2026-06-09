@@ -32,11 +32,29 @@ export interface DomainValidationTraceUnit {
 }
 
 /**
+ * One field's answer preparation: recorded for every prepare the plan runs. The
+ * prepare's effect lives in the shared answer history on the request context
+ * rather than in the unit — what is recorded is that the field prepared, and
+ * how long it took. `itemIndex` is present when the field prepared inside an
+ * iterator item.
+ */
+export interface AnswerPreparationTraceUnit {
+  readonly kind: 'answer-preparation'
+  readonly nodeId: NodeId | TemplateNodeId
+  readonly itemIndex?: number
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
  */
-export type TraceUnit = FieldValidationTraceUnit | IteratorInputTraceUnit | DomainValidationTraceUnit
+export type TraceUnit =
+  | FieldValidationTraceUnit
+  | IteratorInputTraceUnit
+  | DomainValidationTraceUnit
+  | AnswerPreparationTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal
