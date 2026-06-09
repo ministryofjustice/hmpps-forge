@@ -76,7 +76,7 @@ describe('ForgeEvaluator', () => {
           },
         }),
       },
-      compiledAnswerPreparation: vi.fn(),
+      answerPreparationPlan: { fields: [], iteratorGroups: [] },
       compiledRender: vi.fn().mockReturnValue({ blocks: [], step: {}, ancestors: [] }),
     }
   }
@@ -95,6 +95,7 @@ describe('ForgeEvaluator', () => {
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
       },
+      answerPreparationPlan: { fields: [], iteratorGroups: [] },
     }
   }
 

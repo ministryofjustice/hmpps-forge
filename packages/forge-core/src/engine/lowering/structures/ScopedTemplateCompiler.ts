@@ -1,5 +1,5 @@
 import { ASTNodeType } from '../../contracts/ast/enums'
-import { BlockType, IteratorType } from '../../../authoring/types/enums'
+import { BlockType, ExpressionType, IteratorType } from '../../../authoring/types/enums'
 import { IterateASTNode } from '../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../contracts/ast/template.type'
 import CodeEmitter from '../emitters/CodeEmitter'
@@ -220,4 +220,8 @@ export function isTemplateFieldNode(node: TemplateNode): boolean {
 
 export function isTemplateBlockNode(node: TemplateNode): boolean {
   return node.originalType === ASTNodeType.BLOCK
+}
+
+export function isTemplateIterateNode(node: TemplateNode): boolean {
+  return node.originalType === ASTNodeType.EXPRESSION && node.expressionType === ExpressionType.ITERATE
 }

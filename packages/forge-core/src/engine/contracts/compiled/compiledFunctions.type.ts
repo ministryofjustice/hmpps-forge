@@ -89,3 +89,10 @@ export type CompiledIteratorFieldValidationFunction = (
   groups: string[] | undefined,
   iteratorScope: IteratorItemScope,
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
+
+export type CompiledFieldAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
+
+export type CompiledIteratorFieldAnswerPreparationFunction = (
+  ctx: AnswerPreparationContext,
+  iteratorScope: IteratorItemScope,
+) => void | Promise<void>

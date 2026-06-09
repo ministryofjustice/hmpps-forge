@@ -3,10 +3,11 @@ import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescript
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
 import type {
-  CompiledAnswerPreparationFunction,
   CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
+  CompiledFieldAnswerPreparationFunction,
   CompiledFieldValidationFunction,
+  CompiledIteratorFieldAnswerPreparationFunction,
   CompiledIteratorFieldValidationFunction,
   CompiledIteratorInputFunction,
   CompiledRenderFunction,
@@ -34,22 +35,43 @@ export interface ValidationPlan {
   readonly domain?: CompiledDomainValidationFunction
 }
 
+export interface FieldAnswerPreparationEntry {
+  readonly nodeId: NodeId
+  readonly prepare: CompiledFieldAnswerPreparationFunction
+}
+
+export interface IteratorFieldAnswerPreparationEntry {
+  readonly templateNodeId: string
+  readonly prepare: CompiledIteratorFieldAnswerPreparationFunction
+}
+
+export interface IteratorAnswerPreparationGroup {
+  readonly nodeId: NodeId
+  readonly evaluateInput: CompiledIteratorInputFunction
+  readonly fields: readonly IteratorFieldAnswerPreparationEntry[]
+}
+
+export interface AnswerPreparationPlan {
+  readonly fields: readonly FieldAnswerPreparationEntry[]
+  readonly iteratorGroups: readonly IteratorAnswerPreparationGroup[]
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
   compiledEntryValidation?: CompiledEntryValidationFunction
   compiledRender?: CompiledRenderFunction
   validationPlan?: ValidationPlan
+  answerPreparationPlan: AnswerPreparationPlan
 }
 
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
   navigationPlan: NavigationRuntimePlan
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
+  answerPreparationPlan: AnswerPreparationPlan
 }
 
 export interface JourneyCompilationResult {

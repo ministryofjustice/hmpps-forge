@@ -6,7 +6,10 @@ import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.typ
 import { isASTNode } from '../../../contracts/ast/nodes'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+  isTemplateIterateNode,
+} from '../../structures/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import {
   buildGeneratedSource,
@@ -16,7 +19,19 @@ import {
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  CompiledAnswerPreparationFunction,
+  CompiledFieldAnswerPreparationFunction,
+  CompiledIteratorFieldAnswerPreparationFunction,
+  CompiledIteratorInputFunction,
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  AnswerPreparationPlan,
+  FieldAnswerPreparationEntry,
+  IteratorAnswerPreparationGroup,
+  IteratorFieldAnswerPreparationEntry,
+} from '../../../contracts/plans/compilationArtefacts.type'
+import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
 interface FormatterFunctionCall {
   readonly name: string
@@ -82,6 +97,28 @@ export default class StepAnswerPreparationCompiler {
    */
   generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
     return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
+  }
+
+  compileAnswerPreparationPlan(
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[] = [],
+  ): AnswerPreparationPlan {
+    const fields: FieldAnswerPreparationEntry[] = fieldBlocks.map(block => ({
+      nodeId: block.id,
+      prepare: this.compileSingleFieldPreparation(block),
+    }))
+
+    const iteratorGroups: IteratorAnswerPreparationGroup[] = []
+
+    for (const iterateNode of iterateNodes) {
+      const group = this.compileIteratorGroup(iterateNode)
+
+      if (group !== undefined) {
+        iteratorGroups.push(group)
+      }
+    }
+
+    return { fields, iteratorGroups }
   }
 
   /**
@@ -424,6 +461,139 @@ export default class StepAnswerPreparationCompiler {
     emitter.code(
       `${GENERATED_FUNCTION_HELPERS_PARAM}.pushAnswerMutation(${historyVar}, ${valueExpr}, ${JSON.stringify(source)});`,
     )
+  }
+
+  private compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
+    return compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleFieldPreparationSource(block),
+      { phase: 'answer-preparation' },
+    )
+  }
+
+  private buildSingleFieldPreparationSource(block: FieldBlockASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildSingleFieldPreparationSource')
+    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
+
+    emitter.if(
+      'isPost',
+      () => this.compileRegisteredField(block, emitter, 'post'),
+      () => this.compileRegisteredField(block, emitter, 'get'),
+    )
+
+    return emitter.toString()
+  }
+
+  private compileIteratorGroup(iterateNode: IterateASTNode): IteratorAnswerPreparationGroup | undefined {
+    const template = iterateNode.properties.iterator.yieldTemplate
+
+    if (template === undefined || !this.containsTemplateField(template)) {
+      return undefined
+    }
+
+    const directFields = this.findDirectTemplateFields(template)
+
+    if (directFields.length === 0) {
+      return undefined
+    }
+
+    const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
+    const fields: IteratorFieldAnswerPreparationEntry[] = directFields.map(field => ({
+      templateNodeId: String(field.id),
+      prepare: this.compileIteratorFieldPreparation(field),
+    }))
+
+    return { nodeId: iterateNode.id, evaluateInput, fields }
+  }
+
+  private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
+    return compileGeneratedFunction<CompiledIteratorInputFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildIteratorInputEvaluatorSource(iterateNode),
+      { phase: 'iterator-input' },
+    )
+  }
+
+  private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildIteratorInputEvaluatorSource')
+
+    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
+
+    this.templates.compileNormalizeIteratorInput(inputVar, emitter)
+
+    emitter.declareConst('result', '[]')
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      const indexVar = emitter.let('i', '0')
+
+      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
+        const rawItemVar = emitter.const('rawItem', `${inputVar}[${indexVar}]`)
+
+        emitter.assign(indexVar, `${indexVar} + 1`)
+        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
+
+        const itemVar = emitter.const('item', this.templates.compileIteratorItemScope(rawItemVar))
+
+        emitter.code(
+          `result.push({ item: ${itemVar}, index: ${indexVar} - 1, rawItem: ${rawItemVar}, inputLength: ${inputVar}.length });`,
+        )
+      })
+    })
+    emitter.emitBlank()
+    emitter.return('result')
+
+    return emitter.toString()
+  }
+
+  private compileIteratorFieldPreparation(field: TemplateNode): CompiledIteratorFieldAnswerPreparationFunction {
+    return compileGeneratedFunction<CompiledIteratorFieldAnswerPreparationFunction>(
+      this.expr,
+      ['ctx', 'iteratorScope'],
+      () => this.buildIteratorFieldPreparationSource(field),
+      { phase: 'answer-preparation' },
+    )
+  }
+
+  private buildIteratorFieldPreparationSource(field: TemplateNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepAnswerPreparationCompiler.buildIteratorFieldPreparationSource')
+    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
+
+    const frame: IteratorScopeFrame = {
+      itemVar: 'iteratorScope.item',
+      indexVar: 'iteratorScope.index',
+      inputLengthExpr: 'iteratorScope.inputLength',
+      rawItemExpr: 'iteratorScope.rawItem',
+    }
+
+    this.expr.withIteratorFrame(frame, () => {
+      const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
+
+      emitter.if(
+        'isPost',
+        () => this.compileTemplateField(field, codeExpr, emitter, 'post'),
+        () => this.compileTemplateField(field, codeExpr, emitter, 'get'),
+      )
+    })
+
+    return emitter.toString()
+  }
+
+  private findDirectTemplateFields(template: TemplateValue): TemplateNode[] {
+    return this.templates
+      .findTemplateNodes(template, node => isTemplateFieldNode(node) || isTemplateIterateNode(node), {
+        descendIntoMatches: false,
+      })
+      .filter(node => isTemplateFieldNode(node))
   }
 
   /**
