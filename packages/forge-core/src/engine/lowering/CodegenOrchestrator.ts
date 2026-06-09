@@ -91,7 +91,7 @@ export default class CodegenOrchestrator {
     )
 
     const renderCompiler = new StepRenderCompiler(this.dependencies)
-    const compiledRender = renderCompiler.compile(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
+    const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
 
     return {
       runtimePlan: inputs.runtimePlan,
@@ -100,7 +100,7 @@ export default class CodegenOrchestrator {
       compiledSubmitHooks,
       answerPreparationPlan,
       compiledEntryValidation,
-      compiledRender,
+      renderPlan,
       validationPlan,
     }
   }

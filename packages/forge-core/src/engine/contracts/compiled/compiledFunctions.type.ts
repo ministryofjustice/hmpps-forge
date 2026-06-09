@@ -96,3 +96,18 @@ export type CompiledIteratorFieldAnswerPreparationFunction = (
   ctx: AnswerPreparationContext,
   iteratorScope: IteratorItemScope,
 ) => void | Promise<void>
+
+export type CompiledStepMetadataFunction = (
+  ctx: RenderCompilationContext,
+) => Record<string, unknown> | Promise<Record<string, unknown>>
+
+export type CompiledAncestorMetadataFunction = (
+  ctx: RenderCompilationContext,
+) => Record<string, unknown>[] | Promise<Record<string, unknown>[]>
+
+export type CompiledRenderBlockFunction = (ctx: RenderCompilationContext) => RenderBlock | Promise<RenderBlock>
+
+export type CompiledIteratorRenderBlockFunction = (
+  ctx: RenderCompilationContext,
+  iteratorScope: IteratorItemScope,
+) => RenderBlock | Promise<RenderBlock>

@@ -3,6 +3,7 @@ import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescript
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
 import type {
+  CompiledAncestorMetadataFunction,
   CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
   CompiledFieldAnswerPreparationFunction,
@@ -10,7 +11,9 @@ import type {
   CompiledIteratorFieldAnswerPreparationFunction,
   CompiledIteratorFieldValidationFunction,
   CompiledIteratorInputFunction,
-  CompiledRenderFunction,
+  CompiledIteratorRenderBlockFunction,
+  CompiledRenderBlockFunction,
+  CompiledStepMetadataFunction,
 } from '../compiled/compiledFunctions.type'
 
 export interface FieldValidationEntry {
@@ -56,13 +59,36 @@ export interface AnswerPreparationPlan {
   readonly iteratorGroups: readonly IteratorAnswerPreparationGroup[]
 }
 
+export interface RenderBlockEntry {
+  readonly nodeId: NodeId
+  readonly render: CompiledRenderBlockFunction
+}
+
+export interface IteratorRenderBlockEntry {
+  readonly templateNodeId: string
+  readonly render: CompiledIteratorRenderBlockFunction
+}
+
+export interface IteratorRenderBlockGroup {
+  readonly nodeId: NodeId
+  readonly evaluateInput: CompiledIteratorInputFunction
+  readonly blocks: readonly IteratorRenderBlockEntry[]
+}
+
+export interface RenderPlan {
+  readonly compiledStepMetadata?: CompiledStepMetadataFunction
+  readonly compiledAncestorMetadata?: CompiledAncestorMetadataFunction
+  readonly blocks: readonly RenderBlockEntry[]
+  readonly iteratorGroups: readonly IteratorRenderBlockGroup[]
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
   compiledEntryValidation?: CompiledEntryValidationFunction
-  compiledRender?: CompiledRenderFunction
+  renderPlan?: RenderPlan
   validationPlan?: ValidationPlan
   answerPreparationPlan: AnswerPreparationPlan
 }

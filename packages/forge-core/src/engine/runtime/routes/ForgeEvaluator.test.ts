@@ -77,7 +77,7 @@ describe('ForgeEvaluator', () => {
         }),
       },
       answerPreparationPlan: { fields: [], iteratorGroups: [] },
-      compiledRender: vi.fn().mockReturnValue({ blocks: [], step: {}, ancestors: [] }),
+      renderPlan: { blocks: [], iteratorGroups: [] },
     }
   }
 

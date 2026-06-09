@@ -1,17 +1,18 @@
-import type { CompiledRenderFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { RenderPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StoredRouteTree } from '../../../contracts/routing/routeTree.type'
 import type { RenderContext } from '../../../../framework/rendering/types'
 import { resolvePathParams } from '../../../../framework/path/routePath'
 import { resolveBacklinkRouteTemplatePath } from '../../navigation/navigationRedirects'
 import { buildCompiledRenderContext } from '../../context/compiledEvaluationContext'
+import { evaluateRender } from '../phases/evaluateRender'
 import RenderContextFactory from '../../rendering/RenderContextFactory'
 import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { TerminalPhase } from '../types'
 
 export function createStepRenderTerminal(
-  compiledRender: CompiledRenderFunction | undefined,
+  renderPlan: RenderPlan | undefined,
   path: string,
   routeTree: StoredRouteTree,
   currentRouteTemplatePath: string,
@@ -20,13 +21,11 @@ export function createStepRenderTerminal(
   return {
     name: 'render',
     async execute(state) {
-      if (!compiledRender) {
-        throw new Error(
-          `[Forge] Render compilation is required — compiledRender function is missing for step "${path}"`,
-        )
+      if (!renderPlan) {
+        throw new Error(`[Forge] Render plan is missing for step "${path}"`)
       }
 
-      const renderResult = await compiledRender(buildCompiledRenderContext(state.context, functionRegistry))
+      const renderResult = await evaluateRender(renderPlan, buildCompiledRenderContext(state.context, functionRegistry))
       const step = resolveStepMetadata(
         renderResult.step as RenderContext['step'],
         state.request,

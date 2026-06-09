@@ -150,7 +150,7 @@ export default class ForgeEvaluator {
       const answersPhase = createAnswerPreparationPlanPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
       const renderTerminal = createStepRenderTerminal(
-        compiledStep.compiledRender,
+        compiledStep.renderPlan,
         runtimePlan.path,
         this.routeTreeIndex.roots,
         ctx.routeTemplatePath,

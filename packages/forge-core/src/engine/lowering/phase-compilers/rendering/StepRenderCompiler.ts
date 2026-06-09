@@ -23,11 +23,28 @@ import {
   compileGeneratedFunction,
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, { isTemplateBlockNode } from '../../structures/ScopedTemplateCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateBlockNode,
+  isTemplateIterateNode,
+} from '../../structures/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
+import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
-import type { CompiledRenderFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  CompiledAncestorMetadataFunction,
+  CompiledIteratorInputFunction,
+  CompiledIteratorRenderBlockFunction,
+  CompiledRenderBlockFunction,
+  CompiledRenderFunction,
+  CompiledStepMetadataFunction,
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  IteratorRenderBlockEntry,
+  IteratorRenderBlockGroup,
+  RenderBlockEntry,
+  RenderPlan,
+} from '../../../contracts/plans/compilationArtefacts.type'
 
 interface RenderBlockValue {
   readonly id?: unknown
@@ -499,5 +516,284 @@ export default class StepRenderCompiler {
    */
   private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
     return this.templates.findTemplateNodes(template, isTemplateBlockNode, { descendIntoMatches: false })
+  }
+
+  compileRenderPlan(
+    stepNode: StepASTNode,
+    ancestorNodes: JourneyASTNode[],
+    iterateNodes: IterateASTNode[] = [],
+  ): RenderPlan {
+    this.inlineIterateIds.clear()
+
+    const compiledStepMetadata = this.compileStepMetadataFunction(stepNode)
+    const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
+
+    const blocks: RenderBlockEntry[] = (stepNode.properties.blocks ?? []).map(block => ({
+      nodeId: block.id,
+      render: this.compileSingleBlock(block),
+    }))
+
+    const iteratorGroups: IteratorRenderBlockGroup[] = []
+
+    for (const iterateNode of iterateNodes) {
+      if (this.inlineIterateIds.has(iterateNode.id)) {
+        continue
+      }
+
+      const group = this.compileIteratorRenderGroup(iterateNode)
+
+      if (group !== undefined) {
+        iteratorGroups.push(group)
+      }
+    }
+
+    return { compiledStepMetadata, compiledAncestorMetadata, blocks, iteratorGroups }
+  }
+
+  private compileStepMetadataFunction(stepNode: StepASTNode): CompiledStepMetadataFunction | undefined {
+    const hasProperties = Object.keys(stepNode.properties).some(key => !StepRenderCompiler.STEP_SKIP_PROPS.has(key))
+
+    if (!hasProperties) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledStepMetadataFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildStepMetadataSource(stepNode),
+      { phase: 'render' },
+    )
+  }
+
+  private buildStepMetadataSource(stepNode: StepASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepRenderCompiler.buildStepMetadataSource')
+    emitter.declareConst('step', '{}')
+
+    this.compileStepMetadata(stepNode, emitter)
+
+    emitter.return('step')
+
+    return emitter.toString()
+  }
+
+  private compileAncestorMetadataFunction(
+    ancestorNodes: JourneyASTNode[],
+  ): CompiledAncestorMetadataFunction | undefined {
+    if (ancestorNodes.length === 0) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledAncestorMetadataFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildAncestorMetadataSource(ancestorNodes),
+      { phase: 'render' },
+    )
+  }
+
+  private buildAncestorMetadataSource(ancestorNodes: JourneyASTNode[]): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepRenderCompiler.buildAncestorMetadataSource')
+    emitter.declareConst('ancestors', '[]')
+
+    this.compileAncestorMetadata(ancestorNodes, emitter)
+
+    emitter.return('ancestors')
+
+    return emitter.toString()
+  }
+
+  private compileSingleBlock(block: BlockASTNode): CompiledRenderBlockFunction {
+    return compileGeneratedFunction<CompiledRenderBlockFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleBlockSource(block),
+      { phase: 'render' },
+    )
+  }
+
+  private buildSingleBlockSource(block: BlockASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepRenderCompiler.buildSingleBlockSource')
+
+    const propsVar = emitter.const('blockProps', '{}')
+
+    for (const [key, value] of Object.entries(block.properties)) {
+      if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
+        continue
+      }
+
+      if (block.blockType === BlockType.FIELD && key === 'code') {
+        this.fieldCodes.assignProperty(value, emitter, propsVar, key)
+
+        continue
+      }
+
+      this.compilePropertyAssignment(value, emitter, propsVar, key)
+    }
+
+    if (block.blockType === BlockType.FIELD && block.properties.value === undefined) {
+      this.compileFieldValueResolution(emitter, propsVar)
+    }
+
+    emitter.return(
+      `{
+        [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
+        id: ${JSON.stringify(block.id)},
+        variant: ${JSON.stringify(block.variant)},
+        blockType: ${JSON.stringify(block.blockType)},
+        properties: ${propsVar}
+      }`,
+    )
+
+    return emitter.toString()
+  }
+
+  private compileIteratorRenderGroup(iterateNode: IterateASTNode): IteratorRenderBlockGroup | undefined {
+    if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
+      return undefined
+    }
+
+    const template = iterateNode.properties.iterator.yieldTemplate
+
+    if (template === undefined) {
+      return undefined
+    }
+
+    const directBlocks = this.findDirectTemplateBlocks(template)
+
+    if (directBlocks.length === 0) {
+      return undefined
+    }
+
+    const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
+    const blocks: IteratorRenderBlockEntry[] = directBlocks.map(block => ({
+      templateNodeId: String(block.id),
+      render: this.compileIteratorRenderBlock(block),
+    }))
+
+    return { nodeId: iterateNode.id, evaluateInput, blocks }
+  }
+
+  private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
+    return compileGeneratedFunction<CompiledIteratorInputFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildIteratorInputEvaluatorSource(iterateNode),
+      { phase: 'iterator-input' },
+    )
+  }
+
+  private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepRenderCompiler.buildIteratorInputEvaluatorSource')
+
+    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
+
+    this.templates.compileNormalizeIteratorInput(inputVar, emitter)
+
+    emitter.declareConst('result', '[]')
+    emitter.if(`Array.isArray(${inputVar})`, () => {
+      const indexVar = emitter.let('i', '0')
+
+      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
+        const rawItemVar = emitter.const('rawItem', `${inputVar}[${indexVar}]`)
+
+        emitter.assign(indexVar, `${indexVar} + 1`)
+        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
+
+        const itemVar = emitter.const('item', this.templates.compileIteratorItemScope(rawItemVar))
+
+        emitter.code(
+          `result.push({ item: ${itemVar}, index: ${indexVar} - 1, rawItem: ${rawItemVar}, inputLength: ${inputVar}.length });`,
+        )
+      })
+    })
+    emitter.emitBlank()
+    emitter.return('result')
+
+    return emitter.toString()
+  }
+
+  private compileIteratorRenderBlock(block: TemplateNode): CompiledIteratorRenderBlockFunction {
+    return compileGeneratedFunction<CompiledIteratorRenderBlockFunction>(
+      this.expr,
+      ['ctx', 'iteratorScope'],
+      () => this.buildIteratorRenderBlockSource(block),
+      { phase: 'render' },
+    )
+  }
+
+  private buildIteratorRenderBlockSource(block: TemplateNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepRenderCompiler.buildIteratorRenderBlockSource')
+
+    const frame: IteratorScopeFrame = {
+      itemVar: 'iteratorScope.item',
+      indexVar: 'iteratorScope.index',
+      inputLengthExpr: 'iteratorScope.inputLength',
+      rawItemExpr: 'iteratorScope.rawItem',
+    }
+
+    this.expr.withIteratorFrame(frame, () => {
+      const blockType = block.blockType
+      const codeExpr = this.templates.compileTemplateCodeExpression(block, emitter)
+      const propsVar = emitter.const('templateBlockProps', '{}')
+      const properties = block.properties ?? {}
+
+      for (const [key, value] of Object.entries(properties)) {
+        if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
+          continue
+        }
+
+        if (blockType === BlockType.FIELD && key === 'code') {
+          this.fieldCodes.assignProperty(value, emitter, propsVar, key, codeExpr)
+
+          continue
+        }
+
+        this.compilePropertyAssignment(value, emitter, propsVar, key)
+      }
+
+      if (blockType === BlockType.FIELD && properties.value === undefined) {
+        this.compileFieldValueResolution(emitter, propsVar)
+      }
+
+      const idExpr =
+        blockType === BlockType.FIELD
+          ? this.fieldCodes.compileIteratorFieldBlockIdExpression(codeExpr, String(block.id))
+          : JSON.stringify(`compiled:${String(block.id)}`)
+
+      emitter.return(
+        `{
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
+          id: ${idExpr},
+          variant: ${JSON.stringify(block.variant)},
+          blockType: ${JSON.stringify(blockType)},
+          properties: ${propsVar}
+        }`,
+      )
+    })
+
+    return emitter.toString()
+  }
+
+  private findDirectTemplateBlocks(template: TemplateValue): TemplateNode[] {
+    return this.templates
+      .findTemplateNodes(template, node => isTemplateBlockNode(node) || isTemplateIterateNode(node), {
+        descendIntoMatches: false,
+      })
+      .filter(node => isTemplateBlockNode(node))
   }
 }
