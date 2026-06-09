@@ -1,7 +1,7 @@
 import type { NodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
-import type { CompiledAccessHookFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
+import type { CompiledAccessHookFunction, CompiledSubmitHookFunction } from '../runtime/hookLifecycle.type'
 import type {
   CompiledAncestorMetadataFunction,
   CompiledDomainValidationFunction,
@@ -100,11 +100,20 @@ export interface AccessLifecyclePlan {
   readonly hooks: readonly AccessHookEntry[]
 }
 
+export interface SubmitHookEntry {
+  readonly nodeId: NodeId
+  readonly evaluate: CompiledSubmitHookFunction
+}
+
+export interface SubmitLifecyclePlan {
+  readonly hooks: readonly SubmitHookEntry[]
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
   accessLifecyclePlan?: AccessLifecyclePlan
-  compiledSubmitHooks?: CompiledSubmitHooksFunction
+  submitLifecyclePlan?: SubmitLifecyclePlan
   entryValidationPlan?: EntryValidationPlan
   renderPlan?: RenderPlan
   validationPlan?: ValidationPlan

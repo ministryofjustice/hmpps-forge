@@ -17,9 +17,15 @@ import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contrac
 import type {
   CompiledAccessHookFunction,
   CompiledAccessLifecycleFunction,
+  CompiledSubmitHookFunction,
   CompiledSubmitHooksFunction,
 } from '../../../contracts/runtime/hookLifecycle.type'
-import type { AccessHookEntry, AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type {
+  AccessHookEntry,
+  AccessLifecyclePlan,
+  SubmitHookEntry,
+  SubmitLifecyclePlan,
+} from '../../../contracts/plans/compilationArtefacts.type'
 
 export default class HookLifecycleCompiler {
   private readonly expr: ExpressionDispatcher
@@ -37,6 +43,23 @@ export default class HookLifecycleCompiler {
           nodeId: hook.id,
           evaluate: this.compileSingleAccessHook(hook),
         })
+      })
+    })
+
+    if (hooks.length === 0) {
+      return undefined
+    }
+
+    return { hooks }
+  }
+
+  compileSubmitLifecyclePlan(submitHooks: SubmitHookASTNode[]): SubmitLifecyclePlan | undefined {
+    const hooks: SubmitHookEntry[] = []
+
+    submitHooks.forEach(hook => {
+      hooks.push({
+        nodeId: hook.id,
+        evaluate: this.compileSingleSubmitHook(hook),
       })
     })
 
@@ -79,6 +102,10 @@ export default class HookLifecycleCompiler {
     return buildGeneratedSource(this.expr, () => this.buildSingleAccessHookSource(hook))
   }
 
+  generateSingleSubmitHookSource(hook: SubmitHookASTNode): string {
+    return buildGeneratedSource(this.expr, () => this.buildSingleSubmitHookSource(hook))
+  }
+
   private compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
     return compileGeneratedFunction<CompiledAccessHookFunction>(
       this.expr,
@@ -99,6 +126,39 @@ export default class HookLifecycleCompiler {
     })
 
     emitter.return('{ executed: true, outcome: "continue" }')
+
+    return emitter.toString()
+  }
+
+  private compileSingleSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHookFunction {
+    return compileGeneratedFunction<CompiledSubmitHookFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleSubmitHookSource(hook),
+      { forceAsync: true, phase: 'hooks' },
+    )!
+  }
+
+  private buildSingleSubmitHookSource(hook: SubmitHookASTNode): string {
+    const emitter = this.createEmitter()
+
+    const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
+
+    emitter.if(whenVar, () => {
+      const guardsVar = this.compilePredicate(hook.properties.guards, true, emitter, 'guardPredicate')
+
+      emitter.if(guardsVar, () => {
+        if (hook.properties.validate) {
+          this.compileValidatedSubmitBranches(hook, emitter)
+
+          return
+        }
+
+        this.compileNonValidatingSubmitBranch(hook, emitter)
+      })
+    })
+
+    emitter.return('{ executed: false, validated: false, outcome: "continue" }')
 
     return emitter.toString()
   }

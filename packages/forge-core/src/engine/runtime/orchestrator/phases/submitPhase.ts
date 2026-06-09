@@ -1,15 +1,15 @@
 import createHttpError from 'http-errors'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { CompiledSubmitHooksFunction } from '../../../contracts/runtime/hookLifecycle.type'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
 import { evaluateValidation } from './evaluateValidation'
+import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
 
 export function createSubmitPhase(
-  compiledSubmitHooks: CompiledSubmitHooksFunction | undefined,
+  submitLifecyclePlan: SubmitLifecyclePlan | undefined,
   validationPlan: ValidationPlan | undefined,
   stepId: NodeId,
   path: string,
@@ -19,11 +19,12 @@ export function createSubmitPhase(
   return {
     name: 'submit-hooks',
     async execute(state) {
-      if (!compiledSubmitHooks) {
-        throw new Error(`[Forge] Hook fallback is disabled — compiledSubmitHooks is missing for step "${path}"`)
+      if (!submitLifecyclePlan) {
+        throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
       }
 
-      const result = await compiledSubmitHooks(
+      const result = await evaluateSubmitLifecycle(
+        submitLifecyclePlan,
         buildCompiledHookLifecycleContext(
           state.context,
           functionRegistry,

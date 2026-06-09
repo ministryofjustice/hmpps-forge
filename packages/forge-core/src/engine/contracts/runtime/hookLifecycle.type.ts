@@ -45,6 +45,10 @@ export type CompiledAccessLifecycleFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
 
+export type CompiledSubmitHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>
+
 export type CompiledSubmitHooksFunction = (
   ctx: HookLifecycleContext,
 ) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>

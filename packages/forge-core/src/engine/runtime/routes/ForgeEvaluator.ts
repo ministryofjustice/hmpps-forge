@@ -197,7 +197,7 @@ export default class ForgeEvaluator {
             instrumentation,
           ),
           createSubmitPhase(
-            compiledStep.compiledSubmitHooks,
+            compiledStep.submitLifecyclePlan,
             compiledStep.validationPlan,
             runtimePlan.stepId,
             runtimePlan.path,

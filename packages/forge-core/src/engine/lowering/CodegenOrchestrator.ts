@@ -72,7 +72,7 @@ export default class CodegenOrchestrator {
 
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const accessLifecyclePlan = hookCompiler.compileAccessLifecyclePlan(inputs.accessAncestors)
-    const compiledSubmitHooks = hookCompiler.compileSubmitHooks(inputs.submitHooks)
+    const submitLifecyclePlan = hookCompiler.compileSubmitLifecyclePlan(inputs.submitHooks)
 
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const answerPreparationPlan = answerPrepCompiler.compileAnswerPreparationPlan(
@@ -97,7 +97,7 @@ export default class CodegenOrchestrator {
       runtimePlan: inputs.runtimePlan,
       navigationPlan,
       accessLifecyclePlan,
-      compiledSubmitHooks,
+      submitLifecyclePlan,
       answerPreparationPlan,
       entryValidationPlan,
       renderPlan,
