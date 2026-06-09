@@ -81,7 +81,7 @@ export default class CodegenOrchestrator {
     )
 
     const validationCompiler = new StepValidationCompiler(this.dependencies)
-    const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
+    const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
       inputs.stepNode.properties.validateOnEntry,
     )
     const validationPlan = validationCompiler.compileValidationPlan(
@@ -99,7 +99,7 @@ export default class CodegenOrchestrator {
       compiledAccessLifecycle,
       compiledSubmitHooks,
       answerPreparationPlan,
-      compiledEntryValidation,
+      entryValidationPlan,
       renderPlan,
       validationPlan,
     }

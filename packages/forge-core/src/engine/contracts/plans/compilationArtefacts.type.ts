@@ -5,7 +5,7 @@ import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } fro
 import type {
   CompiledAncestorMetadataFunction,
   CompiledDomainValidationFunction,
-  CompiledEntryValidationFunction,
+  CompiledEntryValidationRuleFunction,
   CompiledFieldAnswerPreparationFunction,
   CompiledFieldValidationFunction,
   CompiledIteratorFieldAnswerPreparationFunction,
@@ -82,12 +82,21 @@ export interface RenderPlan {
   readonly iteratorGroups: readonly IteratorRenderBlockGroup[]
 }
 
+export interface EntryValidationRule {
+  readonly groups: readonly string[]
+  readonly evaluate?: CompiledEntryValidationRuleFunction
+}
+
+export interface EntryValidationPlan {
+  readonly rules: readonly EntryValidationRule[]
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
-  compiledEntryValidation?: CompiledEntryValidationFunction
+  entryValidationPlan?: EntryValidationPlan
   renderPlan?: RenderPlan
   validationPlan?: ValidationPlan
   answerPreparationPlan: AnswerPreparationPlan

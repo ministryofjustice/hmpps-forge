@@ -1,10 +1,10 @@
 import { createEntryValidationPhase } from './entryValidationPhase'
+import type { EntryValidationPlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
 const createMockState = (): PipelineState => {
@@ -46,7 +46,7 @@ const mockInstrumentation = {
 
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
-    it('should return continue when no entry validation is configured', async () => {
+    it('should return continue when no entry validation plan is configured', async () => {
       // Arrange
       const phase = createEntryValidationPhase(
         undefined,
@@ -64,11 +64,13 @@ describe('entryValidationPhase', () => {
       expect(result).toEqual({ action: 'continue' })
     })
 
-    it('should return continue when entry validation returns empty groups', async () => {
+    it('should return continue when no rules match', async () => {
       // Arrange
-      const compiledEntryValidation = vi.fn().mockReturnValue([])
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+      }
       const phase = createEntryValidationPhase(
-        compiledEntryValidation,
+        entryValidationPlan,
         undefined,
         'compile_ast:1' as const,
         '/step',
@@ -85,7 +87,9 @@ describe('entryValidationPhase', () => {
 
     it('should run validation and set state when groups are active', async () => {
       // Arrange
-      const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ groups: ['group-1'] }],
+      }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
         fields: [
@@ -100,7 +104,7 @@ describe('entryValidationPhase', () => {
         ],
       }
       const phase = createEntryValidationPhase(
-        compiledEntryValidation,
+        entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
         '/step',
@@ -135,7 +139,9 @@ describe('entryValidationPhase', () => {
             fn({ setAttributes, addEvent }),
         ),
       } as unknown as ForgeInstrumentation
-      const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ groups: ['group-1'] }],
+      }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
         fields: [
@@ -150,7 +156,7 @@ describe('entryValidationPhase', () => {
         ],
       }
       const phase = createEntryValidationPhase(
-        compiledEntryValidation,
+        entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
         '/step',
@@ -196,13 +202,15 @@ describe('entryValidationPhase', () => {
             fn({ setAttributes, addEvent }),
         ),
       } as unknown as ForgeInstrumentation
-      const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ groups: ['group-1'] }],
+      }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
         fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
       }
       const phase = createEntryValidationPhase(
-        compiledEntryValidation,
+        entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
         '/step',
@@ -228,14 +236,16 @@ describe('entryValidationPhase', () => {
           fn({ setAttributes: vi.fn(), addEvent }),
         ),
       } as unknown as ForgeInstrumentation
-      const compiledEntryValidation = vi.fn().mockReturnValue(['group-1'])
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ groups: ['group-1'] }],
+      }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
         fields: [],
         domain: vi.fn().mockReturnValue([{ passed: false, message: 'Domain rule', submissionOnly: true }]),
       }
       const phase = createEntryValidationPhase(
-        compiledEntryValidation,
+        entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
         '/step',

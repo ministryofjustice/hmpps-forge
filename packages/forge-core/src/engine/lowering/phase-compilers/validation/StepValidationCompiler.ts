@@ -16,6 +16,7 @@
  * provide those implementations. Registry metadata decides whether generated
  * source remains sync or becomes async.
  */
+import type { ASTNode } from '../../../contracts/ast/ast.type'
 import { FieldBlockASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
@@ -30,12 +31,15 @@ import type { CompilationDependencies } from '../../compilationDependencies.type
 import type {
   CompiledDomainValidationFunction,
   CompiledEntryValidationFunction,
+  CompiledEntryValidationRuleFunction,
   CompiledFieldValidationFunction,
   CompiledIteratorFieldValidationFunction,
   CompiledIteratorInputFunction,
   CompiledValidationFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
+  EntryValidationPlan,
+  EntryValidationRule,
   FieldValidationEntry,
   IteratorFieldValidationEntry,
   IteratorValidationGroup,
@@ -119,6 +123,41 @@ export default class StepValidationCompiler {
    */
   generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
     return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
+  }
+
+  compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan | undefined {
+    if (entries === undefined || entries.length === 0) {
+      return undefined
+    }
+
+    const rules: EntryValidationRule[] = entries.map(entry => ({
+      groups: entry.groups,
+      evaluate: entry.when === true ? undefined : this.compileSingleEntryValidationRule(entry.when),
+    }))
+
+    return { rules }
+  }
+
+  private compileSingleEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
+    return compileGeneratedFunction<CompiledEntryValidationRuleFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSingleEntryValidationRuleSource(when),
+      { phase: 'entry-validation' },
+    )
+  }
+
+  private buildSingleEntryValidationRuleSource(when: ASTNode): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('StepValidationCompiler.buildSingleEntryValidationRuleSource')
+
+    const predicateExpr = this.expr.compileExpression(when)
+
+    emitter.return(`Boolean(${predicateExpr})`)
+
+    return emitter.toString()
   }
 
   compileValidationPlan(

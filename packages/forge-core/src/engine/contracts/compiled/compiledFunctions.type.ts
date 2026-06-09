@@ -111,3 +111,5 @@ export type CompiledIteratorRenderBlockFunction = (
   ctx: RenderCompilationContext,
   iteratorScope: IteratorItemScope,
 ) => RenderBlock | Promise<RenderBlock>
+
+export type CompiledEntryValidationRuleFunction = (ctx: BasePhaseContext) => boolean | Promise<boolean>

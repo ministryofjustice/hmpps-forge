@@ -171,7 +171,7 @@ export default class ForgeEvaluator {
             instrumentation,
           ),
           createEntryValidationPhase(
-            compiledStep.compiledEntryValidation,
+            compiledStep.entryValidationPlan,
             compiledStep.validationPlan,
             runtimePlan.stepId,
             runtimePlan.path,
