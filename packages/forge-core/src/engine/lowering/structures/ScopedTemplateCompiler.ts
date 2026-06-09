@@ -146,6 +146,17 @@ export default class ScopedTemplateCompiler {
     return results
   }
 
+  getMapIterateYieldTemplate(node: TemplateNode): TemplateValue | undefined {
+    const properties = (node.properties ?? {}) as TemplateMapIteratorProperties
+    const iterator = properties.iterator
+
+    if (iterator?.type !== IteratorType.MAP || iterator.yieldTemplate === undefined) {
+      return undefined
+    }
+
+    return iterator.yieldTemplate
+  }
+
   /**
    * Checks whether a template contains at least one node matching a predicate.
    */

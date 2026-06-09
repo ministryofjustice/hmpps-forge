@@ -20,7 +20,10 @@ import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+  isTemplateIterateNode,
+} from '../../structures/ScopedTemplateCompiler'
 import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
@@ -410,18 +413,46 @@ export default class StepValidationCompiler {
       return undefined
     }
 
-    const templateFields = this.findTemplateFieldsWithValidation(template)
+    const fields: IteratorFieldValidationEntry[] = []
 
-    if (templateFields.length === 0) {
+    this.collectLeafValidationFields(template, fields, [])
+
+    if (fields.length === 0) {
       return undefined
     }
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
-    const fields: IteratorFieldValidationEntry[] = templateFields.map(field => ({
-      validate: this.compileIteratorFieldValidation(field),
-    }))
 
     return { evaluateInput, fields }
+  }
+
+  private collectLeafValidationFields(
+    template: TemplateValue,
+    entries: IteratorFieldValidationEntry[],
+    ancestorIterates: readonly TemplateNode[],
+  ): void {
+    const directNodes = this.templates.findTemplateNodes(
+      template,
+      node =>
+        (isTemplateFieldNode(node) && hasConfiguredValue(node.properties?.validWhen)) || isTemplateIterateNode(node),
+      { descendIntoMatches: false },
+    )
+
+    directNodes.forEach(node => {
+      if (isTemplateFieldNode(node)) {
+        entries.push({
+          validate: this.compileIteratorFieldValidation(node, ancestorIterates),
+        })
+
+        return
+      }
+
+      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
+
+      if (yieldTemplate !== undefined) {
+        this.collectLeafValidationFields(yieldTemplate, entries, [...ancestorIterates, node])
+      }
+    })
   }
 
   private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
@@ -466,16 +497,19 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
-  private compileIteratorFieldValidation(field: TemplateNode): CompiledIteratorFieldValidationFunction {
+  private compileIteratorFieldValidation(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+  ): CompiledIteratorFieldValidationFunction {
     return compileGeneratedFunction<CompiledIteratorFieldValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups', 'iteratorScope'],
-      () => this.buildIteratorFieldValidationSource(field),
+      () => this.buildIteratorFieldValidationSource(field, ancestorIterates),
       { phase: 'field-validation' },
     )
   }
 
-  private buildIteratorFieldValidationSource(field: TemplateNode): string {
+  private buildIteratorFieldValidationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -484,17 +518,15 @@ export default class StepValidationCompiler {
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('errors', '[]')
 
-    const frame: IteratorScopeFrame = {
+    const outerFrame: IteratorScopeFrame = {
       itemVar: 'iteratorScope.item',
       indexVar: 'iteratorScope.index',
       inputLengthExpr: 'iteratorScope.inputLength',
       rawItemExpr: 'iteratorScope.rawItem',
     }
 
-    this.expr.withIteratorFrame(frame, () => {
-      const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
-
-      this.compileTemplateFieldValidations(field, codeExpr, emitter)
+    this.expr.withIteratorFrame(outerFrame, () => {
+      this.emitNestedLoopsAndCompileValidation(field, ancestorIterates, 0, emitter)
     })
 
     emitter.emitBlank()
@@ -503,14 +535,23 @@ export default class StepValidationCompiler {
     return emitter.toString()
   }
 
-  /**
-   * Finds template field nodes that need validation code emitted inside iterator loops.
-   */
-  private findTemplateFieldsWithValidation(template: TemplateValue): TemplateNode[] {
-    return this.templates.findTemplateNodes(
-      template,
-      node => isTemplateFieldNode(node) && hasConfiguredValue(node.properties?.validWhen),
-    )
+  private emitNestedLoopsAndCompileValidation(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+    depth: number,
+    emitter: CodeEmitter,
+  ): void {
+    if (depth >= ancestorIterates.length) {
+      const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
+
+      this.compileTemplateFieldValidations(field, codeExpr, emitter)
+
+      return
+    }
+
+    this.templates.compileTemplateMapIterator(ancestorIterates[depth], emitter, () => {
+      this.emitNestedLoopsAndCompileValidation(field, ancestorIterates, depth + 1, emitter)
+    })
   }
 }
 

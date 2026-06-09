@@ -41,5 +41,7 @@ async function evaluateSingleIteratorGroup(
     return []
   }
 
-  return Promise.all(items.flatMap(itemScope => group.blocks.map(block => block.render(ctx, itemScope))))
+  const results = await Promise.all(items.flatMap(itemScope => group.blocks.map(block => block.render(ctx, itemScope))))
+
+  return results.flat()
 }

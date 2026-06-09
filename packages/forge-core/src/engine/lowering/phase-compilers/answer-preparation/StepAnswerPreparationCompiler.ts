@@ -326,18 +326,45 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    const directFields = this.findDirectTemplateFields(template)
+    const fields: IteratorFieldAnswerPreparationEntry[] = []
 
-    if (directFields.length === 0) {
+    this.collectLeafFields(template, fields, [])
+
+    if (fields.length === 0) {
       return undefined
     }
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
-    const fields: IteratorFieldAnswerPreparationEntry[] = directFields.map(field => ({
-      prepare: this.compileIteratorFieldPreparation(field),
-    }))
 
     return { evaluateInput, fields }
+  }
+
+  private collectLeafFields(
+    template: TemplateValue,
+    entries: IteratorFieldAnswerPreparationEntry[],
+    ancestorIterates: readonly TemplateNode[],
+  ): void {
+    const directNodes = this.templates.findTemplateNodes(
+      template,
+      node => isTemplateFieldNode(node) || isTemplateIterateNode(node),
+      { descendIntoMatches: false },
+    )
+
+    directNodes.forEach(node => {
+      if (isTemplateFieldNode(node)) {
+        entries.push({
+          prepare: this.compileIteratorFieldPreparation(node, ancestorIterates),
+        })
+
+        return
+      }
+
+      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
+
+      if (yieldTemplate !== undefined) {
+        this.collectLeafFields(yieldTemplate, entries, [...ancestorIterates, node])
+      }
+    })
   }
 
   private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
@@ -382,30 +409,46 @@ export default class StepAnswerPreparationCompiler {
     return emitter.toString()
   }
 
-  private compileIteratorFieldPreparation(field: TemplateNode): CompiledIteratorFieldAnswerPreparationFunction {
+  private compileIteratorFieldPreparation(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+  ): CompiledIteratorFieldAnswerPreparationFunction {
     return compileGeneratedFunction<CompiledIteratorFieldAnswerPreparationFunction>(
       this.expr,
       ['ctx', 'iteratorScope'],
-      () => this.buildIteratorFieldPreparationSource(field),
+      () => this.buildIteratorFieldPreparationSource(field, ancestorIterates),
       { phase: 'answer-preparation' },
     )
   }
 
-  private buildIteratorFieldPreparationSource(field: TemplateNode): string {
+  private buildIteratorFieldPreparationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
     emitter.comment('StepAnswerPreparationCompiler.buildIteratorFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 
-    const frame: IteratorScopeFrame = {
+    const outerFrame: IteratorScopeFrame = {
       itemVar: 'iteratorScope.item',
       indexVar: 'iteratorScope.index',
       inputLengthExpr: 'iteratorScope.inputLength',
       rawItemExpr: 'iteratorScope.rawItem',
     }
 
-    this.expr.withIteratorFrame(frame, () => {
+    this.expr.withIteratorFrame(outerFrame, () => {
+      this.emitNestedLoopsAndCompileField(field, ancestorIterates, 0, emitter)
+    })
+
+    return emitter.toString()
+  }
+
+  private emitNestedLoopsAndCompileField(
+    field: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+    depth: number,
+    emitter: CodeEmitter,
+  ): void {
+    if (depth >= ancestorIterates.length) {
       const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
 
       emitter.if(
@@ -413,17 +456,13 @@ export default class StepAnswerPreparationCompiler {
         () => this.compileTemplateField(field, codeExpr, emitter, 'post'),
         () => this.compileTemplateField(field, codeExpr, emitter, 'get'),
       )
+
+      return
+    }
+
+    this.templates.compileTemplateMapIterator(ancestorIterates[depth], emitter, () => {
+      this.emitNestedLoopsAndCompileField(field, ancestorIterates, depth + 1, emitter)
     })
-
-    return emitter.toString()
-  }
-
-  private findDirectTemplateFields(template: TemplateValue): TemplateNode[] {
-    return this.templates
-      .findTemplateNodes(template, node => isTemplateFieldNode(node) || isTemplateIterateNode(node), {
-        descendIntoMatches: false,
-      })
-      .filter(node => isTemplateFieldNode(node))
   }
 
   /**

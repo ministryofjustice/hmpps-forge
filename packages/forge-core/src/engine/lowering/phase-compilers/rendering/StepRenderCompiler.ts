@@ -453,18 +453,45 @@ export default class StepRenderCompiler {
       return undefined
     }
 
-    const directBlocks = this.findDirectTemplateBlocks(template)
+    const blocks: IteratorRenderBlockEntry[] = []
 
-    if (directBlocks.length === 0) {
+    this.collectLeafBlocks(template, blocks, [])
+
+    if (blocks.length === 0) {
       return undefined
     }
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
-    const blocks: IteratorRenderBlockEntry[] = directBlocks.map(block => ({
-      render: this.compileIteratorRenderBlock(block),
-    }))
 
     return { evaluateInput, blocks }
+  }
+
+  private collectLeafBlocks(
+    template: TemplateValue,
+    entries: IteratorRenderBlockEntry[],
+    ancestorIterates: readonly TemplateNode[],
+  ): void {
+    const directNodes = this.templates.findTemplateNodes(
+      template,
+      node => isTemplateBlockNode(node) || isTemplateIterateNode(node),
+      { descendIntoMatches: false },
+    )
+
+    directNodes.forEach(node => {
+      if (isTemplateBlockNode(node)) {
+        entries.push({
+          render: this.compileIteratorRenderBlock(node, ancestorIterates),
+        })
+
+        return
+      }
+
+      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
+
+      if (yieldTemplate !== undefined) {
+        this.collectLeafBlocks(yieldTemplate, entries, [...ancestorIterates, node])
+      }
+    })
   }
 
   private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
@@ -509,76 +536,104 @@ export default class StepRenderCompiler {
     return emitter.toString()
   }
 
-  private compileIteratorRenderBlock(block: TemplateNode): CompiledIteratorRenderBlockFunction {
+  private compileIteratorRenderBlock(
+    block: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+  ): CompiledIteratorRenderBlockFunction {
     return compileGeneratedFunction<CompiledIteratorRenderBlockFunction>(
       this.expr,
       ['ctx', 'iteratorScope'],
-      () => this.buildIteratorRenderBlockSource(block),
+      () => this.buildIteratorRenderBlockSource(block, ancestorIterates),
       { phase: 'render' },
     )
   }
 
-  private buildIteratorRenderBlockSource(block: TemplateNode): string {
+  private buildIteratorRenderBlockSource(block: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
     emitter.comment('StepRenderCompiler.buildIteratorRenderBlockSource')
 
-    const frame: IteratorScopeFrame = {
+    const outerFrame: IteratorScopeFrame = {
       itemVar: 'iteratorScope.item',
       indexVar: 'iteratorScope.index',
       inputLengthExpr: 'iteratorScope.inputLength',
       rawItemExpr: 'iteratorScope.rawItem',
     }
 
-    this.expr.withIteratorFrame(frame, () => {
-      const blockType = block.blockType
-      const codeExpr = this.templates.compileTemplateCodeExpression(block, emitter)
-      const propsVar = emitter.const('templateBlockProps', '{}')
-      const properties = block.properties ?? {}
+    this.expr.withIteratorFrame(outerFrame, () => {
+      if (ancestorIterates.length === 0) {
+        this.emitRenderBlock(block, emitter, true)
 
-      for (const [key, value] of Object.entries(properties)) {
-        if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
-          continue
-        }
-
-        if (blockType === BlockType.FIELD && key === 'code') {
-          this.fieldCodes.assignProperty(value, emitter, propsVar, key, codeExpr)
-
-          continue
-        }
-
-        this.compilePropertyAssignment(value, emitter, propsVar, key)
+        return
       }
 
-      if (blockType === BlockType.FIELD && properties.value === undefined) {
-        this.compileFieldValueResolution(emitter, propsVar)
-      }
-
-      const idExpr =
-        blockType === BlockType.FIELD
-          ? this.fieldCodes.compileIteratorFieldBlockIdExpression(codeExpr, String(block.id))
-          : JSON.stringify(`compiled:${String(block.id)}`)
-
-      emitter.return(
-        `{
-          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
-          id: ${idExpr},
-          variant: ${JSON.stringify(block.variant)},
-          blockType: ${JSON.stringify(blockType)},
-          properties: ${propsVar}
-        }`,
-      )
+      emitter.declareConst('nestedBlocks', '[]')
+      this.emitNestedLoopsAndCompileBlock(block, ancestorIterates, 0, emitter)
+      emitter.return('nestedBlocks')
     })
 
     return emitter.toString()
   }
 
-  private findDirectTemplateBlocks(template: TemplateValue): TemplateNode[] {
-    return this.templates
-      .findTemplateNodes(template, node => isTemplateBlockNode(node) || isTemplateIterateNode(node), {
-        descendIntoMatches: false,
-      })
-      .filter(node => isTemplateBlockNode(node))
+  private emitNestedLoopsAndCompileBlock(
+    block: TemplateNode,
+    ancestorIterates: readonly TemplateNode[],
+    depth: number,
+    emitter: CodeEmitter,
+  ): void {
+    if (depth >= ancestorIterates.length) {
+      this.emitRenderBlock(block, emitter, false)
+
+      return
+    }
+
+    this.templates.compileTemplateMapIterator(ancestorIterates[depth], emitter, () => {
+      this.emitNestedLoopsAndCompileBlock(block, ancestorIterates, depth + 1, emitter)
+    })
+  }
+
+  private emitRenderBlock(block: TemplateNode, emitter: CodeEmitter, asReturn: boolean): void {
+    const blockType = block.blockType
+    const codeExpr = this.templates.compileTemplateCodeExpression(block, emitter)
+    const propsVar = emitter.const('templateBlockProps', '{}')
+    const properties = block.properties ?? {}
+
+    for (const [key, value] of Object.entries(properties)) {
+      if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
+        continue
+      }
+
+      if (blockType === BlockType.FIELD && key === 'code') {
+        this.fieldCodes.assignProperty(value, emitter, propsVar, key, codeExpr)
+
+        continue
+      }
+
+      this.compilePropertyAssignment(value, emitter, propsVar, key)
+    }
+
+    if (blockType === BlockType.FIELD && properties.value === undefined) {
+      this.compileFieldValueResolution(emitter, propsVar)
+    }
+
+    const idExpr =
+      blockType === BlockType.FIELD
+        ? this.fieldCodes.compileIteratorFieldBlockIdExpression(codeExpr, String(block.id))
+        : JSON.stringify(`compiled:${String(block.id)}`)
+
+    const blockExpr = `{
+          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
+          id: ${idExpr},
+          variant: ${JSON.stringify(block.variant)},
+          blockType: ${JSON.stringify(blockType)},
+          properties: ${propsVar}
+        }`
+
+    if (asReturn) {
+      emitter.return(blockExpr)
+    } else {
+      emitter.code(`nestedBlocks.push(${blockExpr});`)
+    }
   }
 }
