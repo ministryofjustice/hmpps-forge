@@ -1,13 +1,10 @@
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
-import type { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
 import type { NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { CompiledNavigationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { RequestPhase } from '../types'
 
 export function createNavigationPhase(
@@ -17,7 +14,6 @@ export function createNavigationPhase(
   routeTemplateCatalog: JourneyRouteTemplateCatalog,
   resolveRedirect: (evaluation: NavigationEvaluation) => string | undefined,
   functionRegistry: FunctionRegistry,
-  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'navigation',
@@ -31,43 +27,6 @@ export function createNavigationPhase(
         currentStepId,
         routeTemplateCatalog,
         params: state.context.request.getParams(),
-      })
-
-      instrumentation.span('reachability', span => {
-        const { evaluation } = result
-        const reachableCount = evaluation.steps.filter(s => s.isReachable).length
-
-        span.setAttributes({
-          'forge.navigation.currentStepId': evaluation.currentStepId ?? '',
-          'forge.navigation.defaultEntry': evaluation.defaultEntryRouteTemplatePath ?? '',
-          'forge.navigation.frontier': evaluation.frontierRouteTemplatePath ?? '',
-          'forge.navigation.canonicalPath': evaluation.canonicalPathRouteTemplatePaths,
-          'forge.navigation.progressExists': evaluation.progressExists,
-          'forge.navigation.resumeActive': evaluation.resumeActive,
-          'forge.navigation.resumeOutcome': evaluation.resumeOutcome,
-          'forge.navigation.reachableCount': reachableCount,
-          'forge.navigation.unreachableCount': evaluation.steps.length - reachableCount,
-        })
-
-        evaluation.steps.forEach(step => {
-          span.addEvent('forge.navigation.step', stepEventAttributes(step))
-
-          const fieldFailures = step.fieldFailures ?? []
-          const domainFailures = step.domainFailures ?? []
-
-          fieldFailures.forEach(failure => {
-            span.addEvent(
-              'forge.validation.failure',
-              validationFailureEventAttributes(step.stepId, 'field', false, failure),
-            )
-          })
-          domainFailures.forEach(failure => {
-            span.addEvent(
-              'forge.validation.failure',
-              validationFailureEventAttributes(step.stepId, 'domain', false, failure),
-            )
-          })
-        })
       })
 
       if (result.reachability !== undefined) {
@@ -86,44 +45,5 @@ export function createNavigationPhase(
 
       return { action: 'continue' }
     },
-  }
-}
-
-function stepEventAttributes(step: NavigationStepState): ForgeSpanAttributes {
-  return {
-    'forge.navigation.step.id': step.stepId,
-    'forge.navigation.step.routeTemplatePath': step.routeTemplatePath,
-    'forge.navigation.step.declarationIndex': step.declarationIndex,
-    'forge.navigation.step.isEntryPoint': step.isEntryPoint,
-    'forge.navigation.step.isConditionalEntry': step.isConditionalEntry,
-    'forge.navigation.step.hasValidation': step.hasValidation,
-    'forge.navigation.step.isReachable': step.isReachable,
-    'forge.navigation.step.isValid': step.isValid,
-    'forge.navigation.step.forwardRouteTemplatePaths': step.forwardRouteTemplatePaths,
-    'forge.navigation.step.predecessorRouteTemplatePaths': step.predecessorRouteTemplatePaths,
-    ...(step.code !== undefined && { 'forge.navigation.step.code': step.code }),
-    ...(step.declaredForwardRouteTemplatePaths !== undefined && {
-      'forge.navigation.step.declaredForwardRouteTemplatePaths': step.declaredForwardRouteTemplatePaths,
-    }),
-    ...(step.tieBreakerPriority !== undefined && {
-      'forge.navigation.step.tieBreakerPriority': step.tieBreakerPriority,
-    }),
-  }
-}
-
-function validationFailureEventAttributes(
-  stepId: NodeId,
-  scope: 'field' | 'domain',
-  isSubmission: boolean,
-  failure: StepValidationFailure | DomainValidationFailure,
-): ForgeSpanAttributes {
-  return {
-    'forge.validation.failure.stepId': stepId,
-    'forge.validation.failure.scope': scope,
-    'forge.validation.failure.isSubmission': isSubmission,
-    'forge.validation.failure.message': failure.message,
-    'forge.validation.failure.submissionOnly': failure.submissionOnly,
-    ...('blockId' in failure && { 'forge.validation.failure.blockId': failure.blockId }),
-    ...(failure.blockCode !== undefined && { 'forge.validation.failure.blockCode': failure.blockCode }),
   }
 }

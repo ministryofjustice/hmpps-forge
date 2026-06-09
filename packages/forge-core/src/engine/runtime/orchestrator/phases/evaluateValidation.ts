@@ -1,9 +1,7 @@
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { ForgeSpanAttributes } from '../../../../instrumentation/types'
+import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { IteratorValidationGroup, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
@@ -15,9 +13,8 @@ import type { StepValidityResult } from '../../../contracts/runtime/stepValidity
  * optional domain validator. The plain fields all validate concurrently, as do
  * the iterator groups, but the three stages (fields, iterators, domain) await in
  * sequence. Records the combined verdict on `context.global.validation` as a
- * side effect and emits a 'validation' span with one event per failure. Throws
- * when no plan is supplied. `groups` gates which validation groups apply;
- * `isSubmission` distinguishes a POST submit from a GET entry check.
+ * side effect. Throws when no plan is supplied. `groups` gates which validation
+ * groups apply; `isSubmission` distinguishes a POST submit from a GET entry check.
  */
 export async function evaluateValidation(
   validationPlan: ValidationPlan | undefined,
@@ -27,7 +24,6 @@ export async function evaluateValidation(
   functionRegistry: FunctionRegistry,
   isSubmission: boolean,
   groups: string[],
-  instrumentation: ForgeInstrumentation,
 ): Promise<StepValidityResult> {
   if (!validationPlan) {
     throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
@@ -58,29 +54,6 @@ export async function evaluateValidation(
     fieldFailures: result.fieldFailures,
     domainFailures: result.domainFailures,
   }
-
-  instrumentation.span('validation', span => {
-    span.setAttributes({
-      'forge.validation.stepId': stepId,
-      'forge.validation.isSubmission': isSubmission,
-      'forge.validation.isValid': result.isValid,
-      'forge.validation.fieldFailureCount': result.fieldFailures.length,
-      'forge.validation.domainFailureCount': result.domainFailures.length,
-    })
-
-    result.fieldFailures.forEach(failure => {
-      span.addEvent(
-        'forge.validation.failure',
-        validationFailureEventAttributes(stepId, 'field', isSubmission, failure),
-      )
-    })
-    result.domainFailures.forEach(failure => {
-      span.addEvent(
-        'forge.validation.failure',
-        validationFailureEventAttributes(stepId, 'domain', isSubmission, failure),
-      )
-    })
-  })
 
   return result
 }
@@ -128,26 +101,4 @@ async function evaluateSingleIteratorGroup(
   )
 
   return results.flat()
-}
-
-/**
- * Builds the span-event attributes for a single validation failure. `blockId` is
- * included only for field failures (domain failures carry no block), and
- * `blockCode` only when the failure defines one.
- */
-function validationFailureEventAttributes(
-  stepId: NodeId,
-  scope: 'field' | 'domain',
-  isSubmission: boolean,
-  failure: StepValidationFailure | DomainValidationFailure,
-): ForgeSpanAttributes {
-  return {
-    'forge.validation.failure.stepId': stepId,
-    'forge.validation.failure.scope': scope,
-    'forge.validation.failure.isSubmission': isSubmission,
-    'forge.validation.failure.message': failure.message,
-    'forge.validation.failure.submissionOnly': failure.submissionOnly,
-    ...('blockId' in failure && { 'forge.validation.failure.blockId': failure.blockId }),
-    ...(failure.blockCode !== undefined && { 'forge.validation.failure.blockCode': failure.blockCode }),
-  }
 }

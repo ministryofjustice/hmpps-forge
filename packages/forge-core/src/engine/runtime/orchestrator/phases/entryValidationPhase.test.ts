@@ -3,7 +3,6 @@ import type { EntryValidationPlan, ValidationPlan } from '../../../contracts/pla
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 
@@ -38,11 +37,6 @@ const createMockState = (): PipelineState => {
 }
 
 const mockFunctionRegistry = {} as FunctionRegistry
-const mockInstrumentation = {
-  span: vi.fn((_n: string, fn: (s: { setAttributes: () => void; addEvent: () => void }) => unknown) =>
-    fn({ setAttributes: vi.fn(), addEvent: vi.fn() }),
-  ),
-} as unknown as ForgeInstrumentation
 
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
@@ -54,7 +48,6 @@ describe('entryValidationPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
@@ -75,7 +68,6 @@ describe('entryValidationPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
@@ -108,7 +100,6 @@ describe('entryValidationPhase', () => {
         'compile_ast:1' as const,
         '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
@@ -125,147 +116,6 @@ describe('entryValidationPhase', () => {
             { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
           ],
         }),
-      )
-    })
-
-    it('should record a validation span with summary attributes and a per-field failure event when invalid', async () => {
-      // Arrange
-      const setAttributes = vi.fn()
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn(
-          (_n: string, fn: (s: { setAttributes: typeof setAttributes; addEvent: typeof addEvent }) => unknown) =>
-            fn({ setAttributes, addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
-      const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
-      }
-      const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [
-          {
-            validate: vi
-              .fn()
-              .mockReturnValue([
-                { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
-              ]),
-          },
-        ],
-      }
-      const phase = createEntryValidationPhase(
-        entryValidationPlan,
-        validationPlan,
-        'compile_ast:1' as const,
-        '/step',
-        mockFunctionRegistry,
-        instrumentation,
-      )
-
-      // Act
-      await phase.execute(createMockState())
-
-      // Assert
-      expect(instrumentation.span).toHaveBeenCalledWith('validation', expect.any(Function))
-      expect(setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({
-          'forge.validation.stepId': 'compile_ast:1',
-          'forge.validation.isSubmission': false,
-          'forge.validation.isValid': false,
-          'forge.validation.fieldFailureCount': 1,
-          'forge.validation.domainFailureCount': 0,
-        }),
-      )
-      expect(addEvent).toHaveBeenCalledTimes(1)
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.objectContaining({
-          'forge.validation.failure.stepId': 'compile_ast:1',
-          'forge.validation.failure.scope': 'field',
-          'forge.validation.failure.isSubmission': false,
-          'forge.validation.failure.message': 'Required',
-          'forge.validation.failure.submissionOnly': false,
-          'forge.validation.failure.blockId': 'compile_ast:2',
-        }),
-      )
-    })
-
-    it('should not emit failure events when validation passes', async () => {
-      // Arrange
-      const setAttributes = vi.fn()
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn(
-          (_n: string, fn: (s: { setAttributes: typeof setAttributes; addEvent: typeof addEvent }) => unknown) =>
-            fn({ setAttributes, addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
-      const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
-      }
-      const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [{ validate: vi.fn().mockReturnValue([]) }],
-      }
-      const phase = createEntryValidationPhase(
-        entryValidationPlan,
-        validationPlan,
-        'compile_ast:1' as const,
-        '/step',
-        mockFunctionRegistry,
-        instrumentation,
-      )
-
-      // Act
-      await phase.execute(createMockState())
-
-      // Assert
-      expect(addEvent).not.toHaveBeenCalled()
-      expect(setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'forge.validation.isValid': true, 'forge.validation.fieldFailureCount': 0 }),
-      )
-    })
-
-    it('should emit a domain-scoped failure event without a blockId for domain failures', async () => {
-      // Arrange
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn((_n: string, fn: (s: { setAttributes: () => void; addEvent: typeof addEvent }) => unknown) =>
-          fn({ setAttributes: vi.fn(), addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
-      const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
-      }
-      const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [],
-        domain: vi.fn().mockReturnValue([{ passed: false, message: 'Domain rule', submissionOnly: true }]),
-      }
-      const phase = createEntryValidationPhase(
-        entryValidationPlan,
-        validationPlan,
-        'compile_ast:1' as const,
-        '/step',
-        mockFunctionRegistry,
-        instrumentation,
-      )
-
-      // Act
-      await phase.execute(createMockState())
-
-      // Assert
-      expect(addEvent).toHaveBeenCalledTimes(1)
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.objectContaining({
-          'forge.validation.failure.scope': 'domain',
-          'forge.validation.failure.message': 'Domain rule',
-        }),
-      )
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.not.objectContaining({ 'forge.validation.failure.blockId': expect.anything() }),
       )
     })
   })

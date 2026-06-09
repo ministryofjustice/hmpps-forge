@@ -1,7 +1,6 @@
 import type { EntryValidationPlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
 import { evaluateEntryValidation } from './evaluateEntryValidation'
 import { evaluateValidation } from './evaluateValidation'
@@ -23,7 +22,6 @@ export function createEntryValidationPhase(
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
-  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'entry-validation',
@@ -49,7 +47,6 @@ export function createEntryValidationPhase(
         functionRegistry,
         false,
         groups,
-        instrumentation,
       )
       state.showValidationFailures = true
 

@@ -1,5 +1,5 @@
 import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
-import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engine.type'
+import { PackageDependencies } from '../../contracts/ast/engine.type'
 import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
@@ -7,12 +7,10 @@ import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindin
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeEvaluator from './ForgeEvaluator'
-import { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
 describe('ForgeEvaluator', () => {
   let evaluator: ForgeEvaluator
   let mockPackageDependencies: PackageDependencies
-  let mockForgeDependencies: ForgeDependencies
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -22,12 +20,7 @@ describe('ForgeEvaluator', () => {
       functionRegistry: {} as never,
     }
 
-    mockForgeDependencies = {
-      logger: console,
-      instrumentation: new ForgeInstrumentation({ logger: console, strictRegistration: true }),
-    }
-
-    evaluator = new ForgeEvaluator(mockForgeDependencies, {})
+    evaluator = new ForgeEvaluator({})
   })
 
   function createJourneyDescriptor(
@@ -222,7 +215,7 @@ describe('ForgeEvaluator', () => {
 
     it('should include the configured base path in template paths', () => {
       // Arrange
-      const evaluatorWithBase = new ForgeEvaluator(mockForgeDependencies, { basePath: '/forms' })
+      const evaluatorWithBase = new ForgeEvaluator({ basePath: '/forms' })
       const journey = createJourneyDescriptor('compile_ast:8', '/journey', ['compile_ast:8'], 'test')
       const step = createStepDescriptor('compile_ast:9', '/step-one', ['compile_ast:8'])
       const packageInstance = createPackageInstance([journey], [step])

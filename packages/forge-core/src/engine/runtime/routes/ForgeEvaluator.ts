@@ -1,4 +1,4 @@
-import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engine.type'
+import { PackageDependencies } from '../../contracts/ast/engine.type'
 import { ForgeOptions } from '../../Forge'
 import { normalizeBasePath } from '../../../framework/path/routePath'
 import type PackageInstance from '../../PackageInstance'
@@ -36,9 +36,6 @@ import type { ForgeRoute, ForgeTopology } from '../../../framework/types/topolog
  * roots; `post` is present only for steps (the submit pipeline).
  */
 interface NodeExecutor {
-  /** Resolved route template path, surfaced as the `http.route` span attribute. */
-  readonly route: string
-  readonly journeyCode: string
   readonly staticData: Record<string, unknown>
   readonly componentRegistry: ComponentRegistry
   readonly get?: RequestOrchestrator
@@ -62,10 +59,7 @@ export default class ForgeEvaluator {
 
   private readonly routes: ForgeRoute[] = []
 
-  constructor(
-    private readonly forgeDependencies: ForgeDependencies,
-    options: ForgeOptions,
-  ) {
+  constructor(options: ForgeOptions) {
     this.basePath = normalizeBasePath(options.basePath)
   }
 
@@ -109,7 +103,6 @@ export default class ForgeEvaluator {
    * pipeline. Returns a `navigate` outcome for a redirect result or a `render`
    * outcome (carrying the node's component registry) otherwise; yields an
    * `error` outcome when the node is unknown or the method is unsupported.
-   * Tags the current instrumentation span with the route and journey code.
    */
   async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome> {
     const executor = this.executorsByRouteKey.get(snapshot.nodeId)
@@ -123,11 +116,6 @@ export default class ForgeEvaluator {
     if (!orchestrator) {
       return this.errorOutcome('method-not-supported', `${snapshot.method} not allowed for node "${snapshot.nodeId}"`)
     }
-
-    this.forgeDependencies.instrumentation.getCurrentSpan()?.setAttributes({
-      'http.route': executor.route,
-      'forge.journey.code': executor.journeyCode,
-    })
 
     const request = new SnapshotStepRequest(snapshot)
     const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request)
@@ -160,7 +148,6 @@ export default class ForgeEvaluator {
     packageInstance: PackageInstance,
     packageDependencies: PackageDependencies,
   ): number {
-    const { instrumentation } = this.forgeDependencies
     const { functionRegistry, componentRegistry } = packageDependencies
     const journeyCode = packageInstance.getJourneyCode()
     let count = 0
@@ -173,7 +160,6 @@ export default class ForgeEvaluator {
         compiledStep.accessLifecyclePlan,
         runtimePlan.path,
         functionRegistry,
-        instrumentation,
       )
 
       const answersPhase = createAnswerPreparationPlanPhase(compiledStep.answerPreparationPlan, functionRegistry)
@@ -197,7 +183,6 @@ export default class ForgeEvaluator {
             ctx.routeTemplateCatalog,
             resolveStepRequestRedirect,
             functionRegistry,
-            instrumentation,
           ),
           createEntryValidationPhase(
             compiledStep.entryValidationPlan,
@@ -205,11 +190,9 @@ export default class ForgeEvaluator {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
-            instrumentation,
           ),
         ],
         renderTerminal,
-        instrumentation,
       )
 
       const postOrchestrator = new RequestOrchestrator(
@@ -223,7 +206,6 @@ export default class ForgeEvaluator {
             ctx.routeTemplateCatalog,
             resolvePostRequestRedirect,
             functionRegistry,
-            instrumentation,
           ),
           createSubmitPhase(
             compiledStep.submitLifecyclePlan,
@@ -231,18 +213,14 @@ export default class ForgeEvaluator {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
-            instrumentation,
           ),
         ],
         renderTerminal,
-        instrumentation,
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, ctx.stepId)
 
       this.executorsByRouteKey.set(routeKey, {
-        route: ctx.routeTemplatePath,
-        journeyCode,
         staticData: runtimePlan.staticData,
         componentRegistry,
         get: getOrchestrator,
@@ -278,7 +256,6 @@ export default class ForgeEvaluator {
     packageInstance: PackageInstance,
     packageDependencies: PackageDependencies,
   ): number {
-    const { instrumentation } = this.forgeDependencies
     const { functionRegistry, componentRegistry } = packageDependencies
     const journeyCode = packageInstance.getJourneyCode()
     let count = 0
@@ -295,12 +272,7 @@ export default class ForgeEvaluator {
 
       const orchestrator = new RequestOrchestrator(
         [
-          createAccessLifecyclePhase(
-            compiledJourney.accessLifecyclePlan,
-            runtimePlan.path,
-            functionRegistry,
-            instrumentation,
-          ),
+          createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, runtimePlan.path, functionRegistry),
           createAnswerPreparationPlanPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
         createJourneyRedirectTerminal(
@@ -309,14 +281,11 @@ export default class ForgeEvaluator {
           routeTemplateCatalog,
           functionRegistry,
         ),
-        instrumentation,
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyId)
 
       this.executorsByRouteKey.set(routeKey, {
-        route: runtimePlan.path,
-        journeyCode,
         staticData: runtimePlan.staticData,
         componentRegistry,
         get: orchestrator,

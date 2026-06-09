@@ -1,5 +1,4 @@
 import createHttpError from 'http-errors'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -24,7 +23,6 @@ export function createSubmitPhase(
   stepId: NodeId,
   path: string,
   functionRegistry: FunctionRegistry,
-  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'submit-hooks',
@@ -35,23 +33,8 @@ export function createSubmitPhase(
 
       const result = await evaluateSubmitLifecycle(
         submitLifecyclePlan,
-        buildCompiledHookLifecycleContext(
-          state.context,
-          functionRegistry,
-          instrumentation,
-          'submit',
-          state.responseBindings,
-          groups =>
-            evaluateValidation(
-              validationPlan,
-              path,
-              stepId,
-              state.context,
-              functionRegistry,
-              true,
-              groups,
-              instrumentation,
-            ),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, groups =>
+          evaluateValidation(validationPlan, path, stepId, state.context, functionRegistry, true, groups),
         ),
       )
 

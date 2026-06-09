@@ -1,5 +1,4 @@
 import createHttpError from 'http-errors'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
@@ -17,7 +16,6 @@ export function createAccessLifecyclePhase(
   accessLifecyclePlan: AccessLifecyclePlan | undefined,
   path: string,
   functionRegistry: FunctionRegistry,
-  instrumentation: ForgeInstrumentation,
 ): RequestPhase {
   return {
     name: 'access-lifecycle',
@@ -28,13 +26,7 @@ export function createAccessLifecyclePhase(
 
       const result = await evaluateAccessLifecycle(
         accessLifecyclePlan,
-        buildCompiledHookLifecycleContext(
-          state.context,
-          functionRegistry,
-          instrumentation,
-          'access',
-          state.responseBindings,
-        ),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'access', state.responseBindings),
       )
 
       if (result.outcome === 'redirect') {

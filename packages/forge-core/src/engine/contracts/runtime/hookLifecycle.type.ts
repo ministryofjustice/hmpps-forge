@@ -2,7 +2,6 @@ import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { AnswerHistory } from './answerHistory.type'
 import type { StepValidationState } from './evaluationState.type'
 import type { StepValidityResult } from './stepValidityResult.type'
-import type { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
 /**
  * Context passed to compiled access and submit hook functions. Carries the
@@ -22,7 +21,6 @@ export interface HookLifecycleContext {
   post: Record<string, string | string[]>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  instrumentation: ForgeInstrumentation
   /** Opaque context handed to author-supplied effect functions invoked by hooks. */
   effectFunctionContext: unknown
   /**

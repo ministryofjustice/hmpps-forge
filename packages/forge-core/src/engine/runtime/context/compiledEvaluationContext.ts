@@ -3,7 +3,6 @@ import type { ResponseBindings } from '../../../framework/types/responseBindings
 import type { HookLifecycleContext } from '../../contracts/runtime/hookLifecycle.type'
 import type { HookType } from '../../contracts/runtime/answerHistory.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import type { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 import RuntimeEvaluationContext from './RuntimeEvaluationContext'
 import EffectFunctionContextImpl from './EffectFunctionContext'
 import type { RuntimeEvaluationGlobalState } from '../../contracts/runtime/evaluationState.type'
@@ -89,7 +88,6 @@ export function buildCompiledRenderContext(
 export function buildCompiledHookLifecycleContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
-  instrumentation: ForgeInstrumentation,
   hookType: HookType,
   responseBindings: ResponseBindings,
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
@@ -98,7 +96,6 @@ export function buildCompiledHookLifecycleContext(
     ...buildCompiledBaseContext(context, functionRegistry),
     validation: context.global.validation,
     post: context.request.getAllPost(),
-    instrumentation,
     validate,
     effectFunctionContext: new EffectFunctionContextImpl(
       { global: context.global, request: context.request, response: responseBindings },

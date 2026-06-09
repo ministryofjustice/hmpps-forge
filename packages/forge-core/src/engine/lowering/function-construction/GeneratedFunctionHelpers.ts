@@ -33,10 +33,6 @@ interface FunctionEvaluationContext {
       evaluate(...args: unknown[]): unknown
     }
   }
-  instrumentation?: {
-    span<T>(name: string, fn: (span: { setAttribute(key: string, value: string): void }) => T): T
-    spanAsync<T>(name: string, fn: (span: { setAttribute(key: string, value: string): void }) => Promise<T>): Promise<T>
-  }
 }
 
 interface RuntimeDiagnosticState {
@@ -60,7 +56,6 @@ interface RuntimeEvaluationDiagnostics {
 }
 
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
-const EFFECT_FUNCTION_TYPE = 'FunctionType.Effect'
 
 export interface GeneratedFunctionHelpers {
   renderBlockBrand: symbol
@@ -157,35 +152,13 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
   },
 
   evaluateFunction(ctx, diagnostics, metadata, functionName, args) {
-    const evaluate = () => ctx.conditions.get(functionName).evaluate(...args)
-
-    if (ctx.instrumentation && metadata.functionType === EFFECT_FUNCTION_TYPE) {
-      return evaluateWithDiagnostics(diagnostics, metadata, () =>
-        ctx.instrumentation!.span('effect', span => {
-          span.setAttribute('forge.effect.name', functionName)
-
-          return evaluate()
-        }),
-      )
-    }
-
-    return evaluateWithDiagnostics(diagnostics, metadata, evaluate)
+    return evaluateWithDiagnostics(diagnostics, metadata, () => ctx.conditions.get(functionName).evaluate(...args))
   },
 
   evaluateFunctionAsync(ctx, diagnostics, metadata, functionName, args) {
-    const evaluate = async () => ctx.conditions.get(functionName).evaluate(...args)
-
-    if (ctx.instrumentation && metadata.functionType === EFFECT_FUNCTION_TYPE) {
-      return evaluateWithDiagnosticsAsync(diagnostics, metadata, () =>
-        ctx.instrumentation!.spanAsync('effect', async span => {
-          span.setAttribute('forge.effect.name', functionName)
-
-          return evaluate()
-        }),
-      )
-    }
-
-    return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
+    return evaluateWithDiagnosticsAsync(diagnostics, metadata, async () =>
+      ctx.conditions.get(functionName).evaluate(...args),
+    )
   },
 
   evaluateTracked(diagnostics, metadata, evaluate) {

@@ -9,7 +9,6 @@ import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
 import type { HookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../runtime/context/EffectFunctionContext'
@@ -86,14 +85,6 @@ function createContext(
     post: {},
     request: { url: request.url, path: request.location.pathname, method: request.method },
     conditions: functionRegistry,
-    instrumentation: {
-      span: vi.fn((_name: string, fn: (span: { setAttribute: () => void }) => unknown) =>
-        fn({ setAttribute: vi.fn() }),
-      ),
-      spanAsync: vi.fn(async (_name: string, fn: (span: { setAttribute: () => void }) => Promise<unknown>) =>
-        fn({ setAttribute: vi.fn() }),
-      ),
-    } as unknown as ForgeInstrumentation,
     validate: vi.fn(async () => ({
       isValid: overrides.validation?.isValid ?? true,
       fieldFailures: overrides.validation?.fieldFailures ?? [],

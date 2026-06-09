@@ -1,13 +1,7 @@
 import express from 'express'
 import type nunjucks from 'nunjucks'
 import createHttpError from 'http-errors'
-import type {
-  Forge,
-  ForgeHtmlRenderDebugBridge,
-  ForgeHtmlRenderDebugSink,
-  ForgeInstrumentation,
-  ForgeInstrumentationSink,
-} from '@ministryofjustice/hmpps-forge/core'
+import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
   CookieMutation,
@@ -49,18 +43,15 @@ export interface ExpressForgeRouterOptions {
  * ```
  */
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
-  const instrumentation = forge.getInstrumentation()
   const logger = forge.getLogger()
   const templateRenderer = new TemplateRenderer({
     nunjucksEnv: options.nunjucksEnv,
-    instrumentation,
     defaultTemplate: options.defaultTemplate,
-    htmlRenderDebugBridge: findHtmlRenderDebugBridge(instrumentation.getSinks()),
   })
   const router = express.Router({ mergeParams: true })
 
   forge.getTopology().routes.forEach(route => {
-    const handler = createHandler(forge, route, instrumentation, logger, templateRenderer)
+    const handler = createHandler(forge, route, logger, templateRenderer)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
@@ -77,11 +68,10 @@ export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOpt
 function createHandler(
   forge: Forge,
   route: ForgeRoute,
-  instrumentation: ForgeInstrumentation,
   logger: Logger | Console,
   templateRenderer: TemplateRenderer,
 ): express.RequestHandler {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const requestPath = extractPathname(req.originalUrl ?? req.path)
     const reqWithState = req as RequestWithState
 
@@ -92,17 +82,13 @@ function createHandler(
     const snapshot = toSnapshot(route, req, res)
     const response = createExpressResponseBindings(res)
 
-    return (
-      instrumentation
-        .spanAsync('forge-request', async span => {
-          span.setAttribute('http.method', req.method)
+    try {
+      const outcome = await forge.evaluate(snapshot, { response })
 
-          const outcome = await forge.evaluate(snapshot, { response })
-
-          applyOutcome(outcome, req, res, next, templateRenderer)
-        })
-        .catch(next)
-    )
+      applyOutcome(outcome, req, res, next, templateRenderer)
+    } catch (err) {
+      next(err)
+    }
   }
 }
 
@@ -200,21 +186,6 @@ function normalizeParams(params: Record<string, string | string[] | undefined>):
       .map(([name, value]) => [name, Array.isArray(value) ? value[0] : value])
       .filter((entry): entry is [string, string] => entry[1] !== undefined),
   )
-}
-
-function findHtmlRenderDebugBridge(sinks: ForgeInstrumentationSink[]): ForgeHtmlRenderDebugBridge | undefined {
-  for (const sink of sinks) {
-    if (isHtmlRenderDebugSink(sink)) {
-      return sink.getHtmlRenderDebugBridge()
-    }
-  }
-
-  return undefined
-}
-
-function isHtmlRenderDebugSink(sink: ForgeInstrumentationSink): sink is ForgeHtmlRenderDebugSink {
-  return 'getHtmlRenderDebugBridge' in sink &&
-    typeof (sink as ForgeHtmlRenderDebugSink).getHtmlRenderDebugBridge === 'function'
 }
 
 const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
