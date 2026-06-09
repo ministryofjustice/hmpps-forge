@@ -1,6 +1,6 @@
 import type { NodeId } from '../contracts/ast/engine.type'
 import type { CompiledValidationFunction } from '../contracts/compiled/compiledFunctions.type'
-import type { CompiledJourney, CompiledStep } from '../contracts/plans/compilationArtefacts.type'
+import type { CompiledJourney, CompiledStep, ValidationPlan } from '../contracts/plans/compilationArtefacts.type'
 import type { ReachabilityCompilationPlan } from '../contracts/plans/runtimePlans.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
 import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
@@ -18,23 +18,32 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    this.compileNavigation(plan, nodeRegistry)
+    const validationPlans = this.compileValidationPlans(plan)
+
+    this.compileNavigation(plan, nodeRegistry, validationPlans)
     const journeys = this.compileJourneys(plan)
 
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan))
+      steps.set(stepId, this.compileStep(inputs, plan, validationPlans))
     })
 
     return { steps, journeys }
   }
 
-  private compileNavigation(plan: CompilationPlan, nodeRegistry: ASTNodeIndex): void {
+  private compileNavigation(
+    plan: CompilationPlan,
+    nodeRegistry: ASTNodeIndex,
+    validationPlans: Map<NodeId, ValidationPlan | undefined>,
+  ): void {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
 
     plan.reachabilityPlans.forEach(reachabilityPlan => {
-      reachabilityPlan.navigationPlan.compiledStepValidations = this.compileStepValidationMap(reachabilityPlan, plan)
+      reachabilityPlan.navigationPlan.compiledStepValidations = this.wrapValidationPlansForReachability(
+        reachabilityPlan,
+        validationPlans,
+      )
       reachabilityPlan.navigationPlan.compiledNavigation = reachabilityCompiler.compileNavigation(
         reachabilityPlan,
         plan.fieldInventorySources.get(reachabilityPlan.navigationPlan) ?? [],
@@ -63,7 +72,11 @@ export default class CodegenOrchestrator {
     return compiledJourneys
   }
 
-  private compileStep(inputs: StepCompilationInputs, plan: CompilationPlan): CompiledStep {
+  private compileStep(
+    inputs: StepCompilationInputs,
+    plan: CompilationPlan,
+    validationPlans: Map<NodeId, ValidationPlan | undefined>,
+  ): CompiledStep {
     const navigationPlan = plan.navigationPlansByStepId.get(inputs.stepNode.id)
 
     if (!navigationPlan) {
@@ -84,11 +97,6 @@ export default class CodegenOrchestrator {
     const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
       inputs.stepNode.properties.validateOnEntry,
     )
-    const validationPlan = validationCompiler.compileValidationPlan(
-      inputs.validatingFieldBlocks,
-      inputs.stepNode.properties.validWhen,
-      inputs.mapIterateNodes,
-    )
 
     const renderCompiler = new StepRenderCompiler(this.dependencies)
     const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
@@ -101,37 +109,75 @@ export default class CodegenOrchestrator {
       answerPreparationPlan,
       entryValidationPlan,
       renderPlan,
-      validationPlan,
+      validationPlan: validationPlans.get(inputs.stepNode.id),
     }
   }
 
-  private compileStepValidationMap(
+  private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {
+    const validationPlans = new Map<NodeId, ValidationPlan | undefined>()
+
+    plan.stepInputs.forEach((inputs, stepId) => {
+      const compiler = new StepValidationCompiler(this.dependencies)
+
+      validationPlans.set(
+        stepId,
+        compiler.compileValidationPlan(
+          inputs.validatingFieldBlocks,
+          inputs.stepNode.properties.validWhen,
+          inputs.mapIterateNodes,
+        ),
+      )
+    })
+
+    return validationPlans
+  }
+
+  private wrapValidationPlansForReachability(
     reachabilityPlan: ReachabilityCompilationPlan,
-    plan: CompilationPlan,
+    validationPlans: Map<NodeId, ValidationPlan | undefined>,
   ): Map<NodeId, CompiledValidationFunction> {
     const compiledValidations = new Map<NodeId, CompiledValidationFunction>()
-    const compiler = new StepValidationCompiler(this.dependencies)
 
     reachabilityPlan.entries
       .filter(entry => entry.hasValidation)
       .forEach(entry => {
-        const stepInputs = plan.stepInputs.get(entry.stepId)
+        const validationPlan = validationPlans.get(entry.stepId)
 
-        if (!stepInputs) {
+        if (!validationPlan) {
           return
         }
 
-        const compiled = compiler.compileOnSubmitValidation(
-          stepInputs.validatingFieldBlocks,
-          stepInputs.stepNode.properties.validWhen,
-          stepInputs.mapIterateNodes,
-        )
-
-        if (compiled) {
-          compiledValidations.set(entry.stepId, compiled)
-        }
+        compiledValidations.set(entry.stepId, this.wrapValidationPlanAsFunction(validationPlan))
       })
 
     return compiledValidations
+  }
+
+  private wrapValidationPlanAsFunction(validationPlan: ValidationPlan): CompiledValidationFunction {
+    return async (ctx, isSubmission, groups) => {
+      const fieldResults = await Promise.all(
+        validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, groups)),
+      )
+
+      const iteratorGroupResults = await Promise.all(
+        validationPlan.iteratorGroups.map(async group => {
+          const items = await group.evaluateInput(ctx)
+          const results = await Promise.all(
+            items.flatMap(itemScope => group.fields.map(field => field.validate(ctx, isSubmission, groups, itemScope))),
+          )
+
+          return results.flat()
+        }),
+      )
+
+      const fieldFailures = [...fieldResults.flat(), ...iteratorGroupResults.flat()]
+      const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, groups) : []
+
+      return {
+        isValid: fieldFailures.length === 0 && domainFailures.length === 0,
+        fieldFailures,
+        domainFailures,
+      }
+    }
   }
 }
