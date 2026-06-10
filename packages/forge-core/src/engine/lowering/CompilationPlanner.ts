@@ -9,18 +9,14 @@ import { isRedirectOutcomeNode } from '../contracts/ast/outcome-nodes'
 import getAncestorChain from '../ast/ast-state/getAncestorChain'
 import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
-import type {
-  ForwardOutcomeGroup,
-  JourneyRuntimePlan,
-  NavigationRuntimePlan,
-  ReachabilityCompilationEntry,
-  ReachabilityCompilationPlan,
-  StepRuntimePlan,
-} from '../contracts/plans/runtimePlans.type'
+import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type {
   CompilationPlan,
   FieldInventoryStepSource,
+  ForwardOutcomeGroup,
   JourneyCompilationInputs,
+  ReachabilityCompilationEntry,
+  ReachabilityCompilationPlan,
   StepCompilationInputs,
 } from '../contracts/plans/compilationPlan.type'
 

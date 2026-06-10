@@ -9,7 +9,7 @@ import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type { StepRequest } from '../../../../framework/types/request.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { HookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
+import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../runtime/context/EffectFunctionContext'
 import { evaluateAccessLifecycle } from '../../../runtime/orchestrator/phases/evaluateAccessLifecycle'
@@ -101,14 +101,14 @@ describe('HookLifecycleCompiler', () => {
 
   async function runAccess(ancestors: Array<JourneyASTNode | StepASTNode>, ctx: HookLifecycleContext) {
     const hooks = ancestors.flatMap(ancestor =>
-      (ancestor.properties.onAccess ?? []).map(hook => compiler.compileSingleAccessHook(hook)),
+      (ancestor.properties.onAccess ?? []).map(hook => compiler.compileAccessHook(hook)),
     )
 
     return evaluateAccessLifecycle({ hooks }, ctx)
   }
 
   async function runSubmit(submitHooks: SubmitHookASTNode[], ctx: HookLifecycleContext) {
-    const hooks = submitHooks.map(hook => compiler.compileSingleSubmitHook(hook))
+    const hooks = submitHooks.map(hook => compiler.compileSubmitHook(hook))
 
     return evaluateSubmitLifecycle({ hooks }, ctx)
   }

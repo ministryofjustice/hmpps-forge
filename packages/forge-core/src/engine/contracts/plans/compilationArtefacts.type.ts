@@ -1,8 +1,8 @@
 import type { NodeId, TemplateNodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
 import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
-import type { CompiledAccessHookFunction, CompiledSubmitHookFunction } from '../runtime/hookLifecycle.type'
 import type {
+  CompiledAccessHookFunction,
   CompiledAncestorMetadataFunction,
   CompiledDomainValidationFunction,
   CompiledEntryValidationRuleFunction,
@@ -14,6 +14,7 @@ import type {
   CompiledIteratorRenderBlockFunction,
   CompiledRenderBlockFunction,
   CompiledStepMetadataFunction,
+  CompiledSubmitHookFunction,
 } from '../compiled/compiledFunctions.type'
 
 /**

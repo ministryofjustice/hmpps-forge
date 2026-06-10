@@ -171,7 +171,7 @@ describe('StepAnswerPreparationCompiler', () => {
     ctx: AnswerPreparationContext,
   ): Promise<void> {
     for (const block of fieldBlocks) {
-      await runCompiler.compileSingleFieldPreparation(block).prepare(ctx)
+      await runCompiler.compileFieldPreparation(block).prepare(ctx)
     }
 
     const groups = iterateNodes
@@ -214,7 +214,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const result = localCompiler.compileSingleFieldPreparation(block).prepare(ctx)
+      const result = localCompiler.compileFieldPreparation(block).prepare(ctx)
 
       // Assert
       expect(result).not.toBeInstanceOf(Promise)
@@ -517,7 +517,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      localCompiler.compileSingleFieldPreparation(block).prepare(ctx)
+      localCompiler.compileFieldPreparation(block).prepare(ctx)
 
       // Assert
       expect(afterEvaluate).not.toHaveBeenCalled()
@@ -542,7 +542,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compileSingleFieldPreparation(block).prepare
+      const fn = localCompiler.compileFieldPreparation(block).prepare
 
       // Assert
       const evaluate = () => fn(ctx)
@@ -641,7 +641,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compileSingleFieldPreparation(block).prepare
+      const fn = localCompiler.compileFieldPreparation(block).prepare
 
       // Assert
       const evaluate = () => fn(ctx)

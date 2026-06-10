@@ -1,4 +1,4 @@
-import { createAnswerPreparationPlanPhase } from './answerPreparationPhase'
+import { createAnswerPreparationPhase } from './answerPreparationPhase'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
@@ -48,7 +48,7 @@ describe('answerPreparationPhase', () => {
         fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
         iteratorGroups: [],
       }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -69,7 +69,7 @@ describe('answerPreparationPhase', () => {
         fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
         iteratorGroups: [],
       }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act
       await phase.execute(createMockState())
@@ -85,9 +85,9 @@ describe('answerPreparationPhase', () => {
         fields: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
         iteratorGroups: [],
       }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
-      recorder.beginPhase('prepare-answers')
+      recorder.beginPhase('answer-preparation')
 
       // Act
       await phase.execute({ ...createMockState(), trace: recorder })
@@ -104,7 +104,7 @@ describe('answerPreparationPhase', () => {
     it('should no-op when plan has no fields', async () => {
       // Arrange
       const plan: AnswerPreparationPlan = { fields: [], iteratorGroups: [] }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())

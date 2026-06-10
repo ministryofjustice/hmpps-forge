@@ -1,6 +1,7 @@
 import type {
   AnswerPreparationContext,
   BasePhaseContext,
+  HookLifecycleContext,
   ReachabilityContext,
   RenderCompilationContext,
   ValidationContext,
@@ -191,3 +192,48 @@ export type CompiledIteratorRenderBlockFunction = (
  * gates the rule's groups when it evaluates true.
  */
 export type CompiledEntryValidationRuleFunction = (ctx: BasePhaseContext) => boolean | Promise<boolean>
+
+/**
+ * Outcome of one compiled access hook. `executed` is always true for access
+ * hooks (a skipped guard still falls through to `continue`); `outcome` drives
+ * the access-lifecycle phase: 'continue' proceeds, 'redirect' uses `redirect`,
+ * 'error' uses `status`/`message`.
+ */
+export interface CompiledAccessHookResult {
+  executed: boolean
+  outcome: 'continue' | 'redirect' | 'error'
+  redirect?: string
+  status?: number
+  message?: string
+}
+
+/**
+ * Outcome of one compiled submit hook. `executed` is false when the hook's
+ * `when`/`guards` predicates skipped it, in which case the submit-lifecycle
+ * phase keeps iterating to the next hook; `outcome` drives the submit-lifecycle
+ * phase. `validated` records whether the hook invoked ctx.validate during its run.
+ */
+export interface CompiledSubmitHookResult {
+  executed: boolean
+  validated: boolean
+  outcome: 'continue' | 'redirect' | 'error'
+  redirect?: string
+  status?: number
+  message?: string
+}
+
+/**
+ * A single access hook lowered to JS. Always compiled async because hook
+ * effects are awaited, so it returns a promise the access-lifecycle phase awaits.
+ */
+export type CompiledAccessHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
+
+/**
+ * A single submit hook lowered to JS. Always compiled async because hook
+ * effects are awaited, so it returns a promise the submit-lifecycle phase awaits.
+ */
+export type CompiledSubmitHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>

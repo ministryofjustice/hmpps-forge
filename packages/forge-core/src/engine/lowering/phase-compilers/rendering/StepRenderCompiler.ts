@@ -330,7 +330,7 @@ export default class StepRenderCompiler {
     const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
 
     const blocks: RenderBlockEntry[] = (stepNode.properties.blocks ?? []).map(block => ({
-      render: this.compileSingleBlock(block),
+      render: this.compileBlock(block),
     }))
 
     const iteratorGroups: IteratorRenderBlockGroup[] = []
@@ -429,11 +429,11 @@ export default class StepRenderCompiler {
   /**
    * Compiles one top-level block into a function producing a single RenderBlock.
    */
-  private compileSingleBlock(block: BlockASTNode): CompiledRenderBlockFunction {
+  private compileBlock(block: BlockASTNode): CompiledRenderBlockFunction {
     return compileGeneratedFunction<CompiledRenderBlockFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSingleBlockSource(block),
+      () => this.buildBlockSource(block),
       { phase: 'render' },
     )
   }
@@ -444,11 +444,11 @@ export default class StepRenderCompiler {
    * RenderBlock. Field blocks compile their code expression and resolve the
    * answer value when no explicit value is authored.
    */
-  private buildSingleBlockSource(block: BlockASTNode): string {
+  private buildBlockSource(block: BlockASTNode): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepRenderCompiler.buildSingleBlockSource')
+    emitter.comment('StepRenderCompiler.buildBlockSource')
 
     const propsVar = emitter.const('blockProps', '{}')
 

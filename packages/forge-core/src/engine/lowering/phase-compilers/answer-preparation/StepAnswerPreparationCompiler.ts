@@ -304,24 +304,24 @@ export default class StepAnswerPreparationCompiler {
    * GET. The compiled function mutates ctx.answers in place and is async only if any threaded
    * expression awaits.
    */
-  compileSingleFieldPreparation(block: FieldBlockASTNode): FieldAnswerPreparationEntry {
+  compileFieldPreparation(block: FieldBlockASTNode): FieldAnswerPreparationEntry {
     return {
       nodeId: block.id,
       prepare: compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
         this.expr,
         ['ctx'],
-        () => this.buildSingleFieldPreparationSource(block),
+        () => this.buildFieldPreparationSource(block),
         { phase: 'answer-preparation' },
       ),
     }
   }
 
   /** Emits the source for a registered field's prepare function: a runtime branch on request method into the POST or GET path. */
-  private buildSingleFieldPreparationSource(block: FieldBlockASTNode): string {
+  private buildFieldPreparationSource(block: FieldBlockASTNode): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepAnswerPreparationCompiler.buildSingleFieldPreparationSource')
+    emitter.comment('StepAnswerPreparationCompiler.buildFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 
     emitter.if(

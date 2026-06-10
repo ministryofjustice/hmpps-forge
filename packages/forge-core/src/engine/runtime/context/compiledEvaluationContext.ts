@@ -1,6 +1,6 @@
 import type { StepRequest } from '../../../framework/types/request.type'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
-import type { HookLifecycleContext } from '../../contracts/runtime/hookLifecycle.type'
+import type { HookLifecycleContext } from '../../contracts/compiled/phaseContexts.type'
 import type { HookType } from '../../contracts/runtime/answerHistory.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import RuntimeEvaluationContext from './RuntimeEvaluationContext'

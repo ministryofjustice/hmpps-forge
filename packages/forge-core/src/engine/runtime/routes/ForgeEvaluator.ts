@@ -16,7 +16,7 @@ import ContextPreparer from '../lifecycle/ContextPreparer'
 import RequestOrchestrator from '../orchestrator/RequestOrchestrator'
 import type { PipelineState } from '../orchestrator/types'
 import { createAccessLifecyclePhase } from '../orchestrator/phases/accessLifecyclePhase'
-import { createAnswerPreparationPlanPhase } from '../orchestrator/phases/answerPreparationPhase'
+import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPreparationPhase'
 import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
 import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
 import { createSubmitLifecyclePhase } from '../orchestrator/phases/submitLifecyclePhase'
@@ -161,7 +161,7 @@ export default class ForgeEvaluator {
         functionRegistry,
       )
 
-      const answersPhase = createAnswerPreparationPlanPhase(compiledStep.answerPreparationPlan, functionRegistry)
+      const answersPhase = createAnswerPreparationPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
       const renderTerminal = createStepRenderTerminal(
         compiledStep.renderPlan,
@@ -270,7 +270,7 @@ export default class ForgeEvaluator {
       const orchestrator = new RequestOrchestrator(
         [
           createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, runtimePlan.path, functionRegistry),
-          createAnswerPreparationPlanPhase(compiledJourney.answerPreparationPlan, functionRegistry),
+          createAnswerPreparationPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
         createJourneyRedirectTerminal(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
       )

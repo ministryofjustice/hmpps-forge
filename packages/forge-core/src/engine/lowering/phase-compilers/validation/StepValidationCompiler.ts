@@ -85,7 +85,7 @@ export default class StepValidationCompiler {
     const rules: EntryValidationRule[] = entries.map(entry => ({
       nodeId: entry.id,
       groups: entry.groups,
-      evaluate: entry.when === true ? undefined : this.compileSingleEntryValidationRule(entry.when),
+      evaluate: entry.when === true ? undefined : this.compileEntryValidationRule(entry.when),
     }))
 
     return { rules }
@@ -94,11 +94,11 @@ export default class StepValidationCompiler {
   /**
    * Compiles one entry-validation `when` predicate into a boolean-returning function over `ctx`.
    */
-  private compileSingleEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
+  private compileEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
     return compileGeneratedFunction<CompiledEntryValidationRuleFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSingleEntryValidationRuleSource(when),
+      () => this.buildEntryValidationRuleSource(when),
       { phase: 'entry-validation' },
     )
   }
@@ -106,11 +106,11 @@ export default class StepValidationCompiler {
   /**
    * Emits the source for an entry-validation predicate, coercing the result to a strict boolean.
    */
-  private buildSingleEntryValidationRuleSource(when: ASTNode): string {
+  private buildEntryValidationRuleSource(when: ASTNode): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleEntryValidationRuleSource')
+    emitter.comment('StepValidationCompiler.buildEntryValidationRuleSource')
 
     const predicateExpr = this.expr.compileExpression(when)
 
@@ -139,7 +139,7 @@ export default class StepValidationCompiler {
 
       fields.push({
         nodeId: block.id,
-        validate: this.compileSingleFieldValidation(block),
+        validate: this.compileFieldValidation(block),
       })
     }
 
@@ -153,7 +153,7 @@ export default class StepValidationCompiler {
       }
     }
 
-    const domain = this.compileSingleDomainValidation(domainValidWhen)
+    const domain = this.compileDomainValidation(domainValidWhen)
 
     if (fields.length === 0 && iteratorGroups.length === 0 && domain === undefined) {
       return undefined
@@ -380,11 +380,11 @@ export default class StepValidationCompiler {
    * {@link StepValidationFailure} list (empty when the field passes or is gated out
    * by `dependentWhen`). The function is async iff any awaited registry call is reached.
    */
-  private compileSingleFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
+  private compileFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
     return compileGeneratedFunction<CompiledFieldValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
-      () => this.buildSingleFieldValidationSource(block),
+      () => this.buildFieldValidationSource(block),
       { phase: 'field-validation' },
     )
   }
@@ -393,11 +393,11 @@ export default class StepValidationCompiler {
    * Emits the field-validation function body: resolve the caller's active groups, declare
    * the group helpers and `errors` accumulator, run the field's slot, then return `errors`.
    */
-  private buildSingleFieldValidationSource(block: FieldBlockASTNode): string {
+  private buildFieldValidationSource(block: FieldBlockASTNode): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleFieldValidationSource')
+    emitter.comment('StepValidationCompiler.buildFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('errors', '[]')
@@ -413,7 +413,7 @@ export default class StepValidationCompiler {
    * {@link DomainValidationFailure} list. Returns undefined when no domain validation
    * is configured, so the plan omits a `domain` entry entirely.
    */
-  private compileSingleDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
+  private compileDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
     if (!hasConfiguredValue(domainValidWhen)) {
       return undefined
     }
@@ -421,7 +421,7 @@ export default class StepValidationCompiler {
     return compileGeneratedFunction<CompiledDomainValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
-      () => this.buildSingleDomainValidationSource(domainValidWhen),
+      () => this.buildDomainValidationSource(domainValidWhen),
       { phase: 'domain-validation' },
     )
   }
@@ -429,11 +429,11 @@ export default class StepValidationCompiler {
   /**
    * Emits the domain-validation function body, accumulating failures into `domainErrors`.
    */
-  private buildSingleDomainValidationSource(domainValidWhen: unknown): string {
+  private buildDomainValidationSource(domainValidWhen: unknown): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleDomainValidationSource')
+    emitter.comment('StepValidationCompiler.buildDomainValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('domainErrors', '[]')

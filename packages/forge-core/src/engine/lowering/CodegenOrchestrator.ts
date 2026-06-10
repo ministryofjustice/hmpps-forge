@@ -14,9 +14,12 @@ import type {
   SubmitLifecyclePlan,
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
-import type { ReachabilityCompilationPlan } from '../contracts/plans/runtimePlans.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
-import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
+import type {
+  CompilationPlan,
+  ReachabilityCompilationPlan,
+  StepCompilationInputs,
+} from '../contracts/plans/compilationPlan.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/navigation/ReachabilityCompiler'
@@ -200,7 +203,7 @@ export default class CodegenOrchestrator {
     plan.stepInputs.forEach(inputs => {
       inputs.fieldBlocks.forEach(block => {
         if (!fieldEntries.has(block.id)) {
-          fieldEntries.set(block.id, compiler.compileSingleFieldPreparation(block))
+          fieldEntries.set(block.id, compiler.compileFieldPreparation(block))
         }
       })
 
@@ -233,14 +236,14 @@ export default class CodegenOrchestrator {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, compiler.compileSingleAccessHook(hook))
+            accessHookEntries.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })
 
       inputs.submitHooks.forEach(hook => {
         if (!submitHookEntries.has(hook.id)) {
-          submitHookEntries.set(hook.id, compiler.compileSingleSubmitHook(hook))
+          submitHookEntries.set(hook.id, compiler.compileSubmitHook(hook))
         }
       })
     })
@@ -249,7 +252,7 @@ export default class CodegenOrchestrator {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
           if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, compiler.compileSingleAccessHook(hook))
+            accessHookEntries.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })

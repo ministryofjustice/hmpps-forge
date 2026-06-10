@@ -6,7 +6,6 @@ import type {
   CompiledStepFieldCodesFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
-import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {
@@ -44,35 +43,6 @@ export interface NavigationRuntimeEntry {
   evaluateTieBreaker?: CompiledNavigationTieBreakerFunction
   /** Collects the step's possible field codes (absent = no fields). */
   evaluateFieldCodes?: CompiledStepFieldCodesFunction
-}
-
-export interface ReachabilityCompilationPlan {
-  navigationPlan: NavigationRuntimePlan
-  entries: ReachabilityCompilationEntry[]
-  resumeAlways: boolean
-  resumeWhenNodeId?: NodeId
-}
-
-export interface ReachabilityCompilationEntry extends NavigationRuntimeEntry {
-  entryWhenNodeId?: NodeId
-  forwardOutcomeGroups: ForwardOutcomeGroup[]
-  reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
-}
-
-/**
- * Per-submit-hook grouping of forward outcomes. Each group corresponds to one
- * submit hook on the source step; the cascade short-circuit applies within a
- * group but never across groups.
- *
- * `hookWhenNodeId` is set only when the hook's `when:` is reachability-compilable
- * (does not reference request-time namespaces like post/params/query/request).
- * When set, the compiler wraps the group in `if (Boolean(whenExpr))`. When
- * unset, the group contributes its outcomes unguarded — an intentional
- * over-approximation for non-evaluable guards.
- */
-export interface ForwardOutcomeGroup {
-  hookWhenNodeId?: NodeId
-  outcomeIds: NodeId[]
 }
 
 export interface JourneyRuntimePlan {

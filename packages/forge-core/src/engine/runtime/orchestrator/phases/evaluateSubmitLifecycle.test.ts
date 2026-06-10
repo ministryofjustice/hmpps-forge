@@ -1,7 +1,8 @@
 import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { CompiledSubmitHookResult, HookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
+import type { CompiledSubmitHookResult } from '../../../contracts/compiled/compiledFunctions.type'
+import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 
 const mockCtx = {} as HookLifecycleContext
 

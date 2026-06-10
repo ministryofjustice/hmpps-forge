@@ -1,5 +1,6 @@
 import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { CompiledAccessHookResult, HookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
+import type { CompiledAccessHookResult } from '../../../contracts/compiled/compiledFunctions.type'
+import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import type TraceRecorder from '../trace/TraceRecorder'
 
 /**

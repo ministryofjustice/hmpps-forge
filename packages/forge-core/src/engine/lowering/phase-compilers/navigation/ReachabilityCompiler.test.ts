@@ -7,7 +7,7 @@ import type {
   ForwardOutcomeGroup,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
-} from '../../../contracts/plans/runtimePlans.type'
+} from '../../../contracts/plans/compilationPlan.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import { NodeId } from '../../../contracts/ast/ast.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'

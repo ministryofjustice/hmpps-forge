@@ -39,7 +39,7 @@ const mockFunctionRegistry = {} as FunctionRegistry
 const runTraced = async (plan: AnswerPreparationPlan) => {
   const recorder = new TraceRecorder()
 
-  recorder.beginPhase('prepare-answers')
+  recorder.beginPhase('answer-preparation')
   await evaluateAnswerPreparation(plan, createMockContext(), mockFunctionRegistry, recorder)
   recorder.endPhase('continue')
 
