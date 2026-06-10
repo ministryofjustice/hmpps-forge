@@ -167,7 +167,6 @@ export default class CompilationPlanner {
   private buildReachabilityStepInputs(stepNode: StepASTNode): ReachabilityStepInputs {
     const stepNodeId = stepNode.id
     const { forwardOutcomeGroups, declaredOutcomes } = this.extractForwardNavigation(stepNode)
-    const hasValidation = this.hasValidationBlocks(stepNodeId) || hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
@@ -179,7 +178,6 @@ export default class CompilationPlanner {
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeGroups,
       declaredOutcomes,
-      hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(tieBreaker => ({
         priority: tieBreaker.properties.priority,
@@ -269,12 +267,6 @@ export default class CompilationPlanner {
     }
 
     return node
-  }
-
-  private hasValidationBlocks(stepNodeId: NodeId): boolean {
-    return this.allFieldBlocks
-      .filter(block => this.astNodeTree.isDescendantOf(block.id, stepNodeId))
-      .some(block => hasConfiguredValue(block.properties.validWhen))
   }
 
   /**

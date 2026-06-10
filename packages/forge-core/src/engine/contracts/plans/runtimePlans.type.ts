@@ -23,15 +23,14 @@ export interface NavigationRuntimePlan {
   readonly evaluateResumeWhen?: CompiledNavigationPredicateFunction
   readonly unreachableRedirect: UnreachableRedirectTarget
   readonly reachabilityDisabled: boolean
-  /** Per-step ValidationPlans the reachability graph walk evaluates to decide step validity. */
-  readonly stepValidationPlans: ReadonlyMap<NodeId, ValidationPlan>
 }
 
 export interface CompiledNavigationStep {
   readonly nodeId: NodeId
   readonly code?: string
   readonly isEntryPoint: boolean
-  readonly hasValidation: boolean
+  /** Validation the reachability walk evaluates to decide step validity; empty when the step declares none. */
+  readonly validationPlan: ValidationPlan
   /** Field codes cleared down when the step becomes unreachable. */
   readonly cleardownFieldCodes: readonly string[]
   /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */

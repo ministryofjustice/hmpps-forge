@@ -34,7 +34,6 @@ export interface ReachabilityStepInputs {
   readonly nodeId: NodeId
   readonly code?: string
   readonly isEntryPoint: boolean
-  readonly hasValidation: boolean
   /** Field codes cleared down when the step becomes unreachable. */
   readonly cleardownFieldCodes: readonly string[]
   /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */

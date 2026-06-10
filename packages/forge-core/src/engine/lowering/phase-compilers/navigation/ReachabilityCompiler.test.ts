@@ -10,6 +10,7 @@ import type {
 } from '../../../contracts/plans/compilationPlan.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import { NodeId } from '../../../contracts/ast/ast.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
@@ -62,6 +63,8 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
   } as RedirectOutcomeASTNode
 }
 
+const EMPTY_VALIDATION_PLAN: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
+
 function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): ReachabilityStepInputs {
   const stepNodeId = ASTTestFactory.getId() as NodeId
 
@@ -69,7 +72,6 @@ function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): Reac
     nodeId: stepNodeId,
     isEntryPoint: false,
     forwardOutcomeGroups: [],
-    hasValidation: false,
     cleardownFieldCodes: [],
     declaredOutcomes: [],
     reachabilityTieBreakers: [],
@@ -151,7 +153,7 @@ describe('ReachabilityCompiler', () => {
       const inputs = createStepInputs({ isEntryPoint: true })
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry).evaluateEntryWhen
+      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateEntryWhen
 
       // Assert
       expect(fn).toBeUndefined()
@@ -178,6 +180,7 @@ describe('ReachabilityCompiler', () => {
       const fn = localCompiler.compileNavigationStep(
         createStepInputs({ entryWhenNodeId: predicate.id }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateEntryWhen
 
       // Act
@@ -209,6 +212,7 @@ describe('ReachabilityCompiler', () => {
       const fn = localCompiler.compileNavigationStep(
         createStepInputs({ entryWhenNodeId: predicate.id }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateEntryWhen
 
       // Act
@@ -231,6 +235,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ entryWhenNodeId: predicate.id }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateEntryWhen
 
       // Act
@@ -252,6 +257,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ entryWhenNodeId: predicate.id }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateEntryWhen
 
       // Act
@@ -268,7 +274,7 @@ describe('ReachabilityCompiler', () => {
       const inputs = createStepInputs()
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry).evaluateOutcomes
+      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateOutcomes
 
       // Assert
       expect(fn).toBeUndefined()
@@ -283,6 +289,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -310,6 +317,7 @@ describe('ReachabilityCompiler', () => {
       const fn = localCompiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -333,6 +341,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -355,6 +364,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -375,6 +385,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome1.id, outcome2.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -399,6 +410,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -423,6 +435,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -458,6 +471,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -478,6 +492,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcomeA.id]), createGroup([outcomeB.id])] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -510,6 +525,7 @@ describe('ReachabilityCompiler', () => {
           forwardOutcomeGroups: [createGroup([outcomeA.id], hookWhenA.id), createGroup([outcomeB.id], hookWhenB.id)],
         }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -540,6 +556,7 @@ describe('ReachabilityCompiler', () => {
           forwardOutcomeGroups: [createGroup([guardedA.id, fallbackA.id]), createGroup([guardedB.id, fallbackB.id])],
         }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateOutcomes
 
       // Act
@@ -556,7 +573,7 @@ describe('ReachabilityCompiler', () => {
       const inputs = createStepInputs()
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry).evaluateTieBreaker
+      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateTieBreaker
 
       // Assert
       expect(fn).toBeUndefined()
@@ -567,6 +584,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ reachabilityTieBreakers: [{ priority: 5 }] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateTieBreaker
 
       // Act
@@ -588,6 +606,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateTieBreaker
 
       // Act
@@ -609,6 +628,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }] }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateTieBreaker
 
       // Act
@@ -677,6 +697,7 @@ describe('ReachabilityCompiler', () => {
       const fn = compiler.compileNavigationStep(
         createStepInputs({ entryWhenNodeId: pred.id }),
         registry,
+        EMPTY_VALIDATION_PLAN,
       ).evaluateEntryWhen
       const ctx = createCtx({
         conditions: {
@@ -737,7 +758,9 @@ describe('ReachabilityCompiler', () => {
       })
 
       const ctx = createCtx({ data: { skipIntro: true } })
-      const leaves = plan.reachabilityStepInputs.map(stepInputs => compiler.compileNavigationStep(stepInputs, registry))
+      const leaves = plan.reachabilityStepInputs.map(stepInputs =>
+        compiler.compileNavigationStep(stepInputs, registry, EMPTY_VALIDATION_PLAN),
+      )
 
       // Act
       const entryWhenResults = await Promise.all(leaves.map(leaf => leaf.evaluateEntryWhen?.(ctx)))

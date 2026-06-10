@@ -166,14 +166,11 @@ describe('CodegenOrchestrator', () => {
       // Assert
       expect(startStep.navigationPlan).toBe(nextStep.navigationPlan)
       expect(startStep.navigationPlan.navigationSteps).toHaveLength(2)
-      expect(startStep.navigationPlan.stepValidationPlans.get(startStep.runtimePlan.nodeId)).toBe(
-        startStep.validationPlan,
-      )
+      expect(startNavigationStep.validationPlan).toBe(startStep.validationPlan)
       expect(startNavigationStep).toEqual(
         expect.objectContaining({
           code: 'start',
           isEntryPoint: true,
-          hasValidation: true,
           cleardownFieldCodes: ['stale-name'],
           declaredOutcomes: ['/next'],
         }),

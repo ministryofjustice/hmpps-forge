@@ -4,6 +4,7 @@ import { JourneyRouteTemplateCatalog } from '../../contracts/routing/routeTree.t
 import { NodeId } from '../../contracts/ast/ast.type'
 import { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 import type { ValidationContext } from '../../contracts/compiled/phaseContexts.type'
+import type { ValidationPlan } from '../../contracts/plans/compilationArtefacts.type'
 import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 import { evaluateValidation } from '../orchestrator/phases/evaluateValidation'
@@ -69,7 +70,7 @@ export default class ReachabilityGraphBuilder {
         declarationIndex,
         isEntryPoint: compiledStep.isEntryPoint,
         isConditionalEntry: false,
-        hasValidation: compiledStep.hasValidation,
+        hasValidation: this.hasValidationChecks(compiledStep.validationPlan),
         isReachable: false,
         isValid: true,
         forwardRouteTemplatePaths: [],
@@ -79,6 +80,17 @@ export default class ReachabilityGraphBuilder {
         domainFailures: [],
       }
     })
+  }
+
+  /**
+   * An empty ValidationPlan is trivially valid, so it must not mark the step as
+   * one whose validity is evidence of user progress (NavigationPathAnalyzer
+   * reads `hasValidation && isValid` as "completed").
+   */
+  private hasValidationChecks(validationPlan: ValidationPlan): boolean {
+    return validationPlan.fieldValidations.length > 0 ||
+      validationPlan.iteratorValidationGroups.length > 0 ||
+      validationPlan.domain !== undefined
   }
 
   private seedEntryPointsFromCompiled(
@@ -176,8 +188,6 @@ export default class ReachabilityGraphBuilder {
       return
     }
 
-    const stepValidationPlans = plan.stepValidationPlans
-
     const compiledStepByStepNodeId = new Map(plan.navigationSteps.map(step => [step.nodeId, step]))
     const stepIndexByStepNodeId = new Map(plan.navigationSteps.map((step, idx) => [step.nodeId, idx]))
     const stateByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
@@ -211,24 +221,17 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      if (compiledStep.hasValidation) {
-        const validationPlan = stepValidationPlans.get(current.stepNodeId)
+      // No trace recorder on purpose: the step's own pipeline records these
+      // units; a reachability re-check would double-record them. An empty
+      // validation plan no-ops to valid.
+      const validationResult = await evaluateValidation(compiledStep.validationPlan, validationCtx, {
+        isSubmission: false,
+        groups: ['default'],
+      })
 
-        if (!validationPlan) {
-          throw new Error(`[Forge] Validation plan missing for step "${current.stepNodeId}"`)
-        }
-
-        // No trace recorder on purpose: the step's own pipeline records these
-        // units; a reachability re-check would double-record them.
-        const validationResult = await evaluateValidation(validationPlan, validationCtx, {
-          isSubmission: false,
-          groups: ['default'],
-        })
-
-        current.isValid = validationResult.isValid
-        current.fieldFailures = validationResult.fieldFailures
-        current.domainFailures = validationResult.domainFailures
-      }
+      current.isValid = validationResult.isValid
+      current.fieldFailures = validationResult.fieldFailures
+      current.domainFailures = validationResult.domainFailures
 
       const entryIndex = stepIndexByStepNodeId.get(current.stepNodeId)!
 

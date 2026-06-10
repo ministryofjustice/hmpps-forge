@@ -14,11 +14,7 @@ import type {
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
-import type {
-  CompilationPlan,
-  ReachabilityCompilationPlan,
-  StepCompilationInputs,
-} from '../contracts/plans/compilationPlan.type'
+import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
 import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
@@ -106,7 +102,11 @@ export default class CodegenOrchestrator {
     plan.reachabilityPlans.forEach((reachabilityPlan, planId) => {
       navigationPlans.set(planId, {
         navigationSteps: reachabilityPlan.reachabilityStepInputs.map(stepInputs => ({
-          ...reachabilityCompiler.compileNavigationStep(stepInputs, nodeRegistry),
+          ...reachabilityCompiler.compileNavigationStep(
+            stepInputs,
+            nodeRegistry,
+            this.selectStepValidationPlan(reachabilityPlan.journeyNodeId, stepInputs.nodeId, validationPlans),
+          ),
           evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(stepInputs.fieldInventorySource),
         })),
         resumeConfigured: reachabilityPlan.resumeConfigured,
@@ -114,7 +114,6 @@ export default class CodegenOrchestrator {
         evaluateResumeWhen: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
         unreachableRedirect: reachabilityPlan.unreachableRedirect,
         reachabilityDisabled: reachabilityPlan.reachabilityDisabled,
-        stepValidationPlans: this.selectStepValidationPlans(reachabilityPlan, validationPlans),
       })
     })
 
@@ -368,31 +367,24 @@ export default class CodegenOrchestrator {
   }
 
   /**
-   * Picks the per-step ValidationPlans navigation needs to decide whether an
-   * earlier step is still valid. Only steps flagged hasValidation are included;
-   * a flagged step without a compiled ValidationPlan is a compile invariant
+   * Picks the ValidationPlan navigation evaluates to decide whether a step is
+   * still valid. Every step compiles one (empty when it declares no validation);
+   * a navigation step without a compiled ValidationPlan is a compile invariant
    * failure.
    */
-  private selectStepValidationPlans(
-    reachabilityPlan: ReachabilityCompilationPlan,
+  private selectStepValidationPlan(
+    journeyNodeId: NodeId,
+    stepNodeId: NodeId,
     validationPlans: Map<NodeId, ValidationPlan>,
-  ): Map<NodeId, ValidationPlan> {
-    const stepValidationPlans = new Map<NodeId, ValidationPlan>()
+  ): ValidationPlan {
+    const validationPlan = validationPlans.get(stepNodeId)
 
-    reachabilityPlan.reachabilityStepInputs
-      .filter(step => step.hasValidation)
-      .forEach(step => {
-        const validationPlan = validationPlans.get(step.nodeId)
+    if (!validationPlan) {
+      throw new Error(
+        `Unable to compile navigation plan "${journeyNodeId}" - validation plan not found for step "${stepNodeId}"`,
+      )
+    }
 
-        if (!validationPlan) {
-          throw new Error(
-            `Unable to compile navigation plan "${reachabilityPlan.journeyNodeId}" - validation plan not found for step "${step.nodeId}"`,
-          )
-        }
-
-        stepValidationPlans.set(step.nodeId, validationPlan)
-      })
-
-    return stepValidationPlans
+    return validationPlan
   }
 }

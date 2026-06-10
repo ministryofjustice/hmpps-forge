@@ -55,7 +55,6 @@ describe('ForgeEvaluator', () => {
         resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
-        stepValidationPlans: new Map(),
       },
       answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
       renderPlan: { renderBlocks: [], iteratorRenderBlockGroups: [] },
@@ -79,7 +78,6 @@ describe('ForgeEvaluator', () => {
         resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
-        stepValidationPlans: new Map(),
       },
       answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
     }

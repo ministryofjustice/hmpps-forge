@@ -10,12 +10,14 @@ import type { PipelineState } from '../types'
 
 const routePathsByStep = new WeakMap<CompiledNavigationStep, string>()
 
+const EMPTY_VALIDATION_PLAN: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
+
 interface CompiledNavigationStepOptions {
   readonly nodeId: NodeId
   readonly path?: string
   readonly code?: string
   readonly isEntryPoint?: boolean
-  readonly hasValidation?: boolean
+  readonly validationPlan?: ValidationPlan
   readonly cleardownFieldCodes?: readonly string[]
   readonly declaredOutcomes?: readonly string[]
   readonly evaluateEntryWhen?: CompiledNavigationStep['evaluateEntryWhen']
@@ -35,7 +37,7 @@ export function createCompiledNavigationStep(options: CompiledNavigationStepOpti
   const step: CompiledNavigationStep = {
     nodeId: options.nodeId,
     isEntryPoint: options.isEntryPoint ?? false,
-    hasValidation: options.hasValidation ?? false,
+    validationPlan: options.validationPlan ?? EMPTY_VALIDATION_PLAN,
     cleardownFieldCodes: options.cleardownFieldCodes ?? [],
     declaredOutcomes: options.declaredOutcomes ?? [],
     ...(options.code !== undefined ? { code: options.code } : {}),
@@ -62,7 +64,6 @@ export function createNavigationPlan(
     resumeAlways: false,
     unreachableRedirect: 'entry',
     reachabilityDisabled: false,
-    stepValidationPlans: new Map(),
     ...overrides,
   }
 }

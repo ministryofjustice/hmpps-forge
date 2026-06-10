@@ -8,7 +8,6 @@ import {
 } from '../testing-helpers/navigationTestFixtures'
 import type { NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 import type { CompiledFieldValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { ReachabilityContext } from '../../../contracts/compiled/phaseContexts.type'
 import { NodeId } from '../../../contracts/ast/engine.type'
 import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
@@ -37,22 +36,6 @@ async function evaluate(
   })
 
   return result.evaluation
-}
-
-function withStepValidities(plan: NavigationRuntimePlan, validStepNodeIds: NodeId[]): NavigationRuntimePlan {
-  const stepValidationPlans = new Map<NodeId, ValidationPlan>()
-
-  for (const step of plan.navigationSteps) {
-    if (!step.hasValidation) {
-      continue
-    }
-
-    const isValid = validStepNodeIds.includes(step.nodeId)
-
-    stepValidationPlans.set(step.nodeId, createNavigationValidationPlan(isValid))
-  }
-
-  return { ...plan, stepValidationPlans }
 }
 
 describe('evaluateNavigation', () => {
@@ -119,20 +102,21 @@ describe('evaluateNavigation', () => {
 
   it('should ignore trivially valid reachable steps when computing progress', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:10',
-            path: 'entry',
-            isEntryPoint: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['question']),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:12', path: 'question', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      [],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:10',
+          path: 'entry',
+          isEntryPoint: true,
+          evaluateOutcomes: vi.fn().mockReturnValue(['question']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:12',
+          path: 'question',
+          validationPlan: createNavigationValidationPlan(false),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -146,21 +130,22 @@ describe('evaluateNavigation', () => {
 
   it('should count a valid reachable entry with validation requirements as progress', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:20',
-            path: 'entry',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['next']),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:22', path: 'next', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      ['compile_ast:20'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:20',
+          path: 'entry',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['next']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:22',
+          path: 'next',
+          validationPlan: createNavigationValidationPlan(false),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -174,27 +159,28 @@ describe('evaluateNavigation', () => {
 
   it('should redirect resume requests to the first invalid non-entry step on the progress path', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:30',
-            path: 'your-name',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['your-role']),
-          }),
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:32',
-            path: 'your-role',
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['check-answers']),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:34', path: 'check-answers', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      ['compile_ast:30'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:30',
+          path: 'your-name',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['your-role']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:32',
+          path: 'your-role',
+          validationPlan: createNavigationValidationPlan(false),
+          evaluateOutcomes: vi.fn().mockReturnValue(['check-answers']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:34',
+          path: 'check-answers',
+          validationPlan: createNavigationValidationPlan(false),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -208,21 +194,22 @@ describe('evaluateNavigation', () => {
 
   it('should not redirect when the current step is already the frontier', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:40',
-            path: 'your-name',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['your-role']),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:42', path: 'your-role', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      ['compile_ast:40'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:40',
+          path: 'your-name',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['your-role']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:42',
+          path: 'your-role',
+          validationPlan: createNavigationValidationPlan(false),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -235,23 +222,24 @@ describe('evaluateNavigation', () => {
 
   it('should fall back to the winning entry when resume is active but the journey is complete', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({ nodeId: 'compile_ast:50', path: 'overview', isEntryPoint: true }),
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:51',
-            path: 'your-name',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['confirmation']),
-            evaluateTieBreaker: vi.fn().mockReturnValue(100),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:53', path: 'confirmation', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      ['compile_ast:51', 'compile_ast:53'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({ nodeId: 'compile_ast:50', path: 'overview', isEntryPoint: true }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:51',
+          path: 'your-name',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['confirmation']),
+          evaluateTieBreaker: vi.fn().mockReturnValue(100),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:53',
+          path: 'confirmation',
+          validationPlan: createNavigationValidationPlan(true),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -265,29 +253,30 @@ describe('evaluateNavigation', () => {
 
   it('should prefer the entry path with the deepest real progress when resume is active', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:60',
-            path: 'entry-low',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['after-low']),
-            evaluateTieBreaker: vi.fn().mockReturnValue(10),
-          }),
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:62',
-            path: 'entry-high',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateTieBreaker: vi.fn().mockReturnValue(50),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:63', path: 'after-low', hasValidation: true }),
-        ],
-        { resumeConfigured: true, resumeAlways: true },
-      ),
-      ['compile_ast:60', 'compile_ast:62', 'compile_ast:63'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:60',
+          path: 'entry-low',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['after-low']),
+          evaluateTieBreaker: vi.fn().mockReturnValue(10),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:62',
+          path: 'entry-high',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateTieBreaker: vi.fn().mockReturnValue(50),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:63',
+          path: 'after-low',
+          validationPlan: createNavigationValidationPlan(true),
+        }),
+      ],
+      { resumeConfigured: true, resumeAlways: true },
     )
 
     // Act
@@ -301,32 +290,33 @@ describe('evaluateNavigation', () => {
 
   it('should derive a canonical current-step path using predecessor tie-breakers for converging branches', async () => {
     // Arrange
-    const plan = withStepValidities(
-      createNavigationPlan([
-        createCompiledNavigationStep({
-          nodeId: 'compile_ast:70',
-          path: 'entry',
-          isEntryPoint: true,
-          evaluateOutcomes: vi.fn().mockReturnValue(['branch-a', 'branch-b']),
-        }),
-        createCompiledNavigationStep({
-          nodeId: 'compile_ast:73',
-          path: 'branch-a',
-          hasValidation: true,
-          evaluateOutcomes: vi.fn().mockReturnValue(['merge']),
-          evaluateTieBreaker: vi.fn().mockReturnValue(10),
-        }),
-        createCompiledNavigationStep({
-          nodeId: 'compile_ast:75',
-          path: 'branch-b',
-          hasValidation: true,
-          evaluateOutcomes: vi.fn().mockReturnValue(['merge']),
-          evaluateTieBreaker: vi.fn().mockReturnValue(100),
-        }),
-        createCompiledNavigationStep({ nodeId: 'compile_ast:77', path: 'merge', hasValidation: true }),
-      ]),
-      ['compile_ast:73', 'compile_ast:75', 'compile_ast:77'],
-    )
+    const plan = createNavigationPlan([
+      createCompiledNavigationStep({
+        nodeId: 'compile_ast:70',
+        path: 'entry',
+        isEntryPoint: true,
+        evaluateOutcomes: vi.fn().mockReturnValue(['branch-a', 'branch-b']),
+      }),
+      createCompiledNavigationStep({
+        nodeId: 'compile_ast:73',
+        path: 'branch-a',
+        validationPlan: createNavigationValidationPlan(true),
+        evaluateOutcomes: vi.fn().mockReturnValue(['merge']),
+        evaluateTieBreaker: vi.fn().mockReturnValue(10),
+      }),
+      createCompiledNavigationStep({
+        nodeId: 'compile_ast:75',
+        path: 'branch-b',
+        validationPlan: createNavigationValidationPlan(true),
+        evaluateOutcomes: vi.fn().mockReturnValue(['merge']),
+        evaluateTieBreaker: vi.fn().mockReturnValue(100),
+      }),
+      createCompiledNavigationStep({
+        nodeId: 'compile_ast:77',
+        path: 'merge',
+        validationPlan: createNavigationValidationPlan(true),
+      }),
+    ])
 
     // Act
     const result = await evaluate(plan, 'compile_ast:77')
@@ -420,21 +410,22 @@ describe('evaluateNavigation', () => {
   it('should evaluate the resume predicate when resume is conditional', async () => {
     // Arrange
     const evaluateResumeWhen = vi.fn().mockReturnValue(true)
-    const plan = withStepValidities(
-      createNavigationPlan(
-        [
-          createCompiledNavigationStep({
-            nodeId: 'compile_ast:110',
-            path: 'entry',
-            isEntryPoint: true,
-            hasValidation: true,
-            evaluateOutcomes: vi.fn().mockReturnValue(['next']),
-          }),
-          createCompiledNavigationStep({ nodeId: 'compile_ast:112', path: 'next', hasValidation: true }),
-        ],
-        { resumeConfigured: true, evaluateResumeWhen },
-      ),
-      ['compile_ast:110'],
+    const plan = createNavigationPlan(
+      [
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:110',
+          path: 'entry',
+          isEntryPoint: true,
+          validationPlan: createNavigationValidationPlan(true),
+          evaluateOutcomes: vi.fn().mockReturnValue(['next']),
+        }),
+        createCompiledNavigationStep({
+          nodeId: 'compile_ast:112',
+          path: 'next',
+          validationPlan: createNavigationValidationPlan(false),
+        }),
+      ],
+      { resumeConfigured: true, evaluateResumeWhen },
     )
 
     // Act
@@ -459,28 +450,19 @@ describe('evaluateNavigation', () => {
           nodeId: 'compile_ast:100',
           path: 'entry',
           isEntryPoint: true,
-          hasValidation: true,
+          validationPlan: {
+            fieldValidations: [{ nodeId: 'compile_ast:999' as const, validate: validationSpy }],
+            iteratorValidationGroups: [],
+          },
           evaluateOutcomes: vi.fn().mockReturnValue(['next']),
         }),
         createCompiledNavigationStep({ nodeId: 'compile_ast:102', path: 'next' }),
       ],
       { resumeConfigured: true, resumeAlways: true },
     )
-    const planWithValidation = {
-      ...plan,
-      stepValidationPlans: new Map([
-        [
-          plan.navigationSteps[0].nodeId,
-          {
-            fieldValidations: [{ nodeId: 'compile_ast:999' as const, validate: validationSpy }],
-            iteratorValidationGroups: [],
-          },
-        ],
-      ]),
-    }
 
     // Act
-    const result = await evaluate(planWithValidation, 'compile_ast:100')
+    const result = await evaluate(plan, 'compile_ast:100')
 
     // Assert
     expect(validationSpy).toHaveBeenCalledTimes(1)

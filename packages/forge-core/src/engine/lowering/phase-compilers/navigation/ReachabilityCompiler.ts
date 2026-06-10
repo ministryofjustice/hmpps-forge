@@ -13,6 +13,7 @@ import type {
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/compilationPlan.type'
 import type { CompiledNavigationStep } from '../../../contracts/plans/runtimePlans.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
@@ -37,15 +38,20 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Compiles one step's navigation record: static reachability data plus
-   * the optional leaves that evaluate request-time navigation expressions.
+   * Compiles one step's navigation record: static reachability data, the step's
+   * validation plan, plus the optional leaves that evaluate request-time
+   * navigation expressions.
    */
-  compileNavigationStep(inputs: ReachabilityStepInputs, nodeRegistry: ASTNodeIndex): CompiledNavigationStep {
+  compileNavigationStep(
+    inputs: ReachabilityStepInputs,
+    nodeRegistry: ASTNodeIndex,
+    validationPlan: ValidationPlan,
+  ): CompiledNavigationStep {
     return {
       nodeId: inputs.nodeId,
       code: inputs.code,
       isEntryPoint: inputs.isEntryPoint,
-      hasValidation: inputs.hasValidation,
+      validationPlan,
       cleardownFieldCodes: inputs.cleardownFieldCodes,
       declaredOutcomes: inputs.declaredOutcomes,
       evaluateEntryWhen: this.compileEntryPredicate(inputs, nodeRegistry),

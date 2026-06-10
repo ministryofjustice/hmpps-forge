@@ -5,8 +5,6 @@ import {
   createNavigationValidationPlan,
   createPipelineState,
 } from '../testing-helpers/navigationTestFixtures'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { NodeId } from '../../../contracts/ast/ast.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry
@@ -66,18 +64,14 @@ describe('navigationPhase', () => {
             nodeId: 'compile_ast:1' as const,
             path: 'step-one',
             isEntryPoint: true,
-            hasValidation: true,
+            validationPlan: createNavigationValidationPlan(true),
             evaluateOutcomes: vi.fn().mockReturnValue(['step-two']),
           },
-          { nodeId: 'compile_ast:2' as const, path: 'step-two', hasValidation: true },
+          { nodeId: 'compile_ast:2' as const, path: 'step-two', validationPlan: createNavigationValidationPlan(false) },
         ],
         {
           resumeConfigured: true,
           resumeAlways: true,
-          stepValidationPlans: new Map<NodeId, ValidationPlan>([
-            ['compile_ast:1' as const, createNavigationValidationPlan(true)],
-            ['compile_ast:2' as const, createNavigationValidationPlan(false)],
-          ]),
         },
       )
       const phase = createNavigationPhase(
