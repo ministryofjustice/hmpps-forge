@@ -62,6 +62,7 @@ export default class StepFactory {
 
     if (dataProperties.validateOnEntry !== undefined) {
       properties.validateOnEntry = dataProperties.validateOnEntry.map(entry => ({
+        id: this.nodeIDGenerator.next(this.category),
         groups: entry.groups,
         when: entry.when === true ? true : this.nodeFactory.createNode(entry.when),
       }))

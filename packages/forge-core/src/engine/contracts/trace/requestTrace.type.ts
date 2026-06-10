@@ -84,6 +84,20 @@ export interface SubmitHookTraceUnit {
 }
 
 /**
+ * One entry-validation rule's verdict: recorded for every rule the plan holds
+ * when a step is entered via GET. `active` is whether the rule's `when`
+ * predicate passed (a rule with no predicate is always active); `groups` are
+ * the validation groups the rule contributes when active.
+ */
+export interface EntryValidationRuleTraceUnit {
+  readonly kind: 'entry-validation-rule'
+  readonly nodeId: NodeId
+  readonly active: boolean
+  readonly groups: readonly string[]
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -95,6 +109,7 @@ export type TraceUnit =
   | AnswerPreparationTraceUnit
   | AccessHookTraceUnit
   | SubmitHookTraceUnit
+  | EntryValidationRuleTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

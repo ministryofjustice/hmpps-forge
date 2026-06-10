@@ -83,6 +83,7 @@ export default class StepValidationCompiler {
     }
 
     const rules: EntryValidationRule[] = entries.map(entry => ({
+      nodeId: entry.id,
       groups: entry.groups,
       evaluate: entry.when === true ? undefined : this.compileSingleEntryValidationRule(entry.when),
     }))

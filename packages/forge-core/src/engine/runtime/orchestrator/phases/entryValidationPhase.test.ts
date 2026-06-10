@@ -1,4 +1,5 @@
 import { createEntryValidationPhase } from './entryValidationPhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { EntryValidationPlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
@@ -60,7 +61,7 @@ describe('entryValidationPhase', () => {
     it('should return continue when no rules match', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
@@ -80,7 +81,7 @@ describe('entryValidationPhase', () => {
     it('should run validation and set state when groups are active', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
+        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
         iteratorGroups: [],
@@ -118,6 +119,34 @@ describe('entryValidationPhase', () => {
           ],
         }),
       )
+    })
+
+    it('should record entry-validation-rule units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+      }
+      const phase = createEntryValidationPhase(
+        entryValidationPlan,
+        undefined,
+        'compile_ast:1' as const,
+        '/step',
+        mockFunctionRegistry,
+      )
+
+      recorder.beginPhase('entry-validation')
+
+      // Act
+      await phase.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('continue')
+
+      // Assert
+      const trace = recorder.finish('render')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'entry-validation-rule', nodeId: 'compile_ast:9', active: false }),
+      ])
     })
   })
 })

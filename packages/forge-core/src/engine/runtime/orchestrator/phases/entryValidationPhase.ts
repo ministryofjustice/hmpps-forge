@@ -33,6 +33,7 @@ export function createEntryValidationPhase(
       const groups = await evaluateEntryValidation(
         entryValidationPlan,
         buildCompiledBaseContext(state.context, functionRegistry),
+        state.trace,
       )
 
       if (groups.length === 0) {

@@ -132,8 +132,11 @@ export interface RenderPlan {
  * A GET-entry rule selecting which validation groups run on entry: when
  * `evaluate` is absent the `groups` always apply; otherwise they apply only if
  * the predicate returns true. `groups` are validation group identifiers.
+ * `nodeId` identifies the authored clause so the runtime can attribute the
+ * decision in the request trace.
  */
 export interface EntryValidationRule {
+  readonly nodeId: NodeId
   readonly groups: readonly string[]
   readonly evaluate?: CompiledEntryValidationRuleFunction
 }

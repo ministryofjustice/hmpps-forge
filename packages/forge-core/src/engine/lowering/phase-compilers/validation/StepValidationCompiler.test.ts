@@ -206,8 +206,9 @@ describe('StepValidationCompiler', () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const entries: StepEntryValidationAST[] = [
-        { groups: ['contact'], when: true },
+        { id: 'compile_ast:90' as const, groups: ['contact'], when: true },
         {
+          id: 'compile_ast:91' as const,
           groups: ['address'],
           when: ASTTestFactory.predicate(PredicateType.TEST, {
             subject: ASTTestFactory.expression(ExpressionType.REFERENCE)
@@ -246,6 +247,7 @@ describe('StepValidationCompiler', () => {
       const functionRegistry = new FunctionRegistry()
       const entries: StepEntryValidationAST[] = [
         {
+          id: 'compile_ast:90' as const,
           groups: ['address'],
           when: ASTTestFactory.predicate(PredicateType.TEST, {
             subject: ASTTestFactory.expression(ExpressionType.REFERENCE)
@@ -282,8 +284,8 @@ describe('StepValidationCompiler', () => {
     it('should deduplicate groups across matching entries', async () => {
       // Arrange
       const entries: StepEntryValidationAST[] = [
-        { groups: ['contact'], when: true },
-        { groups: ['contact', 'address'], when: true },
+        { id: 'compile_ast:90' as const, groups: ['contact'], when: true },
+        { id: 'compile_ast:91' as const, groups: ['contact', 'address'], when: true },
       ]
 
       const plan = compiler.compileEntryValidationPlan(entries)
