@@ -171,8 +171,8 @@ describe('StepAnswerPreparationCompiler', () => {
     iterateNodes: IterateASTNode[],
   ): AnswerPreparationPlan {
     return {
-      fields: fieldBlocks.map(block => runCompiler.compileFieldPreparation(block)),
-      iteratorGroups: iterateNodes
+      fieldAnswerPreparations: fieldBlocks.map(block => runCompiler.compileFieldPreparation(block)),
+      iteratorAnswerPreparationGroups: iterateNodes
         .map(node => runCompiler.compileIteratorGroup(node))
         .filter((group): group is NonNullable<typeof group> => group !== undefined),
     }

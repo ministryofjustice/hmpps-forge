@@ -22,7 +22,7 @@ describe('evaluateEntryValidation', () => {
     it('should treat rules without a predicate as always active and exclude inactive rules', async () => {
       // Arrange
       const plan: EntryValidationPlan = {
-        rules: [
+        entryValidationRules: [
           { nodeId: 'compile_ast:1' as const, groups: ['contact'] },
           { nodeId: 'compile_ast:2' as const, groups: ['address'], evaluate: vi.fn().mockReturnValue(false) },
         ],
@@ -45,7 +45,7 @@ describe('evaluateEntryValidation', () => {
         return true
       })
       const plan: EntryValidationPlan = {
-        rules: [
+        entryValidationRules: [
           { nodeId: 'compile_ast:1' as const, groups: ['address', 'contact'], evaluate: slow },
           { nodeId: 'compile_ast:2' as const, groups: ['contact', 'payment'] },
         ],
@@ -63,7 +63,7 @@ describe('evaluateEntryValidation', () => {
     it('should record one unit per rule with its verdict and groups when tracing', async () => {
       // Arrange
       const plan: EntryValidationPlan = {
-        rules: [
+        entryValidationRules: [
           { nodeId: 'compile_ast:1' as const, groups: ['contact'] },
           { nodeId: 'compile_ast:2' as const, groups: ['address'], evaluate: vi.fn().mockReturnValue(false) },
         ],
@@ -92,7 +92,7 @@ describe('evaluateEntryValidation', () => {
     it('should record nothing and still select groups when no recorder is supplied', async () => {
       // Arrange
       const plan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:1' as const, groups: ['contact'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:1' as const, groups: ['contact'] }],
       }
 
       // Act

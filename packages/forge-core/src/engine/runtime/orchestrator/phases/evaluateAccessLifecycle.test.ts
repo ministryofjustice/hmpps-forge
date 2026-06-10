@@ -36,7 +36,7 @@ describe('evaluateAccessLifecycle', () => {
         return continueResult
       })
       const plan: AccessLifecyclePlan = {
-        hooks: [
+        accessHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: first },
           { nodeId: 'compile_ast:2' as const, evaluate: second },
         ],
@@ -57,7 +57,7 @@ describe('evaluateAccessLifecycle', () => {
         .mockResolvedValue({ executed: true, outcome: 'redirect', redirect: '/login' })
       const never = vi.fn().mockResolvedValue(continueResult)
       const plan: AccessLifecyclePlan = {
-        hooks: [
+        accessHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: redirecting },
           { nodeId: 'compile_ast:2' as const, evaluate: never },
         ],
@@ -76,7 +76,7 @@ describe('evaluateAccessLifecycle', () => {
     it('should record one unit per hook run when tracing', async () => {
       // Arrange
       const plan: AccessLifecyclePlan = {
-        hooks: [
+        accessHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(continueResult) },
           { nodeId: 'compile_ast:2' as const, evaluate: vi.fn().mockResolvedValue(continueResult) },
         ],
@@ -95,7 +95,7 @@ describe('evaluateAccessLifecycle', () => {
     it('should record the halting hook with its redirect target and nothing for hooks never run', async () => {
       // Arrange
       const plan: AccessLifecyclePlan = {
-        hooks: [
+        accessHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(continueResult) },
           {
             nodeId: 'compile_ast:2' as const,
@@ -123,7 +123,7 @@ describe('evaluateAccessLifecycle', () => {
     it('should record status and message when a hook errors', async () => {
       // Arrange
       const plan: AccessLifecyclePlan = {
-        hooks: [
+        accessHooks: [
           {
             nodeId: 'compile_ast:1' as const,
             evaluate: vi
@@ -152,7 +152,7 @@ describe('evaluateAccessLifecycle', () => {
       // Arrange
       const evaluate = vi.fn().mockResolvedValue(continueResult)
       const plan: AccessLifecyclePlan = {
-        hooks: [{ nodeId: 'compile_ast:1' as const, evaluate }],
+        accessHooks: [{ nodeId: 'compile_ast:1' as const, evaluate }],
       }
 
       // Act

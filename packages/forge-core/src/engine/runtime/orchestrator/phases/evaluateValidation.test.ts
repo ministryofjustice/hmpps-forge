@@ -23,11 +23,11 @@ describe('evaluateValidation', () => {
       // Arrange
       const failure = { blockId: 'compile_ast:3' as const, passed: false, message: 'Required', submissionOnly: false }
       const plan: ValidationPlan = {
-        fields: [
+        fieldValidations: [
           { nodeId: 'compile_ast:2' as const, validate: vi.fn().mockResolvedValue([]) },
           { nodeId: 'compile_ast:3' as const, validate: vi.fn().mockResolvedValue([failure]) },
         ],
-        iteratorGroups: [],
+        iteratorValidationGroups: [],
       }
 
       // Act
@@ -49,8 +49,8 @@ describe('evaluateValidation', () => {
     it('should record nothing and still validate when no recorder is supplied', async () => {
       // Arrange
       const plan: ValidationPlan = {
-        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockResolvedValue([]) }],
-        iteratorGroups: [],
+        fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockResolvedValue([]) }],
+        iteratorValidationGroups: [],
       }
 
       // Act
@@ -69,8 +69,8 @@ describe('evaluateValidation', () => {
         { item: { value: 'b' }, index: 1, rawItem: 'b', inputLength: 2 },
       ]
       const plan: ValidationPlan = {
-        fields: [],
-        iteratorGroups: [
+        fieldValidations: [],
+        iteratorValidationGroups: [
           {
             nodeId: 'compile_ast:5' as const,
             evaluateInput: vi.fn().mockResolvedValue(itemScopes),
@@ -95,8 +95,8 @@ describe('evaluateValidation', () => {
       // Arrange
       const domainFailure = { passed: false, message: 'Dates must not overlap', submissionOnly: false }
       const plan: ValidationPlan = {
-        fields: [],
-        iteratorGroups: [],
+        fieldValidations: [],
+        iteratorValidationGroups: [],
         domain: vi.fn().mockResolvedValue([domainFailure]),
       }
 

@@ -4,24 +4,24 @@ import type { StepRequest } from '../../../../framework/types/request.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
+import type { CompiledNavigationStep, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type { PipelineState } from '../types'
 
-const routePathsByEntry = new WeakMap<NavigationRuntimeEntry, string>()
+const routePathsByStep = new WeakMap<CompiledNavigationStep, string>()
 
-interface NavigationEntryOptions {
-  readonly stepId: NodeId
+interface CompiledNavigationStepOptions {
+  readonly nodeId: NodeId
   readonly path?: string
   readonly code?: string
   readonly isEntryPoint?: boolean
   readonly hasValidation?: boolean
   readonly cleardownFieldCodes?: readonly string[]
   readonly declaredOutcomes?: readonly string[]
-  readonly evaluateEntry?: NavigationRuntimeEntry['evaluateEntry']
-  readonly evaluateOutcomes?: NavigationRuntimeEntry['evaluateOutcomes']
-  readonly evaluateTieBreaker?: NavigationRuntimeEntry['evaluateTieBreaker']
-  readonly evaluateFieldCodes?: NavigationRuntimeEntry['evaluateFieldCodes']
+  readonly evaluateEntryWhen?: CompiledNavigationStep['evaluateEntryWhen']
+  readonly evaluateOutcomes?: CompiledNavigationStep['evaluateOutcomes']
+  readonly evaluateTieBreaker?: CompiledNavigationStep['evaluateTieBreaker']
+  readonly evaluateFieldCodes?: CompiledNavigationStep['evaluateFieldCodes']
 }
 
 interface PipelineStateOptions {
@@ -31,33 +31,33 @@ interface PipelineStateOptions {
   readonly pathname?: string
 }
 
-export function createNavigationEntry(options: NavigationEntryOptions): NavigationRuntimeEntry {
-  const entry: NavigationRuntimeEntry = {
-    stepId: options.stepId,
+export function createCompiledNavigationStep(options: CompiledNavigationStepOptions): CompiledNavigationStep {
+  const step: CompiledNavigationStep = {
+    nodeId: options.nodeId,
     isEntryPoint: options.isEntryPoint ?? false,
     hasValidation: options.hasValidation ?? false,
     cleardownFieldCodes: options.cleardownFieldCodes ?? [],
     declaredOutcomes: options.declaredOutcomes ?? [],
     ...(options.code !== undefined ? { code: options.code } : {}),
-    ...(options.evaluateEntry !== undefined ? { evaluateEntry: options.evaluateEntry } : {}),
+    ...(options.evaluateEntryWhen !== undefined ? { evaluateEntryWhen: options.evaluateEntryWhen } : {}),
     ...(options.evaluateOutcomes !== undefined ? { evaluateOutcomes: options.evaluateOutcomes } : {}),
     ...(options.evaluateTieBreaker !== undefined ? { evaluateTieBreaker: options.evaluateTieBreaker } : {}),
     ...(options.evaluateFieldCodes !== undefined ? { evaluateFieldCodes: options.evaluateFieldCodes } : {}),
   }
 
   if (options.path !== undefined) {
-    routePathsByEntry.set(entry, options.path)
+    routePathsByStep.set(step, options.path)
   }
 
-  return entry
+  return step
 }
 
 export function createNavigationPlan(
-  entries: readonly NavigationRuntimeEntry[],
+  steps: readonly CompiledNavigationStep[],
   overrides: Partial<NavigationRuntimePlan> = {},
 ): NavigationRuntimePlan {
   return {
-    entries,
+    navigationSteps: steps,
     resumeConfigured: false,
     resumeAlways: false,
     unreachableRedirect: 'entry',
@@ -68,18 +68,18 @@ export function createNavigationPlan(
 }
 
 export function createNavigationFixture(
-  entryOptions: readonly NavigationEntryOptions[],
+  stepOptions: readonly CompiledNavigationStepOptions[],
   planOverrides: Partial<NavigationRuntimePlan> = {},
 ): { readonly plan: NavigationRuntimePlan; readonly routeTemplateCatalog: JourneyRouteTemplateCatalog } {
-  const entries = entryOptions.map(createNavigationEntry)
-  const plan = createNavigationPlan(entries, planOverrides)
-  const routeTemplateCatalog = createRouteTemplateCatalog(entries)
+  const steps = stepOptions.map(createCompiledNavigationStep)
+  const plan = createNavigationPlan(steps, planOverrides)
+  const routeTemplateCatalog = createRouteTemplateCatalog(steps)
 
   return { plan, routeTemplateCatalog }
 }
 
 export function createRouteTemplateCatalog(
-  input: readonly NavigationRuntimeEntry[] | readonly (readonly [NodeId, string])[],
+  input: readonly CompiledNavigationStep[] | readonly (readonly [NodeId, string])[],
 ): JourneyRouteTemplateCatalog {
   const routeTemplatePathByStepId = new Map<NodeId, string>()
   const stepIdByRouteTemplatePath = new Map<string, NodeId>()
@@ -87,7 +87,7 @@ export function createRouteTemplateCatalog(
   input.forEach(item => {
     const [stepId, routeTemplatePath] = isRouteTemplatePathTuple(item)
       ? item
-      : [item.stepId, resolveEntryRouteTemplatePath(item)]
+      : [item.nodeId, resolveStepRouteTemplatePath(item)]
 
     routeTemplatePathByStepId.set(stepId, routeTemplatePath)
     stepIdByRouteTemplatePath.set(routeTemplatePath, stepId)
@@ -101,7 +101,7 @@ export function createRouteTemplateCatalog(
 
 export function createNavigationValidationPlan(isValid: boolean): ValidationPlan {
   return {
-    fields: [
+    fieldValidations: [
       {
         nodeId: 'compile_ast:999' as const,
         validate: () =>
@@ -110,7 +110,7 @@ export function createNavigationValidationPlan(isValid: boolean): ValidationPlan
             : [{ blockId: 'compile_ast:999' as const, passed: false, message: 'invalid', submissionOnly: false }],
       },
     ],
-    iteratorGroups: [],
+    iteratorValidationGroups: [],
   }
 }
 
@@ -149,11 +149,11 @@ export function createPipelineState(options: PipelineStateOptions = {}): Pipelin
 }
 
 function isRouteTemplatePathTuple(
-  item: NavigationRuntimeEntry | readonly [NodeId, string],
+  item: CompiledNavigationStep | readonly [NodeId, string],
 ): item is readonly [NodeId, string] {
   return Array.isArray(item)
 }
 
-function resolveEntryRouteTemplatePath(entry: NavigationRuntimeEntry): string {
-  return joinPaths('/journey', routePathsByEntry.get(entry) ?? entry.stepId)
+function resolveStepRouteTemplatePath(step: CompiledNavigationStep): string {
+  return joinPaths('/journey', routePathsByStep.get(step) ?? step.nodeId)
 }

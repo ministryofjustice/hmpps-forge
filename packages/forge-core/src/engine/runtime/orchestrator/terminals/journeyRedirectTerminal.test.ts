@@ -15,7 +15,7 @@ describe('journeyRedirectTerminal', () => {
     it('should redirect to the resolved entry step', async () => {
       // Arrange
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'first-step', isEntryPoint: true },
+        { nodeId: 'compile_ast:1' as const, path: 'first-step', isEntryPoint: true },
       ])
       const terminal = createJourneyRedirectTerminal(plan, routeTemplateCatalog, mockFunctionRegistry)
 
@@ -29,7 +29,7 @@ describe('journeyRedirectTerminal', () => {
     it('should interpolate path params in redirect target', async () => {
       // Arrange
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: ':personId/first-step', isEntryPoint: true },
+        { nodeId: 'compile_ast:1' as const, path: ':personId/first-step', isEntryPoint: true },
       ])
       const terminal = createJourneyRedirectTerminal(plan, routeTemplateCatalog, mockFunctionRegistry)
 
@@ -56,7 +56,7 @@ describe('journeyRedirectTerminal', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'first-step', isEntryPoint: true },
+        { nodeId: 'compile_ast:1' as const, path: 'first-step', isEntryPoint: true },
       ])
       const terminal = createJourneyRedirectTerminal(plan, routeTemplateCatalog, mockFunctionRegistry)
 

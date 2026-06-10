@@ -1,6 +1,6 @@
 import type { NodeId, TemplateNodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
-import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { NavigationRuntimePlan, RuntimePlan } from './runtimePlans.type'
 import type {
   CompiledAccessHookFunction,
   CompiledAncestorMetadataFunction,
@@ -22,13 +22,13 @@ import type {
  * identifies the field block so the runtime can attribute the verdict in the
  * request trace.
  */
-export interface FieldValidationEntry {
+export interface CompiledFieldValidation {
   readonly nodeId: NodeId
   readonly validate: CompiledFieldValidationFunction
 }
 
 /** One compiled validation function for a field inside an iterator, invoked once per item scope. */
-export interface IteratorFieldValidationEntry {
+export interface CompiledIteratorFieldValidation {
   readonly nodeId: TemplateNodeId
   readonly validate: CompiledIteratorFieldValidationFunction
 }
@@ -41,7 +41,7 @@ export interface IteratorFieldValidationEntry {
 export interface IteratorValidationGroup {
   readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
-  readonly fields: readonly IteratorFieldValidationEntry[]
+  readonly fields: readonly CompiledIteratorFieldValidation[]
 }
 
 /**
@@ -50,8 +50,8 @@ export interface IteratorValidationGroup {
  * validator that runs cross-field checks over the whole step.
  */
 export interface ValidationPlan {
-  readonly fields: readonly FieldValidationEntry[]
-  readonly iteratorGroups: readonly IteratorValidationGroup[]
+  readonly fieldValidations: readonly CompiledFieldValidation[]
+  readonly iteratorValidationGroups: readonly IteratorValidationGroup[]
   readonly domain?: CompiledDomainValidationFunction
 }
 
@@ -61,7 +61,7 @@ export interface ValidationPlan {
  * `nodeId` identifies the field block so the runtime can attribute the decision
  * in the request trace.
  */
-export interface FieldAnswerPreparationEntry {
+export interface CompiledFieldAnswerPreparation {
   readonly nodeId: NodeId
   readonly prepare: CompiledFieldAnswerPreparationFunction
 }
@@ -70,7 +70,7 @@ export interface FieldAnswerPreparationEntry {
  * One compiled prepare function for a field inside an iterator, invoked once per
  * item scope; mutates `ctx.answers` in place for that item.
  */
-export interface IteratorFieldAnswerPreparationEntry {
+export interface CompiledIteratorFieldAnswerPreparation {
   readonly nodeId: TemplateNodeId
   readonly prepare: CompiledIteratorFieldAnswerPreparationFunction
 }
@@ -83,7 +83,7 @@ export interface IteratorFieldAnswerPreparationEntry {
 export interface IteratorAnswerPreparationGroup {
   readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
-  readonly fields: readonly IteratorFieldAnswerPreparationEntry[]
+  readonly fields: readonly CompiledIteratorFieldAnswerPreparation[]
 }
 
 /**
@@ -91,12 +91,12 @@ export interface IteratorAnswerPreparationGroup {
  * answer and mutates `ctx.answers` in place; iterator groups prepare per item.
  */
 export interface AnswerPreparationPlan {
-  readonly fields: readonly FieldAnswerPreparationEntry[]
-  readonly iteratorGroups: readonly IteratorAnswerPreparationGroup[]
+  readonly fieldAnswerPreparations: readonly CompiledFieldAnswerPreparation[]
+  readonly iteratorAnswerPreparationGroups: readonly IteratorAnswerPreparationGroup[]
 }
 
 /** One compiled function producing a single RenderBlock for a non-iterator block. */
-export interface RenderBlockEntry {
+export interface CompiledRenderBlock {
   readonly render: CompiledRenderBlockFunction
 }
 
@@ -104,7 +104,7 @@ export interface RenderBlockEntry {
  * One compiled render function for a block inside an iterator, invoked once per
  * item scope; may yield a single RenderBlock or an array of them.
  */
-export interface IteratorRenderBlockEntry {
+export interface CompiledIteratorRenderBlock {
   readonly render: CompiledIteratorRenderBlockFunction
 }
 
@@ -114,7 +114,7 @@ export interface IteratorRenderBlockEntry {
  */
 export interface IteratorRenderBlockGroup {
   readonly evaluateInput: CompiledIteratorInputFunction
-  readonly blocks: readonly IteratorRenderBlockEntry[]
+  readonly blocks: readonly CompiledIteratorRenderBlock[]
 }
 
 /**
@@ -125,8 +125,8 @@ export interface IteratorRenderBlockGroup {
 export interface RenderPlan {
   readonly compiledStepMetadata?: CompiledStepMetadataFunction
   readonly compiledAncestorMetadata?: CompiledAncestorMetadataFunction
-  readonly blocks: readonly RenderBlockEntry[]
-  readonly iteratorGroups: readonly IteratorRenderBlockGroup[]
+  readonly renderBlocks: readonly CompiledRenderBlock[]
+  readonly iteratorRenderBlockGroups: readonly IteratorRenderBlockGroup[]
 }
 
 /**
@@ -136,7 +136,7 @@ export interface RenderPlan {
  * `nodeId` identifies the authored clause so the runtime can attribute the
  * decision in the request trace.
  */
-export interface EntryValidationRule {
+export interface CompiledEntryValidationRule {
   readonly nodeId: NodeId
   readonly groups: readonly string[]
   readonly evaluate?: CompiledEntryValidationRuleFunction
@@ -144,7 +144,7 @@ export interface EntryValidationRule {
 
 /** The set of rules deciding which validation groups run when a step is entered via GET. */
 export interface EntryValidationPlan {
-  readonly rules: readonly EntryValidationRule[]
+  readonly entryValidationRules: readonly CompiledEntryValidationRule[]
 }
 
 /**
@@ -152,14 +152,14 @@ export interface EntryValidationPlan {
  * identifies the hook node so the runtime can attribute the decision in the
  * request trace.
  */
-export interface AccessHookEntry {
+export interface CompiledAccessHook {
   readonly nodeId: NodeId
   readonly evaluate: CompiledAccessHookFunction
 }
 
 /** The access hooks for a step or journey, run in order during the access-lifecycle phase. */
 export interface AccessLifecyclePlan {
-  readonly hooks: readonly AccessHookEntry[]
+  readonly accessHooks: readonly CompiledAccessHook[]
 }
 
 /**
@@ -167,14 +167,14 @@ export interface AccessLifecyclePlan {
  * step. `nodeId` identifies the hook node so the runtime can attribute the
  * decision in the request trace.
  */
-export interface SubmitHookEntry {
+export interface CompiledSubmitHook {
   readonly nodeId: NodeId
   readonly evaluate: CompiledSubmitHookFunction
 }
 
 /** The submit hooks for a step, run in order during the submit-lifecycle phase of a POST. */
 export interface SubmitLifecyclePlan {
-  readonly hooks: readonly SubmitHookEntry[]
+  readonly submitHooks: readonly CompiledSubmitHook[]
 }
 
 /**
@@ -184,7 +184,7 @@ export interface SubmitLifecyclePlan {
  * phase's walk runs through as a no-op.
  */
 export interface CompiledStep {
-  runtimePlan: StepRuntimePlan
+  runtimePlan: RuntimePlan
   navigationPlan: NavigationRuntimePlan
   accessLifecyclePlan: AccessLifecyclePlan
   submitLifecyclePlan: SubmitLifecyclePlan
@@ -200,7 +200,7 @@ export interface CompiledStep {
  * entry-validation, or submit plans.
  */
 export interface CompiledJourney {
-  runtimePlan: JourneyRuntimePlan
+  runtimePlan: RuntimePlan
   navigationPlan: NavigationRuntimePlan
   accessLifecyclePlan: AccessLifecyclePlan
   answerPreparationPlan: AnswerPreparationPlan

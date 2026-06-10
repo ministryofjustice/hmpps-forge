@@ -37,9 +37,9 @@ import type {
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
   EntryValidationPlan,
-  EntryValidationRule,
-  FieldValidationEntry,
-  IteratorFieldValidationEntry,
+  CompiledEntryValidationRule,
+  CompiledFieldValidation,
+  CompiledIteratorFieldValidation,
   IteratorValidationGroup,
   ValidationPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
@@ -79,13 +79,13 @@ export default class StepValidationCompiler {
    * no groups.
    */
   compileEntryValidationPlan(entries: readonly StepEntryValidationAST[] | undefined): EntryValidationPlan {
-    const rules: EntryValidationRule[] = (entries ?? []).map(entry => ({
+    const rules: CompiledEntryValidationRule[] = (entries ?? []).map(entry => ({
       nodeId: entry.id,
       groups: entry.groups,
       evaluate: entry.when === true ? undefined : this.compileEntryValidationRule(entry.when),
     }))
 
-    return { rules }
+    return { entryValidationRules: rules }
   }
 
   /**
@@ -128,7 +128,7 @@ export default class StepValidationCompiler {
     domainValidWhen: unknown,
     iterateNodes: readonly IterateASTNode[] = [],
   ): ValidationPlan {
-    const fields: FieldValidationEntry[] = []
+    const fields: CompiledFieldValidation[] = []
 
     for (const block of fieldBlocks) {
       if (!hasConfiguredValue(block.properties.validWhen)) {
@@ -153,7 +153,7 @@ export default class StepValidationCompiler {
 
     const domain = this.compileDomainValidation(domainValidWhen)
 
-    return { fields, iteratorGroups, domain }
+    return { fieldValidations: fields, iteratorValidationGroups: iteratorGroups, domain }
   }
 
   /**
@@ -451,7 +451,7 @@ export default class StepValidationCompiler {
       return undefined
     }
 
-    const fields: IteratorFieldValidationEntry[] = []
+    const fields: CompiledIteratorFieldValidation[] = []
 
     this.collectLeafValidationFields(template, fields, [])
 
@@ -473,7 +473,7 @@ export default class StepValidationCompiler {
    */
   private collectLeafValidationFields(
     template: TemplateValue,
-    entries: IteratorFieldValidationEntry[],
+    entries: CompiledIteratorFieldValidation[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(

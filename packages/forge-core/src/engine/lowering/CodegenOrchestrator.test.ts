@@ -15,7 +15,7 @@ import JourneyCompiler from '../JourneyCompiler'
 import ComponentRegistry from '../registries/ComponentRegistry'
 import FunctionRegistry from '../registries/FunctionRegistry'
 import type { CompiledStep } from '../contracts/plans/compilationArtefacts.type'
-import type { NavigationRuntimeEntry } from '../contracts/plans/runtimePlans.type'
+import type { CompiledNavigationStep } from '../contracts/plans/runtimePlans.type'
 
 function createFunctionRegistry(): FunctionRegistry {
   const functionRegistry = new FunctionRegistry()
@@ -111,7 +111,7 @@ function createJourneyDefinition(): JourneyDefinition {
 }
 
 function getCompiledStep(steps: readonly CompiledStep[], path: string): CompiledStep {
-  const step = steps.find(entry => entry.runtimePlan.path === path)
+  const step = steps.find(candidate => candidate.runtimePlan.path === path)
 
   if (!step) {
     throw new Error(`Expected compiled step for path "${path}"`)
@@ -120,14 +120,14 @@ function getCompiledStep(steps: readonly CompiledStep[], path: string): Compiled
   return step
 }
 
-function getNavigationEntry(step: CompiledStep): NavigationRuntimeEntry {
-  const entry = step.navigationPlan.entries.find(item => item.stepId === step.runtimePlan.stepId)
+function getNavigationStep(step: CompiledStep): CompiledNavigationStep {
+  const navigationStep = step.navigationPlan.navigationSteps.find(item => item.nodeId === step.runtimePlan.nodeId)
 
-  if (!entry) {
-    throw new Error(`Expected navigation entry for step "${step.runtimePlan.stepId}"`)
+  if (!navigationStep) {
+    throw new Error(`Expected navigation step for step "${step.runtimePlan.nodeId}"`)
   }
 
-  return entry
+  return navigationStep
 }
 
 function createReachabilityContext(functionRegistry: FunctionRegistry): ReachabilityContext {
@@ -158,18 +158,18 @@ describe('CodegenOrchestrator', () => {
       const steps = Array.from(result.steps.values())
       const startStep = getCompiledStep(steps, 'start')
       const nextStep = getCompiledStep(steps, 'next')
-      const startEntry = getNavigationEntry(startStep)
-      const fieldCodes = await startEntry.evaluateFieldCodes?.(context)
-      const outcomes = await startEntry.evaluateOutcomes?.(context)
-      const resumeActive = await startStep.navigationPlan.evaluateResume?.(context)
+      const startNavigationStep = getNavigationStep(startStep)
+      const fieldCodes = await startNavigationStep.evaluateFieldCodes?.(context)
+      const outcomes = await startNavigationStep.evaluateOutcomes?.(context)
+      const resumeActive = await startStep.navigationPlan.evaluateResumeWhen?.(context)
 
       // Assert
       expect(startStep.navigationPlan).toBe(nextStep.navigationPlan)
-      expect(startStep.navigationPlan.entries).toHaveLength(2)
-      expect(startStep.navigationPlan.stepValidationPlans.get(startStep.runtimePlan.stepId)).toBe(
+      expect(startStep.navigationPlan.navigationSteps).toHaveLength(2)
+      expect(startStep.navigationPlan.stepValidationPlans.get(startStep.runtimePlan.nodeId)).toBe(
         startStep.validationPlan,
       )
-      expect(startEntry).toEqual(
+      expect(startNavigationStep).toEqual(
         expect.objectContaining({
           code: 'start',
           isEntryPoint: true,

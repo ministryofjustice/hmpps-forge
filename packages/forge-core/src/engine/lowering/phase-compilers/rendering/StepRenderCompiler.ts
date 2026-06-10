@@ -38,9 +38,9 @@ import type {
   CompiledStepMetadataFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
-  IteratorRenderBlockEntry,
+  CompiledIteratorRenderBlock,
   IteratorRenderBlockGroup,
-  RenderBlockEntry,
+  CompiledRenderBlock,
   RenderPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
 
@@ -329,7 +329,7 @@ export default class StepRenderCompiler {
     const compiledStepMetadata = this.compileStepMetadataFunction(stepNode)
     const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
 
-    const blocks: RenderBlockEntry[] = (stepNode.properties.blocks ?? []).map(block => ({
+    const blocks: CompiledRenderBlock[] = (stepNode.properties.blocks ?? []).map(block => ({
       render: this.compileBlock(block),
     }))
 
@@ -347,7 +347,12 @@ export default class StepRenderCompiler {
       }
     }
 
-    return { compiledStepMetadata, compiledAncestorMetadata, blocks, iteratorGroups }
+    return {
+      compiledStepMetadata,
+      compiledAncestorMetadata,
+      renderBlocks: blocks,
+      iteratorRenderBlockGroups: iteratorGroups,
+    }
   }
 
   /**
@@ -500,7 +505,7 @@ export default class StepRenderCompiler {
       return undefined
     }
 
-    const blocks: IteratorRenderBlockEntry[] = []
+    const blocks: CompiledIteratorRenderBlock[] = []
 
     this.collectLeafBlocks(template, blocks, [])
 
@@ -521,7 +526,7 @@ export default class StepRenderCompiler {
    */
   private collectLeafBlocks(
     template: TemplateValue,
-    entries: IteratorRenderBlockEntry[],
+    entries: CompiledIteratorRenderBlock[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(

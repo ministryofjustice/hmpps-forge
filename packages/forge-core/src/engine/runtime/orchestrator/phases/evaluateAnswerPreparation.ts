@@ -1,8 +1,8 @@
 import type {
   AnswerPreparationPlan,
-  FieldAnswerPreparationEntry,
+  CompiledFieldAnswerPreparation,
   IteratorAnswerPreparationGroup,
-  IteratorFieldAnswerPreparationEntry,
+  CompiledIteratorFieldAnswerPreparation,
 } from '../../../contracts/plans/compilationArtefacts.type'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { IteratorItemScope } from '../../../contracts/compiled/compiledFunctions.type'
@@ -26,11 +26,11 @@ export async function evaluateAnswerPreparation(
   ctx: AnswerPreparationContext,
   trace?: TraceRecorder,
 ): Promise<void> {
-  for (const entry of plan.fields) {
+  for (const entry of plan.fieldAnswerPreparations) {
     await prepareField(entry, ctx, trace)
   }
 
-  for (const group of plan.iteratorGroups) {
+  for (const group of plan.iteratorAnswerPreparationGroups) {
     await evaluateSingleIteratorGroup(group, ctx, trace)
   }
 }
@@ -39,7 +39,7 @@ export async function evaluateAnswerPreparation(
  * Prepares one plain field, recording the prepare against the entry's identity.
  */
 async function prepareField(
-  entry: FieldAnswerPreparationEntry,
+  entry: CompiledFieldAnswerPreparation,
   ctx: AnswerPreparationContext,
   trace: TraceRecorder | undefined,
 ): Promise<void> {
@@ -48,7 +48,7 @@ async function prepareField(
   await entry.prepare(ctx)
 
   trace?.record({
-    kind: 'answer-preparation',
+    kind: 'answer-preparation-field',
     nodeId: entry.nodeId,
     durationMs: performance.now() - startedAt,
   })
@@ -87,7 +87,7 @@ async function evaluateSingleIteratorGroup(
  * the item index so per-item decisions stay distinguishable.
  */
 async function prepareIteratorField(
-  field: IteratorFieldAnswerPreparationEntry,
+  field: CompiledIteratorFieldAnswerPreparation,
   ctx: AnswerPreparationContext,
   itemScope: IteratorItemScope,
   trace: TraceRecorder | undefined,
@@ -97,7 +97,7 @@ async function prepareIteratorField(
   await field.prepare(ctx, itemScope)
 
   trace?.record({
-    kind: 'answer-preparation',
+    kind: 'answer-preparation-field',
     nodeId: field.nodeId,
     itemIndex: itemScope.index,
     durationMs: performance.now() - startedAt,

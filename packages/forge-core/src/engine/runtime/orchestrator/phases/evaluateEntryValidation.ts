@@ -16,7 +16,7 @@ export async function evaluateEntryValidation(
   trace?: TraceRecorder,
 ): Promise<string[]> {
   const verdicts = await Promise.all(
-    plan.rules.map(async rule => {
+    plan.entryValidationRules.map(async rule => {
       const startedAt = performance.now()
       const active = rule.evaluate ? await rule.evaluate(ctx) : true
 

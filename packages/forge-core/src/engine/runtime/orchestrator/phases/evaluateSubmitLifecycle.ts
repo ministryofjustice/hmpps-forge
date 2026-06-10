@@ -20,7 +20,7 @@ export async function evaluateSubmitLifecycle(
   ctx: HookLifecycleContext,
   trace?: TraceRecorder,
 ): Promise<CompiledSubmitHookResult> {
-  for (const entry of plan.hooks) {
+  for (const entry of plan.submitHooks) {
     const startedAt = performance.now()
     const result = await entry.evaluate(ctx)
 

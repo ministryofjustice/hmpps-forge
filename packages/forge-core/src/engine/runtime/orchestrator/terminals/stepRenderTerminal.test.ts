@@ -45,8 +45,8 @@ describe('stepRenderTerminal', () => {
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
-        blocks: [],
-        iteratorGroups: [],
+        renderBlocks: [],
+        iteratorRenderBlockGroups: [],
       }
       const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
@@ -63,8 +63,8 @@ describe('stepRenderTerminal', () => {
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
-        blocks: [],
-        iteratorGroups: [],
+        renderBlocks: [],
+        iteratorRenderBlockGroups: [],
       }
       const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 

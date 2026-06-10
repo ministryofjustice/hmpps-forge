@@ -45,8 +45,8 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const prepareFn = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        iteratorAnswerPreparationGroups: [],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -72,8 +72,8 @@ describe('answerPreparationPhase', () => {
         prepared = true
       })
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        iteratorAnswerPreparationGroups: [],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -88,8 +88,8 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
+        iteratorAnswerPreparationGroups: [],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -103,13 +103,13 @@ describe('answerPreparationPhase', () => {
       const trace = recorder.finish('render')
 
       expect(trace.phases[0].units).toEqual([
-        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'compile_ast:1' }),
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'compile_ast:1' }),
       ])
     })
 
     it('should no-op when plan has no fields', async () => {
       // Arrange
-      const plan: AnswerPreparationPlan = { fields: [], iteratorGroups: [] }
+      const plan: AnswerPreparationPlan = { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act

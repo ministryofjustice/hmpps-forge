@@ -31,11 +31,11 @@ describe('evaluateAnswerPreparation', () => {
         order.push('second:start')
       })
       const plan: AnswerPreparationPlan = {
-        fields: [
+        fieldAnswerPreparations: [
           { nodeId: 'compile_ast:2' as const, prepare: first },
           { nodeId: 'compile_ast:3' as const, prepare: second },
         ],
-        iteratorGroups: [],
+        iteratorAnswerPreparationGroups: [],
       }
 
       // Act
@@ -60,8 +60,8 @@ describe('evaluateAnswerPreparation', () => {
         order.push(`item-${itemScope.index}:end`)
       })
       const plan: AnswerPreparationPlan = {
-        fields: [],
-        iteratorGroups: [
+        fieldAnswerPreparations: [],
+        iteratorAnswerPreparationGroups: [
           {
             nodeId: 'compile_ast:5' as const,
             evaluateInput: vi.fn().mockResolvedValue(itemScopes),
@@ -82,11 +82,11 @@ describe('evaluateAnswerPreparation', () => {
     it('should record one decision per field preparation when tracing', async () => {
       // Arrange
       const plan: AnswerPreparationPlan = {
-        fields: [
+        fieldAnswerPreparations: [
           { nodeId: 'compile_ast:2' as const, prepare: vi.fn() },
           { nodeId: 'compile_ast:3' as const, prepare: vi.fn() },
         ],
-        iteratorGroups: [],
+        iteratorAnswerPreparationGroups: [],
       }
 
       // Act
@@ -94,8 +94,8 @@ describe('evaluateAnswerPreparation', () => {
 
       // Assert
       expect(units).toEqual([
-        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'compile_ast:2' }),
-        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'compile_ast:3' }),
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'compile_ast:2' }),
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'compile_ast:3' }),
       ])
     })
 
@@ -106,8 +106,8 @@ describe('evaluateAnswerPreparation', () => {
         { item: { value: 'b' }, index: 1, rawItem: 'b', inputLength: 2 },
       ]
       const plan: AnswerPreparationPlan = {
-        fields: [],
-        iteratorGroups: [
+        fieldAnswerPreparations: [],
+        iteratorAnswerPreparationGroups: [
           {
             nodeId: 'compile_ast:5' as const,
             evaluateInput: vi.fn().mockResolvedValue(itemScopes),
@@ -122,8 +122,8 @@ describe('evaluateAnswerPreparation', () => {
       // Assert
       expect(units).toEqual([
         expect.objectContaining({ kind: 'iterator-input', nodeId: 'compile_ast:5', itemCount: 2 }),
-        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'template:1', itemIndex: 0 }),
-        expect.objectContaining({ kind: 'answer-preparation', nodeId: 'template:1', itemIndex: 1 }),
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'template:1', itemIndex: 0 }),
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'template:1', itemIndex: 1 }),
       ])
     })
 
@@ -131,8 +131,8 @@ describe('evaluateAnswerPreparation', () => {
       // Arrange
       const prepare = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fields: [{ nodeId: 'compile_ast:2' as const, prepare }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:2' as const, prepare }],
+        iteratorAnswerPreparationGroups: [],
       }
 
       // Act

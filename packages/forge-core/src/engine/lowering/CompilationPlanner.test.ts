@@ -123,7 +123,7 @@ describe('CompilationPlanner', () => {
       const stepInputs = plan.stepInputs.get(step.id)
 
       expect(stepInputs?.runtimePlan).toEqual({
-        stepId: step.id,
+        nodeId: step.id,
         path: 'step',
         staticData: {
           shared: 'step',
@@ -200,9 +200,9 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
+      const stepInputs = getReachabilityPlan(plan, journey.id).reachabilityStepInputs[0]
 
-      expect(reachabilityEntry.forwardOutcomeGroups).toEqual([
+      expect(stepInputs.forwardOutcomeGroups).toEqual([
         { outcomeIds: [redirect1.id], hookWhenNodeId: undefined },
         { outcomeIds: [redirect2.id], hookWhenNodeId: undefined },
       ])
@@ -234,10 +234,10 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
+      const stepInputs = getReachabilityPlan(plan, journey.id).reachabilityStepInputs[0]
 
       expect(plan.stepInputs.get(step.id)?.entryValidations).toEqual(step.properties.validateOnEntry)
-      expect(reachabilityEntry.fieldInventorySource).toMatchObject({
+      expect(stepInputs.fieldInventorySource).toMatchObject({
         stepId: step.id,
         fieldBlocks: [field],
         iterateNodes: [],
@@ -245,7 +245,7 @@ describe('CompilationPlanner', () => {
       })
     })
 
-    it('should collect statically-declared gotos across hooks onto the entries', () => {
+    it('should collect statically-declared gotos across hooks onto the steps', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
       const astNodeTree = new ASTNodeTree()
@@ -267,7 +267,10 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(getReachabilityPlan(plan, journey.id).entries[0].declaredOutcomes).toEqual(['/check', '/add'])
+      expect(getReachabilityPlan(plan, journey.id).reachabilityStepInputs[0].declaredOutcomes).toEqual([
+        '/check',
+        '/add',
+      ])
     })
 
     it('should preserve a compilable hook when on its forward outcome group', () => {
@@ -298,11 +301,9 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
+      const stepInputs = getReachabilityPlan(plan, journey.id).reachabilityStepInputs[0]
 
-      expect(reachabilityEntry.forwardOutcomeGroups).toEqual([
-        { outcomeIds: [redirect.id], hookWhenNodeId: hookWhen.id },
-      ])
+      expect(stepInputs.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: hookWhen.id }])
     })
 
     it('should drop hookWhenNodeId for predicates that reference request-time namespaces', () => {
@@ -336,9 +337,9 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
+      const stepInputs = getReachabilityPlan(plan, journey.id).reachabilityStepInputs[0]
 
-      expect(reachabilityEntry.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: undefined }])
+      expect(stepInputs.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: undefined }])
     })
 
     it('should not inherit unreachable redirect from ancestor journeys', () => {

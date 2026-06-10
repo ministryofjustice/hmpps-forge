@@ -23,9 +23,9 @@ import type {
   CompiledIteratorInputFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
-  FieldAnswerPreparationEntry,
+  CompiledFieldAnswerPreparation,
   IteratorAnswerPreparationGroup,
-  IteratorFieldAnswerPreparationEntry,
+  CompiledIteratorFieldAnswerPreparation,
 } from '../../../contracts/plans/compilationArtefacts.type'
 import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
@@ -304,7 +304,7 @@ export default class StepAnswerPreparationCompiler {
    * GET. The compiled function mutates ctx.answers in place and is async only if any threaded
    * expression awaits.
    */
-  compileFieldPreparation(block: FieldBlockASTNode): FieldAnswerPreparationEntry {
+  compileFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparation {
     return {
       nodeId: block.id,
       prepare: compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
@@ -345,7 +345,7 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    const fields: IteratorFieldAnswerPreparationEntry[] = []
+    const fields: CompiledIteratorFieldAnswerPreparation[] = []
 
     this.collectLeafFields(template, fields, [])
 
@@ -365,7 +365,7 @@ export default class StepAnswerPreparationCompiler {
    */
   private collectLeafFields(
     template: TemplateValue,
-    entries: IteratorFieldAnswerPreparationEntry[],
+    entries: CompiledIteratorFieldAnswerPreparation[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(

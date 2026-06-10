@@ -27,7 +27,7 @@ export interface CompiledRenderResult {
  */
 export interface CompiledReachabilityResult {
   /** Per-step: result of evaluating the entryWhen predicate (undefined = no predicate) */
-  entryResults: (boolean | undefined)[]
+  entryWhenResults: (boolean | undefined)[]
   /** Per-step: raw path strings from forward outcome goto expressions, narrowed by per-hook cascade */
   outcomeValues: (string | undefined)[][]
   /** Per-step: every statically-declared forward goto across all hooks, regardless of any guards (devtools-only) */

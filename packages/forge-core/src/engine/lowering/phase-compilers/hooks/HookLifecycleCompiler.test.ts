@@ -104,13 +104,13 @@ describe('HookLifecycleCompiler', () => {
       (ancestor.properties.onAccess ?? []).map(hook => compiler.compileAccessHook(hook)),
     )
 
-    return evaluateAccessLifecycle({ hooks }, ctx)
+    return evaluateAccessLifecycle({ accessHooks: hooks }, ctx)
   }
 
   async function runSubmit(submitHooks: SubmitHookASTNode[], ctx: HookLifecycleContext) {
     const hooks = submitHooks.map(hook => compiler.compileSubmitHook(hook))
 
-    return evaluateSubmitLifecycle({ hooks }, ctx)
+    return evaluateSubmitLifecycle({ submitHooks: hooks }, ctx)
   }
 
   beforeEach(() => {

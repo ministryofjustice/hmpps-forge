@@ -1,6 +1,6 @@
 /**
  * Compiles a reachability plan's dynamic expressions into per-step navigation
- * leaves — entry predicate, forward outcomes, tie-breaker priority — plus the
+ * leaves — entryWhen predicate, forward outcomes, tie-breaker priority — plus the
  * journey-level resume predicate. Each leaf is a small self-contained generated
  * function; the navigation walk evaluates them per request and feeds the
  * results to the reachability graph.
@@ -9,10 +9,10 @@ import { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import type { RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import type {
   ForwardOutcomeGroup,
-  ReachabilityCompilationEntry,
+  ReachabilityStepInputs,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/compilationPlan.type'
-import type { NavigationRuntimeEntry } from '../../../contracts/plans/runtimePlans.type'
+import type { CompiledNavigationStep } from '../../../contracts/plans/runtimePlans.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
@@ -37,20 +37,20 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Compiles one step's navigation runtime entry: static reachability data plus
+   * Compiles one step's navigation record: static reachability data plus
    * the optional leaves that evaluate request-time navigation expressions.
    */
-  compileEntry(entry: ReachabilityCompilationEntry, nodeRegistry: ASTNodeIndex): NavigationRuntimeEntry {
+  compileNavigationStep(inputs: ReachabilityStepInputs, nodeRegistry: ASTNodeIndex): CompiledNavigationStep {
     return {
-      stepId: entry.stepId,
-      code: entry.code,
-      isEntryPoint: entry.isEntryPoint,
-      hasValidation: entry.hasValidation,
-      cleardownFieldCodes: entry.cleardownFieldCodes,
-      declaredOutcomes: entry.declaredOutcomes,
-      evaluateEntry: this.compileEntryPredicate(entry, nodeRegistry),
-      evaluateOutcomes: this.compileStepOutcomes(entry, nodeRegistry),
-      evaluateTieBreaker: this.compileTieBreaker(entry, nodeRegistry),
+      nodeId: inputs.nodeId,
+      code: inputs.code,
+      isEntryPoint: inputs.isEntryPoint,
+      hasValidation: inputs.hasValidation,
+      cleardownFieldCodes: inputs.cleardownFieldCodes,
+      declaredOutcomes: inputs.declaredOutcomes,
+      evaluateEntryWhen: this.compileEntryPredicate(inputs, nodeRegistry),
+      evaluateOutcomes: this.compileStepOutcomes(inputs, nodeRegistry),
+      evaluateTieBreaker: this.compileTieBreaker(inputs, nodeRegistry),
     }
   }
 
@@ -59,10 +59,10 @@ export default class ReachabilityCompiler {
    * step has no `entryWhen` expression to evaluate.
    */
   private compileEntryPredicate(
-    entry: ReachabilityCompilationEntry,
+    inputs: ReachabilityStepInputs,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationPredicateFunction | undefined {
-    return this.compilePredicate(entry.entryWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileEntryPredicate')
+    return this.compilePredicate(inputs.entryWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileEntryPredicate')
   }
 
   /**
@@ -89,10 +89,10 @@ export default class ReachabilityCompiler {
    * Returns undefined when no hook contributes a redirect outcome.
    */
   private compileStepOutcomes(
-    entry: ReachabilityCompilationEntry,
+    inputs: ReachabilityStepInputs,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationOutcomesFunction | undefined {
-    const groups = entry.forwardOutcomeGroups
+    const groups = inputs.forwardOutcomeGroups
       .map(group => ({
         group,
         redirectOutcomes: group.outcomeIds.map(outcomeId => nodeRegistry.get(outcomeId)).filter(isRedirectOutcomeNode),
@@ -122,17 +122,17 @@ export default class ReachabilityCompiler {
    * Returns undefined when the step declares no tie-breakers.
    */
   private compileTieBreaker(
-    entry: ReachabilityCompilationEntry,
+    inputs: ReachabilityStepInputs,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationTieBreakerFunction | undefined {
-    if (entry.reachabilityTieBreakers.length === 0) {
+    if (inputs.reachabilityTieBreakers.length === 0) {
       return undefined
     }
 
     return compileGeneratedFunction<CompiledNavigationTieBreakerFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildTieBreakerSource(entry, nodeRegistry),
+      () => this.buildTieBreakerSource(inputs, nodeRegistry),
       { phase: 'navigation' },
     )!
   }
@@ -276,7 +276,7 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private buildTieBreakerSource(entry: ReachabilityCompilationEntry, nodeRegistry: ASTNodeIndex): string {
+  private buildTieBreakerSource(inputs: ReachabilityStepInputs, nodeRegistry: ASTNodeIndex): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -284,7 +284,7 @@ export default class ReachabilityCompiler {
 
     const priorityVar = emitter.let('tieBreakerPriority')
 
-    entry.reachabilityTieBreakers.forEach(tieBreaker => {
+    inputs.reachabilityTieBreakers.forEach(tieBreaker => {
       if (tieBreaker.whenNodeId === undefined) {
         emitter.if(`${priorityVar} === undefined`, () => {
           emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))

@@ -1,4 +1,4 @@
-import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
+import type { CompiledNavigationStep, NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
 import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
 import { JourneyRouteTemplateCatalog } from '../../contracts/routing/routeTree.type'
 import { NodeId } from '../../contracts/ast/ast.type'
@@ -11,7 +11,7 @@ import { evaluateValidation } from '../orchestrator/phases/evaluateValidation'
 /**
  * Builds the reachability state for a journey.
  *
- * Entry predicates, forward outcomes, tie-breaker priorities, and step
+ * EntryWhen predicates, forward outcomes, tie-breaker priorities, and step
  * validation determine which steps are reachable.
  */
 export default class ReachabilityGraphBuilder {
@@ -22,7 +22,7 @@ export default class ReachabilityGraphBuilder {
     validationContext: ValidationContext,
     compiledResult: CompiledReachabilityResult,
   ): Promise<NavigationStepState[]> {
-    const steps = this.createStepStates(plan.entries, routeTemplateCatalog)
+    const steps = this.createStepStates(plan.navigationSteps, routeTemplateCatalog)
 
     if (plan.reachabilityDisabled) {
       steps.forEach(step => {
@@ -35,7 +35,7 @@ export default class ReachabilityGraphBuilder {
       return steps
     }
 
-    this.seedEntryPointsFromCompiled(steps, plan.entries, compiledResult)
+    this.seedEntryPointsFromCompiled(steps, plan.navigationSteps, compiledResult)
     await this.walkReachabilityGraph(
       steps,
       plan,
@@ -52,24 +52,24 @@ export default class ReachabilityGraphBuilder {
   }
 
   private createStepStates(
-    entries: readonly NavigationRuntimeEntry[],
+    compiledSteps: readonly CompiledNavigationStep[],
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ): NavigationStepState[] {
-    return entries.map((entry, declarationIndex) => {
-      const routeTemplatePath = routeTemplateCatalog.routeTemplatePathByStepId.get(entry.stepId)
+    return compiledSteps.map((compiledStep, declarationIndex) => {
+      const routeTemplatePath = routeTemplateCatalog.routeTemplatePathByStepId.get(compiledStep.nodeId)
 
       if (!routeTemplatePath) {
-        throw new Error(`Route template path missing for step ${entry.stepId}`)
+        throw new Error(`Route template path missing for step ${compiledStep.nodeId}`)
       }
 
       return {
-        stepId: entry.stepId,
+        stepId: compiledStep.nodeId,
         routeTemplatePath,
-        code: entry.code,
+        code: compiledStep.code,
         declarationIndex,
-        isEntryPoint: entry.isEntryPoint,
+        isEntryPoint: compiledStep.isEntryPoint,
         isConditionalEntry: false,
-        hasValidation: entry.hasValidation,
+        hasValidation: compiledStep.hasValidation,
         isReachable: false,
         isValid: true,
         forwardRouteTemplatePaths: [],
@@ -83,15 +83,15 @@ export default class ReachabilityGraphBuilder {
 
   private seedEntryPointsFromCompiled(
     steps: NavigationStepState[],
-    entries: readonly NavigationRuntimeEntry[],
+    compiledSteps: readonly CompiledNavigationStep[],
     compiled: CompiledReachabilityResult,
   ): void {
-    entries.forEach((entry, index) => {
-      if (entry.isEntryPoint) {
+    compiledSteps.forEach((compiledStep, index) => {
+      if (compiledStep.isEntryPoint) {
         steps[index].isReachable = true
       }
 
-      if (compiled.entryResults[index] === true) {
+      if (compiled.entryWhenResults[index] === true) {
         steps[index].isReachable = true
         steps[index].isConditionalEntry = true
       }
@@ -175,8 +175,8 @@ export default class ReachabilityGraphBuilder {
 
     const stepValidationPlans = plan.stepValidationPlans
 
-    const entryByStepId = new Map(plan.entries.map(entry => [entry.stepId, entry]))
-    const stepIndexByStepId = new Map(plan.entries.map((entry, idx) => [entry.stepId, idx]))
+    const compiledStepByStepId = new Map(plan.navigationSteps.map(step => [step.nodeId, step]))
+    const stepIndexByStepId = new Map(plan.navigationSteps.map((step, idx) => [step.nodeId, idx]))
     const stateByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
     const visited = new Set<string>()
     const queue = steps.filter(step => step.isReachable).map(step => step.routeTemplatePath)
@@ -196,9 +196,9 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      const entry = entryByStepId.get(current.stepId)
+      const compiledStep = compiledStepByStepId.get(current.stepId)
 
-      if (!entry) {
+      if (!compiledStep) {
         continue
       }
 
@@ -208,7 +208,7 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      if (entry.hasValidation) {
+      if (compiledStep.hasValidation) {
         const validationPlan = stepValidationPlans.get(current.stepId)
 
         if (!validationPlan) {

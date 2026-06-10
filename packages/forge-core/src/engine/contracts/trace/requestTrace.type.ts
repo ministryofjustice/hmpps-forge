@@ -39,8 +39,8 @@ export interface DomainValidationTraceUnit {
  * how long it took. `itemIndex` is present when the field prepared inside an
  * iterator item.
  */
-export interface AnswerPreparationTraceUnit {
-  readonly kind: 'answer-preparation'
+export interface AnswerPreparationFieldTraceUnit {
+  readonly kind: 'answer-preparation-field'
   readonly nodeId: NodeId | TemplateNodeId
   readonly itemIndex?: number
   readonly durationMs: number
@@ -137,7 +137,7 @@ export type TraceUnit =
   | FieldValidationTraceUnit
   | IteratorInputTraceUnit
   | DomainValidationTraceUnit
-  | AnswerPreparationTraceUnit
+  | AnswerPreparationFieldTraceUnit
   | AccessHookTraceUnit
   | SubmitHookTraceUnit
   | EntryValidationRuleTraceUnit

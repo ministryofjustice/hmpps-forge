@@ -39,14 +39,14 @@ const createMockState = (): PipelineState => {
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-const emptyValidationPlan: ValidationPlan = { fields: [], iteratorGroups: [] }
+const emptyValidationPlan: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
 
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
     it('should return continue when the plan has no rules', async () => {
       // Arrange
       const phase = createEntryValidationPhase(
-        { rules: [] },
+        { entryValidationRules: [] },
         emptyValidationPlan,
         'compile_ast:1' as const,
         mockFunctionRegistry,
@@ -68,7 +68,9 @@ describe('entryValidationPhase', () => {
     it('should return continue when no rules match', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+        entryValidationRules: [
+          { nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) },
+        ],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
@@ -87,11 +89,11 @@ describe('entryValidationPhase', () => {
     it('should run validation and set state when groups are active', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [
+        iteratorValidationGroups: [],
+        fieldValidations: [
           {
             nodeId: 'compile_ast:2' as const,
             validate: vi
@@ -129,11 +131,11 @@ describe('entryValidationPhase', () => {
     it('should stamp the verdict on the global context when groups are active', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
-        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
-        iteratorGroups: [],
+        fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
+        iteratorValidationGroups: [],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
@@ -161,7 +163,7 @@ describe('entryValidationPhase', () => {
     it('should pass trivially when groups are selected but nothing validates', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
@@ -184,7 +186,9 @@ describe('entryValidationPhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+        entryValidationRules: [
+          { nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) },
+        ],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,

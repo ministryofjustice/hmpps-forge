@@ -172,7 +172,7 @@ export default class ForgeEvaluator {
           answersPhase,
           createNavigationPhase(
             compiledStep.navigationPlan,
-            runtimePlan.stepId,
+            runtimePlan.nodeId,
             ctx.routeTemplateCatalog,
             'step-get',
             functionRegistry,
@@ -180,7 +180,7 @@ export default class ForgeEvaluator {
           createEntryValidationPhase(
             compiledStep.entryValidationPlan,
             compiledStep.validationPlan,
-            runtimePlan.stepId,
+            runtimePlan.nodeId,
             functionRegistry,
           ),
         ],
@@ -193,7 +193,7 @@ export default class ForgeEvaluator {
           answersPhase,
           createNavigationPhase(
             compiledStep.navigationPlan,
-            runtimePlan.stepId,
+            runtimePlan.nodeId,
             ctx.routeTemplateCatalog,
             'step-post',
             functionRegistry,
@@ -201,7 +201,7 @@ export default class ForgeEvaluator {
           createSubmitLifecyclePhase(
             compiledStep.submitLifecyclePlan,
             compiledStep.validationPlan,
-            runtimePlan.stepId,
+            runtimePlan.nodeId,
             functionRegistry,
           ),
         ],

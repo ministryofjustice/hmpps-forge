@@ -9,13 +9,13 @@ import { isRedirectOutcomeNode } from '../contracts/ast/outcome-nodes'
 import getAncestorChain from '../ast/ast-state/getAncestorChain'
 import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
-import type { JourneyRuntimePlan, StepRuntimePlan } from '../contracts/plans/runtimePlans.type'
+import type { RuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type {
   CompilationPlan,
   FieldInventoryStepSource,
   ForwardOutcomeGroup,
   JourneyCompilationInputs,
-  ReachabilityCompilationEntry,
+  ReachabilityStepInputs,
   ReachabilityCompilationPlan,
   StepCompilationInputs,
 } from '../contracts/plans/compilationPlan.type'
@@ -48,7 +48,7 @@ export default class CompilationPlanner {
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
-      const runtimePlan = this.buildStepRuntimePlan(stepNode)
+      const runtimePlan = this.buildRuntimePlan(stepNode)
 
       stepInputs.set(stepId, this.buildStepInputs(stepNode, runtimePlan))
 
@@ -74,7 +74,7 @@ export default class CompilationPlanner {
       reachabilityPlans.set(reachabilityPlan.journeyId, reachabilityPlan)
 
       if (journeyNode) {
-        const journeyRuntimePlan = this.buildJourneyRuntimePlan(journeyNode)
+        const journeyRuntimePlan = this.buildRuntimePlan(journeyNode)
 
         journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, journeyRuntimePlan, reachabilityPlan))
       }
@@ -88,7 +88,7 @@ export default class CompilationPlanner {
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, runtimePlan: StepRuntimePlan): StepCompilationInputs {
+  private buildStepInputs(stepNode: StepASTNode, runtimePlan: RuntimePlan): StepCompilationInputs {
     const stepId = stepNode.id
     const fieldBlocks = this.allFieldBlocks
       .filter(block => this.astNodeTree.isDescendantOf(block.id, stepId))
@@ -115,10 +115,10 @@ export default class CompilationPlanner {
 
   private buildJourneyInputs(
     journeyNode: JourneyASTNode,
-    runtimePlan: JourneyRuntimePlan,
+    runtimePlan: RuntimePlan,
     reachabilityPlan: ReachabilityCompilationPlan,
   ): JourneyCompilationInputs {
-    const stepIds = reachabilityPlan.entries.map(entry => entry.stepId)
+    const stepIds = reachabilityPlan.reachabilityStepInputs.map(step => step.nodeId)
     const stepFieldBlocks = this.allFieldBlocks
       .filter(block => stepIds.some(stepId => this.astNodeTree.isDescendantOf(block.id, stepId)))
     const stepMapIterateNodes = this.allMapIterateNodes
@@ -134,19 +134,11 @@ export default class CompilationPlanner {
     }
   }
 
-  private buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
+  private buildRuntimePlan(node: StepASTNode | JourneyASTNode): RuntimePlan {
     return {
-      stepId: stepNode.id,
-      path: normalizeRelativePath(stepNode.properties.path),
-      staticData: this.buildStaticData(getAncestorChain(stepNode.id, this.astNodeTree)),
-    }
-  }
-
-  private buildJourneyRuntimePlan(journeyNode: JourneyASTNode): JourneyRuntimePlan {
-    return {
-      journeyId: journeyNode.id,
-      path: normalizeRelativePath(journeyNode.properties.path),
-      staticData: this.buildStaticData(getAncestorChain(journeyNode.id, this.astNodeTree)),
+      nodeId: node.id,
+      path: normalizeRelativePath(node.properties.path),
+      staticData: this.buildStaticData(getAncestorChain(node.id, this.astNodeTree)),
     }
   }
 
@@ -156,14 +148,14 @@ export default class CompilationPlanner {
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: JourneyIndex,
   ): ReachabilityCompilationPlan {
-    const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
+    const steps = journeySteps.map(stepNode => this.buildReachabilityStepInputs(stepNode))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
 
     return {
       journeyId,
-      entries,
+      reachabilityStepInputs: steps,
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
       resumeAlways,
       resumeWhenNodeId,
@@ -172,7 +164,7 @@ export default class CompilationPlanner {
     }
   }
 
-  private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
+  private buildReachabilityStepInputs(stepNode: StepASTNode): ReachabilityStepInputs {
     const stepId = stepNode.id
     const { forwardOutcomeGroups, declaredOutcomes } = this.extractForwardNavigation(stepNode)
     const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
@@ -181,7 +173,7 @@ export default class CompilationPlanner {
     const entryWhen = reachability?.entryWhen
 
     return {
-      stepId,
+      nodeId: stepId,
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
@@ -189,9 +181,9 @@ export default class CompilationPlanner {
       declaredOutcomes,
       hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
-      reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
-        priority: entry.properties.priority,
-        whenNodeId: entry.properties.when?.id,
+      reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(tieBreaker => ({
+        priority: tieBreaker.properties.priority,
+        whenNodeId: tieBreaker.properties.when?.id,
       })),
       fieldInventorySource: this.buildFieldInventorySource(stepId, stepNode.properties.cleardownFieldCodes ?? []),
     }

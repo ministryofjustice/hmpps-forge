@@ -17,7 +17,7 @@ import type {
   CompiledAccessHookFunction,
   CompiledSubmitHookFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
-import type { AccessHookEntry, SubmitHookEntry } from '../../../contracts/plans/compilationArtefacts.type'
+import type { CompiledAccessHook, CompiledSubmitHook } from '../../../contracts/plans/compilationArtefacts.type'
 
 /**
  * Lowers a single access or submit hook AST node into a self-contained compiled
@@ -33,12 +33,12 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one access hook into an AccessHookEntry carrying the hook node's id
+   * Compiles one access hook into an CompiledAccessHook carrying the hook node's id
    * and its compiled function. The hook's `when` predicate gates its effects and
    * outcome resolution; when no outcome resolves to a redirect or error the
    * function falls through to `{ executed: true, outcome: "continue" }`.
    */
-  compileAccessHook(hook: AccessHookASTNode): AccessHookEntry {
+  compileAccessHook(hook: AccessHookASTNode): CompiledAccessHook {
     return {
       nodeId: hook.id,
       evaluate: compileGeneratedFunction<CompiledAccessHookFunction>(
@@ -70,14 +70,14 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one submit hook into a SubmitHookEntry carrying the hook node's id
+   * Compiles one submit hook into a CompiledSubmitHook carrying the hook node's id
    * and its compiled function. The hook runs only when both its `when` and
    * `guards` predicates pass; a validating hook awaits `ctx.validate` and
    * branches on the result, while a non-validating hook applies its `onAlways`
    * branch directly. When either predicate does not pass the function falls
    * through to `{ executed: false, validated: false, outcome: "continue" }`.
    */
-  compileSubmitHook(hook: SubmitHookASTNode): SubmitHookEntry {
+  compileSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHook {
     return {
       nodeId: hook.id,
       evaluate: compileGeneratedFunction<CompiledSubmitHookFunction>(

@@ -19,7 +19,7 @@ export async function evaluateAccessLifecycle(
   ctx: HookLifecycleContext,
   trace?: TraceRecorder,
 ): Promise<CompiledAccessHookResult> {
-  for (const entry of plan.hooks) {
+  for (const entry of plan.accessHooks) {
     const startedAt = performance.now()
     const result = await entry.evaluate(ctx)
 

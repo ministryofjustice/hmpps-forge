@@ -1,7 +1,7 @@
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type {
-  FieldValidationEntry,
-  IteratorFieldValidationEntry,
+  CompiledFieldValidation,
+  CompiledIteratorFieldValidation,
   IteratorValidationGroup,
   ValidationPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
@@ -31,10 +31,16 @@ export async function evaluateValidation(
   const { isSubmission, groups } = input
 
   const fieldResults = await Promise.all(
-    validationPlan.fields.map(entry => validateField(entry, ctx, isSubmission, groups, trace)),
+    validationPlan.fieldValidations.map(entry => validateField(entry, ctx, isSubmission, groups, trace)),
   )
 
-  const iteratorResults = await evaluateIteratorGroups(validationPlan.iteratorGroups, ctx, isSubmission, groups, trace)
+  const iteratorResults = await evaluateIteratorGroups(
+    validationPlan.iteratorValidationGroups,
+    ctx,
+    isSubmission,
+    groups,
+    trace,
+  )
 
   const fieldFailures = [...fieldResults.flat(), ...iteratorResults]
 
@@ -52,7 +58,7 @@ export async function evaluateValidation(
  * entry's identity.
  */
 async function validateField(
-  entry: FieldValidationEntry,
+  entry: CompiledFieldValidation,
   ctx: ValidationContext,
   isSubmission: boolean,
   groups: string[],
@@ -135,7 +141,7 @@ async function evaluateSingleIteratorGroup(
  * the item index so per-item decisions stay distinguishable.
  */
 async function validateIteratorField(
-  field: IteratorFieldValidationEntry,
+  field: CompiledIteratorFieldValidation,
   ctx: ValidationContext,
   isSubmission: boolean,
   groups: string[],

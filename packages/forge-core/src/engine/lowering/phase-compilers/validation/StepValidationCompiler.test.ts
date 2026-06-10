@@ -165,7 +165,7 @@ describe('StepValidationCompiler', () => {
       const plan = compiler.compileEntryValidationPlan(undefined)
 
       // Assert
-      expect(plan).toEqual({ rules: [] })
+      expect(plan).toEqual({ entryValidationRules: [] })
     })
 
     it('should collect groups for matching entries', async () => {

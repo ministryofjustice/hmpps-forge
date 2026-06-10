@@ -16,7 +16,7 @@ describe('navigationPhase', () => {
     it('should return continue and store the evaluation when the current step is reachable', async () => {
       // Arrange
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { nodeId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
       ])
       const phase = createNavigationPhase(
         plan,
@@ -40,8 +40,8 @@ describe('navigationPhase', () => {
     it('should return halt-redirect with reason unreachable when the current step is not reachable', async () => {
       // Arrange
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
-        { stepId: 'compile_ast:2' as const, path: 'step-two' },
+        { nodeId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { nodeId: 'compile_ast:2' as const, path: 'step-two' },
       ])
       const phase = createNavigationPhase(
         plan,
@@ -63,13 +63,13 @@ describe('navigationPhase', () => {
       const { plan, routeTemplateCatalog } = createNavigationFixture(
         [
           {
-            stepId: 'compile_ast:1' as const,
+            nodeId: 'compile_ast:1' as const,
             path: 'step-one',
             isEntryPoint: true,
             hasValidation: true,
             evaluateOutcomes: vi.fn().mockReturnValue(['step-two']),
           },
-          { stepId: 'compile_ast:2' as const, path: 'step-two', hasValidation: true },
+          { nodeId: 'compile_ast:2' as const, path: 'step-two', hasValidation: true },
         ],
         {
           resumeConfigured: true,
@@ -98,7 +98,7 @@ describe('navigationPhase', () => {
     it('should store projected reachability on the context when params are present', async () => {
       // Arrange
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { nodeId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
       ])
       const phase = createNavigationPhase(
         plan,
@@ -120,8 +120,8 @@ describe('navigationPhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
-        { stepId: 'compile_ast:2' as const, path: 'step-two' },
+        { nodeId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { nodeId: 'compile_ast:2' as const, path: 'step-two' },
       ])
       const phase = createNavigationPhase(
         plan,
@@ -151,8 +151,8 @@ describe('navigationPhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const { plan, routeTemplateCatalog } = createNavigationFixture([
-        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
-        { stepId: 'compile_ast:2' as const, path: 'step-two' },
+        { nodeId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { nodeId: 'compile_ast:2' as const, path: 'step-two' },
       ])
       const phase = createNavigationPhase(
         plan,

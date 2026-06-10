@@ -2,14 +2,14 @@ import type { NodeId } from '../contracts/ast/engine.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import type {
-  AccessHookEntry,
+  CompiledAccessHook,
   AccessLifecyclePlan,
   AnswerPreparationPlan,
   CompiledJourney,
   CompiledStep,
-  FieldAnswerPreparationEntry,
+  CompiledFieldAnswerPreparation,
   IteratorAnswerPreparationGroup,
-  SubmitHookEntry,
+  CompiledSubmitHook,
   SubmitLifecyclePlan,
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
@@ -29,24 +29,24 @@ import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 
 /**
- * Hoisted answer-preparation entries keyed by NodeId: every field/block and MAP
+ * Hoisted answer preparations keyed by NodeId: every field/block and MAP
  * iterator group is compiled once and shared across the steps and journeys that
  * reference it. Per-step/per-journey AnswerPreparationPlans are assembled by
- * looking up these entries.
+ * looking them up.
  */
-interface AnswerPreparationEntries {
-  readonly fieldEntries: Map<NodeId, FieldAnswerPreparationEntry>
+interface HoistedAnswerPreparation {
+  readonly fields: Map<NodeId, CompiledFieldAnswerPreparation>
   readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
 }
 
 /**
- * Hoisted hook entries keyed by NodeId. Access hooks may be shared by every step
+ * Hoisted hooks keyed by NodeId. Access hooks may be shared by every step
  * under a journey-level onAccess; submit hooks belong to individual steps. Each
  * hook is compiled once and looked up when assembling lifecycle plans.
  */
-interface HookEntries {
-  readonly accessHookEntries: Map<NodeId, AccessHookEntry>
-  readonly submitHookEntries: Map<NodeId, SubmitHookEntry>
+interface HoistedHooks {
+  readonly accessHooks: Map<NodeId, CompiledAccessHook>
+  readonly submitHooks: Map<NodeId, CompiledSubmitHook>
 }
 
 export default class CodegenOrchestrator {
@@ -54,7 +54,7 @@ export default class CodegenOrchestrator {
 
   /**
    * Entry point driving every phase compiler. Compiles validation, answer-prep
-   * and hook entries once (hoisted by NodeId), then assembles immutable
+   * and hooks once (hoisted by NodeId), then assembles immutable
    * navigation plans and per-step/per-journey plans by looking them up.
    */
   compileAll(
@@ -63,11 +63,11 @@ export default class CodegenOrchestrator {
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
     const validationCompiler = new StepValidationCompiler(this.dependencies)
     const validationPlans = this.compileValidationPlans(plan, validationCompiler)
-    const answerPrepEntries = this.compileAnswerPreparationEntries(plan)
-    const hookEntries = this.compileHookEntries(plan)
+    const hoistedAnswerPrep = this.compileHoistedAnswerPreparation(plan)
+    const hoistedHooks = this.compileHoistedHooks(plan)
     const navigationPlans = this.compileNavigationPlans(plan, nodeRegistry, validationPlans)
 
-    const journeys = this.compileJourneys(plan, navigationPlans, answerPrepEntries, hookEntries)
+    const journeys = this.compileJourneys(plan, navigationPlans, hoistedAnswerPrep, hoistedHooks)
 
     const steps = new Map<NodeId, CompiledStep>()
 
@@ -80,8 +80,8 @@ export default class CodegenOrchestrator {
           navigationPlans,
           validationPlans,
           validationCompiler,
-          answerPrepEntries,
-          hookEntries,
+          hoistedAnswerPrep,
+          hoistedHooks,
         ),
       )
     })
@@ -91,7 +91,7 @@ export default class CodegenOrchestrator {
 
   /**
    * Builds each immutable NavigationRuntimePlan from pure reachability inputs:
-   * static entry data, compiled navigation leaves, field inventory leaves,
+   * static step data, compiled navigation leaves, field inventory leaves,
    * resume configuration, and the validation plans needed by graph walking.
    */
   private compileNavigationPlans(
@@ -105,13 +105,13 @@ export default class CodegenOrchestrator {
 
     plan.reachabilityPlans.forEach((reachabilityPlan, planId) => {
       navigationPlans.set(planId, {
-        entries: reachabilityPlan.entries.map(entry => ({
-          ...reachabilityCompiler.compileEntry(entry, nodeRegistry),
-          evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(entry.fieldInventorySource),
+        navigationSteps: reachabilityPlan.reachabilityStepInputs.map(stepInputs => ({
+          ...reachabilityCompiler.compileNavigationStep(stepInputs, nodeRegistry),
+          evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(stepInputs.fieldInventorySource),
         })),
         resumeConfigured: reachabilityPlan.resumeConfigured,
         resumeAlways: reachabilityPlan.resumeAlways,
-        evaluateResume: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
+        evaluateResumeWhen: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
         unreachableRedirect: reachabilityPlan.unreachableRedirect,
         reachabilityDisabled: reachabilityPlan.reachabilityDisabled,
         stepValidationPlans: this.selectStepValidationPlans(reachabilityPlan, validationPlans),
@@ -123,14 +123,14 @@ export default class CodegenOrchestrator {
 
   /**
    * Assembles a CompiledJourney per journey-root by looking up the hoisted
-   * access-hook and answer-preparation entries. A journey root carries only
+   * access hooks and answer preparations. A journey root carries only
    * access and answer-preparation plans (it runs those phases then redirects).
    */
   private compileJourneys(
     plan: CompilationPlan,
     navigationPlans: Map<NodeId, NavigationRuntimePlan>,
-    answerPrepEntries: AnswerPreparationEntries,
-    hookEntries: HookEntries,
+    hoistedAnswerPrep: HoistedAnswerPreparation,
+    hoistedHooks: HoistedHooks,
   ): Map<NodeId, CompiledJourney> {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
@@ -144,11 +144,11 @@ export default class CodegenOrchestrator {
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
         navigationPlan,
-        accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
+        accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
         answerPreparationPlan: this.assembleAnswerPreparationPlan(
           inputs.stepFieldBlocks,
           inputs.stepMapIterateNodes,
-          answerPrepEntries,
+          hoistedAnswerPrep,
         ),
       })
     })
@@ -159,7 +159,7 @@ export default class CodegenOrchestrator {
   /**
    * Assembles one CompiledStep: reuses the shared navigation plan, compiles the
    * step-specific entry-validation and render plans, and looks up the hoisted
-   * access/submit/answer-prep/validation entries. Throws if no navigation plan is
+   * access/submit/answer-prep/validation artefacts. Throws if no navigation plan is
    * registered for the step.
    */
   private compileStep(
@@ -168,8 +168,8 @@ export default class CodegenOrchestrator {
     navigationPlans: Map<NodeId, NavigationRuntimePlan>,
     validationPlans: Map<NodeId, ValidationPlan>,
     validationCompiler: StepValidationCompiler,
-    answerPrepEntries: AnswerPreparationEntries,
-    hookEntries: HookEntries,
+    hoistedAnswerPrep: HoistedAnswerPreparation,
+    hoistedHooks: HoistedHooks,
   ): CompiledStep {
     const navigationPlanId = plan.navigationPlanIdByStepId.get(inputs.stepNode.id)
 
@@ -197,12 +197,12 @@ export default class CodegenOrchestrator {
     return {
       runtimePlan: inputs.runtimePlan,
       navigationPlan,
-      accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
-      submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hookEntries.submitHookEntries),
+      accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
+      submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hoistedHooks.submitHooks),
       answerPreparationPlan: this.assembleAnswerPreparationPlan(
         inputs.fieldBlocks,
         inputs.mapIterateNodes,
-        answerPrepEntries,
+        hoistedAnswerPrep,
       ),
       entryValidationPlan,
       renderPlan,
@@ -212,19 +212,19 @@ export default class CodegenOrchestrator {
 
   /**
    * Compiles each distinct field/block and MAP iterator group across all steps
-   * exactly once, deduplicating by NodeId so entries shared across steps are not
+   * exactly once, deduplicating by NodeId so fields shared across steps are not
    * recompiled. An iterator group whose compiler yields undefined is skipped.
    */
-  private compileAnswerPreparationEntries(plan: CompilationPlan): AnswerPreparationEntries {
+  private compileHoistedAnswerPreparation(plan: CompilationPlan): HoistedAnswerPreparation {
     const compiler = new StepAnswerPreparationCompiler(this.dependencies)
-    const fieldEntries = new Map<NodeId, FieldAnswerPreparationEntry>()
+    const fields = new Map<NodeId, CompiledFieldAnswerPreparation>()
     const iteratorGroups = new Map<NodeId, IteratorAnswerPreparationGroup>()
     const visitedIterateNodes = new Set<NodeId>()
 
     plan.stepInputs.forEach(inputs => {
       inputs.fieldBlocks.forEach(block => {
-        if (!fieldEntries.has(block.id)) {
-          fieldEntries.set(block.id, compiler.compileFieldPreparation(block))
+        if (!fields.has(block.id)) {
+          fields.set(block.id, compiler.compileFieldPreparation(block))
         }
       })
 
@@ -240,7 +240,7 @@ export default class CodegenOrchestrator {
       })
     })
 
-    return { fieldEntries, iteratorGroups }
+    return { fields, iteratorGroups }
   }
 
   /**
@@ -248,23 +248,23 @@ export default class CodegenOrchestrator {
    * Access hooks are gathered from both step and journey access-ancestors so a
    * journey-level onAccess hook shared by every step is compiled a single time.
    */
-  private compileHookEntries(plan: CompilationPlan): HookEntries {
+  private compileHoistedHooks(plan: CompilationPlan): HoistedHooks {
     const compiler = new HookLifecycleCompiler(this.dependencies)
-    const accessHookEntries = new Map<NodeId, AccessHookEntry>()
-    const submitHookEntries = new Map<NodeId, SubmitHookEntry>()
+    const accessHooks = new Map<NodeId, CompiledAccessHook>()
+    const submitHooks = new Map<NodeId, CompiledSubmitHook>()
 
     plan.stepInputs.forEach(inputs => {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-          if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, compiler.compileAccessHook(hook))
+          if (!accessHooks.has(hook.id)) {
+            accessHooks.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })
 
       inputs.submitHooks.forEach(hook => {
-        if (!submitHookEntries.has(hook.id)) {
-          submitHookEntries.set(hook.id, compiler.compileSubmitHook(hook))
+        if (!submitHooks.has(hook.id)) {
+          submitHooks.set(hook.id, compiler.compileSubmitHook(hook))
         }
       })
     })
@@ -272,18 +272,18 @@ export default class CodegenOrchestrator {
     plan.journeyInputs.forEach(inputs => {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-          if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, compiler.compileAccessHook(hook))
+          if (!accessHooks.has(hook.id)) {
+            accessHooks.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })
     })
 
-    return { accessHookEntries, submitHookEntries }
+    return { accessHooks, submitHooks }
   }
 
   /**
-   * Selects the hoisted prepare entries for the given fields and iterator nodes,
+   * Selects the hoisted field preparations for the given fields and iterator nodes,
    * preserving their declared order. Iterator nodes that produced no hoisted group
    * (e.g. an iterator with no fields) are skipped, so the plan may hold fewer
    * iterator groups than the input nodes.
@@ -291,58 +291,58 @@ export default class CodegenOrchestrator {
   private assembleAnswerPreparationPlan(
     fieldBlocks: readonly FieldBlockASTNode[],
     mapIterateNodes: readonly IterateASTNode[],
-    entries: AnswerPreparationEntries,
+    hoisted: HoistedAnswerPreparation,
   ): AnswerPreparationPlan {
     const fields = fieldBlocks
-      .map(block => entries.fieldEntries.get(block.id))
-      .filter((entry): entry is FieldAnswerPreparationEntry => entry !== undefined)
+      .map(block => hoisted.fields.get(block.id))
+      .filter((field): field is CompiledFieldAnswerPreparation => field !== undefined)
 
     const groups = mapIterateNodes
-      .map(node => entries.iteratorGroups.get(node.id))
+      .map(node => hoisted.iteratorGroups.get(node.id))
       .filter((group): group is IteratorAnswerPreparationGroup => group !== undefined)
 
-    return { fields, iteratorGroups: groups }
+    return { fieldAnswerPreparations: fields, iteratorAnswerPreparationGroups: groups }
   }
 
   /**
-   * Collects the hoisted access-hook entries for every onAccess hook on the
+   * Collects the hoisted access hooks for every onAccess hook on the
    * given ancestors, in ancestor-then-declared order. No applicable hooks
    * yields an empty plan, which the access-lifecycle walk runs through as a
    * no-op.
    */
   private assembleAccessLifecyclePlan(
     accessAncestors: readonly (JourneyASTNode | StepASTNode)[],
-    entries: Map<NodeId, AccessHookEntry>,
+    hoistedAccessHooks: Map<NodeId, CompiledAccessHook>,
   ): AccessLifecyclePlan {
-    const hooks: AccessHookEntry[] = []
+    const accessHooks: CompiledAccessHook[] = []
 
     accessAncestors.forEach(ancestor => {
       ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-        const entry = entries.get(hook.id)
+        const compiledHook = hoistedAccessHooks.get(hook.id)
 
-        if (entry !== undefined) {
-          hooks.push(entry)
+        if (compiledHook !== undefined) {
+          accessHooks.push(compiledHook)
         }
       })
     })
 
-    return { hooks }
+    return { accessHooks }
   }
 
   /**
-   * Selects the hoisted submit-hook entries for the step's submit hooks, in
+   * Selects the hoisted submit hooks for the step's submit hooks, in
    * declared order. A step with no submit hooks gets an empty plan, which the
    * submit-lifecycle walk runs through as a no-op.
    */
   private assembleSubmitLifecyclePlan(
     submitHooks: readonly SubmitHookASTNode[],
-    entries: Map<NodeId, SubmitHookEntry>,
+    hoistedSubmitHooks: Map<NodeId, CompiledSubmitHook>,
   ): SubmitLifecyclePlan {
-    const hooks = submitHooks
-      .map(hook => entries.get(hook.id))
-      .filter((entry): entry is SubmitHookEntry => entry !== undefined)
+    const compiledHooks = submitHooks
+      .map(hook => hoistedSubmitHooks.get(hook.id))
+      .filter((compiledHook): compiledHook is CompiledSubmitHook => compiledHook !== undefined)
 
-    return { hooks }
+    return { submitHooks: compiledHooks }
   }
 
   /**
@@ -379,18 +379,18 @@ export default class CodegenOrchestrator {
   ): Map<NodeId, ValidationPlan> {
     const stepValidationPlans = new Map<NodeId, ValidationPlan>()
 
-    reachabilityPlan.entries
-      .filter(entry => entry.hasValidation)
-      .forEach(entry => {
-        const validationPlan = validationPlans.get(entry.stepId)
+    reachabilityPlan.reachabilityStepInputs
+      .filter(step => step.hasValidation)
+      .forEach(step => {
+        const validationPlan = validationPlans.get(step.nodeId)
 
         if (!validationPlan) {
           throw new Error(
-            `Unable to compile navigation plan "${reachabilityPlan.journeyId}" - validation plan not found for step "${entry.stepId}"`,
+            `Unable to compile navigation plan "${reachabilityPlan.journeyId}" - validation plan not found for step "${step.nodeId}"`,
           )
         }
 
-        stepValidationPlans.set(entry.stepId, validationPlan)
+        stepValidationPlans.set(step.nodeId, validationPlan)
       })
 
     return stepValidationPlans

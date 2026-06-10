@@ -42,7 +42,7 @@ const mockFunctionRegistry = {} as FunctionRegistry
 
 function mockHook(result: CompiledAccessHookResult): AccessLifecyclePlan {
   return {
-    hooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
+    accessHooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
   }
 }
 
@@ -133,7 +133,7 @@ describe('accessLifecyclePhase', () => {
 
     it('should return continue when the plan has no hooks', async () => {
       // Arrange
-      const phase = createAccessLifecyclePhase({ hooks: [] }, mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase({ accessHooks: [] }, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())

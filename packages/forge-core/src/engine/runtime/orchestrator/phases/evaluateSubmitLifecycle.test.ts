@@ -30,7 +30,7 @@ describe('evaluateSubmitLifecycle', () => {
         .mockResolvedValue({ executed: true, validated: true, outcome: 'redirect', redirect: '/next' })
       const never = vi.fn().mockResolvedValue(skippedResult)
       const plan: SubmitLifecyclePlan = {
-        hooks: [
+        submitHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: skipped },
           { nodeId: 'compile_ast:2' as const, evaluate: executed },
           { nodeId: 'compile_ast:3' as const, evaluate: never },
@@ -49,7 +49,7 @@ describe('evaluateSubmitLifecycle', () => {
     it('should return a default skipped result when no hook executes', async () => {
       // Arrange
       const plan: SubmitLifecyclePlan = {
-        hooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(skippedResult) }],
+        submitHooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(skippedResult) }],
       }
 
       // Act
@@ -64,7 +64,7 @@ describe('evaluateSubmitLifecycle', () => {
     it('should record skipped hooks and the executed hook but nothing for hooks never run', async () => {
       // Arrange
       const plan: SubmitLifecyclePlan = {
-        hooks: [
+        submitHooks: [
           { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(skippedResult) },
           {
             nodeId: 'compile_ast:2' as const,
@@ -96,7 +96,7 @@ describe('evaluateSubmitLifecycle', () => {
     it('should record status and message when an executed hook errors', async () => {
       // Arrange
       const plan: SubmitLifecyclePlan = {
-        hooks: [
+        submitHooks: [
           {
             nodeId: 'compile_ast:1' as const,
             evaluate: vi
@@ -126,7 +126,7 @@ describe('evaluateSubmitLifecycle', () => {
       // Arrange
       const evaluate = vi.fn().mockResolvedValue(skippedResult)
       const plan: SubmitLifecyclePlan = {
-        hooks: [{ nodeId: 'compile_ast:1' as const, evaluate }],
+        submitHooks: [{ nodeId: 'compile_ast:1' as const, evaluate }],
       }
 
       // Act

@@ -44,44 +44,44 @@ describe('ForgeEvaluator', () => {
   function createCompiledStep(descriptor: StepRouteDescriptor): CompiledStep {
     return {
       runtimePlan: {
-        stepId: descriptor.nodeId,
+        nodeId: descriptor.nodeId,
         path: descriptor.path,
         staticData: {},
       },
-      accessLifecyclePlan: { hooks: [] },
+      accessLifecyclePlan: { accessHooks: [] },
       navigationPlan: {
-        entries: [],
+        navigationSteps: [],
         resumeConfigured: false,
         resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         stepValidationPlans: new Map(),
       },
-      answerPreparationPlan: { fields: [], iteratorGroups: [] },
-      renderPlan: { blocks: [], iteratorGroups: [] },
-      submitLifecyclePlan: { hooks: [] },
-      entryValidationPlan: { rules: [] },
-      validationPlan: { fields: [], iteratorGroups: [] },
+      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
+      renderPlan: { renderBlocks: [], iteratorRenderBlockGroups: [] },
+      submitLifecyclePlan: { submitHooks: [] },
+      entryValidationPlan: { entryValidationRules: [] },
+      validationPlan: { fieldValidations: [], iteratorValidationGroups: [] },
     }
   }
 
   function createCompiledJourney(descriptor: JourneyRouteDescriptor): CompiledJourney {
     return {
       runtimePlan: {
-        journeyId: descriptor.nodeId,
+        nodeId: descriptor.nodeId,
         path: descriptor.path,
         staticData: {},
       },
-      accessLifecyclePlan: { hooks: [] },
+      accessLifecyclePlan: { accessHooks: [] },
       navigationPlan: {
-        entries: [],
+        navigationSteps: [],
         resumeConfigured: false,
         resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         stepValidationPlans: new Map(),
       },
-      answerPreparationPlan: { fields: [], iteratorGroups: [] },
+      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
     }
   }
 

@@ -22,7 +22,7 @@ import type TraceRecorder from '../trace/TraceRecorder'
 
 /**
  * Runs the navigation plan against the current request: evaluates every step's
- * compiled leaves (entry predicate, forward outcomes, tie-breaker) plus the
+ * compiled leaves (entryWhen predicate, forward outcomes, tie-breaker) plus the
  * journey's resume predicate — all read-only, so concurrently — then builds the
  * reachability graph from the verdicts, analyzes the progress path, projects
  * the reachability state when request params are supplied, and resolves the
@@ -104,23 +104,23 @@ async function evaluateNavigationLeaves(
 ): Promise<CompiledReachabilityResult> {
   const [verdicts, resumeActive] = await Promise.all([
     Promise.all(
-      plan.entries.map(async entry => {
-        const [entryResult, outcomes, tieBreakerPriority] = await Promise.all([
-          entry.evaluateEntry?.(ctx),
-          entry.evaluateOutcomes?.(ctx),
-          entry.evaluateTieBreaker?.(ctx),
+      plan.navigationSteps.map(async step => {
+        const [entryWhenResult, outcomes, tieBreakerPriority] = await Promise.all([
+          step.evaluateEntryWhen?.(ctx),
+          step.evaluateOutcomes?.(ctx),
+          step.evaluateTieBreaker?.(ctx),
         ])
 
-        return { entryResult, outcomes: outcomes ?? [], tieBreakerPriority }
+        return { entryWhenResult, outcomes: outcomes ?? [], tieBreakerPriority }
       }),
     ),
-    plan.evaluateResume ? plan.evaluateResume(ctx) : plan.resumeAlways,
+    plan.evaluateResumeWhen ? plan.evaluateResumeWhen(ctx) : plan.resumeAlways,
   ])
 
   return {
-    entryResults: verdicts.map(verdict => verdict.entryResult),
+    entryWhenResults: verdicts.map(verdict => verdict.entryWhenResult),
     outcomeValues: verdicts.map(verdict => verdict.outcomes),
-    declaredOutcomeValues: plan.entries.map(entry => [...entry.declaredOutcomes]),
+    declaredOutcomeValues: plan.navigationSteps.map(step => [...step.declaredOutcomes]),
     tieBreakerPriorities: verdicts.map(verdict => verdict.tieBreakerPriority),
     resumeActive,
   }
@@ -135,10 +135,10 @@ async function collectFieldInventory(
   ctx: ReachabilityContext,
 ): Promise<StepFieldInventory[]> {
   return Promise.all(
-    plan.entries.map(async entry => ({
-      stepId: entry.stepId,
-      fieldCodes: entry.evaluateFieldCodes ? await entry.evaluateFieldCodes(ctx) : [],
-      cleardownFieldCodes: entry.cleardownFieldCodes,
+    plan.navigationSteps.map(async step => ({
+      stepId: step.nodeId,
+      fieldCodes: step.evaluateFieldCodes ? await step.evaluateFieldCodes(ctx) : [],
+      cleardownFieldCodes: step.cleardownFieldCodes,
     })),
   )
 }

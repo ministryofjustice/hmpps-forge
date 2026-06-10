@@ -1,10 +1,10 @@
 import type { NodeId } from '../ast/ast.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode, StepEntryValidationAST } from '../ast/structures.type'
-import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { RuntimePlan } from './runtimePlans.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
-export interface ReachabilityTieBreakerEntry {
+export interface ReachabilityTieBreakerRule {
   readonly priority: number
   readonly whenNodeId?: NodeId
 }
@@ -28,10 +28,10 @@ export interface ForwardOutcomeGroup {
 /**
  * Compile-time inputs for one journey step's navigation leaves. The planner
  * builds one per step; its data fields are projected into the step's
- * NavigationRuntimeEntry, while the node ids feed the ReachabilityCompiler.
+ * CompiledNavigationStep, while the node ids feed the ReachabilityCompiler.
  */
-export interface ReachabilityCompilationEntry {
-  readonly stepId: NodeId
+export interface ReachabilityStepInputs {
+  readonly nodeId: NodeId
   readonly code?: string
   readonly isEntryPoint: boolean
   readonly hasValidation: boolean
@@ -41,13 +41,13 @@ export interface ReachabilityCompilationEntry {
   readonly declaredOutcomes: readonly string[]
   readonly entryWhenNodeId?: NodeId
   readonly forwardOutcomeGroups: readonly ForwardOutcomeGroup[]
-  readonly reachabilityTieBreakers: readonly ReachabilityTieBreakerEntry[]
+  readonly reachabilityTieBreakers: readonly ReachabilityTieBreakerRule[]
   readonly fieldInventorySource: FieldInventoryStepSource
 }
 
 export interface ReachabilityCompilationPlan {
   readonly journeyId: NodeId
-  readonly entries: readonly ReachabilityCompilationEntry[]
+  readonly reachabilityStepInputs: readonly ReachabilityStepInputs[]
   readonly resumeConfigured: boolean
   readonly resumeAlways: boolean
   readonly resumeWhenNodeId?: NodeId
@@ -57,7 +57,7 @@ export interface ReachabilityCompilationPlan {
 
 export interface StepCompilationInputs {
   readonly stepNode: StepASTNode
-  readonly runtimePlan: StepRuntimePlan
+  readonly runtimePlan: RuntimePlan
   readonly fieldBlocks: FieldBlockASTNode[]
   readonly validatingFieldBlocks: FieldBlockASTNode[]
   readonly mapIterateNodes: IterateASTNode[]
@@ -70,7 +70,7 @@ export interface StepCompilationInputs {
 
 export interface JourneyCompilationInputs {
   readonly journeyNode: JourneyASTNode
-  readonly runtimePlan: JourneyRuntimePlan
+  readonly runtimePlan: RuntimePlan
   readonly reachabilityPlanId: NodeId
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]

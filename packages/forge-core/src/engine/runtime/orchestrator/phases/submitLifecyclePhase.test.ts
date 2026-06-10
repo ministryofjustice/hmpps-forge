@@ -41,11 +41,11 @@ const createMockState = (): PipelineState => {
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-const emptyValidationPlan: ValidationPlan = { fields: [], iteratorGroups: [] }
+const emptyValidationPlan: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
 
 function mockHook(result: CompiledSubmitHookResult): SubmitLifecyclePlan {
   return {
-    hooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
+    submitHooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
   }
 }
 
@@ -153,11 +153,11 @@ describe('submitLifecyclePhase', () => {
       // Arrange
       const failure = { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false }
       const validationPlan: ValidationPlan = {
-        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([failure]) }],
-        iteratorGroups: [],
+        fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([failure]) }],
+        iteratorValidationGroups: [],
       }
       const plan: SubmitLifecyclePlan = {
-        hooks: [
+        submitHooks: [
           {
             nodeId: 'compile_ast:1' as const,
             evaluate: async (ctx: HookLifecycleContext) => {
@@ -191,7 +191,7 @@ describe('submitLifecyclePhase', () => {
     it('should pass validation trivially when a hook validates against an empty plan', async () => {
       // Arrange
       const plan: SubmitLifecyclePlan = {
-        hooks: [
+        submitHooks: [
           {
             nodeId: 'compile_ast:1' as const,
             evaluate: async (ctx: HookLifecycleContext) => {
@@ -221,7 +221,7 @@ describe('submitLifecyclePhase', () => {
     it('should fall through to continue when the step has no submit hooks', async () => {
       // Arrange
       const phase = createSubmitLifecyclePhase(
-        { hooks: [] },
+        { submitHooks: [] },
         emptyValidationPlan,
         'compile_ast:1' as const,
         mockFunctionRegistry,

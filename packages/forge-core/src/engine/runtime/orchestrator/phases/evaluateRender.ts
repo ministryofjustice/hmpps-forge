@@ -15,8 +15,8 @@ export async function evaluateRender(plan: RenderPlan, ctx: RenderCompilationCon
   const [step, ancestors, staticBlocks, iteratorBlocks] = await Promise.all([
     plan.compiledStepMetadata?.(ctx) ?? {},
     plan.compiledAncestorMetadata?.(ctx) ?? [],
-    Promise.all(plan.blocks.map(entry => entry.render(ctx))),
-    evaluateIteratorGroups(plan.iteratorGroups, ctx),
+    Promise.all(plan.renderBlocks.map(entry => entry.render(ctx))),
+    evaluateIteratorGroups(plan.iteratorRenderBlockGroups, ctx),
   ])
 
   return {
