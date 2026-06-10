@@ -11,6 +11,11 @@ import type { StepValidityResult, ValidationEvaluationInput } from '../../../con
 import type TraceRecorder from '../trace/TraceRecorder'
 
 /**
+ * The engine's only sub-walk: a walk with no phase of its own, run by three
+ * hosts — the entry-validation phase, submit hooks on demand via the
+ * `ctx.validate(groups)` callback, and the reachability walk's re-check of
+ * each visited step's validity.
+ *
  * Runs a step's ValidationPlan: validates every plain field and every
  * iterator-group field (per expanded item), then runs the optional domain
  * validator. The plain fields all validate concurrently, as do the iterator

@@ -190,6 +190,8 @@ export default class CodegenOrchestrator {
 
     const entryValidationPlan = validationCompiler.compileEntryValidationPlan(inputs.entryValidations)
 
+    // Per-step instance, unlike the one-per-compileAll compilers:
+    // StepRenderCompiler accumulates mutable per-step state (inlineIterateIds).
     const renderCompiler = new StepRenderCompiler(this.dependencies)
     const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
 
