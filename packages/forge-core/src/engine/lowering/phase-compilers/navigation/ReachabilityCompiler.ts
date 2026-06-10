@@ -114,7 +114,7 @@ export default class ReachabilityCompiler {
       ['ctx'],
       () => this.buildOutcomesSource(groups, nodeRegistry),
       { phase: 'navigation' },
-    )!
+    )
   }
 
   /**
@@ -140,7 +140,7 @@ export default class ReachabilityCompiler {
       ['ctx'],
       () => this.buildTieBreakerSource(inputs, nodeRegistry),
       { phase: 'navigation' },
-    )!
+    )
   }
 
   private compilePredicate(
@@ -163,7 +163,7 @@ export default class ReachabilityCompiler {
       ['ctx'],
       () => this.buildPredicateSource(node, label),
       { phase: 'navigation' },
-    )!
+    )
   }
 
   private buildPredicateSource(node: ASTNode, label: string): string {

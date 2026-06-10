@@ -49,7 +49,7 @@ export default class StepFieldInventoryCompiler {
       ['ctx'],
       () => this.buildStepFieldCodesSource(step),
       { phase: 'field-inventory' },
-    )!
+    )
   }
 
   /**

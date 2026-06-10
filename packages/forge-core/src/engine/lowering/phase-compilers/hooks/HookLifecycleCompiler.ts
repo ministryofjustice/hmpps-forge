@@ -46,7 +46,7 @@ export default class HookLifecycleCompiler {
         ['ctx'],
         () => this.buildAccessHookSource(hook),
         { forceAsync: true, phase: 'hooks' },
-      )!,
+      ),
     }
   }
 
@@ -85,7 +85,7 @@ export default class HookLifecycleCompiler {
         ['ctx'],
         () => this.buildSubmitHookSource(hook),
         { forceAsync: true, phase: 'hooks' },
-      )!,
+      ),
     }
   }
 
