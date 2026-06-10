@@ -27,8 +27,8 @@ export default class StepFieldInventoryCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
-  constructor(dependencies: CompilationDependencies, sharedExpr?: ExpressionDispatcher) {
-    this.expr = sharedExpr ?? new ExpressionDispatcher(dependencies)
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
