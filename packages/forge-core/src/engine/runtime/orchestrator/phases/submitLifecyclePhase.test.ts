@@ -41,6 +41,8 @@ const createMockState = (): PipelineState => {
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
+const emptyValidationPlan: ValidationPlan = { fields: [], iteratorGroups: [] }
+
 function mockHook(result: CompiledSubmitHookResult): SubmitLifecyclePlan {
   return {
     hooks: [{ nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockReturnValue(result) }],
@@ -52,7 +54,12 @@ describe('submitLifecyclePhase', () => {
     it('should return continue and set showValidationFailures when hooks pass', async () => {
       // Arrange
       const plan = mockHook({ executed: true, validated: true, outcome: 'continue' })
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
 
       // Act
       const state = createMockState()
@@ -66,7 +73,12 @@ describe('submitLifecyclePhase', () => {
     it('should return halt-redirect when submit hooks redirect', async () => {
       // Arrange
       const plan = mockHook({ executed: true, validated: false, outcome: 'redirect', redirect: '/next' })
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
 
       // Act
       const result = await phase.execute(createMockState())
@@ -78,7 +90,12 @@ describe('submitLifecyclePhase', () => {
     it('should return halt-error when submit hooks error', async () => {
       // Arrange
       const plan = mockHook({ executed: true, validated: false, outcome: 'error', status: 400, message: 'Bad request' })
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
 
       // Act
       const result = await phase.execute(createMockState())
@@ -90,7 +107,12 @@ describe('submitLifecyclePhase', () => {
     it('should throw when redirect target is missing', async () => {
       // Arrange
       const plan = mockHook({ executed: true, validated: false, outcome: 'redirect', redirect: undefined })
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
 
       // Act & Assert
       await expect(phase.execute(createMockState())).rejects.toThrow('Hook redirect target is missing')
@@ -100,7 +122,12 @@ describe('submitLifecyclePhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const plan = mockHook({ executed: true, validated: true, outcome: 'continue' })
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
 
       recorder.beginPhase('submit-lifecycle')
 
@@ -135,13 +162,7 @@ describe('submitLifecyclePhase', () => {
           },
         ],
       }
-      const phase = createSubmitLifecyclePhase(
-        plan,
-        validationPlan,
-        'compile_ast:9' as const,
-        '/step',
-        mockFunctionRegistry,
-      )
+      const phase = createSubmitLifecyclePhase(plan, validationPlan, 'compile_ast:9' as const, mockFunctionRegistry)
 
       // Act
       const state = createMockState()
@@ -161,7 +182,7 @@ describe('submitLifecyclePhase', () => {
       expect(state.validation).toEqual(expect.objectContaining({ isValid: false, fieldFailures: [failure] }))
     })
 
-    it('should throw when a hook validates without a validation plan', async () => {
+    it('should pass validation trivially when a hook validates against an empty plan', async () => {
       // Arrange
       const plan: SubmitLifecyclePlan = {
         hooks: [
@@ -175,26 +196,39 @@ describe('submitLifecyclePhase', () => {
           },
         ],
       }
-      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
-
-      // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('Validation plan is missing for step "/step"')
-    })
-
-    it('should throw when plan is missing', async () => {
-      // Arrange
       const phase = createSubmitLifecyclePhase(
-        undefined,
-        undefined,
+        plan,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
-      // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow(
-        'Submit lifecycle plan is missing for step "/step"',
+      // Act
+      const state = createMockState()
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.validation).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
+    })
+
+    it('should fall through to continue when the step has no submit hooks', async () => {
+      // Arrange
+      const phase = createSubmitLifecyclePhase(
+        { hooks: [] },
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
       )
+
+      // Act
+      const state = createMockState()
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.showValidationFailures).toBe(false)
+      expect(state.validation).toBeUndefined()
     })
   })
 })

@@ -51,7 +51,7 @@ describe('accessLifecyclePhase', () => {
     it('should return continue when access lifecycle passes', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'continue' })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -63,7 +63,7 @@ describe('accessLifecyclePhase', () => {
     it('should return halt-redirect when access lifecycle redirects', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'redirect', redirect: '/login' })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -75,7 +75,7 @@ describe('accessLifecyclePhase', () => {
     it('should throw when redirect target is missing', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'redirect', redirect: undefined })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act & Assert
       await expect(phase.execute(createMockState())).rejects.toThrow('Hook redirect target is missing')
@@ -84,7 +84,7 @@ describe('accessLifecyclePhase', () => {
     it('should return halt-error when access lifecycle errors', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'error', status: 403, message: 'Forbidden' })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -96,7 +96,7 @@ describe('accessLifecyclePhase', () => {
     it('should default error status to 500 when not provided', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'error' })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act
       const result = await phase.execute(createMockState())
@@ -109,7 +109,7 @@ describe('accessLifecyclePhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const plan = mockHook({ executed: true, outcome: 'continue' })
-      const phase = createAccessLifecyclePhase(plan, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       recorder.beginPhase('access-lifecycle')
 
@@ -125,12 +125,15 @@ describe('accessLifecyclePhase', () => {
       ])
     })
 
-    it('should throw when plan is missing', async () => {
+    it('should return continue when the plan has no hooks', async () => {
       // Arrange
-      const phase = createAccessLifecyclePhase(undefined, '/step', mockFunctionRegistry)
+      const phase = createAccessLifecyclePhase({ hooks: [] }, mockFunctionRegistry)
 
-      // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('Access lifecycle plan is missing for "/step"')
+      // Act
+      const result = await phase.execute(createMockState())
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
     })
   })
 })

@@ -48,7 +48,7 @@ describe('stepRenderTerminal', () => {
         blocks: [],
         iteratorGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
+      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = createMockState()
@@ -66,7 +66,7 @@ describe('stepRenderTerminal', () => {
         blocks: [],
         iteratorGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
+      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = createMockState({
@@ -87,14 +87,6 @@ describe('stepRenderTerminal', () => {
       if (result.type === 'render') {
         expect(result.context.showValidationFailures).toBe(true)
       }
-    })
-
-    it('should throw when render plan is missing', async () => {
-      // Arrange
-      const terminal = createStepRenderTerminal(undefined, '/step', [], '/journey/step', mockFunctionRegistry)
-
-      // Act & Assert
-      await expect(terminal.execute(createMockState())).rejects.toThrow('Render plan is missing for step "/step"')
     })
   })
 })

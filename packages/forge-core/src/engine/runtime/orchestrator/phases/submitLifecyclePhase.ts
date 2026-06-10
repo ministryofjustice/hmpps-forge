@@ -17,30 +17,25 @@ import type { RequestPhase } from '../types'
  * halts with its status/message (defaulting to 500), otherwise records on the
  * pipeline state whether the hook triggered validation
  * (`showValidationFailures`) and the verdict the callback returned, then
- * continues. Throws when the submit lifecycle plan is missing, or when a hook
- * validates without a validation plan.
+ * continues.
  */
+// TODO: Probably worth revisiting what a POST to a step with no submit hooks
+// should do. With an empty plan the walk executes nothing and the request just
+// falls through to re-render; uniform with every other empty plan, but it can
+// hide an authoring mistake. The louder alternative would be to not mount the
+// POST route at all in ForgeEvaluator when a step has no hooks.
 export function createSubmitLifecyclePhase(
-  submitLifecyclePlan: SubmitLifecyclePlan | undefined,
-  validationPlan: ValidationPlan | undefined,
+  submitLifecyclePlan: SubmitLifecyclePlan,
+  validationPlan: ValidationPlan,
   stepId: NodeId,
-  path: string,
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
     name: 'submit-lifecycle',
     async execute(state) {
-      if (!submitLifecyclePlan) {
-        throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
-      }
-
       let validationResult: StepValidityResult | undefined
 
       const validate = async (groups: string[]) => {
-        if (!validationPlan) {
-          throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
-        }
-
         const validation = await evaluateValidation(
           validationPlan,
           buildCompiledBaseContext(state.context, functionRegistry),

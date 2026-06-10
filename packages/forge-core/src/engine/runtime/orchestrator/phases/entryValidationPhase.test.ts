@@ -39,15 +39,16 @@ const createMockState = (): PipelineState => {
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
+const emptyValidationPlan: ValidationPlan = { fields: [], iteratorGroups: [] }
+
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
-    it('should return continue when no entry validation plan is configured', async () => {
+    it('should return continue when the plan has no rules', async () => {
       // Arrange
       const phase = createEntryValidationPhase(
-        undefined,
-        undefined,
+        { rules: [] },
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
@@ -65,9 +66,8 @@ describe('entryValidationPhase', () => {
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
-        undefined,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
@@ -100,7 +100,6 @@ describe('entryValidationPhase', () => {
         entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
@@ -134,7 +133,6 @@ describe('entryValidationPhase', () => {
         entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
@@ -154,21 +152,26 @@ describe('entryValidationPhase', () => {
       )
     })
 
-    it('should throw when groups are selected but the validation plan is missing', async () => {
+    it('should pass trivially when groups are selected but nothing validates', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
         rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
-        undefined,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 
-      // Act & Assert
-      await expect(phase.execute(createMockState())).rejects.toThrow('Validation plan is missing for step "/step"')
+      // Act
+      const state = createMockState()
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.showValidationFailures).toBe(true)
+      expect(state.validation).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
     })
 
     it('should record entry-validation-rule units into the state trace recorder when present', async () => {
@@ -179,9 +182,8 @@ describe('entryValidationPhase', () => {
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
-        undefined,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
       )
 

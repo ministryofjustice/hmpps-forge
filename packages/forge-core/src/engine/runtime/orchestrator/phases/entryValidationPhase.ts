@@ -13,34 +13,24 @@ import type { RequestPhase } from '../types'
  * surfaces failures for display rather than halting the request. Whenever any group is
  * selected it records the verdict on `state.validation`, stamps
  * `context.global.validation` so compiled code can read the prior verdict, and sets
- * `state.showValidationFailures` so the render phase reveals any failures. Throws when
- * groups are selected but the step has no validation plan. Short-circuits with
- * `continue` when the step has no entry-validation plan or when no rule selects any
- * group, leaving `state` untouched.
+ * `state.showValidationFailures` so the render phase reveals any failures.
+ * Short-circuits with `continue` when no rule selects any group (an empty plan
+ * selects none), leaving `state` untouched.
  */
 export function createEntryValidationPhase(
-  entryValidationPlan: EntryValidationPlan | undefined,
-  validationPlan: ValidationPlan | undefined,
+  entryValidationPlan: EntryValidationPlan,
+  validationPlan: ValidationPlan,
   stepId: NodeId,
-  path: string,
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
     name: 'entry-validation',
     async execute(state) {
-      if (!entryValidationPlan) {
-        return { action: 'continue' }
-      }
-
       const ctx = buildCompiledBaseContext(state.context, functionRegistry)
       const groups = await evaluateEntryValidation(entryValidationPlan, ctx, state.trace)
 
       if (groups.length === 0) {
         return { action: 'continue' }
-      }
-
-      if (!validationPlan) {
-        throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
       }
 
       const result = await evaluateValidation(validationPlan, ctx, { isSubmission: false, groups }, state.trace)

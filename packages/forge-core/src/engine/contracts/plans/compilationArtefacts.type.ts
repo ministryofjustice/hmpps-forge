@@ -179,18 +179,18 @@ export interface SubmitLifecyclePlan {
 
 /**
  * The fully compiled artefacts for one step: its runtime/navigation plans plus
- * the per-phase plans the runtime executes. Phase plans are optional because a
- * step may declare no work for that phase (e.g. no submit hooks on a GET-only
- * step); the answer-preparation plan is always present.
+ * the per-phase plans the runtime executes. Every phase plan is always present;
+ * a step that declares no work for a phase gets an empty plan, which the
+ * phase's walk runs through as a no-op.
  */
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
-  accessLifecyclePlan?: AccessLifecyclePlan
-  submitLifecyclePlan?: SubmitLifecyclePlan
-  entryValidationPlan?: EntryValidationPlan
-  renderPlan?: RenderPlan
-  validationPlan?: ValidationPlan
+  accessLifecyclePlan: AccessLifecyclePlan
+  submitLifecyclePlan: SubmitLifecyclePlan
+  entryValidationPlan: EntryValidationPlan
+  renderPlan: RenderPlan
+  validationPlan: ValidationPlan
   answerPreparationPlan: AnswerPreparationPlan
 }
 
@@ -202,7 +202,7 @@ export interface CompiledStep {
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
   navigationPlan: NavigationRuntimePlan
-  accessLifecyclePlan?: AccessLifecyclePlan
+  accessLifecyclePlan: AccessLifecyclePlan
   answerPreparationPlan: AnswerPreparationPlan
 }
 

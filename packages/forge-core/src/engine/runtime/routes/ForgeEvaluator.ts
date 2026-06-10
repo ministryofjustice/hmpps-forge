@@ -155,17 +155,12 @@ export default class ForgeEvaluator {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
       const runtimePlan = compiledStep.runtimePlan
 
-      const accessPhase = createAccessLifecyclePhase(
-        compiledStep.accessLifecyclePlan,
-        runtimePlan.path,
-        functionRegistry,
-      )
+      const accessPhase = createAccessLifecyclePhase(compiledStep.accessLifecyclePlan, functionRegistry)
 
       const answersPhase = createAnswerPreparationPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
       const renderTerminal = createStepRenderTerminal(
         compiledStep.renderPlan,
-        runtimePlan.path,
         this.routeTreeIndex.roots,
         ctx.routeTemplatePath,
         functionRegistry,
@@ -186,7 +181,6 @@ export default class ForgeEvaluator {
             compiledStep.entryValidationPlan,
             compiledStep.validationPlan,
             runtimePlan.stepId,
-            runtimePlan.path,
             functionRegistry,
           ),
         ],
@@ -208,7 +202,6 @@ export default class ForgeEvaluator {
             compiledStep.submitLifecyclePlan,
             compiledStep.validationPlan,
             runtimePlan.stepId,
-            runtimePlan.path,
             functionRegistry,
           ),
         ],
@@ -269,7 +262,7 @@ export default class ForgeEvaluator {
 
       const orchestrator = new RequestOrchestrator(
         [
-          createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, runtimePlan.path, functionRegistry),
+          createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, functionRegistry),
           createAnswerPreparationPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
         createJourneyRedirectTerminal(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),

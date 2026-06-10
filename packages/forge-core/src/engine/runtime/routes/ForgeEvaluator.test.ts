@@ -59,6 +59,9 @@ describe('ForgeEvaluator', () => {
       },
       answerPreparationPlan: { fields: [], iteratorGroups: [] },
       renderPlan: { blocks: [], iteratorGroups: [] },
+      submitLifecyclePlan: { hooks: [] },
+      entryValidationPlan: { rules: [] },
+      validationPlan: { fields: [], iteratorGroups: [] },
     }
   }
 
@@ -69,6 +72,7 @@ describe('ForgeEvaluator', () => {
         path: descriptor.path,
         staticData: {},
       },
+      accessLifecyclePlan: { hooks: [] },
       navigationPlan: {
         entries: [],
         resumeConfigured: false,

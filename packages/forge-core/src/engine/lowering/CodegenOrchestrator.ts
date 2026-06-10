@@ -88,7 +88,7 @@ export default class CodegenOrchestrator {
   private compileNavigation(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
+    validationPlans: Map<NodeId, ValidationPlan>,
   ): void {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
     const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
@@ -151,7 +151,7 @@ export default class CodegenOrchestrator {
   private compileStep(
     inputs: StepCompilationInputs,
     plan: CompilationPlan,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
+    validationPlans: Map<NodeId, ValidationPlan>,
     answerPrepEntries: AnswerPreparationEntries,
     hookEntries: HookEntries,
   ): CompiledStep {
@@ -159,6 +159,12 @@ export default class CodegenOrchestrator {
 
     if (!navigationPlan) {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan not found`)
+    }
+
+    const validationPlan = validationPlans.get(inputs.stepNode.id)
+
+    if (!validationPlan) {
+      throw new Error(`Unable to compile step "${inputs.stepNode.id}" - validation plan not found`)
     }
 
     const validationCompiler = new StepValidationCompiler(this.dependencies)
@@ -181,7 +187,7 @@ export default class CodegenOrchestrator {
       ),
       entryValidationPlan,
       renderPlan,
-      validationPlan: validationPlans.get(inputs.stepNode.id),
+      validationPlan,
     }
   }
 
@@ -281,13 +287,14 @@ export default class CodegenOrchestrator {
 
   /**
    * Collects the hoisted access-hook entries for every onAccess hook on the
-   * given ancestors, in ancestor-then-declared order. Returns undefined when no
-   * hooks apply so the runtime can skip the access-lifecycle phase entirely.
+   * given ancestors, in ancestor-then-declared order. No applicable hooks
+   * yields an empty plan, which the access-lifecycle walk runs through as a
+   * no-op.
    */
   private assembleAccessLifecyclePlan(
     accessAncestors: readonly (JourneyASTNode | StepASTNode)[],
     entries: Map<NodeId, AccessHookEntry>,
-  ): AccessLifecyclePlan | undefined {
+  ): AccessLifecyclePlan {
     const hooks: AccessHookEntry[] = []
 
     accessAncestors.forEach(ancestor => {
@@ -300,29 +307,21 @@ export default class CodegenOrchestrator {
       })
     })
 
-    if (hooks.length === 0) {
-      return undefined
-    }
-
     return { hooks }
   }
 
   /**
    * Selects the hoisted submit-hook entries for the step's submit hooks, in
-   * declared order. Returns undefined when the step has no submit hooks so the
-   * runtime can skip the submit-lifecycle phase.
+   * declared order. A step with no submit hooks gets an empty plan, which the
+   * submit-lifecycle walk runs through as a no-op.
    */
   private assembleSubmitLifecyclePlan(
     submitHooks: readonly SubmitHookASTNode[],
     entries: Map<NodeId, SubmitHookEntry>,
-  ): SubmitLifecyclePlan | undefined {
+  ): SubmitLifecyclePlan {
     const hooks = submitHooks
       .map(hook => entries.get(hook.id))
       .filter((entry): entry is SubmitHookEntry => entry !== undefined)
-
-    if (hooks.length === 0) {
-      return undefined
-    }
 
     return { hooks }
   }
@@ -332,8 +331,8 @@ export default class CodegenOrchestrator {
    * validWhen domain rule and MAP iterator nodes. The result is keyed by stepId
    * for reuse both as the step's validationPlan and by navigation reachability.
    */
-  private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {
-    const validationPlans = new Map<NodeId, ValidationPlan | undefined>()
+  private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan> {
+    const validationPlans = new Map<NodeId, ValidationPlan>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
       const compiler = new StepValidationCompiler(this.dependencies)
@@ -358,7 +357,7 @@ export default class CodegenOrchestrator {
    */
   private selectStepValidationPlans(
     reachabilityPlan: ReachabilityCompilationPlan,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
+    validationPlans: Map<NodeId, ValidationPlan>,
   ): Map<NodeId, ValidationPlan> {
     const stepValidationPlans = new Map<NodeId, ValidationPlan>()
 

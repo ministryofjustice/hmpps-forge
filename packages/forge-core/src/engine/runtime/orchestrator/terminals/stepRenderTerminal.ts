@@ -17,12 +17,10 @@ import type { TerminalPhase } from '../types'
  * render ForgeResult carrying the RenderContext.
  *
  * Validation failures from the pipeline state are attached to blocks only when
- * showValidationFailures is set. Throws if the step has no RenderPlan, which is
- * a compilation invariant rather than a request-time condition.
+ * showValidationFailures is set.
  */
 export function createStepRenderTerminal(
-  renderPlan: RenderPlan | undefined,
-  path: string,
+  renderPlan: RenderPlan,
   routeTree: StoredRouteTree,
   currentRouteTemplatePath: string,
   functionRegistry: FunctionRegistry,
@@ -30,10 +28,6 @@ export function createStepRenderTerminal(
   return {
     name: 'render',
     async execute(state) {
-      if (!renderPlan) {
-        throw new Error(`[Forge] Render plan is missing for step "${path}"`)
-      }
-
       const renderResult = await evaluateRender(renderPlan, buildCompiledRenderContext(state.context, functionRegistry))
       const step = resolveStepMetadata(
         renderResult.step as RenderContext['step'],

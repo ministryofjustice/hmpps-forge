@@ -75,14 +75,11 @@ export default class StepValidationCompiler {
    * Builds the on-GET-entry group selector: one rule per authored `validateOnEntry`
    * clause, each carrying the validation groups to run plus a compiled `when` predicate.
    * A `when` of literal `true` yields no predicate (the groups run unconditionally).
-   * Returns undefined when there are no entry-validation clauses.
+   * A step with no entry-validation clauses yields an empty plan, which selects
+   * no groups.
    */
-  compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan | undefined {
-    if (entries === undefined || entries.length === 0) {
-      return undefined
-    }
-
-    const rules: EntryValidationRule[] = entries.map(entry => ({
+  compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan {
+    const rules: EntryValidationRule[] = (entries ?? []).map(entry => ({
       nodeId: entry.id,
       groups: entry.groups,
       evaluate: entry.when === true ? undefined : this.compileEntryValidationRule(entry.when),
@@ -123,13 +120,14 @@ export default class StepValidationCompiler {
    * Assembles the step's {@link ValidationPlan}: one compiled validation function per
    * field that declares `validWhen`, one iterator group per MAP iterate node, and an
    * optional step-level domain validation function. Fields and iterate nodes without
-   * configured validation contribute nothing. Returns undefined when nothing validates.
+   * configured validation contribute nothing; a step where nothing validates yields
+   * an empty plan, which trivially passes.
    */
   compileValidationPlan(
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
-  ): ValidationPlan | undefined {
+  ): ValidationPlan {
     const fields: FieldValidationEntry[] = []
 
     for (const block of fieldBlocks) {
@@ -154,10 +152,6 @@ export default class StepValidationCompiler {
     }
 
     const domain = this.compileDomainValidation(domainValidWhen)
-
-    if (fields.length === 0 && iteratorGroups.length === 0 && domain === undefined) {
-      return undefined
-    }
 
     return { fields, iteratorGroups, domain }
   }

@@ -34,17 +34,12 @@ import type { ValidationPlan } from '../../../contracts/plans/compilationArtefac
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 
 // Drives the real validation walk over the compiled plan.
-// compileValidationPlan returns undefined for an empty step, which is a passing result.
 async function runValidation(
-  plan: ValidationPlan | undefined,
+  plan: ValidationPlan,
   ctx: ValidationContext,
   isSubmission: boolean,
   groups: string[] = [],
 ): Promise<StepValidityResult> {
-  if (!plan) {
-    return { isValid: true, fieldFailures: [], domainFailures: [] }
-  }
-
   return evaluateValidation(plan, ctx, { isSubmission, groups })
 }
 
@@ -177,12 +172,12 @@ describe('StepValidationCompiler', () => {
   })
 
   describe('compileEntryValidationPlan()', () => {
-    it('should return undefined when no entries are configured', () => {
+    it('should return an empty plan when no entries are configured', () => {
       // Act
       const plan = compiler.compileEntryValidationPlan(undefined)
 
       // Assert
-      expect(plan).toBeUndefined()
+      expect(plan).toEqual({ rules: [] })
     })
 
     it('should collect groups for matching entries', async () => {
