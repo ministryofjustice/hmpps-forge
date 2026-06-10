@@ -8,16 +8,17 @@ import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
 
 /**
- * Builds the POST step's submit phase: runs the step's submit hooks, wiring a
- * `validate(groups)` callback that runs the step's ValidationPlan on demand from
- * within a hook. Branches on the first executed hook's outcome — 'redirect'
- * halts with its target (500 if the target is missing), 'error' halts with its
- * status/message (defaulting to 500), otherwise records on the pipeline state
- * whether the hook triggered validation (`showValidationFailures`) and the
- * verdict left on `context.global.validation` by the validation run, then
- * continues. Throws when the submit lifecycle plan is missing.
+ * Builds the POST step's submit-lifecycle phase: runs the step's submit hooks,
+ * wiring a `validate(groups)` callback that runs the step's ValidationPlan on
+ * demand from within a hook. Branches on the first executed hook's outcome —
+ * 'redirect' halts with its target (500 if the target is missing), 'error'
+ * halts with its status/message (defaulting to 500), otherwise records on the
+ * pipeline state whether the hook triggered validation
+ * (`showValidationFailures`) and the verdict left on
+ * `context.global.validation` by the validation run, then continues. Throws
+ * when the submit lifecycle plan is missing.
  */
-export function createSubmitPhase(
+export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan | undefined,
   validationPlan: ValidationPlan | undefined,
   stepId: NodeId,
@@ -25,7 +26,7 @@ export function createSubmitPhase(
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
-    name: 'submit-hooks',
+    name: 'submit-lifecycle',
     async execute(state) {
       if (!submitLifecyclePlan) {
         throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
@@ -36,6 +37,7 @@ export function createSubmitPhase(
         buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, groups =>
           evaluateValidation(validationPlan, path, stepId, state.context, functionRegistry, true, groups, state.trace),
         ),
+        state.trace,
       )
 
       if (result.outcome === 'redirect') {
@@ -43,7 +45,7 @@ export function createSubmitPhase(
           throw createHttpError(500, 'Hook redirect target is missing')
         }
 
-        return { action: 'halt-redirect', target: result.redirect, reason: 'submit' }
+        return { action: 'halt-redirect', target: result.redirect, reason: 'submit-lifecycle' }
       }
 
       if (result.outcome === 'error') {

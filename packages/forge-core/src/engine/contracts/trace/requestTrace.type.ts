@@ -63,6 +63,27 @@ export interface AccessHookTraceUnit {
 }
 
 /**
+ * One submit hook's evaluation: recorded for every hook the submit-lifecycle
+ * walk evaluates, in declared order. `executed: false` means the hook's
+ * when/guards predicates skipped it and the walk moved on; the first executed
+ * hook short-circuits the walk, so hooks after it never ran and are absent.
+ * `validated` records whether the hook ran on-demand validation (whose units
+ * are recorded alongside this one). `redirect` carries the target and
+ * `status`/`message` the error payload when the executed hook halted.
+ */
+export interface SubmitHookTraceUnit {
+  readonly kind: 'submit-hook'
+  readonly nodeId: NodeId
+  readonly executed: boolean
+  readonly validated: boolean
+  readonly outcome: 'continue' | 'redirect' | 'error'
+  readonly redirect?: string
+  readonly status?: number
+  readonly message?: string
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -73,6 +94,7 @@ export type TraceUnit =
   | DomainValidationTraceUnit
   | AnswerPreparationTraceUnit
   | AccessHookTraceUnit
+  | SubmitHookTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

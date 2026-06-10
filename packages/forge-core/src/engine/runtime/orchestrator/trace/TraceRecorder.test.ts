@@ -70,7 +70,7 @@ describe('TraceRecorder', () => {
       const recorder = new TraceRecorder()
 
       // Act
-      recorder.beginPhase('submit-hooks')
+      recorder.beginPhase('submit-lifecycle')
       recorder.record(fieldUnit('compile_ast:1', false))
 
       const trace = recorder.finish('error')
@@ -80,7 +80,7 @@ describe('TraceRecorder', () => {
       expect(trace.phases).toHaveLength(1)
       expect(trace.phases[0]).toEqual(
         expect.objectContaining({
-          phase: 'submit-hooks',
+          phase: 'submit-lifecycle',
           outcome: 'error',
           units: [fieldUnit('compile_ast:1', false)],
         }),

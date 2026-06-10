@@ -108,7 +108,7 @@ describe('HookLifecycleCompiler', () => {
   }
 
   async function runSubmit(submitHooks: SubmitHookASTNode[], ctx: HookLifecycleContext) {
-    const hooks = submitHooks.map(hook => ({ evaluate: compiler.compileSingleSubmitHook(hook) }))
+    const hooks = submitHooks.map(hook => compiler.compileSingleSubmitHook(hook))
 
     return evaluateSubmitLifecycle({ hooks }, ctx)
   }

@@ -19,7 +19,7 @@ import { createAccessLifecyclePhase } from '../orchestrator/phases/accessLifecyc
 import { createAnswerPreparationPlanPhase } from '../orchestrator/phases/answerPreparationPhase'
 import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
 import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
-import { createSubmitPhase } from '../orchestrator/phases/submitPhase'
+import { createSubmitLifecyclePhase } from '../orchestrator/phases/submitLifecyclePhase'
 import { createStepRenderTerminal } from '../orchestrator/terminals/stepRenderTerminal'
 import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
 import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/navigationRedirects'
@@ -207,7 +207,7 @@ export default class ForgeEvaluator {
             resolvePostRequestRedirect,
             functionRegistry,
           ),
-          createSubmitPhase(
+          createSubmitLifecyclePhase(
             compiledStep.submitLifecyclePlan,
             compiledStep.validationPlan,
             runtimePlan.stepId,

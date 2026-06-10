@@ -47,9 +47,9 @@ export interface CompiledAccessHookResult {
 
 /**
  * Outcome of one compiled submit hook. `executed` is false when the hook's
- * `when`/`guards` predicates skipped it, in which case the submit phase keeps
- * iterating to the next hook; `outcome` drives the submit phase. `validated`
- * records whether the hook invoked ctx.validate during its run.
+ * `when`/`guards` predicates skipped it, in which case the submit-lifecycle
+ * phase keeps iterating to the next hook; `outcome` drives the submit-lifecycle
+ * phase. `validated` records whether the hook invoked ctx.validate during its run.
  */
 export interface CompiledSubmitHookResult {
   executed: boolean
@@ -70,7 +70,7 @@ export type CompiledAccessHookFunction = (
 
 /**
  * A single submit hook lowered to JS. Always compiled async because hook
- * effects are awaited, so it returns a promise the submit phase awaits.
+ * effects are awaited, so it returns a promise the submit-lifecycle phase awaits.
  */
 export type CompiledSubmitHookFunction = (
   ctx: HookLifecycleContext,

@@ -225,9 +225,7 @@ export default class CodegenOrchestrator {
 
       inputs.submitHooks.forEach(hook => {
         if (!submitHookEntries.has(hook.id)) {
-          submitHookEntries.set(hook.id, {
-            evaluate: compiler.compileSingleSubmitHook(hook),
-          })
+          submitHookEntries.set(hook.id, compiler.compileSingleSubmitHook(hook))
         }
       })
     })

@@ -158,12 +158,17 @@ export interface AccessLifecyclePlan {
   readonly hooks: readonly AccessHookEntry[]
 }
 
-/** One compiled submit hook, run during the submit phase of a POST step. */
+/**
+ * One compiled submit hook, run during the submit-lifecycle phase of a POST
+ * step. `nodeId` identifies the hook node so the runtime can attribute the
+ * decision in the request trace.
+ */
 export interface SubmitHookEntry {
+  readonly nodeId: NodeId
   readonly evaluate: CompiledSubmitHookFunction
 }
 
-/** The submit hooks for a step, run in order during the submit phase of a POST. */
+/** The submit hooks for a step, run in order during the submit-lifecycle phase of a POST. */
 export interface SubmitLifecyclePlan {
   readonly hooks: readonly SubmitHookEntry[]
 }

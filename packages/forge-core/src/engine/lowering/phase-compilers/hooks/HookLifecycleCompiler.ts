@@ -17,7 +17,7 @@ import type {
   CompiledAccessHookFunction,
   CompiledSubmitHookFunction,
 } from '../../../contracts/runtime/hookLifecycle.type'
-import type { AccessHookEntry } from '../../../contracts/plans/compilationArtefacts.type'
+import type { AccessHookEntry, SubmitHookEntry } from '../../../contracts/plans/compilationArtefacts.type'
 
 /**
  * Lowers a single access or submit hook AST node into a self-contained compiled
@@ -70,19 +70,23 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one submit hook into a CompiledSubmitHookFunction. The hook runs only
-   * when both its `when` and `guards` predicates pass; a validating hook awaits
-   * `ctx.validate` and branches on the result, while a non-validating hook applies
-   * its `onAlways` branch directly. When either predicate does not pass the function
-   * falls through to `{ executed: false, validated: false, outcome: "continue" }`.
+   * Compiles one submit hook into a SubmitHookEntry carrying the hook node's id
+   * and its compiled function. The hook runs only when both its `when` and
+   * `guards` predicates pass; a validating hook awaits `ctx.validate` and
+   * branches on the result, while a non-validating hook applies its `onAlways`
+   * branch directly. When either predicate does not pass the function falls
+   * through to `{ executed: false, validated: false, outcome: "continue" }`.
    */
-  compileSingleSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHookFunction {
-    return compileGeneratedFunction<CompiledSubmitHookFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleSubmitHookSource(hook),
-      { forceAsync: true, phase: 'hooks' },
-    )!
+  compileSingleSubmitHook(hook: SubmitHookASTNode): SubmitHookEntry {
+    return {
+      nodeId: hook.id,
+      evaluate: compileGeneratedFunction<CompiledSubmitHookFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildSingleSubmitHookSource(hook),
+        { forceAsync: true, phase: 'hooks' },
+      )!,
+    }
   }
 
   /**
