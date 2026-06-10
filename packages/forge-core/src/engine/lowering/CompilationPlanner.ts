@@ -188,7 +188,7 @@ export default class CompilationPlanner {
       resumeAlways,
       unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
-      compiledStepValidations: new Map(),
+      stepValidationPlans: new Map(),
     }
 
     return {

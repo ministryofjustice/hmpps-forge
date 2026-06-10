@@ -1,7 +1,6 @@
 import type { NodeId } from '../contracts/ast/engine.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
-import type { CompiledValidationFunction } from '../contracts/compiled/compiledFunctions.type'
 import type {
   AccessHookEntry,
   AccessLifecyclePlan,
@@ -83,7 +82,7 @@ export default class CodegenOrchestrator {
    * Compiles each reachability plan's per-step navigation leaves — entry
    * predicate, forward outcomes, tie-breaker, field codes — onto the shared
    * NavigationRuntimePlan's entries, plus the journey-level resume predicate
-   * and the per-step validation functions the graph walk needs. Mutates each
+   * and the per-step validation plans the graph walk needs. Mutates each
    * reachabilityPlan.navigationPlan in place.
    */
   private compileNavigation(
@@ -98,10 +97,7 @@ export default class CodegenOrchestrator {
       const navigationPlan = reachabilityPlan.navigationPlan
       const inventorySources = plan.fieldInventorySources.get(navigationPlan) ?? []
 
-      navigationPlan.compiledStepValidations = this.wrapValidationPlansForReachability(
-        reachabilityPlan,
-        validationPlans,
-      )
+      navigationPlan.stepValidationPlans = this.selectStepValidationPlans(reachabilityPlan, validationPlans)
       navigationPlan.evaluateResume = reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry)
 
       reachabilityPlan.entries.forEach((compilationEntry, index) => {
@@ -356,15 +352,15 @@ export default class CodegenOrchestrator {
   }
 
   /**
-   * Builds the per-step validation callbacks navigation needs to decide whether
-   * an earlier step is still valid. Only steps flagged hasValidation with an
-   * existing ValidationPlan are wrapped; the rest are omitted from the map.
+   * Picks the per-step ValidationPlans navigation needs to decide whether an
+   * earlier step is still valid. Only steps flagged hasValidation with an
+   * existing ValidationPlan are included; the rest are omitted from the map.
    */
-  private wrapValidationPlansForReachability(
+  private selectStepValidationPlans(
     reachabilityPlan: ReachabilityCompilationPlan,
     validationPlans: Map<NodeId, ValidationPlan | undefined>,
-  ): Map<NodeId, CompiledValidationFunction> {
-    const compiledValidations = new Map<NodeId, CompiledValidationFunction>()
+  ): Map<NodeId, ValidationPlan> {
+    const stepValidationPlans = new Map<NodeId, ValidationPlan>()
 
     reachabilityPlan.entries
       .filter(entry => entry.hasValidation)
@@ -375,48 +371,9 @@ export default class CodegenOrchestrator {
           return
         }
 
-        compiledValidations.set(entry.stepId, this.wrapValidationPlanAsFunction(validationPlan))
+        stepValidationPlans.set(entry.stepId, validationPlan)
       })
 
-    return compiledValidations
-  }
-
-  /**
-   * Wraps a ValidationPlan as a single async StepValidityResult function for
-   * navigation to call. Field validations run in parallel; each iterator group
-   * expands its input into per-item scopes and validates every field once per
-   * item, flattening the results. The step is valid only when no field or domain
-   * failures remain.
-   */
-  private wrapValidationPlanAsFunction(validationPlan: ValidationPlan): CompiledValidationFunction {
-    return async (ctx, isSubmission, groups) => {
-      const activeGroups = groups ?? []
-
-      const fieldResults = await Promise.all(
-        validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, activeGroups)),
-      )
-
-      const iteratorGroupResults = await Promise.all(
-        validationPlan.iteratorGroups.map(async group => {
-          const items = await group.evaluateInput(ctx)
-          const results = await Promise.all(
-            items.flatMap(itemScope =>
-              group.fields.map(field => field.validate(ctx, isSubmission, activeGroups, itemScope)),
-            ),
-          )
-
-          return results.flat()
-        }),
-      )
-
-      const fieldFailures = [...fieldResults.flat(), ...iteratorGroupResults.flat()]
-      const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, activeGroups) : []
-
-      return {
-        isValid: fieldFailures.length === 0 && domainFailures.length === 0,
-        fieldFailures,
-        domainFailures,
-      }
-    }
+    return stepValidationPlans
   }
 }

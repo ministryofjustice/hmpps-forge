@@ -98,7 +98,7 @@ function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): Reach
       resumeAlways: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
-      compiledStepValidations: new Map(),
+      stepValidationPlans: new Map(),
     },
     ...overrides,
   }

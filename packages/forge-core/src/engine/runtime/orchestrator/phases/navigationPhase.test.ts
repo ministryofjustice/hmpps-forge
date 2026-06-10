@@ -2,7 +2,7 @@ import { createNavigationPhase } from './navigationPhase'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { PipelineState } from '../types'
 import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
@@ -60,8 +60,21 @@ const createPlan = (
   resumeAlways: false,
   unreachableRedirect: 'entry',
   reachabilityDisabled: false,
-  compiledStepValidations: new Map(),
+  stepValidationPlans: new Map(),
   ...overrides,
+})
+
+const createValidationPlan = (isValid: boolean): ValidationPlan => ({
+  fields: [
+    {
+      nodeId: 'compile_ast:999' as const,
+      validate: () =>
+        isValid
+          ? []
+          : [{ blockId: 'compile_ast:999' as const, passed: false, message: 'invalid', submissionOnly: false }],
+    },
+  ],
+  iteratorGroups: [],
 })
 
 const createCatalog = (paths: Array<[NodeId, string]>): JourneyRouteTemplateCatalog => ({
@@ -119,9 +132,9 @@ describe('navigationPhase', () => {
         {
           resumeConfigured: true,
           resumeAlways: true,
-          compiledStepValidations: new Map<NodeId, CompiledValidationFunction>([
-            ['compile_ast:1' as const, () => ({ isValid: true, fieldFailures: [], domainFailures: [] })],
-            ['compile_ast:2' as const, () => ({ isValid: false, fieldFailures: [], domainFailures: [] })],
+          stepValidationPlans: new Map<NodeId, ValidationPlan>([
+            ['compile_ast:1' as const, createValidationPlan(true)],
+            ['compile_ast:2' as const, createValidationPlan(false)],
           ]),
         },
       )

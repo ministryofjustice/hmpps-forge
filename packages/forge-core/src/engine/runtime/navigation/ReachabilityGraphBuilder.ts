@@ -6,6 +6,7 @@ import { NavigationStepState } from '../../contracts/navigation/navigationEvalua
 import type { ValidationContext } from '../../contracts/compiled/phaseContexts.type'
 import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
+import { evaluateValidation } from '../orchestrator/phases/evaluateValidation'
 
 /**
  * Builds the reachability state for a journey.
@@ -172,7 +173,7 @@ export default class ReachabilityGraphBuilder {
       return
     }
 
-    const stepValidations = plan.compiledStepValidations
+    const stepValidationPlans = plan.stepValidationPlans
 
     const entryByStepId = new Map(plan.entries.map(entry => [entry.stepId, entry]))
     const stepIndexByStepId = new Map(plan.entries.map((entry, idx) => [entry.stepId, idx]))
@@ -208,13 +209,18 @@ export default class ReachabilityGraphBuilder {
       }
 
       if (entry.hasValidation) {
-        const compiledValidation = stepValidations.get(current.stepId)
+        const validationPlan = stepValidationPlans.get(current.stepId)
 
-        if (!compiledValidation) {
-          throw new Error(`[Forge] Compiled validation missing for step "${current.stepId}"`)
+        if (!validationPlan) {
+          throw new Error(`[Forge] Validation plan missing for step "${current.stepId}"`)
         }
 
-        const validationResult = await compiledValidation(validationCtx, false, ['default'])
+        // No trace recorder on purpose: the step's own pipeline records these
+        // units; a reachability re-check would double-record them.
+        const validationResult = await evaluateValidation(validationPlan, validationCtx, {
+          isSubmission: false,
+          groups: ['default'],
+        })
 
         current.isValid = validationResult.isValid
         current.fieldFailures = validationResult.fieldFailures

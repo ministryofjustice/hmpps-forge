@@ -56,7 +56,7 @@ const createPlan = (entries: NavigationRuntimeEntry[]): NavigationRuntimePlan =>
   resumeAlways: false,
   unreachableRedirect: 'entry',
   reachabilityDisabled: false,
-  compiledStepValidations: new Map(),
+  stepValidationPlans: new Map(),
 })
 
 const createCatalog = (paths: Array<[NodeId, string]>): JourneyRouteTemplateCatalog => ({

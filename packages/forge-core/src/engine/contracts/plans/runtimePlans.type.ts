@@ -4,8 +4,8 @@ import type {
   CompiledNavigationPredicateFunction,
   CompiledNavigationTieBreakerFunction,
   CompiledStepFieldCodesFunction,
-  CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
+import type { ValidationPlan } from './compilationArtefacts.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {
@@ -23,7 +23,8 @@ export interface NavigationRuntimePlan {
   evaluateResume?: CompiledNavigationPredicateFunction
   unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
-  compiledStepValidations: Map<NodeId, CompiledValidationFunction>
+  /** Per-step ValidationPlans the reachability graph walk evaluates to decide step validity. */
+  stepValidationPlans: Map<NodeId, ValidationPlan>
 }
 
 export interface NavigationRuntimeEntry {

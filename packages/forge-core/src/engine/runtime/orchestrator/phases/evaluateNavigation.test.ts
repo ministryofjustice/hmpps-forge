@@ -2,7 +2,8 @@ import { joinPaths } from '../../../../framework/path/routePath'
 import { evaluateNavigation } from './evaluateNavigation'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { NavigationRuntimePlan, NavigationRuntimeEntry } from '../../../contracts/plans/runtimePlans.type'
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledFieldValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { ReachabilityContext } from '../../../contracts/compiled/phaseContexts.type'
 import { NodeId } from '../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
@@ -44,7 +45,7 @@ function createPlan(
     resumeAlways: false,
     unreachableRedirect: 'entry',
     reachabilityDisabled: false,
-    compiledStepValidations: new Map(),
+    stepValidationPlans: new Map(),
     ...overrides,
   }
 }
@@ -90,8 +91,23 @@ async function evaluate(plan: NavigationRuntimePlan, currentStepId: NodeId | und
   return result.evaluation
 }
 
+function createValidationPlan(isValid: boolean): ValidationPlan {
+  return {
+    fields: [
+      {
+        nodeId: 'compile_ast:999' as const,
+        validate: () =>
+          isValid
+            ? []
+            : [{ blockId: 'compile_ast:999' as const, passed: false, message: 'invalid', submissionOnly: false }],
+      },
+    ],
+    iteratorGroups: [],
+  }
+}
+
 function setStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]): void {
-  const validations = new Map<NodeId, CompiledValidationFunction>()
+  const stepValidationPlans = new Map<NodeId, ValidationPlan>()
 
   for (const entry of plan.entries) {
     if (!entry.hasValidation) {
@@ -100,10 +116,10 @@ function setStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]):
 
     const isValid = validStepIds.includes(entry.stepId)
 
-    validations.set(entry.stepId, () => ({ isValid, fieldFailures: [], domainFailures: [] }))
+    stepValidationPlans.set(entry.stepId, createValidationPlan(isValid))
   }
 
-  plan.compiledStepValidations = validations
+  plan.stepValidationPlans = stepValidationPlans
 }
 
 describe('evaluateNavigation', () => {
@@ -500,13 +516,18 @@ describe('evaluateNavigation', () => {
       ],
       { resumeConfigured: true, resumeAlways: true },
     )
-    const validationSpy: CompiledValidationFunction = vi.fn(async () => {
+    const validationSpy: CompiledFieldValidationFunction = vi.fn(async () => {
       await Promise.resolve()
 
-      return { isValid: true, fieldFailures: [], domainFailures: [] }
+      return []
     })
 
-    plan.compiledStepValidations = new Map([[plan.entries[0].stepId, validationSpy]])
+    plan.stepValidationPlans = new Map([
+      [
+        plan.entries[0].stepId,
+        { fields: [{ nodeId: 'compile_ast:999' as const, validate: validationSpy }], iteratorGroups: [] },
+      ],
+    ])
 
     // Act
     const result = await evaluate(plan, 'compile_ast:100')

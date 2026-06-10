@@ -1,5 +1,6 @@
 import createHttpError from 'http-errors'
 import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledBaseContext, buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
@@ -15,9 +16,9 @@ import type { RequestPhase } from '../types'
  * 'redirect' halts with its target (500 if the target is missing), 'error'
  * halts with its status/message (defaulting to 500), otherwise records on the
  * pipeline state whether the hook triggered validation
- * (`showValidationFailures`) and the stamped verdict, then continues. Throws
- * when the submit lifecycle plan is missing, or when a hook validates without a
- * validation plan.
+ * (`showValidationFailures`) and the verdict the callback returned, then
+ * continues. Throws when the submit lifecycle plan is missing, or when a hook
+ * validates without a validation plan.
  */
 export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan | undefined,
@@ -32,6 +33,8 @@ export function createSubmitLifecyclePhase(
       if (!submitLifecyclePlan) {
         throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
       }
+
+      let validationResult: StepValidityResult | undefined
 
       const validate = async (groups: string[]) => {
         if (!validationPlan) {
@@ -55,6 +58,8 @@ export function createSubmitLifecyclePhase(
           domainFailures: validation.domainFailures,
         }
 
+        validationResult = validation
+
         return validation
       }
 
@@ -77,13 +82,7 @@ export function createSubmitLifecyclePhase(
       }
 
       state.showValidationFailures = result.validated
-      state.validation = state.context.global.validation
-        ? {
-            isValid: state.context.global.validation.isValid,
-            fieldFailures: state.context.global.validation.fieldFailures,
-            domainFailures: state.context.global.validation.domainFailures,
-          }
-        : undefined
+      state.validation = validationResult
 
       return { action: 'continue' }
     },

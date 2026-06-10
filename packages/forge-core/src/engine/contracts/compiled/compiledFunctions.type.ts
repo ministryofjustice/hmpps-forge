@@ -6,23 +6,8 @@ import type {
   RenderCompilationContext,
   ValidationContext,
 } from './phaseContexts.type'
-import type { StepValidityResult } from '../runtime/stepValidityResult.type'
 import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
 import type { RenderBlock } from '../../../framework/rendering/types'
-
-/**
- * Validates a whole step in one call: runs every field, iterator-group field
- * (once per expanded item), and domain rule, then aggregates them into a single
- * StepValidityResult (valid only when no failures remain). `isSubmission`
- * distinguishes POST validation from GET entry validation; `groups`, when
- * present, restricts evaluation to the named validation groups (defaulting to
- * the `default` group otherwise). Always async.
- */
-export type CompiledValidationFunction = (
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult | Promise<StepValidityResult>
 
 /**
  * The render output for one step: the ordered render blocks plus the resolved
