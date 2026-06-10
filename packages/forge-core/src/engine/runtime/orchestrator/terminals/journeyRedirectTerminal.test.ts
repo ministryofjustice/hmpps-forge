@@ -1,6 +1,7 @@
 import { createJourneyRedirectTerminal } from './journeyRedirectTerminal'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { PipelineState } from '../types'
-import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
+import type { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
@@ -79,6 +80,44 @@ describe('journeyRedirectTerminal', () => {
 
       // Assert
       expect(result).toEqual({ type: 'redirect', url: '/journey/42/first-step' })
+    })
+
+    it('should record navigation units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const entryStep: NavigationStepState = {
+        stepId: 'compile_ast:1' as const,
+        routeTemplatePath: '/journey/first-step',
+        declarationIndex: 0,
+        isEntryPoint: true,
+        isConditionalEntry: false,
+        hasValidation: false,
+        isReachable: true,
+        isValid: true,
+        forwardRouteTemplatePaths: [],
+        predecessorRouteTemplatePaths: [],
+      }
+      const evaluation = createMockEvaluation({ steps: [entryStep] })
+      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
+      const terminal = createJourneyRedirectTerminal(compiledFn, {} as never, {} as never, mockFunctionRegistry)
+
+      recorder.beginPhase('journey-redirect')
+
+      // Act
+      await terminal.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('redirect')
+
+      // Assert
+      const trace = recorder.finish('redirect')
+
+      expect(trace.phases[0].units).toEqual([
+        { kind: 'navigation-step', nodeId: 'compile_ast:1', isReachable: true, isValid: true },
+        expect.objectContaining({
+          kind: 'navigation-resolution',
+          resumeOutcome: 'no-op',
+          redirect: '/journey/first-step',
+        }),
+      ])
     })
 
     it('should throw when no steps are found', async () => {

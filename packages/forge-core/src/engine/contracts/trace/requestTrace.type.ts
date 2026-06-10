@@ -1,5 +1,6 @@
 import type { NodeId, TemplateNodeId } from '../ast/ast.type'
 import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
+import type { ResumeOutcome } from '../navigation/navigationEvaluation.type'
 
 /**
  * One field's validation verdict: recorded for every field the validation plan
@@ -98,6 +99,36 @@ export interface EntryValidationRuleTraceUnit {
 }
 
 /**
+ * One journey step's reachability verdict, recorded for every step the
+ * navigation evaluation considered, in declaration order. `isReachable` is the
+ * graph walk's conclusion; `isValid` is how the walk treated the step's
+ * validation — a step whose validation failed does not activate its forward
+ * edges, which is why steps after it can be unreachable (steps without
+ * validation, or never reached by the walk, are treated as valid). The
+ * verdicts come out of one whole-journey evaluation, so step units carry no
+ * individual timing; the evaluation's duration is on the resolution unit.
+ */
+export interface NavigationStepTraceUnit {
+  readonly kind: 'navigation-step'
+  readonly nodeId: NodeId
+  readonly isReachable: boolean
+  readonly isValid: boolean
+}
+
+/**
+ * The navigation evaluation's conclusion: whether resume wants to move the
+ * user, and the redirect target navigation resolved — absent when navigation
+ * let the request continue. `durationMs` times the compiled navigation
+ * evaluation that produced the step verdicts.
+ */
+export interface NavigationResolutionTraceUnit {
+  readonly kind: 'navigation-resolution'
+  readonly resumeOutcome: ResumeOutcome
+  readonly redirect?: string
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -110,6 +141,8 @@ export type TraceUnit =
   | AccessHookTraceUnit
   | SubmitHookTraceUnit
   | EntryValidationRuleTraceUnit
+  | NavigationStepTraceUnit
+  | NavigationResolutionTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

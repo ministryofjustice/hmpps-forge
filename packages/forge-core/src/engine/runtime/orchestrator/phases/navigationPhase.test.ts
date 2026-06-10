@@ -1,6 +1,8 @@
 import { createNavigationPhase } from './navigationPhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { PipelineState } from '../types'
-import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
+import type { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
@@ -48,6 +50,19 @@ const createMockEvaluation = (): NavigationEvaluation => ({
   resumeActive: false,
   resumeOutcome: 'no-op',
   unreachableRedirect: 'entry',
+})
+
+const createMockStepState = (stepId: NodeId, isReachable: boolean, isValid: boolean): NavigationStepState => ({
+  stepId,
+  routeTemplatePath: '/journey/step',
+  declarationIndex: 0,
+  isEntryPoint: false,
+  isConditionalEntry: false,
+  hasValidation: false,
+  isReachable,
+  isValid,
+  forwardRouteTemplatePaths: [],
+  predecessorRouteTemplatePaths: [],
 })
 
 describe('navigationPhase', () => {
@@ -117,6 +132,73 @@ describe('navigationPhase', () => {
 
       // Assert
       expect(state.context.global.reachability).toBe(reachability)
+    })
+
+    it('should record navigation-step and navigation-resolution units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const evaluation = {
+        ...createMockEvaluation(),
+        steps: [
+          createMockStepState('compile_ast:1' as const, true, true),
+          createMockStepState('compile_ast:2' as const, false, false),
+        ],
+      }
+      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
+      const resolveRedirect = vi.fn().mockReturnValue(undefined)
+      const phase = createNavigationPhase(
+        compiledFn,
+        {} as never,
+        'compile_ast:1' as const,
+        {} as never,
+        resolveRedirect,
+        mockFunctionRegistry,
+      )
+
+      recorder.beginPhase('navigation')
+
+      // Act
+      await phase.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('continue')
+
+      // Assert
+      const trace = recorder.finish('render')
+
+      expect(trace.phases[0].units).toEqual([
+        { kind: 'navigation-step', nodeId: 'compile_ast:1', isReachable: true, isValid: true },
+        { kind: 'navigation-step', nodeId: 'compile_ast:2', isReachable: false, isValid: false },
+        expect.objectContaining({ kind: 'navigation-resolution', resumeOutcome: 'no-op', redirect: undefined }),
+      ])
+    })
+
+    it('should record the resolved redirect target on the navigation-resolution unit when redirecting', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const evaluation = { ...createMockEvaluation(), resumeOutcome: 'redirect' as const }
+      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
+      const resolveRedirect = vi.fn().mockReturnValue('/other-step')
+      const phase = createNavigationPhase(
+        compiledFn,
+        {} as never,
+        'compile_ast:1' as const,
+        {} as never,
+        resolveRedirect,
+        mockFunctionRegistry,
+      )
+
+      recorder.beginPhase('navigation')
+
+      // Act
+      const result = await phase.execute({ ...createMockState(), trace: recorder })
+      recorder.endPhase('halt-redirect')
+
+      // Assert
+      const trace = recorder.finish('redirect')
+
+      expect(result).toEqual({ action: 'halt-redirect', target: '/other-step', reason: 'resume' })
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'navigation-resolution', resumeOutcome: 'redirect', redirect: '/other-step' }),
+      ])
     })
 
     it('should throw when compiled function is missing', async () => {

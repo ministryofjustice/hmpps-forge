@@ -20,7 +20,7 @@ export interface PipelineState {
   navigationEvaluation?: NavigationEvaluation
   validation?: StepValidityResult
   showValidationFailures?: boolean
-  /** Present when a lifecycle hook is installed; the orchestrator and phase walks record decisions here. */
+  /** Present when the request is being traced; the orchestrator and phase walks record decisions here. */
   readonly trace?: TraceRecorder
 }
 

@@ -7,6 +7,7 @@ import { resolveJourneyRootRedirect } from '../../navigation/navigationRedirects
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
 import { resolvePathParams } from '../../../../framework/path/routePath'
 import { resolveRedirectTarget } from '../../navigation/redirectTarget'
+import { recordNavigationTrace } from '../phases/navigationPhase'
 import type { TerminalPhase } from '../types'
 
 export function createJourneyRedirectTerminal(
@@ -22,12 +23,16 @@ export function createJourneyRedirectTerminal(
         throw new Error('[Forge] Navigation compilation is required — compiledNavigation function is missing from plan')
       }
 
+      const startedAt = performance.now()
       const { evaluation } = await compiledNavigation(buildCompiledBaseContext(state.context, functionRegistry), {
         plan: navigationPlan,
         routeTemplateCatalog,
       })
 
+      const durationMs = performance.now() - startedAt
       const redirectRouteTemplatePath = resolveJourneyRootRedirect(evaluation)
+
+      recordNavigationTrace(state.trace, evaluation, redirectRouteTemplatePath, durationMs)
 
       if (redirectRouteTemplatePath) {
         const withParams = resolvePathParams(redirectRouteTemplatePath, state.request.getParams())
