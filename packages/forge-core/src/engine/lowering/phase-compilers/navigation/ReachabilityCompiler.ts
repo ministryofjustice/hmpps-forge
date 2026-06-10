@@ -12,6 +12,7 @@ import type {
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/compilationPlan.type'
+import type { NavigationRuntimeEntry } from '../../../contracts/plans/runtimePlans.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
@@ -36,10 +37,28 @@ export default class ReachabilityCompiler {
   }
 
   /**
+   * Compiles one step's navigation runtime entry: static reachability data plus
+   * the optional leaves that evaluate request-time navigation expressions.
+   */
+  compileEntry(entry: ReachabilityCompilationEntry, nodeRegistry: ASTNodeIndex): NavigationRuntimeEntry {
+    return {
+      stepId: entry.stepId,
+      code: entry.code,
+      isEntryPoint: entry.isEntryPoint,
+      hasValidation: entry.hasValidation,
+      cleardownFieldCodes: entry.cleardownFieldCodes,
+      declaredOutcomes: entry.declaredOutcomes,
+      evaluateEntry: this.compileEntryPredicate(entry, nodeRegistry),
+      evaluateOutcomes: this.compileStepOutcomes(entry, nodeRegistry),
+      evaluateTieBreaker: this.compileTieBreaker(entry, nodeRegistry),
+    }
+  }
+
+  /**
    * Compiles one step's conditional-entry predicate. Returns undefined when the
    * step has no `entryWhen` expression to evaluate.
    */
-  compileEntryPredicate(
+  private compileEntryPredicate(
     entry: ReachabilityCompilationEntry,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationPredicateFunction | undefined {
@@ -69,7 +88,7 @@ export default class ReachabilityCompiler {
    *
    * Returns undefined when no hook contributes a redirect outcome.
    */
-  compileStepOutcomes(
+  private compileStepOutcomes(
     entry: ReachabilityCompilationEntry,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationOutcomesFunction | undefined {
@@ -102,7 +121,7 @@ export default class ReachabilityCompiler {
    *
    * Returns undefined when the step declares no tie-breakers.
    */
-  compileTieBreaker(
+  private compileTieBreaker(
     entry: ReachabilityCompilationEntry,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationTieBreakerFunction | undefined {

@@ -78,7 +78,7 @@ export default class StepValidationCompiler {
    * A step with no entry-validation clauses yields an empty plan, which selects
    * no groups.
    */
-  compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan {
+  compileEntryValidationPlan(entries: readonly StepEntryValidationAST[] | undefined): EntryValidationPlan {
     const rules: EntryValidationRule[] = (entries ?? []).map(entry => ({
       nodeId: entry.id,
       groups: entry.groups,
@@ -124,9 +124,9 @@ export default class StepValidationCompiler {
    * an empty plan, which trivially passes.
    */
   compileValidationPlan(
-    fieldBlocks: FieldBlockASTNode[],
+    fieldBlocks: readonly FieldBlockASTNode[],
     domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[] = [],
+    iterateNodes: readonly IterateASTNode[] = [],
   ): ValidationPlan {
     const fields: FieldValidationEntry[] = []
 

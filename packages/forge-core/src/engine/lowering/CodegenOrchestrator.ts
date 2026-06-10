@@ -19,6 +19,7 @@ import type {
   ReachabilityCompilationPlan,
   StepCompilationInputs,
 } from '../contracts/plans/compilationPlan.type'
+import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/navigation/ReachabilityCompiler'
@@ -53,65 +54,71 @@ export default class CodegenOrchestrator {
 
   /**
    * Entry point driving every phase compiler. Compiles validation, answer-prep
-   * and hook entries once (hoisted by NodeId), then assembles per-step and
-   * per-journey plans by looking them up. Navigation is compiled before steps
-   * because it attaches per-step validation functions onto the shared
-   * NavigationRuntimePlan that compileStep reuses.
+   * and hook entries once (hoisted by NodeId), then assembles immutable
+   * navigation plans and per-step/per-journey plans by looking them up.
    */
   compileAll(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const validationPlans = this.compileValidationPlans(plan)
+    const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const validationPlans = this.compileValidationPlans(plan, validationCompiler)
     const answerPrepEntries = this.compileAnswerPreparationEntries(plan)
     const hookEntries = this.compileHookEntries(plan)
+    const navigationPlans = this.compileNavigationPlans(plan, nodeRegistry, validationPlans)
 
-    this.compileNavigation(plan, nodeRegistry, validationPlans)
-    const journeys = this.compileJourneys(plan, answerPrepEntries, hookEntries)
+    const journeys = this.compileJourneys(plan, navigationPlans, answerPrepEntries, hookEntries)
 
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan, validationPlans, answerPrepEntries, hookEntries))
+      steps.set(
+        stepId,
+        this.compileStep(
+          inputs,
+          plan,
+          navigationPlans,
+          validationPlans,
+          validationCompiler,
+          answerPrepEntries,
+          hookEntries,
+        ),
+      )
     })
 
     return { steps, journeys }
   }
 
   /**
-   * Compiles each reachability plan's per-step navigation leaves — entry
-   * predicate, forward outcomes, tie-breaker, field codes — onto the shared
-   * NavigationRuntimePlan's entries, plus the journey-level resume predicate
-   * and the per-step validation plans the graph walk needs. Mutates each
-   * reachabilityPlan.navigationPlan in place.
+   * Builds each immutable NavigationRuntimePlan from pure reachability inputs:
+   * static entry data, compiled navigation leaves, field inventory leaves,
+   * resume configuration, and the validation plans needed by graph walking.
    */
-  private compileNavigation(
+  private compileNavigationPlans(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
     validationPlans: Map<NodeId, ValidationPlan>,
-  ): void {
+  ): Map<NodeId, NavigationRuntimePlan> {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
     const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
+    const navigationPlans = new Map<NodeId, NavigationRuntimePlan>()
 
-    plan.reachabilityPlans.forEach(reachabilityPlan => {
-      const navigationPlan = reachabilityPlan.navigationPlan
-      const inventorySources = plan.fieldInventorySources.get(navigationPlan) ?? []
-
-      navigationPlan.stepValidationPlans = this.selectStepValidationPlans(reachabilityPlan, validationPlans)
-      navigationPlan.evaluateResume = reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry)
-
-      reachabilityPlan.entries.forEach((compilationEntry, index) => {
-        const entry = navigationPlan.entries[index]
-        const inventorySource = inventorySources[index]
-
-        entry.evaluateEntry = reachabilityCompiler.compileEntryPredicate(compilationEntry, nodeRegistry)
-        entry.evaluateOutcomes = reachabilityCompiler.compileStepOutcomes(compilationEntry, nodeRegistry)
-        entry.evaluateTieBreaker = reachabilityCompiler.compileTieBreaker(compilationEntry, nodeRegistry)
-        entry.evaluateFieldCodes = inventorySource
-          ? fieldInventoryCompiler.compileStepFieldCodes(inventorySource)
-          : undefined
+    plan.reachabilityPlans.forEach((reachabilityPlan, planId) => {
+      navigationPlans.set(planId, {
+        entries: reachabilityPlan.entries.map(entry => ({
+          ...reachabilityCompiler.compileEntry(entry, nodeRegistry),
+          evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(entry.fieldInventorySource),
+        })),
+        resumeConfigured: reachabilityPlan.resumeConfigured,
+        resumeAlways: reachabilityPlan.resumeAlways,
+        evaluateResume: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
+        unreachableRedirect: reachabilityPlan.unreachableRedirect,
+        reachabilityDisabled: reachabilityPlan.reachabilityDisabled,
+        stepValidationPlans: this.selectStepValidationPlans(reachabilityPlan, validationPlans),
       })
     })
+
+    return navigationPlans
   }
 
   /**
@@ -121,15 +128,22 @@ export default class CodegenOrchestrator {
    */
   private compileJourneys(
     plan: CompilationPlan,
+    navigationPlans: Map<NodeId, NavigationRuntimePlan>,
     answerPrepEntries: AnswerPreparationEntries,
     hookEntries: HookEntries,
   ): Map<NodeId, CompiledJourney> {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
     plan.journeyInputs.forEach((inputs, journeyId) => {
+      const navigationPlan = navigationPlans.get(inputs.reachabilityPlanId)
+
+      if (!navigationPlan) {
+        throw new Error(`Unable to compile journey "${journeyId}" - navigation plan not found`)
+      }
+
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
-        navigationPlan: inputs.navigationPlan,
+        navigationPlan,
         accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
         answerPreparationPlan: this.assembleAnswerPreparationPlan(
           inputs.stepFieldBlocks,
@@ -151,11 +165,19 @@ export default class CodegenOrchestrator {
   private compileStep(
     inputs: StepCompilationInputs,
     plan: CompilationPlan,
+    navigationPlans: Map<NodeId, NavigationRuntimePlan>,
     validationPlans: Map<NodeId, ValidationPlan>,
+    validationCompiler: StepValidationCompiler,
     answerPrepEntries: AnswerPreparationEntries,
     hookEntries: HookEntries,
   ): CompiledStep {
-    const navigationPlan = plan.navigationPlansByStepId.get(inputs.stepNode.id)
+    const navigationPlanId = plan.navigationPlanIdByStepId.get(inputs.stepNode.id)
+
+    if (!navigationPlanId) {
+      throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan id not found`)
+    }
+
+    const navigationPlan = navigationPlans.get(navigationPlanId)
 
     if (!navigationPlan) {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan not found`)
@@ -167,10 +189,7 @@ export default class CodegenOrchestrator {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - validation plan not found`)
     }
 
-    const validationCompiler = new StepValidationCompiler(this.dependencies)
-    const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
-      inputs.stepNode.properties.validateOnEntry,
-    )
+    const entryValidationPlan = validationCompiler.compileEntryValidationPlan(inputs.entryValidations)
 
     const renderCompiler = new StepRenderCompiler(this.dependencies)
     const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
@@ -331,12 +350,10 @@ export default class CodegenOrchestrator {
    * validWhen domain rule and MAP iterator nodes. The result is keyed by stepId
    * for reuse both as the step's validationPlan and by navigation reachability.
    */
-  private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan> {
+  private compileValidationPlans(plan: CompilationPlan, compiler: StepValidationCompiler): Map<NodeId, ValidationPlan> {
     const validationPlans = new Map<NodeId, ValidationPlan>()
 
     plan.stepInputs.forEach((inputs, stepId) => {
-      const compiler = new StepValidationCompiler(this.dependencies)
-
       validationPlans.set(
         stepId,
         compiler.compileValidationPlan(
@@ -352,8 +369,9 @@ export default class CodegenOrchestrator {
 
   /**
    * Picks the per-step ValidationPlans navigation needs to decide whether an
-   * earlier step is still valid. Only steps flagged hasValidation with an
-   * existing ValidationPlan are included; the rest are omitted from the map.
+   * earlier step is still valid. Only steps flagged hasValidation are included;
+   * a flagged step without a compiled ValidationPlan is a compile invariant
+   * failure.
    */
   private selectStepValidationPlans(
     reachabilityPlan: ReachabilityCompilationPlan,
@@ -367,7 +385,9 @@ export default class CodegenOrchestrator {
         const validationPlan = validationPlans.get(entry.stepId)
 
         if (!validationPlan) {
-          return
+          throw new Error(
+            `Unable to compile navigation plan "${reachabilityPlan.journeyId}" - validation plan not found for step "${entry.stepId}"`,
+          )
         }
 
         stepValidationPlans.set(entry.stepId, validationPlan)

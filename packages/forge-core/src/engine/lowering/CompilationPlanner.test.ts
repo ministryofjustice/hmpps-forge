@@ -9,8 +9,9 @@ import {
 } from '../contracts/ast/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { TestPredicateASTNode } from '../contracts/ast/predicates.type'
-import { HookType, PredicateType } from '../../authoring/types/enums'
+import { BlockType, HookType, PredicateType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
+import type { CompilationPlan, ReachabilityCompilationPlan } from '../contracts/plans/compilationPlan.type'
 import CompilationPlanner from './CompilationPlanner'
 
 function createAccessHook(id: AstNodeId): AccessHookASTNode {
@@ -74,6 +75,16 @@ function createStep(
   }
 
   return step.build()
+}
+
+function getReachabilityPlan(plan: CompilationPlan, journeyId: AstNodeId): ReachabilityCompilationPlan {
+  const reachabilityPlan = plan.reachabilityPlans.get(journeyId)
+
+  if (!reachabilityPlan) {
+    throw new Error(`Expected reachability plan for journey "${journeyId}"`)
+  }
+
+  return reachabilityPlan
 }
 
 describe('CompilationPlanner', () => {
@@ -140,7 +151,8 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(journey.id)
+      expect(getReachabilityPlan(plan, journey.id).unreachableRedirect).toBe('entry')
     })
 
     it('should store configured unreachable redirect on the navigation plan', () => {
@@ -162,7 +174,8 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('frontier')
+      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(journey.id)
+      expect(getReachabilityPlan(plan, journey.id).unreachableRedirect).toBe('frontier')
     })
 
     it('should preserve hook grouping in forward outcomes', () => {
@@ -187,12 +200,49 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = plan.reachabilityPlans[0].entries[0]
+      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
 
       expect(reachabilityEntry.forwardOutcomeGroups).toEqual([
         { outcomeIds: [redirect1.id], hookWhenNodeId: undefined },
         { outcomeIds: [redirect2.id], hookWhenNodeId: undefined },
       ])
+    })
+
+    it('should carry entry validation inputs and field inventory sources', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journey = createJourney('compile_ast:1', [])
+      const step = createStep('compile_ast:2')
+      const field = ASTTestFactory.block('text', BlockType.FIELD)
+        .withId('compile_ast:3')
+        .withProperty('code', 'name')
+        .build()
+
+      step.properties.cleardownFieldCodes = ['stale-name']
+      step.properties.validateOnEntry = [{ id: 'compile_ast:4', groups: ['initial'], when: true }]
+      nodeRegistry.register(journey.id, journey)
+      nodeRegistry.register(step.id, step)
+      nodeRegistry.register(field.id, field)
+      astNodeTree.addNode(journey.id)
+      astNodeTree.addNode(step.id, journey.id)
+      astNodeTree.addNode(field.id, step.id)
+
+      const planner = new CompilationPlanner(nodeRegistry, astNodeTree)
+
+      // Act
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+
+      // Assert
+      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
+
+      expect(plan.stepInputs.get(step.id)?.entryValidations).toEqual(step.properties.validateOnEntry)
+      expect(reachabilityEntry.fieldInventorySource).toMatchObject({
+        stepId: step.id,
+        fieldBlocks: [field],
+        iterateNodes: [],
+        cleardownFieldCodes: ['stale-name'],
+      })
     })
 
     it('should collect statically-declared gotos across hooks onto the entries', () => {
@@ -217,8 +267,7 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(plan.reachabilityPlans[0].entries[0].declaredOutcomes).toEqual(['/check', '/add'])
-      expect(plan.reachabilityPlans[0].navigationPlan.entries[0].declaredOutcomes).toEqual(['/check', '/add'])
+      expect(getReachabilityPlan(plan, journey.id).entries[0].declaredOutcomes).toEqual(['/check', '/add'])
     })
 
     it('should preserve a compilable hook when on its forward outcome group', () => {
@@ -249,7 +298,7 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = plan.reachabilityPlans[0].entries[0]
+      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
 
       expect(reachabilityEntry.forwardOutcomeGroups).toEqual([
         { outcomeIds: [redirect.id], hookWhenNodeId: hookWhen.id },
@@ -287,7 +336,7 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      const reachabilityEntry = plan.reachabilityPlans[0].entries[0]
+      const reachabilityEntry = getReachabilityPlan(plan, journey.id).entries[0]
 
       expect(reachabilityEntry.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: undefined }])
     })
@@ -320,7 +369,8 @@ describe('CompilationPlanner', () => {
       )
 
       // Assert
-      expect(plan.navigationPlansByStepId.get(step.id)?.unreachableRedirect).toBe('entry')
+      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(childJourney.id)
+      expect(getReachabilityPlan(plan, childJourney.id).unreachableRedirect).toBe('entry')
     })
   })
 })

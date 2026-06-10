@@ -58,7 +58,7 @@ function createIterateNode(input: unknown, yieldTemplate: TemplateValue): Iterat
 
 function createStepSource(overrides: Partial<FieldInventoryStepSource> = {}): FieldInventoryStepSource {
   return {
-    stepId: 'compile_ast:step-a',
+    stepId: 'compile_ast:1',
     fieldBlocks: [],
     iterateNodes: [],
     cleardownFieldCodes: [],

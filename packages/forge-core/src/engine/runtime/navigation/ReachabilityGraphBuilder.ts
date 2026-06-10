@@ -52,7 +52,7 @@ export default class ReachabilityGraphBuilder {
   }
 
   private createStepStates(
-    entries: NavigationRuntimeEntry[],
+    entries: readonly NavigationRuntimeEntry[],
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ): NavigationStepState[] {
     return entries.map((entry, declarationIndex) => {
@@ -83,7 +83,7 @@ export default class ReachabilityGraphBuilder {
 
   private seedEntryPointsFromCompiled(
     steps: NavigationStepState[],
-    entries: NavigationRuntimeEntry[],
+    entries: readonly NavigationRuntimeEntry[],
     compiled: CompiledReachabilityResult,
   ): void {
     entries.forEach((entry, index) => {

@@ -9,45 +9,45 @@ import type { ValidationPlan } from './compilationArtefacts.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {
-  stepId: NodeId
-  path: string
-  staticData: Record<string, unknown>
+  readonly stepId: NodeId
+  readonly path: string
+  readonly staticData: Record<string, unknown>
 }
 
 export interface NavigationRuntimePlan {
-  entries: NavigationRuntimeEntry[]
-  resumeConfigured: boolean
+  readonly entries: readonly NavigationRuntimeEntry[]
+  readonly resumeConfigured: boolean
   /** True when the journey resumes unconditionally (`resumeWhen: true`). */
-  resumeAlways: boolean
+  readonly resumeAlways: boolean
   /** Evaluates the journey's `resumeWhen` predicate; absent when resume is static. */
-  evaluateResume?: CompiledNavigationPredicateFunction
-  unreachableRedirect: UnreachableRedirectTarget
-  reachabilityDisabled: boolean
+  readonly evaluateResume?: CompiledNavigationPredicateFunction
+  readonly unreachableRedirect: UnreachableRedirectTarget
+  readonly reachabilityDisabled: boolean
   /** Per-step ValidationPlans the reachability graph walk evaluates to decide step validity. */
-  stepValidationPlans: Map<NodeId, ValidationPlan>
+  readonly stepValidationPlans: ReadonlyMap<NodeId, ValidationPlan>
 }
 
 export interface NavigationRuntimeEntry {
-  stepId: NodeId
-  code?: string
-  isEntryPoint: boolean
-  hasValidation: boolean
+  readonly stepId: NodeId
+  readonly code?: string
+  readonly isEntryPoint: boolean
+  readonly hasValidation: boolean
   /** Field codes cleared down when the step becomes unreachable. */
-  cleardownFieldCodes: string[]
+  readonly cleardownFieldCodes: readonly string[]
   /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */
-  declaredOutcomes: string[]
+  readonly declaredOutcomes: readonly string[]
   /** Evaluates the step's conditional-entry predicate (absent = no predicate). */
-  evaluateEntry?: CompiledNavigationPredicateFunction
+  readonly evaluateEntry?: CompiledNavigationPredicateFunction
   /** Evaluates the step's forward outcome gotos (absent = no redirect outcomes). */
-  evaluateOutcomes?: CompiledNavigationOutcomesFunction
+  readonly evaluateOutcomes?: CompiledNavigationOutcomesFunction
   /** Resolves the step's tie-breaker priority (absent = no tie-breakers). */
-  evaluateTieBreaker?: CompiledNavigationTieBreakerFunction
+  readonly evaluateTieBreaker?: CompiledNavigationTieBreakerFunction
   /** Collects the step's possible field codes (absent = no fields). */
-  evaluateFieldCodes?: CompiledStepFieldCodesFunction
+  readonly evaluateFieldCodes?: CompiledStepFieldCodesFunction
 }
 
 export interface JourneyRuntimePlan {
-  journeyId: NodeId
-  path: string
-  staticData: Record<string, unknown>
+  readonly journeyId: NodeId
+  readonly path: string
+  readonly staticData: Record<string, unknown>
 }

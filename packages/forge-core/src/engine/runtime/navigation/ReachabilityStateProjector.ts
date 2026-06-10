@@ -47,11 +47,11 @@ export default class ReachabilityStateProjector {
     const cleardownFieldCodes = inventory?.cleardownFieldCodes ?? []
 
     if (fieldCodes.length > 0) {
-      projectedStep.fieldCodes = fieldCodes
+      projectedStep.fieldCodes = [...fieldCodes]
     }
 
     if (cleardownFieldCodes.length > 0) {
-      projectedStep.cleardownFieldCodes = cleardownFieldCodes
+      projectedStep.cleardownFieldCodes = [...cleardownFieldCodes]
     }
 
     const backPath = resolveBacklinkRouteTemplatePathForStep(step, canonicalPathRouteTemplatePaths)

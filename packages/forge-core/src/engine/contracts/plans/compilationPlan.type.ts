@@ -1,11 +1,12 @@
 import type { NodeId } from '../ast/ast.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../ast/expressions.type'
-import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../ast/structures.type'
-import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { FieldBlockASTNode, JourneyASTNode, StepASTNode, StepEntryValidationAST } from '../ast/structures.type'
+import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface ReachabilityTieBreakerEntry {
-  priority: number
-  whenNodeId?: NodeId
+  readonly priority: number
+  readonly whenNodeId?: NodeId
 }
 
 /**
@@ -20,8 +21,8 @@ export interface ReachabilityTieBreakerEntry {
  * over-approximation for non-evaluable guards.
  */
 export interface ForwardOutcomeGroup {
-  hookWhenNodeId?: NodeId
-  outcomeIds: NodeId[]
+  readonly hookWhenNodeId?: NodeId
+  readonly outcomeIds: readonly NodeId[]
 }
 
 /**
@@ -30,24 +31,28 @@ export interface ForwardOutcomeGroup {
  * NavigationRuntimeEntry, while the node ids feed the ReachabilityCompiler.
  */
 export interface ReachabilityCompilationEntry {
-  stepId: NodeId
-  code?: string
-  isEntryPoint: boolean
-  hasValidation: boolean
+  readonly stepId: NodeId
+  readonly code?: string
+  readonly isEntryPoint: boolean
+  readonly hasValidation: boolean
   /** Field codes cleared down when the step becomes unreachable. */
-  cleardownFieldCodes: string[]
+  readonly cleardownFieldCodes: readonly string[]
   /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */
-  declaredOutcomes: string[]
-  entryWhenNodeId?: NodeId
-  forwardOutcomeGroups: ForwardOutcomeGroup[]
-  reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
+  readonly declaredOutcomes: readonly string[]
+  readonly entryWhenNodeId?: NodeId
+  readonly forwardOutcomeGroups: readonly ForwardOutcomeGroup[]
+  readonly reachabilityTieBreakers: readonly ReachabilityTieBreakerEntry[]
+  readonly fieldInventorySource: FieldInventoryStepSource
 }
 
 export interface ReachabilityCompilationPlan {
-  navigationPlan: NavigationRuntimePlan
-  entries: ReachabilityCompilationEntry[]
-  resumeAlways: boolean
-  resumeWhenNodeId?: NodeId
+  readonly journeyId: NodeId
+  readonly entries: readonly ReachabilityCompilationEntry[]
+  readonly resumeConfigured: boolean
+  readonly resumeAlways: boolean
+  readonly resumeWhenNodeId?: NodeId
+  readonly unreachableRedirect: UnreachableRedirectTarget
+  readonly reachabilityDisabled: boolean
 }
 
 export interface StepCompilationInputs {
@@ -60,28 +65,28 @@ export interface StepCompilationInputs {
   readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
   readonly renderAncestors: JourneyASTNode[]
   readonly submitHooks: SubmitHookASTNode[]
+  readonly entryValidations: readonly StepEntryValidationAST[]
 }
 
 export interface JourneyCompilationInputs {
   readonly journeyNode: JourneyASTNode
   readonly runtimePlan: JourneyRuntimePlan
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly reachabilityPlanId: NodeId
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
   readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
 }
 
 export interface FieldInventoryStepSource {
-  readonly stepId: string
-  readonly fieldBlocks: FieldBlockASTNode[]
-  readonly iterateNodes: IterateASTNode[]
-  readonly cleardownFieldCodes: string[]
+  readonly stepId: NodeId
+  readonly fieldBlocks: readonly FieldBlockASTNode[]
+  readonly iterateNodes: readonly IterateASTNode[]
+  readonly cleardownFieldCodes: readonly string[]
 }
 
 export interface CompilationPlan {
   readonly stepInputs: Map<NodeId, StepCompilationInputs>
   readonly journeyInputs: Map<NodeId, JourneyCompilationInputs>
-  readonly reachabilityPlans: ReachabilityCompilationPlan[]
-  readonly fieldInventorySources: Map<NavigationRuntimePlan, FieldInventoryStepSource[]>
-  readonly navigationPlansByStepId: Map<NodeId, NavigationRuntimePlan>
+  readonly reachabilityPlans: Map<NodeId, ReachabilityCompilationPlan>
+  readonly navigationPlanIdByStepId: Map<NodeId, NodeId>
 }
