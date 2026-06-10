@@ -10,7 +10,6 @@ import type {
 } from '../../../contracts/plans/compilationPlan.type'
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import { NodeId } from '../../../contracts/ast/ast.type'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
@@ -62,8 +61,6 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
     properties: { goto, when },
   } as RedirectOutcomeASTNode
 }
-
-const EMPTY_VALIDATION_PLAN: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
 
 function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): ReachabilityStepInputs {
   const stepNodeId = ASTTestFactory.getId() as NodeId
@@ -147,13 +144,13 @@ describe('ReachabilityCompiler', () => {
     registry = new ASTNodeIndex()
   })
 
-  describe('compileNavigationStep()', () => {
+  describe('compileEntryPredicate()', () => {
     it('should return undefined when the step has no entryWhen predicate', () => {
       // Arrange
       const inputs = createStepInputs({ isEntryPoint: true })
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateEntryWhen
+      const fn = compiler.compileEntryPredicate(inputs, registry)
 
       // Assert
       expect(fn).toBeUndefined()
@@ -177,11 +174,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const fn = localCompiler.compileNavigationStep(
-        createStepInputs({ entryWhenNodeId: predicate.id }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateEntryWhen
+      const fn = localCompiler.compileEntryPredicate(createStepInputs({ entryWhenNodeId: predicate.id }), registry)
 
       // Act
       const result = fn!(createCtx({ data: { isAdmin: true }, conditions: functionRegistry }))
@@ -209,11 +202,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const fn = localCompiler.compileNavigationStep(
-        createStepInputs({ entryWhenNodeId: predicate.id }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateEntryWhen
+      const fn = localCompiler.compileEntryPredicate(createStepInputs({ entryWhenNodeId: predicate.id }), registry)
 
       // Act
       const pending = fn!(createCtx({ data: { isAdmin: true }, conditions: functionRegistry }))
@@ -232,11 +221,7 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(predicate.id, predicate)
 
-      const fn = compiler.compileNavigationStep(
-        createStepInputs({ entryWhenNodeId: predicate.id }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateEntryWhen
+      const fn = compiler.compileEntryPredicate(createStepInputs({ entryWhenNodeId: predicate.id }), registry)
 
       // Act
       const result = await fn!(createCtx({ data: { isAdmin: true } }))
@@ -254,11 +239,7 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(predicate.id, predicate)
 
-      const fn = compiler.compileNavigationStep(
-        createStepInputs({ entryWhenNodeId: predicate.id }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateEntryWhen
+      const fn = compiler.compileEntryPredicate(createStepInputs({ entryWhenNodeId: predicate.id }), registry)
 
       // Act
       const result = await fn!(createCtx({ data: { isAdmin: false } }))
@@ -268,13 +249,13 @@ describe('ReachabilityCompiler', () => {
     })
   })
 
-  describe('compileNavigationStep() outcomes', () => {
+  describe('compileStepOutcomes()', () => {
     it('should return undefined when no hook contributes a redirect outcome', () => {
       // Arrange
       const inputs = createStepInputs()
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateOutcomes
+      const fn = compiler.compileStepOutcomes(inputs, registry)
 
       // Assert
       expect(fn).toBeUndefined()
@@ -286,11 +267,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(outcome.id, outcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx())
@@ -314,11 +294,10 @@ describe('ReachabilityCompiler', () => {
       })
 
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const fn = localCompiler.compileNavigationStep(
+      const fn = localCompiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const pending = fn!(createCtx({ conditions: functionRegistry }))
@@ -338,11 +317,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(outcome.id, outcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { choice: { current: 'yes' } } }))
@@ -361,11 +339,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(outcome.id, outcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { choice: { current: 'no' } } }))
@@ -382,11 +359,10 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcome1.id, outcome1)
       registry.register(outcome2.id, outcome2)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome1.id, outcome2.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx())
@@ -407,11 +383,10 @@ describe('ReachabilityCompiler', () => {
       registry.register(guardedOutcome.id, guardedOutcome)
       registry.register(fallbackOutcome.id, fallbackOutcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { choice: { current: 'yes' } } }))
@@ -432,11 +407,10 @@ describe('ReachabilityCompiler', () => {
       registry.register(guardedOutcome.id, guardedOutcome)
       registry.register(fallbackOutcome.id, fallbackOutcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { choice: { current: 'no' } } }))
@@ -468,11 +442,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(outcome.id, outcome)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcome.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { choice: { current: 'yes' } } }))
@@ -489,11 +462,10 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcomeA.id, outcomeA)
       registry.register(outcomeB.id, outcomeB)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({ forwardOutcomeGroups: [createGroup([outcomeA.id]), createGroup([outcomeB.id])] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx())
@@ -520,13 +492,12 @@ describe('ReachabilityCompiler', () => {
       registry.register(outcomeA.id, outcomeA)
       registry.register(outcomeB.id, outcomeB)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({
           forwardOutcomeGroups: [createGroup([outcomeA.id], hookWhenA.id), createGroup([outcomeB.id], hookWhenB.id)],
         }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { route: { current: 'a' } } }))
@@ -551,13 +522,12 @@ describe('ReachabilityCompiler', () => {
       registry.register(guardedA.id, guardedA)
       registry.register(guardedB.id, guardedB)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileStepOutcomes(
         createStepInputs({
           forwardOutcomeGroups: [createGroup([guardedA.id, fallbackA.id]), createGroup([guardedB.id, fallbackB.id])],
         }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateOutcomes
+      )
 
       // Act
       const result = await fn!(createCtx({ answers: { a: { current: 'no' }, b: { current: 'yes' } } }))
@@ -567,13 +537,13 @@ describe('ReachabilityCompiler', () => {
     })
   })
 
-  describe('compileNavigationStep() tie-breakers', () => {
+  describe('compileTieBreaker()', () => {
     it('should return undefined when the step declares no tie-breakers', () => {
       // Arrange
       const inputs = createStepInputs()
 
       // Act
-      const fn = compiler.compileNavigationStep(inputs, registry, EMPTY_VALIDATION_PLAN).evaluateTieBreaker
+      const fn = compiler.compileTieBreaker(inputs, registry)
 
       // Assert
       expect(fn).toBeUndefined()
@@ -581,11 +551,7 @@ describe('ReachabilityCompiler', () => {
 
     it('should compile a catch-all tie-breaker', async () => {
       // Arrange
-      const fn = compiler.compileNavigationStep(
-        createStepInputs({ reachabilityTieBreakers: [{ priority: 5 }] }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateTieBreaker
+      const fn = compiler.compileTieBreaker(createStepInputs({ reachabilityTieBreakers: [{ priority: 5 }] }), registry)
 
       // Act
       const result = await fn!(createCtx())
@@ -603,11 +569,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(pred.id, pred)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileTieBreaker(
         createStepInputs({ reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateTieBreaker
+      )
 
       // Act
       const result = await fn!(createCtx({ data: { priority: 'high' } }))
@@ -625,11 +590,10 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(pred.id, pred)
 
-      const fn = compiler.compileNavigationStep(
+      const fn = compiler.compileTieBreaker(
         createStepInputs({ reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }] }),
         registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateTieBreaker
+      )
 
       // Act
       const result = await fn!(createCtx({ data: { priority: 'low' } }))
@@ -694,11 +658,7 @@ describe('ReachabilityCompiler', () => {
 
       registry.register(pred.id, pred)
 
-      const fn = compiler.compileNavigationStep(
-        createStepInputs({ entryWhenNodeId: pred.id }),
-        registry,
-        EMPTY_VALIDATION_PLAN,
-      ).evaluateEntryWhen
+      const fn = compiler.compileEntryPredicate(createStepInputs({ entryWhenNodeId: pred.id }), registry)
       const ctx = createCtx({
         conditions: {
           get: vi.fn(() => ({
@@ -758,9 +718,11 @@ describe('ReachabilityCompiler', () => {
       })
 
       const ctx = createCtx({ data: { skipIntro: true } })
-      const leaves = plan.reachabilityStepInputs.map(stepInputs =>
-        compiler.compileNavigationStep(stepInputs, registry, EMPTY_VALIDATION_PLAN),
-      )
+      const leaves = plan.reachabilityStepInputs.map(stepInputs => ({
+        evaluateEntryWhen: compiler.compileEntryPredicate(stepInputs, registry),
+        evaluateOutcomes: compiler.compileStepOutcomes(stepInputs, registry),
+        evaluateTieBreaker: compiler.compileTieBreaker(stepInputs, registry),
+      }))
 
       // Act
       const entryWhenResults = await Promise.all(leaves.map(leaf => leaf.evaluateEntryWhen?.(ctx)))

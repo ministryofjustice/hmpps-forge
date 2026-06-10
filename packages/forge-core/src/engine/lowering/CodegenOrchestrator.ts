@@ -14,8 +14,12 @@ import type {
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
-import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
-import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
+import type {
+  CompilationPlan,
+  ReachabilityStepInputs,
+  StepCompilationInputs,
+} from '../contracts/plans/compilationPlan.type'
+import type { CompiledNavigationStep, NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/navigation/ReachabilityCompiler'
@@ -101,14 +105,16 @@ export default class CodegenOrchestrator {
 
     plan.reachabilityPlans.forEach((reachabilityPlan, planId) => {
       navigationPlans.set(planId, {
-        navigationSteps: reachabilityPlan.reachabilityStepInputs.map(stepInputs => ({
-          ...reachabilityCompiler.compileNavigationStep(
+        navigationSteps: reachabilityPlan.reachabilityStepInputs.map(stepInputs =>
+          this.compileNavigationStep(
             stepInputs,
+            reachabilityPlan.journeyNodeId,
             nodeRegistry,
-            this.selectStepValidationPlan(reachabilityPlan.journeyNodeId, stepInputs.nodeId, validationPlans),
+            validationPlans,
+            reachabilityCompiler,
+            fieldInventoryCompiler,
           ),
-          evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(stepInputs.fieldInventorySource),
-        })),
+        ),
         resumeConfigured: reachabilityPlan.resumeConfigured,
         resumeAlways: reachabilityPlan.resumeAlways,
         evaluateResumeWhen: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
@@ -118,6 +124,33 @@ export default class CodegenOrchestrator {
     })
 
     return navigationPlans
+  }
+
+  /**
+   * Assembles one CompiledNavigationStep: static reachability data, the step's
+   * validation plan, and the compiled leaves from the reachability and
+   * field-inventory compilers. The single place the record is born.
+   */
+  private compileNavigationStep(
+    stepInputs: ReachabilityStepInputs,
+    journeyNodeId: NodeId,
+    nodeRegistry: ASTNodeIndex,
+    validationPlans: Map<NodeId, ValidationPlan>,
+    reachabilityCompiler: ReachabilityCompiler,
+    fieldInventoryCompiler: StepFieldInventoryCompiler,
+  ): CompiledNavigationStep {
+    return {
+      nodeId: stepInputs.nodeId,
+      code: stepInputs.code,
+      isEntryPoint: stepInputs.isEntryPoint,
+      validationPlan: this.selectStepValidationPlan(journeyNodeId, stepInputs.nodeId, validationPlans),
+      cleardownFieldCodes: stepInputs.cleardownFieldCodes,
+      declaredOutcomes: stepInputs.declaredOutcomes,
+      evaluateEntryWhen: reachabilityCompiler.compileEntryPredicate(stepInputs, nodeRegistry),
+      evaluateOutcomes: reachabilityCompiler.compileStepOutcomes(stepInputs, nodeRegistry),
+      evaluateTieBreaker: reachabilityCompiler.compileTieBreaker(stepInputs, nodeRegistry),
+      evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(stepInputs.fieldInventorySource),
+    }
   }
 
   /**
