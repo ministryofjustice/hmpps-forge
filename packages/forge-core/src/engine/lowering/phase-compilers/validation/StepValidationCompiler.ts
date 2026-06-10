@@ -104,9 +104,7 @@ export default class StepValidationCompiler {
    * Emits the source for an entry-validation predicate, coercing the result to a strict boolean.
    */
   private buildEntryValidationRuleSource(when: ASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildEntryValidationRuleSource')
 
     const predicateExpr = this.expr.compileExpression(when)
@@ -388,9 +386,7 @@ export default class StepValidationCompiler {
    * the group helpers and `errors` accumulator, run the field's slot, then return `errors`.
    */
   private buildFieldValidationSource(block: FieldBlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
@@ -424,9 +420,7 @@ export default class StepValidationCompiler {
    * Emits the domain-validation function body, accumulating failures into `domainErrors`.
    */
   private buildDomainValidationSource(domainValidWhen: unknown): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildDomainValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
@@ -520,9 +514,7 @@ export default class StepValidationCompiler {
    * empty result.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -575,9 +567,7 @@ export default class StepValidationCompiler {
    * chain emitting a loop per level before running the field's validation slot.
    */
   private buildIteratorFieldValidationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildIteratorFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)

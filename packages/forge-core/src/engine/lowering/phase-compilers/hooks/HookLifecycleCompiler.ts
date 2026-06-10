@@ -55,7 +55,7 @@ export default class HookLifecycleCompiler {
    * and outcome returns, with a trailing 'continue' return for the unmatched path.
    */
   private buildAccessHookSource(hook: AccessHookASTNode): string {
-    const emitter = this.createEmitter()
+    const emitter = CodeEmitter.strict()
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 
@@ -95,7 +95,7 @@ export default class HookLifecycleCompiler {
    * unexecuted 'continue' return for the path where `when` or `guards` block the hook.
    */
   private buildSubmitHookSource(hook: SubmitHookASTNode): string {
-    const emitter = this.createEmitter()
+    const emitter = CodeEmitter.strict()
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 
@@ -116,15 +116,6 @@ export default class HookLifecycleCompiler {
     emitter.return('{ executed: false, validated: false, outcome: "continue" }')
 
     return emitter.toString()
-  }
-
-  /** Creates a fresh CodeEmitter primed with a `"use strict"` directive. */
-  private createEmitter(): CodeEmitter {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-
-    return emitter
   }
 
   /**

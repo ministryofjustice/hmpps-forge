@@ -57,9 +57,7 @@ export default class StepFieldInventoryCompiler {
    * de-duplicated result.
    */
   private buildStepFieldCodesSource(step: FieldInventoryStepSource): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
 
     emitter.comment('StepFieldInventoryCompiler.compileStepFieldCodes')
     emitter.declareConst('fieldCodes', '[]')

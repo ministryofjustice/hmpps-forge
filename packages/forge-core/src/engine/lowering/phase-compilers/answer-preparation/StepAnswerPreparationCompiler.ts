@@ -318,9 +318,7 @@ export default class StepAnswerPreparationCompiler {
 
   /** Emits the source for a registered field's prepare function: a runtime branch on request method into the POST or GET path. */
   private buildFieldPreparationSource(block: FieldBlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepAnswerPreparationCompiler.buildFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 
@@ -409,9 +407,7 @@ export default class StepAnswerPreparationCompiler {
    * normalize to an array.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepAnswerPreparationCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -463,9 +459,7 @@ export default class StepAnswerPreparationCompiler {
    * iteratorScope, then descends through any intermediate iterator levels before compiling the field.
    */
   private buildIteratorFieldPreparationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepAnswerPreparationCompiler.buildIteratorFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 

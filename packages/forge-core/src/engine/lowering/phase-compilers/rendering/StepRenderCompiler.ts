@@ -380,9 +380,7 @@ export default class StepRenderCompiler {
    * `step` object of evaluated metadata properties.
    */
   private buildStepMetadataSource(stepNode: StepASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildStepMetadataSource')
     emitter.declareConst('step', '{}')
 
@@ -418,9 +416,7 @@ export default class StepRenderCompiler {
    * relative to its parents.
    */
   private buildAncestorMetadataSource(ancestorNodes: JourneyASTNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildAncestorMetadataSource')
     emitter.declareConst('ancestors', '[]')
 
@@ -450,9 +446,7 @@ export default class StepRenderCompiler {
    * answer value when no explicit value is authored.
    */
   private buildBlockSource(block: BlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildBlockSource')
 
     const propsVar = emitter.const('blockProps', '{}')
@@ -572,9 +566,7 @@ export default class StepRenderCompiler {
    * A non-array input yields an empty array.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -630,9 +622,7 @@ export default class StepRenderCompiler {
    * returns that array.
    */
   private buildIteratorRenderBlockSource(block: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildIteratorRenderBlockSource')
 
     const outerFrame: IteratorScopeFrame = {

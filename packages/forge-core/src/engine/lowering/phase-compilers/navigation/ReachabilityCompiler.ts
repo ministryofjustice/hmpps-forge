@@ -167,9 +167,7 @@ export default class ReachabilityCompiler {
   }
 
   private buildPredicateSource(node: ASTNode, label: string): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment(label)
     emitter.return(`Boolean(${this.expr.compileExpression(node)})`)
 
@@ -180,9 +178,7 @@ export default class ReachabilityCompiler {
     groups: Array<{ group: ForwardOutcomeGroup; redirectOutcomes: RedirectOutcomeASTNode[] }>,
     nodeRegistry: ASTNodeIndex,
   ): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('ReachabilityCompiler.compileStepOutcomes')
     emitter.declareConst('outcomes', '[]')
 
@@ -283,9 +279,7 @@ export default class ReachabilityCompiler {
   }
 
   private buildTieBreakerSource(inputs: ReachabilityStepInputs, nodeRegistry: ASTNodeIndex): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('ReachabilityCompiler.compileTieBreaker')
 
     const priorityVar = emitter.let('tieBreakerPriority')
