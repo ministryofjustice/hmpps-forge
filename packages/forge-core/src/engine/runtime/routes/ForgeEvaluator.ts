@@ -22,7 +22,6 @@ import { createEntryValidationPhase } from '../orchestrator/phases/entryValidati
 import { createSubmitLifecyclePhase } from '../orchestrator/phases/submitLifecyclePhase'
 import { createStepRenderTerminal } from '../orchestrator/terminals/stepRenderTerminal'
 import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
-import { resolveStepRequestRedirect, resolvePostRequestRedirect } from '../navigation/navigationRedirects'
 import SnapshotStepRequest from '../snapshot/SnapshotStepRequest'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
@@ -177,11 +176,10 @@ export default class ForgeEvaluator {
           accessPhase,
           answersPhase,
           createNavigationPhase(
-            compiledStep.navigationPlan.compiledNavigation,
             compiledStep.navigationPlan,
             runtimePlan.stepId,
             ctx.routeTemplateCatalog,
-            resolveStepRequestRedirect,
+            'step-get',
             functionRegistry,
           ),
           createEntryValidationPhase(
@@ -200,11 +198,10 @@ export default class ForgeEvaluator {
           accessPhase,
           answersPhase,
           createNavigationPhase(
-            compiledStep.navigationPlan.compiledNavigation,
             compiledStep.navigationPlan,
             runtimePlan.stepId,
             ctx.routeTemplateCatalog,
-            resolvePostRequestRedirect,
+            'step-post',
             functionRegistry,
           ),
           createSubmitLifecyclePhase(
@@ -275,12 +272,7 @@ export default class ForgeEvaluator {
           createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, runtimePlan.path, functionRegistry),
           createAnswerPreparationPlanPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
-        createJourneyRedirectTerminal(
-          compiledJourney.navigationPlan.compiledNavigation,
-          compiledJourney.navigationPlan,
-          routeTemplateCatalog,
-          functionRegistry,
-        ),
+        createJourneyRedirectTerminal(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyId)

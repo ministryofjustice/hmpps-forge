@@ -1,5 +1,5 @@
-import { NodeId } from '../../../contracts/ast/ast.type'
-import { NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import { NodeId } from '../../contracts/ast/ast.type'
+import { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 
 export interface NavigationPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]

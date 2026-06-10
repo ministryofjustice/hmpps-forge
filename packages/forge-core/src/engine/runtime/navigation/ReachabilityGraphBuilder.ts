@@ -1,10 +1,10 @@
-import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
+import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
 import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
-import { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
-import { NodeId } from '../../../contracts/ast/ast.type'
-import { NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
-import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
-import type { CompiledReachabilityResult } from '../../../contracts/compiled/compiledFunctions.type'
+import { JourneyRouteTemplateCatalog } from '../../contracts/routing/routeTree.type'
+import { NodeId } from '../../contracts/ast/ast.type'
+import { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
+import type { ValidationContext } from '../../contracts/compiled/phaseContexts.type'
+import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 
 /**

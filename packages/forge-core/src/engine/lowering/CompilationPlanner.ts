@@ -185,8 +185,11 @@ export default class CompilationPlanner {
         code: entry.code,
         isEntryPoint: entry.isEntryPoint,
         hasValidation: entry.hasValidation,
+        cleardownFieldCodes: entry.cleardownFieldCodes,
+        declaredOutcomes: entry.declaredOutcomes,
       })),
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
+      resumeAlways,
       unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
       compiledStepValidations: new Map(),
@@ -202,7 +205,7 @@ export default class CompilationPlanner {
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
-    const { forwardOutcomeGroups } = this.extractForwardNavigation(stepNode)
+    const { forwardOutcomeGroups, declaredOutcomes } = this.extractForwardNavigation(stepNode)
     const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
@@ -214,6 +217,7 @@ export default class CompilationPlanner {
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeGroups,
+      declaredOutcomes,
       hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
@@ -297,14 +301,30 @@ export default class CompilationPlanner {
       .some(block => hasConfiguredValue(block.properties.validWhen))
   }
 
-  private extractForwardNavigation(stepNode: StepASTNode): { forwardOutcomeGroups: ForwardOutcomeGroup[] } {
+  /**
+   * Groups the step's forward outcomes per submit hook for the compiler's
+   * cascades, and collects the statically-declared goto strings across all
+   * hooks — known at plan time, regardless of guards — for the devtools graph.
+   */
+  private extractForwardNavigation(stepNode: StepASTNode): {
+    forwardOutcomeGroups: ForwardOutcomeGroup[]
+    declaredOutcomes: string[]
+  } {
     const submitHooks = stepNode.properties.onSubmission ?? []
 
     const forwardOutcomeGroups: ForwardOutcomeGroup[] = submitHooks
       .map(hook => this.buildForwardOutcomeGroup(hook))
       .filter(group => group.outcomeIds.length > 0)
 
-    return { forwardOutcomeGroups }
+    const declaredOutcomes = forwardOutcomeGroups.flatMap(group =>
+      group.outcomeIds
+        .map(outcomeId => this.nodeRegistry.get(outcomeId))
+        .filter(isRedirectOutcomeNode)
+        .map(outcome => outcome.properties.goto)
+        .filter((goto): goto is string => typeof goto === 'string'),
+    )
+
+    return { forwardOutcomeGroups, declaredOutcomes }
   }
 
   private buildForwardOutcomeGroup(hook: SubmitHookASTNode): ForwardOutcomeGroup {

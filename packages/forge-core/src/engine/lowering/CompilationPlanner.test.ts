@@ -195,6 +195,32 @@ describe('CompilationPlanner', () => {
       ])
     })
 
+    it('should collect statically-declared gotos across hooks onto the entries', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journey = createJourney('compile_ast:400', [])
+      const { hook: hook1, redirect: redirect1 } = createSubmitHookWithRedirect('compile_ast:410', { goto: '/check' })
+      const { hook: hook2, redirect: redirect2 } = createSubmitHookWithRedirect('compile_ast:411', { goto: '/add' })
+      const step = createStep('compile_ast:401', { onSubmission: [hook1, hook2] })
+
+      nodeRegistry.register(journey.id, journey)
+      nodeRegistry.register(step.id, step)
+      nodeRegistry.register(redirect1.id, redirect1)
+      nodeRegistry.register(redirect2.id, redirect2)
+      astNodeTree.addNode(journey.id)
+      astNodeTree.addNode(step.id, journey.id)
+
+      const planner = new CompilationPlanner(nodeRegistry, astNodeTree)
+
+      // Act
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+
+      // Assert
+      expect(plan.reachabilityPlans[0].entries[0].declaredOutcomes).toEqual(['/check', '/add'])
+      expect(plan.reachabilityPlans[0].navigationPlan.entries[0].declaredOutcomes).toEqual(['/check', '/add'])
+    })
+
     it('should preserve a compilable hook when on its forward outcome group', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()

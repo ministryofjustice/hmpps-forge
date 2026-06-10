@@ -1,11 +1,12 @@
 /**
- * Emits navigation evaluators for a reachability compilation plan.
- *
- * Dynamic result arrays are indexed by step position in `plan.entries`.
- * Navigation evaluators also emit field inventory when request params are
- * present.
+ * Compiles a reachability plan's dynamic expressions into per-step navigation
+ * leaves — entry predicate, forward outcomes, tie-breaker priority — plus the
+ * journey-level resume predicate. Each leaf is a small self-contained generated
+ * function; the navigation walk evaluates them per request and feeds the
+ * results to the reachability graph.
  */
-import { ASTNode } from '../../../contracts/ast/ast.type'
+import { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
+import type { RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import type {
   ForwardOutcomeGroup,
   ReachabilityCompilationEntry,
@@ -15,195 +16,50 @@ import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import type {
-  CompiledNavigationFunction,
-  CompiledReachabilityFunction,
+  CompiledNavigationOutcomesFunction,
+  CompiledNavigationPredicateFunction,
+  CompiledNavigationTieBreakerFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
-import {
-  buildGeneratedSource,
-  compileGeneratedFunction,
-  GENERATED_FUNCTION_HELPERS_PARAM,
-} from '../../function-construction/GeneratedFunctionCompiler'
+import { compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
 import { isRedirectOutcomeNode } from '../../../contracts/ast/outcome-nodes'
-import StepFieldInventoryCompiler, { FieldInventoryStepSource } from '../field-inventory/StepFieldInventoryCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 /**
- * Builds generated functions from a reachability compilation plan.
+ * Builds the per-step generated navigation leaves from a reachability
+ * compilation plan.
  */
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
 
-  private readonly fieldInventory: StepFieldInventoryCompiler
-
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
-    this.fieldInventory = new StepFieldInventoryCompiler(dependencies, this.expr)
   }
 
   /**
-   * Compiles the plan into an executable reachability evaluator.
+   * Compiles one step's conditional-entry predicate. Returns undefined when the
+   * step has no `entryWhen` expression to evaluate.
    */
-  compile(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): CompiledReachabilityFunction | undefined {
-    return compileGeneratedFunction<CompiledReachabilityFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSource(plan, nodeRegistry),
-      { phase: 'reachability' },
-    )
-  }
-
-  /**
-   * Compiles the plan into a navigation evaluator.
-   *
-   * The generated function evaluates dynamic reachability expressions and, when
-   * params are available, emits field inventory.
-   */
-  compileNavigation(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
+  compileEntryPredicate(
+    entry: ReachabilityCompilationEntry,
     nodeRegistry: ASTNodeIndex,
-  ): CompiledNavigationFunction {
-    return compileGeneratedFunction<CompiledNavigationFunction>(
-      this.expr,
-      ['ctx', 'navigation'],
-      () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
-      { forceAsync: true, phase: 'navigation' },
-    )
+  ): CompiledNavigationPredicateFunction | undefined {
+    return this.compilePredicate(entry.entryWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileEntryPredicate')
   }
 
   /**
-   * Builds the generated source without constructing a function, mainly for debugging.
+   * Compiles the journey's `resumeWhen` predicate. Returns undefined when
+   * resume is static (`resumeWhen: true` or not configured), in which case the
+   * plan's `resumeAlways` flag decides.
    */
-  generateSource(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(plan, nodeRegistry))
-  }
-
-  /**
-   * Builds inspectable generated navigation source.
-   *
-   * Function metadata determines whether emitted calls need `await`.
-   */
-  generateNavigationSource(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
-  ): string {
-    return buildGeneratedSource(this.expr, () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry))
-  }
-
-  /**
-   * Emits the full reachability function body in compilation-plan step order.
-   */
-  private buildSource(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): string {
-    const emitter = new CodeEmitter()
-    const stepCount = plan.entries.length
-
-    emitter.code('"use strict";')
-
-    emitter.comment('ReachabilityCompiler.buildSource')
-    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
-
-    emitter.return(this.buildReachabilityResultExpression())
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits the generated navigation function body with reachability arrays and
-   * optional field inventory.
-   */
-  private buildNavigationSource(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
-  ): string {
-    const emitter = new CodeEmitter()
-    const stepCount = plan.entries.length
-
-    emitter.code('"use strict";')
-
-    emitter.comment('ReachabilityCompiler.buildNavigationSource')
-    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
-    this.compileFieldInventory(fieldInventorySources, emitter)
-
-    emitter.return(
-      `${GENERATED_FUNCTION_HELPERS_PARAM}.evaluateNavigation(ctx, fieldInventory === undefined ? navigation : { ...navigation, fieldInventory: fieldInventory }, ${this.buildReachabilityResultExpression()})`,
-    )
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits reachability arrays aligned to `plan.entries`.
-   */
-  private compileReachabilityResult(
+  compileResumePredicate(
     plan: ReachabilityCompilationPlan,
     nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-    stepCount: number,
-  ): void {
-    emitter.declareConst('entryResults', `new Array(${stepCount})`)
-    emitter.declareConst('outcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
-    emitter.declareConst('declaredOutcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
-    emitter.declareConst('tieBreakerPriorities', `new Array(${stepCount})`)
-
-    this.compileEntryPredicates(plan.entries, nodeRegistry, emitter)
-    this.compileForwardOutcomes(plan.entries, nodeRegistry, emitter)
-    this.compileTieBreakers(plan.entries, nodeRegistry, emitter)
-    this.compileResumeCondition(plan, nodeRegistry, emitter)
+  ): CompiledNavigationPredicateFunction | undefined {
+    return this.compilePredicate(plan.resumeWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileResumePredicate')
   }
 
   /**
-   * Emits field inventory only for navigation calls that can project params.
-   */
-  private compileFieldInventory(fieldInventorySources: FieldInventoryStepSource[], emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileFieldInventory')
-    emitter.declareLet('fieldInventory')
-    emitter.if('navigation.params !== undefined', () => {
-      emitter.assign('fieldInventory', '[]')
-      this.fieldInventory.compileInto(fieldInventorySources, emitter, 'fieldInventory')
-    })
-  }
-
-  /**
-   * Builds the reachability result object literal.
-   */
-  private buildReachabilityResultExpression(): string {
-    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
-  }
-
-  /**
-   * Emits the optional per-step entryWhen predicates used to seed extra entry points.
-   */
-  private compileEntryPredicates(
-    entries: ReachabilityCompilationEntry[],
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
-    emitter.comment('ReachabilityCompiler.compileEntryPredicates')
-
-    entries.forEach((entry, index) => {
-      if (entry.entryWhenNodeId === undefined) {
-        return
-      }
-
-      const node = nodeRegistry.get(entry.entryWhenNodeId)
-
-      if (!node) {
-        return
-      }
-
-      emitter.scope(() => {
-        const predicateExpr = this.expr.compileExpression(node)
-        const predicateVar = emitter.const('entryPredicate', `Boolean(${predicateExpr})`)
-
-        emitter.assign(`entryResults[${index}]`, predicateVar)
-      })
-    })
-  }
-
-  /**
-   * Compiles forward outcome evaluation for each step.
+   * Compiles one step's forward outcome evaluation.
    *
    * Forward outcomes are RedirectOutcomeASTNodes grouped by their owning submit
    * hook. Each group cascades independently — a fresh `outcomeMatched` flag per
@@ -211,49 +67,121 @@ export default class ReachabilityCompiler {
    * reachability-compilable. Hooks with non-compilable `when:` (e.g. `Post(...)`
    * references) contribute unguarded as an intentional over-approximation.
    *
-   * `declaredOutcomeValues` is hoisted out of the cascade so every authored
-   * static goto is recorded for the devtools graph regardless of guard state.
-   *
-   * Only REDIRECT outcomes contribute path candidates.
+   * Returns undefined when no hook contributes a redirect outcome.
    */
-  private compileForwardOutcomes(
-    entries: ReachabilityCompilationEntry[],
+  compileStepOutcomes(
+    entry: ReachabilityCompilationEntry,
     nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
-    emitter.comment('ReachabilityCompiler.compileForwardOutcomes')
+  ): CompiledNavigationOutcomesFunction | undefined {
+    const groups = entry.forwardOutcomeGroups
+      .map(group => ({
+        group,
+        redirectOutcomes: group.outcomeIds.map(outcomeId => nodeRegistry.get(outcomeId)).filter(isRedirectOutcomeNode),
+      }))
+      .filter(({ redirectOutcomes }) => redirectOutcomes.length > 0)
 
-    entries.forEach((entry, stepIndex) => {
-      entry.forwardOutcomeGroups.forEach(group => {
-        this.compileForwardOutcomeGroup(group, stepIndex, nodeRegistry, emitter)
-      })
+    if (groups.length === 0) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledNavigationOutcomesFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildOutcomesSource(groups, nodeRegistry),
+      { phase: 'navigation' },
+    )!
+  }
+
+  /**
+   * Compiles one step's tie-breaker priority resolution.
+   *
+   * Tie-breakers are a priority cascade: the first rule whose `when` predicate
+   * matches (or has no predicate, making it a catch-all) determines the step's
+   * priority. The generated code guards each rule with `priority === undefined`
+   * so later predicates are not evaluated after a winner has been chosen.
+   *
+   * Returns undefined when the step declares no tie-breakers.
+   */
+  compileTieBreaker(
+    entry: ReachabilityCompilationEntry,
+    nodeRegistry: ASTNodeIndex,
+  ): CompiledNavigationTieBreakerFunction | undefined {
+    if (entry.reachabilityTieBreakers.length === 0) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledNavigationTieBreakerFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildTieBreakerSource(entry, nodeRegistry),
+      { phase: 'navigation' },
+    )!
+  }
+
+  private compilePredicate(
+    nodeId: NodeId | undefined,
+    nodeRegistry: ASTNodeIndex,
+    label: string,
+  ): CompiledNavigationPredicateFunction | undefined {
+    if (nodeId === undefined) {
+      return undefined
+    }
+
+    const node = nodeRegistry.get(nodeId)
+
+    if (!node) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledNavigationPredicateFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildPredicateSource(node, label),
+      { phase: 'navigation' },
+    )!
+  }
+
+  private buildPredicateSource(node: ASTNode, label: string): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment(label)
+    emitter.return(`Boolean(${this.expr.compileExpression(node)})`)
+
+    return emitter.toString()
+  }
+
+  private buildOutcomesSource(
+    groups: Array<{ group: ForwardOutcomeGroup; redirectOutcomes: RedirectOutcomeASTNode[] }>,
+    nodeRegistry: ASTNodeIndex,
+  ): string {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+    emitter.comment('ReachabilityCompiler.compileStepOutcomes')
+    emitter.declareConst('outcomes', '[]')
+
+    groups.forEach(({ group, redirectOutcomes }) => {
+      this.compileForwardOutcomeGroup(group, redirectOutcomes, nodeRegistry, emitter)
     })
+
+    emitter.return('outcomes')
+
+    return emitter.toString()
   }
 
   private compileForwardOutcomeGroup(
     group: ForwardOutcomeGroup,
-    stepIndex: number,
+    redirectOutcomes: RedirectOutcomeASTNode[],
     nodeRegistry: ASTNodeIndex,
     emitter: CodeEmitter,
   ): void {
-    const redirectOutcomes = group.outcomeIds
-      .map(outcomeId => nodeRegistry.get(outcomeId))
-      .filter(isRedirectOutcomeNode)
-
-    if (redirectOutcomes.length === 0) {
-      return
-    }
-
-    redirectOutcomes.forEach(outcome => {
-      this.compileDeclaredGotoResolution(outcome.properties.goto, stepIndex, emitter)
-    })
-
     const emitCascade = () => {
       emitter.scope(() => {
         const outcomeMatchedVar = emitter.let('outcomeMatched', 'false')
 
         redirectOutcomes.forEach(outcome => {
-          this.compileForwardOutcomeCascade(outcome.properties, stepIndex, outcomeMatchedVar, emitter)
+          this.compileForwardOutcomeCascade(outcome.properties, outcomeMatchedVar, emitter)
         })
       })
     }
@@ -275,15 +203,12 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Emits the cascade step for one redirect outcome within a hook group.
-   *
-   * The declared-paths push is hoisted to the group level, so this only runs
-   * the cascade guard (`outcomeMatched === false`) and the optional outcome-level
-   * `when:` evaluation.
+   * Emits the cascade step for one redirect outcome within a hook group: the
+   * cascade guard (`outcomeMatched === false`) and the optional outcome-level
+   * `when:` evaluation around the goto resolution.
    */
   private compileForwardOutcomeCascade(
-    properties: { readonly when?: ASTNode; readonly goto: ASTNode | string },
-    stepIndex: number,
+    properties: RedirectOutcomeASTNode['properties'],
     outcomeMatchedVar: string,
     emitter: CodeEmitter,
   ): void {
@@ -296,37 +221,24 @@ export default class ReachabilityCompiler {
           const whenVar = emitter.const('outcomeWhen', `Boolean(${whenExpr})`)
 
           emitter.if(whenVar, () => {
-            this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, emitter)
+            this.compileGotoResolution(goto, outcomeMatchedVar, emitter)
           })
 
           return
         }
 
-        this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, emitter)
+        this.compileGotoResolution(goto, outcomeMatchedVar, emitter)
       })
     })
   }
 
-  private compileDeclaredGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
-    if (typeof goto !== 'string') {
-      return
-    }
-
-    emitter.code(`declaredOutcomeValues[${stepIndex}].push(${JSON.stringify(goto)});`)
-  }
-
   /**
-   * Emits the goto target evaluation and pushes the result to outcomeValues.
+   * Emits the goto target evaluation and pushes the result to the outcomes.
    * String literals are emitted as JSON constants. AST expressions are compiled
    * through the shared dispatcher. Expression failures surface as Forge runtime
    * errors with diagnostic context.
    */
-  private compileGotoResolution(
-    goto: ASTNode | string,
-    stepIndex: number,
-    outcomeMatchedVar: string,
-    emitter: CodeEmitter,
-  ): void {
+  private compileGotoResolution(goto: ASTNode | string, outcomeMatchedVar: string, emitter: CodeEmitter): void {
     let gotoExpr: string
 
     if (typeof goto === 'string') {
@@ -340,95 +252,46 @@ export default class ReachabilityCompiler {
     const gotoVar = emitter.const('gotoValue', gotoExpr)
 
     emitter.if(`${gotoVar} !== undefined`, () => {
-      emitter.code(`outcomeValues[${stepIndex}].push(String(${gotoVar}));`)
+      emitter.code(`outcomes.push(String(${gotoVar}));`)
       emitter.assign(outcomeMatchedVar, 'true')
     })
   }
 
-  /**
-   * Compiles tie-breaker priority resolution for each step.
-   *
-   * Tie-breakers are a priority cascade: the first rule whose `when` predicate
-   * matches (or has no predicate, making it a catch-all) determines the step's
-   * priority. The generated code guards each rule with `priority === undefined`
-   * so later predicates are not evaluated after a winner has been chosen.
-   */
-  private compileTieBreakers(
-    entries: ReachabilityCompilationEntry[],
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
-    emitter.comment('ReachabilityCompiler.compileTieBreakers')
+  private buildTieBreakerSource(entry: ReachabilityCompilationEntry, nodeRegistry: ASTNodeIndex): string {
+    const emitter = new CodeEmitter()
 
-    entries.forEach((entry, index) => {
-      if (entry.reachabilityTieBreakers.length === 0) {
+    emitter.code('"use strict";')
+    emitter.comment('ReachabilityCompiler.compileTieBreaker')
+
+    const priorityVar = emitter.let('tieBreakerPriority')
+
+    entry.reachabilityTieBreakers.forEach(tieBreaker => {
+      if (tieBreaker.whenNodeId === undefined) {
+        emitter.if(`${priorityVar} === undefined`, () => {
+          emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
+        })
+
         return
       }
 
-      emitter.scope(() => {
-        const priorityVar = emitter.let('tieBreakerPriority')
+      const node = nodeRegistry.get(tieBreaker.whenNodeId)
 
-        entry.reachabilityTieBreakers.forEach(tieBreaker => {
-          if (tieBreaker.whenNodeId === undefined) {
-            emitter.if(`${priorityVar} === undefined`, () => {
-              emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
-            })
+      if (!node) {
+        return
+      }
 
-            return
-          }
+      emitter.if(`${priorityVar} === undefined`, () => {
+        const whenExpr = this.expr.compileExpression(node)
+        const whenVar = emitter.const('tieBreakerWhen', `Boolean(${whenExpr})`)
 
-          const node = nodeRegistry.get(tieBreaker.whenNodeId)
-
-          if (!node) {
-            return
-          }
-
-          emitter.if(`${priorityVar} === undefined`, () => {
-            const whenExpr = this.expr.compileExpression(node)
-            const whenVar = emitter.const('tieBreakerWhen', `Boolean(${whenExpr})`)
-
-            emitter.if(whenVar, () => {
-              emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
-            })
-          })
+        emitter.if(whenVar, () => {
+          emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
         })
-        emitter.assign(`tieBreakerPriorities[${index}]`, priorityVar)
       })
     })
-  }
 
-  /**
-   * Emits the journey resume condition, defaulting to inactive when no predicate is configured.
-   */
-  private compileResumeCondition(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
-    emitter.comment('ReachabilityCompiler.compileResumeCondition')
+    emitter.return(priorityVar)
 
-    if (plan.resumeAlways) {
-      emitter.declareConst('resumeActive', 'true')
-
-      return
-    }
-
-    if (plan.resumeWhenNodeId === undefined) {
-      emitter.declareConst('resumeActive', 'false')
-
-      return
-    }
-
-    const node = nodeRegistry.get(plan.resumeWhenNodeId)
-
-    if (!node) {
-      emitter.declareConst('resumeActive', 'false')
-
-      return
-    }
-
-    const conditionExpr = this.expr.compileExpression(node)
-
-    emitter.declareConst('resumeActive', `Boolean(${conditionExpr})`)
+    return emitter.toString()
   }
 }

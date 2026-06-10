@@ -8,10 +8,6 @@ import type {
 import type { StepValidityResult } from '../runtime/stepValidityResult.type'
 import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
 import type { RenderBlock } from '../../../framework/rendering/types'
-import type {
-  NavigationEvaluationInput,
-  NavigationEvaluationResult,
-} from '../navigation/generatedNavigationEvaluation.type'
 
 /**
  * Validates a whole step in one call: runs every field, iterator-group field
@@ -38,9 +34,10 @@ export interface CompiledRenderResult {
 }
 
 /**
- * The result of calling the compiled reachability function. Arrays are indexed
- * by step position in the ReachabilityCompilationPlan.entries array, maintaining a
- * 1:1 correspondence with the plan's step ordering.
+ * The per-step results of evaluating a navigation plan's compiled leaves,
+ * assembled by the navigation walk before the reachability graph is built.
+ * Arrays are indexed by step position in the plan's entries array, maintaining
+ * a 1:1 correspondence with the plan's step ordering.
  */
 export interface CompiledReachabilityResult {
   /** Per-step: result of evaluating the entryWhen predicate (undefined = no predicate) */
@@ -56,23 +53,34 @@ export interface CompiledReachabilityResult {
 }
 
 /**
- * Evaluates every step's entry predicate and forward-goto outcomes for the whole
- * journey in one pass, returning the per-step arrays used to compute reachability.
- * Async iff any predicate or goto expression awaits.
+ * Evaluates one navigation predicate — a step's conditional-entry `entryWhen`
+ * or the journey's `resumeWhen`. One such function exists per authored
+ * predicate; steps without one have no function and use their static default.
  */
-export type CompiledReachabilityFunction = (
-  ctx: ReachabilityContext,
-) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
+export type CompiledNavigationPredicateFunction = (ctx: ReachabilityContext) => boolean | Promise<boolean>
 
 /**
- * Resolves navigation for the current request: runs reachability against `ctx`,
- * then resolves the result into a concrete next-step evaluation using the plan,
- * route catalog, and field inventory carried on `navigation`. Always async.
+ * Evaluates one step's forward outcome gotos, cascaded per submit hook: within
+ * a hook's outcomes the first defined goto wins, guarded by the hook's `when:`
+ * where it is reachability-compilable; separate hooks contribute independently.
+ * Returns the resolved goto path strings.
  */
-export type CompiledNavigationFunction = (
+export type CompiledNavigationOutcomesFunction = (ctx: ReachabilityContext) => string[] | Promise<string[]>
+
+/**
+ * Resolves one step's tie-breaker priority: the first rule whose `when`
+ * predicate matches (or has no predicate) determines the priority; no matching
+ * rule yields undefined.
+ */
+export type CompiledNavigationTieBreakerFunction = (
   ctx: ReachabilityContext,
-  navigation: NavigationEvaluationInput,
-) => Promise<NavigationEvaluationResult>
+) => number | undefined | Promise<number | undefined>
+
+/**
+ * Collects one step's possible field codes (static and iterator-expanded,
+ * de-duplicated) for reachability state projection.
+ */
+export type CompiledStepFieldCodesFunction = (ctx: ReachabilityContext) => string[] | Promise<string[]>
 
 /**
  * Validates one field, returning its failures (empty when valid). When `groups`

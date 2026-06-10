@@ -3,35 +3,14 @@ import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { StepFieldInventory } from '../../../contracts/plans/stepFieldInventory.type'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
+import type { CompiledStepFieldCodesFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
+import { compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
-
-export interface FieldInventoryContext {
-  answers: Record<string, { current: unknown }>
-  data: Record<string, unknown>
-  session: Record<string, unknown>
-  params: Record<string, unknown>
-  query: Record<string, unknown>
-  request: Record<string, unknown>
-  conditions: FunctionRegistry
-}
-
-export interface FieldInventoryStepSource {
-  stepId: string
-  fieldBlocks: FieldBlockASTNode[]
-  iterateNodes: IterateASTNode[]
-  cleardownFieldCodes: string[]
-}
-
-export type CompiledFieldInventoryFunction = (
-  ctx: FieldInventoryContext,
-) => StepFieldInventory[] | Promise<StepFieldInventory[]>
 
 /**
  * Compiles the possible field codes for each step in a navigation plan.
@@ -55,66 +34,45 @@ export default class StepFieldInventoryCompiler {
   }
 
   /**
-   * Builds a standalone generated inventory function for tests and diagnostics.
+   * Compiles one step's field-code collection into a standalone function
+   * returning the de-duplicated codes. Returns undefined when the step has no
+   * field blocks or iterator templates to collect from, in which case the step
+   * inventories no codes.
    */
-  compile(steps: FieldInventoryStepSource[]): CompiledFieldInventoryFunction | undefined {
-    return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(steps), {
-      phase: 'field-inventory',
-    })
+  compileStepFieldCodes(step: FieldInventoryStepSource): CompiledStepFieldCodesFunction | undefined {
+    if (step.fieldBlocks.length === 0 && step.iterateNodes.length === 0) {
+      return undefined
+    }
+
+    return compileGeneratedFunction<CompiledStepFieldCodesFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildStepFieldCodesSource(step),
+      { phase: 'field-inventory' },
+    )!
   }
 
   /**
-   * Produces inspectable generated source for tests and local debugging.
+   * Emits one step's static and iterator-derived field codes into a
+   * de-duplicated result.
    */
-  generateSource(steps: FieldInventoryStepSource[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(steps))
-  }
-
-  /**
-   * Emits inventory collection into an existing generated function.
-   *
-   * The caller owns the target array and expression dispatcher lifecycle; this
-   * method only appends the per-step collection statements.
-   */
-  compileInto(steps: FieldInventoryStepSource[], emitter: CodeEmitter, fieldInventoryVar: string): void {
-    steps.forEach(step => this.compileStep(step, emitter, fieldInventoryVar))
-  }
-
-  /**
-   * Emits the full field inventory source, accumulating one inventory entry per step.
-   */
-  private buildSource(steps: FieldInventoryStepSource[]): string {
+  private buildStepFieldCodesSource(step: FieldInventoryStepSource): string {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
 
-    emitter.comment('StepFieldInventoryCompiler.buildSource')
-    emitter.declareConst('fieldInventory', '[]')
+    emitter.comment('StepFieldInventoryCompiler.compileStepFieldCodes')
+    emitter.declareConst('fieldCodes', '[]')
 
-    this.compileInto(steps, emitter, 'fieldInventory')
-    emitter.return('fieldInventory')
+    step.fieldBlocks.forEach(block => this.compileRegisteredFieldCode(block, 'fieldCodes', emitter))
+
+    step.iterateNodes.forEach(iterateNode => {
+      this.compileMapIterator(iterateNode, 'fieldCodes', emitter)
+    })
+
+    emitter.return('Array.from(new Set(fieldCodes))')
 
     return emitter.toString()
-  }
-
-  /**
-   * Emits one step's static and iterator-derived field codes into a de-duplicated result.
-   */
-  private compileStep(step: FieldInventoryStepSource, emitter: CodeEmitter, fieldInventoryVar: string): void {
-    emitter.comment('StepFieldInventoryCompiler.compileStep')
-    emitter.scope(() => {
-      const fieldCodesVar = emitter.const('fieldCodes', '[]')
-
-      step.fieldBlocks.forEach(block => this.compileRegisteredFieldCode(block, fieldCodesVar, emitter))
-
-      step.iterateNodes.forEach(iterateNode => {
-        this.compileMapIterator(iterateNode, fieldCodesVar, emitter)
-      })
-
-      emitter.code(
-        `${fieldInventoryVar}.push({ stepId: ${JSON.stringify(step.stepId)}, fieldCodes: Array.from(new Set(${fieldCodesVar})), cleardownFieldCodes: ${JSON.stringify(step.cleardownFieldCodes)} });`,
-      )
-    })
   }
 
   /**

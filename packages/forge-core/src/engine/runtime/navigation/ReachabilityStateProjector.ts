@@ -1,8 +1,8 @@
-import { resolvePathParams } from '../../../../framework/path/routePath'
-import { JourneyReachabilityState, ReachabilityStep } from '../../../contracts/navigation/journeyReachabilityState.type'
-import { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import { resolvePathParams } from '../../../framework/path/routePath'
+import { JourneyReachabilityState, ReachabilityStep } from '../../contracts/navigation/journeyReachabilityState.type'
+import { NavigationEvaluation, NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 import { resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
-import { StepFieldInventory } from '../../../contracts/plans/stepFieldInventory.type'
+import { StepFieldInventory } from '../../contracts/plans/stepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
   project(

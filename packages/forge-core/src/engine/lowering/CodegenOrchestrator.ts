@@ -20,6 +20,7 @@ import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/navigation/ReachabilityCompiler'
+import StepFieldInventoryCompiler from './phase-compilers/field-inventory/StepFieldInventoryCompiler'
 import StepRenderCompiler from './phase-compilers/rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
@@ -76,9 +77,11 @@ export default class CodegenOrchestrator {
   }
 
   /**
-   * Compiles each reachability plan's navigation function and attaches it, along
-   * with the per-step validation functions it needs, directly onto the shared
-   * NavigationRuntimePlan. Mutates each reachabilityPlan.navigationPlan in place.
+   * Compiles each reachability plan's per-step navigation leaves — entry
+   * predicate, forward outcomes, tie-breaker, field codes — onto the shared
+   * NavigationRuntimePlan's entries, plus the journey-level resume predicate
+   * and the per-step validation functions the graph walk needs. Mutates each
+   * reachabilityPlan.navigationPlan in place.
    */
   private compileNavigation(
     plan: CompilationPlan,
@@ -86,17 +89,29 @@ export default class CodegenOrchestrator {
     validationPlans: Map<NodeId, ValidationPlan | undefined>,
   ): void {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
+    const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
 
     plan.reachabilityPlans.forEach(reachabilityPlan => {
-      reachabilityPlan.navigationPlan.compiledStepValidations = this.wrapValidationPlansForReachability(
+      const navigationPlan = reachabilityPlan.navigationPlan
+      const inventorySources = plan.fieldInventorySources.get(navigationPlan) ?? []
+
+      navigationPlan.compiledStepValidations = this.wrapValidationPlansForReachability(
         reachabilityPlan,
         validationPlans,
       )
-      reachabilityPlan.navigationPlan.compiledNavigation = reachabilityCompiler.compileNavigation(
-        reachabilityPlan,
-        plan.fieldInventorySources.get(reachabilityPlan.navigationPlan) ?? [],
-        nodeRegistry,
-      )
+      navigationPlan.evaluateResume = reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry)
+
+      reachabilityPlan.entries.forEach((compilationEntry, index) => {
+        const entry = navigationPlan.entries[index]
+        const inventorySource = inventorySources[index]
+
+        entry.evaluateEntry = reachabilityCompiler.compileEntryPredicate(compilationEntry, nodeRegistry)
+        entry.evaluateOutcomes = reachabilityCompiler.compileStepOutcomes(compilationEntry, nodeRegistry)
+        entry.evaluateTieBreaker = reachabilityCompiler.compileTieBreaker(compilationEntry, nodeRegistry)
+        entry.evaluateFieldCodes = inventorySource
+          ? fieldInventoryCompiler.compileStepFieldCodes(inventorySource)
+          : undefined
+      })
     })
   }
 

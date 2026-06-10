@@ -1,10 +1,3 @@
-import { evaluateGeneratedNavigation } from '../phase-compilers/navigation/evaluateGeneratedNavigation'
-import type {
-  NavigationEvaluationInput,
-  NavigationEvaluationResult,
-} from '../../contracts/navigation/generatedNavigationEvaluation.type'
-import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
-import type { ValidationContext } from '../../contracts/compiled/phaseContexts.type'
 import { RENDER_BLOCK_BRAND } from '../../contracts/compiled/renderBlock.brand'
 
 interface AnswerHistory {
@@ -87,11 +80,6 @@ export interface GeneratedFunctionHelpers {
     metadata: RuntimeDiagnosticState,
     evaluate: () => Promise<unknown>,
   ): Promise<unknown>
-  evaluateNavigation(
-    ctx: ValidationContext,
-    input: NavigationEvaluationInput,
-    compiledResult: CompiledReachabilityResult,
-  ): Promise<NavigationEvaluationResult>
   evaluateValidationCondition(evaluate: () => unknown): boolean
   evaluateValidationConditionAsync(evaluate: () => Promise<unknown>): Promise<boolean>
 }
@@ -167,10 +155,6 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
 
   evaluateTrackedAsync(diagnostics, metadata, evaluate) {
     return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
-  },
-
-  evaluateNavigation(ctx, input, compiledResult) {
-    return evaluateGeneratedNavigation(ctx, input, compiledResult)
   },
 
   evaluateValidationCondition(evaluate) {

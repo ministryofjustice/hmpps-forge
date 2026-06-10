@@ -52,22 +52,10 @@ describe('ForgeEvaluator', () => {
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
+        resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),
-        compiledNavigation: vi.fn().mockResolvedValue({
-          evaluation: {
-            currentStepId: descriptor.nodeId,
-            steps: [],
-            defaultEntryRouteTemplatePath: undefined,
-            frontierRouteTemplatePath: undefined,
-            canonicalPathRouteTemplatePaths: [],
-            progressExists: false,
-            resumeActive: false,
-            resumeOutcome: 'no-op',
-            unreachableRedirect: 'entry',
-          },
-        }),
       },
       answerPreparationPlan: { fields: [], iteratorGroups: [] },
       renderPlan: { blocks: [], iteratorGroups: [] },
@@ -84,6 +72,7 @@ describe('ForgeEvaluator', () => {
       navigationPlan: {
         entries: [],
         resumeConfigured: false,
+        resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
         compiledStepValidations: new Map(),

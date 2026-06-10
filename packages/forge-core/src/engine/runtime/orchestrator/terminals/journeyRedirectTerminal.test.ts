@@ -1,7 +1,9 @@
 import { createJourneyRedirectTerminal } from './journeyRedirectTerminal'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { PipelineState } from '../types'
-import type { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
@@ -39,26 +41,36 @@ const createMockState = (params: Record<string, string> = {}): PipelineState => 
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-const createMockEvaluation = (overrides: Partial<NavigationEvaluation> = {}): NavigationEvaluation => ({
-  currentStepId: undefined,
-  steps: [],
-  defaultEntryRouteTemplatePath: '/journey/first-step',
-  frontierRouteTemplatePath: undefined,
-  canonicalPathRouteTemplatePaths: [],
-  progressExists: false,
-  resumeActive: false,
-  resumeOutcome: 'no-op',
-  unreachableRedirect: 'entry',
+const createEntry = (stepId: NodeId, overrides: Partial<NavigationRuntimeEntry> = {}): NavigationRuntimeEntry => ({
+  stepId,
+  isEntryPoint: false,
+  hasValidation: false,
+  cleardownFieldCodes: [],
+  declaredOutcomes: [],
   ...overrides,
+})
+
+const createPlan = (entries: NavigationRuntimeEntry[]): NavigationRuntimePlan => ({
+  entries,
+  resumeConfigured: false,
+  resumeAlways: false,
+  unreachableRedirect: 'entry',
+  reachabilityDisabled: false,
+  compiledStepValidations: new Map(),
+})
+
+const createCatalog = (paths: Array<[NodeId, string]>): JourneyRouteTemplateCatalog => ({
+  routeTemplatePathByStepId: new Map(paths),
+  stepIdByRouteTemplatePath: new Map(paths.map(([stepId, path]) => [path, stepId])),
 })
 
 describe('journeyRedirectTerminal', () => {
   describe('execute()', () => {
     it('should redirect to the resolved entry step', async () => {
       // Arrange
-      const evaluation = createMockEvaluation({ defaultEntryRouteTemplatePath: '/journey/first-step' })
-      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
-      const terminal = createJourneyRedirectTerminal(compiledFn, {} as never, {} as never, mockFunctionRegistry)
+      const plan = createPlan([createEntry('compile_ast:1' as const, { isEntryPoint: true })])
+      const catalog = createCatalog([['compile_ast:1' as const, '/journey/first-step']])
+      const terminal = createJourneyRedirectTerminal(plan, catalog, mockFunctionRegistry)
 
       // Act
       const result = await terminal.execute(createMockState())
@@ -69,11 +81,9 @@ describe('journeyRedirectTerminal', () => {
 
     it('should interpolate path params in redirect target', async () => {
       // Arrange
-      const evaluation = createMockEvaluation({
-        defaultEntryRouteTemplatePath: '/journey/:personId/first-step',
-      })
-      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
-      const terminal = createJourneyRedirectTerminal(compiledFn, {} as never, {} as never, mockFunctionRegistry)
+      const plan = createPlan([createEntry('compile_ast:1' as const, { isEntryPoint: true })])
+      const catalog = createCatalog([['compile_ast:1' as const, '/journey/:personId/first-step']])
+      const terminal = createJourneyRedirectTerminal(plan, catalog, mockFunctionRegistry)
 
       // Act
       const result = await terminal.execute(createMockState({ personId: '42' }))
@@ -82,24 +92,20 @@ describe('journeyRedirectTerminal', () => {
       expect(result).toEqual({ type: 'redirect', url: '/journey/42/first-step' })
     })
 
+    it('should throw when no steps are found', async () => {
+      // Arrange
+      const terminal = createJourneyRedirectTerminal(createPlan([]), createCatalog([]), mockFunctionRegistry)
+
+      // Act & Assert
+      await expect(terminal.execute(createMockState())).rejects.toThrow('No steps found in journey')
+    })
+
     it('should record navigation units into the state trace recorder when present', async () => {
       // Arrange
       const recorder = new TraceRecorder()
-      const entryStep: NavigationStepState = {
-        stepId: 'compile_ast:1' as const,
-        routeTemplatePath: '/journey/first-step',
-        declarationIndex: 0,
-        isEntryPoint: true,
-        isConditionalEntry: false,
-        hasValidation: false,
-        isReachable: true,
-        isValid: true,
-        forwardRouteTemplatePaths: [],
-        predecessorRouteTemplatePaths: [],
-      }
-      const evaluation = createMockEvaluation({ steps: [entryStep] })
-      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
-      const terminal = createJourneyRedirectTerminal(compiledFn, {} as never, {} as never, mockFunctionRegistry)
+      const plan = createPlan([createEntry('compile_ast:1' as const, { isEntryPoint: true })])
+      const catalog = createCatalog([['compile_ast:1' as const, '/journey/first-step']])
+      const terminal = createJourneyRedirectTerminal(plan, catalog, mockFunctionRegistry)
 
       recorder.beginPhase('journey-redirect')
 
@@ -118,29 +124,6 @@ describe('journeyRedirectTerminal', () => {
           redirect: '/journey/first-step',
         }),
       ])
-    })
-
-    it('should throw when no steps are found', async () => {
-      // Arrange
-      const evaluation = createMockEvaluation({
-        defaultEntryRouteTemplatePath: undefined,
-        frontierRouteTemplatePath: undefined,
-      })
-      const compiledFn = vi.fn().mockResolvedValue({ evaluation })
-      const terminal = createJourneyRedirectTerminal(compiledFn, {} as never, {} as never, mockFunctionRegistry)
-
-      // Act & Assert
-      await expect(terminal.execute(createMockState())).rejects.toThrow('No steps found in journey')
-    })
-
-    it('should throw when compiled function is missing', async () => {
-      // Arrange
-      const terminal = createJourneyRedirectTerminal(undefined, {} as never, {} as never, mockFunctionRegistry)
-
-      // Act & Assert
-      await expect(terminal.execute(createMockState())).rejects.toThrow(
-        'compiledNavigation function is missing from plan',
-      )
     })
   })
 })
