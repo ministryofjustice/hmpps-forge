@@ -77,11 +77,11 @@ function createStep(
   return step.build()
 }
 
-function getReachabilityPlan(plan: CompilationPlan, journeyId: AstNodeId): ReachabilityCompilationPlan {
-  const reachabilityPlan = plan.reachabilityPlans.get(journeyId)
+function getReachabilityPlan(plan: CompilationPlan, journeyNodeId: AstNodeId): ReachabilityCompilationPlan {
+  const reachabilityPlan = plan.reachabilityPlans.get(journeyNodeId)
 
   if (!reachabilityPlan) {
-    throw new Error(`Expected reachability plan for journey "${journeyId}"`)
+    throw new Error(`Expected reachability plan for journey "${journeyNodeId}"`)
   }
 
   return reachabilityPlan
@@ -151,7 +151,7 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(journey.id)
+      expect(plan.navigationPlanNodeIdByStepNodeId.get(step.id)).toBe(journey.id)
       expect(getReachabilityPlan(plan, journey.id).unreachableRedirect).toBe('entry')
     })
 
@@ -174,7 +174,7 @@ describe('CompilationPlanner', () => {
       const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
 
       // Assert
-      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(journey.id)
+      expect(plan.navigationPlanNodeIdByStepNodeId.get(step.id)).toBe(journey.id)
       expect(getReachabilityPlan(plan, journey.id).unreachableRedirect).toBe('frontier')
     })
 
@@ -238,7 +238,7 @@ describe('CompilationPlanner', () => {
 
       expect(plan.stepInputs.get(step.id)?.entryValidations).toEqual(step.properties.validateOnEntry)
       expect(stepInputs.fieldInventorySource).toMatchObject({
-        stepId: step.id,
+        stepNodeId: step.id,
         fieldBlocks: [field],
         iterateNodes: [],
         cleardownFieldCodes: ['stale-name'],
@@ -370,7 +370,7 @@ describe('CompilationPlanner', () => {
       )
 
       // Assert
-      expect(plan.navigationPlanIdByStepId.get(step.id)).toBe(childJourney.id)
+      expect(plan.navigationPlanNodeIdByStepNodeId.get(step.id)).toBe(childJourney.id)
       expect(getReachabilityPlan(plan, childJourney.id).unreachableRedirect).toBe('entry')
     })
   })

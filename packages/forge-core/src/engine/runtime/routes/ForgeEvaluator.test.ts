@@ -26,19 +26,19 @@ describe('ForgeEvaluator', () => {
   function createJourneyDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Journey ${path}`,
   ): JourneyRouteDescriptor {
-    return { nodeId: id, path, title, ancestorJourneyIds }
+    return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
   function createStepDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Step ${path}`,
   ): StepRouteDescriptor {
-    return { nodeId: id, path, title, ancestorJourneyIds }
+    return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
   function createCompiledStep(descriptor: StepRouteDescriptor): CompiledStep {
@@ -98,8 +98,8 @@ describe('ForgeEvaluator', () => {
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
       getStepRouteIndex: vi.fn().mockReturnValue(new Map(steps.map(step => [step.nodeId, step]))),
       getJourneyRouteIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.nodeId, journey]))),
-      getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
-      getCompiledJourney: vi.fn((journeyId: NodeId) => compiledJourneys.get(journeyId)),
+      getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
+      getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
       getJourneyCode: vi.fn().mockReturnValue('test-journey'),
     } as unknown as Mocked<PackageInstance>
   }

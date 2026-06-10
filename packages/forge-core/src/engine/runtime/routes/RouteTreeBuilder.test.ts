@@ -13,28 +13,28 @@ describe('RouteTreeBuilder', () => {
   function createJourneyDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Journey ${path}`,
   ): JourneyRouteDescriptor {
     return {
       nodeId: id,
       path,
       title,
-      ancestorJourneyIds,
+      ancestorJourneyNodeIds,
     }
   }
 
   function createStepDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Step ${path}`,
   ): StepRouteDescriptor {
     return {
       nodeId: id,
       path,
       title,
-      ancestorJourneyIds,
+      ancestorJourneyNodeIds,
     }
   }
 

@@ -43,16 +43,16 @@ export async function evaluateNavigation(
   const startedAt = performance.now()
   const compiledResult = await evaluateNavigationLeaves(plan, ctx)
   const graphBuilder = new ReachabilityGraphBuilder()
-  const steps = await graphBuilder.build(plan, input.currentStepId, input.routeTemplateCatalog, ctx, compiledResult)
+  const steps = await graphBuilder.build(plan, input.currentStepNodeId, input.routeTemplateCatalog, ctx, compiledResult)
   const defaultEntryRouteTemplatePath = graphBuilder.resolveDefaultEntryRouteTemplatePath(steps)
   const pathAnalysis = new NavigationPathAnalyzer().analyze(
     steps,
-    input.currentStepId,
+    input.currentStepNodeId,
     defaultEntryRouteTemplatePath,
     compiledResult.resumeActive,
   )
   const evaluation: NavigationEvaluation = {
-    currentStepId: input.currentStepId,
+    currentStepNodeId: input.currentStepNodeId,
     steps,
     defaultEntryRouteTemplatePath,
     frontierRouteTemplatePath: pathAnalysis.frontierRouteTemplatePath,
@@ -61,7 +61,7 @@ export async function evaluateNavigation(
     resumeActive: compiledResult.resumeActive,
     resumeOutcome: resolveResumeOutcome(
       steps,
-      input.currentStepId,
+      input.currentStepNodeId,
       compiledResult.resumeActive,
       pathAnalysis.progressExists,
       pathAnalysis.frontierRouteTemplatePath,
@@ -136,7 +136,7 @@ async function collectFieldInventory(
 ): Promise<StepFieldInventory[]> {
   return Promise.all(
     plan.navigationSteps.map(async step => ({
-      stepId: step.nodeId,
+      stepNodeId: step.nodeId,
       fieldCodes: step.evaluateFieldCodes ? await step.evaluateFieldCodes(ctx) : [],
       cleardownFieldCodes: step.cleardownFieldCodes,
     })),
@@ -145,7 +145,7 @@ async function collectFieldInventory(
 
 function resolveResumeOutcome(
   steps: NavigationEvaluation['steps'],
-  currentStepId: NodeId | undefined,
+  currentStepNodeId: NodeId | undefined,
   resumeActive: boolean,
   progressExists: boolean,
   frontierRouteTemplatePath: string | undefined,
@@ -154,11 +154,11 @@ function resolveResumeOutcome(
     return 'no-op'
   }
 
-  if (currentStepId === undefined) {
+  if (currentStepNodeId === undefined) {
     return 'redirect'
   }
 
-  const currentStep = steps.find(step => step.stepId === currentStepId)
+  const currentStep = steps.find(step => step.stepNodeId === currentStepNodeId)
 
   if (!currentStep) {
     return 'no-op'
@@ -186,7 +186,7 @@ function recordNavigationTrace(
   evaluation.steps.forEach(step => {
     trace.record({
       kind: 'navigation-step',
-      nodeId: step.stepId,
+      nodeId: step.stepNodeId,
       isReachable: step.isReachable,
       isValid: step.isValid,
     })

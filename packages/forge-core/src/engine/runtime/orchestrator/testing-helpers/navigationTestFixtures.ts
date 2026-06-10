@@ -81,21 +81,21 @@ export function createNavigationFixture(
 export function createRouteTemplateCatalog(
   input: readonly CompiledNavigationStep[] | readonly (readonly [NodeId, string])[],
 ): JourneyRouteTemplateCatalog {
-  const routeTemplatePathByStepId = new Map<NodeId, string>()
-  const stepIdByRouteTemplatePath = new Map<string, NodeId>()
+  const routeTemplatePathByStepNodeId = new Map<NodeId, string>()
+  const stepNodeIdByRouteTemplatePath = new Map<string, NodeId>()
 
   input.forEach(item => {
-    const [stepId, routeTemplatePath] = isRouteTemplatePathTuple(item)
+    const [stepNodeId, routeTemplatePath] = isRouteTemplatePathTuple(item)
       ? item
       : [item.nodeId, resolveStepRouteTemplatePath(item)]
 
-    routeTemplatePathByStepId.set(stepId, routeTemplatePath)
-    stepIdByRouteTemplatePath.set(routeTemplatePath, stepId)
+    routeTemplatePathByStepNodeId.set(stepNodeId, routeTemplatePath)
+    stepNodeIdByRouteTemplatePath.set(routeTemplatePath, stepNodeId)
   })
 
   return {
-    routeTemplatePathByStepId,
-    stepIdByRouteTemplatePath,
+    routeTemplatePathByStepNodeId,
+    stepNodeIdByRouteTemplatePath,
   }
 }
 

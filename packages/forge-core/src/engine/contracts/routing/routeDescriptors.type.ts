@@ -6,7 +6,7 @@ export interface JourneyRouteDescriptor {
   readonly title?: string
   readonly description?: string
   readonly metadata?: Record<string, unknown>
-  readonly ancestorJourneyIds: readonly NodeId[]
+  readonly ancestorJourneyNodeIds: readonly NodeId[]
 }
 
 export interface StepRouteDescriptor {
@@ -15,7 +15,7 @@ export interface StepRouteDescriptor {
   readonly title?: string
   readonly description?: string
   readonly metadata?: Record<string, unknown>
-  readonly ancestorJourneyIds: readonly NodeId[]
+  readonly ancestorJourneyNodeIds: readonly NodeId[]
 }
 
 export type StepRouteIndex = Map<NodeId, StepRouteDescriptor>

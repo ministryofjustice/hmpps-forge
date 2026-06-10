@@ -27,7 +27,7 @@ import type { RequestPhase } from '../types'
 export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan,
   validationPlan: ValidationPlan,
-  stepId: NodeId,
+  stepNodeId: NodeId,
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
@@ -44,7 +44,7 @@ export function createSubmitLifecyclePhase(
         )
 
         state.context.global.validation = {
-          stepId,
+          stepNodeId,
           validated: true,
           groups,
           isSubmission: true,

@@ -7,7 +7,7 @@ import type { JourneyRouteTemplateCatalog } from '../routing/routeTree.type'
 export type ResumeOutcome = 'no-op' | 'redirect'
 
 export interface NavigationStepState {
-  stepId: NodeId
+  stepNodeId: NodeId
   routeTemplatePath: string
   code?: string
   declarationIndex: number
@@ -25,7 +25,7 @@ export interface NavigationStepState {
 }
 
 export interface NavigationEvaluation {
-  currentStepId: NodeId | undefined
+  currentStepNodeId: NodeId | undefined
   steps: NavigationStepState[]
   defaultEntryRouteTemplatePath: string | undefined
   frontierRouteTemplatePath: string | undefined
@@ -46,7 +46,7 @@ export type NavigationRedirectRule = 'step-get' | 'step-post' | 'journey-root'
 
 /** The request-specific inputs to one navigation evaluation. */
 export interface NavigationEvaluationInput {
-  currentStepId?: NodeId
+  currentStepNodeId?: NodeId
   routeTemplateCatalog: JourneyRouteTemplateCatalog
   params?: Record<string, string>
   redirectRule: NavigationRedirectRule

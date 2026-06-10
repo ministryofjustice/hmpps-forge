@@ -20,7 +20,7 @@ import type { RequestPhase } from '../types'
 export function createEntryValidationPhase(
   entryValidationPlan: EntryValidationPlan,
   validationPlan: ValidationPlan,
-  stepId: NodeId,
+  stepNodeId: NodeId,
   functionRegistry: FunctionRegistry,
 ): RequestPhase {
   return {
@@ -36,7 +36,7 @@ export function createEntryValidationPhase(
       const result = await evaluateValidation(validationPlan, ctx, { isSubmission: false, groups }, state.trace)
 
       state.context.global.validation = {
-        stepId,
+        stepNodeId,
         validated: true,
         groups,
         isSubmission: false,

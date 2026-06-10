@@ -25,10 +25,13 @@ const mockCtx = {
   },
 } as unknown as ReachabilityContext
 
-async function evaluate(plan: NavigationRuntimePlan, currentStepId: NodeId | undefined): Promise<NavigationEvaluation> {
+async function evaluate(
+  plan: NavigationRuntimePlan,
+  currentStepNodeId: NodeId | undefined,
+): Promise<NavigationEvaluation> {
   const routeTemplateCatalog = createRouteTemplateCatalog(plan.navigationSteps)
   const result = await evaluateNavigation(plan, mockCtx, {
-    currentStepId,
+    currentStepNodeId,
     routeTemplateCatalog,
     redirectRule: 'step-post',
   })
@@ -36,7 +39,7 @@ async function evaluate(plan: NavigationRuntimePlan, currentStepId: NodeId | und
   return result.evaluation
 }
 
-function withStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]): NavigationRuntimePlan {
+function withStepValidities(plan: NavigationRuntimePlan, validStepNodeIds: NodeId[]): NavigationRuntimePlan {
   const stepValidationPlans = new Map<NodeId, ValidationPlan>()
 
   for (const step of plan.navigationSteps) {
@@ -44,7 +47,7 @@ function withStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[])
       continue
     }
 
-    const isValid = validStepIds.includes(step.nodeId)
+    const isValid = validStepNodeIds.includes(step.nodeId)
 
     stepValidationPlans.set(step.nodeId, createNavigationValidationPlan(isValid))
   }
@@ -92,7 +95,7 @@ describe('evaluateNavigation', () => {
     const result = await evaluate(plan, 'compile_ast:1')
 
     // Assert
-    expect(result.steps.find(step => step.stepId === 'compile_ast:2')?.isReachable).toBe(false)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:2')?.isReachable).toBe(false)
   })
 
   it('should resolve internal redirect outcomes using canonical route template paths', async () => {
@@ -111,7 +114,7 @@ describe('evaluateNavigation', () => {
     const result = await evaluate(plan, 'compile_ast:6')
 
     // Assert
-    expect(result.steps.find(step => step.stepId === 'compile_ast:6')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:6')?.isReachable).toBe(true)
   })
 
   it('should ignore trivially valid reachable steps when computing progress', async () => {
@@ -364,8 +367,8 @@ describe('evaluateNavigation', () => {
     const result = await evaluate(plan, 'compile_ast:89')
 
     // Assert
-    expect(result.steps.find(step => step.stepId === 'compile_ast:88')?.isReachable).toBe(true)
-    expect(result.steps.find(step => step.stepId === 'compile_ast:89')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:88')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:89')?.isReachable).toBe(true)
   })
 
   it('should keep predecessor edges visible for unreachable steps when the cascade narrows outcomes', async () => {
@@ -386,9 +389,9 @@ describe('evaluateNavigation', () => {
     const result = await evaluate(plan, 'compile_ast:96')
 
     // Assert
-    expect(result.steps.find(step => step.stepId === 'compile_ast:96')?.isReachable).toBe(true)
-    expect(result.steps.find(step => step.stepId === 'compile_ast:97')?.isReachable).toBe(false)
-    expect(result.steps.find(step => step.stepId === 'compile_ast:95')?.declaredForwardRouteTemplatePaths).toEqual([
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:96')?.isReachable).toBe(true)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:97')?.isReachable).toBe(false)
+    expect(result.steps.find(step => step.stepNodeId === 'compile_ast:95')?.declaredForwardRouteTemplatePaths).toEqual([
       '/journey/add',
       '/journey/check',
     ])
@@ -500,7 +503,7 @@ describe('evaluateNavigation', () => {
     await evaluateNavigation(
       plan,
       mockCtx,
-      { currentStepId: 'compile_ast:121', routeTemplateCatalog, redirectRule: 'step-post' },
+      { currentStepNodeId: 'compile_ast:121', routeTemplateCatalog, redirectRule: 'step-post' },
       recorder,
     )
     recorder.endPhase('halt-redirect')

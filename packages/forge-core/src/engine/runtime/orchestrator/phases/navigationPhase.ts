@@ -9,7 +9,7 @@ import type { RequestPhase } from '../types'
 
 export function createNavigationPhase(
   navigationPlan: NavigationRuntimePlan,
-  currentStepId: NodeId,
+  currentStepNodeId: NodeId,
   routeTemplateCatalog: JourneyRouteTemplateCatalog,
   redirectRule: NavigationRedirectRule,
   functionRegistry: FunctionRegistry,
@@ -21,7 +21,7 @@ export function createNavigationPhase(
         navigationPlan,
         buildCompiledBaseContext(state.context, functionRegistry),
         {
-          currentStepId,
+          currentStepNodeId,
           routeTemplateCatalog,
           params: state.context.request.getParams(),
           redirectRule,

@@ -3,7 +3,7 @@ import type { NavigationStepState } from '../../contracts/navigation/navigationE
 
 function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
   return {
-    stepId: 'compile_ast:500',
+    stepNodeId: 'compile_ast:500',
     routeTemplatePath: '/journey/current',
     declarationIndex: 0,
     isEntryPoint: false,
@@ -31,9 +31,9 @@ describe('NavigationPathAnalyzer helpers', () => {
 
   it('should pick tie-breaker winners by priority then declaration order', () => {
     // Arrange
-    const first = createNavigationStep({ stepId: 'compile_ast:510', tieBreakerPriority: 5 })
-    const second = createNavigationStep({ stepId: 'compile_ast:511', tieBreakerPriority: 10 })
-    const unmatched = createNavigationStep({ stepId: 'compile_ast:512' })
+    const first = createNavigationStep({ stepNodeId: 'compile_ast:510', tieBreakerPriority: 5 })
+    const second = createNavigationStep({ stepNodeId: 'compile_ast:511', tieBreakerPriority: 10 })
+    const unmatched = createNavigationStep({ stepNodeId: 'compile_ast:512' })
 
     // Act / Assert
     expect(pickTieBreakerWinner([first, second])).toBe(second)

@@ -24,19 +24,19 @@ describe('getAncestorChain()', () => {
   it('should return ancestors in outermost-first order', () => {
     // Arrange
     // Structure: Journey -> Step -> Block
-    const journeyId: NodeId = 'compile_ast:1'
-    const stepId: NodeId = 'compile_ast:2'
+    const journeyNodeId: NodeId = 'compile_ast:1'
+    const stepNodeId: NodeId = 'compile_ast:2'
     const blockId: NodeId = 'compile_ast:3'
 
-    astNodeTree.addNode(journeyId)
-    astNodeTree.addNode(stepId, journeyId)
-    astNodeTree.addNode(blockId, stepId)
+    astNodeTree.addNode(journeyNodeId)
+    astNodeTree.addNode(stepNodeId, journeyNodeId)
+    astNodeTree.addNode(blockId, stepNodeId)
 
     // Act
     const result = getAncestorChain(blockId, astNodeTree)
 
     // Assert
-    expect(result).toEqual([journeyId, stepId, blockId])
+    expect(result).toEqual([journeyNodeId, stepNodeId, blockId])
   })
 
   it('should handle a two-level chain', () => {
@@ -79,33 +79,33 @@ describe('getAncestorChain()', () => {
   it('should return starting node when called from root', () => {
     // Arrange
     // Journey is the root, has no parent
-    const journeyId: NodeId = 'compile_ast:30'
-    const stepId: NodeId = 'compile_ast:31'
+    const journeyNodeId: NodeId = 'compile_ast:30'
+    const stepNodeId: NodeId = 'compile_ast:31'
 
-    astNodeTree.addNode(journeyId)
-    astNodeTree.addNode(stepId, journeyId)
+    astNodeTree.addNode(journeyNodeId)
+    astNodeTree.addNode(stepNodeId, journeyNodeId)
 
     // Act
-    const result = getAncestorChain(journeyId, astNodeTree)
+    const result = getAncestorChain(journeyNodeId, astNodeTree)
 
     // Assert
-    expect(result).toEqual([journeyId])
+    expect(result).toEqual([journeyNodeId])
   })
 
   it('should handle nested journeys', () => {
     // Arrange
-    const outerJourneyId: NodeId = 'compile_ast:40'
-    const innerJourneyId: NodeId = 'compile_ast:41'
-    const stepId: NodeId = 'compile_ast:42'
+    const outerJourneyNodeId: NodeId = 'compile_ast:40'
+    const innerJourneyNodeId: NodeId = 'compile_ast:41'
+    const stepNodeId: NodeId = 'compile_ast:42'
 
-    astNodeTree.addNode(outerJourneyId)
-    astNodeTree.addNode(innerJourneyId, outerJourneyId)
-    astNodeTree.addNode(stepId, innerJourneyId)
+    astNodeTree.addNode(outerJourneyNodeId)
+    astNodeTree.addNode(innerJourneyNodeId, outerJourneyNodeId)
+    astNodeTree.addNode(stepNodeId, innerJourneyNodeId)
 
     // Act
-    const result = getAncestorChain(stepId, astNodeTree)
+    const result = getAncestorChain(stepNodeId, astNodeTree)
 
     // Assert
-    expect(result).toEqual([outerJourneyId, innerJourneyId, stepId])
+    expect(result).toEqual([outerJourneyNodeId, innerJourneyNodeId, stepNodeId])
   })
 })

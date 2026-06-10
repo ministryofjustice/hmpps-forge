@@ -151,7 +151,7 @@ describe('entryValidationPhase', () => {
       // Assert
       expect(state.context.global.validation).toEqual(
         expect.objectContaining({
-          stepId: 'compile_ast:1',
+          stepNodeId: 'compile_ast:1',
           validated: true,
           groups: ['group-1'],
           isSubmission: false,

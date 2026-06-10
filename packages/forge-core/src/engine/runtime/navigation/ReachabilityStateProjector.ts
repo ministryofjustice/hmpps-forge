@@ -10,12 +10,12 @@ export default class ReachabilityStateProjector {
     fieldInventory: StepFieldInventory[],
     params: Record<string, string>,
   ): JourneyReachabilityState {
-    const inventoryByStepId = new Map(fieldInventory.map(inv => [inv.stepId, inv]))
+    const inventoryByStepNodeId = new Map(fieldInventory.map(inv => [inv.stepNodeId, inv]))
     const reachableSteps: ReachabilityStep[] = []
     const unreachableSteps: ReachabilityStep[] = []
 
     evaluation.steps.forEach(step => {
-      const inventory = inventoryByStepId.get(step.stepId)
+      const inventory = inventoryByStepNodeId.get(step.stepNodeId)
       const projectedStep = this.projectStep(step, inventory, params, evaluation.canonicalPathRouteTemplatePaths)
 
       if (step.isReachable) {

@@ -17,7 +17,7 @@ import { evaluateValidation } from '../orchestrator/phases/evaluateValidation'
 export default class ReachabilityGraphBuilder {
   async build(
     plan: NavigationRuntimePlan,
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     validationContext: ValidationContext,
     compiledResult: CompiledReachabilityResult,
@@ -41,7 +41,7 @@ export default class ReachabilityGraphBuilder {
       plan,
       routeTemplateCatalog,
       compiledResult,
-      currentStepId,
+      currentStepNodeId,
       validationContext,
     )
     this.populateUnvisitedForwardPaths(steps, compiledResult, routeTemplateCatalog)
@@ -56,14 +56,14 @@ export default class ReachabilityGraphBuilder {
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
   ): NavigationStepState[] {
     return compiledSteps.map((compiledStep, declarationIndex) => {
-      const routeTemplatePath = routeTemplateCatalog.routeTemplatePathByStepId.get(compiledStep.nodeId)
+      const routeTemplatePath = routeTemplateCatalog.routeTemplatePathByStepNodeId.get(compiledStep.nodeId)
 
       if (!routeTemplatePath) {
         throw new Error(`Route template path missing for step ${compiledStep.nodeId}`)
       }
 
       return {
-        stepId: compiledStep.nodeId,
+        stepNodeId: compiledStep.nodeId,
         routeTemplatePath,
         code: compiledStep.code,
         declarationIndex,
@@ -142,7 +142,10 @@ export default class ReachabilityGraphBuilder {
 
       const routeTemplatePath = resolveRouteTemplateTargetPath(outcomeStr, currentRouteTemplatePath)
 
-      if (routeTemplatePath === undefined || !routeTemplateCatalog.stepIdByRouteTemplatePath.has(routeTemplatePath)) {
+      if (
+        routeTemplatePath === undefined ||
+        !routeTemplateCatalog.stepNodeIdByRouteTemplatePath.has(routeTemplatePath)
+      ) {
         return
       }
 
@@ -159,7 +162,7 @@ export default class ReachabilityGraphBuilder {
     plan: NavigationRuntimePlan,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     compiled: CompiledReachabilityResult,
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     validationCtx: ValidationContext,
   ): Promise<void> {
     if (steps.length === 0) {
@@ -167,7 +170,7 @@ export default class ReachabilityGraphBuilder {
     }
 
     const resumeConfigured = plan.resumeConfigured
-    const isCurrentStepAnActiveEntry = steps.some(step => step.isReachable && step.stepId === currentStepId)
+    const isCurrentStepAnActiveEntry = steps.some(step => step.isReachable && step.stepNodeId === currentStepNodeId)
 
     if (!resumeConfigured && isCurrentStepAnActiveEntry) {
       return
@@ -175,8 +178,8 @@ export default class ReachabilityGraphBuilder {
 
     const stepValidationPlans = plan.stepValidationPlans
 
-    const compiledStepByStepId = new Map(plan.navigationSteps.map(step => [step.nodeId, step]))
-    const stepIndexByStepId = new Map(plan.navigationSteps.map((step, idx) => [step.nodeId, idx]))
+    const compiledStepByStepNodeId = new Map(plan.navigationSteps.map(step => [step.nodeId, step]))
+    const stepIndexByStepNodeId = new Map(plan.navigationSteps.map((step, idx) => [step.nodeId, idx]))
     const stateByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
     const visited = new Set<string>()
     const queue = steps.filter(step => step.isReachable).map(step => step.routeTemplatePath)
@@ -196,23 +199,23 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      const compiledStep = compiledStepByStepId.get(current.stepId)
+      const compiledStep = compiledStepByStepNodeId.get(current.stepNodeId)
 
       if (!compiledStep) {
         continue
       }
 
-      const shouldEvaluateCurrentStep = current.stepId !== currentStepId || resumeConfigured
+      const shouldEvaluateCurrentStep = current.stepNodeId !== currentStepNodeId || resumeConfigured
 
       if (!shouldEvaluateCurrentStep) {
         continue
       }
 
       if (compiledStep.hasValidation) {
-        const validationPlan = stepValidationPlans.get(current.stepId)
+        const validationPlan = stepValidationPlans.get(current.stepNodeId)
 
         if (!validationPlan) {
-          throw new Error(`[Forge] Validation plan missing for step "${current.stepId}"`)
+          throw new Error(`[Forge] Validation plan missing for step "${current.stepNodeId}"`)
         }
 
         // No trace recorder on purpose: the step's own pipeline records these
@@ -227,7 +230,7 @@ export default class ReachabilityGraphBuilder {
         current.domainFailures = validationResult.domainFailures
       }
 
-      const entryIndex = stepIndexByStepId.get(current.stepId)!
+      const entryIndex = stepIndexByStepNodeId.get(current.stepNodeId)!
 
       current.forwardRouteTemplatePaths = this.resolveForwardPathsFromCompiled(
         current.routeTemplatePath,

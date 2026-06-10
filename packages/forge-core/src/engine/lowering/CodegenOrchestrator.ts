@@ -71,9 +71,9 @@ export default class CodegenOrchestrator {
 
     const steps = new Map<NodeId, CompiledStep>()
 
-    plan.stepInputs.forEach((inputs, stepId) => {
+    plan.stepInputs.forEach((inputs, stepNodeId) => {
       steps.set(
-        stepId,
+        stepNodeId,
         this.compileStep(
           inputs,
           plan,
@@ -134,14 +134,14 @@ export default class CodegenOrchestrator {
   ): Map<NodeId, CompiledJourney> {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
-    plan.journeyInputs.forEach((inputs, journeyId) => {
+    plan.journeyInputs.forEach((inputs, journeyNodeId) => {
       const navigationPlan = navigationPlans.get(inputs.reachabilityPlanId)
 
       if (!navigationPlan) {
-        throw new Error(`Unable to compile journey "${journeyId}" - navigation plan not found`)
+        throw new Error(`Unable to compile journey "${journeyNodeId}" - navigation plan not found`)
       }
 
-      compiledJourneys.set(journeyId, {
+      compiledJourneys.set(journeyNodeId, {
         runtimePlan: inputs.runtimePlan,
         navigationPlan,
         accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
@@ -171,7 +171,7 @@ export default class CodegenOrchestrator {
     hoistedAnswerPrep: HoistedAnswerPreparation,
     hoistedHooks: HoistedHooks,
   ): CompiledStep {
-    const navigationPlanId = plan.navigationPlanIdByStepId.get(inputs.stepNode.id)
+    const navigationPlanId = plan.navigationPlanNodeIdByStepNodeId.get(inputs.stepNode.id)
 
     if (!navigationPlanId) {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan id not found`)
@@ -347,15 +347,15 @@ export default class CodegenOrchestrator {
 
   /**
    * Compiles a ValidationPlan per step from its validating fields, step-level
-   * validWhen domain rule and MAP iterator nodes. The result is keyed by stepId
+   * validWhen domain rule and MAP iterator nodes. The result is keyed by stepNodeId
    * for reuse both as the step's validationPlan and by navigation reachability.
    */
   private compileValidationPlans(plan: CompilationPlan, compiler: StepValidationCompiler): Map<NodeId, ValidationPlan> {
     const validationPlans = new Map<NodeId, ValidationPlan>()
 
-    plan.stepInputs.forEach((inputs, stepId) => {
+    plan.stepInputs.forEach((inputs, stepNodeId) => {
       validationPlans.set(
-        stepId,
+        stepNodeId,
         compiler.compileValidationPlan(
           inputs.validatingFieldBlocks,
           inputs.stepNode.properties.validWhen,
@@ -386,7 +386,7 @@ export default class CodegenOrchestrator {
 
         if (!validationPlan) {
           throw new Error(
-            `Unable to compile navigation plan "${reachabilityPlan.journeyId}" - validation plan not found for step "${step.nodeId}"`,
+            `Unable to compile navigation plan "${reachabilityPlan.journeyNodeId}" - validation plan not found for step "${step.nodeId}"`,
           )
         }
 

@@ -178,7 +178,7 @@ describe('submitLifecyclePhase', () => {
       expect(result).toEqual({ action: 'continue' })
       expect(state.context.global.validation).toEqual(
         expect.objectContaining({
-          stepId: 'compile_ast:9',
+          stepNodeId: 'compile_ast:9',
           validated: true,
           groups: ['default'],
           isSubmission: true,

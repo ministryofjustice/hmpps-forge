@@ -152,7 +152,7 @@ export default class ForgeEvaluator {
     let count = 0
 
     stepContexts.forEach(ctx => {
-      const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
+      const compiledStep = packageInstance.getCompiledStep(ctx.stepNodeId)
       const runtimePlan = compiledStep.runtimePlan
 
       const accessPhase = createAccessLifecyclePhase(compiledStep.accessLifecyclePlan, functionRegistry)
@@ -208,7 +208,7 @@ export default class ForgeEvaluator {
         renderTerminal,
       )
 
-      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, ctx.stepId)
+      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, ctx.stepNodeId)
 
       this.executorsByRouteKey.set(routeKey, {
         staticData: runtimePlan.staticData,
@@ -223,7 +223,7 @@ export default class ForgeEvaluator {
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
         methods: ['GET', 'POST'],
-        title: stepRouteIndex.get(ctx.stepId)?.title,
+        title: stepRouteIndex.get(ctx.stepNodeId)?.title,
       })
 
       count += 2
@@ -250,8 +250,8 @@ export default class ForgeEvaluator {
     const journeyCode = packageInstance.getJourneyCode()
     let count = 0
 
-    journeyContexts.forEach(({ journeyId, templatePath }) => {
-      const compiledJourney = packageInstance.getCompiledJourney(journeyId)
+    journeyContexts.forEach(({ journeyNodeId, templatePath }) => {
+      const compiledJourney = packageInstance.getCompiledJourney(journeyNodeId)
       const routeTemplateCatalog = catalogsByBasePath.get(templatePath)
 
       if (!compiledJourney || !routeTemplateCatalog) {
@@ -268,7 +268,7 @@ export default class ForgeEvaluator {
         createJourneyRedirectTerminal(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
       )
 
-      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyId)
+      const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyNodeId)
 
       this.executorsByRouteKey.set(routeKey, {
         staticData: runtimePlan.staticData,
@@ -282,7 +282,7 @@ export default class ForgeEvaluator {
         templatePath,
         basePath: templatePath,
         methods: ['GET'],
-        title: journeyRouteIndex.get(journeyId)?.title,
+        title: journeyRouteIndex.get(journeyNodeId)?.title,
       })
 
       count += 1

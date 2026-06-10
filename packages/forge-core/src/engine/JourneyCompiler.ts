@@ -93,7 +93,7 @@ export default class JourneyCompiler {
   ): JourneyRouteIndex {
     return new Map(
       journeyNodes.map(node => {
-        const ancestorJourneyIds = getAncestorChain(node.id, astNodeTree).filter(
+        const ancestorJourneyNodeIds = getAncestorChain(node.id, astNodeTree).filter(
           id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY,
         )
 
@@ -105,7 +105,7 @@ export default class JourneyCompiler {
             title: node.properties.title,
             description: node.properties.description,
             metadata: node.properties.metadata,
-            ancestorJourneyIds,
+            ancestorJourneyNodeIds,
           },
         ]
       }),
@@ -119,7 +119,7 @@ export default class JourneyCompiler {
   ): StepRouteIndex {
     return new Map(
       stepNodes.map(node => {
-        const ancestorJourneyIds = getAncestorChain(node.id, astNodeTree)
+        const ancestorJourneyNodeIds = getAncestorChain(node.id, astNodeTree)
           .filter(id => id !== node.id)
           .filter(id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY)
 
@@ -131,7 +131,7 @@ export default class JourneyCompiler {
             title: node.properties.title,
             description: node.properties.description,
             metadata: node.properties.metadata,
-            ancestorJourneyIds,
+            ancestorJourneyNodeIds,
           },
         ]
       }),

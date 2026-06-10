@@ -46,7 +46,7 @@ export interface ReachabilityStepInputs {
 }
 
 export interface ReachabilityCompilationPlan {
-  readonly journeyId: NodeId
+  readonly journeyNodeId: NodeId
   readonly reachabilityStepInputs: readonly ReachabilityStepInputs[]
   readonly resumeConfigured: boolean
   readonly resumeAlways: boolean
@@ -78,7 +78,7 @@ export interface JourneyCompilationInputs {
 }
 
 export interface FieldInventoryStepSource {
-  readonly stepId: NodeId
+  readonly stepNodeId: NodeId
   readonly fieldBlocks: readonly FieldBlockASTNode[]
   readonly iterateNodes: readonly IterateASTNode[]
   readonly cleardownFieldCodes: readonly string[]
@@ -88,5 +88,5 @@ export interface CompilationPlan {
   readonly stepInputs: Map<NodeId, StepCompilationInputs>
   readonly journeyInputs: Map<NodeId, JourneyCompilationInputs>
   readonly reachabilityPlans: Map<NodeId, ReachabilityCompilationPlan>
-  readonly navigationPlanIdByStepId: Map<NodeId, NodeId>
+  readonly navigationPlanNodeIdByStepNodeId: Map<NodeId, NodeId>
 }

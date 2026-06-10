@@ -52,14 +52,14 @@ export function resolveBacklinkRouteTemplatePathForStep(
 export default class NavigationPathAnalyzer {
   analyze(
     steps: NavigationStepState[],
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     defaultEntryRouteTemplatePath: string | undefined,
     resumeActive: boolean,
   ): NavigationPathAnalysis {
     const progressExists = this.resolveProgressExists(steps)
     const defaultPath = this.resolvePathFromAnchorRouteTemplatePath(defaultEntryRouteTemplatePath, steps)
     const resumePath = this.resolveResumePath(steps)
-    const canonicalPath = this.resolveCanonicalPath(steps, currentStepId, resumeActive, defaultPath, resumePath)
+    const canonicalPath = this.resolveCanonicalPath(steps, currentStepNodeId, resumeActive, defaultPath, resumePath)
 
     return {
       canonicalPathRouteTemplatePaths: canonicalPath.map(step => step.routeTemplatePath),
@@ -70,7 +70,7 @@ export default class NavigationPathAnalyzer {
 
   private resolveCanonicalPath(
     steps: NavigationStepState[],
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     resumeActive: boolean,
     defaultPath: NavigationStepState[],
     resumePath: NavigationStepState[] | undefined,
@@ -79,8 +79,8 @@ export default class NavigationPathAnalyzer {
       return resumePath
     }
 
-    if (currentStepId !== undefined) {
-      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepId, steps)
+    if (currentStepNodeId !== undefined) {
+      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepNodeId, steps)
 
       if (currentStepPath.length > 0) {
         return currentStepPath
@@ -141,8 +141,11 @@ export default class NavigationPathAnalyzer {
     return lastProgressIndex
   }
 
-  private resolvePathThroughCurrentStep(currentStepId: NodeId, steps: NavigationStepState[]): NavigationStepState[] {
-    const currentStep = steps.find(step => step.stepId === currentStepId)
+  private resolvePathThroughCurrentStep(
+    currentStepNodeId: NodeId,
+    steps: NavigationStepState[],
+  ): NavigationStepState[] {
+    const currentStep = steps.find(step => step.stepNodeId === currentStepNodeId)
 
     if (!currentStep?.isReachable) {
       return []

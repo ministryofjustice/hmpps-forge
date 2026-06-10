@@ -63,10 +63,10 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
 }
 
 function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): ReachabilityStepInputs {
-  const stepId = ASTTestFactory.getId() as NodeId
+  const stepNodeId = ASTTestFactory.getId() as NodeId
 
   return {
-    nodeId: stepId,
+    nodeId: stepNodeId,
     isEntryPoint: false,
     forwardOutcomeGroups: [],
     hasValidation: false,
@@ -74,7 +74,7 @@ function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): Reac
     declaredOutcomes: [],
     reachabilityTieBreakers: [],
     fieldInventorySource: {
-      stepId,
+      stepNodeId,
       fieldBlocks: [],
       iterateNodes: [],
       cleardownFieldCodes: [],
@@ -91,7 +91,7 @@ function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): Reach
   const steps = overrides.reachabilityStepInputs ?? []
 
   return {
-    journeyId: 'compile_ast:999' as const,
+    journeyNodeId: 'compile_ast:999' as const,
     reachabilityStepInputs: steps,
     resumeConfigured: false,
     resumeAlways: false,
