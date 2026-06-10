@@ -3,9 +3,9 @@ import TraceRecorder from '../trace/TraceRecorder'
 import {
   createNavigationFixture,
   createNavigationPlan,
-  createPipelineState,
   createRouteTemplateCatalog,
 } from '../testing-helpers/navigationTestFixtures'
+import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry

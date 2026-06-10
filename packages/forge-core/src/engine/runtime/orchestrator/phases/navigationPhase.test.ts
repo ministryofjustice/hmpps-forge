@@ -1,10 +1,7 @@
 import { createNavigationPhase } from './navigationPhase'
 import TraceRecorder from '../trace/TraceRecorder'
-import {
-  createNavigationFixture,
-  createNavigationValidationPlan,
-  createPipelineState,
-} from '../testing-helpers/navigationTestFixtures'
+import { createNavigationFixture, createNavigationValidationPlan } from '../testing-helpers/navigationTestFixtures'
+import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry
