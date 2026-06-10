@@ -1,7 +1,5 @@
 import createHttpError from 'http-errors'
-import { resolvePathParams } from '../../../framework/path/routePath'
-import { resolveRedirectTarget } from '../navigation/redirectTarget'
-import type { StepRequest } from '../../../framework/types/request.type'
+import { resolveForgeRedirect } from '../navigation/resolveForgeRedirect'
 import type { ForgeResult, PipelineState, RequestPhase, TerminalPhase } from './types'
 
 export default class RequestOrchestrator {
@@ -26,7 +24,7 @@ export default class RequestOrchestrator {
       state.trace?.endPhase(outcome.action)
 
       if (outcome.action === 'halt-redirect') {
-        return this.resolveRedirect(outcome.target, state.request)
+        return resolveForgeRedirect(outcome.target, state.request)
       }
 
       if (outcome.action === 'halt-error') {
@@ -41,12 +39,5 @@ export default class RequestOrchestrator {
     state.trace?.endPhase(result.type)
 
     return result
-  }
-
-  private resolveRedirect(target: string, request: StepRequest): ForgeResult {
-    const withParams = resolvePathParams(target, request.getParams())
-    const resolved = resolveRedirectTarget(withParams, request.location)
-
-    return { type: 'redirect', url: resolved.value }
   }
 }

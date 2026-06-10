@@ -3,8 +3,7 @@ import type { NavigationRuntimePlan } from '../../../contracts/plans/runtimePlan
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledBaseContext } from '../../context/compiledEvaluationContext'
-import { resolvePathParams } from '../../../../framework/path/routePath'
-import { resolveRedirectTarget } from '../../navigation/redirectTarget'
+import { resolveForgeRedirect } from '../../navigation/resolveForgeRedirect'
 import { evaluateNavigation } from '../phases/evaluateNavigation'
 import type { TerminalPhase } from '../types'
 
@@ -24,10 +23,7 @@ export function createJourneyRedirectTerminal(
       )
 
       if (result.redirectTarget) {
-        const withParams = resolvePathParams(result.redirectTarget, state.request.getParams())
-        const resolved = resolveRedirectTarget(withParams, state.request.location)
-
-        return { type: 'redirect', url: resolved.value }
+        return resolveForgeRedirect(result.redirectTarget, state.request)
       }
 
       throw createHttpError(500, 'No steps found in journey')
