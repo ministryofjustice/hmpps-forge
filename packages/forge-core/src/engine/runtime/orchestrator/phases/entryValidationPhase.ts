@@ -11,9 +11,11 @@ import type { RequestPhase } from '../types'
  * rules to select which validation groups apply on entry, then runs validation
  * for just those groups. Always yields `{ action: 'continue' }` — entry validation
  * surfaces failures for display rather than halting the request. Whenever any group is
- * selected it records the validation result on `state.validation` and sets
- * `state.showValidationFailures` so the render phase reveals any failures. Short-circuits
- * with `continue` when the step has no entry-validation plan or when no rule selects any
+ * selected it records the verdict on `state.validation`, stamps
+ * `context.global.validation` so compiled code can read the prior verdict, and sets
+ * `state.showValidationFailures` so the render phase reveals any failures. Throws when
+ * groups are selected but the step has no validation plan. Short-circuits with
+ * `continue` when the step has no entry-validation plan or when no rule selects any
  * group, leaving `state` untouched.
  */
 export function createEntryValidationPhase(
@@ -30,26 +32,29 @@ export function createEntryValidationPhase(
         return { action: 'continue' }
       }
 
-      const groups = await evaluateEntryValidation(
-        entryValidationPlan,
-        buildCompiledBaseContext(state.context, functionRegistry),
-        state.trace,
-      )
+      const ctx = buildCompiledBaseContext(state.context, functionRegistry)
+      const groups = await evaluateEntryValidation(entryValidationPlan, ctx, state.trace)
 
       if (groups.length === 0) {
         return { action: 'continue' }
       }
 
-      state.validation = await evaluateValidation(
-        validationPlan,
-        path,
+      if (!validationPlan) {
+        throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
+      }
+
+      const result = await evaluateValidation(validationPlan, ctx, { isSubmission: false, groups }, state.trace)
+
+      state.context.global.validation = {
         stepId,
-        state.context,
-        functionRegistry,
-        false,
+        validated: true,
         groups,
-        state.trace,
-      )
+        isSubmission: false,
+        isValid: result.isValid,
+        fieldFailures: result.fieldFailures,
+        domainFailures: result.domainFailures,
+      }
+      state.validation = result
       state.showValidationFailures = true
 
       return { action: 'continue' }

@@ -1,46 +1,15 @@
 import { evaluateAnswerPreparation } from './evaluateAnswerPreparation'
 import TraceRecorder from '../trace/TraceRecorder'
-import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
-import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { StepRequest } from '../../../../framework/types/request.type'
 
-const createMockContext = (): RuntimeEvaluationContext => {
-  const request = {
-    method: 'GET',
-    url: 'http://localhost/forms/journey/step',
-    baseUrl: '/forms/journey',
-    location: {
-      origin: 'http://localhost',
-      href: 'http://localhost/forms/journey/step',
-      pathname: '/forms/journey/step',
-      basePath: '/forms/journey',
-    },
-    getHeader: () => undefined,
-    getAllHeaders: () => ({}),
-    getCookie: () => undefined,
-    getAllCookies: () => ({}),
-    getParam: () => undefined,
-    getParams: () => ({}),
-    getQuery: () => undefined,
-    getAllQuery: () => ({}),
-    getPost: () => undefined,
-    getAllPost: () => ({}),
-    getSession: () => undefined,
-    getState: () => undefined,
-    getAllState: () => ({}),
-  } as unknown as StepRequest
-
-  return new RuntimeEvaluationContext(request)
-}
-
-const mockFunctionRegistry = {} as FunctionRegistry
+const mockCtx = {} as AnswerPreparationContext
 
 const runTraced = async (plan: AnswerPreparationPlan) => {
   const recorder = new TraceRecorder()
 
   recorder.beginPhase('answer-preparation')
-  await evaluateAnswerPreparation(plan, createMockContext(), mockFunctionRegistry, recorder)
+  await evaluateAnswerPreparation(plan, mockCtx, recorder)
   recorder.endPhase('continue')
 
   return recorder.finish('render').phases[0].units
@@ -70,7 +39,7 @@ describe('evaluateAnswerPreparation', () => {
       }
 
       // Act
-      await evaluateAnswerPreparation(plan, createMockContext(), mockFunctionRegistry)
+      await evaluateAnswerPreparation(plan, mockCtx)
 
       // Assert
       expect(order).toEqual(['first:start', 'first:end', 'second:start'])
@@ -102,7 +71,7 @@ describe('evaluateAnswerPreparation', () => {
       }
 
       // Act
-      await evaluateAnswerPreparation(plan, createMockContext(), mockFunctionRegistry)
+      await evaluateAnswerPreparation(plan, mockCtx)
 
       // Assert
       expect(order).toEqual(['item-0:start', 'item-0:end', 'item-1:start', 'item-1:end'])
@@ -167,7 +136,7 @@ describe('evaluateAnswerPreparation', () => {
       }
 
       // Act
-      await evaluateAnswerPreparation(plan, createMockContext(), mockFunctionRegistry)
+      await evaluateAnswerPreparation(plan, mockCtx)
 
       // Assert
       expect(prepare).toHaveBeenCalledTimes(1)

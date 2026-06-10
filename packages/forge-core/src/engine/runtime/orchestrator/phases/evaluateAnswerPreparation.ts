@@ -6,17 +6,14 @@ import type {
 } from '../../../contracts/plans/compilationArtefacts.type'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { IteratorItemScope } from '../../../contracts/compiled/compiledFunctions.type'
-import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
-import { buildCompiledAnswerPreparationContext } from '../../context/compiledEvaluationContext'
 import type TraceRecorder from '../trace/TraceRecorder'
 
 /**
- * Runs the answer-preparation phase: builds the compiled answer-preparation
- * context from the request, then invokes every per-field prepare function and
- * every iterator-group prepare function. Each prepare formats one field's
- * submitted or default answer and mutates `ctx.answers` in place, so all later
- * phases (hooks, validation, render) observe the same answer history.
+ * Runs the answer-preparation walk: invokes every per-field prepare function
+ * and every iterator-group prepare function against the supplied compiled
+ * context. Each prepare formats one field's submitted or default answer and
+ * mutates `ctx.answers` in place, so all later phases (hooks, validation,
+ * render) observe the same answer history.
  *
  * Everything runs sequentially in plan (declared) order: a later field's
  * defaultValue or dependentWhen may read an earlier field's answer, so
@@ -26,12 +23,9 @@ import type TraceRecorder from '../trace/TraceRecorder'
  */
 export async function evaluateAnswerPreparation(
   plan: AnswerPreparationPlan,
-  context: RuntimeEvaluationContext,
-  functionRegistry: FunctionRegistry,
+  ctx: AnswerPreparationContext,
   trace?: TraceRecorder,
 ): Promise<void> {
-  const ctx = buildCompiledAnswerPreparationContext(context, functionRegistry)
-
   for (const entry of plan.fields) {
     await prepareField(entry, ctx, trace)
   }

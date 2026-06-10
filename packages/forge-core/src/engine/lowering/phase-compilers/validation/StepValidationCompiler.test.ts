@@ -28,41 +28,24 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepValidationCompiler from './StepValidationCompiler'
 import { evaluateEntryValidation } from '../../../runtime/orchestrator/phases/evaluateEntryValidation'
+import { evaluateValidation } from '../../../runtime/orchestrator/phases/evaluateValidation'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 
-// Mirrors runtime/orchestrator/phases/evaluateValidation.ts but threads the bare
-// ValidationContext the unit tests already build instead of a RuntimeEvaluationContext.
+// Drives the real validation walk over the compiled plan.
 // compileValidationPlan returns undefined for an empty step, which is a passing result.
 async function runValidation(
   plan: ValidationPlan | undefined,
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups?: string[],
+  groups: string[] = [],
 ): Promise<StepValidityResult> {
   if (!plan) {
     return { isValid: true, fieldFailures: [], domainFailures: [] }
   }
 
-  const fieldResults = await Promise.all(plan.fields.map(entry => entry.validate(ctx, isSubmission, groups)))
-  const iteratorResults = (
-    await Promise.all(
-      plan.iteratorGroups.map(async group => {
-        const items = await group.evaluateInput(ctx)
-
-        return (
-          await Promise.all(
-            items.flatMap(scope => group.fields.map(field => field.validate(ctx, isSubmission, groups, scope))),
-          )
-        ).flat()
-      }),
-    )
-  ).flat()
-  const fieldFailures = [...fieldResults.flat(), ...iteratorResults]
-  const domainFailures = plan.domain ? await plan.domain(ctx, isSubmission, groups) : []
-
-  return { isValid: fieldFailures.length === 0 && domainFailures.length === 0, fieldFailures, domainFailures }
+  return evaluateValidation(plan, ctx, { isSubmission, groups })
 }
 
 function createFieldBlock(code: unknown): FieldBlockASTNode {

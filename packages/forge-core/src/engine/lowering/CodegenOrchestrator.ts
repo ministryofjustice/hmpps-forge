@@ -390,15 +390,19 @@ export default class CodegenOrchestrator {
    */
   private wrapValidationPlanAsFunction(validationPlan: ValidationPlan): CompiledValidationFunction {
     return async (ctx, isSubmission, groups) => {
+      const activeGroups = groups ?? []
+
       const fieldResults = await Promise.all(
-        validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, groups)),
+        validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, activeGroups)),
       )
 
       const iteratorGroupResults = await Promise.all(
         validationPlan.iteratorGroups.map(async group => {
           const items = await group.evaluateInput(ctx)
           const results = await Promise.all(
-            items.flatMap(itemScope => group.fields.map(field => field.validate(ctx, isSubmission, groups, itemScope))),
+            items.flatMap(itemScope =>
+              group.fields.map(field => field.validate(ctx, isSubmission, activeGroups, itemScope)),
+            ),
           )
 
           return results.flat()
@@ -406,7 +410,7 @@ export default class CodegenOrchestrator {
       )
 
       const fieldFailures = [...fieldResults.flat(), ...iteratorGroupResults.flat()]
-      const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, groups) : []
+      const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, activeGroups) : []
 
       return {
         isValid: fieldFailures.length === 0 && domainFailures.length === 0,

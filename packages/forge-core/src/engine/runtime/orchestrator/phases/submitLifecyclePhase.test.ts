@@ -1,8 +1,9 @@
 import { createSubmitLifecyclePhase } from './submitLifecyclePhase'
 import TraceRecorder from '../trace/TraceRecorder'
-import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { PipelineState } from '../types'
 import type { CompiledSubmitHookResult } from '../../../contracts/compiled/compiledFunctions.type'
+import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { StepRequest } from '../../../../framework/types/request.type'
@@ -113,6 +114,71 @@ describe('submitLifecyclePhase', () => {
       expect(trace.phases[0].units).toEqual([
         expect.objectContaining({ kind: 'submit-hook', nodeId: 'compile_ast:1', executed: true, validated: true }),
       ])
+    })
+
+    it('should run validation on demand and stamp the verdict on the global context', async () => {
+      // Arrange
+      const failure = { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false }
+      const validationPlan: ValidationPlan = {
+        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([failure]) }],
+        iteratorGroups: [],
+      }
+      const plan: SubmitLifecyclePlan = {
+        hooks: [
+          {
+            nodeId: 'compile_ast:1' as const,
+            evaluate: async (ctx: HookLifecycleContext) => {
+              await ctx.validate?.(['default'])
+
+              return { executed: true, validated: true, outcome: 'continue' }
+            },
+          },
+        ],
+      }
+      const phase = createSubmitLifecyclePhase(
+        plan,
+        validationPlan,
+        'compile_ast:9' as const,
+        '/step',
+        mockFunctionRegistry,
+      )
+
+      // Act
+      const state = createMockState()
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.context.global.validation).toEqual(
+        expect.objectContaining({
+          stepId: 'compile_ast:9',
+          validated: true,
+          groups: ['default'],
+          isSubmission: true,
+          isValid: false,
+        }),
+      )
+      expect(state.validation).toEqual(expect.objectContaining({ isValid: false, fieldFailures: [failure] }))
+    })
+
+    it('should throw when a hook validates without a validation plan', async () => {
+      // Arrange
+      const plan: SubmitLifecyclePlan = {
+        hooks: [
+          {
+            nodeId: 'compile_ast:1' as const,
+            evaluate: async (ctx: HookLifecycleContext) => {
+              await ctx.validate?.(['default'])
+
+              return { executed: true, validated: true, outcome: 'continue' }
+            },
+          },
+        ],
+      }
+      const phase = createSubmitLifecyclePhase(plan, undefined, 'compile_ast:1' as const, '/step', mockFunctionRegistry)
+
+      // Act & Assert
+      await expect(phase.execute(createMockState())).rejects.toThrow('Validation plan is missing for step "/step"')
     })
 
     it('should throw when plan is missing', async () => {

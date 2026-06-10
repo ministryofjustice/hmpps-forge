@@ -121,6 +121,56 @@ describe('entryValidationPhase', () => {
       )
     })
 
+    it('should stamp the verdict on the global context when groups are active', async () => {
+      // Arrange
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+      }
+      const validationPlan: ValidationPlan = {
+        fields: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
+        iteratorGroups: [],
+      }
+      const phase = createEntryValidationPhase(
+        entryValidationPlan,
+        validationPlan,
+        'compile_ast:1' as const,
+        '/step',
+        mockFunctionRegistry,
+      )
+
+      // Act
+      const state = createMockState()
+      await phase.execute(state)
+
+      // Assert
+      expect(state.context.global.validation).toEqual(
+        expect.objectContaining({
+          stepId: 'compile_ast:1',
+          validated: true,
+          groups: ['group-1'],
+          isSubmission: false,
+          isValid: true,
+        }),
+      )
+    })
+
+    it('should throw when groups are selected but the validation plan is missing', async () => {
+      // Arrange
+      const entryValidationPlan: EntryValidationPlan = {
+        rules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+      }
+      const phase = createEntryValidationPhase(
+        entryValidationPlan,
+        undefined,
+        'compile_ast:1' as const,
+        '/step',
+        mockFunctionRegistry,
+      )
+
+      // Act & Assert
+      await expect(phase.execute(createMockState())).rejects.toThrow('Validation plan is missing for step "/step"')
+    })
+
     it('should record entry-validation-rule units into the state trace recorder when present', async () => {
       // Arrange
       const recorder = new TraceRecorder()

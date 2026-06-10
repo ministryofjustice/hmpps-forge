@@ -84,24 +84,26 @@ export type CompiledNavigationTieBreakerFunction = (
 export type CompiledStepFieldCodesFunction = (ctx: ReachabilityContext) => string[] | Promise<string[]>
 
 /**
- * Validates one field, returning its failures (empty when valid). When `groups`
- * is given, the field's rules run only if they belong to one of those groups.
- * One such function exists per field in a ValidationPlan.
+ * Validates one field, returning its failures (empty when valid). The field's
+ * rules run only if they belong to one of the named `groups` (an empty list
+ * selects the `default` group). One such function exists per field in a
+ * ValidationPlan.
  */
 export type CompiledFieldValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups?: string[],
+  groups: string[],
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
 
 /**
  * Validates one cross-field (domain) rule, returning its failures (empty when
- * valid). `groups`, when present, gates whether the rule runs.
+ * valid). `groups` gates whether the rule runs (an empty list selects the
+ * `default` group).
  */
 export type CompiledDomainValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups?: string[],
+  groups: string[],
 ) => DomainValidationFailure[] | Promise<DomainValidationFailure[]>
 
 /**
@@ -137,7 +139,7 @@ export type CompiledIteratorInputFunction = (
 export type CompiledIteratorFieldValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups: string[] | undefined,
+  groups: string[],
   iteratorScope: IteratorItemScope,
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
 

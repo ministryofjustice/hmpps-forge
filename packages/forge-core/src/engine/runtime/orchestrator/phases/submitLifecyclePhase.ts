@@ -2,7 +2,7 @@ import createHttpError from 'http-errors'
 import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
+import { buildCompiledBaseContext, buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
 import { evaluateValidation } from './evaluateValidation'
 import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
@@ -10,13 +10,14 @@ import type { RequestPhase } from '../types'
 /**
  * Builds the POST step's submit-lifecycle phase: runs the step's submit hooks,
  * wiring a `validate(groups)` callback that runs the step's ValidationPlan on
- * demand from within a hook. Branches on the first executed hook's outcome —
+ * demand from within a hook and stamps the verdict on
+ * `context.global.validation`. Branches on the first executed hook's outcome —
  * 'redirect' halts with its target (500 if the target is missing), 'error'
  * halts with its status/message (defaulting to 500), otherwise records on the
  * pipeline state whether the hook triggered validation
- * (`showValidationFailures`) and the verdict left on
- * `context.global.validation` by the validation run, then continues. Throws
- * when the submit lifecycle plan is missing.
+ * (`showValidationFailures`) and the stamped verdict, then continues. Throws
+ * when the submit lifecycle plan is missing, or when a hook validates without a
+ * validation plan.
  */
 export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan | undefined,
@@ -32,11 +33,34 @@ export function createSubmitLifecyclePhase(
         throw new Error(`[Forge] Submit lifecycle plan is missing for step "${path}"`)
       }
 
+      const validate = async (groups: string[]) => {
+        if (!validationPlan) {
+          throw new Error(`[Forge] Validation plan is missing for step "${path}"`)
+        }
+
+        const validation = await evaluateValidation(
+          validationPlan,
+          buildCompiledBaseContext(state.context, functionRegistry),
+          { isSubmission: true, groups },
+          state.trace,
+        )
+
+        state.context.global.validation = {
+          stepId,
+          validated: true,
+          groups,
+          isSubmission: true,
+          isValid: validation.isValid,
+          fieldFailures: validation.fieldFailures,
+          domainFailures: validation.domainFailures,
+        }
+
+        return validation
+      }
+
       const result = await evaluateSubmitLifecycle(
         submitLifecyclePlan,
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, groups =>
-          evaluateValidation(validationPlan, path, stepId, state.context, functionRegistry, true, groups, state.trace),
-        ),
+        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, validate),
         state.trace,
       )
 

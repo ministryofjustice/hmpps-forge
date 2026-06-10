@@ -16,6 +16,7 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
+import { evaluateAnswerPreparation } from '../../../runtime/orchestrator/phases/evaluateAnswerPreparation'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
@@ -163,30 +164,21 @@ describe('StepAnswerPreparationCompiler', () => {
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
-  // Mirrors runtime/orchestrator/phases/evaluateAnswerPreparation against the test's bare context.
+  // Drives the real answer-preparation walk over a plan compiled from the given nodes.
   async function runPrep(
     runCompiler: StepAnswerPreparationCompiler,
     fieldBlocks: FieldBlockASTNode[],
     iterateNodes: IterateASTNode[],
     ctx: AnswerPreparationContext,
   ): Promise<void> {
-    for (const block of fieldBlocks) {
-      await runCompiler.compileFieldPreparation(block).prepare(ctx)
+    const plan = {
+      fields: fieldBlocks.map(block => runCompiler.compileFieldPreparation(block)),
+      iteratorGroups: iterateNodes
+        .map(node => runCompiler.compileIteratorGroup(node))
+        .filter((group): group is NonNullable<typeof group> => group !== undefined),
     }
 
-    const groups = iterateNodes
-      .map(node => runCompiler.compileIteratorGroup(node))
-      .filter((group): group is NonNullable<typeof group> => group !== undefined)
-
-    for (const group of groups) {
-      const items = await group.evaluateInput(ctx)
-
-      for (const itemScope of items) {
-        for (const field of group.fields) {
-          await field.prepare(ctx, itemScope)
-        }
-      }
-    }
+    await evaluateAnswerPreparation(plan, ctx)
   }
 
   describe('hybrid async compilation', () => {
