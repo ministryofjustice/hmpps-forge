@@ -1,118 +1,58 @@
 import { createNavigationPhase } from './navigationPhase'
 import TraceRecorder from '../trace/TraceRecorder'
-import type { PipelineState } from '../types'
-import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
+import {
+  createNavigationFixture,
+  createNavigationValidationPlan,
+  createPipelineState,
+} from '../testing-helpers/navigationTestFixtures'
 import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
-import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { StepRequest } from '../../../../framework/types/request.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
-
-const createMockState = (): PipelineState => {
-  const request = {
-    method: 'GET',
-    url: 'http://localhost/forms/journey/step',
-    baseUrl: '/forms/journey',
-    location: {
-      origin: 'http://localhost',
-      href: 'http://localhost/forms/journey/step',
-      pathname: '/forms/journey/step',
-      basePath: '/forms/journey',
-    },
-    getHeader: () => undefined,
-    getAllHeaders: () => ({}),
-    getCookie: () => undefined,
-    getAllCookies: () => ({}),
-    getParam: () => undefined,
-    getParams: () => ({}),
-    getQuery: () => undefined,
-    getAllQuery: () => ({}),
-    getPost: () => undefined,
-    getAllPost: () => ({}),
-    getSession: () => undefined,
-    getState: () => undefined,
-    getAllState: () => ({}),
-  } as unknown as StepRequest
-  const context = new RuntimeEvaluationContext(request)
-
-  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS }
-}
 
 const mockFunctionRegistry = {} as FunctionRegistry
-
-const createEntry = (stepId: NodeId, overrides: Partial<NavigationRuntimeEntry> = {}): NavigationRuntimeEntry => ({
-  stepId,
-  isEntryPoint: false,
-  hasValidation: false,
-  cleardownFieldCodes: [],
-  declaredOutcomes: [],
-  ...overrides,
-})
-
-const createPlan = (
-  entries: NavigationRuntimeEntry[],
-  overrides: Partial<NavigationRuntimePlan> = {},
-): NavigationRuntimePlan => ({
-  entries,
-  resumeConfigured: false,
-  resumeAlways: false,
-  unreachableRedirect: 'entry',
-  reachabilityDisabled: false,
-  stepValidationPlans: new Map(),
-  ...overrides,
-})
-
-const createValidationPlan = (isValid: boolean): ValidationPlan => ({
-  fields: [
-    {
-      nodeId: 'compile_ast:999' as const,
-      validate: () =>
-        isValid
-          ? []
-          : [{ blockId: 'compile_ast:999' as const, passed: false, message: 'invalid', submissionOnly: false }],
-    },
-  ],
-  iteratorGroups: [],
-})
-
-const createCatalog = (paths: Array<[NodeId, string]>): JourneyRouteTemplateCatalog => ({
-  routeTemplatePathByStepId: new Map(paths),
-  stepIdByRouteTemplatePath: new Map(paths.map(([stepId, path]) => [path, stepId])),
-})
 
 describe('navigationPhase', () => {
   describe('execute()', () => {
     it('should return continue and store the evaluation when the current step is reachable', async () => {
       // Arrange
-      const plan = createPlan([createEntry('compile_ast:1' as const, { isEntryPoint: true })])
-      const catalog = createCatalog([['compile_ast:1' as const, '/journey/step-one']])
-      const phase = createNavigationPhase(plan, 'compile_ast:1' as const, catalog, 'step-get', mockFunctionRegistry)
+      const { plan, routeTemplateCatalog } = createNavigationFixture([
+        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+      ])
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:1' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       // Act
-      const state = createMockState()
+      const state = createPipelineState()
       const result = await phase.execute(state)
 
       // Assert
       expect(result).toEqual({ action: 'continue' })
       expect(state.navigationEvaluation?.steps.map(step => step.isReachable)).toEqual([true])
+      expect(state.validation).toBeUndefined()
+      expect(state.showValidationFailures).toBeUndefined()
     })
 
     it('should return halt-redirect with reason unreachable when the current step is not reachable', async () => {
       // Arrange
-      const plan = createPlan([
-        createEntry('compile_ast:1' as const, { isEntryPoint: true }),
-        createEntry('compile_ast:2' as const),
+      const { plan, routeTemplateCatalog } = createNavigationFixture([
+        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { stepId: 'compile_ast:2' as const, path: 'step-two' },
       ])
-      const catalog = createCatalog([
-        ['compile_ast:1' as const, '/journey/step-one'],
-        ['compile_ast:2' as const, '/journey/step-two'],
-      ])
-      const phase = createNavigationPhase(plan, 'compile_ast:2' as const, catalog, 'step-get', mockFunctionRegistry)
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:2' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       // Act
-      const result = await phase.execute(createMockState())
+      const result = await phase.execute(createPipelineState())
 
       // Assert
       expect(result).toEqual({ action: 'halt-redirect', target: '/journey/step-one', reason: 'unreachable' })
@@ -120,32 +60,36 @@ describe('navigationPhase', () => {
 
     it('should return halt-redirect with reason resume when resume wants to move the user', async () => {
       // Arrange
-      const plan = createPlan(
+      const { plan, routeTemplateCatalog } = createNavigationFixture(
         [
-          createEntry('compile_ast:1' as const, {
+          {
+            stepId: 'compile_ast:1' as const,
+            path: 'step-one',
             isEntryPoint: true,
             hasValidation: true,
             evaluateOutcomes: vi.fn().mockReturnValue(['step-two']),
-          }),
-          createEntry('compile_ast:2' as const, { hasValidation: true }),
+          },
+          { stepId: 'compile_ast:2' as const, path: 'step-two', hasValidation: true },
         ],
         {
           resumeConfigured: true,
           resumeAlways: true,
           stepValidationPlans: new Map<NodeId, ValidationPlan>([
-            ['compile_ast:1' as const, createValidationPlan(true)],
-            ['compile_ast:2' as const, createValidationPlan(false)],
+            ['compile_ast:1' as const, createNavigationValidationPlan(true)],
+            ['compile_ast:2' as const, createNavigationValidationPlan(false)],
           ]),
         },
       )
-      const catalog = createCatalog([
-        ['compile_ast:1' as const, '/journey/step-one'],
-        ['compile_ast:2' as const, '/journey/step-two'],
-      ])
-      const phase = createNavigationPhase(plan, 'compile_ast:1' as const, catalog, 'step-get', mockFunctionRegistry)
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:1' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       // Act
-      const result = await phase.execute(createMockState())
+      const result = await phase.execute(createPipelineState())
 
       // Assert
       expect(result).toEqual({ action: 'halt-redirect', target: '/journey/step-two', reason: 'resume' })
@@ -153,12 +97,19 @@ describe('navigationPhase', () => {
 
     it('should store projected reachability on the context when params are present', async () => {
       // Arrange
-      const plan = createPlan([createEntry('compile_ast:1' as const, { isEntryPoint: true })])
-      const catalog = createCatalog([['compile_ast:1' as const, '/journey/step-one']])
-      const phase = createNavigationPhase(plan, 'compile_ast:1' as const, catalog, 'step-get', mockFunctionRegistry)
+      const { plan, routeTemplateCatalog } = createNavigationFixture([
+        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+      ])
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:1' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       // Act
-      const state = createMockState()
+      const state = createPipelineState()
       await phase.execute(state)
 
       // Assert
@@ -168,20 +119,22 @@ describe('navigationPhase', () => {
     it('should record navigation-step and navigation-resolution units into the state trace recorder when present', async () => {
       // Arrange
       const recorder = new TraceRecorder()
-      const plan = createPlan([
-        createEntry('compile_ast:1' as const, { isEntryPoint: true }),
-        createEntry('compile_ast:2' as const),
+      const { plan, routeTemplateCatalog } = createNavigationFixture([
+        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { stepId: 'compile_ast:2' as const, path: 'step-two' },
       ])
-      const catalog = createCatalog([
-        ['compile_ast:1' as const, '/journey/step-one'],
-        ['compile_ast:2' as const, '/journey/step-two'],
-      ])
-      const phase = createNavigationPhase(plan, 'compile_ast:1' as const, catalog, 'step-get', mockFunctionRegistry)
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:1' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       recorder.beginPhase('navigation')
 
       // Act
-      await phase.execute({ ...createMockState(), trace: recorder })
+      await phase.execute({ ...createPipelineState(), trace: recorder })
       recorder.endPhase('continue')
 
       // Assert
@@ -197,20 +150,22 @@ describe('navigationPhase', () => {
     it('should record the resolved redirect target on the navigation-resolution unit when redirecting', async () => {
       // Arrange
       const recorder = new TraceRecorder()
-      const plan = createPlan([
-        createEntry('compile_ast:1' as const, { isEntryPoint: true }),
-        createEntry('compile_ast:2' as const),
+      const { plan, routeTemplateCatalog } = createNavigationFixture([
+        { stepId: 'compile_ast:1' as const, path: 'step-one', isEntryPoint: true },
+        { stepId: 'compile_ast:2' as const, path: 'step-two' },
       ])
-      const catalog = createCatalog([
-        ['compile_ast:1' as const, '/journey/step-one'],
-        ['compile_ast:2' as const, '/journey/step-two'],
-      ])
-      const phase = createNavigationPhase(plan, 'compile_ast:2' as const, catalog, 'step-get', mockFunctionRegistry)
+      const phase = createNavigationPhase(
+        plan,
+        'compile_ast:2' as const,
+        routeTemplateCatalog,
+        'step-get',
+        mockFunctionRegistry,
+      )
 
       recorder.beginPhase('navigation')
 
       // Act
-      await phase.execute({ ...createMockState(), trace: recorder })
+      await phase.execute({ ...createPipelineState(), trace: recorder })
       recorder.endPhase('halt-redirect')
 
       // Assert

@@ -54,10 +54,16 @@ describe('accessLifecyclePhase', () => {
       const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
       // Act
-      const result = await phase.execute(createMockState())
+      const state = createMockState()
+      const result = await phase.execute(state)
 
       // Assert
       expect(result).toEqual({ action: 'continue' })
+      expect(state.navigationEvaluation).toBeUndefined()
+      expect(state.validation).toBeUndefined()
+      expect(state.showValidationFailures).toBeUndefined()
+      expect(state.context.global.validation).toBeUndefined()
+      expect(state.context.global.reachability).toBeUndefined()
     })
 
     it('should return halt-redirect when access lifecycle redirects', async () => {

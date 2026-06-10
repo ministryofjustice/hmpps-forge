@@ -81,10 +81,16 @@ describe('submitLifecyclePhase', () => {
       )
 
       // Act
-      const result = await phase.execute(createMockState())
+      const state = createMockState()
+      const result = await phase.execute(state)
 
       // Assert
       expect(result).toEqual({ action: 'halt-redirect', target: '/next', reason: 'submit-lifecycle' })
+      expect(state.navigationEvaluation).toBeUndefined()
+      expect(state.validation).toBeUndefined()
+      expect(state.showValidationFailures).toBeUndefined()
+      expect(state.context.global.validation).toBeUndefined()
+      expect(state.context.global.reachability).toBeUndefined()
     })
 
     it('should return halt-error when submit hooks error', async () => {

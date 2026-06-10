@@ -30,18 +30,6 @@ import StepValidationCompiler from './StepValidationCompiler'
 import { evaluateEntryValidation } from '../../../runtime/orchestrator/phases/evaluateEntryValidation'
 import { evaluateValidation } from '../../../runtime/orchestrator/phases/evaluateValidation'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
-import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
-
-// Drives the real validation walk over the compiled plan.
-async function runValidation(
-  plan: ValidationPlan,
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups: string[] = [],
-): Promise<StepValidityResult> {
-  return evaluateValidation(plan, ctx, { isSubmission, groups })
-}
 
 function createFieldBlock(code: unknown): FieldBlockASTNode {
   return ASTTestFactory.block('text-input', BlockType.FIELD)
@@ -299,13 +287,13 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = localCompiler.compileValidationPlan([block], [], [])
-      const result = await runValidation(
+      const result = await evaluateValidation(
         plan,
         createCtx({
           answers: { firstName: { current: 'Ada' } },
           conditions: functionRegistry,
         }),
-        false,
+        { isSubmission: false, groups: [] },
       )
 
       // Assert
@@ -328,7 +316,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(plan).toBeDefined()
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures).toHaveLength(1)
       expect(result.fieldFailures[0].blockCode).toBe('firstName')
@@ -363,13 +351,13 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = localCompiler.compileValidationPlan([block], [], [])
-      const result = await runValidation(
+      const result = await evaluateValidation(
         plan,
         createCtx({
           answers: { '123': { current: '' } },
           conditions: functionRegistry,
         }),
-        false,
+        { isSubmission: false, groups: [] },
       )
 
       // Assert
@@ -391,7 +379,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -414,7 +402,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.fieldFailures).toHaveLength(1)
@@ -441,7 +429,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -468,7 +456,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -490,7 +478,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -511,7 +499,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, true)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: true, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -530,7 +518,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -553,7 +541,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false, ['contact'])
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['contact'] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -576,7 +564,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false, ['address'])
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['address'] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -599,7 +587,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false, ['lookup'])
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['lookup'] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -622,7 +610,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false, ['contact'])
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['contact'] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -650,7 +638,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -681,7 +669,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       try {
-        await runValidation(plan, ctx, false)
+        await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
         throw new Error('Expected throwingCondition to throw')
       } catch (error) {
         if (!(error instanceof Error)) {
@@ -735,7 +723,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       try {
-        await runValidation(plan, ctx, false)
+        await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
         throw new Error('Expected messageGenerator to throw')
       } catch (error) {
         if (!(error instanceof Error)) {
@@ -776,7 +764,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -805,7 +793,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -830,7 +818,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -859,7 +847,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -877,7 +865,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -901,7 +889,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -925,7 +913,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -950,7 +938,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -969,7 +957,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [domainValidation])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -988,8 +976,8 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [domainValidation])
-      const inactiveResult = await runValidation(plan, ctx, false, ['default'])
-      const activeResult = await runValidation(plan, ctx, false, ['security'])
+      const inactiveResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['default'] })
+      const activeResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['security'] })
 
       // Assert
       expect(inactiveResult.isValid).toBe(true)
@@ -1013,7 +1001,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.fieldFailures[0].details).toEqual({ component: 'text-input', errorType: 'required' })
@@ -1082,7 +1070,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1142,7 +1130,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -1197,8 +1185,8 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const inactiveResult = await runValidation(plan, ctx, false, ['default'])
-      const activeResult = await runValidation(plan, ctx, false, ['items'])
+      const inactiveResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['default'] })
+      const activeResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['items'] })
 
       // Assert
       expect(inactiveResult.isValid).toBe(true)
@@ -1264,7 +1252,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1319,7 +1307,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1382,7 +1370,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1436,7 +1424,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1466,7 +1454,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1498,7 +1486,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -1526,7 +1514,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([block], [], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1552,7 +1540,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [iterateNode], [])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1604,7 +1592,7 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await runValidation(plan, ctx, false)
+      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
       expect(result.isValid).toBe(true)

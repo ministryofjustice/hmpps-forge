@@ -18,6 +18,7 @@ import type { CompilationDependencies } from '../../compilationDependencies.type
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
 import { evaluateAnswerPreparation } from '../../../runtime/orchestrator/phases/evaluateAnswerPreparation'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
+import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()
@@ -164,21 +165,17 @@ describe('StepAnswerPreparationCompiler', () => {
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
-  // Drives the real answer-preparation walk over a plan compiled from the given nodes.
-  async function runPrep(
+  function compileAnswerPreparationPlan(
     runCompiler: StepAnswerPreparationCompiler,
     fieldBlocks: FieldBlockASTNode[],
     iterateNodes: IterateASTNode[],
-    ctx: AnswerPreparationContext,
-  ): Promise<void> {
-    const plan = {
+  ): AnswerPreparationPlan {
+    return {
       fields: fieldBlocks.map(block => runCompiler.compileFieldPreparation(block)),
       iteratorGroups: iterateNodes
         .map(node => runCompiler.compileIteratorGroup(node))
         .filter((group): group is NonNullable<typeof group> => group !== undefined),
     }
-
-    await evaluateAnswerPreparation(plan, ctx)
   }
 
   describe('hybrid async compilation', () => {
@@ -237,7 +234,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('Ada')
@@ -272,7 +269,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.email.current).toBeUndefined()
@@ -303,7 +300,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.reference.current).toBe('ABC-123')
@@ -318,7 +315,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { firstName: 'John' } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.firstName).toBeDefined()
@@ -346,7 +343,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert — dynamic code resolved to 'firstName' and the POST value landed there
       expect(ctx.answers.firstName).toBeDefined()
@@ -361,7 +358,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { firstName: 'John', lastName: 'Doe' } })
 
       // Act
-      await runPrep(compiler, [block1, block2], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block1, block2], []), ctx)
 
       // Assert
       expect(ctx.answers.firstName.current).toBe('John')
@@ -374,7 +371,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { colour: ['', ' ', 'red', 'blue'] as unknown as string } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.colour.current).toBe('red')
@@ -386,7 +383,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.tags.current).toEqual(['a', 'b', 'c'])
@@ -398,7 +395,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { tags: 'single' } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.tags.current).toEqual(['single'])
@@ -410,7 +407,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: {} })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.missing.current).toBeUndefined()
@@ -427,7 +424,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  John  ' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('John')
@@ -445,7 +442,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  hello  ' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('HELLO')
@@ -459,7 +456,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'NoSpaces' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('NoSpaces')
@@ -474,7 +471,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'original' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('original')
@@ -564,7 +561,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'hello world' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('hel')
@@ -585,7 +582,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.email.current).toBe('test@example.com')
@@ -604,7 +601,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.email.current).toBeUndefined()
@@ -666,7 +663,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('existing')
@@ -679,7 +676,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('UK')
@@ -696,7 +693,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('US')
@@ -736,7 +733,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.country.current).toBe('United States')
@@ -749,7 +746,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      await runPrep(compiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [block], []), ctx)
 
       // Assert
       expect(ctx.answers.optional.current).toBeUndefined()
@@ -779,7 +776,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(compiler, [], [iterateNode], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(compiler, [], [iterateNode]), ctx)
 
       // Assert
       expect(ctx.answers.staticField).toBeDefined()
@@ -810,7 +807,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [], [iterateNode], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [], [iterateNode]), ctx)
 
       // Assert
       expect(ctx.answers.person_0).toBeDefined()
@@ -849,7 +846,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await runPrep(localCompiler, [], [iterateNode], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [], [iterateNode]), ctx)
 
       // Assert
       expect(ctx.answers.team_0_member_0.current).toBe('Ada')
@@ -867,7 +864,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      await runPrep(localCompiler, [block], [], ctx)
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
 
       // Assert — defaultValue is set as-is, no trimming
       expect(ctx.answers.name.current).toBe('  spaced  ')
