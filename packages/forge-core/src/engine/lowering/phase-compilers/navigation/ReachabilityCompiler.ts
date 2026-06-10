@@ -43,7 +43,7 @@ export default class ReachabilityCompiler {
     inputs: ReachabilityStepInputs,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationPredicateFunction | undefined {
-    return this.compilePredicate(inputs.entryWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileEntryPredicate')
+    return this.compilePredicate(inputs.entryWhenNodeId, nodeRegistry, 'entryWhen')
   }
 
   /**
@@ -55,7 +55,7 @@ export default class ReachabilityCompiler {
     plan: ReachabilityCompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): CompiledNavigationPredicateFunction | undefined {
-    return this.compilePredicate(plan.resumeWhenNodeId, nodeRegistry, 'ReachabilityCompiler.compileResumePredicate')
+    return this.compilePredicate(plan.resumeWhenNodeId, nodeRegistry, 'resumeWhen')
   }
 
   /**
@@ -121,7 +121,7 @@ export default class ReachabilityCompiler {
   private compilePredicate(
     nodeId: NodeId | undefined,
     nodeRegistry: ASTNodeIndex,
-    label: string,
+    role: string,
   ): CompiledNavigationPredicateFunction | undefined {
     if (nodeId === undefined) {
       return undefined
@@ -136,14 +136,15 @@ export default class ReachabilityCompiler {
     return compileGeneratedFunction<CompiledNavigationPredicateFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildPredicateSource(node, label),
+      () => this.buildPredicateSource(node, role),
       { phase: 'navigation' },
     )
   }
 
-  private buildPredicateSource(node: ASTNode, label: string): string {
+  private buildPredicateSource(node: ASTNode, role: string): string {
     const emitter = CodeEmitter.strict()
-    emitter.comment(label)
+    emitter.comment('ReachabilityCompiler.buildPredicateSource')
+    emitter.comment(role)
     emitter.return(`Boolean(${this.expr.compileExpression(node)})`)
 
     return emitter.toString()
@@ -154,7 +155,7 @@ export default class ReachabilityCompiler {
     nodeRegistry: ASTNodeIndex,
   ): string {
     const emitter = CodeEmitter.strict()
-    emitter.comment('ReachabilityCompiler.compileStepOutcomes')
+    emitter.comment('ReachabilityCompiler.buildOutcomesSource')
     emitter.declareConst('outcomes', '[]')
 
     groups.forEach(({ group, redirectOutcomes }) => {
@@ -255,7 +256,7 @@ export default class ReachabilityCompiler {
 
   private buildTieBreakerSource(inputs: ReachabilityStepInputs, nodeRegistry: ASTNodeIndex): string {
     const emitter = CodeEmitter.strict()
-    emitter.comment('ReachabilityCompiler.compileTieBreaker')
+    emitter.comment('ReachabilityCompiler.buildTieBreakerSource')
 
     const priorityVar = emitter.let('tieBreakerPriority')
 

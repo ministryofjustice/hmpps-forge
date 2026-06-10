@@ -56,6 +56,7 @@ export default class HookLifecycleCompiler {
    */
   private buildAccessHookSource(hook: AccessHookASTNode): string {
     const emitter = CodeEmitter.strict()
+    emitter.comment('HookLifecycleCompiler.buildAccessHookSource')
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 
@@ -96,6 +97,7 @@ export default class HookLifecycleCompiler {
    */
   private buildSubmitHookSource(hook: SubmitHookASTNode): string {
     const emitter = CodeEmitter.strict()
+    emitter.comment('HookLifecycleCompiler.buildSubmitHookSource')
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 

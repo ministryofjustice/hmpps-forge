@@ -59,7 +59,7 @@ export default class StepFieldInventoryCompiler {
   private buildStepFieldCodesSource(step: FieldInventoryStepSource): string {
     const emitter = CodeEmitter.strict()
 
-    emitter.comment('StepFieldInventoryCompiler.compileStepFieldCodes')
+    emitter.comment('StepFieldInventoryCompiler.buildStepFieldCodesSource')
     emitter.declareConst('fieldCodes', '[]')
 
     step.fieldBlocks.forEach(block => this.compileRegisteredFieldCode(block, 'fieldCodes', emitter))
