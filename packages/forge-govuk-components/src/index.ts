@@ -3,21 +3,21 @@
  *
  * This package provides GOV.UK Design System components as forge compatible
  * components. Components receive the Nunjucks environment at render time from the
- * framework adapter.
+ * bound renderer.
  *
  * @example
  * ```typescript
  * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+ * import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
  * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
  *
  * const nunjucksEnv = nunjucksSetup(app)
  *
- * const forge = new Forge({ logger })
+ * const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
  *   .registerGlobalComponents(govukComponents())
  *   .registerPackage(myPackage)
  *
- * app.use(createExpressRouter(forge, { nunjucksEnv }))
+ * app.use(createExpressRouter(forge))
  * ```
  */
 

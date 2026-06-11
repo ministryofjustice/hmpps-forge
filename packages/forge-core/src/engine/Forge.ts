@@ -49,8 +49,8 @@ export interface ForgeOptions<TOut = undefined> {
    *
    * @example
    * ```typescript
-   * const forge = new Forge({ basePath: '/forms' })
-   * app.use(createExpressRouter(forge, { nunjucksEnv }))  // Routes at /forms/journey/step
+   * const forge = new Forge({ basePath: '/forms', renderer: new NunjucksRenderer({ nunjucksEnv }) })
+   * app.use(createExpressRouter(forge))  // Routes at /forms/journey/step
    * ```
    *
    * @default ''
@@ -128,14 +128,14 @@ export default class Forge<TOut = undefined> {
    * @example
    * ```typescript
    * import { Forge } from './'
-   * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+   * import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
    * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
    *
-   * const forge = new Forge({ logger })
-   *   .registerGlobalComponents(govukComponents(nunjucksEnv))
+   * const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+   *   .registerGlobalComponents(govukComponents)
    *   .registerPackage(myPackage)
    *
-   * app.use(createExpressRouter(forge, { nunjucksEnv }))
+   * app.use(createExpressRouter(forge))
    * ```
    */
   constructor(constructorOptions: ForgeOptions<TOut>) {
