@@ -1,5 +1,5 @@
-import { NodeId } from '../../../contracts/ast/ast.type'
-import { NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import { NodeId } from '../../contracts/ast/ast.type'
+import { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 
 export interface NavigationPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]
@@ -49,17 +49,33 @@ export function resolveBacklinkRouteTemplatePathForStep(
   return canonicalPathRouteTemplatePaths[currentIndex - 1]
 }
 
+/**
+ * Resolves the route template path of the journey's default entry step: the
+ * tie-breaker winner among active entries, falling back to the first declared
+ * step when no entry is active.
+ */
+export function resolveDefaultEntryRouteTemplatePath(steps: NavigationStepState[]): string | undefined {
+  const activeEntries = steps.filter(isActiveEntry)
+  const winner = pickTieBreakerWinner(activeEntries)
+
+  if (winner) {
+    return winner.routeTemplatePath
+  }
+
+  return steps[0]?.routeTemplatePath
+}
+
 export default class NavigationPathAnalyzer {
   analyze(
     steps: NavigationStepState[],
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     defaultEntryRouteTemplatePath: string | undefined,
     resumeActive: boolean,
   ): NavigationPathAnalysis {
     const progressExists = this.resolveProgressExists(steps)
     const defaultPath = this.resolvePathFromAnchorRouteTemplatePath(defaultEntryRouteTemplatePath, steps)
     const resumePath = this.resolveResumePath(steps)
-    const canonicalPath = this.resolveCanonicalPath(steps, currentStepId, resumeActive, defaultPath, resumePath)
+    const canonicalPath = this.resolveCanonicalPath(steps, currentStepNodeId, resumeActive, defaultPath, resumePath)
 
     return {
       canonicalPathRouteTemplatePaths: canonicalPath.map(step => step.routeTemplatePath),
@@ -70,7 +86,7 @@ export default class NavigationPathAnalyzer {
 
   private resolveCanonicalPath(
     steps: NavigationStepState[],
-    currentStepId: NodeId | undefined,
+    currentStepNodeId: NodeId | undefined,
     resumeActive: boolean,
     defaultPath: NavigationStepState[],
     resumePath: NavigationStepState[] | undefined,
@@ -79,8 +95,8 @@ export default class NavigationPathAnalyzer {
       return resumePath
     }
 
-    if (currentStepId !== undefined) {
-      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepId, steps)
+    if (currentStepNodeId !== undefined) {
+      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepNodeId, steps)
 
       if (currentStepPath.length > 0) {
         return currentStepPath
@@ -96,7 +112,7 @@ export default class NavigationPathAnalyzer {
 
   private resolveResumePath(steps: NavigationStepState[]): NavigationStepState[] | undefined {
     const candidates = steps
-      .filter(step => this.isActiveEntry(step))
+      .filter(isActiveEntry)
       .map(entry => {
         const path = this.resolvePathFromAnchorStep(entry, steps)
 
@@ -141,8 +157,11 @@ export default class NavigationPathAnalyzer {
     return lastProgressIndex
   }
 
-  private resolvePathThroughCurrentStep(currentStepId: NodeId, steps: NavigationStepState[]): NavigationStepState[] {
-    const currentStep = steps.find(step => step.stepId === currentStepId)
+  private resolvePathThroughCurrentStep(
+    currentStepNodeId: NodeId,
+    steps: NavigationStepState[],
+  ): NavigationStepState[] {
+    const currentStep = steps.find(step => step.stepNodeId === currentStepNodeId)
 
     if (!currentStep?.isReachable) {
       return []
@@ -160,7 +179,7 @@ export default class NavigationPathAnalyzer {
     const visited = new Set([step.routeTemplatePath])
     let current = step
 
-    while (!this.isActiveEntry(current) && current.predecessorRouteTemplatePaths.length > 0) {
+    while (!isActiveEntry(current) && current.predecessorRouteTemplatePaths.length > 0) {
       const predecessors = current.predecessorRouteTemplatePaths
         .map(routeTemplatePath => stepByRouteTemplatePath.get(routeTemplatePath))
         .filter((candidate): candidate is NavigationStepState => candidate !== undefined)
@@ -234,7 +253,7 @@ export default class NavigationPathAnalyzer {
   }
 
   private resolveFrontierRouteTemplatePath(path: NavigationStepState[]): string | undefined {
-    const nonEntrySteps = path.filter(step => !this.isActiveEntry(step))
+    const nonEntrySteps = path.filter(step => !isActiveEntry(step))
     const firstInvalid = nonEntrySteps.find(step => !step.isValid)
 
     if (firstInvalid) {
@@ -250,8 +269,8 @@ export default class NavigationPathAnalyzer {
 
     return undefined
   }
+}
 
-  private isActiveEntry(step: NavigationStepState): boolean {
-    return step.isEntryPoint || step.isConditionalEntry
-  }
+function isActiveEntry(step: NavigationStepState): boolean {
+  return step.isEntryPoint || step.isConditionalEntry
 }

@@ -1,31 +1,13 @@
 import type {
   AnswerPreparationContext,
   BasePhaseContext,
+  HookLifecycleContext,
   ReachabilityContext,
   RenderCompilationContext,
   ValidationContext,
 } from './phaseContexts.type'
-import type { StepValidityResult } from '../runtime/stepValidityResult.type'
 import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
 import type { RenderBlock } from '../../../framework/rendering/types'
-import type {
-  NavigationEvaluationInput,
-  NavigationEvaluationResult,
-} from '../navigation/generatedNavigationEvaluation.type'
-
-/**
- * Validates a whole step in one call: runs every field, iterator-group field
- * (once per expanded item), and domain rule, then aggregates them into a single
- * StepValidityResult (valid only when no failures remain). `isSubmission`
- * distinguishes POST validation from GET entry validation; `groups`, when
- * present, restricts evaluation to the named validation groups (defaulting to
- * the `default` group otherwise). Always async.
- */
-export type CompiledValidationFunction = (
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult | Promise<StepValidityResult>
 
 /**
  * The render output for one step: the ordered render blocks plus the resolved
@@ -38,13 +20,14 @@ export interface CompiledRenderResult {
 }
 
 /**
- * The result of calling the compiled reachability function. Arrays are indexed
- * by step position in the ReachabilityCompilationPlan.entries array, maintaining a
- * 1:1 correspondence with the plan's step ordering.
+ * The per-step results of evaluating a navigation plan's compiled leaves,
+ * assembled by the navigation walk before the reachability graph is built.
+ * Arrays are indexed by step position in the plan's entries array, maintaining
+ * a 1:1 correspondence with the plan's step ordering.
  */
 export interface CompiledReachabilityResult {
   /** Per-step: result of evaluating the entryWhen predicate (undefined = no predicate) */
-  entryResults: (boolean | undefined)[]
+  entryWhenResults: (boolean | undefined)[]
   /** Per-step: raw path strings from forward outcome goto expressions, narrowed by per-hook cascade */
   outcomeValues: (string | undefined)[][]
   /** Per-step: every statically-declared forward goto across all hooks, regardless of any guards (devtools-only) */
@@ -56,43 +39,56 @@ export interface CompiledReachabilityResult {
 }
 
 /**
- * Evaluates every step's entry predicate and forward-goto outcomes for the whole
- * journey in one pass, returning the per-step arrays used to compute reachability.
- * Async iff any predicate or goto expression awaits.
+ * Evaluates one navigation predicate — a step's conditional-entry `entryWhen`
+ * or the journey's `resumeWhen`. One such function exists per authored
+ * predicate; steps without one have no function and use their static default.
  */
-export type CompiledReachabilityFunction = (
-  ctx: ReachabilityContext,
-) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
+export type CompiledNavigationPredicateFunction = (ctx: ReachabilityContext) => boolean | Promise<boolean>
 
 /**
- * Resolves navigation for the current request: runs reachability against `ctx`,
- * then resolves the result into a concrete next-step evaluation using the plan,
- * route catalog, and field inventory carried on `navigation`. Always async.
+ * Evaluates one step's forward outcome gotos, cascaded per submit hook: within
+ * a hook's outcomes the first defined goto wins, guarded by the hook's `when:`
+ * where it is reachability-compilable; separate hooks contribute independently.
+ * Returns the resolved goto path strings.
  */
-export type CompiledNavigationFunction = (
-  ctx: ReachabilityContext,
-  navigation: NavigationEvaluationInput,
-) => Promise<NavigationEvaluationResult>
+export type CompiledNavigationOutcomesFunction = (ctx: ReachabilityContext) => string[] | Promise<string[]>
 
 /**
- * Validates one field, returning its failures (empty when valid). When `groups`
- * is given, the field's rules run only if they belong to one of those groups.
- * One such function exists per field in a ValidationPlan.
+ * Resolves one step's tie-breaker priority: the first rule whose `when`
+ * predicate matches (or has no predicate) determines the priority; no matching
+ * rule yields undefined.
+ */
+export type CompiledNavigationTieBreakerFunction = (
+  ctx: ReachabilityContext,
+) => number | undefined | Promise<number | undefined>
+
+/**
+ * Collects one step's possible field codes (static and iterator-expanded,
+ * de-duplicated) for reachability state projection.
+ */
+export type CompiledStepFieldCodesFunction = (ctx: ReachabilityContext) => string[] | Promise<string[]>
+
+/**
+ * Validates one field, returning its failures (empty when valid). The field's
+ * rules run only if they belong to one of the named `groups` (an empty list
+ * selects the `default` group). One such function exists per field in a
+ * ValidationPlan.
  */
 export type CompiledFieldValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups?: string[],
+  groups: string[],
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
 
 /**
  * Validates one cross-field (domain) rule, returning its failures (empty when
- * valid). `groups`, when present, gates whether the rule runs.
+ * valid). `groups` gates whether the rule runs (an empty list selects the
+ * `default` group).
  */
 export type CompiledDomainValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups?: string[],
+  groups: string[],
 ) => DomainValidationFailure[] | Promise<DomainValidationFailure[]>
 
 /**
@@ -128,7 +124,7 @@ export type CompiledIteratorInputFunction = (
 export type CompiledIteratorFieldValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
-  groups: string[] | undefined,
+  groups: string[],
   iteratorScope: IteratorItemScope,
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
 
@@ -183,3 +179,48 @@ export type CompiledIteratorRenderBlockFunction = (
  * gates the rule's groups when it evaluates true.
  */
 export type CompiledEntryValidationRuleFunction = (ctx: BasePhaseContext) => boolean | Promise<boolean>
+
+/**
+ * Outcome of one compiled access hook. `executed` is always true for access
+ * hooks (a skipped guard still falls through to `continue`); `outcome` drives
+ * the access-lifecycle phase: 'continue' proceeds, 'redirect' uses `redirect`,
+ * 'error' uses `status`/`message`.
+ */
+export interface CompiledAccessHookResult {
+  executed: boolean
+  outcome: 'continue' | 'redirect' | 'error'
+  redirect?: string
+  status?: number
+  message?: string
+}
+
+/**
+ * Outcome of one compiled submit hook. `executed` is false when the hook's
+ * `when`/`guards` predicates skipped it, in which case the submit-lifecycle
+ * phase keeps iterating to the next hook; `outcome` drives the submit-lifecycle
+ * phase. `validated` records whether the hook invoked ctx.validate during its run.
+ */
+export interface CompiledSubmitHookResult {
+  executed: boolean
+  validated: boolean
+  outcome: 'continue' | 'redirect' | 'error'
+  redirect?: string
+  status?: number
+  message?: string
+}
+
+/**
+ * A single access hook lowered to JS. Always compiled async because hook
+ * effects are awaited, so it returns a promise the access-lifecycle phase awaits.
+ */
+export type CompiledAccessHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledAccessHookResult | Promise<CompiledAccessHookResult>
+
+/**
+ * A single submit hook lowered to JS. Always compiled async because hook
+ * effects are awaited, so it returns a promise the submit-lifecycle phase awaits.
+ */
+export type CompiledSubmitHookFunction = (
+  ctx: HookLifecycleContext,
+) => CompiledSubmitHookResult | Promise<CompiledSubmitHookResult>

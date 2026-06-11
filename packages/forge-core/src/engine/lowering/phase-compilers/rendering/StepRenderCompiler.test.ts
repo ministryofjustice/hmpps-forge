@@ -130,7 +130,7 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const plan = syncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
-      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
+      const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
 
       // Assert
       expect(blockResult).not.toBeInstanceOf(Promise)
@@ -162,7 +162,7 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const plan = asyncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
-      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
+      const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
       const result = await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
 
       // Assert

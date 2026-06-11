@@ -9,18 +9,13 @@ import { isRedirectOutcomeNode } from '../contracts/ast/outcome-nodes'
 import getAncestorChain from '../ast/ast-state/getAncestorChain'
 import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
-import type {
-  ForwardOutcomeGroup,
-  JourneyRuntimePlan,
-  NavigationRuntimePlan,
-  ReachabilityCompilationEntry,
-  ReachabilityCompilationPlan,
-  StepRuntimePlan,
-} from '../contracts/plans/runtimePlans.type'
+import type { RuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type {
   CompilationPlan,
-  FieldInventoryStepSource,
+  ForwardOutcomeGroup,
   JourneyCompilationInputs,
+  ReachabilityStepInputs,
+  ReachabilityCompilationPlan,
   StepCompilationInputs,
 } from '../contracts/plans/compilationPlan.type'
 
@@ -45,46 +40,52 @@ export default class CompilationPlanner {
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
-    const journeyStepMap = new Map<NodeId, StepASTNode[]>()
+    const stepInputsByJourneyNodeId = new Map<NodeId, StepCompilationInputs[]>()
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
-    const navigationPlansByStepId = new Map<NodeId, NavigationRuntimePlan>()
-    const reachabilityPlans: ReachabilityCompilationPlan[] = []
+    const navigationPlanNodeIdByStepNodeId = new Map<NodeId, NodeId>()
+    const reachabilityPlans = new Map<NodeId, ReachabilityCompilationPlan>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
-    const fieldInventorySources = new Map<NavigationRuntimePlan, FieldInventoryStepSource[]>()
 
-    stepIndex.forEach((stepNode, stepId) => {
-      const runtimePlan = this.buildStepRuntimePlan(stepNode)
+    stepIndex.forEach((stepNode, stepNodeId) => {
+      const ancestorIds = getAncestorChain(stepNodeId, this.astNodeTree)
+      const runtimePlan = this.buildRuntimePlan(stepNode, ancestorIds)
+      const inputs = this.buildStepInputs(stepNode, runtimePlan, ancestorIds)
 
-      stepInputs.set(stepId, this.buildStepInputs(stepNode, runtimePlan))
+      stepInputs.set(stepNodeId, inputs)
 
-      const ancestors = getAncestorChain(stepId, this.astNodeTree)
-      const parentJourneyId = ancestors[ancestors.length - 2]
+      const parentJourneyNodeId = ancestorIds[ancestorIds.length - 2]
 
-      if (parentJourneyId) {
-        const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
+      if (parentJourneyNodeId) {
+        const existingJourneyStepInputs = stepInputsByJourneyNodeId.get(parentJourneyNodeId) ?? []
 
-        existingJourneySteps.push(stepNode)
-        journeyStepMap.set(parentJourneyId, existingJourneySteps)
+        existingJourneyStepInputs.push(inputs)
+        stepInputsByJourneyNodeId.set(parentJourneyNodeId, existingJourneyStepInputs)
       }
     })
 
-    journeyStepMap.forEach((journeySteps, journeyId) => {
-      const journeyNode = journeyIndex.get(journeyId)
-      const reachabilityPlan = this.buildReachabilityPlan(journeySteps, journeyNode, journeyIndex)
+    stepInputsByJourneyNodeId.forEach((journeyStepInputs, journeyNodeId) => {
+      const journeyAncestorIds = getAncestorChain(journeyNodeId, this.astNodeTree)
+      const journeyNode = journeyIndex.get(journeyNodeId)
+      const reachabilityPlan = this.buildReachabilityPlan(
+        journeyNodeId,
+        journeyStepInputs,
+        journeyNode,
+        journeyIndex,
+        journeyAncestorIds,
+      )
 
-      journeySteps.forEach(stepNode => {
-        navigationPlansByStepId.set(stepNode.id, reachabilityPlan.navigationPlan)
+      journeyStepInputs.forEach(inputs => {
+        navigationPlanNodeIdByStepNodeId.set(inputs.stepNode.id, reachabilityPlan.journeyNodeId)
       })
 
-      reachabilityPlans.push(reachabilityPlan)
-      fieldInventorySources.set(reachabilityPlan.navigationPlan, this.buildFieldInventorySources(reachabilityPlan))
+      reachabilityPlans.set(reachabilityPlan.journeyNodeId, reachabilityPlan)
 
       if (journeyNode) {
-        const journeyRuntimePlan = this.buildJourneyRuntimePlan(journeyNode)
+        const journeyRuntimePlan = this.buildRuntimePlan(journeyNode, journeyAncestorIds)
 
         journeyInputs.set(
-          journeyId,
-          this.buildJourneyInputs(journeyNode, journeyRuntimePlan, reachabilityPlan.navigationPlan),
+          journeyNodeId,
+          this.buildJourneyInputs(journeyNode, journeyRuntimePlan, reachabilityPlan, journeyAncestorIds),
         )
       }
     })
@@ -93,21 +94,24 @@ export default class CompilationPlanner {
       stepInputs,
       journeyInputs,
       reachabilityPlans,
-      fieldInventorySources,
-      navigationPlansByStepId,
+      navigationPlanNodeIdByStepNodeId,
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, runtimePlan: StepRuntimePlan): StepCompilationInputs {
-    const stepId = stepNode.id
+  private buildStepInputs(
+    stepNode: StepASTNode,
+    runtimePlan: RuntimePlan,
+    ancestorIds: NodeId[],
+  ): StepCompilationInputs {
+    const stepNodeId = stepNode.id
     const fieldBlocks = this.allFieldBlocks
-      .filter(block => this.astNodeTree.isDescendantOf(block.id, stepId))
+      .filter(block => this.astNodeTree.isDescendantOf(block.id, stepNodeId))
     const validatingFieldBlocks = fieldBlocks
       .filter(block => hasConfiguredValue(block.properties.validWhen))
     const mapIterateNodes = this.allMapIterateNodes
-      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepId))
+      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId))
     const allIterateNodes = this.allIterateNodes
-      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepId))
+      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId))
 
     return {
       stepNode,
@@ -116,114 +120,97 @@ export default class CompilationPlanner {
       validatingFieldBlocks,
       mapIterateNodes,
       allIterateNodes,
-      accessAncestors: this.resolveAccessAncestors(stepId),
-      renderAncestors: this.resolveRenderAncestors(stepId),
+      accessAncestors: this.resolveAccessAncestors(ancestorIds),
+      renderAncestors: this.resolveRenderAncestors(ancestorIds),
       submitHooks: stepNode.properties.onSubmission ?? [],
+      entryValidations: stepNode.properties.validateOnEntry ?? [],
     }
   }
 
   private buildJourneyInputs(
     journeyNode: JourneyASTNode,
-    runtimePlan: JourneyRuntimePlan,
-    navigationPlan: NavigationRuntimePlan,
+    runtimePlan: RuntimePlan,
+    reachabilityPlan: ReachabilityCompilationPlan,
+    ancestorIds: NodeId[],
   ): JourneyCompilationInputs {
-    const stepIds = navigationPlan.entries.map(entry => entry.stepId)
+    const stepNodeIds = reachabilityPlan.reachabilityStepInputs.map(step => step.nodeId)
     const stepFieldBlocks = this.allFieldBlocks
-      .filter(block => stepIds.some(stepId => this.astNodeTree.isDescendantOf(block.id, stepId)))
+      .filter(block => stepNodeIds.some(stepNodeId => this.astNodeTree.isDescendantOf(block.id, stepNodeId)))
     const stepMapIterateNodes = this.allMapIterateNodes
-      .filter(node => stepIds.some(stepId => this.astNodeTree.isDescendantOf(node.id, stepId)))
+      .filter(node => stepNodeIds.some(stepNodeId => this.astNodeTree.isDescendantOf(node.id, stepNodeId)))
 
     return {
       journeyNode,
       runtimePlan,
-      navigationPlan,
+      reachabilityPlanId: reachabilityPlan.journeyNodeId,
       stepFieldBlocks,
       stepMapIterateNodes,
-      accessAncestors: this.resolveAccessAncestors(journeyNode.id),
+      accessAncestors: this.resolveAccessAncestors(ancestorIds),
     }
   }
 
-  private buildFieldInventorySources(plan: ReachabilityCompilationPlan): FieldInventoryStepSource[] {
-    return plan.entries.map(entry => ({
-      stepId: entry.stepId,
-      cleardownFieldCodes: entry.cleardownFieldCodes,
-      fieldBlocks: this.allFieldBlocks
-        .filter(block => this.astNodeTree.isDescendantOf(block.id, entry.stepId)),
-      iterateNodes: this.allMapIterateNodes
-        .filter(node => this.astNodeTree.isDescendantOf(node.id, entry.stepId)),
-    }))
-  }
-
-  private buildStepRuntimePlan(stepNode: StepASTNode): StepRuntimePlan {
+  private buildRuntimePlan(node: StepASTNode | JourneyASTNode, ancestorIds: NodeId[]): RuntimePlan {
     return {
-      stepId: stepNode.id,
-      path: normalizeRelativePath(stepNode.properties.path),
-      staticData: this.buildStaticData(getAncestorChain(stepNode.id, this.astNodeTree)),
-    }
-  }
-
-  private buildJourneyRuntimePlan(journeyNode: JourneyASTNode): JourneyRuntimePlan {
-    return {
-      journeyId: journeyNode.id,
-      path: normalizeRelativePath(journeyNode.properties.path),
-      staticData: this.buildStaticData(getAncestorChain(journeyNode.id, this.astNodeTree)),
+      nodeId: node.id,
+      path: normalizeRelativePath(node.properties.path),
+      staticData: this.buildStaticData(ancestorIds),
     }
   }
 
   private buildReachabilityPlan(
-    journeySteps: StepASTNode[],
+    journeyNodeId: NodeId,
+    journeyStepInputs: StepCompilationInputs[],
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: JourneyIndex,
+    journeyAncestorIds: NodeId[],
   ): ReachabilityCompilationPlan {
-    const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
+    const steps = journeyStepInputs.map(stepInputs => this.buildReachabilityStepInputs(stepInputs))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
-    const navigationPlan: NavigationRuntimePlan = {
-      entries: entries.map(entry => ({
-        stepId: entry.stepId,
-        code: entry.code,
-        isEntryPoint: entry.isEntryPoint,
-        hasValidation: entry.hasValidation,
-      })),
-      resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
-      unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
-      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
-      compiledStepValidations: new Map(),
-    }
 
     return {
-      navigationPlan,
-      entries,
+      journeyNodeId,
+      reachabilityStepInputs: steps,
+      resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
       resumeAlways,
       resumeWhenNodeId,
+      unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
+      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex, journeyAncestorIds),
     }
   }
 
-  private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
-    const stepId = stepNode.id
-    const { forwardOutcomeGroups } = this.extractForwardNavigation(stepNode)
-    const hasValidation = this.hasValidationBlocks(stepId) || hasConfiguredValue(stepNode.properties.validWhen)
+  private buildReachabilityStepInputs(stepInputs: StepCompilationInputs): ReachabilityStepInputs {
+    const { stepNode } = stepInputs
+    const { forwardOutcomeGroups, declaredOutcomes } = this.extractForwardNavigation(stepNode)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
 
     return {
-      stepId,
+      nodeId: stepNode.id,
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeGroups,
-      hasValidation,
+      declaredOutcomes,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
-      reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
-        priority: entry.properties.priority,
-        whenNodeId: entry.properties.when?.id,
+      reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(tieBreaker => ({
+        priority: tieBreaker.properties.priority,
+        whenNodeId: tieBreaker.properties.when?.id,
       })),
+      fieldInventorySource: {
+        fieldBlocks: stepInputs.fieldBlocks,
+        iterateNodes: stepInputs.mapIterateNodes,
+      },
     }
   }
 
-  private resolveReachabilityDisabled(journeyNode: JourneyASTNode | undefined, journeyIndex: JourneyIndex): boolean {
+  private resolveReachabilityDisabled(
+    journeyNode: JourneyASTNode | undefined,
+    journeyIndex: JourneyIndex,
+    ancestorIds: NodeId[],
+  ): boolean {
     if (!journeyNode) {
       return false
     }
@@ -234,10 +221,8 @@ export default class CompilationPlanner {
       return ownSetting
     }
 
-    const ancestors = getAncestorChain(journeyNode.id, this.astNodeTree)
-
-    for (let i = ancestors.length - 2; i >= 0; i--) {
-      const ancestorJourney = journeyIndex.get(ancestors[i])
+    for (let i = ancestorIds.length - 2; i >= 0; i--) {
+      const ancestorJourney = journeyIndex.get(ancestorIds[i])
 
       if (!ancestorJourney) {
         continue
@@ -253,14 +238,14 @@ export default class CompilationPlanner {
     return false
   }
 
-  private resolveAccessAncestors(nodeId: NodeId): Array<JourneyASTNode | StepASTNode> {
-    return getAncestorChain(nodeId, this.astNodeTree)
+  private resolveAccessAncestors(ancestorIds: NodeId[]): Array<JourneyASTNode | StepASTNode> {
+    return ancestorIds
       .map(ancestorId => this.nodeRegistry.get(ancestorId))
       .filter(this.isAccessAncestor)
   }
 
-  private resolveRenderAncestors(stepId: NodeId): JourneyASTNode[] {
-    return getAncestorChain(stepId, this.astNodeTree)
+  private resolveRenderAncestors(ancestorIds: NodeId[]): JourneyASTNode[] {
+    return ancestorIds
       .slice(0, -1)
       .map(ancestorId => this.nodeRegistry.get(ancestorId))
       .filter(this.isJourneyNode)
@@ -291,20 +276,30 @@ export default class CompilationPlanner {
     return node
   }
 
-  private hasValidationBlocks(stepId: NodeId): boolean {
-    return this.allFieldBlocks
-      .filter(block => this.astNodeTree.isDescendantOf(block.id, stepId))
-      .some(block => hasConfiguredValue(block.properties.validWhen))
-  }
-
-  private extractForwardNavigation(stepNode: StepASTNode): { forwardOutcomeGroups: ForwardOutcomeGroup[] } {
+  /**
+   * Groups the step's forward outcomes per submit hook for the compiler's
+   * cascades, and collects the statically-declared goto strings across all
+   * hooks — known at plan time, regardless of guards — for the devtools graph.
+   */
+  private extractForwardNavigation(stepNode: StepASTNode): {
+    forwardOutcomeGroups: ForwardOutcomeGroup[]
+    declaredOutcomes: string[]
+  } {
     const submitHooks = stepNode.properties.onSubmission ?? []
 
     const forwardOutcomeGroups: ForwardOutcomeGroup[] = submitHooks
       .map(hook => this.buildForwardOutcomeGroup(hook))
       .filter(group => group.outcomeIds.length > 0)
 
-    return { forwardOutcomeGroups }
+    const declaredOutcomes = forwardOutcomeGroups.flatMap(group =>
+      group.outcomeIds
+        .map(outcomeId => this.nodeRegistry.get(outcomeId))
+        .filter(isRedirectOutcomeNode)
+        .map(outcome => outcome.properties.goto)
+        .filter((goto): goto is string => typeof goto === 'string'),
+    )
+
+    return { forwardOutcomeGroups, declaredOutcomes }
   }
 
   private buildForwardOutcomeGroup(hook: SubmitHookASTNode): ForwardOutcomeGroup {

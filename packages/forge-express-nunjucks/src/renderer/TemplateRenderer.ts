@@ -3,22 +3,18 @@ import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, EvaluatedBlock, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import {
   ComponentRegistry,
-  ForgeInstrumentation,
   isRenderBlock,
   RenderBlock,
   RenderContext,
   RouteTreeNode,
   ValidationResult,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { ForgeHtmlRenderDebugBridge } from '@ministryofjustice/hmpps-forge/core'
 import createHttpError from 'http-errors'
 import { FieldError, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface TemplateRendererOptions {
   nunjucksEnv: nunjucks.Environment
-  instrumentation: ForgeInstrumentation
   defaultTemplate?: string
-  htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
 }
 
 /** Renders blocks and page templates using Nunjucks */
@@ -29,11 +25,7 @@ export default class TemplateRenderer {
 
   private readonly nunjucksEnv: nunjucks.Environment
 
-  private readonly instrumentation: ForgeInstrumentation
-
   private readonly defaultTemplate: string
-
-  private readonly htmlRenderDebugBridge?: ForgeHtmlRenderDebugBridge
 
   private readonly templateCache = new Map<string, nunjucks.Template>()
 
@@ -46,9 +38,7 @@ export default class TemplateRenderer {
 
   constructor(options: TemplateRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
-    this.instrumentation = options.instrumentation
     this.defaultTemplate = options.defaultTemplate ?? TemplateRenderer.FALLBACK_TEMPLATE
-    this.htmlRenderDebugBridge = options.htmlRenderDebugBridge
 
     const env = this.nunjucksEnv
     const cache = this.templateCache
@@ -81,37 +71,27 @@ export default class TemplateRenderer {
 
   /** Render a full page from RenderContext and return HTML string */
   render(context: RenderContext, locals: Record<string, unknown>, componentRegistry: ComponentRegistry): string {
-    return this.instrumentation.span('forge-render', span => {
-      const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures, componentRegistry)
+    const renderedBlocks = this.renderBlocks(context.blocks, context.showValidationFailures, componentRegistry)
 
-      const mergedViewLocals = this.mergeViewLocals(context)
+    const mergedViewLocals = this.mergeViewLocals(context)
 
-      const templateContext: TemplateContext = {
-        ...locals,
-        ...mergedViewLocals,
-        blocks: renderedBlocks,
-        step: context.step,
-        ancestors: context.ancestors,
-        routeTree: context.routeTree,
-        navigation: buildNavigationCompatibilityTree(context.routeTree),
-        answers: context.answers,
-        data: context.data,
-        fieldValidationErrors: context.fieldValidationErrors,
-        domainValidationErrors: context.domainValidationErrors,
-      }
+    const templateContext: TemplateContext = {
+      ...locals,
+      ...mergedViewLocals,
+      blocks: renderedBlocks,
+      step: context.step,
+      ancestors: context.ancestors,
+      routeTree: context.routeTree,
+      navigation: buildNavigationCompatibilityTree(context.routeTree),
+      answers: context.answers,
+      data: context.data,
+      fieldValidationErrors: context.fieldValidationErrors,
+      domainValidationErrors: context.domainValidationErrors,
+    }
 
-      const template = this.resolveTemplate(context)
+    const template = this.resolveTemplate(context)
 
-      span.setAttributes({
-        'forge.render.template': template,
-        'forge.render.blockCount': renderedBlocks.length,
-      })
-
-      const html = this.renderTemplate(template, templateContext)
-      const cspNonce = typeof locals.cspNonce === 'string' ? locals.cspNonce : undefined
-
-      return this.injectBridgeScript(html, cspNonce)
-    })
+    return this.renderTemplate(template, templateContext)
   }
 
   /** Resolve template from step, ancestors, or default; appends .njk if needed */
@@ -155,20 +135,18 @@ export default class TemplateRenderer {
 
   /** Render a Nunjucks template with the given context */
   private renderTemplate(template: string, context: TemplateContext): string {
-    return this.instrumentation.span('render-template', () => {
-      try {
-        let tmpl = this.templateCache.get(template)
+    try {
+      let tmpl = this.templateCache.get(template)
 
-        if (!tmpl) {
-          tmpl = this.nunjucksEnv.getTemplate(template)
-          this.templateCache.set(template, tmpl)
-        }
-
-        return tmpl.render(context)
-      } catch (err) {
-        throw this.wrapError(err)
+      if (!tmpl) {
+        tmpl = this.nunjucksEnv.getTemplate(template)
+        this.templateCache.set(template, tmpl)
       }
-    })
+
+      return tmpl.render(context)
+    } catch (err) {
+      throw this.wrapError(err)
+    }
   }
 
   /** Render all visible blocks to HTML strings (filters out blocks where visibleWhen is false) */
@@ -188,52 +166,42 @@ export default class TemplateRenderer {
     showValidationFailures: boolean,
     componentRegistry: ComponentRegistry,
   ): string {
-    return this.instrumentation.span('render-component', span => {
-      span.setAttributes({
-        'forge.component.variant': block.variant,
-        'forge.block.id': block.id,
-        'forge.component.blockType': block.blockType,
-      })
+    try {
+      const component = componentRegistry.get(block.variant)
 
-      try {
-        const component = componentRegistry.get(block.variant)
+      if (!component) {
+        const availableVariants = Array.from(componentRegistry.getAll().keys())
 
-        if (!component) {
-          const availableVariants = Array.from(componentRegistry.getAll().keys())
-
-          throw new Error(
-            `Component variant "${block.variant}" not found in registry. ` +
-              `Available variants: ${availableVariants.join(', ')}`,
-          )
-        }
-
-        const transformedProperties = this.transformPropertiesWithRenderedBlocks(
-          block.properties,
-          showValidationFailures,
-          componentRegistry,
+        throw new Error(
+          `Component variant "${block.variant}" not found in registry. ` +
+            `Available variants: ${availableVariants.join(', ')}`,
         )
-
-        const evaluatedBlock = this.toEvaluatedBlock(
-          {
-            ...block,
-            properties: transformedProperties,
-          },
-          showValidationFailures,
-        )
-
-        span.setAttribute('forge.component.input', safeStringify(evaluatedBlock))
-
-        const rendered = component.render(evaluatedBlock, this.cachedRenderer)
-
-        if (!isStringValue(rendered)) {
-          throw new Error(`Component variant "${block.variant}" must render an HTML string for the Nunjucks adapter.`)
-        }
-
-        return this.decorateRenderedComponent(rendered, block.id, block.variant)
-      } catch (err) {
-        throw this.wrapError(err)
       }
-    })
+
+      const transformedProperties = this.transformPropertiesWithRenderedBlocks(
+        block.properties,
+        showValidationFailures,
+        componentRegistry,
+      )
+
+      const evaluatedBlock = this.toEvaluatedBlock(
+        {
+          ...block,
+          properties: transformedProperties,
+        },
+        showValidationFailures,
+      )
+
+      const rendered = component.render(evaluatedBlock, this.cachedRenderer)
+
+      if (!isStringValue(rendered)) {
+        throw new Error(`Component variant "${block.variant}" must render an HTML string for the Nunjucks adapter.`)
+      }
+
+      return rendered
+    } catch (err) {
+      throw this.wrapError(err)
+    }
   }
 
   /** Convert RenderBlock to EvaluatedBlock for component */
@@ -333,43 +301,6 @@ export default class TemplateRenderer {
     }
   }
 
-  private decorateRenderedComponent(html: string, blockId: string, variant: string): string {
-    if (this.htmlRenderDebugBridge === undefined) {
-      return html
-    }
-
-    const startPayload = Buffer.from(JSON.stringify({ id: blockId, variant })).toString('base64')
-    const endPayload = Buffer.from(JSON.stringify({ id: blockId })).toString('base64')
-
-    return `<!-- forge:component:start ${startPayload} -->${html}<!-- forge:component:end ${endPayload} -->`
-  }
-
-  private injectBridgeScript(html: string, cspNonce?: string): string {
-    if (this.htmlRenderDebugBridge === undefined) {
-      return html
-    }
-
-    const scriptUrl = this.htmlRenderDebugBridge.getScriptUrl()
-
-    if (scriptUrl === undefined) {
-      return html
-    }
-
-    const bodyCloseIndex = html.lastIndexOf('</body>')
-
-    if (bodyCloseIndex === -1) {
-      return html
-    }
-
-    const safeUrl = scriptUrl
-      .replaceAll('&', '&amp;')
-      .replaceAll('"', '&quot;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-    const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : ''
-
-    return `${html.slice(0, bodyCloseIndex)}<script src="${safeUrl}"${nonceAttr}></script>${html.slice(bodyCloseIndex)}`
-  }
 }
 
 function buildNavigationCompatibilityTree(routeTree: RouteTreeNode[]): TemplateNavigationItem[] {
@@ -394,14 +325,6 @@ function toNavigationCompatibilityItems(node: RouteTreeNode): TemplateNavigation
       children,
     },
   ]
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return '{}'
-  }
 }
 
 function isStringValue(value: unknown): value is string {

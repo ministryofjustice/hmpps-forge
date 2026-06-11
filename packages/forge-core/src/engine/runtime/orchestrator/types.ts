@@ -4,6 +4,7 @@ import type { ResponseBindings } from '../../../framework/types/responseBindings
 import type { NavigationEvaluation } from '../../contracts/navigation/navigationEvaluation.type'
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
+import type TraceRecorder from './trace/TraceRecorder'
 
 export type ForgeResult = { type: 'render'; context: RenderContext } | { type: 'redirect'; url: string }
 
@@ -19,6 +20,8 @@ export interface PipelineState {
   navigationEvaluation?: NavigationEvaluation
   validation?: StepValidityResult
   showValidationFailures?: boolean
+  /** Present when the request is being traced; the orchestrator and phase walks record decisions here. */
+  readonly trace?: TraceRecorder
 }
 
 export interface RequestPhase {

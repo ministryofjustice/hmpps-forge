@@ -1,18 +1,16 @@
 import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
-import { ForgeDependencies, PackageDependencies } from '../../contracts/ast/engine.type'
-import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
+import { PackageDependencies } from '../../contracts/ast/engine.type'
+import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeEvaluator from './ForgeEvaluator'
-import { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
 describe('ForgeEvaluator', () => {
   let evaluator: ForgeEvaluator
   let mockPackageDependencies: PackageDependencies
-  let mockForgeDependencies: ForgeDependencies
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -22,87 +20,70 @@ describe('ForgeEvaluator', () => {
       functionRegistry: {} as never,
     }
 
-    mockForgeDependencies = {
-      logger: console,
-      instrumentation: new ForgeInstrumentation({ logger: console, strictRegistration: true }),
-    }
-
-    evaluator = new ForgeEvaluator(mockForgeDependencies, {})
+    evaluator = new ForgeEvaluator({})
   })
 
   function createJourneyDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Journey ${path}`,
-  ): JourneyRouteDescriptor {
-    return { nodeId: id, path, title, ancestorJourneyIds }
+  ): RouteDescriptor {
+    return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
   function createStepDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Step ${path}`,
-  ): StepRouteDescriptor {
-    return { nodeId: id, path, title, ancestorJourneyIds }
+  ): RouteDescriptor {
+    return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
-  function createCompiledStep(descriptor: StepRouteDescriptor): CompiledStep {
+  function createCompiledStep(descriptor: RouteDescriptor): CompiledStep {
     return {
       runtimePlan: {
-        stepId: descriptor.nodeId,
+        nodeId: descriptor.nodeId,
         path: descriptor.path,
         staticData: {},
       },
-      accessLifecyclePlan: { hooks: [] },
+      accessLifecyclePlan: { accessHooks: [] },
       navigationPlan: {
-        entries: [],
+        navigationSteps: [],
         resumeConfigured: false,
+        resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
-        compiledStepValidations: new Map(),
-        compiledNavigation: vi.fn().mockResolvedValue({
-          evaluation: {
-            currentStepId: descriptor.nodeId,
-            steps: [],
-            defaultEntryRouteTemplatePath: undefined,
-            frontierRouteTemplatePath: undefined,
-            canonicalPathRouteTemplatePaths: [],
-            progressExists: false,
-            resumeActive: false,
-            resumeOutcome: 'no-op',
-            unreachableRedirect: 'entry',
-          },
-        }),
       },
-      answerPreparationPlan: { fields: [], iteratorGroups: [] },
-      renderPlan: { blocks: [], iteratorGroups: [] },
+      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
+      renderPlan: { renderBlocks: [], iteratorRenderBlockGroups: [] },
+      submitLifecyclePlan: { submitHooks: [] },
+      entryValidationPlan: { entryValidationRules: [] },
+      validationPlan: { fieldValidations: [], iteratorValidationGroups: [] },
     }
   }
 
-  function createCompiledJourney(descriptor: JourneyRouteDescriptor): CompiledJourney {
+  function createCompiledJourney(descriptor: RouteDescriptor): CompiledJourney {
     return {
       runtimePlan: {
-        journeyId: descriptor.nodeId,
+        nodeId: descriptor.nodeId,
         path: descriptor.path,
         staticData: {},
       },
+      accessLifecyclePlan: { accessHooks: [] },
       navigationPlan: {
-        entries: [],
+        navigationSteps: [],
         resumeConfigured: false,
+        resumeAlways: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
-        compiledStepValidations: new Map(),
       },
-      answerPreparationPlan: { fields: [], iteratorGroups: [] },
+      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
     }
   }
 
-  function createPackageInstance(
-    journeys: JourneyRouteDescriptor[],
-    steps: StepRouteDescriptor[],
-  ): Mocked<PackageInstance> {
+  function createPackageInstance(journeys: RouteDescriptor[], steps: RouteDescriptor[]): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
     const compiledJourneys = new Map<NodeId, CompiledJourney>(
       journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
@@ -112,8 +93,8 @@ describe('ForgeEvaluator', () => {
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
       getStepRouteIndex: vi.fn().mockReturnValue(new Map(steps.map(step => [step.nodeId, step]))),
       getJourneyRouteIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.nodeId, journey]))),
-      getCompiledStep: vi.fn((stepId: NodeId) => compiledSteps.get(stepId)),
-      getCompiledJourney: vi.fn((journeyId: NodeId) => compiledJourneys.get(journeyId)),
+      getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
+      getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
       getJourneyCode: vi.fn().mockReturnValue('test-journey'),
     } as unknown as Mocked<PackageInstance>
   }
@@ -222,7 +203,7 @@ describe('ForgeEvaluator', () => {
 
     it('should include the configured base path in template paths', () => {
       // Arrange
-      const evaluatorWithBase = new ForgeEvaluator(mockForgeDependencies, { basePath: '/forms' })
+      const evaluatorWithBase = new ForgeEvaluator({ basePath: '/forms' })
       const journey = createJourneyDescriptor('compile_ast:8', '/journey', ['compile_ast:8'], 'test')
       const step = createStepDescriptor('compile_ast:9', '/step-one', ['compile_ast:8'])
       const packageInstance = createPackageInstance([journey], [step])

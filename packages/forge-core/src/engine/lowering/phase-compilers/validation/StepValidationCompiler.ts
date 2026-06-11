@@ -37,9 +37,9 @@ import type {
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
   EntryValidationPlan,
-  EntryValidationRule,
-  FieldValidationEntry,
-  IteratorFieldValidationEntry,
+  CompiledEntryValidationRule,
+  CompiledFieldValidation,
+  CompiledIteratorFieldValidation,
   IteratorValidationGroup,
   ValidationPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
@@ -75,29 +75,27 @@ export default class StepValidationCompiler {
    * Builds the on-GET-entry group selector: one rule per authored `validateOnEntry`
    * clause, each carrying the validation groups to run plus a compiled `when` predicate.
    * A `when` of literal `true` yields no predicate (the groups run unconditionally).
-   * Returns undefined when there are no entry-validation clauses.
+   * A step with no entry-validation clauses yields an empty plan, which selects
+   * no groups.
    */
-  compileEntryValidationPlan(entries: StepEntryValidationAST[] | undefined): EntryValidationPlan | undefined {
-    if (entries === undefined || entries.length === 0) {
-      return undefined
-    }
-
-    const rules: EntryValidationRule[] = entries.map(entry => ({
+  compileEntryValidationPlan(entries: readonly StepEntryValidationAST[] | undefined): EntryValidationPlan {
+    const rules: CompiledEntryValidationRule[] = (entries ?? []).map(entry => ({
+      nodeId: entry.id,
       groups: entry.groups,
-      evaluate: entry.when === true ? undefined : this.compileSingleEntryValidationRule(entry.when),
+      evaluate: entry.when === true ? undefined : this.compileEntryValidationRule(entry.when),
     }))
 
-    return { rules }
+    return { entryValidationRules: rules }
   }
 
   /**
    * Compiles one entry-validation `when` predicate into a boolean-returning function over `ctx`.
    */
-  private compileSingleEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
+  private compileEntryValidationRule(when: ASTNode): CompiledEntryValidationRuleFunction {
     return compileGeneratedFunction<CompiledEntryValidationRuleFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSingleEntryValidationRuleSource(when),
+      () => this.buildEntryValidationRuleSource(when),
       { phase: 'entry-validation' },
     )
   }
@@ -105,11 +103,9 @@ export default class StepValidationCompiler {
   /**
    * Emits the source for an entry-validation predicate, coercing the result to a strict boolean.
    */
-  private buildSingleEntryValidationRuleSource(when: ASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleEntryValidationRuleSource')
+  private buildEntryValidationRuleSource(when: ASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('StepValidationCompiler.buildEntryValidationRuleSource')
 
     const predicateExpr = this.expr.compileExpression(when)
 
@@ -122,14 +118,15 @@ export default class StepValidationCompiler {
    * Assembles the step's {@link ValidationPlan}: one compiled validation function per
    * field that declares `validWhen`, one iterator group per MAP iterate node, and an
    * optional step-level domain validation function. Fields and iterate nodes without
-   * configured validation contribute nothing. Returns undefined when nothing validates.
+   * configured validation contribute nothing; a step where nothing validates yields
+   * an empty plan, which trivially passes.
    */
   compileValidationPlan(
-    fieldBlocks: FieldBlockASTNode[],
+    fieldBlocks: readonly FieldBlockASTNode[],
     domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[] = [],
-  ): ValidationPlan | undefined {
-    const fields: FieldValidationEntry[] = []
+    iterateNodes: readonly IterateASTNode[] = [],
+  ): ValidationPlan {
+    const fields: CompiledFieldValidation[] = []
 
     for (const block of fieldBlocks) {
       if (!hasConfiguredValue(block.properties.validWhen)) {
@@ -137,7 +134,8 @@ export default class StepValidationCompiler {
       }
 
       fields.push({
-        validate: this.compileSingleFieldValidation(block),
+        nodeId: block.id,
+        validate: this.compileFieldValidation(block),
       })
     }
 
@@ -151,13 +149,9 @@ export default class StepValidationCompiler {
       }
     }
 
-    const domain = this.compileSingleDomainValidation(domainValidWhen)
+    const domain = this.compileDomainValidation(domainValidWhen)
 
-    if (fields.length === 0 && iteratorGroups.length === 0 && domain === undefined) {
-      return undefined
-    }
-
-    return { fields, iteratorGroups, domain }
+    return { fieldValidations: fields, iteratorValidationGroups: iteratorGroups, domain }
   }
 
   /**
@@ -378,11 +372,11 @@ export default class StepValidationCompiler {
    * {@link StepValidationFailure} list (empty when the field passes or is gated out
    * by `dependentWhen`). The function is async iff any awaited registry call is reached.
    */
-  private compileSingleFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
+  private compileFieldValidation(block: FieldBlockASTNode): CompiledFieldValidationFunction {
     return compileGeneratedFunction<CompiledFieldValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
-      () => this.buildSingleFieldValidationSource(block),
+      () => this.buildFieldValidationSource(block),
       { phase: 'field-validation' },
     )
   }
@@ -391,11 +385,9 @@ export default class StepValidationCompiler {
    * Emits the field-validation function body: resolve the caller's active groups, declare
    * the group helpers and `errors` accumulator, run the field's slot, then return `errors`.
    */
-  private buildSingleFieldValidationSource(block: FieldBlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleFieldValidationSource')
+  private buildFieldValidationSource(block: FieldBlockASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('StepValidationCompiler.buildFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('errors', '[]')
@@ -411,7 +403,7 @@ export default class StepValidationCompiler {
    * {@link DomainValidationFailure} list. Returns undefined when no domain validation
    * is configured, so the plan omits a `domain` entry entirely.
    */
-  private compileSingleDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
+  private compileDomainValidation(domainValidWhen: unknown): CompiledDomainValidationFunction | undefined {
     if (!hasConfiguredValue(domainValidWhen)) {
       return undefined
     }
@@ -419,7 +411,7 @@ export default class StepValidationCompiler {
     return compileGeneratedFunction<CompiledDomainValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission', 'groups'],
-      () => this.buildSingleDomainValidationSource(domainValidWhen),
+      () => this.buildDomainValidationSource(domainValidWhen),
       { phase: 'domain-validation' },
     )
   }
@@ -427,11 +419,9 @@ export default class StepValidationCompiler {
   /**
    * Emits the domain-validation function body, accumulating failures into `domainErrors`.
    */
-  private buildSingleDomainValidationSource(domainValidWhen: unknown): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-    emitter.comment('StepValidationCompiler.buildSingleDomainValidationSource')
+  private buildDomainValidationSource(domainValidWhen: unknown): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('StepValidationCompiler.buildDomainValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)
     emitter.declareConst('domainErrors', '[]')
@@ -455,7 +445,7 @@ export default class StepValidationCompiler {
       return undefined
     }
 
-    const fields: IteratorFieldValidationEntry[] = []
+    const fields: CompiledIteratorFieldValidation[] = []
 
     this.collectLeafValidationFields(template, fields, [])
 
@@ -465,7 +455,7 @@ export default class StepValidationCompiler {
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
 
-    return { evaluateInput, fields }
+    return { nodeId: iterateNode.id, evaluateInput, fields }
   }
 
   /**
@@ -477,7 +467,7 @@ export default class StepValidationCompiler {
    */
   private collectLeafValidationFields(
     template: TemplateValue,
-    entries: IteratorFieldValidationEntry[],
+    entries: CompiledIteratorFieldValidation[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(
@@ -490,6 +480,7 @@ export default class StepValidationCompiler {
     directNodes.forEach(node => {
       if (isTemplateFieldNode(node)) {
         entries.push({
+          nodeId: node.id,
           validate: this.compileIteratorFieldValidation(node, ancestorIterates),
         })
 
@@ -523,9 +514,7 @@ export default class StepValidationCompiler {
    * empty result.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -578,9 +567,7 @@ export default class StepValidationCompiler {
    * chain emitting a loop per level before running the field's validation slot.
    */
   private buildIteratorFieldValidationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepValidationCompiler.buildIteratorFieldValidationSource')
     this.compileActiveGroups(emitter)
     this.compileValidationRuntimeHelpers(emitter)

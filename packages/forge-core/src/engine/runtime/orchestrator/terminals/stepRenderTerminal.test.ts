@@ -1,40 +1,7 @@
 import { createStepRenderTerminal } from './stepRenderTerminal'
 import type { RenderPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { PipelineState } from '../types'
-import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
+import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { StepRequest } from '../../../../framework/types/request.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
-
-const createMockState = (overrides: Partial<PipelineState> = {}): PipelineState => {
-  const request = {
-    method: 'GET',
-    url: 'http://localhost/forms/journey/step',
-    baseUrl: '/forms/journey',
-    location: {
-      origin: 'http://localhost',
-      href: 'http://localhost/forms/journey/step',
-      pathname: '/forms/journey/step',
-      basePath: '/forms/journey',
-    },
-    getHeader: () => undefined,
-    getAllHeaders: () => ({}),
-    getCookie: () => undefined,
-    getAllCookies: () => ({}),
-    getParam: () => undefined,
-    getParams: () => ({}),
-    getQuery: () => undefined,
-    getAllQuery: () => ({}),
-    getPost: () => undefined,
-    getAllPost: () => ({}),
-    getSession: () => undefined,
-    getState: () => undefined,
-    getAllState: () => ({}),
-  } as unknown as StepRequest
-  const context = new RuntimeEvaluationContext(request)
-
-  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS, ...overrides }
-}
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
@@ -45,13 +12,13 @@ describe('stepRenderTerminal', () => {
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
-        blocks: [],
-        iteratorGroups: [],
+        renderBlocks: [],
+        iteratorRenderBlockGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
+      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
-      const state = createMockState()
+      const state = createPipelineState()
       const result = await terminal.execute(state)
 
       // Assert
@@ -63,13 +30,14 @@ describe('stepRenderTerminal', () => {
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
-        blocks: [],
-        iteratorGroups: [],
+        renderBlocks: [],
+        iteratorRenderBlockGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, '/step', [], '/journey/step', mockFunctionRegistry)
+      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
-      const state = createMockState({
+      const state = {
+        ...createPipelineState(),
         validation: {
           isValid: false,
           fieldFailures: [
@@ -78,7 +46,7 @@ describe('stepRenderTerminal', () => {
           domainFailures: [],
         },
         showValidationFailures: true,
-      })
+      }
       const result = await terminal.execute(state)
 
       // Assert
@@ -87,14 +55,6 @@ describe('stepRenderTerminal', () => {
       if (result.type === 'render') {
         expect(result.context.showValidationFailures).toBe(true)
       }
-    })
-
-    it('should throw when render plan is missing', async () => {
-      // Arrange
-      const terminal = createStepRenderTerminal(undefined, '/step', [], '/journey/step', mockFunctionRegistry)
-
-      // Act & Assert
-      await expect(terminal.execute(createMockState())).rejects.toThrow('Render plan is missing for step "/step"')
     })
   })
 })

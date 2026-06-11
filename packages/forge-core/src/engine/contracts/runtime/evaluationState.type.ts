@@ -10,7 +10,7 @@ export interface StepValidationFailure extends ValidationResult {
 export type DomainValidationFailure = ValidationResult
 
 export interface StepValidationState {
-  stepId: NodeId
+  stepNodeId: NodeId
   validated: boolean
   groups?: string[]
   isSubmission?: boolean

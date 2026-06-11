@@ -1,6 +1,6 @@
 import { ASTNodeType } from './enums'
 import { BlockType } from '../../../authoring/types/enums'
-import { ASTNode } from './ast.type'
+import { ASTNode, NodeId } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { UnreachableRedirectTarget, ViewConfig } from '../../../authoring/types/structures.type'
 
@@ -15,7 +15,13 @@ export interface StepReachabilityAST {
   tieBreakers?: TieBreakerASTNode[]
 }
 
+/**
+ * One authored `validateOnEntry` clause. `id` is minted by the step factory so
+ * the clause is attributable like any AST node, even though it is a property
+ * struct rather than a node in its own right.
+ */
 export interface StepEntryValidationAST {
+  id: NodeId
   groups: string[]
   when: true | ASTNode
 }

@@ -1,9 +1,5 @@
 import PackageInstance from './PackageInstance'
-import type {
-  ForgeDependencies,
-  ForgeFunctionImplementations,
-  ForgePackageRegistration,
-} from './contracts/ast/engine.type'
+import type { ForgeFunctionImplementations, ForgePackageRegistration } from './contracts/ast/engine.type'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
@@ -15,8 +11,6 @@ import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
-import type { ForgeInstrumentationOptions } from '../instrumentation/ForgeInstrumentation'
 import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
@@ -45,9 +39,6 @@ export interface ForgeOptions {
 
   /** Logger instance for forge output */
   logger?: Logger | Console
-
-  /** Instrumentation and debug trace configuration. */
-  instrumentation?: ForgeInstrumentationOptions
 
   /**
    * Base path prefix for all routes.
@@ -99,8 +90,7 @@ export interface EvaluateOptions {
   response?: ResponseBindings
 }
 
-interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'instrumentation' | 'frameworkAdapter'> {
-  instrumentation?: ForgeInstrumentationOptions
+interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'frameworkAdapter'> {
   frameworkAdapter?: ForgeRouterAdapter
 }
 
@@ -110,10 +100,6 @@ export default class Forge {
   private readonly functionRegistry = new FunctionRegistry()
 
   private readonly componentRegistry = new ComponentRegistry()
-
-  private readonly instrumentation: ForgeInstrumentation
-
-  private readonly dependencies: ForgeDependencies
 
   private readonly forgeEvaluator: ForgeEvaluator
 
@@ -151,8 +137,6 @@ export default class Forge {
       ...constructorOptions,
     }
 
-    this.instrumentation = new ForgeInstrumentation(this.options)
-
     if (!this.options.disableBuiltInFunctions) {
       this.functionRegistry.registerBuiltInFunctions()
     }
@@ -161,12 +145,7 @@ export default class Forge {
       this.componentRegistry.registerBuiltInComponents()
     }
 
-    this.dependencies = {
-      logger: this.options.logger,
-      instrumentation: this.instrumentation,
-    }
-
-    this.forgeEvaluator = new ForgeEvaluator(this.dependencies, this.options)
+    this.forgeEvaluator = new ForgeEvaluator(this.options)
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -221,8 +200,6 @@ export default class Forge {
       return this
     }
 
-    const span = this.instrumentation.startSpan('journey-registration')
-
     try {
       const packageInstance = new PackageInstance(pkg, {
         functionRegistry: this.functionRegistry,
@@ -230,18 +207,9 @@ export default class Forge {
         functionDependencies: deps,
       })
 
-      const routeCount = this.registerPackageInstance(packageInstance)
-
-      span.setAttributes({
-        journeyCode: packageInstance.getJourneyCode(),
-        journeyTitle: packageInstance.getJourneyTitle(),
-        routeCount,
-      })
+      this.registerPackageInstance(packageInstance)
     } catch (e) {
-      span.recordError(e)
       this.handleRegistrationError(e)
-    } finally {
-      span.end()
     }
 
     return this
@@ -253,17 +221,19 @@ export default class Forge {
 
   private handleRegistrationError(e: unknown): void {
     const formatted = RegistrationErrorFormatter.format(e)
+    let error = e
+
+    if (typeof formatted === 'string') {
+      const clean = new Error(formatted)
+      clean.stack = clean.message
+      error = clean
+    }
 
     if (this.options.strictRegistration) {
-      if (typeof formatted === 'string') {
-        const clean = new Error(formatted)
-        clean.stack = clean.message
-
-        throw clean
-      }
-
-      throw e
+      throw error
     }
+
+    this.options.logger.error(error)
   }
 
   /**
@@ -285,11 +255,6 @@ export default class Forge {
    */
   getTopology(): ForgeTopology {
     return this.forgeEvaluator.getTopology()
-  }
-
-  /** The instrumentation instance, so adapters can nest request spans under the engine's. */
-  getInstrumentation(): ForgeInstrumentation {
-    return this.instrumentation
   }
 
   /** The configured logger. */

@@ -34,14 +34,13 @@ The [`ast/`](../ast/README.md) layer turns that into a node - a
 Compilation happens in three steps:
 
 1. [`CompilationPlanner`](./CompilationPlanner.ts) walks the AST and produces a
-   `CompilationPlan` - per-step/journey inputs, reachability plans, field
-   inventories. No code emitted yet.
+   `CompilationPlan` - per-step/journey inputs and pure reachability compile
+   inputs. No runtime plans are built and no code is emitted yet.
 2. [`CodegenOrchestrator.compileAll(plan, nodeRegistry)`](./CodegenOrchestrator.ts)
-   drives the phase compilers. Navigation compiles before the per-step plans,
-   because it attaches per-step validation functions to the shared
-   `NavigationRuntimePlan` that `compileStep` reuses - and it consumes those
-   already-compiled validation plans itself (see the `compileAll` JSDoc in
-   [`CodegenOrchestrator.ts`](./CodegenOrchestrator.ts)).
+   drives the phase compilers. It compiles validation first, then assembles each
+   immutable `NavigationRuntimePlan` exactly once from reachability entries,
+   field inventory leaves, resume configuration, and the validation plans the
+   graph walk needs.
 3. [`createCompiledFunction`](./function-construction/compiledFunctionFactory.ts)
    turns each emitted source string into a real function, choosing `Function` or
    `AsyncFunction`.

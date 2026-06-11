@@ -1,40 +1,8 @@
-import { createAnswerPreparationPlanPhase } from './answerPreparationPhase'
+import { createAnswerPreparationPhase } from './answerPreparationPhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { PipelineState } from '../types'
-import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
+import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { StepRequest } from '../../../../framework/types/request.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
-
-const createMockState = (): PipelineState => {
-  const request = {
-    method: 'GET',
-    url: 'http://localhost/forms/journey/step',
-    baseUrl: '/forms/journey',
-    location: {
-      origin: 'http://localhost',
-      href: 'http://localhost/forms/journey/step',
-      pathname: '/forms/journey/step',
-      basePath: '/forms/journey',
-    },
-    getHeader: () => undefined,
-    getAllHeaders: () => ({}),
-    getCookie: () => undefined,
-    getAllCookies: () => ({}),
-    getParam: () => undefined,
-    getParams: () => ({}),
-    getQuery: () => undefined,
-    getAllQuery: () => ({}),
-    getPost: () => undefined,
-    getAllPost: () => ({}),
-    getSession: () => undefined,
-    getState: () => undefined,
-    getAllState: () => ({}),
-  } as unknown as StepRequest
-  const context = new RuntimeEvaluationContext(request)
-
-  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS }
-}
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
@@ -44,17 +12,23 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const prepareFn = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fields: [{ prepare: prepareFn }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        iteratorAnswerPreparationGroups: [],
       }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act
-      const result = await phase.execute(createMockState())
+      const state = createPipelineState()
+      const result = await phase.execute(state)
 
       // Assert
       expect(prepareFn).toHaveBeenCalled()
       expect(result).toEqual({ action: 'continue' })
+      expect(state.navigationEvaluation).toBeUndefined()
+      expect(state.validation).toBeUndefined()
+      expect(state.showValidationFailures).toBeUndefined()
+      expect(state.context.global.validation).toBeUndefined()
+      expect(state.context.global.reachability).toBeUndefined()
     })
 
     it('should await async field preparation', async () => {
@@ -65,25 +39,48 @@ describe('answerPreparationPhase', () => {
         prepared = true
       })
       const plan: AnswerPreparationPlan = {
-        fields: [{ prepare: prepareFn }],
-        iteratorGroups: [],
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
+        iteratorAnswerPreparationGroups: [],
       }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act
-      await phase.execute(createMockState())
+      await phase.execute(createPipelineState())
 
       // Assert
       expect(prepared).toBe(true)
     })
 
-    it('should no-op when plan has no fields', async () => {
+    it('should record answer-preparation units into the state trace recorder when present', async () => {
       // Arrange
-      const plan: AnswerPreparationPlan = { fields: [], iteratorGroups: [] }
-      const phase = createAnswerPreparationPlanPhase(plan, mockFunctionRegistry)
+      const recorder = new TraceRecorder()
+      const plan: AnswerPreparationPlan = {
+        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
+        iteratorAnswerPreparationGroups: [],
+      }
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
+
+      recorder.beginPhase('answer-preparation')
 
       // Act
-      const result = await phase.execute(createMockState())
+      await phase.execute({ ...createPipelineState(), trace: recorder })
+      recorder.endPhase('continue')
+
+      // Assert
+      const trace = recorder.finish('render')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'answer-preparation-field', nodeId: 'compile_ast:1' }),
+      ])
+    })
+
+    it('should no-op when plan has no fields', async () => {
+      // Arrange
+      const plan: AnswerPreparationPlan = { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] }
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
+
+      // Act
+      const result = await phase.execute(createPipelineState())
 
       // Assert
       expect(result).toEqual({ action: 'continue' })

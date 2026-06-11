@@ -1,7 +1,7 @@
 import { NavigationEvaluation } from '../../contracts/navigation/navigationEvaluation.type'
 
 export function resolveBacklinkRouteTemplatePath(evaluation: NavigationEvaluation): string | undefined {
-  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+  const currentStep = evaluation.steps.find(step => step.stepNodeId === evaluation.currentStepNodeId)
 
   if (!currentStep) {
     return undefined
@@ -17,7 +17,7 @@ export function resolveBacklinkRouteTemplatePath(evaluation: NavigationEvaluatio
 }
 
 export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
-  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+  const currentStep = evaluation.steps.find(step => step.stepNodeId === evaluation.currentStepNodeId)
 
   if (!currentStep) {
     return undefined
@@ -35,7 +35,7 @@ export function resolveStepRequestRedirect(evaluation: NavigationEvaluation): st
 }
 
 export function resolvePostRequestRedirect(evaluation: NavigationEvaluation): string | undefined {
-  const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)
+  const currentStep = evaluation.steps.find(step => step.stepNodeId === evaluation.currentStepNodeId)
 
   if (!currentStep) {
     return undefined

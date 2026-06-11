@@ -13,7 +13,7 @@ import ASTNodeTree from './ASTNodeTree'
  *
  * @example
  * // For a structure: Journey -> Step -> Block
- * // Starting from Block, returns: [JourneyId, StepId, BlockId]
+ * // Starting from Block, returns: [journeyNodeId, stepNodeId, blockNodeId]
  * const chain = getAncestorChain(blockId, astNodeTree)
  */
 export default function getAncestorChain(startNodeId: NodeId, astNodeTree: ASTNodeTree): NodeId[] {

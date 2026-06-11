@@ -182,7 +182,8 @@ describe('StepFactory', () => {
 
       // Assert
       expect(result.properties.validateOnEntry).toHaveLength(2)
-      expect(result.properties.validateOnEntry?.[0]).toEqual({ groups: ['contact'], when: true })
+      expect(result.properties.validateOnEntry?.[0]).toEqual({ id: 'compile_ast:1', groups: ['contact'], when: true })
+      expect(result.properties.validateOnEntry?.[1].id).toBe('compile_ast:2')
       expect(result.properties.validateOnEntry?.[1].groups).toEqual(['address'])
       expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ type: ASTNodeType.PREDICATE })
     })

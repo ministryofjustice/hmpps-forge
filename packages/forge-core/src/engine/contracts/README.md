@@ -28,6 +28,7 @@ the pipeline speaks.
 | [`navigation/`](./navigation/) | `NavigationEvaluation` and `NavigationStepState` (the result of evaluating reachability at request time), plus the input/output types for the compiled navigation function |
 | [`routing/`](./routing/) | Route descriptors (`JourneyRouteDescriptor`, `StepRouteDescriptor`), the route tree structures (`StoredRouteTreeNode`, `RouteTreeIndex`), and the route template catalog |
 | [`runtime/`](./runtime/) | Request-scoped state types: `AnswerHistory` (the mutation log), `RuntimeEvaluationGlobalState`, `StepValidityResult`, `ValidationResult`, `HookLifecycleContext`, `EffectEvaluationContext` |
+| [`trace/`](./trace/) | The request decision log (`RequestTrace`, `PhaseTrace`, the `TraceUnit` union) recorded while walking phase plans; how a trace leaves the engine is not yet decided |
 
 ## How it's used
 

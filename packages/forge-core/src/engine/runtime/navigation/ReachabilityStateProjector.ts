@@ -1,8 +1,8 @@
-import { resolvePathParams } from '../../../../framework/path/routePath'
-import { JourneyReachabilityState, ReachabilityStep } from '../../../contracts/navigation/journeyReachabilityState.type'
-import { NavigationEvaluation, NavigationStepState } from '../../../contracts/navigation/navigationEvaluation.type'
+import { resolvePathParams } from '../../../framework/path/routePath'
+import { JourneyReachabilityState, ReachabilityStep } from '../../contracts/navigation/journeyReachabilityState.type'
+import { NavigationEvaluation, NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 import { resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
-import { StepFieldInventory } from '../../../contracts/plans/stepFieldInventory.type'
+import { StepFieldInventory } from '../../contracts/plans/stepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
   project(
@@ -10,12 +10,12 @@ export default class ReachabilityStateProjector {
     fieldInventory: StepFieldInventory[],
     params: Record<string, string>,
   ): JourneyReachabilityState {
-    const inventoryByStepId = new Map(fieldInventory.map(inv => [inv.stepId, inv]))
+    const inventoryByStepNodeId = new Map(fieldInventory.map(inv => [inv.stepNodeId, inv]))
     const reachableSteps: ReachabilityStep[] = []
     const unreachableSteps: ReachabilityStep[] = []
 
     evaluation.steps.forEach(step => {
-      const inventory = inventoryByStepId.get(step.stepId)
+      const inventory = inventoryByStepNodeId.get(step.stepNodeId)
       const projectedStep = this.projectStep(step, inventory, params, evaluation.canonicalPathRouteTemplatePaths)
 
       if (step.isReachable) {
@@ -47,11 +47,11 @@ export default class ReachabilityStateProjector {
     const cleardownFieldCodes = inventory?.cleardownFieldCodes ?? []
 
     if (fieldCodes.length > 0) {
-      projectedStep.fieldCodes = fieldCodes
+      projectedStep.fieldCodes = [...fieldCodes]
     }
 
     if (cleardownFieldCodes.length > 0) {
-      projectedStep.cleardownFieldCodes = cleardownFieldCodes
+      projectedStep.cleardownFieldCodes = [...cleardownFieldCodes]
     }
 
     const backPath = resolveBacklinkRouteTemplatePathForStep(step, canonicalPathRouteTemplatePaths)

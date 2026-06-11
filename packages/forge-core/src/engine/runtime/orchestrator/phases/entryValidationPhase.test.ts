@@ -1,85 +1,53 @@
 import { createEntryValidationPhase } from './entryValidationPhase'
+import TraceRecorder from '../trace/TraceRecorder'
 import type { EntryValidationPlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
-import type { PipelineState } from '../types'
-import RuntimeEvaluationContext from '../../context/RuntimeEvaluationContext'
+import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type { ForgeInstrumentation } from '../../../../instrumentation/ForgeInstrumentation'
-import type { StepRequest } from '../../../../framework/types/request.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
-
-const createMockState = (): PipelineState => {
-  const request = {
-    method: 'GET',
-    url: 'http://localhost/forms/journey/step',
-    baseUrl: '/forms/journey',
-    location: {
-      origin: 'http://localhost',
-      href: 'http://localhost/forms/journey/step',
-      pathname: '/forms/journey/step',
-      basePath: '/forms/journey',
-    },
-    getHeader: () => undefined,
-    getAllHeaders: () => ({}),
-    getCookie: () => undefined,
-    getAllCookies: () => ({}),
-    getParam: () => undefined,
-    getParams: () => ({}),
-    getQuery: () => undefined,
-    getAllQuery: () => ({}),
-    getPost: () => undefined,
-    getAllPost: () => ({}),
-    getSession: () => undefined,
-    getState: () => undefined,
-    getAllState: () => ({}),
-  } as unknown as StepRequest
-  const context = new RuntimeEvaluationContext(request)
-
-  return { context, request, responseBindings: NO_OP_RESPONSE_BINDINGS }
-}
 
 const mockFunctionRegistry = {} as FunctionRegistry
-const mockInstrumentation = {
-  span: vi.fn((_n: string, fn: (s: { setAttributes: () => void; addEvent: () => void }) => unknown) =>
-    fn({ setAttributes: vi.fn(), addEvent: vi.fn() }),
-  ),
-} as unknown as ForgeInstrumentation
+
+const emptyValidationPlan: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
 
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
-    it('should return continue when no entry validation plan is configured', async () => {
+    it('should return continue when the plan has no rules', async () => {
       // Arrange
       const phase = createEntryValidationPhase(
-        undefined,
-        undefined,
+        { entryValidationRules: [] },
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
-      const result = await phase.execute(createMockState())
+      const state = createPipelineState()
+      const result = await phase.execute(state)
 
       // Assert
       expect(result).toEqual({ action: 'continue' })
+      expect(state.navigationEvaluation).toBeUndefined()
+      expect(state.validation).toBeUndefined()
+      expect(state.showValidationFailures).toBeUndefined()
+      expect(state.context.global.validation).toBeUndefined()
+      expect(state.context.global.reachability).toBeUndefined()
     })
 
     it('should return continue when no rules match', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) }],
+        entryValidationRules: [
+          { nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) },
+        ],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
-        undefined,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
-      const result = await phase.execute(createMockState())
+      const result = await phase.execute(createPipelineState())
 
       // Assert
       expect(result).toEqual({ action: 'continue' })
@@ -88,12 +56,13 @@ describe('entryValidationPhase', () => {
     it('should run validation and set state when groups are active', async () => {
       // Arrange
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [
+        iteratorValidationGroups: [],
+        fieldValidations: [
           {
+            nodeId: 'compile_ast:2' as const,
             validate: vi
               .fn()
               .mockReturnValue([
@@ -106,13 +75,11 @@ describe('entryValidationPhase', () => {
         entryValidationPlan,
         validationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
-        mockInstrumentation,
       )
 
       // Act
-      const state = createMockState()
+      const state = createPipelineState()
       const result = await phase.execute(state)
 
       // Assert
@@ -128,145 +95,87 @@ describe('entryValidationPhase', () => {
       )
     })
 
-    it('should record a validation span with summary attributes and a per-field failure event when invalid', async () => {
+    it('should stamp the verdict on the global context when groups are active', async () => {
       // Arrange
-      const setAttributes = vi.fn()
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn(
-          (_n: string, fn: (s: { setAttributes: typeof setAttributes; addEvent: typeof addEvent }) => unknown) =>
-            fn({ setAttributes, addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
       const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [
-          {
-            validate: vi
-              .fn()
-              .mockReturnValue([
-                { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false },
-              ]),
-          },
+        fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
+        iteratorValidationGroups: [],
+      }
+      const phase = createEntryValidationPhase(
+        entryValidationPlan,
+        validationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
+
+      // Act
+      const state = createPipelineState()
+      await phase.execute(state)
+
+      // Assert
+      expect(state.context.global.validation).toEqual(
+        expect.objectContaining({
+          stepNodeId: 'compile_ast:1',
+          validated: true,
+          groups: ['group-1'],
+          isSubmission: false,
+          isValid: true,
+        }),
+      )
+    })
+
+    it('should pass trivially when groups are selected but nothing validates', async () => {
+      // Arrange
+      const entryValidationPlan: EntryValidationPlan = {
+        entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
+      }
+      const phase = createEntryValidationPhase(
+        entryValidationPlan,
+        emptyValidationPlan,
+        'compile_ast:1' as const,
+        mockFunctionRegistry,
+      )
+
+      // Act
+      const state = createPipelineState()
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.showValidationFailures).toBe(true)
+      expect(state.validation).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
+    })
+
+    it('should record entry-validation-rule units into the state trace recorder when present', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const entryValidationPlan: EntryValidationPlan = {
+        entryValidationRules: [
+          { nodeId: 'compile_ast:9' as const, groups: ['group-1'], evaluate: vi.fn().mockReturnValue(false) },
         ],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,
-        validationPlan,
+        emptyValidationPlan,
         'compile_ast:1' as const,
-        '/step',
         mockFunctionRegistry,
-        instrumentation,
       )
+
+      recorder.beginPhase('entry-validation')
 
       // Act
-      await phase.execute(createMockState())
+      await phase.execute({ ...createPipelineState(), trace: recorder })
+      recorder.endPhase('continue')
 
       // Assert
-      expect(instrumentation.span).toHaveBeenCalledWith('validation', expect.any(Function))
-      expect(setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({
-          'forge.validation.stepId': 'compile_ast:1',
-          'forge.validation.isSubmission': false,
-          'forge.validation.isValid': false,
-          'forge.validation.fieldFailureCount': 1,
-          'forge.validation.domainFailureCount': 0,
-        }),
-      )
-      expect(addEvent).toHaveBeenCalledTimes(1)
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.objectContaining({
-          'forge.validation.failure.stepId': 'compile_ast:1',
-          'forge.validation.failure.scope': 'field',
-          'forge.validation.failure.isSubmission': false,
-          'forge.validation.failure.message': 'Required',
-          'forge.validation.failure.submissionOnly': false,
-          'forge.validation.failure.blockId': 'compile_ast:2',
-        }),
-      )
-    })
+      const trace = recorder.finish('render')
 
-    it('should not emit failure events when validation passes', async () => {
-      // Arrange
-      const setAttributes = vi.fn()
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn(
-          (_n: string, fn: (s: { setAttributes: typeof setAttributes; addEvent: typeof addEvent }) => unknown) =>
-            fn({ setAttributes, addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
-      const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
-      }
-      const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [{ validate: vi.fn().mockReturnValue([]) }],
-      }
-      const phase = createEntryValidationPhase(
-        entryValidationPlan,
-        validationPlan,
-        'compile_ast:1' as const,
-        '/step',
-        mockFunctionRegistry,
-        instrumentation,
-      )
-
-      // Act
-      await phase.execute(createMockState())
-
-      // Assert
-      expect(addEvent).not.toHaveBeenCalled()
-      expect(setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'forge.validation.isValid': true, 'forge.validation.fieldFailureCount': 0 }),
-      )
-    })
-
-    it('should emit a domain-scoped failure event without a blockId for domain failures', async () => {
-      // Arrange
-      const addEvent = vi.fn()
-      const instrumentation = {
-        span: vi.fn((_n: string, fn: (s: { setAttributes: () => void; addEvent: typeof addEvent }) => unknown) =>
-          fn({ setAttributes: vi.fn(), addEvent }),
-        ),
-      } as unknown as ForgeInstrumentation
-      const entryValidationPlan: EntryValidationPlan = {
-        rules: [{ groups: ['group-1'] }],
-      }
-      const validationPlan: ValidationPlan = {
-        iteratorGroups: [],
-        fields: [],
-        domain: vi.fn().mockReturnValue([{ passed: false, message: 'Domain rule', submissionOnly: true }]),
-      }
-      const phase = createEntryValidationPhase(
-        entryValidationPlan,
-        validationPlan,
-        'compile_ast:1' as const,
-        '/step',
-        mockFunctionRegistry,
-        instrumentation,
-      )
-
-      // Act
-      await phase.execute(createMockState())
-
-      // Assert
-      expect(addEvent).toHaveBeenCalledTimes(1)
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.objectContaining({
-          'forge.validation.failure.scope': 'domain',
-          'forge.validation.failure.message': 'Domain rule',
-        }),
-      )
-      expect(addEvent).toHaveBeenCalledWith(
-        'forge.validation.failure',
-        expect.not.objectContaining({ 'forge.validation.failure.blockId': expect.anything() }),
-      )
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'entry-validation-rule', nodeId: 'compile_ast:9', active: false }),
+      ])
     })
   })
 })

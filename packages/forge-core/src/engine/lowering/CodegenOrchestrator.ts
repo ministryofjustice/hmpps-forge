@@ -1,48 +1,52 @@
 import type { NodeId } from '../contracts/ast/engine.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
-import type { CompiledValidationFunction } from '../contracts/compiled/compiledFunctions.type'
 import type {
-  AccessHookEntry,
+  CompiledAccessHook,
   AccessLifecyclePlan,
   AnswerPreparationPlan,
   CompiledJourney,
   CompiledStep,
-  FieldAnswerPreparationEntry,
+  CompiledFieldAnswerPreparation,
   IteratorAnswerPreparationGroup,
-  SubmitHookEntry,
+  CompiledSubmitHook,
   SubmitLifecyclePlan,
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
-import type { ReachabilityCompilationPlan } from '../contracts/plans/runtimePlans.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
-import type { CompilationPlan, StepCompilationInputs } from '../contracts/plans/compilationPlan.type'
+import type {
+  CompilationPlan,
+  ReachabilityStepInputs,
+  StepCompilationInputs,
+} from '../contracts/plans/compilationPlan.type'
+import type { CompiledNavigationStep, NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/navigation/ReachabilityCompiler'
+import StepFieldInventoryCompiler from './phase-compilers/field-inventory/StepFieldInventoryCompiler'
 import StepRenderCompiler from './phase-compilers/rendering/StepRenderCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 
 /**
- * Hoisted answer-preparation entries keyed by NodeId: every field/block and MAP
+ * Hoisted answer preparations keyed by NodeId: every field/block and MAP
  * iterator group is compiled once and shared across the steps and journeys that
  * reference it. Per-step/per-journey AnswerPreparationPlans are assembled by
- * looking up these entries.
+ * looking them up.
  */
-interface AnswerPreparationEntries {
-  readonly fieldEntries: Map<NodeId, FieldAnswerPreparationEntry>
+interface HoistedAnswerPreparation {
+  readonly fields: Map<NodeId, CompiledFieldAnswerPreparation>
   readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
 }
 
 /**
- * Hoisted hook entries keyed by NodeId. Access hooks may be shared by every step
+ * Hoisted hooks keyed by NodeId. Access hooks may be shared by every step
  * under a journey-level onAccess; submit hooks belong to individual steps. Each
  * hook is compiled once and looked up when assembling lifecycle plans.
  */
-interface HookEntries {
-  readonly accessHookEntries: Map<NodeId, AccessHookEntry>
-  readonly submitHookEntries: Map<NodeId, SubmitHookEntry>
+interface HoistedHooks {
+  readonly accessHooks: Map<NodeId, CompiledAccessHook>
+  readonly submitHooks: Map<NodeId, CompiledSubmitHook>
 }
 
 export default class CodegenOrchestrator {
@@ -50,77 +54,133 @@ export default class CodegenOrchestrator {
 
   /**
    * Entry point driving every phase compiler. Compiles validation, answer-prep
-   * and hook entries once (hoisted by NodeId), then assembles per-step and
-   * per-journey plans by looking them up. Navigation is compiled before steps
-   * because it attaches per-step validation functions onto the shared
-   * NavigationRuntimePlan that compileStep reuses.
+   * and hooks once (hoisted by NodeId), then assembles immutable
+   * navigation plans and per-step/per-journey plans by looking them up.
    */
   compileAll(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const validationPlans = this.compileValidationPlans(plan)
-    const answerPrepEntries = this.compileAnswerPreparationEntries(plan)
-    const hookEntries = this.compileHookEntries(plan)
+    const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const validationPlans = this.compileValidationPlans(plan, validationCompiler)
+    const hoistedAnswerPrep = this.compileHoistedAnswerPreparation(plan)
+    const hoistedHooks = this.compileHoistedHooks(plan)
+    const navigationPlans = this.compileNavigationPlans(plan, nodeRegistry, validationPlans)
 
-    this.compileNavigation(plan, nodeRegistry, validationPlans)
-    const journeys = this.compileJourneys(plan, answerPrepEntries, hookEntries)
+    const journeys = this.compileJourneys(plan, navigationPlans, hoistedAnswerPrep, hoistedHooks)
 
     const steps = new Map<NodeId, CompiledStep>()
 
-    plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan, validationPlans, answerPrepEntries, hookEntries))
+    plan.stepInputs.forEach((inputs, stepNodeId) => {
+      steps.set(
+        stepNodeId,
+        this.compileStep(
+          inputs,
+          plan,
+          navigationPlans,
+          validationPlans,
+          validationCompiler,
+          hoistedAnswerPrep,
+          hoistedHooks,
+        ),
+      )
     })
 
     return { steps, journeys }
   }
 
   /**
-   * Compiles each reachability plan's navigation function and attaches it, along
-   * with the per-step validation functions it needs, directly onto the shared
-   * NavigationRuntimePlan. Mutates each reachabilityPlan.navigationPlan in place.
+   * Builds each immutable NavigationRuntimePlan from pure reachability inputs:
+   * static step data, compiled navigation leaves, field inventory leaves,
+   * resume configuration, and the validation plans needed by graph walking.
    */
-  private compileNavigation(
+  private compileNavigationPlans(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
-  ): void {
+    validationPlans: Map<NodeId, ValidationPlan>,
+  ): Map<NodeId, NavigationRuntimePlan> {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
+    const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
+    const navigationPlans = new Map<NodeId, NavigationRuntimePlan>()
 
-    plan.reachabilityPlans.forEach(reachabilityPlan => {
-      reachabilityPlan.navigationPlan.compiledStepValidations = this.wrapValidationPlansForReachability(
-        reachabilityPlan,
-        validationPlans,
-      )
-      reachabilityPlan.navigationPlan.compiledNavigation = reachabilityCompiler.compileNavigation(
-        reachabilityPlan,
-        plan.fieldInventorySources.get(reachabilityPlan.navigationPlan) ?? [],
-        nodeRegistry,
-      )
+    plan.reachabilityPlans.forEach((reachabilityPlan, planId) => {
+      navigationPlans.set(planId, {
+        navigationSteps: reachabilityPlan.reachabilityStepInputs.map(stepInputs =>
+          this.compileNavigationStep(
+            stepInputs,
+            reachabilityPlan.journeyNodeId,
+            nodeRegistry,
+            validationPlans,
+            reachabilityCompiler,
+            fieldInventoryCompiler,
+          ),
+        ),
+        resumeConfigured: reachabilityPlan.resumeConfigured,
+        resumeAlways: reachabilityPlan.resumeAlways,
+        evaluateResumeWhen: reachabilityCompiler.compileResumePredicate(reachabilityPlan, nodeRegistry),
+        unreachableRedirect: reachabilityPlan.unreachableRedirect,
+        reachabilityDisabled: reachabilityPlan.reachabilityDisabled,
+      })
     })
+
+    return navigationPlans
+  }
+
+  /**
+   * Assembles one CompiledNavigationStep: static reachability data, the step's
+   * validation plan, and the compiled leaves from the reachability and
+   * field-inventory compilers. The single place the record is born.
+   */
+  private compileNavigationStep(
+    stepInputs: ReachabilityStepInputs,
+    journeyNodeId: NodeId,
+    nodeRegistry: ASTNodeIndex,
+    validationPlans: Map<NodeId, ValidationPlan>,
+    reachabilityCompiler: ReachabilityCompiler,
+    fieldInventoryCompiler: StepFieldInventoryCompiler,
+  ): CompiledNavigationStep {
+    return {
+      nodeId: stepInputs.nodeId,
+      code: stepInputs.code,
+      isEntryPoint: stepInputs.isEntryPoint,
+      validationPlan: this.selectStepValidationPlan(journeyNodeId, stepInputs.nodeId, validationPlans),
+      cleardownFieldCodes: stepInputs.cleardownFieldCodes,
+      declaredOutcomes: stepInputs.declaredOutcomes,
+      evaluateEntryWhen: reachabilityCompiler.compileEntryPredicate(stepInputs, nodeRegistry),
+      evaluateOutcomes: reachabilityCompiler.compileStepOutcomes(stepInputs, nodeRegistry),
+      evaluateTieBreaker: reachabilityCompiler.compileTieBreaker(stepInputs, nodeRegistry),
+      evaluateFieldCodes: fieldInventoryCompiler.compileStepFieldCodes(stepInputs.fieldInventorySource),
+    }
   }
 
   /**
    * Assembles a CompiledJourney per journey-root by looking up the hoisted
-   * access-hook and answer-preparation entries. A journey root carries only
+   * access hooks and answer preparations. A journey root carries only
    * access and answer-preparation plans (it runs those phases then redirects).
    */
   private compileJourneys(
     plan: CompilationPlan,
-    answerPrepEntries: AnswerPreparationEntries,
-    hookEntries: HookEntries,
+    navigationPlans: Map<NodeId, NavigationRuntimePlan>,
+    hoistedAnswerPrep: HoistedAnswerPreparation,
+    hoistedHooks: HoistedHooks,
   ): Map<NodeId, CompiledJourney> {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
-    plan.journeyInputs.forEach((inputs, journeyId) => {
-      compiledJourneys.set(journeyId, {
+    plan.journeyInputs.forEach((inputs, journeyNodeId) => {
+      const navigationPlan = navigationPlans.get(inputs.reachabilityPlanId)
+
+      if (!navigationPlan) {
+        throw new Error(`Unable to compile journey "${journeyNodeId}" - navigation plan not found`)
+      }
+
+      compiledJourneys.set(journeyNodeId, {
         runtimePlan: inputs.runtimePlan,
-        navigationPlan: inputs.navigationPlan,
-        accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
+        navigationPlan,
+        accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
         answerPreparationPlan: this.assembleAnswerPreparationPlan(
           inputs.stepFieldBlocks,
           inputs.stepMapIterateNodes,
-          answerPrepEntries,
+          hoistedAnswerPrep,
         ),
       })
     })
@@ -131,63 +191,74 @@ export default class CodegenOrchestrator {
   /**
    * Assembles one CompiledStep: reuses the shared navigation plan, compiles the
    * step-specific entry-validation and render plans, and looks up the hoisted
-   * access/submit/answer-prep/validation entries. Throws if no navigation plan is
+   * access/submit/answer-prep/validation artefacts. Throws if no navigation plan is
    * registered for the step.
    */
   private compileStep(
     inputs: StepCompilationInputs,
     plan: CompilationPlan,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
-    answerPrepEntries: AnswerPreparationEntries,
-    hookEntries: HookEntries,
+    navigationPlans: Map<NodeId, NavigationRuntimePlan>,
+    validationPlans: Map<NodeId, ValidationPlan>,
+    validationCompiler: StepValidationCompiler,
+    hoistedAnswerPrep: HoistedAnswerPreparation,
+    hoistedHooks: HoistedHooks,
   ): CompiledStep {
-    const navigationPlan = plan.navigationPlansByStepId.get(inputs.stepNode.id)
+    const navigationPlanId = plan.navigationPlanNodeIdByStepNodeId.get(inputs.stepNode.id)
+
+    if (!navigationPlanId) {
+      throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan id not found`)
+    }
+
+    const navigationPlan = navigationPlans.get(navigationPlanId)
 
     if (!navigationPlan) {
       throw new Error(`Unable to compile step "${inputs.stepNode.id}" - navigation plan not found`)
     }
 
-    const validationCompiler = new StepValidationCompiler(this.dependencies)
-    const entryValidationPlan = validationCompiler.compileEntryValidationPlan(
-      inputs.stepNode.properties.validateOnEntry,
-    )
+    const validationPlan = validationPlans.get(inputs.stepNode.id)
 
+    if (!validationPlan) {
+      throw new Error(`Unable to compile step "${inputs.stepNode.id}" - validation plan not found`)
+    }
+
+    const entryValidationPlan = validationCompiler.compileEntryValidationPlan(inputs.entryValidations)
+
+    // Per-step instance, unlike the one-per-compileAll compilers:
+    // StepRenderCompiler accumulates mutable per-step state (inlineIterateIds).
     const renderCompiler = new StepRenderCompiler(this.dependencies)
     const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
 
     return {
       runtimePlan: inputs.runtimePlan,
       navigationPlan,
-      accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hookEntries.accessHookEntries),
-      submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hookEntries.submitHookEntries),
+      accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
+      submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hoistedHooks.submitHooks),
       answerPreparationPlan: this.assembleAnswerPreparationPlan(
         inputs.fieldBlocks,
         inputs.mapIterateNodes,
-        answerPrepEntries,
+        hoistedAnswerPrep,
       ),
       entryValidationPlan,
       renderPlan,
-      validationPlan: validationPlans.get(inputs.stepNode.id),
+      validationPlan,
     }
   }
 
   /**
    * Compiles each distinct field/block and MAP iterator group across all steps
-   * exactly once, deduplicating by NodeId so entries shared across steps are not
+   * exactly once, deduplicating by NodeId so fields shared across steps are not
    * recompiled. An iterator group whose compiler yields undefined is skipped.
    */
-  private compileAnswerPreparationEntries(plan: CompilationPlan): AnswerPreparationEntries {
+  private compileHoistedAnswerPreparation(plan: CompilationPlan): HoistedAnswerPreparation {
     const compiler = new StepAnswerPreparationCompiler(this.dependencies)
-    const fieldEntries = new Map<NodeId, FieldAnswerPreparationEntry>()
+    const fields = new Map<NodeId, CompiledFieldAnswerPreparation>()
     const iteratorGroups = new Map<NodeId, IteratorAnswerPreparationGroup>()
     const visitedIterateNodes = new Set<NodeId>()
 
     plan.stepInputs.forEach(inputs => {
       inputs.fieldBlocks.forEach(block => {
-        if (!fieldEntries.has(block.id)) {
-          fieldEntries.set(block.id, {
-            prepare: compiler.compileSingleFieldPreparation(block),
-          })
+        if (!fields.has(block.id)) {
+          fields.set(block.id, compiler.compileFieldPreparation(block))
         }
       })
 
@@ -203,7 +274,7 @@ export default class CodegenOrchestrator {
       })
     })
 
-    return { fieldEntries, iteratorGroups }
+    return { fields, iteratorGroups }
   }
 
   /**
@@ -211,27 +282,23 @@ export default class CodegenOrchestrator {
    * Access hooks are gathered from both step and journey access-ancestors so a
    * journey-level onAccess hook shared by every step is compiled a single time.
    */
-  private compileHookEntries(plan: CompilationPlan): HookEntries {
+  private compileHoistedHooks(plan: CompilationPlan): HoistedHooks {
     const compiler = new HookLifecycleCompiler(this.dependencies)
-    const accessHookEntries = new Map<NodeId, AccessHookEntry>()
-    const submitHookEntries = new Map<NodeId, SubmitHookEntry>()
+    const accessHooks = new Map<NodeId, CompiledAccessHook>()
+    const submitHooks = new Map<NodeId, CompiledSubmitHook>()
 
     plan.stepInputs.forEach(inputs => {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-          if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, {
-              evaluate: compiler.compileSingleAccessHook(hook),
-            })
+          if (!accessHooks.has(hook.id)) {
+            accessHooks.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })
 
       inputs.submitHooks.forEach(hook => {
-        if (!submitHookEntries.has(hook.id)) {
-          submitHookEntries.set(hook.id, {
-            evaluate: compiler.compileSingleSubmitHook(hook),
-          })
+        if (!submitHooks.has(hook.id)) {
+          submitHooks.set(hook.id, compiler.compileSubmitHook(hook))
         }
       })
     })
@@ -239,20 +306,18 @@ export default class CodegenOrchestrator {
     plan.journeyInputs.forEach(inputs => {
       inputs.accessAncestors.forEach(ancestor => {
         ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-          if (!accessHookEntries.has(hook.id)) {
-            accessHookEntries.set(hook.id, {
-              evaluate: compiler.compileSingleAccessHook(hook),
-            })
+          if (!accessHooks.has(hook.id)) {
+            accessHooks.set(hook.id, compiler.compileAccessHook(hook))
           }
         })
       })
     })
 
-    return { accessHookEntries, submitHookEntries }
+    return { accessHooks, submitHooks }
   }
 
   /**
-   * Selects the hoisted prepare entries for the given fields and iterator nodes,
+   * Selects the hoisted field preparations for the given fields and iterator nodes,
    * preserving their declared order. Iterator nodes that produced no hoisted group
    * (e.g. an iterator with no fields) are skipped, so the plan may hold fewer
    * iterator groups than the input nodes.
@@ -260,80 +325,71 @@ export default class CodegenOrchestrator {
   private assembleAnswerPreparationPlan(
     fieldBlocks: readonly FieldBlockASTNode[],
     mapIterateNodes: readonly IterateASTNode[],
-    entries: AnswerPreparationEntries,
+    hoisted: HoistedAnswerPreparation,
   ): AnswerPreparationPlan {
     const fields = fieldBlocks
-      .map(block => entries.fieldEntries.get(block.id))
-      .filter((entry): entry is FieldAnswerPreparationEntry => entry !== undefined)
+      .map(block => hoisted.fields.get(block.id))
+      .filter((field): field is CompiledFieldAnswerPreparation => field !== undefined)
 
     const groups = mapIterateNodes
-      .map(node => entries.iteratorGroups.get(node.id))
+      .map(node => hoisted.iteratorGroups.get(node.id))
       .filter((group): group is IteratorAnswerPreparationGroup => group !== undefined)
 
-    return { fields, iteratorGroups: groups }
+    return { fieldAnswerPreparations: fields, iteratorAnswerPreparationGroups: groups }
   }
 
   /**
-   * Collects the hoisted access-hook entries for every onAccess hook on the
-   * given ancestors, in ancestor-then-declared order. Returns undefined when no
-   * hooks apply so the runtime can skip the access-lifecycle phase entirely.
+   * Collects the hoisted access hooks for every onAccess hook on the
+   * given ancestors, in ancestor-then-declared order. No applicable hooks
+   * yields an empty plan, which the access-lifecycle walk runs through as a
+   * no-op.
    */
   private assembleAccessLifecyclePlan(
     accessAncestors: readonly (JourneyASTNode | StepASTNode)[],
-    entries: Map<NodeId, AccessHookEntry>,
-  ): AccessLifecyclePlan | undefined {
-    const hooks: AccessHookEntry[] = []
+    hoistedAccessHooks: Map<NodeId, CompiledAccessHook>,
+  ): AccessLifecyclePlan {
+    const accessHooks: CompiledAccessHook[] = []
 
     accessAncestors.forEach(ancestor => {
       ;(ancestor.properties.onAccess ?? []).forEach(hook => {
-        const entry = entries.get(hook.id)
+        const compiledHook = hoistedAccessHooks.get(hook.id)
 
-        if (entry !== undefined) {
-          hooks.push(entry)
+        if (compiledHook !== undefined) {
+          accessHooks.push(compiledHook)
         }
       })
     })
 
-    if (hooks.length === 0) {
-      return undefined
-    }
-
-    return { hooks }
+    return { accessHooks }
   }
 
   /**
-   * Selects the hoisted submit-hook entries for the step's submit hooks, in
-   * declared order. Returns undefined when the step has no submit hooks so the
-   * runtime can skip the submit-lifecycle phase.
+   * Selects the hoisted submit hooks for the step's submit hooks, in
+   * declared order. A step with no submit hooks gets an empty plan, which the
+   * submit-lifecycle walk runs through as a no-op.
    */
   private assembleSubmitLifecyclePlan(
     submitHooks: readonly SubmitHookASTNode[],
-    entries: Map<NodeId, SubmitHookEntry>,
-  ): SubmitLifecyclePlan | undefined {
-    const hooks = submitHooks
-      .map(hook => entries.get(hook.id))
-      .filter((entry): entry is SubmitHookEntry => entry !== undefined)
+    hoistedSubmitHooks: Map<NodeId, CompiledSubmitHook>,
+  ): SubmitLifecyclePlan {
+    const compiledHooks = submitHooks
+      .map(hook => hoistedSubmitHooks.get(hook.id))
+      .filter((compiledHook): compiledHook is CompiledSubmitHook => compiledHook !== undefined)
 
-    if (hooks.length === 0) {
-      return undefined
-    }
-
-    return { hooks }
+    return { submitHooks: compiledHooks }
   }
 
   /**
    * Compiles a ValidationPlan per step from its validating fields, step-level
-   * validWhen domain rule and MAP iterator nodes. The result is keyed by stepId
+   * validWhen domain rule and MAP iterator nodes. The result is keyed by stepNodeId
    * for reuse both as the step's validationPlan and by navigation reachability.
    */
-  private compileValidationPlans(plan: CompilationPlan): Map<NodeId, ValidationPlan | undefined> {
-    const validationPlans = new Map<NodeId, ValidationPlan | undefined>()
+  private compileValidationPlans(plan: CompilationPlan, compiler: StepValidationCompiler): Map<NodeId, ValidationPlan> {
+    const validationPlans = new Map<NodeId, ValidationPlan>()
 
-    plan.stepInputs.forEach((inputs, stepId) => {
-      const compiler = new StepValidationCompiler(this.dependencies)
-
+    plan.stepInputs.forEach((inputs, stepNodeId) => {
       validationPlans.set(
-        stepId,
+        stepNodeId,
         compiler.compileValidationPlan(
           inputs.validatingFieldBlocks,
           inputs.stepNode.properties.validWhen,
@@ -346,63 +402,24 @@ export default class CodegenOrchestrator {
   }
 
   /**
-   * Builds the per-step validation callbacks navigation needs to decide whether
-   * an earlier step is still valid. Only steps flagged hasValidation with an
-   * existing ValidationPlan are wrapped; the rest are omitted from the map.
+   * Picks the ValidationPlan navigation evaluates to decide whether a step is
+   * still valid. Every step compiles one (empty when it declares no validation);
+   * a navigation step without a compiled ValidationPlan is a compile invariant
+   * failure.
    */
-  private wrapValidationPlansForReachability(
-    reachabilityPlan: ReachabilityCompilationPlan,
-    validationPlans: Map<NodeId, ValidationPlan | undefined>,
-  ): Map<NodeId, CompiledValidationFunction> {
-    const compiledValidations = new Map<NodeId, CompiledValidationFunction>()
+  private selectStepValidationPlan(
+    journeyNodeId: NodeId,
+    stepNodeId: NodeId,
+    validationPlans: Map<NodeId, ValidationPlan>,
+  ): ValidationPlan {
+    const validationPlan = validationPlans.get(stepNodeId)
 
-    reachabilityPlan.entries
-      .filter(entry => entry.hasValidation)
-      .forEach(entry => {
-        const validationPlan = validationPlans.get(entry.stepId)
-
-        if (!validationPlan) {
-          return
-        }
-
-        compiledValidations.set(entry.stepId, this.wrapValidationPlanAsFunction(validationPlan))
-      })
-
-    return compiledValidations
-  }
-
-  /**
-   * Wraps a ValidationPlan as a single async StepValidityResult function for
-   * navigation to call. Field validations run in parallel; each iterator group
-   * expands its input into per-item scopes and validates every field once per
-   * item, flattening the results. The step is valid only when no field or domain
-   * failures remain.
-   */
-  private wrapValidationPlanAsFunction(validationPlan: ValidationPlan): CompiledValidationFunction {
-    return async (ctx, isSubmission, groups) => {
-      const fieldResults = await Promise.all(
-        validationPlan.fields.map(entry => entry.validate(ctx, isSubmission, groups)),
+    if (!validationPlan) {
+      throw new Error(
+        `Unable to compile navigation plan "${journeyNodeId}" - validation plan not found for step "${stepNodeId}"`,
       )
-
-      const iteratorGroupResults = await Promise.all(
-        validationPlan.iteratorGroups.map(async group => {
-          const items = await group.evaluateInput(ctx)
-          const results = await Promise.all(
-            items.flatMap(itemScope => group.fields.map(field => field.validate(ctx, isSubmission, groups, itemScope))),
-          )
-
-          return results.flat()
-        }),
-      )
-
-      const fieldFailures = [...fieldResults.flat(), ...iteratorGroupResults.flat()]
-      const domainFailures = validationPlan.domain ? await validationPlan.domain(ctx, isSubmission, groups) : []
-
-      return {
-        isValid: fieldFailures.length === 0 && domainFailures.length === 0,
-        fieldFailures,
-        domainFailures,
-      }
     }
+
+    return validationPlan
   }
 }

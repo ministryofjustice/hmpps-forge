@@ -1,4 +1,7 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
+import type { AnswerHistory } from '../runtime/answerHistory.type'
+import type { StepValidationState } from '../runtime/evaluationState.type'
+import type { StepValidityResult } from '../runtime/stepValidityResult.type'
 
 /**
  * Per-request state shared by every compiled phase function.
@@ -60,3 +63,31 @@ export interface AnswerPreparationContext {
 
 /** Context for compiled entry-validation reachability predicates; carries no extra state beyond the base. */
 export type ReachabilityContext = BasePhaseContext
+
+/**
+ * Context passed to compiled access and submit hook functions. Carries the
+ * full per-request state a hook may read or mutate: answer histories, request
+ * data, and the wiring a hook needs to run side effects and trigger validation.
+ * Hooks mutate `answers` in place (each change appended to that answer's
+ * mutation log) so the engine can later explain where a value came from.
+ */
+export interface HookLifecycleContext {
+  answers: Record<string, AnswerHistory>
+  data: Record<string, unknown>
+  validation?: StepValidationState
+  session: Record<string, unknown>
+  params: Record<string, unknown>
+  query: Record<string, unknown>
+  /** Raw submitted form body, keyed by field name. */
+  post: Record<string, string | string[]>
+  request: Record<string, unknown>
+  conditions: FunctionRegistry
+  /** Opaque context handed to author-supplied effect functions invoked by hooks. */
+  effectFunctionContext: unknown
+  /**
+   * Runs the named validation groups on demand from within a submit hook and
+   * returns the outcome, allowing the hook to branch on validity before its
+   * own result is decided. Absent for access hooks.
+   */
+  validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
+}

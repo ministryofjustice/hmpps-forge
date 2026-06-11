@@ -1,14 +1,14 @@
-import type { StepRuntimePlan } from '../../contracts/plans/runtimePlans.type'
+import type { RuntimePlan } from '../../contracts/plans/runtimePlans.type'
 import type { StepRequest } from '../../../framework'
 import ContextPreparer from './ContextPreparer'
 
 function setupMocks(staticData: Record<string, unknown> = {}): {
   preparer: ContextPreparer
-  runtimePlan: StepRuntimePlan
+  runtimePlan: RuntimePlan
   request: StepRequest
 } {
-  const runtimePlan: StepRuntimePlan = {
-    stepId: 'compile_ast:1',
+  const runtimePlan: RuntimePlan = {
+    nodeId: 'compile_ast:1',
     path: '/step',
     staticData,
   }

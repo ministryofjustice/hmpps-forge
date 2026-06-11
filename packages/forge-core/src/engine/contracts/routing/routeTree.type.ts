@@ -4,8 +4,8 @@ import type { RouteTreeRoute } from '../../../framework/rendering/types'
 export type RouteMethod = 'GET' | 'POST'
 
 export interface JourneyRouteTemplateCatalog {
-  routeTemplatePathByStepId: Map<NodeId, string>
-  stepIdByRouteTemplatePath: Map<string, NodeId>
+  routeTemplatePathByStepNodeId: Map<NodeId, string>
+  stepNodeIdByRouteTemplatePath: Map<string, NodeId>
 }
 
 export type StoredRouteTreeRoute = (RouteTreeRoute & { kind: 'journey' }) | (RouteTreeRoute & { kind: 'step' })
@@ -28,14 +28,14 @@ export interface RouteTreeIndex {
 }
 
 export interface JourneyRouteContext {
-  journeyId: NodeId
+  journeyNodeId: NodeId
   templatePath: string
   mountPath: string
   parentTemplatePath?: string
 }
 
 export interface StepRouteContext {
-  stepId: NodeId
+  stepNodeId: NodeId
   path: string
   routeTemplatePath: string
   routeTemplateCatalog: JourneyRouteTemplateCatalog
