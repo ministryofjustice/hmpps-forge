@@ -170,6 +170,23 @@ describe('StepRenderCompiler', () => {
       expect(result.blocks[0].properties.content).toBe('Hello Ada')
     })
 
+    it('should stamp node ids on render plan entries for trace attribution', () => {
+      // Arrange
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('content', 'Hello')
+        .build()
+      const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
+      const iterateNode = createIterateNode(createTemplate([field]))
+
+      // Act
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [], [iterateNode])
+
+      // Assert
+      expect(plan.renderBlocks[0].nodeId).toBe(block.id)
+      expect(plan.iteratorRenderBlockGroups[0].nodeId).toBe(iterateNode.id)
+      expect(plan.iteratorRenderBlockGroups[0].blocks[0].nodeId).toBeDefined()
+    })
+
     it('should not mutate source collection objects when rendering iterator blocks', async () => {
       // Arrange
       const member: Record<string, unknown> = { memberName: 'Ada' }

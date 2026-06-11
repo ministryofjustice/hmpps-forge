@@ -22,6 +22,8 @@ function renderOutcome(): ForgeOutcome {
     kind: 'render',
     context: { blocks: [], fieldValidationErrors: [] } as never,
     componentRegistry: {} as never,
+    output: undefined,
+    renderedBlocks: [],
   }
 }
 

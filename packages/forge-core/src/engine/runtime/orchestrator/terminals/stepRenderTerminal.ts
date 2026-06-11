@@ -53,7 +53,7 @@ export function createStepRenderTerminal(
         },
       )
 
-      return { type: 'render', context }
+      return { type: 'render', context, output: undefined, renderedBlocks: [] }
     },
   }
 }

@@ -7,11 +7,11 @@ import { resolveForgeRedirect } from '../../navigation/resolveForgeRedirect'
 import { evaluateNavigation } from '../phases/evaluateNavigation'
 import type { TerminalPhase } from '../types'
 
-export function createJourneyRedirectTerminal(
+export function createJourneyRedirectTerminal<TOut>(
   navigationPlan: NavigationRuntimePlan,
   routeTemplateCatalog: JourneyRouteTemplateCatalog,
   functionRegistry: FunctionRegistry,
-): TerminalPhase {
+): TerminalPhase<TOut> {
   return {
     name: 'journey-redirect',
     async execute(state) {

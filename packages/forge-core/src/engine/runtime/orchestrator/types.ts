@@ -6,7 +6,15 @@ import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
 import type TraceRecorder from './trace/TraceRecorder'
 
-export type ForgeResult = { type: 'render'; context: RenderContext } | { type: 'redirect'; url: string }
+export type ForgeRedirectResult = { type: 'redirect'; url: string }
+
+/**
+ * `TOut` is the bound renderer's output type; a pipeline with no renderer
+ * defaults it to `undefined` and render results are context-only.
+ */
+export type ForgeResult<TOut = undefined> =
+  | { type: 'render'; context: RenderContext; output: TOut; renderedBlocks: readonly TOut[] }
+  | ForgeRedirectResult
 
 export type PhaseOutcome =
   | { action: 'continue' }
@@ -20,6 +28,8 @@ export interface PipelineState {
   navigationEvaluation?: NavigationEvaluation
   validation?: StepValidityResult
   showValidationFailures?: boolean
+  /** Hydrated render context, written by the render-evaluation phase for the render-output terminal. */
+  renderContext?: RenderContext
   /** Present when the request is being traced; the orchestrator and phase walks record decisions here. */
   readonly trace?: TraceRecorder
 }
@@ -29,7 +39,7 @@ export interface RequestPhase {
   execute(state: PipelineState): Promise<PhaseOutcome>
 }
 
-export interface TerminalPhase {
+export interface TerminalPhase<TOut = undefined> {
   readonly name: string
-  execute(state: PipelineState): Promise<ForgeResult>
+  execute(state: PipelineState): Promise<ForgeResult<TOut>>
 }

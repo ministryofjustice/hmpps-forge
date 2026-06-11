@@ -130,6 +130,8 @@ export default class ForgeEvaluator {
       kind: 'render',
       context: result.context,
       componentRegistry: executor.componentRegistry,
+      output: undefined,
+      renderedBlocks: [],
     }
   }
 
@@ -265,7 +267,11 @@ export default class ForgeEvaluator {
           createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, functionRegistry),
           createAnswerPreparationPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
-        createJourneyRedirectTerminal(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
+        createJourneyRedirectTerminal<undefined>(
+          compiledJourney.navigationPlan,
+          routeTemplateCatalog,
+          functionRegistry,
+        ),
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyNodeId)
