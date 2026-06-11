@@ -32,6 +32,15 @@ export default class CodeEmitter {
     this.scopeStack = scopeStack
   }
 
+  /** Creates a fresh emitter primed with a `"use strict"` directive, the opening line of every generated function body. */
+  static strict(): CodeEmitter {
+    const emitter = new CodeEmitter()
+
+    emitter.code('"use strict";')
+
+    return emitter
+  }
+
   fork(): CodeEmitter {
     return new CodeEmitter(
       this.varCounter,

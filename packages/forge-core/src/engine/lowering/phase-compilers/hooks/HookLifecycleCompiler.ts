@@ -16,7 +16,8 @@ import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contrac
 import type {
   CompiledAccessHookFunction,
   CompiledSubmitHookFunction,
-} from '../../../contracts/runtime/hookLifecycle.type'
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledAccessHook, CompiledSubmitHook } from '../../../contracts/plans/compilationArtefacts.type'
 
 /**
  * Lowers a single access or submit hook AST node into a self-contained compiled
@@ -32,25 +33,30 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one access hook into a CompiledAccessHookFunction. The hook's `when`
-   * predicate gates its effects and outcome resolution; when no outcome resolves to
-   * a redirect or error the function falls through to `{ executed: true, outcome: "continue" }`.
+   * Compiles one access hook into an CompiledAccessHook carrying the hook node's id
+   * and its compiled function. The hook's `when` predicate gates its effects and
+   * outcome resolution; when no outcome resolves to a redirect or error the
+   * function falls through to `{ executed: true, outcome: "continue" }`.
    */
-  compileSingleAccessHook(hook: AccessHookASTNode): CompiledAccessHookFunction {
-    return compileGeneratedFunction<CompiledAccessHookFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleAccessHookSource(hook),
-      { forceAsync: true, phase: 'hooks' },
-    )!
+  compileAccessHook(hook: AccessHookASTNode): CompiledAccessHook {
+    return {
+      nodeId: hook.id,
+      evaluate: compileGeneratedFunction<CompiledAccessHookFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildAccessHookSource(hook),
+        { forceAsync: true, phase: 'hooks' },
+      ),
+    }
   }
 
   /**
    * Emits the access hook body: a `when` guard wrapping the awaited effect calls
    * and outcome returns, with a trailing 'continue' return for the unmatched path.
    */
-  private buildSingleAccessHookSource(hook: AccessHookASTNode): string {
-    const emitter = this.createEmitter()
+  private buildAccessHookSource(hook: AccessHookASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('HookLifecycleCompiler.buildAccessHookSource')
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 
@@ -65,19 +71,23 @@ export default class HookLifecycleCompiler {
   }
 
   /**
-   * Compiles one submit hook into a CompiledSubmitHookFunction. The hook runs only
-   * when both its `when` and `guards` predicates pass; a validating hook awaits
-   * `ctx.validate` and branches on the result, while a non-validating hook applies
-   * its `onAlways` branch directly. When either predicate does not pass the function
-   * falls through to `{ executed: false, validated: false, outcome: "continue" }`.
+   * Compiles one submit hook into a CompiledSubmitHook carrying the hook node's id
+   * and its compiled function. The hook runs only when both its `when` and
+   * `guards` predicates pass; a validating hook awaits `ctx.validate` and
+   * branches on the result, while a non-validating hook applies its `onAlways`
+   * branch directly. When either predicate does not pass the function falls
+   * through to `{ executed: false, validated: false, outcome: "continue" }`.
    */
-  compileSingleSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHookFunction {
-    return compileGeneratedFunction<CompiledSubmitHookFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleSubmitHookSource(hook),
-      { forceAsync: true, phase: 'hooks' },
-    )!
+  compileSubmitHook(hook: SubmitHookASTNode): CompiledSubmitHook {
+    return {
+      nodeId: hook.id,
+      evaluate: compileGeneratedFunction<CompiledSubmitHookFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildSubmitHookSource(hook),
+        { forceAsync: true, phase: 'hooks' },
+      ),
+    }
   }
 
   /**
@@ -85,8 +95,9 @@ export default class HookLifecycleCompiler {
    * the validated branch set or the single non-validating branch, with a trailing
    * unexecuted 'continue' return for the path where `when` or `guards` block the hook.
    */
-  private buildSingleSubmitHookSource(hook: SubmitHookASTNode): string {
-    const emitter = this.createEmitter()
+  private buildSubmitHookSource(hook: SubmitHookASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('HookLifecycleCompiler.buildSubmitHookSource')
 
     const whenVar = this.compilePredicate(hook.properties.when, true, emitter, 'whenPredicate')
 
@@ -107,15 +118,6 @@ export default class HookLifecycleCompiler {
     emitter.return('{ executed: false, validated: false, outcome: "continue" }')
 
     return emitter.toString()
-  }
-
-  /** Creates a fresh CodeEmitter primed with a `"use strict"` directive. */
-  private createEmitter(): CodeEmitter {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-
-    return emitter
   }
 
   /**

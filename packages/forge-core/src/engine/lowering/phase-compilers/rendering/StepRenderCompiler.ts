@@ -38,9 +38,9 @@ import type {
   CompiledStepMetadataFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
-  IteratorRenderBlockEntry,
+  CompiledIteratorRenderBlock,
   IteratorRenderBlockGroup,
-  RenderBlockEntry,
+  CompiledRenderBlock,
   RenderPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
 
@@ -329,8 +329,9 @@ export default class StepRenderCompiler {
     const compiledStepMetadata = this.compileStepMetadataFunction(stepNode)
     const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
 
-    const blocks: RenderBlockEntry[] = (stepNode.properties.blocks ?? []).map(block => ({
-      render: this.compileSingleBlock(block),
+    const blocks: CompiledRenderBlock[] = (stepNode.properties.blocks ?? []).map(block => ({
+      nodeId: block.id,
+      render: this.compileBlock(block),
     }))
 
     const iteratorGroups: IteratorRenderBlockGroup[] = []
@@ -347,7 +348,12 @@ export default class StepRenderCompiler {
       }
     }
 
-    return { compiledStepMetadata, compiledAncestorMetadata, blocks, iteratorGroups }
+    return {
+      compiledStepMetadata,
+      compiledAncestorMetadata,
+      renderBlocks: blocks,
+      iteratorRenderBlockGroups: iteratorGroups,
+    }
   }
 
   /**
@@ -375,9 +381,7 @@ export default class StepRenderCompiler {
    * `step` object of evaluated metadata properties.
    */
   private buildStepMetadataSource(stepNode: StepASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildStepMetadataSource')
     emitter.declareConst('step', '{}')
 
@@ -413,9 +417,7 @@ export default class StepRenderCompiler {
    * relative to its parents.
    */
   private buildAncestorMetadataSource(ancestorNodes: JourneyASTNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildAncestorMetadataSource')
     emitter.declareConst('ancestors', '[]')
 
@@ -429,11 +431,11 @@ export default class StepRenderCompiler {
   /**
    * Compiles one top-level block into a function producing a single RenderBlock.
    */
-  private compileSingleBlock(block: BlockASTNode): CompiledRenderBlockFunction {
+  private compileBlock(block: BlockASTNode): CompiledRenderBlockFunction {
     return compileGeneratedFunction<CompiledRenderBlockFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSingleBlockSource(block),
+      () => this.buildBlockSource(block),
       { phase: 'render' },
     )
   }
@@ -444,11 +446,9 @@ export default class StepRenderCompiler {
    * RenderBlock. Field blocks compile their code expression and resolve the
    * answer value when no explicit value is authored.
    */
-  private buildSingleBlockSource(block: BlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-    emitter.comment('StepRenderCompiler.buildSingleBlockSource')
+  private buildBlockSource(block: BlockASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('StepRenderCompiler.buildBlockSource')
 
     const propsVar = emitter.const('blockProps', '{}')
 
@@ -500,7 +500,7 @@ export default class StepRenderCompiler {
       return undefined
     }
 
-    const blocks: IteratorRenderBlockEntry[] = []
+    const blocks: CompiledIteratorRenderBlock[] = []
 
     this.collectLeafBlocks(template, blocks, [])
 
@@ -510,7 +510,7 @@ export default class StepRenderCompiler {
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
 
-    return { evaluateInput, blocks }
+    return { nodeId: iterateNode.id, evaluateInput, blocks }
   }
 
   /**
@@ -521,7 +521,7 @@ export default class StepRenderCompiler {
    */
   private collectLeafBlocks(
     template: TemplateValue,
-    entries: IteratorRenderBlockEntry[],
+    entries: CompiledIteratorRenderBlock[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(
@@ -533,6 +533,7 @@ export default class StepRenderCompiler {
     directNodes.forEach(node => {
       if (isTemplateBlockNode(node)) {
         entries.push({
+          nodeId: node.id,
           render: this.compileIteratorRenderBlock(node, ancestorIterates),
         })
 
@@ -567,9 +568,7 @@ export default class StepRenderCompiler {
    * A non-array input yields an empty array.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -625,9 +624,7 @@ export default class StepRenderCompiler {
    * returns that array.
    */
   private buildIteratorRenderBlockSource(block: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildIteratorRenderBlockSource')
 
     const outerFrame: IteratorScopeFrame = {

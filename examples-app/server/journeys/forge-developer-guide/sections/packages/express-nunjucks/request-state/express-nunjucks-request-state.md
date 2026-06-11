@@ -64,21 +64,26 @@ path with real parameter values.
 
 ## State merging
 
-Before any step handler runs, the adapter merges two sources
-into `req.state`:
+For each request, the adapter merges three sources into the
+request state, in priority order:
 
 ```
-req.state = { ...res.locals, ...req.state }
+state = { ...app.locals, ...res.locals, ...req.state }
 ```
 
 This means:
 
-1. **`res.locals`** - values set by upstream Express middleware
-   (e.g. CSRF tokens, user details, feature flags) become part
-   of the request state automatically.
-2. **`req.state`** - values set explicitly on `req.state` by
-   earlier middleware take priority over `res.locals` when keys
-   overlap.
+1. **`app.locals`** - application-wide values (e.g. service name,
+   environment flags) become part of the request state
+   automatically, with the lowest priority.
+2. **`res.locals`** - values set by upstream Express middleware
+   (e.g. CSRF tokens, user details, feature flags) override
+   `app.locals` when keys overlap.
+3. **`req.state`** - values set explicitly on `req.state` by
+   earlier middleware take priority over both when keys overlap.
+
+The same merged state reaches your page templates as template
+locals.
 
 ### Accessing state in journeys
 

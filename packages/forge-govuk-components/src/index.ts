@@ -3,7 +3,7 @@
  *
  * This package provides GOV.UK Design System components as forge compatible
  * components. Components receive the Nunjucks environment at render time from the
- * framework adapter.
+ * bound renderer.
  *
  * @example
  * ```typescript

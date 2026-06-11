@@ -1,62 +1,46 @@
 import type { NodeId } from '../ast/ast.type'
-import type { CompiledNavigationFunction, CompiledValidationFunction } from '../compiled/compiledFunctions.type'
-import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
+import type {
+  CompiledNavigationOutcomesFunction,
+  CompiledNavigationPredicateFunction,
+  CompiledNavigationTieBreakerFunction,
+  CompiledStepFieldCodesFunction,
+} from '../compiled/compiledFunctions.type'
+import type { ValidationPlan } from './compilationArtefacts.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
-export interface StepRuntimePlan {
-  stepId: NodeId
-  path: string
-  staticData: Record<string, unknown>
+export interface RuntimePlan {
+  readonly nodeId: NodeId
+  readonly path: string
+  readonly staticData: Record<string, unknown>
 }
 
 export interface NavigationRuntimePlan {
-  entries: NavigationRuntimeEntry[]
-  resumeConfigured: boolean
-  unreachableRedirect: UnreachableRedirectTarget
-  reachabilityDisabled: boolean
-  compiledNavigation?: CompiledNavigationFunction
-  compiledStepValidations: Map<NodeId, CompiledValidationFunction>
+  readonly navigationSteps: readonly CompiledNavigationStep[]
+  readonly resumeConfigured: boolean
+  /** True when the journey resumes unconditionally (`resumeWhen: true`). */
+  readonly resumeAlways: boolean
+  /** Evaluates the journey's `resumeWhen` predicate; absent when resume is static. */
+  readonly evaluateResumeWhen?: CompiledNavigationPredicateFunction
+  readonly unreachableRedirect: UnreachableRedirectTarget
+  readonly reachabilityDisabled: boolean
 }
 
-export interface NavigationRuntimeEntry {
-  stepId: NodeId
-  code?: string
-  isEntryPoint: boolean
-  hasValidation: boolean
-}
-
-export interface ReachabilityCompilationPlan {
-  navigationPlan: NavigationRuntimePlan
-  entries: ReachabilityCompilationEntry[]
-  resumeAlways: boolean
-  resumeWhenNodeId?: NodeId
-}
-
-export interface ReachabilityCompilationEntry extends NavigationRuntimeEntry {
-  entryWhenNodeId?: NodeId
-  forwardOutcomeGroups: ForwardOutcomeGroup[]
-  cleardownFieldCodes: string[]
-  reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
-}
-
-/**
- * Per-submit-hook grouping of forward outcomes. Each group corresponds to one
- * submit hook on the source step; the cascade short-circuit applies within a
- * group but never across groups.
- *
- * `hookWhenNodeId` is set only when the hook's `when:` is reachability-compilable
- * (does not reference request-time namespaces like post/params/query/request).
- * When set, the compiler wraps the group in `if (Boolean(whenExpr))`. When
- * unset, the group contributes its outcomes unguarded — an intentional
- * over-approximation for non-evaluable guards.
- */
-export interface ForwardOutcomeGroup {
-  hookWhenNodeId?: NodeId
-  outcomeIds: NodeId[]
-}
-
-export interface JourneyRuntimePlan {
-  journeyId: NodeId
-  path: string
-  staticData: Record<string, unknown>
+export interface CompiledNavigationStep {
+  readonly nodeId: NodeId
+  readonly code?: string
+  readonly isEntryPoint: boolean
+  /** Validation the reachability walk evaluates to decide step validity; empty when the step declares none. */
+  readonly validationPlan: ValidationPlan
+  /** Field codes cleared down when the step becomes unreachable. */
+  readonly cleardownFieldCodes: readonly string[]
+  /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */
+  readonly declaredOutcomes: readonly string[]
+  /** Evaluates the step's `entryWhen` predicate (absent = no predicate). */
+  readonly evaluateEntryWhen?: CompiledNavigationPredicateFunction
+  /** Evaluates the step's forward outcome gotos (absent = no redirect outcomes). */
+  readonly evaluateOutcomes?: CompiledNavigationOutcomesFunction
+  /** Resolves the step's tie-breaker priority (absent = no tie-breakers). */
+  readonly evaluateTieBreaker?: CompiledNavigationTieBreakerFunction
+  /** Collects the step's possible field codes (absent = no fields). */
+  readonly evaluateFieldCodes?: CompiledStepFieldCodesFunction
 }

@@ -1,5 +1,5 @@
 import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
-import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
+import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../../contracts/routing/routeTree.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
@@ -13,36 +13,32 @@ describe('RouteTreeBuilder', () => {
   function createJourneyDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Journey ${path}`,
-  ): JourneyRouteDescriptor {
+  ): RouteDescriptor {
     return {
       nodeId: id,
       path,
       title,
-      ancestorJourneyIds,
+      ancestorJourneyNodeIds,
     }
   }
 
   function createStepDescriptor(
     id: CompileAstNodeId,
     path: string,
-    ancestorJourneyIds: readonly NodeId[],
+    ancestorJourneyNodeIds: readonly NodeId[],
     title = `Step ${path}`,
-  ): StepRouteDescriptor {
+  ): RouteDescriptor {
     return {
       nodeId: id,
       path,
       title,
-      ancestorJourneyIds,
+      ancestorJourneyNodeIds,
     }
   }
 
-  function buildRouteTree(
-    journeys: JourneyRouteDescriptor[],
-    steps: StepRouteDescriptor[],
-    basePath = '',
-  ): BuildFixture {
+  function buildRouteTree(journeys: RouteDescriptor[], steps: RouteDescriptor[], basePath = ''): BuildFixture {
     const index = createRouteTreeIndex()
     const builder = new RouteTreeBuilder(index)
     const result = builder.build({

@@ -27,6 +27,7 @@ export type {
   StepDefinition,
   TieBreaker,
   TieBreakerProps,
+  UnreachableRedirectTarget,
   ValidationExpr,
   ValidationProps,
   ViewConfig,

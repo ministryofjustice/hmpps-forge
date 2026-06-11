@@ -18,7 +18,7 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import { attachDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { RenderCompilationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { RenderBlock } from '../../../../framework/rendering/types'
-import { evaluateRender } from '../../../runtime/orchestrator/phases/evaluateRender'
+import { evaluateRender } from '../../../runtime/pipeline/phases/evaluateRender'
 import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -130,7 +130,7 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const plan = syncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
-      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
+      const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
 
       // Assert
       expect(blockResult).not.toBeInstanceOf(Promise)
@@ -162,12 +162,29 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const plan = asyncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
-      const blockResult = plan.blocks[0].render(createCtx({ conditions: functionRegistry }))
+      const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
       const result = await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
 
       // Assert
       expect(blockResult).toBeInstanceOf(Promise)
       expect(result.blocks[0].properties.content).toBe('Hello Ada')
+    })
+
+    it('should stamp node ids on render plan entries for trace attribution', () => {
+      // Arrange
+      const block = ASTTestFactory.block('content', BlockType.BASIC)
+        .withProperty('content', 'Hello')
+        .build()
+      const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
+      const iterateNode = createIterateNode(createTemplate([field]))
+
+      // Act
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [], [iterateNode])
+
+      // Assert
+      expect(plan.renderBlocks[0].nodeId).toBe(block.id)
+      expect(plan.iteratorRenderBlockGroups[0].nodeId).toBe(iterateNode.id)
+      expect(plan.iteratorRenderBlockGroups[0].blocks[0].nodeId).toBeDefined()
     })
 
     it('should not mutate source collection objects when rendering iterator blocks', async () => {

@@ -9,11 +9,13 @@ prerequisites: [packages, journey, step, block]
 <p class="govuk-caption-xl">Packages</p>
 
 # Express-Nunjucks Adapter
-The Express-Nunjucks Adapter package connects Forge to Express.js and the
-Nunjucks template engine. It handles routing, request mapping,
-state merging, template resolution, and block rendering so that
-your journeys render as server-side HTML pages within an Express
-application.
+The Express-Nunjucks package connects Forge to Express.js and the
+Nunjucks template engine. It provides two pieces: `NunjucksRenderer`,
+which turns your journey's blocks into HTML, and `createExpressRouter`,
+which handles routing, request mapping, and state merging so that your
+journeys render as server-side HTML pages within an Express application.
+`createExpressRouter` wires the two together for you — you only pass it
+your Forge instance and a Nunjucks environment.
 
 {{slot:toc}}
 
@@ -24,6 +26,7 @@ application.
 ```typescript
 import {
   createExpressRouter,
+  NunjucksRenderer,
   buildNunjucksComponent,
   NunjucksGenerators,
   nunjucksFunctions,
@@ -34,8 +37,9 @@ import {
 
 ## Setting up the router
 
-Pass your Forge instance and Nunjucks environment to
-`createExpressRouter` to produce an Express router:
+Pass your Forge instance and the Nunjucks environment to
+`createExpressRouter` to produce an Express router — it sets up the
+Nunjucks rendering for you:
 
 ```typescript
 import nunjucks from 'nunjucks'
@@ -52,7 +56,7 @@ const forge = new Forge({ logger })
 app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
-### Configuration options
+### Router options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

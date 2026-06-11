@@ -8,7 +8,7 @@ import {
 
 function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
   return {
-    stepId: 'compile_ast:500',
+    stepNodeId: 'compile_ast:500',
     routeTemplatePath: '/journey/current',
     declarationIndex: 0,
     isEntryPoint: false,
@@ -24,7 +24,7 @@ function createNavigationStep(overrides: Partial<NavigationStepState> = {}): Nav
 
 function createEvaluation(overrides: Partial<NavigationEvaluation> = {}): NavigationEvaluation {
   return {
-    currentStepId: 'compile_ast:500',
+    currentStepNodeId: 'compile_ast:500',
     steps: [createNavigationStep()],
     defaultEntryRouteTemplatePath: '/journey/entry',
     frontierRouteTemplatePath: undefined,
@@ -72,7 +72,7 @@ describe('navigationRedirects', () => {
     // Arrange
     const unreachable = createNavigationStep({ isReachable: false })
     const evaluation = createEvaluation({
-      currentStepId: unreachable.stepId,
+      currentStepNodeId: unreachable.stepNodeId,
       steps: [unreachable],
     })
 
@@ -87,7 +87,7 @@ describe('navigationRedirects', () => {
     // Arrange
     const unreachable = createNavigationStep({ isReachable: false })
     const evaluation = createEvaluation({
-      currentStepId: unreachable.stepId,
+      currentStepNodeId: unreachable.stepNodeId,
       steps: [unreachable],
       frontierRouteTemplatePath: '/journey/frontier',
       unreachableRedirect: 'frontier',
@@ -104,7 +104,7 @@ describe('navigationRedirects', () => {
     // Arrange
     const unreachable = createNavigationStep({ isReachable: false })
     const evaluation = createEvaluation({
-      currentStepId: unreachable.stepId,
+      currentStepNodeId: unreachable.stepNodeId,
       steps: [unreachable],
       unreachableRedirect: 'frontier',
     })
@@ -120,7 +120,7 @@ describe('navigationRedirects', () => {
     // Arrange
     const unreachable = createNavigationStep({ isReachable: false })
     const evaluation = createEvaluation({
-      currentStepId: unreachable.stepId,
+      currentStepNodeId: unreachable.stepNodeId,
       steps: [unreachable],
       defaultEntryRouteTemplatePath: '/journey/entry',
       frontierRouteTemplatePath: '/journey/resume-frontier',
@@ -139,7 +139,7 @@ describe('navigationRedirects', () => {
     // Arrange
     const unreachable = createNavigationStep({ isReachable: false })
     const evaluation = createEvaluation({
-      currentStepId: unreachable.stepId,
+      currentStepNodeId: unreachable.stepNodeId,
       steps: [unreachable],
       frontierRouteTemplatePath: '/journey/frontier',
       unreachableRedirect: 'frontier',

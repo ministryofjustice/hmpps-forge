@@ -23,8 +23,9 @@ import type {
   CompiledIteratorInputFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
+  CompiledFieldAnswerPreparation,
   IteratorAnswerPreparationGroup,
-  IteratorFieldAnswerPreparationEntry,
+  CompiledIteratorFieldAnswerPreparation,
 } from '../../../contracts/plans/compilationArtefacts.type'
 import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
@@ -298,25 +299,27 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Compiles one registered field into a standalone prepare function that branches on request method
-   * at call time, formatting the submitted value on POST or seeding the default on GET. The compiled
-   * function mutates ctx.answers in place and is async only if any threaded expression awaits.
+   * Compiles one registered field into an identified prepare entry whose function branches on
+   * request method at call time, formatting the submitted value on POST or seeding the default on
+   * GET. The compiled function mutates ctx.answers in place and is async only if any threaded
+   * expression awaits.
    */
-  compileSingleFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparationFunction {
-    return compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSingleFieldPreparationSource(block),
-      { phase: 'answer-preparation' },
-    )
+  compileFieldPreparation(block: FieldBlockASTNode): CompiledFieldAnswerPreparation {
+    return {
+      nodeId: block.id,
+      prepare: compileGeneratedFunction<CompiledFieldAnswerPreparationFunction>(
+        this.expr,
+        ['ctx'],
+        () => this.buildFieldPreparationSource(block),
+        { phase: 'answer-preparation' },
+      ),
+    }
   }
 
   /** Emits the source for a registered field's prepare function: a runtime branch on request method into the POST or GET path. */
-  private buildSingleFieldPreparationSource(block: FieldBlockASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-    emitter.comment('StepAnswerPreparationCompiler.buildSingleFieldPreparationSource')
+  private buildFieldPreparationSource(block: FieldBlockASTNode): string {
+    const emitter = CodeEmitter.strict()
+    emitter.comment('StepAnswerPreparationCompiler.buildFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 
     emitter.if(
@@ -340,7 +343,7 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    const fields: IteratorFieldAnswerPreparationEntry[] = []
+    const fields: CompiledIteratorFieldAnswerPreparation[] = []
 
     this.collectLeafFields(template, fields, [])
 
@@ -350,7 +353,7 @@ export default class StepAnswerPreparationCompiler {
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
 
-    return { evaluateInput, fields }
+    return { nodeId: iterateNode.id, evaluateInput, fields }
   }
 
   /**
@@ -360,7 +363,7 @@ export default class StepAnswerPreparationCompiler {
    */
   private collectLeafFields(
     template: TemplateValue,
-    entries: IteratorFieldAnswerPreparationEntry[],
+    entries: CompiledIteratorFieldAnswerPreparation[],
     ancestorIterates: readonly TemplateNode[],
   ): void {
     const directNodes = this.templates.findTemplateNodes(
@@ -372,6 +375,7 @@ export default class StepAnswerPreparationCompiler {
     directNodes.forEach(node => {
       if (isTemplateFieldNode(node)) {
         entries.push({
+          nodeId: node.id,
           prepare: this.compileIteratorFieldPreparation(node, ancestorIterates),
         })
 
@@ -403,9 +407,7 @@ export default class StepAnswerPreparationCompiler {
    * normalize to an array.
    */
   private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepAnswerPreparationCompiler.buildIteratorInputEvaluatorSource')
 
     const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
@@ -457,9 +459,7 @@ export default class StepAnswerPreparationCompiler {
    * iteratorScope, then descends through any intermediate iterator levels before compiling the field.
    */
   private buildIteratorFieldPreparationSource(field: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
+    const emitter = CodeEmitter.strict()
     emitter.comment('StepAnswerPreparationCompiler.buildIteratorFieldPreparationSource')
     emitter.declareConst('isPost', 'ctx.request.method === "POST"')
 

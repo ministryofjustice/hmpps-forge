@@ -48,11 +48,11 @@ export default class PackageInstance {
     return this.dependencies
   }
 
-  getCompiledStep(stepId: NodeId): CompiledStep {
-    const step = this.compilation.steps.get(stepId)
+  getCompiledStep(stepNodeId: NodeId): CompiledStep {
+    const step = this.compilation.steps.get(stepNodeId)
 
     if (!step) {
-      throw new Error(`Step "${stepId}" not found in compiled journey`)
+      throw new Error(`Step "${stepNodeId}" not found in compiled journey`)
     }
 
     return step
@@ -66,8 +66,8 @@ export default class PackageInstance {
     return new Map(this.compilation.journeyRouteIndex)
   }
 
-  getCompiledJourney(journeyId: NodeId): CompiledJourney | undefined {
-    return this.compilation.journeys.get(journeyId)
+  getCompiledJourney(journeyNodeId: NodeId): CompiledJourney | undefined {
+    return this.compilation.journeys.get(journeyNodeId)
   }
 
   getConfiguration(): JourneyDefinition {
