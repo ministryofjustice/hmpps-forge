@@ -77,10 +77,8 @@ export interface JourneyCompilationInputs {
 }
 
 export interface FieldInventoryStepSource {
-  readonly stepNodeId: NodeId
   readonly fieldBlocks: readonly FieldBlockASTNode[]
   readonly iterateNodes: readonly IterateASTNode[]
-  readonly cleardownFieldCodes: readonly string[]
 }
 
 export interface CompilationPlan {

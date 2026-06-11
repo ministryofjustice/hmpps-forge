@@ -12,7 +12,6 @@ import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import type { RuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type {
   CompilationPlan,
-  FieldInventoryStepSource,
   ForwardOutcomeGroup,
   JourneyCompilationInputs,
   ReachabilityStepInputs,
@@ -41,7 +40,7 @@ export default class CompilationPlanner {
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
-    const journeyStepMap = new Map<NodeId, StepASTNode[]>()
+    const stepInputsByJourneyNodeId = new Map<NodeId, StepCompilationInputs[]>()
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const navigationPlanNodeIdByStepNodeId = new Map<NodeId, NodeId>()
     const reachabilityPlans = new Map<NodeId, ReachabilityCompilationPlan>()
@@ -49,26 +48,27 @@ export default class CompilationPlanner {
 
     stepIndex.forEach((stepNode, stepNodeId) => {
       const runtimePlan = this.buildRuntimePlan(stepNode)
+      const inputs = this.buildStepInputs(stepNode, runtimePlan)
 
-      stepInputs.set(stepNodeId, this.buildStepInputs(stepNode, runtimePlan))
+      stepInputs.set(stepNodeId, inputs)
 
       const ancestors = getAncestorChain(stepNodeId, this.astNodeTree)
       const parentJourneyNodeId = ancestors[ancestors.length - 2]
 
       if (parentJourneyNodeId) {
-        const existingJourneySteps = journeyStepMap.get(parentJourneyNodeId) ?? []
+        const existingJourneyStepInputs = stepInputsByJourneyNodeId.get(parentJourneyNodeId) ?? []
 
-        existingJourneySteps.push(stepNode)
-        journeyStepMap.set(parentJourneyNodeId, existingJourneySteps)
+        existingJourneyStepInputs.push(inputs)
+        stepInputsByJourneyNodeId.set(parentJourneyNodeId, existingJourneyStepInputs)
       }
     })
 
-    journeyStepMap.forEach((journeySteps, journeyNodeId) => {
+    stepInputsByJourneyNodeId.forEach((journeyStepInputs, journeyNodeId) => {
       const journeyNode = journeyIndex.get(journeyNodeId)
-      const reachabilityPlan = this.buildReachabilityPlan(journeyNodeId, journeySteps, journeyNode, journeyIndex)
+      const reachabilityPlan = this.buildReachabilityPlan(journeyNodeId, journeyStepInputs, journeyNode, journeyIndex)
 
-      journeySteps.forEach(stepNode => {
-        navigationPlanNodeIdByStepNodeId.set(stepNode.id, reachabilityPlan.journeyNodeId)
+      journeyStepInputs.forEach(inputs => {
+        navigationPlanNodeIdByStepNodeId.set(inputs.stepNode.id, reachabilityPlan.journeyNodeId)
       })
 
       reachabilityPlans.set(reachabilityPlan.journeyNodeId, reachabilityPlan)
@@ -144,11 +144,11 @@ export default class CompilationPlanner {
 
   private buildReachabilityPlan(
     journeyNodeId: NodeId,
-    journeySteps: StepASTNode[],
+    journeyStepInputs: StepCompilationInputs[],
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: JourneyIndex,
   ): ReachabilityCompilationPlan {
-    const steps = journeySteps.map(stepNode => this.buildReachabilityStepInputs(stepNode))
+    const steps = journeyStepInputs.map(stepInputs => this.buildReachabilityStepInputs(stepInputs))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
@@ -164,15 +164,15 @@ export default class CompilationPlanner {
     }
   }
 
-  private buildReachabilityStepInputs(stepNode: StepASTNode): ReachabilityStepInputs {
-    const stepNodeId = stepNode.id
+  private buildReachabilityStepInputs(stepInputs: StepCompilationInputs): ReachabilityStepInputs {
+    const { stepNode } = stepInputs
     const { forwardOutcomeGroups, declaredOutcomes } = this.extractForwardNavigation(stepNode)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
 
     return {
-      nodeId: stepNodeId,
+      nodeId: stepNode.id,
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
@@ -183,21 +183,10 @@ export default class CompilationPlanner {
         priority: tieBreaker.properties.priority,
         whenNodeId: tieBreaker.properties.when?.id,
       })),
-      fieldInventorySource: this.buildFieldInventorySource(stepNodeId, stepNode.properties.cleardownFieldCodes ?? []),
-    }
-  }
-
-  private buildFieldInventorySource(
-    stepNodeId: NodeId,
-    cleardownFieldCodes: readonly string[],
-  ): FieldInventoryStepSource {
-    return {
-      stepNodeId,
-      cleardownFieldCodes,
-      fieldBlocks: this.allFieldBlocks
-        .filter(block => this.astNodeTree.isDescendantOf(block.id, stepNodeId)),
-      iterateNodes: this.allMapIterateNodes
-        .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId)),
+      fieldInventorySource: {
+        fieldBlocks: stepInputs.fieldBlocks,
+        iterateNodes: stepInputs.mapIterateNodes,
+      },
     }
   }
 

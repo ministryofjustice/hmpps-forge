@@ -238,10 +238,8 @@ describe('CompilationPlanner', () => {
 
       expect(plan.stepInputs.get(step.id)?.entryValidations).toEqual(step.properties.validateOnEntry)
       expect(stepInputs.fieldInventorySource).toMatchObject({
-        stepNodeId: step.id,
         fieldBlocks: [field],
         iterateNodes: [],
-        cleardownFieldCodes: ['stale-name'],
       })
     })
 

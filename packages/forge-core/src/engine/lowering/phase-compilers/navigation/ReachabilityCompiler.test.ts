@@ -73,10 +73,8 @@ function createStepInputs(overrides: Partial<ReachabilityStepInputs> = {}): Reac
     declaredOutcomes: [],
     reachabilityTieBreakers: [],
     fieldInventorySource: {
-      stepNodeId,
       fieldBlocks: [],
       iterateNodes: [],
-      cleardownFieldCodes: [],
     },
     ...overrides,
   }
