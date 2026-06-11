@@ -77,7 +77,7 @@ describe('submitLifecyclePhase', () => {
       expect(result).toEqual({ action: 'halt-error', status: 400, message: 'Bad request' })
     })
 
-    it('should throw when redirect target is missing', async () => {
+    it('should return halt-error when redirect target is missing', async () => {
       // Arrange
       const plan = mockHook({ executed: true, validated: false, outcome: 'redirect', redirect: undefined })
       const phase = createSubmitLifecyclePhase(
@@ -87,8 +87,11 @@ describe('submitLifecyclePhase', () => {
         mockFunctionRegistry,
       )
 
-      // Act & Assert
-      await expect(phase.execute(createPipelineState())).rejects.toThrow('Hook redirect target is missing')
+      // Act
+      const result = await phase.execute(createPipelineState())
+
+      // Assert
+      expect(result).toEqual({ action: 'halt-error', status: 500, message: 'Hook redirect target is missing' })
     })
 
     it('should record submit-hook units into the state trace recorder when present', async () => {

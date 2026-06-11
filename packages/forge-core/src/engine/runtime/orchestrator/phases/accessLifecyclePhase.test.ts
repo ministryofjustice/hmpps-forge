@@ -45,13 +45,16 @@ describe('accessLifecyclePhase', () => {
       expect(result).toEqual({ action: 'halt-redirect', target: '/login', reason: 'access-lifecycle' })
     })
 
-    it('should throw when redirect target is missing', async () => {
+    it('should return halt-error when redirect target is missing', async () => {
       // Arrange
       const plan = mockHook({ executed: true, outcome: 'redirect', redirect: undefined })
       const phase = createAccessLifecyclePhase(plan, mockFunctionRegistry)
 
-      // Act & Assert
-      await expect(phase.execute(createPipelineState())).rejects.toThrow('Hook redirect target is missing')
+      // Act
+      const result = await phase.execute(createPipelineState())
+
+      // Assert
+      expect(result).toEqual({ action: 'halt-error', status: 500, message: 'Hook redirect target is missing' })
     })
 
     it('should return halt-error when access lifecycle errors', async () => {

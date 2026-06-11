@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import type { SubmitLifecyclePlan, ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 import type { NodeId } from '../../../contracts/ast/engine.type'
@@ -13,7 +12,8 @@ import type { RequestPhase } from '../types'
  * wiring a `validate(groups)` callback that runs the step's ValidationPlan on
  * demand from within a hook and stamps the verdict on
  * `context.global.validation`. Branches on the first executed hook's outcome —
- * 'redirect' halts with its target (500 if the target is missing), 'error'
+ * 'redirect' halts with its target (or with a 500 error if the target is
+ * missing), 'error'
  * halts with its status/message (defaulting to 500), otherwise records on the
  * pipeline state whether the hook triggered validation
  * (`showValidationFailures`) and the verdict the callback returned, then
@@ -66,7 +66,7 @@ export function createSubmitLifecyclePhase(
 
       if (result.outcome === 'redirect') {
         if (result.redirect === undefined) {
-          throw createHttpError(500, 'Hook redirect target is missing')
+          return { action: 'halt-error', status: 500, message: 'Hook redirect target is missing' }
         }
 
         return { action: 'halt-redirect', target: result.redirect, reason: 'submit-lifecycle' }

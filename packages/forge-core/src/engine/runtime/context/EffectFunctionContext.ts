@@ -206,7 +206,11 @@ class EffectFunctionContext<
   /**
    * Get raw POST data (before formatting)
    */
-  getPostData(key?: string): any | undefined {
+  getPostData(): Record<string, string | string[]>
+
+  getPostData(key: string): string | string[] | undefined
+
+  getPostData(key?: string): Record<string, string | string[]> | string | string[] | undefined {
     if (key === undefined) {
       return { ...this.context.request.getAllPost() }
     }
