@@ -7,7 +7,7 @@ import type {
   CompiledStep,
   JourneyCompilationResult,
 } from './contracts/plans/compilationArtefacts.type'
-import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
+import type { RouteDescriptor } from './contracts/routing/routeDescriptors.type'
 import type { CompilationDependencies } from './lowering/compilationDependencies.type'
 import { NodeIDCategory, NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from './ast/nodes/NodeFactory'
@@ -42,8 +42,8 @@ export default class JourneyCompiler {
 
     return {
       journeyCode: rootNode.properties.code,
-      stepRouteIndex: this.buildStepRouteIndex(stepNodes, nodeRegistry, astNodeTree),
-      journeyRouteIndex: this.buildJourneyRouteIndex(journeyNodes, nodeRegistry, astNodeTree),
+      stepRouteIndex: this.buildRouteIndex(stepNodes, nodeRegistry, astNodeTree),
+      journeyRouteIndex: this.buildRouteIndex(journeyNodes, nodeRegistry, astNodeTree),
       steps,
       journeys,
     }
@@ -86,42 +86,22 @@ export default class JourneyCompiler {
     return codegen.compileAll(plan, nodeRegistry)
   }
 
-  private buildJourneyRouteIndex(
-    journeyNodes: JourneyASTNode[],
+  /**
+   * The JOURNEY type filter keeps a journey node's own id in its ancestor list
+   * (getAncestorChain includes the start node) while dropping a step node's.
+   * RouteTreeBuilder.buildJourneyContexts relies on that self-inclusion to
+   * build each journey's own context.
+   */
+  private buildRouteIndex(
+    nodes: (StepASTNode | JourneyASTNode)[],
     nodeRegistry: ASTNodeIndex,
     astNodeTree: ASTNodeTree,
-  ): JourneyRouteIndex {
+  ): Map<NodeId, RouteDescriptor> {
     return new Map(
-      journeyNodes.map(node => {
+      nodes.map(node => {
         const ancestorJourneyNodeIds = getAncestorChain(node.id, astNodeTree).filter(
           id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY,
         )
-
-        return [
-          node.id,
-          {
-            nodeId: node.id,
-            path: node.properties.path,
-            title: node.properties.title,
-            description: node.properties.description,
-            metadata: node.properties.metadata,
-            ancestorJourneyNodeIds,
-          },
-        ]
-      }),
-    )
-  }
-
-  private buildStepRouteIndex(
-    stepNodes: StepASTNode[],
-    nodeRegistry: ASTNodeIndex,
-    astNodeTree: ASTNodeTree,
-  ): StepRouteIndex {
-    return new Map(
-      stepNodes.map(node => {
-        const ancestorJourneyNodeIds = getAncestorChain(node.id, astNodeTree)
-          .filter(id => id !== node.id)
-          .filter(id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY)
 
         return [
           node.id,

@@ -1,6 +1,6 @@
 import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
 import { PackageDependencies } from '../../contracts/ast/engine.type'
-import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
+import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
@@ -28,7 +28,7 @@ describe('ForgeEvaluator', () => {
     path: string,
     ancestorJourneyNodeIds: readonly NodeId[],
     title = `Journey ${path}`,
-  ): JourneyRouteDescriptor {
+  ): RouteDescriptor {
     return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
@@ -37,11 +37,11 @@ describe('ForgeEvaluator', () => {
     path: string,
     ancestorJourneyNodeIds: readonly NodeId[],
     title = `Step ${path}`,
-  ): StepRouteDescriptor {
+  ): RouteDescriptor {
     return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
-  function createCompiledStep(descriptor: StepRouteDescriptor): CompiledStep {
+  function createCompiledStep(descriptor: RouteDescriptor): CompiledStep {
     return {
       runtimePlan: {
         nodeId: descriptor.nodeId,
@@ -64,7 +64,7 @@ describe('ForgeEvaluator', () => {
     }
   }
 
-  function createCompiledJourney(descriptor: JourneyRouteDescriptor): CompiledJourney {
+  function createCompiledJourney(descriptor: RouteDescriptor): CompiledJourney {
     return {
       runtimePlan: {
         nodeId: descriptor.nodeId,
@@ -83,10 +83,7 @@ describe('ForgeEvaluator', () => {
     }
   }
 
-  function createPackageInstance(
-    journeys: JourneyRouteDescriptor[],
-    steps: StepRouteDescriptor[],
-  ): Mocked<PackageInstance> {
+  function createPackageInstance(journeys: RouteDescriptor[], steps: RouteDescriptor[]): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
     const compiledJourneys = new Map<NodeId, CompiledJourney>(
       journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
