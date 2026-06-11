@@ -1,4 +1,8 @@
-import { pickTieBreakerWinner, resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
+import {
+  pickTieBreakerWinner,
+  resolveBacklinkRouteTemplatePathForStep,
+  resolveDefaultEntryRouteTemplatePath,
+} from './NavigationPathAnalyzer'
 import type { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
 
 function createNavigationStep(overrides: Partial<NavigationStepState> = {}): NavigationStepState {
@@ -40,5 +44,30 @@ describe('NavigationPathAnalyzer helpers', () => {
     expect(pickTieBreakerWinner([first, { ...second, tieBreakerPriority: 5 }])).toBe(first)
     expect(pickTieBreakerWinner([unmatched, first])).toBe(first)
     expect(pickTieBreakerWinner([])).toBeUndefined()
+  })
+
+  it('should resolve the default entry from active entries when present', () => {
+    // Arrange
+    const entry = createNavigationStep({ routeTemplatePath: '/journey/start', isEntryPoint: true })
+    const conditionalEntry = createNavigationStep({
+      routeTemplatePath: '/journey/alt-start',
+      isConditionalEntry: true,
+      tieBreakerPriority: 10,
+    })
+    const nonEntry = createNavigationStep({ routeTemplatePath: '/journey/middle' })
+
+    // Act / Assert
+    expect(resolveDefaultEntryRouteTemplatePath([entry, conditionalEntry, nonEntry])).toBe('/journey/alt-start')
+    expect(resolveDefaultEntryRouteTemplatePath([entry, nonEntry])).toBe('/journey/start')
+  })
+
+  it('should fall back to the first declared step when no entry is active', () => {
+    // Arrange
+    const first = createNavigationStep({ routeTemplatePath: '/journey/first' })
+    const second = createNavigationStep({ routeTemplatePath: '/journey/second' })
+
+    // Act / Assert
+    expect(resolveDefaultEntryRouteTemplatePath([first, second])).toBe('/journey/first')
+    expect(resolveDefaultEntryRouteTemplatePath([])).toBeUndefined()
   })
 })

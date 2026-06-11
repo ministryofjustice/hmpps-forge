@@ -49,6 +49,22 @@ export function resolveBacklinkRouteTemplatePathForStep(
   return canonicalPathRouteTemplatePaths[currentIndex - 1]
 }
 
+/**
+ * Resolves the route template path of the journey's default entry step: the
+ * tie-breaker winner among active entries, falling back to the first declared
+ * step when no entry is active.
+ */
+export function resolveDefaultEntryRouteTemplatePath(steps: NavigationStepState[]): string | undefined {
+  const activeEntries = steps.filter(isActiveEntry)
+  const winner = pickTieBreakerWinner(activeEntries)
+
+  if (winner) {
+    return winner.routeTemplatePath
+  }
+
+  return steps[0]?.routeTemplatePath
+}
+
 export default class NavigationPathAnalyzer {
   analyze(
     steps: NavigationStepState[],
@@ -96,7 +112,7 @@ export default class NavigationPathAnalyzer {
 
   private resolveResumePath(steps: NavigationStepState[]): NavigationStepState[] | undefined {
     const candidates = steps
-      .filter(step => this.isActiveEntry(step))
+      .filter(isActiveEntry)
       .map(entry => {
         const path = this.resolvePathFromAnchorStep(entry, steps)
 
@@ -163,7 +179,7 @@ export default class NavigationPathAnalyzer {
     const visited = new Set([step.routeTemplatePath])
     let current = step
 
-    while (!this.isActiveEntry(current) && current.predecessorRouteTemplatePaths.length > 0) {
+    while (!isActiveEntry(current) && current.predecessorRouteTemplatePaths.length > 0) {
       const predecessors = current.predecessorRouteTemplatePaths
         .map(routeTemplatePath => stepByRouteTemplatePath.get(routeTemplatePath))
         .filter((candidate): candidate is NavigationStepState => candidate !== undefined)
@@ -237,7 +253,7 @@ export default class NavigationPathAnalyzer {
   }
 
   private resolveFrontierRouteTemplatePath(path: NavigationStepState[]): string | undefined {
-    const nonEntrySteps = path.filter(step => !this.isActiveEntry(step))
+    const nonEntrySteps = path.filter(step => !isActiveEntry(step))
     const firstInvalid = nonEntrySteps.find(step => !step.isValid)
 
     if (firstInvalid) {
@@ -253,8 +269,8 @@ export default class NavigationPathAnalyzer {
 
     return undefined
   }
+}
 
-  private isActiveEntry(step: NavigationStepState): boolean {
-    return step.isEntryPoint || step.isConditionalEntry
-  }
+function isActiveEntry(step: NavigationStepState): boolean {
+  return step.isEntryPoint || step.isConditionalEntry
 }

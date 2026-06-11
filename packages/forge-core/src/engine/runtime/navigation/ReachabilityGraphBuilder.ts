@@ -1,5 +1,4 @@
 import type { CompiledNavigationStep, NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
-import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
 import { JourneyRouteTemplateCatalog } from '../../contracts/routing/routeTree.type'
 import { NodeId } from '../../contracts/ast/ast.type'
 import { NavigationStepState } from '../../contracts/navigation/navigationEvaluation.type'
@@ -324,18 +323,4 @@ export default class ReachabilityGraphBuilder {
     }
   }
 
-  resolveDefaultEntryRouteTemplatePath(steps: NavigationStepState[]): string | undefined {
-    const activeEntries = steps.filter(step => this.isActiveEntry(step))
-    const winner = pickTieBreakerWinner(activeEntries)
-
-    if (winner) {
-      return winner.routeTemplatePath
-    }
-
-    return steps[0]?.routeTemplatePath
-  }
-
-  private isActiveEntry(step: NavigationStepState): boolean {
-    return step.isEntryPoint || step.isConditionalEntry
-  }
 }

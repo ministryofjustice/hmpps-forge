@@ -1,5 +1,5 @@
 import ReachabilityGraphBuilder from '../../navigation/ReachabilityGraphBuilder'
-import NavigationPathAnalyzer from '../../navigation/NavigationPathAnalyzer'
+import NavigationPathAnalyzer, { resolveDefaultEntryRouteTemplatePath } from '../../navigation/NavigationPathAnalyzer'
 import ReachabilityStateProjector from '../../navigation/ReachabilityStateProjector'
 import {
   resolveJourneyRootRedirect,
@@ -44,7 +44,7 @@ export async function evaluateNavigation(
   const compiledResult = await evaluateNavigationLeaves(plan, ctx)
   const graphBuilder = new ReachabilityGraphBuilder()
   const steps = await graphBuilder.build(plan, input.currentStepNodeId, input.routeTemplateCatalog, ctx, compiledResult)
-  const defaultEntryRouteTemplatePath = graphBuilder.resolveDefaultEntryRouteTemplatePath(steps)
+  const defaultEntryRouteTemplatePath = resolveDefaultEntryRouteTemplatePath(steps)
   const pathAnalysis = new NavigationPathAnalyzer().analyze(
     steps,
     input.currentStepNodeId,
