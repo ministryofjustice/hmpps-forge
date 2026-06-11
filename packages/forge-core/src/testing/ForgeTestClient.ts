@@ -165,7 +165,7 @@ export class ForgeTestClient {
     return normalized
   }
 
-  private toResult(outcome: ForgeOutcome, response: TestResponseBindings): TestResult {
+  private toResult(outcome: ForgeOutcome<unknown>, response: TestResponseBindings): TestResult {
     if (outcome.kind === 'navigate') {
       return {
         type: 'redirect',

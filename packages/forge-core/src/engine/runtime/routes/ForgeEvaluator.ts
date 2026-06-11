@@ -20,10 +20,12 @@ import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPrepa
 import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
 import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
 import { createSubmitLifecyclePhase } from '../orchestrator/phases/submitLifecyclePhase'
-import { createStepRenderTerminal } from '../orchestrator/terminals/stepRenderTerminal'
+import { createRenderEvaluationPhase } from '../orchestrator/phases/renderEvaluationPhase'
+import { createRenderOutputTerminal } from '../orchestrator/terminals/renderOutputTerminal'
 import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
 import SnapshotStepRequest from '../snapshot/SnapshotStepRequest'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
+import type { ForgeRenderer } from '../../../framework/rendering/types'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../../../framework/types/outcome.type'
@@ -34,11 +36,11 @@ import type { ForgeRoute, ForgeTopology } from '../../../framework/types/topolog
  * evaluate and instrument it. `get` always exists for both steps and journey
  * roots; `post` is present only for steps (the submit pipeline).
  */
-interface NodeExecutor {
+interface NodeExecutor<TOut> {
   readonly staticData: Record<string, unknown>
   readonly componentRegistry: ComponentRegistry
-  readonly get?: RequestOrchestrator
-  readonly post?: RequestOrchestrator
+  readonly get?: RequestOrchestrator<TOut>
+  readonly post?: RequestOrchestrator<TOut>
 }
 
 /**
@@ -47,19 +49,22 @@ interface NodeExecutor {
  * {@link getTopology}. It owns no router and never touches a native request —
  * adapters consume the topology to register routes and call `evaluate`.
  */
-export default class ForgeEvaluator {
+export default class ForgeEvaluator<TOut = undefined> {
   private readonly basePath: string
+
+  private readonly renderer?: ForgeRenderer<TOut>
 
   private readonly routeTreeIndex: RouteTreeIndex = createRouteTreeIndex()
 
   private readonly contextPreparer = new ContextPreparer()
 
-  private readonly executorsByRouteKey = new Map<string, NodeExecutor>()
+  private readonly executorsByRouteKey = new Map<string, NodeExecutor<TOut>>()
 
   private readonly routes: ForgeRoute[] = []
 
-  constructor(options: ForgeOptions) {
+  constructor(options: ForgeOptions<TOut>) {
     this.basePath = normalizeBasePath(options.basePath)
+    this.renderer = options.renderer
   }
 
   /**
@@ -103,7 +108,7 @@ export default class ForgeEvaluator {
    * outcome (carrying the node's component registry) otherwise; yields an
    * `error` outcome when the node is unknown or the method is unsupported.
    */
-  async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome> {
+  async evaluate(snapshot: RequestSnapshot, responseBindings: ResponseBindings): Promise<ForgeOutcome<TOut>> {
     const executor = this.executorsByRouteKey.get(snapshot.nodeId)
 
     if (!executor) {
@@ -130,18 +135,18 @@ export default class ForgeEvaluator {
       kind: 'render',
       context: result.context,
       componentRegistry: executor.componentRegistry,
-      output: undefined,
-      renderedBlocks: [],
+      output: result.output,
+      renderedBlocks: result.renderedBlocks,
     }
   }
 
   /**
    * For each step context, assembles its GET orchestrator (access ->
-   * answer-preparation -> navigation -> entry-validation, then the shared render
-   * terminal) and POST orchestrator (access -> answer-preparation -> navigation
-   * -> submit, same render terminal), registers both under one scoped route key,
-   * and pushes a step {@link ForgeRoute}. Returns the executor count (two per
-   * step).
+   * answer-preparation -> navigation -> entry-validation -> render-evaluation,
+   * then the shared render-output terminal) and POST orchestrator (access ->
+   * answer-preparation -> navigation -> submit -> render-evaluation, same
+   * terminal), registers both under one scoped route key, and pushes a step
+   * {@link ForgeRoute}. Returns the executor count (two per step).
    */
   private buildStepExecutors(
     stepContexts: StepRouteContext[],
@@ -161,12 +166,14 @@ export default class ForgeEvaluator {
 
       const answersPhase = createAnswerPreparationPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
-      const renderTerminal = createStepRenderTerminal(
+      const renderEvaluationPhase = createRenderEvaluationPhase(
         compiledStep.renderPlan,
         this.routeTreeIndex.roots,
         ctx.routeTemplatePath,
         functionRegistry,
       )
+
+      const renderOutputTerminal = createRenderOutputTerminal<TOut>(componentRegistry, this.renderer)
 
       const getOrchestrator = new RequestOrchestrator(
         [
@@ -185,8 +192,9 @@ export default class ForgeEvaluator {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          renderEvaluationPhase,
         ],
-        renderTerminal,
+        renderOutputTerminal,
       )
 
       const postOrchestrator = new RequestOrchestrator(
@@ -206,8 +214,9 @@ export default class ForgeEvaluator {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          renderEvaluationPhase,
         ],
-        renderTerminal,
+        renderOutputTerminal,
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, ctx.stepNodeId)
@@ -267,11 +276,7 @@ export default class ForgeEvaluator {
           createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, functionRegistry),
           createAnswerPreparationPhase(compiledJourney.answerPreparationPlan, functionRegistry),
         ],
-        createJourneyRedirectTerminal<undefined>(
-          compiledJourney.navigationPlan,
-          routeTemplateCatalog,
-          functionRegistry,
-        ),
+        createJourneyRedirectTerminal<TOut>(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
       )
 
       const routeKey = ForgeEvaluator.scopedRouteKey(journeyCode, journeyNodeId)
@@ -303,7 +308,7 @@ export default class ForgeEvaluator {
   }
 
   /** Wraps a code/message pair as an `error` {@link ForgeOutcome}. */
-  private errorOutcome(code: ForgeErrorCode, message: string): ForgeOutcome {
+  private errorOutcome(code: ForgeErrorCode, message: string): ForgeOutcome<TOut> {
     return { kind: 'error', error: { code, message } }
   }
 }

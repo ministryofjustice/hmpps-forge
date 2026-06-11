@@ -10,11 +10,12 @@ import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
+import type { ForgeRenderer } from '../framework/rendering/types'
 import type { ForgeTopology } from '../framework/types/topology.type'
 import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
-export interface ForgeOptions {
+export interface ForgeOptions<TOut = undefined> {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
   disableBuiltInFunctions?: boolean
 
@@ -57,23 +58,37 @@ export interface ForgeOptions {
   basePath?: string
 
   /**
+   * The rendering backend bound for the lifetime of this Forge instance. The
+   * orchestrator drives it block by block during evaluation, so render outcomes
+   * carry assembled output typed by the renderer (`Forge<string>` for Nunjucks).
+   * When omitted, render outcomes are context-only — the test harness path.
+   *
+   * @example
+   * ```typescript
+   * const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+   * ```
+   */
+  renderer?: ForgeRenderer<TOut>
+
+  /**
    * Optional framework adapter that builds a router from this engine.
    *
    * Convenience for the common server case: when provided, {@link Forge.getRouter}
    * returns the router this adapter builds. It is exactly equivalent to calling
-   * the adapter directly — `app.use(createExpressRouter(forge, options))` — so
-   * you can use either style.
+   * the adapter directly — `app.use(createExpressRouter(forge))` — so you can
+   * use either style.
    *
    * @example
    * ```typescript
    * const forge = new Forge({
    *   logger,
-   *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+   *   renderer: new NunjucksRenderer({ nunjucksEnv }),
+   *   frameworkAdapter: ExpressFrameworkAdapter.configure(),
    * })
    * app.use(forge.getRouter() as express.Router)
    * ```
    */
-  frameworkAdapter?: ForgeRouterAdapter
+  frameworkAdapter?: ForgeRouterAdapter<TOut>
 }
 
 /**
@@ -82,26 +97,27 @@ export interface ForgeOptions {
  * Implementations consume the engine's public surface ({@link Forge.getTopology},
  * {@link Forge.evaluate}, …) — see `createExpressRouter` / `ExpressFrameworkAdapter`.
  */
-export interface ForgeRouterAdapter {
-  build(forge: Forge): unknown
+export interface ForgeRouterAdapter<TOut = undefined> {
+  build(forge: Forge<TOut>): unknown
 }
 
 export interface EvaluateOptions {
   response?: ResponseBindings
 }
 
-interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'frameworkAdapter'> {
-  frameworkAdapter?: ForgeRouterAdapter
+interface ResolvedForgeOptions<TOut> extends Omit<Required<ForgeOptions<TOut>>, 'frameworkAdapter' | 'renderer'> {
+  frameworkAdapter?: ForgeRouterAdapter<TOut>
+  renderer?: ForgeRenderer<TOut>
 }
 
-export default class Forge {
-  private readonly options: ResolvedForgeOptions
+export default class Forge<TOut = undefined> {
+  private readonly options: ResolvedForgeOptions<TOut>
 
   private readonly functionRegistry = new FunctionRegistry()
 
   private readonly componentRegistry = new ComponentRegistry()
 
-  private readonly forgeEvaluator: ForgeEvaluator
+  private readonly forgeEvaluator: ForgeEvaluator<TOut>
 
   /**
    * Create a new Forge instance
@@ -122,7 +138,7 @@ export default class Forge {
    * app.use(createExpressRouter(forge, { nunjucksEnv }))
    * ```
    */
-  constructor(constructorOptions: ForgeOptions) {
+  constructor(constructorOptions: ForgeOptions<TOut>) {
     const defaultOptions = {
       disableBuiltInFunctions: false,
       disableBuiltInComponents: false,
@@ -243,7 +259,7 @@ export default class Forge {
    * its native request) and returns a {@link ForgeOutcome} describing what to
    * render, where to navigate, or which error to surface.
    */
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome> {
+  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<TOut>> {
     return this.forgeEvaluator.evaluate(snapshot, options?.response ?? NO_OP_RESPONSE_BINDINGS)
   }
 

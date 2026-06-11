@@ -4,6 +4,7 @@ import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.t
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
+import type { ForgeRenderer } from '../../../framework/rendering/types'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
 import ForgeEvaluator from './ForgeEvaluator'
@@ -234,6 +235,43 @@ describe('ForgeEvaluator', () => {
       if (outcome.kind === 'render') {
         expect(outcome.componentRegistry).toBe(mockPackageDependencies.componentRegistry)
       }
+    })
+
+    it('should return a context-only render outcome when no renderer is bound', async () => {
+      // Arrange
+      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
+      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
+      evaluator.mount(createPackageInstance([journey], [step]))
+      const stepRoute = evaluator.getTopology().routes.find(r => r.kind === 'step')!
+
+      // Act
+      const outcome = await evaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+
+      // Assert
+      expect(outcome).toEqual(expect.objectContaining({ kind: 'render', output: undefined, renderedBlocks: [] }))
+    })
+
+    it('should carry the renderer output and rendered blocks on a render outcome', async () => {
+      // Arrange
+      const renderer: ForgeRenderer<string> = {
+        renderBlock: vi.fn((entry, block) => entry.render(block) as string),
+        wrapNestedBlock: vi.fn(),
+        assemblePage: vi.fn().mockReturnValue('<html>page</html>'),
+      }
+      const renderingEvaluator = new ForgeEvaluator({ renderer })
+      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
+      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
+      renderingEvaluator.mount(createPackageInstance([journey], [step]))
+      const stepRoute = renderingEvaluator.getTopology().routes.find(r => r.kind === 'step')!
+
+      // Act
+      const outcome = await renderingEvaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+
+      // Assert
+      expect(renderer.assemblePage).toHaveBeenCalled()
+      expect(outcome).toEqual(
+        expect.objectContaining({ kind: 'render', output: '<html>page</html>', renderedBlocks: [] }),
+      )
     })
 
     it('should return a node-not-found error outcome for an unknown node', async () => {
