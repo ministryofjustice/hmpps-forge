@@ -12,8 +12,8 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../runtime/context/EffectFunctionContext'
-import { evaluateAccessLifecycle } from '../../../runtime/orchestrator/phases/evaluateAccessLifecycle'
-import { evaluateSubmitLifecycle } from '../../../runtime/orchestrator/phases/evaluateSubmitLifecycle'
+import { evaluateAccessLifecycle } from '../../../runtime/pipeline/phases/evaluateAccessLifecycle'
+import { evaluateSubmitLifecycle } from '../../../runtime/pipeline/phases/evaluateSubmitLifecycle'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {

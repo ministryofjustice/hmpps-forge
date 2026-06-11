@@ -7,6 +7,7 @@ export type { CookieMutation, CookieOptions } from './types/response.type'
 export type { ResponseBindings } from './types/responseBindings.type'
 export { NO_OP_RESPONSE_BINDINGS } from './types/responseBindings.type'
 export type {
+  ForgeRenderer,
   JourneyAncestor,
   RenderBlock,
   RenderContext,
@@ -17,7 +18,7 @@ export type {
 } from './rendering/types'
 export { isRenderBlock } from '../engine/runtime/rendering/typeguards'
 export { RENDER_BLOCK_BRAND } from '../engine/contracts/compiled/renderBlock.brand'
-export type { AstNodeId, NodeId } from '../engine/contracts/ast/ast.type'
+export type { AstNodeId, NodeId, TemplateNodeId } from '../engine/contracts/ast/ast.type'
 export type { HttpMethod } from './types/request.type'
 export type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
 export {

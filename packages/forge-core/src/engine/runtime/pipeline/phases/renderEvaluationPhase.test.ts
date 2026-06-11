@@ -1,13 +1,13 @@
-import { createStepRenderTerminal } from './stepRenderTerminal'
+import { createRenderEvaluationPhase } from './renderEvaluationPhase'
 import type { RenderPlan } from '../../../contracts/plans/compilationArtefacts.type'
 import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-describe('stepRenderTerminal', () => {
+describe('renderEvaluationPhase', () => {
   describe('execute()', () => {
-    it('should return a render result with built context', async () => {
+    it('should store the built render context on state and continue', async () => {
       // Arrange
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
@@ -15,17 +15,18 @@ describe('stepRenderTerminal', () => {
         renderBlocks: [],
         iteratorRenderBlockGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
+      const phase = createRenderEvaluationPhase(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = createPipelineState()
-      const result = await terminal.execute(state)
+      const result = await phase.execute(state)
 
       // Assert
-      expect(result.type).toBe('render')
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.renderContext?.step.title).toBe('Test Step')
     })
 
-    it('should include validation failures in render context', async () => {
+    it('should include validation failures in the render context when showValidationFailures is set', async () => {
       // Arrange
       const renderPlan: RenderPlan = {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
@@ -33,7 +34,7 @@ describe('stepRenderTerminal', () => {
         renderBlocks: [],
         iteratorRenderBlockGroups: [],
       }
-      const terminal = createStepRenderTerminal(renderPlan, [], '/journey/step', mockFunctionRegistry)
+      const phase = createRenderEvaluationPhase(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
       // Act
       const state = {
@@ -47,14 +48,11 @@ describe('stepRenderTerminal', () => {
         },
         showValidationFailures: true,
       }
-      const result = await terminal.execute(state)
+      const result = await phase.execute(state)
 
       // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.showValidationFailures).toBe(true)
-      }
+      expect(result).toEqual({ action: 'continue' })
+      expect(state.renderContext?.showValidationFailures).toBe(true)
     })
   })
 })

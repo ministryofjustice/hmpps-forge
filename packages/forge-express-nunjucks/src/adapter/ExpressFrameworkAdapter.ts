@@ -3,6 +3,10 @@ import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { createExpressRouter } from './createExpressRouter'
 import type { ExpressForgeRouterOptions } from './createExpressRouter'
 
+/**
+ * @deprecated Build the router directly instead —
+ * `app.use(createExpressRouter(forge, { nunjucksEnv }))`.
+ */
 export interface ExpressForgeAdapter {
   build(forge: Forge): express.Router
 }
@@ -13,15 +17,11 @@ export interface ExpressForgeAdapter {
  * `ExpressFrameworkAdapter.configure(options)` returns a builder you pass to
  * `new Forge({ frameworkAdapter })`; `forge.getRouter()` then yields the Express
  * router. It is a thin wrapper over {@link createExpressRouter} — both styles
- * produce the same router, so use whichever you prefer:
+ * compose the same orchestrator and renderer.
  *
+ * @deprecated Prefer the direct style:
  * ```typescript
- * // builder style
- * const forge = new Forge({ frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }) })
- * app.use(forge.getRouter() as express.Router)
- *
- * // direct style
- * const forge = new Forge({ logger... }).registerFormPackage({ ... })
+ * const forge = new Forge({ logger }).registerPackage(myPackage)
  * app.use(createExpressRouter(forge, { nunjucksEnv }))
  * ```
  */

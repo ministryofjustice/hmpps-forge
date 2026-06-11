@@ -2,14 +2,12 @@ import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
 import { PackageDependencies } from '../../contracts/ast/engine.type'
 import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
-import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import type PackageInstance from '../../PackageInstance'
-import ForgeEvaluator from './ForgeEvaluator'
+import MountRegistry from './MountRegistry'
 
-describe('ForgeEvaluator', () => {
-  let evaluator: ForgeEvaluator
+describe('MountRegistry', () => {
+  let registry: MountRegistry
   let mockPackageDependencies: PackageDependencies
 
   beforeEach(() => {
@@ -20,7 +18,7 @@ describe('ForgeEvaluator', () => {
       functionRegistry: {} as never,
     }
 
-    evaluator = new ForgeEvaluator({})
+    registry = new MountRegistry()
   })
 
   function createJourneyDescriptor(
@@ -83,7 +81,11 @@ describe('ForgeEvaluator', () => {
     }
   }
 
-  function createPackageInstance(journeys: RouteDescriptor[], steps: RouteDescriptor[]): Mocked<PackageInstance> {
+  function createPackageInstance(
+    journeys: RouteDescriptor[],
+    steps: RouteDescriptor[],
+    journeyCode = 'test-journey',
+  ): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
     const compiledJourneys = new Map<NodeId, CompiledJourney>(
       journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
@@ -95,28 +97,8 @@ describe('ForgeEvaluator', () => {
       getJourneyRouteIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.nodeId, journey]))),
       getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
       getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
-      getJourneyCode: vi.fn().mockReturnValue('test-journey'),
+      getJourneyCode: vi.fn().mockReturnValue(journeyCode),
     } as unknown as Mocked<PackageInstance>
-  }
-
-  function buildSnapshot(nodeId: string, method: 'GET' | 'POST'): RequestSnapshot {
-    return {
-      nodeId,
-      method,
-      location: {
-        origin: 'http://localhost',
-        href: `http://localhost/journey/step-one`,
-        pathname: '/journey/step-one',
-        basePath: '/journey',
-      },
-      params: {},
-      query: {},
-      post: {},
-      headers: {},
-      cookies: {},
-      state: {},
-      session: undefined,
-    }
   }
 
   describe('mount()', () => {
@@ -127,10 +109,10 @@ describe('ForgeEvaluator', () => {
       const packageInstance = createPackageInstance([journey], [step])
 
       // Act
-      const routeCount = evaluator.mount(packageInstance)
+      const routeCount = registry.mount(packageInstance)
 
       // Assert
-      expect(routeCount).toBe(3)
+      expect(routeCount).toBe(2)
     })
 
     it('should throw DuplicateRouteError when two concrete routes share a URL template', () => {
@@ -141,7 +123,7 @@ describe('ForgeEvaluator', () => {
       const packageInstance = createPackageInstance([journey], [step1, step2])
 
       // Act & Assert
-      expect(() => evaluator.mount(packageInstance)).toThrow(DuplicateRouteError)
+      expect(() => registry.mount(packageInstance)).toThrow(DuplicateRouteError)
     })
   })
 
@@ -153,8 +135,8 @@ describe('ForgeEvaluator', () => {
       const packageInstance = createPackageInstance([journey], [step])
 
       // Act
-      evaluator.mount(packageInstance)
-      const { routes } = evaluator.getTopology()
+      registry.mount(packageInstance)
+      const { routes } = registry.getTopology()
 
       // Assert
       expect(routes).toEqual([
@@ -190,8 +172,8 @@ describe('ForgeEvaluator', () => {
       const packageInstance = createPackageInstance([journey, childJourney], [step])
 
       // Act
-      evaluator.mount(packageInstance)
-      const stepRoute = evaluator.getTopology().routes.find(route => route.kind === 'step')
+      registry.mount(packageInstance)
+      const stepRoute = registry.getTopology().routes.find(route => route.kind === 'step')
 
       // Assert
       expect(stepRoute).toMatchObject({
@@ -203,68 +185,41 @@ describe('ForgeEvaluator', () => {
 
     it('should include the configured base path in template paths', () => {
       // Arrange
-      const evaluatorWithBase = new ForgeEvaluator({ basePath: '/forms' })
+      const registryWithBase = new MountRegistry('/forms')
       const journey = createJourneyDescriptor('compile_ast:8', '/journey', ['compile_ast:8'], 'test')
       const step = createStepDescriptor('compile_ast:9', '/step-one', ['compile_ast:8'])
       const packageInstance = createPackageInstance([journey], [step])
 
       // Act
-      evaluatorWithBase.mount(packageInstance)
-      const stepRoute = evaluatorWithBase.getTopology().routes.find(route => route.kind === 'step')
+      registryWithBase.mount(packageInstance)
+      const stepRoute = registryWithBase.getTopology().routes.find(route => route.kind === 'step')
 
       // Assert
       expect(stepRoute?.templatePath).toBe('/forms/journey/step-one')
     })
   })
 
-  describe('evaluate()', () => {
-    it('should render when a step is evaluated with GET', async () => {
+  describe('getRuntime()', () => {
+    it('should expose mounted artefacts and route tree roots when a package is mounted', () => {
       // Arrange
-      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
-      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
+      const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'], 'test')
+      const step = createStepDescriptor('compile_ast:2', '/step-one', ['compile_ast:1'])
       const packageInstance = createPackageInstance([journey], [step])
-      evaluator.mount(packageInstance)
-      const stepRoute = evaluator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+      registry.mount(packageInstance)
+      const runtime = registry.getRuntime()
 
       // Assert
-      expect(outcome.kind).toBe('render')
-      if (outcome.kind === 'render') {
-        expect(outcome.componentRegistry).toBe(mockPackageDependencies.componentRegistry)
-      }
-    })
-
-    it('should return a node-not-found error outcome for an unknown node', async () => {
-      // Arrange
-      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
-      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      evaluator.mount(createPackageInstance([journey], [step]))
-
-      // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:999', 'GET'), NO_OP_RESPONSE_BINDINGS)
-
-      // Assert
-      expect(outcome).toEqual(
-        expect.objectContaining({ kind: 'error', error: expect.objectContaining({ code: 'node-not-found' }) }),
-      )
-    })
-
-    it('should return a method-not-supported error outcome when a journey root is posted to', async () => {
-      // Arrange
-      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
-      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      evaluator.mount(createPackageInstance([journey], [step]))
-      const journeyRoute = evaluator.getTopology().routes.find(r => r.kind === 'journey')!
-
-      // Act
-      const outcome = await evaluator.evaluate(buildSnapshot(journeyRoute.nodeId, 'POST'), NO_OP_RESPONSE_BINDINGS)
-
-      // Assert
-      expect(outcome).toEqual(
-        expect.objectContaining({ kind: 'error', error: expect.objectContaining({ code: 'method-not-supported' }) }),
-      )
+      expect(runtime.routeTreeRoots).toHaveLength(1)
+      expect(runtime.mounts).toHaveLength(1)
+      expect(runtime.mounts[0]).toMatchObject({
+        journeyCode: 'test-journey',
+        packageInstance,
+        dependencies: mockPackageDependencies,
+      })
+      expect(runtime.mounts[0].stepContexts).toHaveLength(1)
+      expect(runtime.mounts[0].journeyContexts).toHaveLength(1)
     })
   })
 })

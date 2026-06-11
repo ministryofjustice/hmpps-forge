@@ -23,7 +23,7 @@ import type { RequestPhase } from '../types'
 // should do. With an empty plan the walk executes nothing and the request just
 // falls through to re-render; uniform with every other empty plan, but it can
 // hide an authoring mistake. The louder alternative would be to not mount the
-// POST route at all in ForgeEvaluator when a step has no hooks.
+// POST route at all during executor assembly when a step has no hooks.
 export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan,
   validationPlan: ValidationPlan,

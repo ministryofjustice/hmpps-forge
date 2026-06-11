@@ -6,12 +6,9 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
-import type { RequestSnapshot } from '../framework/types/snapshot.type'
-import type { ResponseBindings } from '../framework/types/responseBindings.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
-import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
+import MountRegistry from './runtime/routes/MountRegistry'
+import type { ForgeRuntime } from './runtime/routes/MountRegistry'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions {
@@ -59,19 +56,10 @@ export interface ForgeOptions {
   /**
    * Optional framework adapter that builds a router from this engine.
    *
-   * Convenience for the common server case: when provided, {@link Forge.getRouter}
-   * returns the router this adapter builds. It is exactly equivalent to calling
-   * the adapter directly — `app.use(createExpressRouter(forge, options))` — so
-   * you can use either style.
-   *
-   * @example
-   * ```typescript
-   * const forge = new Forge({
-   *   logger,
-   *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-   * })
-   * app.use(forge.getRouter() as express.Router)
-   * ```
+   * @deprecated Build the router directly instead — e.g.
+   * `app.use(createExpressRouter(forge, { nunjucksEnv }))`. The adapter
+   * composes the orchestrator and renderer for you either way; this option
+   * only exists so `forge.getRouter()` keeps working.
    */
   frameworkAdapter?: ForgeRouterAdapter
 }
@@ -79,15 +67,15 @@ export interface ForgeOptions {
 /**
  * Builds a framework router/handler from a configured {@link Forge} engine.
  *
- * Implementations consume the engine's public surface ({@link Forge.getTopology},
- * {@link Forge.evaluate}, …) — see `createExpressRouter` / `ExpressFrameworkAdapter`.
+ * Implementations compose a `ForgeOrchestrator` (and usually a renderer) over
+ * the engine and register its topology with their framework — see
+ * `createExpressRouter` / `ExpressFrameworkAdapter`.
+ *
+ * @deprecated Build the router directly instead — e.g.
+ * `app.use(createExpressRouter(forge, { nunjucksEnv }))`.
  */
 export interface ForgeRouterAdapter {
   build(forge: Forge): unknown
-}
-
-export interface EvaluateOptions {
-  response?: ResponseBindings
 }
 
 interface ResolvedForgeOptions extends Omit<Required<ForgeOptions>, 'frameworkAdapter'> {
@@ -101,7 +89,7 @@ export default class Forge {
 
   private readonly componentRegistry = new ComponentRegistry()
 
-  private readonly forgeEvaluator: ForgeEvaluator
+  private readonly mountRegistry: MountRegistry
 
   /**
    * Create a new Forge instance
@@ -116,7 +104,7 @@ export default class Forge {
    * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
    *
    * const forge = new Forge({ logger })
-   *   .registerGlobalComponents(govukComponents(nunjucksEnv))
+   *   .registerGlobalComponents(govukComponents)
    *   .registerPackage(myPackage)
    *
    * app.use(createExpressRouter(forge, { nunjucksEnv }))
@@ -145,7 +133,7 @@ export default class Forge {
       this.componentRegistry.registerBuiltInComponents()
     }
 
-    this.forgeEvaluator = new ForgeEvaluator(this.options)
+    this.mountRegistry = new MountRegistry(this.options.basePath)
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -216,7 +204,7 @@ export default class Forge {
   }
 
   private registerPackageInstance(packageInstance: PackageInstance): number {
-    return this.forgeEvaluator.mount(packageInstance)
+    return this.mountRegistry.mount(packageInstance)
   }
 
   private handleRegistrationError(e: unknown): void {
@@ -237,24 +225,22 @@ export default class Forge {
   }
 
   /**
-   * Evaluate a single request against the registered journeys.
-   *
-   * Takes a framework-agnostic {@link RequestSnapshot} (built by an adapter from
-   * its native request) and returns a {@link ForgeOutcome} describing what to
-   * render, where to navigate, or which error to surface.
-   */
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome> {
-    return this.forgeEvaluator.evaluate(snapshot, options?.response ?? NO_OP_RESPONSE_BINDINGS)
-  }
-
-  /**
    * The routes exposed by the registered journeys, as plain data.
    *
    * Adapters consume this to register routes with their framework and to map an
    * incoming request back to a {@link RequestSnapshot.nodeId}.
    */
   getTopology(): ForgeTopology {
-    return this.forgeEvaluator.getTopology()
+    return this.mountRegistry.getTopology()
+  }
+
+  /**
+   * The compiled, mounted artefacts an orchestrator builds per-route executors
+   * from. Internal contract between {@link Forge} and `ForgeOrchestrator` — not
+   * for application code, and not covered by semver guarantees.
+   */
+  getRuntime(): ForgeRuntime {
+    return this.mountRegistry.getRuntime()
   }
 
   /** The configured logger. */
@@ -265,8 +251,8 @@ export default class Forge {
   /**
    * Build the framework router from the configured `frameworkAdapter`.
    *
-   * Convenience for the common server case; equivalent to invoking the adapter
-   * directly (e.g. `createExpressRouter(forge, options)`). Requires a
+   * @deprecated Build the router directly instead — e.g.
+   * `app.use(createExpressRouter(forge, { nunjucksEnv }))`. Requires a
    * `frameworkAdapter` to have been passed to the constructor.
    */
   getRouter(): unknown {

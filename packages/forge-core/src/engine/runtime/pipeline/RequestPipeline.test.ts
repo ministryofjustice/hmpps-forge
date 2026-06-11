@@ -1,4 +1,4 @@
-import RequestOrchestrator from './RequestOrchestrator'
+import RequestPipeline from './RequestPipeline'
 import TraceRecorder from './trace/TraceRecorder'
 import type { PipelineState, RequestPhase, TerminalPhase, ForgeResult, PhaseOutcome } from './types'
 import type { StepRequest } from '../../../framework/types/request.type'
@@ -58,18 +58,18 @@ const createTerminal = (name: string, result: ForgeResult): TerminalPhase => ({
   execute: vi.fn().mockResolvedValue(result),
 })
 
-describe('RequestOrchestrator', () => {
+describe('RequestPipeline', () => {
   describe('execute()', () => {
     it('should run all phases then the terminal when all phases continue', async () => {
       // Arrange
       const phase1 = createPhase('phase-1', { action: 'continue' })
       const phase2 = createPhase('phase-2', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1, phase2], terminal)
+      const pipeline = new RequestPipeline([phase1, phase2], terminal)
       const state = createMockState()
 
       // Act
-      const result = await orchestrator.execute(state)
+      const result = await pipeline.execute(state)
 
       // Assert
       expect(phase1.execute).toHaveBeenCalledWith(state)
@@ -83,11 +83,11 @@ describe('RequestOrchestrator', () => {
       const phase1 = createPhase('phase-1', { action: 'halt-redirect', target: '/other-step', reason: 'unreachable' })
       const phase2 = createPhase('phase-2', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1, phase2], terminal)
+      const pipeline = new RequestPipeline([phase1, phase2], terminal)
       const state = createMockState()
 
       // Act
-      const result = await orchestrator.execute(state)
+      const result = await pipeline.execute(state)
 
       // Assert
       expect(result).toEqual({ type: 'redirect', url: '/other-step' })
@@ -103,13 +103,13 @@ describe('RequestOrchestrator', () => {
         reason: 'unreachable',
       })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1], terminal)
+      const pipeline = new RequestPipeline([phase1], terminal)
       const state = createMockState({
         request: createMockRequest({ params: { personId: '123' } }),
       })
 
       // Act
-      const result = await orchestrator.execute(state)
+      const result = await pipeline.execute(state)
 
       // Assert
       expect(result).toEqual({ type: 'redirect', url: '/journey/123/next-step' })
@@ -120,11 +120,11 @@ describe('RequestOrchestrator', () => {
       const phase1 = createPhase('phase-1', { action: 'halt-error', status: 403, message: 'Forbidden' })
       const phase2 = createPhase('phase-2', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1, phase2], terminal)
+      const pipeline = new RequestPipeline([phase1, phase2], terminal)
       const state = createMockState()
 
       // Act & Assert
-      await expect(orchestrator.execute(state)).rejects.toThrow(
+      await expect(pipeline.execute(state)).rejects.toThrow(
         expect.objectContaining({ statusCode: 403, message: 'Forbidden' }),
       )
       expect(phase2.execute).not.toHaveBeenCalled()
@@ -134,11 +134,11 @@ describe('RequestOrchestrator', () => {
     it('should go straight to terminal when there are no phases', async () => {
       // Arrange
       const terminal = createTerminal('render', { type: 'redirect', url: '/somewhere' })
-      const orchestrator = new RequestOrchestrator([], terminal)
+      const pipeline = new RequestPipeline([], terminal)
       const state = createMockState()
 
       // Act
-      const result = await orchestrator.execute(state)
+      const result = await pipeline.execute(state)
 
       // Assert
       expect(terminal.execute).toHaveBeenCalledWith(state)
@@ -151,10 +151,10 @@ describe('RequestOrchestrator', () => {
       const phase1 = createPhase('access', { action: 'continue' })
       const phase2 = createPhase('validation', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1, phase2], terminal)
+      const pipeline = new RequestPipeline([phase1, phase2], terminal)
 
       // Act
-      await orchestrator.execute(createMockState({ trace: recorder }))
+      await pipeline.execute(createMockState({ trace: recorder }))
 
       // Assert
       const trace = recorder.finish('render')
@@ -171,10 +171,10 @@ describe('RequestOrchestrator', () => {
       const recorder = new TraceRecorder()
       const phase1 = createPhase('navigation', { action: 'halt-redirect', target: '/elsewhere', reason: 'unreachable' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1], terminal)
+      const pipeline = new RequestPipeline([phase1], terminal)
 
       // Act
-      await orchestrator.execute(createMockState({ trace: recorder }))
+      await pipeline.execute(createMockState({ trace: recorder }))
 
       // Assert
       const trace = recorder.finish('redirect')
@@ -187,10 +187,10 @@ describe('RequestOrchestrator', () => {
       const recorder = new TraceRecorder()
       const phase1 = createPhase('access', { action: 'halt-error', status: 403, message: 'Forbidden' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1], terminal)
+      const pipeline = new RequestPipeline([phase1], terminal)
 
       // Act & Assert
-      await expect(orchestrator.execute(createMockState({ trace: recorder }))).rejects.toThrow('Forbidden')
+      await expect(pipeline.execute(createMockState({ trace: recorder }))).rejects.toThrow('Forbidden')
 
       const trace = recorder.finish('error')
 
@@ -203,11 +203,11 @@ describe('RequestOrchestrator', () => {
       const phase2 = createPhase('phase-2', { action: 'halt-redirect', target: '/stop-here', reason: 'unreachable' })
       const phase3 = createPhase('phase-3', { action: 'continue' })
       const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
-      const orchestrator = new RequestOrchestrator([phase1, phase2, phase3], terminal)
+      const pipeline = new RequestPipeline([phase1, phase2, phase3], terminal)
       const state = createMockState()
 
       // Act
-      await orchestrator.execute(state)
+      await pipeline.execute(state)
 
       // Assert
       expect(phase1.execute).toHaveBeenCalled()

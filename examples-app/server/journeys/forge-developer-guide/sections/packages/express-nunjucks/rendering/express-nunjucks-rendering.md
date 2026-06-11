@@ -2,15 +2,15 @@
 title: Rendering
 section: packages
 path: packages/express-nunjucks/rendering
-teaches: [template-resolution, view-locals, template-context, TemplateRenderer]
+teaches: [template-resolution, view-locals, template-context, NunjucksRenderer]
 prerequisites: [express-nunjucks]
 ---
 
 <p class="govuk-caption-xl">Express-Nunjucks Adapter</p>
 
 # Rendering
-When a step is ready to display, the adapter resolves a Nunjucks
-template, renders each visible block to HTML, and assembles a
+When a step is ready to display, the `NunjucksRenderer` resolves a
+Nunjucks template, renders each visible block to HTML, and assembles a
 template context from journey data, answers, and Express locals.
 This page covers each part of that process.
 
@@ -20,7 +20,7 @@ This page covers each part of that process.
 
 ## Template resolution
 
-The adapter resolves which Nunjucks template to use by checking
+The renderer resolves which Nunjucks template to use by checking
 three places in order:
 
 1. **The step itself** - if `view.template` is set on the step
@@ -28,7 +28,7 @@ three places in order:
 2. **Ancestor journeys** - starting from the nearest parent and
    walking up, the first ancestor with a `view.template` wins.
 3. **Default template** - falls back to the `defaultTemplate`
-   option passed to `createExpressRouter`, or `'form-step'` if
+   option passed to `NunjucksRenderer`, or `'form-step'` if
    not configured.
 
 The `.njk` extension is appended automatically if the template
@@ -58,7 +58,7 @@ step({
 
 Journeys and steps can declare `view.locals` - static values
 that are merged into the template context at render time. The
-adapter merges them in a specific order:
+renderer merges them in a specific order:
 
 1. Ancestors merge first, from the root journey down to the
    immediate parent.
@@ -139,7 +139,7 @@ rendering.
 
 ## Template caching
 
-The adapter caches compiled Nunjucks templates internally.
+The renderer caches compiled Nunjucks templates internally.
 The first time a template is rendered, it is compiled from the
 Nunjucks environment and stored. Subsequent renders of the same
 template reuse the compiled version. This applies to both page

@@ -53,8 +53,9 @@ first so your templates can override defaults when needed.
 
 ## Create the Express router
 
-Pass your Forge instance and Nunjucks environment to
-`createExpressRouter` to produce an Express router:
+Pass your Forge instance and the Nunjucks environment to
+`createExpressRouter` — it wires up the rendering that turns your journey's
+blocks into HTML and produces an Express router:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'

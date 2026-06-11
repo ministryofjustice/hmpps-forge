@@ -40,9 +40,9 @@ Runtime runs after validation, intermediate representation, and compilation.
 It is the point where the compiled journey meets an incoming request snapshot.
 
 It starts when the adapter matches an incoming request to a route from
-`forge.getTopology()`, builds a `RequestSnapshot`, and calls
-`forge.evaluate(snapshot)`. The engine resolves the matching `NodeExecutor` by
-node ID and runs the appropriate pipeline.
+the topology, builds a `RequestSnapshot`, and calls
+`orchestrator.evaluate(snapshot)`. The orchestrator resolves the matching
+`NodeExecutor` by node ID and runs the appropriate pipeline.
 
 The executors do not compile the journey. They receive the phase plans produced
 by compilation and apply them to the current snapshot.
@@ -132,29 +132,38 @@ state so later phases of the same request can use them.
 
 ## Key concepts
 
-### `ForgeEvaluator`
+### `MountRegistry`
 
-`ForgeEvaluator` builds per-node evaluation pipelines from compiled journeys.
+`MountRegistry` is the engine-side registration store inside `Forge`.
 
-It stores `NodeExecutor` records keyed by node ID, each containing the
-orchestrators (GET and/or POST), the route path, journey code, static data, and
-the scoped component registry. It also builds the `ForgeTopology` (routes as
-data) that adapters consume to register routes.
+Mounting a package builds its route tree (so duplicate-route failures surface
+during `registerPackage`), records the `ForgeTopology` (routes as data) that
+adapters consume to register routes, and keeps each package's compiled
+artefacts for orchestrators to assemble executors from later.
 
-The evaluator does not own a router or touch framework objects. Its job is to
-resolve the correct executor for a snapshot and run the pipeline.
+### `ForgeOrchestrator`
 
-### `RequestOrchestrator`
+`ForgeOrchestrator` owns evaluation. Constructed over a registered `Forge`
+(optionally with a `ForgeRenderer`), it builds `NodeExecutor` records keyed by
+node ID, each containing the pipelines (GET and/or POST), static data, and the
+scoped component registry.
 
-`RequestOrchestrator` runs a sequence of phases in order for each request.
+The orchestrator does not own a router or touch framework objects. Its job is
+to resolve the correct executor for a snapshot and run the pipeline. Packages
+registered after construction are not served — adapters construct it once
+registration is complete.
+
+### `RequestPipeline`
+
+`RequestPipeline` runs a sequence of phases in order for each request.
 
 Each phase returns `continue`, `halt-redirect`, or `halt-error`. If all phases
-continue, the orchestrator falls through to a terminal (render or redirect).
+continue, the pipeline falls through to a terminal (render or redirect).
 
-`ForgeEvaluator` creates a GET orchestrator and a POST orchestrator for each
-step node, each wired with the appropriate phases and terminal. Journey-root
-nodes use a simpler orchestrator with just access and answer-preparation phases,
-plus a redirect terminal.
+`ForgeOrchestrator` creates a GET pipeline and a POST pipeline for each step
+node, each wired with the appropriate phases and terminal. Journey-root nodes
+use a simpler pipeline with just access and answer-preparation phases, plus a
+redirect terminal.
 
 Missing phase plans fail fast. There is no interpreted fallback.
 

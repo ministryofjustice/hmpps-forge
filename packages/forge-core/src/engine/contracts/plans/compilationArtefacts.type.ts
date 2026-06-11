@@ -95,8 +95,13 @@ export interface AnswerPreparationPlan {
   readonly iteratorAnswerPreparationGroups: readonly IteratorAnswerPreparationGroup[]
 }
 
-/** One compiled function producing a single RenderBlock for a non-iterator block. */
+/**
+ * One compiled function producing a single RenderBlock for a non-iterator block.
+ * `nodeId` identifies the block so the runtime can attribute the evaluation in
+ * the request trace.
+ */
 export interface CompiledRenderBlock {
+  readonly nodeId: NodeId
   readonly render: CompiledRenderBlockFunction
 }
 
@@ -105,14 +110,17 @@ export interface CompiledRenderBlock {
  * item scope; may yield a single RenderBlock or an array of them.
  */
 export interface CompiledIteratorRenderBlock {
+  readonly nodeId: TemplateNodeId
   readonly render: CompiledIteratorRenderBlockFunction
 }
 
 /**
  * A MAP iterator's render work: `evaluateInput` expands the collection into
- * per-item scopes, then every block entry renders once per scope.
+ * per-item scopes, then every block entry renders once per scope. `nodeId`
+ * identifies the iterate node for trace attribution.
  */
 export interface IteratorRenderBlockGroup {
+  readonly nodeId: NodeId
   readonly evaluateInput: CompiledIteratorInputFunction
   readonly blocks: readonly CompiledIteratorRenderBlock[]
 }

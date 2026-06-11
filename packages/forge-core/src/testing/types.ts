@@ -4,12 +4,16 @@ import type { ValidationResult } from '../engine/contracts/runtime/validationRes
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import type { EvaluateOptions } from '../engine/Forge'
+import type { EvaluateOptions } from '../engine/ForgeOrchestrator'
 
-/** The subset of the Forge engine that {@link ForgeTestClient} drives. */
+/**
+ * The subset of the Forge engine that {@link ForgeTestClient} drives. The
+ * outcome is `ForgeOutcome<unknown>` so any renderer binding works — the test
+ * client asserts on the raw render context, never the rendered output.
+ */
 export interface ForgeEvaluationEngine {
   getTopology(): ForgeTopology
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome>
+  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<unknown>>
 }
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */

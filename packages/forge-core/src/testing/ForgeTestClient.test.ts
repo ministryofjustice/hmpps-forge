@@ -1,6 +1,6 @@
 import { ForgeTestClient } from './ForgeTestClient'
-import type Forge from '../engine/Forge'
-import type { EvaluateOptions } from '../engine/Forge'
+import type { ForgeEvaluationEngine } from './types'
+import type { EvaluateOptions } from '../engine/ForgeOrchestrator'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
@@ -22,6 +22,8 @@ function renderOutcome(): ForgeOutcome {
     kind: 'render',
     context: { blocks: [], fieldValidationErrors: [] } as never,
     componentRegistry: {} as never,
+    output: undefined,
+    renderedBlocks: [],
   }
 }
 
@@ -43,16 +45,16 @@ function createClient(
   snapshots: RequestSnapshot[]
 } {
   const snapshots: RequestSnapshot[] = []
-  const fakeForge = {
+  const fakeEngine: ForgeEvaluationEngine = {
     getTopology: () => ({ routes: ROUTES }),
     evaluate: async (snapshot: RequestSnapshot, options?: EvaluateOptions) => {
       snapshots.push(snapshot)
 
       return typeof resolve === 'function' ? resolve(snapshot, options) : resolve
     },
-  } as unknown as Forge
+  }
 
-  return { client: new ForgeTestClient(fakeForge), snapshots }
+  return { client: new ForgeTestClient(fakeEngine), snapshots }
 }
 
 describe('ForgeTestClient', () => {
