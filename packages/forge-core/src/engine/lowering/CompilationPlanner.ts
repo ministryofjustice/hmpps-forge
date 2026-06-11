@@ -47,13 +47,13 @@ export default class CompilationPlanner {
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepNodeId) => {
-      const runtimePlan = this.buildRuntimePlan(stepNode)
-      const inputs = this.buildStepInputs(stepNode, runtimePlan)
+      const ancestorIds = getAncestorChain(stepNodeId, this.astNodeTree)
+      const runtimePlan = this.buildRuntimePlan(stepNode, ancestorIds)
+      const inputs = this.buildStepInputs(stepNode, runtimePlan, ancestorIds)
 
       stepInputs.set(stepNodeId, inputs)
 
-      const ancestors = getAncestorChain(stepNodeId, this.astNodeTree)
-      const parentJourneyNodeId = ancestors[ancestors.length - 2]
+      const parentJourneyNodeId = ancestorIds[ancestorIds.length - 2]
 
       if (parentJourneyNodeId) {
         const existingJourneyStepInputs = stepInputsByJourneyNodeId.get(parentJourneyNodeId) ?? []
@@ -64,8 +64,15 @@ export default class CompilationPlanner {
     })
 
     stepInputsByJourneyNodeId.forEach((journeyStepInputs, journeyNodeId) => {
+      const journeyAncestorIds = getAncestorChain(journeyNodeId, this.astNodeTree)
       const journeyNode = journeyIndex.get(journeyNodeId)
-      const reachabilityPlan = this.buildReachabilityPlan(journeyNodeId, journeyStepInputs, journeyNode, journeyIndex)
+      const reachabilityPlan = this.buildReachabilityPlan(
+        journeyNodeId,
+        journeyStepInputs,
+        journeyNode,
+        journeyIndex,
+        journeyAncestorIds,
+      )
 
       journeyStepInputs.forEach(inputs => {
         navigationPlanNodeIdByStepNodeId.set(inputs.stepNode.id, reachabilityPlan.journeyNodeId)
@@ -74,9 +81,12 @@ export default class CompilationPlanner {
       reachabilityPlans.set(reachabilityPlan.journeyNodeId, reachabilityPlan)
 
       if (journeyNode) {
-        const journeyRuntimePlan = this.buildRuntimePlan(journeyNode)
+        const journeyRuntimePlan = this.buildRuntimePlan(journeyNode, journeyAncestorIds)
 
-        journeyInputs.set(journeyNodeId, this.buildJourneyInputs(journeyNode, journeyRuntimePlan, reachabilityPlan))
+        journeyInputs.set(
+          journeyNodeId,
+          this.buildJourneyInputs(journeyNode, journeyRuntimePlan, reachabilityPlan, journeyAncestorIds),
+        )
       }
     })
 
@@ -88,7 +98,11 @@ export default class CompilationPlanner {
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, runtimePlan: RuntimePlan): StepCompilationInputs {
+  private buildStepInputs(
+    stepNode: StepASTNode,
+    runtimePlan: RuntimePlan,
+    ancestorIds: NodeId[],
+  ): StepCompilationInputs {
     const stepNodeId = stepNode.id
     const fieldBlocks = this.allFieldBlocks
       .filter(block => this.astNodeTree.isDescendantOf(block.id, stepNodeId))
@@ -106,8 +120,8 @@ export default class CompilationPlanner {
       validatingFieldBlocks,
       mapIterateNodes,
       allIterateNodes,
-      accessAncestors: this.resolveAccessAncestors(stepNodeId),
-      renderAncestors: this.resolveRenderAncestors(stepNodeId),
+      accessAncestors: this.resolveAccessAncestors(ancestorIds),
+      renderAncestors: this.resolveRenderAncestors(ancestorIds),
       submitHooks: stepNode.properties.onSubmission ?? [],
       entryValidations: stepNode.properties.validateOnEntry ?? [],
     }
@@ -117,6 +131,7 @@ export default class CompilationPlanner {
     journeyNode: JourneyASTNode,
     runtimePlan: RuntimePlan,
     reachabilityPlan: ReachabilityCompilationPlan,
+    ancestorIds: NodeId[],
   ): JourneyCompilationInputs {
     const stepNodeIds = reachabilityPlan.reachabilityStepInputs.map(step => step.nodeId)
     const stepFieldBlocks = this.allFieldBlocks
@@ -130,15 +145,15 @@ export default class CompilationPlanner {
       reachabilityPlanId: reachabilityPlan.journeyNodeId,
       stepFieldBlocks,
       stepMapIterateNodes,
-      accessAncestors: this.resolveAccessAncestors(journeyNode.id),
+      accessAncestors: this.resolveAccessAncestors(ancestorIds),
     }
   }
 
-  private buildRuntimePlan(node: StepASTNode | JourneyASTNode): RuntimePlan {
+  private buildRuntimePlan(node: StepASTNode | JourneyASTNode, ancestorIds: NodeId[]): RuntimePlan {
     return {
       nodeId: node.id,
       path: normalizeRelativePath(node.properties.path),
-      staticData: this.buildStaticData(getAncestorChain(node.id, this.astNodeTree)),
+      staticData: this.buildStaticData(ancestorIds),
     }
   }
 
@@ -147,6 +162,7 @@ export default class CompilationPlanner {
     journeyStepInputs: StepCompilationInputs[],
     journeyNode: JourneyASTNode | undefined,
     journeyIndex: JourneyIndex,
+    journeyAncestorIds: NodeId[],
   ): ReachabilityCompilationPlan {
     const steps = journeyStepInputs.map(stepInputs => this.buildReachabilityStepInputs(stepInputs))
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
@@ -160,7 +176,7 @@ export default class CompilationPlanner {
       resumeAlways,
       resumeWhenNodeId,
       unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
-      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
+      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex, journeyAncestorIds),
     }
   }
 
@@ -190,7 +206,11 @@ export default class CompilationPlanner {
     }
   }
 
-  private resolveReachabilityDisabled(journeyNode: JourneyASTNode | undefined, journeyIndex: JourneyIndex): boolean {
+  private resolveReachabilityDisabled(
+    journeyNode: JourneyASTNode | undefined,
+    journeyIndex: JourneyIndex,
+    ancestorIds: NodeId[],
+  ): boolean {
     if (!journeyNode) {
       return false
     }
@@ -201,10 +221,8 @@ export default class CompilationPlanner {
       return ownSetting
     }
 
-    const ancestors = getAncestorChain(journeyNode.id, this.astNodeTree)
-
-    for (let i = ancestors.length - 2; i >= 0; i--) {
-      const ancestorJourney = journeyIndex.get(ancestors[i])
+    for (let i = ancestorIds.length - 2; i >= 0; i--) {
+      const ancestorJourney = journeyIndex.get(ancestorIds[i])
 
       if (!ancestorJourney) {
         continue
@@ -220,14 +238,14 @@ export default class CompilationPlanner {
     return false
   }
 
-  private resolveAccessAncestors(nodeId: NodeId): Array<JourneyASTNode | StepASTNode> {
-    return getAncestorChain(nodeId, this.astNodeTree)
+  private resolveAccessAncestors(ancestorIds: NodeId[]): Array<JourneyASTNode | StepASTNode> {
+    return ancestorIds
       .map(ancestorId => this.nodeRegistry.get(ancestorId))
       .filter(this.isAccessAncestor)
   }
 
-  private resolveRenderAncestors(stepNodeId: NodeId): JourneyASTNode[] {
-    return getAncestorChain(stepNodeId, this.astNodeTree)
+  private resolveRenderAncestors(ancestorIds: NodeId[]): JourneyASTNode[] {
+    return ancestorIds
       .slice(0, -1)
       .map(ancestorId => this.nodeRegistry.get(ancestorId))
       .filter(this.isJourneyNode)
