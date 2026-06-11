@@ -4,7 +4,7 @@ import type { ValidationResult } from '../engine/contracts/runtime/validationRes
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import type { EvaluateOptions } from '../engine/Forge'
+import type { EvaluateOptions } from '../engine/ForgeOrchestrator'
 
 /**
  * The subset of the Forge engine that {@link ForgeTestClient} drives. The

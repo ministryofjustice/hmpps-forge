@@ -1,6 +1,6 @@
 import { ForgeTestClient } from './ForgeTestClient'
 import type Forge from '../engine/Forge'
-import type { EvaluateOptions } from '../engine/Forge'
+import type { EvaluateOptions } from '../engine/ForgeOrchestrator'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'

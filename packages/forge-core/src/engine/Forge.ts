@@ -7,12 +7,13 @@ import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
-import type { ResponseBindings } from '../framework/types/responseBindings.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
+import MountRegistry from './runtime/routes/MountRegistry'
+import type { ForgeRuntime } from './runtime/routes/MountRegistry'
+import ForgeOrchestrator from './ForgeOrchestrator'
+import type { EvaluateOptions } from './ForgeOrchestrator'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions<TOut = undefined> {
@@ -101,10 +102,6 @@ export interface ForgeRouterAdapter<TOut = undefined> {
   build(forge: Forge<TOut>): unknown
 }
 
-export interface EvaluateOptions {
-  response?: ResponseBindings
-}
-
 interface ResolvedForgeOptions<TOut> extends Omit<Required<ForgeOptions<TOut>>, 'frameworkAdapter' | 'renderer'> {
   frameworkAdapter?: ForgeRouterAdapter<TOut>
   renderer?: ForgeRenderer<TOut>
@@ -117,7 +114,9 @@ export default class Forge<TOut = undefined> {
 
   private readonly componentRegistry = new ComponentRegistry()
 
-  private readonly forgeEvaluator: ForgeEvaluator<TOut>
+  private readonly mountRegistry: MountRegistry
+
+  private orchestrator?: ForgeOrchestrator<TOut>
 
   /**
    * Create a new Forge instance
@@ -161,7 +160,7 @@ export default class Forge<TOut = undefined> {
       this.componentRegistry.registerBuiltInComponents()
     }
 
-    this.forgeEvaluator = new ForgeEvaluator(this.options)
+    this.mountRegistry = new MountRegistry(this.options.basePath)
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -232,7 +231,7 @@ export default class Forge<TOut = undefined> {
   }
 
   private registerPackageInstance(packageInstance: PackageInstance): number {
-    return this.forgeEvaluator.mount(packageInstance)
+    return this.mountRegistry.mount(packageInstance)
   }
 
   private handleRegistrationError(e: unknown): void {
@@ -260,7 +259,9 @@ export default class Forge<TOut = undefined> {
    * render, where to navigate, or which error to surface.
    */
   evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<TOut>> {
-    return this.forgeEvaluator.evaluate(snapshot, options?.response ?? NO_OP_RESPONSE_BINDINGS)
+    this.orchestrator ??= new ForgeOrchestrator<TOut>(this, this.options.renderer)
+
+    return this.orchestrator.evaluate(snapshot, options)
   }
 
   /**
@@ -270,7 +271,16 @@ export default class Forge<TOut = undefined> {
    * incoming request back to a {@link RequestSnapshot.nodeId}.
    */
   getTopology(): ForgeTopology {
-    return this.forgeEvaluator.getTopology()
+    return this.mountRegistry.getTopology()
+  }
+
+  /**
+   * The compiled, mounted artefacts an orchestrator builds per-route executors
+   * from. Internal contract between {@link Forge} and `ForgeOrchestrator` — not
+   * for application code, and not covered by semver guarantees.
+   */
+  getRuntime(): ForgeRuntime {
+    return this.mountRegistry.getRuntime()
   }
 
   /** The configured logger. */

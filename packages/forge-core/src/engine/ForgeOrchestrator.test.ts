@@ -1,16 +1,16 @@
-import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
-import { PackageDependencies } from '../../contracts/ast/engine.type'
-import type { RouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
-import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
-import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../../../framework/types/responseBindings.type'
-import type { ForgeRenderer } from '../../../framework/rendering/types'
-import DuplicateRouteError from '../../errors/DuplicateRouteError'
-import type PackageInstance from '../../PackageInstance'
-import ForgeEvaluator from './ForgeEvaluator'
+import { CompileAstNodeId, NodeId } from './contracts/ast/ast.type'
+import { PackageDependencies } from './contracts/ast/engine.type'
+import type { RouteDescriptor } from './contracts/routing/routeDescriptors.type'
+import type { CompiledJourney, CompiledStep } from './contracts/plans/compilationArtefacts.type'
+import type { RequestSnapshot } from '../framework/types/snapshot.type'
+import type { ForgeRenderer } from '../framework/rendering/types'
+import type PackageInstance from './PackageInstance'
+import MountRegistry from './runtime/routes/MountRegistry'
+import type Forge from './Forge'
+import ForgeOrchestrator from './ForgeOrchestrator'
 
-describe('ForgeEvaluator', () => {
-  let evaluator: ForgeEvaluator
+describe('ForgeOrchestrator', () => {
+  let registry: MountRegistry
   let mockPackageDependencies: PackageDependencies
 
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('ForgeEvaluator', () => {
       functionRegistry: {} as never,
     }
 
-    evaluator = new ForgeEvaluator({})
+    registry = new MountRegistry()
   })
 
   function createJourneyDescriptor(
@@ -84,7 +84,11 @@ describe('ForgeEvaluator', () => {
     }
   }
 
-  function createPackageInstance(journeys: RouteDescriptor[], steps: RouteDescriptor[]): Mocked<PackageInstance> {
+  function createPackageInstance(
+    journeys: RouteDescriptor[],
+    steps: RouteDescriptor[],
+    journeyCode = 'test-journey',
+  ): Mocked<PackageInstance> {
     const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
     const compiledJourneys = new Map<NodeId, CompiledJourney>(
       journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
@@ -96,8 +100,15 @@ describe('ForgeEvaluator', () => {
       getJourneyRouteIndex: vi.fn().mockReturnValue(new Map(journeys.map(journey => [journey.nodeId, journey]))),
       getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
       getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
-      getJourneyCode: vi.fn().mockReturnValue('test-journey'),
+      getJourneyCode: vi.fn().mockReturnValue(journeyCode),
     } as unknown as Mocked<PackageInstance>
+  }
+
+  function createForgeStub<TOut = undefined>(mountRegistry: MountRegistry): Forge<TOut> {
+    return {
+      getRuntime: () => mountRegistry.getRuntime(),
+      getTopology: () => mountRegistry.getTopology(),
+    } as unknown as Forge<TOut>
   }
 
   function buildSnapshot(nodeId: string, method: 'GET' | 'POST'): RequestSnapshot {
@@ -120,101 +131,19 @@ describe('ForgeEvaluator', () => {
     }
   }
 
-  describe('mount()', () => {
-    it('should return the count of registered routes', () => {
+  describe('getTopology()', () => {
+    it('should delegate to the forge topology', () => {
       // Arrange
       const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'], 'test')
       const step = createStepDescriptor('compile_ast:2', '/step-one', ['compile_ast:1'])
-      const packageInstance = createPackageInstance([journey], [step])
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
 
       // Act
-      const routeCount = evaluator.mount(packageInstance)
+      const topology = orchestrator.getTopology()
 
       // Assert
-      expect(routeCount).toBe(3)
-    })
-
-    it('should throw DuplicateRouteError when two concrete routes share a URL template', () => {
-      // Arrange
-      const journey = createJourneyDescriptor('compile_ast:10', '/journey', ['compile_ast:10'], 'test')
-      const step1 = createStepDescriptor('compile_ast:11', '/same-path', ['compile_ast:10'])
-      const step2 = createStepDescriptor('compile_ast:12', '/same-path', ['compile_ast:10'])
-      const packageInstance = createPackageInstance([journey], [step1, step2])
-
-      // Act & Assert
-      expect(() => evaluator.mount(packageInstance)).toThrow(DuplicateRouteError)
-    })
-  })
-
-  describe('getTopology()', () => {
-    it('should expose a step route (GET + POST) and a journey route (GET) as data', () => {
-      // Arrange
-      const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'], 'My Journey')
-      const step = createStepDescriptor('compile_ast:2', '/step-one', ['compile_ast:1'], 'Step One')
-      const packageInstance = createPackageInstance([journey], [step])
-
-      // Act
-      evaluator.mount(packageInstance)
-      const { routes } = evaluator.getTopology()
-
-      // Assert
-      expect(routes).toEqual([
-        {
-          nodeId: 'test-journey::compile_ast:2',
-          kind: 'step',
-          templatePath: '/journey/step-one',
-          basePath: '/journey',
-          methods: ['GET', 'POST'],
-          title: 'Step One',
-        },
-        {
-          nodeId: 'test-journey::compile_ast:1',
-          kind: 'journey',
-          templatePath: '/journey',
-          basePath: '/journey',
-          methods: ['GET'],
-          title: 'My Journey',
-        },
-      ])
-    })
-
-    it('should bake nested journey segments into step template paths', () => {
-      // Arrange
-      const journey = createJourneyDescriptor('compile_ast:5', '/journey', ['compile_ast:5'], 'test')
-      const childJourney = createJourneyDescriptor(
-        'compile_ast:6',
-        '/section',
-        ['compile_ast:5', 'compile_ast:6'],
-        'Section',
-      )
-      const step = createStepDescriptor('compile_ast:7', '/details', ['compile_ast:5', 'compile_ast:6'], 'Details')
-      const packageInstance = createPackageInstance([journey, childJourney], [step])
-
-      // Act
-      evaluator.mount(packageInstance)
-      const stepRoute = evaluator.getTopology().routes.find(route => route.kind === 'step')
-
-      // Assert
-      expect(stepRoute).toMatchObject({
-        templatePath: '/journey/section/details',
-        basePath: '/journey/section',
-        methods: ['GET', 'POST'],
-      })
-    })
-
-    it('should include the configured base path in template paths', () => {
-      // Arrange
-      const evaluatorWithBase = new ForgeEvaluator({ basePath: '/forms' })
-      const journey = createJourneyDescriptor('compile_ast:8', '/journey', ['compile_ast:8'], 'test')
-      const step = createStepDescriptor('compile_ast:9', '/step-one', ['compile_ast:8'])
-      const packageInstance = createPackageInstance([journey], [step])
-
-      // Act
-      evaluatorWithBase.mount(packageInstance)
-      const stepRoute = evaluatorWithBase.getTopology().routes.find(route => route.kind === 'step')
-
-      // Assert
-      expect(stepRoute?.templatePath).toBe('/forms/journey/step-one')
+      expect(topology).toEqual(registry.getTopology())
     })
   })
 
@@ -223,12 +152,12 @@ describe('ForgeEvaluator', () => {
       // Arrange
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      const packageInstance = createPackageInstance([journey], [step])
-      evaluator.mount(packageInstance)
-      const stepRoute = evaluator.getTopology().routes.find(r => r.kind === 'step')!
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
 
       // Assert
       expect(outcome.kind).toBe('render')
@@ -241,11 +170,12 @@ describe('ForgeEvaluator', () => {
       // Arrange
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      evaluator.mount(createPackageInstance([journey], [step]))
-      const stepRoute = evaluator.getTopology().routes.find(r => r.kind === 'step')!
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
 
       // Assert
       expect(outcome).toEqual(expect.objectContaining({ kind: 'render', output: undefined, renderedBlocks: [] }))
@@ -258,14 +188,14 @@ describe('ForgeEvaluator', () => {
         wrapNestedBlock: vi.fn(),
         assemblePage: vi.fn().mockReturnValue('<html>page</html>'),
       }
-      const renderingEvaluator = new ForgeEvaluator({ renderer })
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      renderingEvaluator.mount(createPackageInstance([journey], [step]))
-      const stepRoute = renderingEvaluator.getTopology().routes.find(r => r.kind === 'step')!
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub<string>(registry), renderer)
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const outcome = await renderingEvaluator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
 
       // Assert
       expect(renderer.assemblePage).toHaveBeenCalled()
@@ -278,10 +208,11 @@ describe('ForgeEvaluator', () => {
       // Arrange
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      evaluator.mount(createPackageInstance([journey], [step]))
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot('compile_ast:999', 'GET'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await orchestrator.evaluate(buildSnapshot('compile_ast:999', 'GET'))
 
       // Assert
       expect(outcome).toEqual(
@@ -293,15 +224,39 @@ describe('ForgeEvaluator', () => {
       // Arrange
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
-      evaluator.mount(createPackageInstance([journey], [step]))
-      const journeyRoute = evaluator.getTopology().routes.find(r => r.kind === 'journey')!
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const journeyRoute = orchestrator.getTopology().routes.find(r => r.kind === 'journey')!
 
       // Act
-      const outcome = await evaluator.evaluate(buildSnapshot(journeyRoute.nodeId, 'POST'), NO_OP_RESPONSE_BINDINGS)
+      const outcome = await orchestrator.evaluate(buildSnapshot(journeyRoute.nodeId, 'POST'))
 
       // Assert
       expect(outcome).toEqual(
         expect.objectContaining({ kind: 'error', error: expect.objectContaining({ code: 'method-not-supported' }) }),
+      )
+    })
+
+    it('should not serve nodes mounted after construction', async () => {
+      // Arrange
+      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
+      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
+      registry.mount(createPackageInstance([journey], [step]))
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+
+      const lateJourney = createJourneyDescriptor('compile_ast:5', '/late-journey', ['compile_ast:5'], 'late')
+      const lateStep = createStepDescriptor('compile_ast:6', '/step-one', ['compile_ast:5'])
+      registry.mount(createPackageInstance([lateJourney], [lateStep], 'late-journey'))
+      const lateRoute = registry
+        .getTopology()
+        .routes.find(r => r.nodeId.startsWith('late-journey::') && r.kind === 'step')!
+
+      // Act
+      const outcome = await orchestrator.evaluate(buildSnapshot(lateRoute.nodeId, 'GET'))
+
+      // Assert
+      expect(outcome).toEqual(
+        expect.objectContaining({ kind: 'error', error: expect.objectContaining({ code: 'node-not-found' }) }),
       )
     })
   })
