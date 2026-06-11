@@ -8,16 +8,16 @@
  * @example
  * ```typescript
  * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+ * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
  * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
  *
  * const nunjucksEnv = nunjucksSetup(app)
  *
- * const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+ * const forge = new Forge({ logger })
  *   .registerGlobalComponents(govukComponents())
  *   .registerPackage(myPackage)
  *
- * app.use(createExpressRouter(forge))
+ * app.use(createExpressRouter(forge, { nunjucksEnv }))
  * ```
  */
 

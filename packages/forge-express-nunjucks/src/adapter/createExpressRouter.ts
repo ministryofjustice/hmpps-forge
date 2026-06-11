@@ -1,5 +1,7 @@
 import express from 'express'
+import type nunjucks from 'nunjucks'
 import createHttpError from 'http-errors'
+import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
@@ -12,31 +14,47 @@ import type {
   RequestSnapshot,
   ResponseBindings,
 } from '@ministryofjustice/hmpps-forge/core/framework'
+import NunjucksRenderer from '../renderer/NunjucksRenderer'
 import { RequestWithState } from './types'
+
+export interface ExpressForgeRouterOptions {
+  /** Nunjucks environment for page template rendering. */
+  nunjucksEnv: nunjucks.Environment
+
+  /**
+   * Default template to use when no template is specified in step or ancestors.
+   * Defaults to 'form-step'. The .njk extension is appended automatically if not present.
+   */
+  defaultTemplate?: string
+}
 
 /**
  * Build an Express router that serves a configured {@link Forge} instance.
  *
- * The router owns only the Express transport: it registers a route per entry
- * in `forge.getTopology()`, converts each incoming request to a
- * {@link RequestSnapshot}, calls `forge.evaluate()`, flushes the resulting
- * effects onto the response, and writes the outcome (rendered page / redirect /
- * error). Rendering happens inside the engine via the renderer bound at Forge
- * construction, so the Forge must be `Forge<string>`.
+ * Composes a `ForgeOrchestrator` bound to a `NunjucksRenderer` over the engine,
+ * then owns only the Express transport: it registers a route per entry in the
+ * topology, converts each incoming request to a {@link RequestSnapshot}, calls
+ * `orchestrator.evaluate()`, flushes the resulting effects onto the response,
+ * and writes the outcome (rendered page / redirect / error). Register all
+ * packages before calling this — the router and orchestrator snapshot the
+ * topology at creation.
  *
  * @example
  * ```typescript
- * const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
- *   .registerPackage(myPackage)
- * app.use(createExpressRouter(forge))
+ * const forge = new Forge({ logger }).registerPackage(myPackage)
+ * app.use(createExpressRouter(forge, { nunjucksEnv }))
  * ```
  */
-export function createExpressRouter(forge: Forge<string>): express.Router {
+export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
   const logger = forge.getLogger()
+  const orchestrator = new ForgeOrchestrator(
+    forge,
+    new NunjucksRenderer({ nunjucksEnv: options.nunjucksEnv, defaultTemplate: options.defaultTemplate }),
+  )
   const router = express.Router({ mergeParams: true })
 
-  forge.getTopology().routes.forEach(route => {
-    const handler = createHandler(forge, route, logger)
+  orchestrator.getTopology().routes.forEach(route => {
+    const handler = createHandler(orchestrator, route, logger)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
@@ -50,7 +68,11 @@ export function createExpressRouter(forge: Forge<string>): express.Router {
   return router
 }
 
-function createHandler(forge: Forge<string>, route: ForgeRoute, logger: Logger | Console): express.RequestHandler {
+function createHandler(
+  orchestrator: ForgeOrchestrator<string>,
+  route: ForgeRoute,
+  logger: Logger | Console,
+): express.RequestHandler {
   return async (req, res, next) => {
     const requestPath = extractPathname(req.originalUrl ?? req.path)
     const reqWithState = req as RequestWithState
@@ -63,7 +85,7 @@ function createHandler(forge: Forge<string>, route: ForgeRoute, logger: Logger |
     const response = createExpressResponseBindings(res)
 
     try {
-      const outcome = await forge.evaluate(snapshot, { response })
+      const outcome = await orchestrator.evaluate(snapshot, { response })
 
       applyOutcome(outcome, res, next)
     } catch (err) {

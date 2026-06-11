@@ -104,11 +104,11 @@ describe('ForgeOrchestrator', () => {
     } as unknown as Mocked<PackageInstance>
   }
 
-  function createForgeStub<TOut = undefined>(mountRegistry: MountRegistry): Forge<TOut> {
+  function createForgeStub(mountRegistry: MountRegistry): Forge {
     return {
       getRuntime: () => mountRegistry.getRuntime(),
       getTopology: () => mountRegistry.getTopology(),
-    } as unknown as Forge<TOut>
+    } as unknown as Forge
   }
 
   function buildSnapshot(nodeId: string, method: 'GET' | 'POST'): RequestSnapshot {
@@ -191,7 +191,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub<string>(registry), renderer)
+      const orchestrator = new ForgeOrchestrator(createForgeStub(registry), renderer)
       const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act

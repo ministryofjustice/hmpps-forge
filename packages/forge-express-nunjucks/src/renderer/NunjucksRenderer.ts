@@ -20,11 +20,12 @@ export interface NunjucksRendererOptions {
 }
 
 /**
- * The Nunjucks rendering backend, bound at Forge construction
- * (`new Forge({ renderer: new NunjucksRenderer({ nunjucksEnv }) })`). The
- * orchestrator owns the block walk and drives this renderer per block; it owns
- * only the Nunjucks-specific parts — component rendering with the cached env
- * proxy, template resolution, and page assembly.
+ * The Nunjucks rendering backend, bound at orchestrator construction
+ * (`new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))` —
+ * `createExpressRouter` does this for you). The orchestrator owns the block
+ * walk and drives this renderer per block; it owns only the Nunjucks-specific
+ * parts — component rendering with the cached env proxy, template resolution,
+ * and page assembly.
  */
 export default class NunjucksRenderer implements ForgeRenderer<string> {
   private static readonly TEMPLATE_EXTENSION = '.njk'

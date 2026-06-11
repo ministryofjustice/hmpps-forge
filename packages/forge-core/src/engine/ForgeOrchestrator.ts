@@ -59,7 +59,7 @@ interface NodeExecutor<TOut> {
  * ```
  */
 export default class ForgeOrchestrator<TOut = undefined> {
-  private readonly forge: Forge<TOut>
+  private readonly forge: Forge
 
   private readonly renderer?: ForgeRenderer<TOut>
 
@@ -69,7 +69,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
   private readonly executorsByRouteKey = new Map<string, NodeExecutor<TOut>>()
 
-  constructor(forge: Forge<TOut>, renderer?: ForgeRenderer<TOut>) {
+  constructor(forge: Forge, renderer?: ForgeRenderer<TOut>) {
     this.forge = forge
     this.renderer = renderer
 
