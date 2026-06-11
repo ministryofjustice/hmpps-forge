@@ -1,4 +1,5 @@
 import Forge from '../engine/Forge'
+import ForgeOrchestrator from '../engine/ForgeOrchestrator'
 import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
@@ -56,6 +57,6 @@ export class ForgeTestHarness {
   }
 
   createClient(): ForgeTestClient {
-    return new ForgeTestClient(this.forge)
+    return new ForgeTestClient(new ForgeOrchestrator(this.forge))
   }
 }
