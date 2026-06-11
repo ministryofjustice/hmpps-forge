@@ -26,10 +26,10 @@ happens inside the engine.
 [`SnapshotStepRequest`](./snapshot/SnapshotStepRequest.ts), then calls
 [`ContextPreparer`](./lifecycle/ContextPreparer.ts) to build a
 `RuntimeEvaluationContext` (request and the mutable global state - answers,
-data, validation) and hands it to a `RequestOrchestrator` along with the
+data, validation) and hands it to a `RequestPipeline` along with the
 adapter-provided `ResponseBindings` on the `PipelineState`.
 
-The orchestrator ([`RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts))
+The orchestrator ([`RequestPipeline.ts`](./pipeline/RequestPipeline.ts))
 is a `for` loop over an ordered list of phases. Each phase runs a compiled
 function, then returns one of three outcomes:
 
@@ -69,7 +69,7 @@ answer-preparation, and navigation phases, and the same render terminal.
 
 Journey root requests (e.g. `/demo/`) use a simpler pipeline: just access +
 answer-preparation, with a
-[`journeyRedirectTerminal`](./orchestrator/terminals/journeyRedirectTerminal.ts)
+[`journeyRedirectTerminal`](./pipeline/terminals/journeyRedirectTerminal.ts)
 that evaluates navigation and redirects to the entry step or resume frontier.
 
 The orchestrator's internal result is mapped by `ForgeEvaluator` into a
@@ -85,10 +85,10 @@ hook execution, not carried on the outcome.
 | [`routes/ForgeEvaluator.ts`](./routes/ForgeEvaluator.ts) | Stores NodeExecutor records keyed by node ID; exposes `evaluate(snapshot)` and `getTopology()` |
 | [`snapshot/SnapshotStepRequest.ts`](./snapshot/SnapshotStepRequest.ts) | Wraps a `RequestSnapshot` as a `StepRequest` for the evaluation pipeline |
 | [`routes/RouteTreeBuilder.ts`](./routes/RouteTreeBuilder.ts) | Builds the hierarchical route tree from step/journey route indices |
-| [`orchestrator/RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
-| [`orchestrator/types.ts`](./orchestrator/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
-| [`orchestrator/phases/`](./orchestrator/phases/) | `accessLifecyclePhase`, `answerPreparationPhase`, `navigationPhase`, `entryValidationPhase`, `submitPhase` |
-| [`orchestrator/terminals/`](./orchestrator/terminals/) | `stepRenderTerminal` (render a step), `journeyRedirectTerminal` (redirect from journey root) |
+| [`orchestrator/RequestPipeline.ts`](./pipeline/RequestPipeline.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
+| [`orchestrator/types.ts`](./pipeline/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
+| [`orchestrator/phases/`](./pipeline/phases/) | `accessLifecyclePhase`, `answerPreparationPhase`, `navigationPhase`, `entryValidationPhase`, `submitPhase` |
+| [`orchestrator/terminals/`](./pipeline/terminals/) | `stepRenderTerminal` (render a step), `journeyRedirectTerminal` (redirect from journey root) |
 | [`context/RuntimeEvaluationContext.ts`](./context/RuntimeEvaluationContext.ts) | Request-scoped mutable state: answers, data, validation, reachability |
 | [`context/compiledEvaluationContext.ts`](./context/compiledEvaluationContext.ts) | Snapshot builders that extract what each compiled function needs from the full context |
 | [`context/EffectFunctionContext.ts`](./context/EffectFunctionContext.ts) | The typed wrapper passed to author-defined effect functions |

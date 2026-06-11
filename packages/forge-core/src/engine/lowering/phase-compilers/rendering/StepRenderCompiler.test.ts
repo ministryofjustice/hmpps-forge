@@ -18,7 +18,7 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import { attachDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { RenderCompilationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { RenderBlock } from '../../../../framework/rendering/types'
-import { evaluateRender } from '../../../runtime/orchestrator/phases/evaluateRender'
+import { evaluateRender } from '../../../runtime/pipeline/phases/evaluateRender'
 import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {

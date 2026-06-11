@@ -13,16 +13,16 @@ import {
 import type { JourneyRouteIndex, StepRouteIndex } from '../../contracts/routing/routeDescriptors.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
 import ContextPreparer from '../lifecycle/ContextPreparer'
-import RequestOrchestrator from '../orchestrator/RequestOrchestrator'
-import type { PipelineState } from '../orchestrator/types'
-import { createAccessLifecyclePhase } from '../orchestrator/phases/accessLifecyclePhase'
-import { createAnswerPreparationPhase } from '../orchestrator/phases/answerPreparationPhase'
-import { createNavigationPhase } from '../orchestrator/phases/navigationPhase'
-import { createEntryValidationPhase } from '../orchestrator/phases/entryValidationPhase'
-import { createSubmitLifecyclePhase } from '../orchestrator/phases/submitLifecyclePhase'
-import { createRenderEvaluationPhase } from '../orchestrator/phases/renderEvaluationPhase'
-import { createRenderOutputTerminal } from '../orchestrator/terminals/renderOutputTerminal'
-import { createJourneyRedirectTerminal } from '../orchestrator/terminals/journeyRedirectTerminal'
+import RequestPipeline from '../pipeline/RequestPipeline'
+import type { PipelineState } from '../pipeline/types'
+import { createAccessLifecyclePhase } from '../pipeline/phases/accessLifecyclePhase'
+import { createAnswerPreparationPhase } from '../pipeline/phases/answerPreparationPhase'
+import { createNavigationPhase } from '../pipeline/phases/navigationPhase'
+import { createEntryValidationPhase } from '../pipeline/phases/entryValidationPhase'
+import { createSubmitLifecyclePhase } from '../pipeline/phases/submitLifecyclePhase'
+import { createRenderEvaluationPhase } from '../pipeline/phases/renderEvaluationPhase'
+import { createRenderOutputTerminal } from '../pipeline/terminals/renderOutputTerminal'
+import { createJourneyRedirectTerminal } from '../pipeline/terminals/journeyRedirectTerminal'
 import SnapshotStepRequest from '../snapshot/SnapshotStepRequest'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ForgeRenderer } from '../../../framework/rendering/types'
@@ -39,8 +39,8 @@ import type { ForgeRoute, ForgeTopology } from '../../../framework/types/topolog
 interface NodeExecutor<TOut> {
   readonly staticData: Record<string, unknown>
   readonly componentRegistry: ComponentRegistry
-  readonly get?: RequestOrchestrator<TOut>
-  readonly post?: RequestOrchestrator<TOut>
+  readonly get?: RequestPipeline<TOut>
+  readonly post?: RequestPipeline<TOut>
 }
 
 /**
@@ -103,7 +103,7 @@ export default class ForgeEvaluator<TOut = undefined> {
 
   /**
    * Resolves the executor for `snapshot.nodeId`, picks the GET or POST
-   * orchestrator by method, prepares a fresh per-request context, and runs the
+   * pipeline by method, prepares a fresh per-request context, and runs the
    * pipeline. Returns a `navigate` outcome for a redirect result or a `render`
    * outcome (carrying the node's component registry) otherwise; yields an
    * `error` outcome when the node is unknown or the method is unsupported.
@@ -115,9 +115,9 @@ export default class ForgeEvaluator<TOut = undefined> {
       return this.errorOutcome('node-not-found', `No route registered for node "${snapshot.nodeId}"`)
     }
 
-    const orchestrator = snapshot.method === 'POST' ? executor.post : executor.get
+    const pipeline = snapshot.method === 'POST' ? executor.post : executor.get
 
-    if (!orchestrator) {
+    if (!pipeline) {
       return this.errorOutcome('method-not-supported', `${snapshot.method} not allowed for node "${snapshot.nodeId}"`)
     }
 
@@ -125,7 +125,7 @@ export default class ForgeEvaluator<TOut = undefined> {
     const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request)
     const state: PipelineState = { context, request, responseBindings }
 
-    const result = await orchestrator.execute(state)
+    const result = await pipeline.execute(state)
 
     if (result.type === 'redirect') {
       return { kind: 'navigate', url: result.url }
@@ -141,9 +141,9 @@ export default class ForgeEvaluator<TOut = undefined> {
   }
 
   /**
-   * For each step context, assembles its GET orchestrator (access ->
+   * For each step context, assembles its GET pipeline (access ->
    * answer-preparation -> navigation -> entry-validation -> render-evaluation,
-   * then the shared render-output terminal) and POST orchestrator (access ->
+   * then the shared render-output terminal) and POST pipeline (access ->
    * answer-preparation -> navigation -> submit -> render-evaluation, same
    * terminal), registers both under one scoped route key, and pushes a step
    * {@link ForgeRoute}. Returns the executor count (two per step).
@@ -175,7 +175,7 @@ export default class ForgeEvaluator<TOut = undefined> {
 
       const renderOutputTerminal = createRenderOutputTerminal<TOut>(componentRegistry, this.renderer)
 
-      const getOrchestrator = new RequestOrchestrator(
+      const getPipeline = new RequestPipeline(
         [
           accessPhase,
           answersPhase,
@@ -197,7 +197,7 @@ export default class ForgeEvaluator<TOut = undefined> {
         renderOutputTerminal,
       )
 
-      const postOrchestrator = new RequestOrchestrator(
+      const postPipeline = new RequestPipeline(
         [
           accessPhase,
           answersPhase,
@@ -224,8 +224,8 @@ export default class ForgeEvaluator<TOut = undefined> {
       this.executorsByRouteKey.set(routeKey, {
         staticData: runtimePlan.staticData,
         componentRegistry,
-        get: getOrchestrator,
-        post: postOrchestrator,
+        get: getPipeline,
+        post: postPipeline,
       })
 
       this.routes.push({
@@ -244,7 +244,7 @@ export default class ForgeEvaluator<TOut = undefined> {
   }
 
   /**
-   * For each journey root, assembles a GET-only orchestrator (access ->
+   * For each journey root, assembles a GET-only pipeline (access ->
    * answer-preparation, then a redirect terminal that sends the visitor to the
    * resolved entry step), registers it, and pushes a journey {@link ForgeRoute}.
    * Skips any journey whose compiled artefact or template catalog is missing.
@@ -271,7 +271,7 @@ export default class ForgeEvaluator<TOut = undefined> {
 
       const runtimePlan = compiledJourney.runtimePlan
 
-      const orchestrator = new RequestOrchestrator(
+      const pipeline = new RequestPipeline(
         [
           createAccessLifecyclePhase(compiledJourney.accessLifecyclePlan, functionRegistry),
           createAnswerPreparationPhase(compiledJourney.answerPreparationPlan, functionRegistry),
@@ -284,7 +284,7 @@ export default class ForgeEvaluator<TOut = undefined> {
       this.executorsByRouteKey.set(routeKey, {
         staticData: runtimePlan.staticData,
         componentRegistry,
-        get: orchestrator,
+        get: pipeline,
       })
 
       this.routes.push({

@@ -1,6 +1,6 @@
 import { resolvePathParams } from '../../../framework/path/routePath'
 import type { StepRequest } from '../../../framework/types/request.type'
-import type { ForgeRedirectResult } from '../orchestrator/types'
+import type { ForgeRedirectResult } from '../pipeline/types'
 import { resolveRedirectTarget } from './redirectTarget'
 
 export function resolveForgeRedirect(target: string, request: StepRequest): ForgeRedirectResult {

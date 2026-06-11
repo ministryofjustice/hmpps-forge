@@ -16,7 +16,7 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
-import { evaluateAnswerPreparation } from '../../../runtime/orchestrator/phases/evaluateAnswerPreparation'
+import { evaluateAnswerPreparation } from '../../../runtime/pipeline/phases/evaluateAnswerPreparation'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
 

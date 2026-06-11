@@ -30,7 +30,7 @@ export interface PipelineState {
   showValidationFailures?: boolean
   /** Hydrated render context, written by the render-evaluation phase for the render-output terminal. */
   renderContext?: RenderContext
-  /** Present when the request is being traced; the orchestrator and phase walks record decisions here. */
+  /** Present when the request is being traced; the pipeline and phase walks record decisions here. */
   readonly trace?: TraceRecorder
 }
 

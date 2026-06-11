@@ -2,7 +2,7 @@ import createHttpError from 'http-errors'
 import { resolveForgeRedirect } from '../navigation/resolveForgeRedirect'
 import type { ForgeResult, PipelineState, RequestPhase, TerminalPhase } from './types'
 
-export default class RequestOrchestrator<TOut = undefined> {
+export default class RequestPipeline<TOut = undefined> {
   constructor(
     private readonly phases: RequestPhase[],
     private readonly terminal: TerminalPhase<TOut>,
