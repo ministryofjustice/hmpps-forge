@@ -18,18 +18,19 @@ pipeline without touching compilation.
 ## Follow one evaluation
 
 A user visits `/demo/name`. The adapter matches the URL against the topology,
-builds a `RequestSnapshot`, and calls `forge.evaluate(snapshot)`. Here's what
-happens inside the engine.
+builds a `RequestSnapshot`, and calls `orchestrator.evaluate(snapshot)`. Here's
+what happens inside the engine.
 
-[`ForgeEvaluator`](./routes/ForgeEvaluator.ts) resolves the matching
-`NodeExecutor` for the snapshot's `nodeId`. It wraps the snapshot in a
+`ForgeOrchestrator` (in [`engine/`](../ForgeOrchestrator.ts), composed over the
+`Forge` engine and an optional renderer) resolves the matching `NodeExecutor`
+for the snapshot's `nodeId`. It wraps the snapshot in a
 [`SnapshotStepRequest`](./snapshot/SnapshotStepRequest.ts), then calls
 [`ContextPreparer`](./lifecycle/ContextPreparer.ts) to build a
 `RuntimeEvaluationContext` (request and the mutable global state - answers,
 data, validation) and hands it to a `RequestPipeline` along with the
 adapter-provided `ResponseBindings` on the `PipelineState`.
 
-The orchestrator ([`RequestPipeline.ts`](./pipeline/RequestPipeline.ts))
+The pipeline ([`RequestPipeline.ts`](./pipeline/RequestPipeline.ts))
 is a `for` loop over an ordered list of phases. Each phase runs a compiled
 function, then returns one of three outcomes:
 
@@ -40,55 +41,59 @@ function, then returns one of three outcomes:
 For a GET request to a step, the phases are:
 
 ```
-1. access-lifecycle     run the compiled access hooks (can redirect or deny)
+1. access-lifecycle      run the compiled access hooks (can redirect or deny)
         │ continue
-2. answer-preparation   run the compiled answer-prep (format/default answers into state)
+2. answer-preparation    run the compiled answer-prep (format/default answers into state)
         │ continue
-3. navigation           run the compiled navigation (evaluate reachability, check step is reachable)
+3. navigation            run the compiled navigation (evaluate reachability, check step is reachable)
         │ continue
-4. entry-validation     run entry validation groups if configured
+4. entry-validation      run entry validation groups if configured
+        │ continue
+5. render-evaluation     run the compiled render → blocks, step metadata, RenderContext
         │ continue
         ▼
-   stepRenderTerminal   run the compiled render → produce blocks, step metadata, backlink
+   renderOutputTerminal  drive the bound renderer block by block, assemble the page
         │
         ▼
-   ForgeResult { type: 'render', context }   (orchestrator's internal result)
-        │ mapped by ForgeEvaluator
+   ForgeResult { type: 'render', context, output, renderedBlocks }   (pipeline's internal result)
+        │ mapped by ForgeOrchestrator
         ▼
-   ForgeOutcome { kind: 'render', context, componentRegistry }
+   ForgeOutcome { kind: 'render', context, output, renderedBlocks, componentRegistry }
 ```
 
 If any phase halts, the pipeline stops early. For example, if the navigation
 phase finds the step is unreachable, it returns `halt-redirect` to the entry
 point or frontier - the render terminal never runs.
 
-POST requests use the same orchestrator with a different phase list: the
-fourth slot is `submitPhase` (runs submit hooks, validates, branches on
-outcomes) instead of `entryValidationPhase`. Both share the same access,
-answer-preparation, and navigation phases, and the same render terminal.
+POST requests use the same pipeline shape with a different phase list: the
+fourth slot is `submitLifecyclePhase` (runs submit hooks, validates, branches
+on outcomes) instead of `entryValidationPhase`. Both share the same access,
+answer-preparation, navigation, and render-evaluation phases, and the same
+render terminal.
 
 Journey root requests (e.g. `/demo/`) use a simpler pipeline: just access +
 answer-preparation, with a
 [`journeyRedirectTerminal`](./pipeline/terminals/journeyRedirectTerminal.ts)
 that evaluates navigation and redirects to the entry step or resume frontier.
 
-The orchestrator's internal result is mapped by `ForgeEvaluator` into a
-`ForgeOutcome`: either `{ kind: 'render', context, componentRegistry }`,
-`{ kind: 'navigate', url }`, or `{ kind: 'error', error }`. Response IO
-(headers, cookies) is handled live by the adapter's `ResponseBindings` during
-hook execution, not carried on the outcome.
+The pipeline's internal result is mapped by `ForgeOrchestrator` into a
+`ForgeOutcome`: either `{ kind: 'render', context, output, renderedBlocks,
+componentRegistry }`, `{ kind: 'navigate', url }`, or `{ kind: 'error', error }`.
+Response IO (headers, cookies) is handled live by the adapter's
+`ResponseBindings` during hook execution, not carried on the outcome.
 
 ## Key files
 
 | File | Role |
 |------|------|
-| [`routes/ForgeEvaluator.ts`](./routes/ForgeEvaluator.ts) | Stores NodeExecutor records keyed by node ID; exposes `evaluate(snapshot)` and `getTopology()` |
+| [`routes/MountRegistry.ts`](./routes/MountRegistry.ts) | Engine-side registration store: route tree, `getTopology()`, and per-mount artefacts for executor assembly |
+| [`../ForgeOrchestrator.ts`](../ForgeOrchestrator.ts) | Builds NodeExecutor records from the mounted artefacts; exposes `evaluate(snapshot)` |
 | [`snapshot/SnapshotStepRequest.ts`](./snapshot/SnapshotStepRequest.ts) | Wraps a `RequestSnapshot` as a `StepRequest` for the evaluation pipeline |
 | [`routes/RouteTreeBuilder.ts`](./routes/RouteTreeBuilder.ts) | Builds the hierarchical route tree from step/journey route indices |
-| [`orchestrator/RequestPipeline.ts`](./pipeline/RequestPipeline.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
-| [`orchestrator/types.ts`](./pipeline/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
-| [`orchestrator/phases/`](./pipeline/phases/) | `accessLifecyclePhase`, `answerPreparationPhase`, `navigationPhase`, `entryValidationPhase`, `submitPhase` |
-| [`orchestrator/terminals/`](./pipeline/terminals/) | `stepRenderTerminal` (render a step), `journeyRedirectTerminal` (redirect from journey root) |
+| [`pipeline/RequestPipeline.ts`](./pipeline/RequestPipeline.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
+| [`pipeline/types.ts`](./pipeline/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
+| [`pipeline/phases/`](./pipeline/phases/) | `accessLifecyclePhase`, `answerPreparationPhase`, `navigationPhase`, `entryValidationPhase`, `submitLifecyclePhase`, `renderEvaluationPhase` |
+| [`pipeline/terminals/`](./pipeline/terminals/) | `renderOutputTerminal` (drive the renderer, assemble the page), `journeyRedirectTerminal` (redirect from journey root) |
 | [`context/RuntimeEvaluationContext.ts`](./context/RuntimeEvaluationContext.ts) | Request-scoped mutable state: answers, data, validation, reachability |
 | [`context/compiledEvaluationContext.ts`](./context/compiledEvaluationContext.ts) | Snapshot builders that extract what each compiled function needs from the full context |
 | [`context/EffectFunctionContext.ts`](./context/EffectFunctionContext.ts) | The typed wrapper passed to author-defined effect functions |

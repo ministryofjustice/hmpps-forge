@@ -14,6 +14,8 @@ Nunjucks template engine. It provides two pieces: `NunjucksRenderer`,
 which turns your journey's blocks into HTML, and `createExpressRouter`,
 which handles routing, request mapping, and state merging so that your
 journeys render as server-side HTML pages within an Express application.
+`createExpressRouter` wires the two together for you — you only pass it
+your Forge instance and a Nunjucks environment.
 
 {{slot:toc}}
 
@@ -35,25 +37,26 @@ import {
 
 ## Setting up the router
 
-Bind a `NunjucksRenderer` when you create your Forge instance, then pass
-the instance to `createExpressRouter` to produce an Express router:
+Pass your Forge instance and the Nunjucks environment to
+`createExpressRouter` to produce an Express router — it sets up the
+Nunjucks rendering for you:
 
 ```typescript
 import nunjucks from 'nunjucks'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 const nunjucksEnv = nunjucks.configure(['server/views'], {
   autoescape: true,
   express: app,
 })
 
-const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+const forge = new Forge({ logger })
 
-app.use(createExpressRouter(forge))
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
-### NunjucksRenderer options
+### Router options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

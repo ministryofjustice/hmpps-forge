@@ -154,7 +154,7 @@ import feedbackPackage from './journeys/feedback'
 forge.registerPackage(feedbackPackage)
 
 app.use(express.urlencoded({ extended: true }))
-app.use(createExpressRouter(forge))
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000')

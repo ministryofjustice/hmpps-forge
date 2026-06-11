@@ -24,22 +24,32 @@ rendering work.
 
 ## Binding a renderer
 
-The renderer binds at Forge construction and lives for the lifetime of the
-instance:
+The renderer binds at orchestrator construction and lives for the lifetime of
+that orchestrator. Adapters do the composition for you — `createExpressRouter`
+builds the `NunjucksRenderer` and the `ForgeOrchestrator` internally:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
-app.use(createExpressRouter(forge))
+const forge = new Forge({ logger }).registerPackage(myPackage)
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
-The renderer's output type flows through the engine's types: a Forge bound to
-`NunjucksRenderer` is `Forge<string>`, and its render outcomes carry
-`output: string`. A Forge constructed without a renderer produces context-only
-render outcomes — this is how the test harness runs journeys without rendering
-anything.
+Composing by hand is the same two lines the adapter runs:
+
+```typescript
+import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
+
+const orchestrator = new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))
+```
+
+The renderer's output type flows through the orchestrator's types: an
+orchestrator bound to `NunjucksRenderer` is `ForgeOrchestrator<string>`, and its
+render outcomes carry `output: string`. An orchestrator constructed without a
+renderer produces context-only render outcomes — this is how the test harness
+runs journeys without rendering anything. The `Forge` engine itself carries no
+renderer and no output type.
 
 ## Where rendering happens in the request lifecycle
 

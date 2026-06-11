@@ -53,17 +53,17 @@ first so your templates can override defaults when needed.
 
 ## Create the Express router
 
-Bind the Nunjucks renderer when you create your Forge instance — it is what
-turns your journey's blocks into HTML. Then pass the instance to
-`createExpressRouter` to produce an Express router:
+Pass your Forge instance and the Nunjucks environment to
+`createExpressRouter` — it wires up the rendering that turns your journey's
+blocks into HTML and produces an Express router:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+const forge = new Forge({ logger })
 
-const router = createExpressRouter(forge)
+const router = createExpressRouter(forge, { nunjucksEnv })
 ```
 
 ---
@@ -118,7 +118,7 @@ submissions can be read. Mount this before the Forge router:
 
 ```typescript
 app.use(express.urlencoded({ extended: true }))
-app.use(createExpressRouter(forge))
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
 Place the Forge router after any middleware but before your error
@@ -135,7 +135,7 @@ import express from 'express'
 import nunjucks from 'nunjucks'
 import path from 'node:path'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 
@@ -154,7 +154,7 @@ const nunjucksEnv = nunjucks.configure(
 )
 
 // Forge
-const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
+const forge = new Forge({ logger })
 
 forge.registerGlobalComponents(govukComponents)
 forge.registerGlobalComponents(mojComponents)
@@ -164,7 +164,7 @@ forge.registerGlobalComponents(mojComponents)
 
 // Middleware and routes
 app.use(express.urlencoded({ extended: true }))
-app.use(createExpressRouter(forge))
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000')
