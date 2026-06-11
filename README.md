@@ -96,11 +96,12 @@ Set up the framework adapter and register your journeys:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { ExpressFrameworkAdapter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 const forge = new Forge({
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
+  renderer: new NunjucksRenderer({ nunjucksEnv }),
+  frameworkAdapter: ExpressFrameworkAdapter.configure(),
 })
 
 forge.registerGlobalComponents(govukComponents)

@@ -9,11 +9,11 @@ prerequisites: [packages, journey, step, block]
 <p class="govuk-caption-xl">Packages</p>
 
 # Express-Nunjucks Adapter
-The Express-Nunjucks Adapter package connects Forge to Express.js and the
-Nunjucks template engine. It handles routing, request mapping,
-state merging, template resolution, and block rendering so that
-your journeys render as server-side HTML pages within an Express
-application.
+The Express-Nunjucks package connects Forge to Express.js and the
+Nunjucks template engine. It provides two pieces: `NunjucksRenderer`,
+which turns your journey's blocks into HTML, and `createExpressRouter`,
+which handles routing, request mapping, and state merging so that your
+journeys render as server-side HTML pages within an Express application.
 
 {{slot:toc}}
 
@@ -24,6 +24,7 @@ application.
 ```typescript
 import {
   createExpressRouter,
+  NunjucksRenderer,
   buildNunjucksComponent,
   NunjucksGenerators,
   nunjucksFunctions,
@@ -34,25 +35,25 @@ import {
 
 ## Setting up the router
 
-Pass your Forge instance and Nunjucks environment to
-`createExpressRouter` to produce an Express router:
+Bind a `NunjucksRenderer` when you create your Forge instance, then pass
+the instance to `createExpressRouter` to produce an Express router:
 
 ```typescript
 import nunjucks from 'nunjucks'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter, NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 const nunjucksEnv = nunjucks.configure(['server/views'], {
   autoescape: true,
   express: app,
 })
 
-const forge = new Forge({ logger })
+const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
 
-app.use(createExpressRouter(forge, { nunjucksEnv }))
+app.use(createExpressRouter(forge))
 ```
 
-### Configuration options
+### NunjucksRenderer options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

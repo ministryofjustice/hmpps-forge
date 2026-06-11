@@ -22,8 +22,9 @@ application.
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
+import { NunjucksRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-const forge = new Forge({ logger })
+const forge = new Forge({ logger, renderer: new NunjucksRenderer({ nunjucksEnv }) })
 ```
 
 ### Options
@@ -31,6 +32,7 @@ const forge = new Forge({ logger })
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `logger` | `Logger \| Console` | `console` | Logger instance for Forge output. Compatible with pino, bunyan, or any logger with `info`, `error`, `warn`, and `debug` methods. |
+| `renderer` | `ForgeRenderer` | none | The rendering backend that turns your journey's blocks into a page. For Express apps, use `NunjucksRenderer` from the express-nunjucks package. Without one, evaluation returns render data but no rendered page. |
 | `basePath` | `string` | `''` | Base path prefix for all routes. When set, all routes are mounted under this path and the route tree includes the prefix. |
 | `strictRegistration` | `boolean` | `true` | When `true`, registration errors throw immediately. When `false`, errors are logged and the failing journey is skipped. |
 | `disableBuiltInFunctions` | `boolean` | `false` | Skip registering built-in conditions, transformers, and effects. |
@@ -125,7 +127,7 @@ produce an Express router and mount it on your application:
 ```typescript
 import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-app.use(createExpressRouter(forge, { nunjucksEnv }))
+app.use(createExpressRouter(forge))
 ```
 
 If you configured a `basePath`, the routes are already prefixed:
@@ -134,8 +136,9 @@ If you configured a `basePath`, the routes are already prefixed:
 const forge = new Forge({
   basePath: '/forms',
   logger,
+  renderer: new NunjucksRenderer({ nunjucksEnv }),
 })
 
 // Routes will be at /forms/my-journey/step-one, etc.
-app.use(createExpressRouter(forge, { nunjucksEnv }))
+app.use(createExpressRouter(forge))
 ```

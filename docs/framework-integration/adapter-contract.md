@@ -27,7 +27,12 @@ Adapters keep that boundary explicit:
 - the adapter registers those routes in the host framework
 - the adapter converts framework requests into a `RequestSnapshot`
 - the adapter calls `forge.evaluate(snapshot)` and receives a `ForgeOutcome`
-- the adapter dispatches the outcome (render, redirect, or error) using framework APIs
+- the adapter writes the outcome (rendered page, redirect, or error) using framework APIs
+
+Rendering is not the adapter's job. The renderer binds at Forge construction
+(`new Forge({ renderer })`) and the engine's orchestrator drives it block by
+block during evaluation — see the rendering doc. The adapter only writes the
+already-rendered output to its native response.
 
 The Express/Nunjucks package is the reference implementation. It is not the only
 shape the contract allows.
@@ -55,9 +60,10 @@ The adapter provides a `RequestSnapshot` to the engine. A snapshot contains:
 - session
 - request state
 
-The engine returns a `ForgeOutcome`:
+The engine returns a `ForgeOutcome<TOut>`, where `TOut` is the bound renderer's
+output type (`string` for Nunjucks):
 
-- `{ kind: 'render', context, componentRegistry }` - render a page
+- `{ kind: 'render', context, output, renderedBlocks, componentRegistry }` - a rendered page
 - `{ kind: 'navigate', url }` - redirect to a URL
 - `{ kind: 'error', error }` - surface a structured error
 
@@ -83,8 +89,11 @@ objects.
 `ForgeOutcome` is the engine's output. It is a discriminated union with three
 variants:
 
-- **render** - includes a `RenderContext` and the `ComponentRegistry` needed to
-  resolve block variants into rendered HTML
+- **render** - includes the assembled `output` from the bound renderer, the
+  top-level `renderedBlocks` in render order, and the `RenderContext` data the
+  outputs were produced from. A Forge with no renderer bound (the test harness
+  path) produces context-only render outcomes. The `componentRegistry` is still
+  carried for older consumers and will be removed once nothing reads it.
 - **navigate** - includes the resolved redirect URL
 - **error** - includes a `ForgeError` with a typed `ForgeErrorCode`
   (`node-not-found`, `method-not-supported`)
@@ -131,40 +140,39 @@ Each adapter creates its own route handlers. A handler:
    route's `nodeId` and `basePath`, plus request data)
 2. Creates a `ResponseBindings` implementation for this request
 3. Calls `forge.evaluate(snapshot, { response })`
-4. Dispatches the outcome:
-   - render: resolve blocks through the component registry, render a template,
-     send the HTML response
+4. Writes the outcome:
+   - render: send the already-rendered `outcome.output`
    - navigate: perform a framework redirect
    - error: forward to the framework's error model
 
 Response writes (headers, cookies) happen live during step 3 via the bindings.
 There is no post-evaluate flush step.
 
-### Express/Nunjucks reference adapter
+### Express reference adapter
 
-`createExpressRouter(forge, { nunjucksEnv })` is the reference implementation.
+`createExpressRouter(forge)` is the reference implementation, paired with a
+`NunjucksRenderer` bound at Forge construction.
 
 It:
 
 - reads routes from `forge.getTopology()`
 - registers an Express handler for each route's methods
-- builds a `RequestSnapshot` from each Express request (including `res.locals` as state)
+- builds a `RequestSnapshot` from each Express request (including `app.locals`
+  and `res.locals` as state, which the renderer's page assembly receives as
+  template locals)
 - creates `ResponseBindings` that write live to the Express `res` (with a
   local cookie cache for read-after-set, since `res.cookie` has no getter)
 - calls `forge.evaluate(snapshot, { response })`
-- renders with Nunjucks through `TemplateRenderer`, redirects with `res.redirect`,
-  or forwards errors with `next(createHttpError(...))`
+- sends `outcome.output` as HTML, redirects with `res.redirect`, or forwards
+  errors with `next(createHttpError(...))`
 
-`ExpressFrameworkAdapter.configure({ nunjucksEnv })` is a back-compat wrapper
-that returns a builder conforming to the `ForgeRouterAdapter` interface. Both
-produce the same router.
+`ExpressFrameworkAdapter.configure()` is a back-compat wrapper that returns a
+builder conforming to the `ForgeRouterAdapter` interface. Both produce the same
+router.
 
-    # Note
-    We've never tried to implement anything but Express/Nunjucks here. We think
-    that this may likely need a restructure in future if it were to support something
-    like ReactJS, though with the lack of support for anything but Nunjucks in 
-    the official GOVUK packages, there's not really much push to explore this 
-    currently.
+Supporting another rendering stack (React, static output) means implementing a
+`ForgeRenderer` for it, not restructuring the adapter — the transport layer and
+the renderer plug in independently.
 
 ### Test adapter (`ForgeTestClient`)
 
