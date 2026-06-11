@@ -1,7 +1,10 @@
 import express from 'express'
 import createError from 'http-errors'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { createExpressRouter, nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import {
+  createExpressRouter,
+  nunjucksFunctions,
+} from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 import nunjucksSetup from './utils/nunjucksSetup'
