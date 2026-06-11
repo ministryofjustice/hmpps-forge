@@ -193,6 +193,7 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true> =
               : R extends FieldBlockDefinition
                 ? IsRoot extends true
                   ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                      nodeId: string
                       value?: unknown
                       errors?: { message: string; details?: Record<string, any> }[]
                     }
@@ -200,6 +201,7 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true> =
                 : R extends BlockDefinition
                   ? IsRoot extends true
                     ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                        nodeId: string
                         value?: unknown
                       }
                     : RenderedBlock

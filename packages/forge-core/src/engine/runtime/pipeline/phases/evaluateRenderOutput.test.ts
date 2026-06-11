@@ -143,6 +143,7 @@ describe('evaluateRenderOutput', () => {
         expect.objectContaining({
           type: StructureType.BLOCK,
           variant: 'text-input',
+          nodeId: 'compile_ast:1',
           label: 'Email',
           name: 'email',
           errors: [],

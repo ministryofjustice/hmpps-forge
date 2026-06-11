@@ -97,9 +97,10 @@ function toEvaluatedBlock(block: RenderBlock, showErrors: boolean): EvaluatedBlo
   // The EvaluatedBlock conditional type cannot express this runtime-transformed
   // shape (properties spread plus errors), so the cast is unavoidable.
   return {
+    ...block.properties,
     type: StructureType.BLOCK,
     variant: block.variant,
-    ...block.properties,
+    nodeId: block.id,
     errors,
   } as unknown as EvaluatedBlock<BlockDefinition>
 }
