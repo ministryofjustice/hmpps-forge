@@ -78,7 +78,9 @@ request's state. Through this context they can:
 - **Read request information** – `context.getParams()`,
   `context.getQuery()`, `context.getPost()`, `context.getSession()`.
 - **Inspect reachability** – `context.getFieldsToClear()` returns
-  answer keys from steps that are no longer reachable.
+  answer keys from steps that are no longer reachable. Forge has
+  already cleared their values; use the list to drop the keys from
+  your own store.
 
 From the authoring side, you usually do not need to know the exact
 method names. The effect hides that detail behind a named operation

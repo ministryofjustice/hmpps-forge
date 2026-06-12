@@ -6,6 +6,7 @@ import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
   CookieMutation,
+  ForgeError,
   ForgeErrorCode,
   ForgeOutcome,
   ForgeRoute,
@@ -102,7 +103,11 @@ function toSnapshot(route: ForgeRoute, req: express.Request, res: express.Respon
   const post = (req.body as Record<string, string | string[]>) ?? {}
   // app.locals flow through snapshot state so the renderer's page assembly sees
   // them as template locals; res.locals override them, matching Express precedence.
-  const state = { ...req.app.locals, ...res.locals, ...(req as RequestWithState).state }
+  // Express attaches its internal settings object (view machinery, nunjucks env,
+  // template caches) to app.locals — nothing downstream reads it, so it is
+  // excluded rather than dragged into every snapshot and context-state trace.
+  const { settings: _expressSettings, ...appLocals } = req.app.locals
+  const state = { ...appLocals, ...res.locals, ...(req as RequestWithState).state }
   const origin = `${req.protocol}://${req.hostname}`
   const href = `${origin}${req.originalUrl}`
   const pathname = extractPathname(req.originalUrl)
@@ -164,7 +169,7 @@ function applyOutcome(outcome: ForgeOutcome<string>, res: express.Response, next
   }
 
   if (outcome.kind === 'error') {
-    next(createHttpError(errorCodeToStatus(outcome.error.code), outcome.error.message))
+    next(createHttpError(errorToStatus(outcome.error), outcome.error.message))
     return
   }
 
@@ -184,6 +189,6 @@ const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
   'method-not-supported': 405,
 }
 
-function errorCodeToStatus(code: ForgeErrorCode): number {
-  return ERROR_CODE_STATUS[code]
+function errorToStatus(error: ForgeError): number {
+  return 'status' in error ? error.status : ERROR_CODE_STATUS[error.code]
 }

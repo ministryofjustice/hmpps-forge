@@ -10,6 +10,7 @@ generic-service:
   env:
     INGRESS_URL: "https://forge-developer-guide-dev.hmpps.service.justice.gov.uk"
     ENVIRONMENT_NAME: DEV
+    NODE_USE_ENV_PROXY: "1"
 
 generic-prometheus-alerts:
   alertSeverity: NON_PROD_ALERTS_SEVERITY_LABEL

@@ -3,10 +3,23 @@ import type { RenderContext } from '../rendering/types'
 
 export type ForgeErrorCode = 'node-not-found' | 'method-not-supported'
 
-export interface ForgeError {
+/** Engine-detected request error; host adapters map the code onto their transport's status. */
+export interface ForgeEngineError {
   readonly code: ForgeErrorCode
   readonly message: string
 }
+
+/**
+ * Error raised by a journey's lifecycle hooks. The status is the HTTP status
+ * code declared in the journey configuration (500 when the hook did not
+ * declare one).
+ */
+export interface ForgeHookError {
+  readonly status: number
+  readonly message: string
+}
+
+export type ForgeError = ForgeEngineError | ForgeHookError
 
 /**
  * `TOut` is the bound renderer's output type (e.g. `string` for Nunjucks); a
