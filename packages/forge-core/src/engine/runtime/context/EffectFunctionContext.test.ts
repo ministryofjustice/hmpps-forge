@@ -114,6 +114,95 @@ describe('EffectFunctionContext', () => {
     })
   })
 
+  describe('getAnswer()', () => {
+    it('should support typed contexts and call-level generic types', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada', score: 42 },
+      })
+      const effectContext = new EffectFunctionContext<Record<string, unknown>, { firstName: string; score: number }>(
+        mockContext,
+        'access',
+      )
+      const untypedEffectContext = new EffectFunctionContext(mockContext, 'access')
+
+      // Act
+      const firstName = effectContext.getAnswer('firstName')
+      const score = untypedEffectContext.getAnswer<number>('score')
+
+      // Assert
+      expectTypeOf(firstName).toEqualTypeOf<string>()
+      expectTypeOf(score).toEqualTypeOf<number>()
+      expect(firstName).toBe('Ada')
+      expect(score).toBe(42)
+    })
+  })
+
+  describe('getData()', () => {
+    it('should support typed contexts and call-level generic types', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { pageTitle: 'Example', count: 3 },
+      })
+      const effectContext = new EffectFunctionContext<{ pageTitle: string; count: number }, Record<string, unknown>>(
+        mockContext,
+        'access',
+      )
+      const untypedEffectContext = new EffectFunctionContext(mockContext, 'access')
+
+      // Act
+      const pageTitle = effectContext.getData('pageTitle')
+      const count = untypedEffectContext.getData<number>('count')
+
+      // Assert
+      expectTypeOf(pageTitle).toEqualTypeOf<string>()
+      expectTypeOf(count).toEqualTypeOf<number>()
+      expect(pageTitle).toBe('Example')
+      expect(count).toBe(3)
+    })
+  })
+
+  describe('getPostData()', () => {
+    it('should support call-level generic types for keyed post data', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          post: { action: 'remove_1', selected: ['a', 'b'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
+
+      // Act
+      const action = effectContext.getPostData<string>('action')
+
+      // Assert
+      expectTypeOf(action).toEqualTypeOf<string | undefined>()
+      expect(action).toBe('remove_1')
+    })
+  })
+
+  describe('getAllPostData()', () => {
+    it('should support call-level generic types', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          post: { action: 'remove_1', selected: ['a', 'b'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext, 'access')
+
+      // Act
+      const postData = effectContext.getAllPostData<{
+        action: string
+        selected: string[]
+      }>()
+
+      // Assert
+      expectTypeOf(postData).toEqualTypeOf<{ action: string; selected: string[] }>()
+      expect(postData).toEqual({ action: 'remove_1', selected: ['a', 'b'] })
+    })
+  })
+
   describe('getRequestHeader()', () => {
     it('should return a request header value', () => {
       // Arrange
