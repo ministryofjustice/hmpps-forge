@@ -27,4 +27,6 @@ export interface RuntimeEvaluationGlobalState {
   answers: Record<string, AnswerHistory>
   validation?: StepValidationState
   reachability?: JourneyReachabilityState
+  /** Stale answer field codes resolved by the cleardown phase; absent until it runs. */
+  fieldsToClear?: readonly string[]
 }
