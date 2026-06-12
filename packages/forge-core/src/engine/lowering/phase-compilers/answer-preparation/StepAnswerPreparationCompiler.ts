@@ -29,8 +29,8 @@ import type {
 } from '../../../contracts/plans/compilationArtefacts.type'
 import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
-/** A resolved transformer invocation read from a field's formatter chain: the registered formatter name and its authored extra arguments (the value being formatted is threaded in separately). */
-interface FormatterFunctionCall {
+/** A resolved transformer invocation read from a field's transformer chain: the registered transformer name and its authored extra arguments (the value is threaded in separately). */
+interface TransformerFunctionCall {
   readonly name: string
   readonly arguments: unknown[]
 }
@@ -140,7 +140,7 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Emits GET answer preparation: seed defaultValue only when no current answer exists.
+   * Emits GET answer preparation: seed defaultValue only when no current answer exists, then parse the stored value for display.
    */
   private compileGetPath(properties: Record<string, unknown>, emitter: CodeEmitter, codeExpr: string): void {
     emitter.comment('StepAnswerPreparationCompiler.compileGetPath')
@@ -150,33 +150,54 @@ export default class StepAnswerPreparationCompiler {
       emitter.assign(historyVar, `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`)
       this.compileDefaultValue(properties.defaultValue, emitter, historyVar)
     })
+
+    const parsers = properties.parsers
+
+    if (Array.isArray(parsers) && parsers.length > 0) {
+      emitter.if(`${historyVar} && ${historyVar}.current !== undefined`, () => {
+        const parsedVar = emitter.let('parsedValue', `${historyVar}.current`)
+
+        this.compileTransformerPipeline(parsers, emitter, parsedVar)
+
+        emitter.if(`${parsedVar} !== undefined`, () => {
+          emitter.assign(`${historyVar}.parsed`, parsedVar)
+        })
+      })
+    }
   }
 
   /**
-   * Emits sequential formatter execution, stopping after recoverable type coercion failures.
+   * Emits sequential transformer execution, stopping after recoverable type coercion failures.
    */
   private compileFormatterPipeline(formatters: unknown[], emitter: CodeEmitter, valueVar: string): void {
-    const compilableFormatters = formatters.filter(
-      formatter => isASTNode(formatter) || this.expr.isTemplateNode(formatter),
+    this.compileTransformerPipeline(formatters, emitter, valueVar)
+  }
+
+  /**
+   * Emits sequential transformer execution, stopping after recoverable type coercion failures.
+   */
+  private compileTransformerPipeline(transformers: unknown[], emitter: CodeEmitter, valueVar: string): void {
+    const compilableTransformers = transformers.filter(
+      transformer => isASTNode(transformer) || this.expr.isTemplateNode(transformer),
     )
 
-    if (compilableFormatters.length === 0) {
+    if (compilableTransformers.length === 0) {
       return
     }
 
-    emitter.comment('StepAnswerPreparationCompiler.compileFormatterPipeline')
-    const originalValueVar = emitter.const('originalFormatterValue', valueVar)
-    const failedVar = emitter.let('formatterFailed', 'false')
+    emitter.comment('StepAnswerPreparationCompiler.compileTransformerPipeline')
+    const originalValueVar = emitter.const('originalTransformerValue', valueVar)
+    const failedVar = emitter.let('transformerFailed', 'false')
 
-    for (const formatter of compilableFormatters) {
-      const callExpr = this.compileFormatterCall(formatter, valueVar)
+    for (const transformer of compilableTransformers) {
+      const callExpr = this.compileTransformerCall(transformer, valueVar)
 
       emitter.if(`!${failedVar}`, () => {
-        const resultVar = emitter.let('formatterResult')
+        const resultVar = emitter.let('transformerResult')
 
         emitter.tryCatch(
           () => emitter.assign(resultVar, callExpr),
-          'formatterError',
+          'transformerError',
           errorVar => {
             emitter.if(
               `${errorVar} instanceof TypeError || (${errorVar} && ${errorVar}.cause instanceof TypeError)`,
@@ -260,33 +281,33 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Compiles one transformer from a field's formatter array.
+   * Compiles one transformer from a field's formatter or parser array.
    *
-   * The formatter array is already the chain: each transformer receives the
+   * The transformer array is already the chain: each transformer receives the
    * current answer value as its first argument, then the compiler threads the
-   * result into the next formatter.
+   * result into the next transformer.
    */
-  private compileFormatterCall(formatterNode: unknown, valueVar: string): string {
-    const formatterCall = readFormatterTransformerCall(formatterNode)
+  private compileTransformerCall(transformerNode: unknown, valueVar: string): string {
+    const transformerCall = readTransformerCall(transformerNode)
 
-    if (formatterCall !== undefined) {
-      return this.compileFormatterFunctionCall(formatterCall, valueVar, formatterNode)
+    if (transformerCall !== undefined) {
+      return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
     }
 
     return this.expr.compileFunctionCall('unknown', [valueVar])
   }
 
   /**
-   * Emits the authored transformer call with the current formatted value as its first argument.
+   * Emits the authored transformer call with the current value as its first argument.
    */
-  private compileFormatterFunctionCall(
-    formatterCall: FormatterFunctionCall,
+  private compileTransformerFunctionCall(
+    transformerCall: TransformerFunctionCall,
     valueVar: string,
     source: unknown,
   ): string {
-    const argExprs = formatterCall.arguments.map(arg => this.expr.compileOperand(arg))
+    const argExprs = transformerCall.arguments.map(arg => this.expr.compileOperand(arg))
 
-    return this.expr.compileFunctionCall(formatterCall.name, [valueVar, ...argExprs], source)
+    return this.expr.compileFunctionCall(transformerCall.name, [valueVar, ...argExprs], source)
   }
 
   /**
@@ -513,8 +534,8 @@ export default class StepAnswerPreparationCompiler {
   }
 }
 
-/** Reads a formatter node into a FormatterFunctionCall, or undefined when it is not a named transformer. */
-function readFormatterTransformerCall(value: unknown): FormatterFunctionCall | undefined {
+/** Reads a transformer node into a TransformerFunctionCall, or undefined when it is not a named transformer. */
+function readTransformerCall(value: unknown): TransformerFunctionCall | undefined {
   if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
     return undefined
   }
