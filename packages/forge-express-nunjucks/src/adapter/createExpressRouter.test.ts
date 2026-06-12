@@ -193,5 +193,22 @@ describe('createExpressRouter', () => {
         expect.objectContaining({ response: expect.anything() }),
       )
     })
+
+    it('should exclude the express settings object from the snapshot state', async () => {
+      // Arrange
+      const router = createExpressRouter(forge, { nunjucksEnv })
+      const req = createRequest({
+        app: { locals: { fromApp: 'app', settings: { 'view engine': 'njk' } } },
+      })
+
+      // Act
+      await dispatch(router, req)
+
+      // Assert
+      const snapshot = evaluateMock.mock.calls[0][0]
+
+      expect(snapshot.state.fromApp).toBe('app')
+      expect(snapshot.state.settings).toBeUndefined()
+    })
   })
 })

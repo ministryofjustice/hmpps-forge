@@ -102,7 +102,11 @@ function toSnapshot(route: ForgeRoute, req: express.Request, res: express.Respon
   const post = (req.body as Record<string, string | string[]>) ?? {}
   // app.locals flow through snapshot state so the renderer's page assembly sees
   // them as template locals; res.locals override them, matching Express precedence.
-  const state = { ...req.app.locals, ...res.locals, ...(req as RequestWithState).state }
+  // Express attaches its internal settings object (view machinery, nunjucks env,
+  // template caches) to app.locals — nothing downstream reads it, so it is
+  // excluded rather than dragged into every snapshot and context-state trace.
+  const { settings: _expressSettings, ...appLocals } = req.app.locals
+  const state = { ...appLocals, ...res.locals, ...(req as RequestWithState).state }
   const origin = `${req.protocol}://${req.hostname}`
   const href = `${origin}${req.originalUrl}`
   const pathname = extractPathname(req.originalUrl)
