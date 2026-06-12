@@ -7,6 +7,7 @@ import type { PipelineState } from './runtime/pipeline/types'
 import { createAccessLifecyclePhase } from './runtime/pipeline/phases/accessLifecyclePhase'
 import { createAnswerPreparationPhase } from './runtime/pipeline/phases/answerPreparationPhase'
 import { createNavigationPhase } from './runtime/pipeline/phases/navigationPhase'
+import { createCleardownPhase } from './runtime/pipeline/phases/cleardownPhase'
 import { createEntryValidationPhase } from './runtime/pipeline/phases/entryValidationPhase'
 import { createSubmitLifecyclePhase } from './runtime/pipeline/phases/submitLifecyclePhase'
 import { createRenderEvaluationPhase } from './runtime/pipeline/phases/renderEvaluationPhase'
@@ -119,7 +120,8 @@ export default class ForgeOrchestrator<TOut = undefined> {
    * pipeline by method, prepares a fresh per-request context, and runs the
    * pipeline. Returns a `navigate` outcome for a redirect result or a `render`
    * outcome (carrying the node's component registry) otherwise; yields an
-   * `error` outcome when the node is unknown or the method is unsupported.
+   * `error` outcome when the node is unknown, the method is unsupported, or a
+   * lifecycle hook halted the request with an error.
    *
    * When the trace observer accepts the request, the pipeline records into a
    * fresh {@link TraceRecorder} and the sealed trace is handed to the observer
@@ -160,6 +162,10 @@ export default class ForgeOrchestrator<TOut = undefined> {
         return { kind: 'navigate', url: result.url }
       }
 
+      if (result.type === 'error') {
+        return { kind: 'error', error: { status: result.status, message: result.message } }
+      }
+
       return {
         kind: 'render',
         context: result.context,
@@ -178,9 +184,10 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
   /**
    * For each step context, assembles its GET pipeline (access ->
-   * answer-preparation -> navigation -> entry-validation -> render-evaluation,
-   * then the shared render-output terminal) and POST pipeline (access ->
-   * answer-preparation -> navigation -> submit -> render-evaluation, same
+   * answer-preparation -> navigation -> cleardown -> entry-validation ->
+   * render-evaluation, then the shared render-output terminal) and POST
+   * pipeline (access -> answer-preparation -> navigation -> cleardown ->
+   * submit -> render-evaluation, same
    * terminal), and registers both under one scoped route key.
    */
   private buildStepExecutors(mount: MountedPackage): void {
@@ -215,6 +222,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             'step-get',
             functionRegistry,
           ),
+          createCleardownPhase(),
           createEntryValidationPhase(
             compiledStep.entryValidationPlan,
             compiledStep.validationPlan,
@@ -237,6 +245,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             'step-post',
             functionRegistry,
           ),
+          createCleardownPhase(),
           createSubmitLifecyclePhase(
             compiledStep.submitLifecyclePlan,
             compiledStep.validationPlan,

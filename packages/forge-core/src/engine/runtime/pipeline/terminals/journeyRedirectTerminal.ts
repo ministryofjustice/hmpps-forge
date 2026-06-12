@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import type { NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -26,7 +25,7 @@ export function createJourneyRedirectTerminal<TOut>(
         return resolveForgeRedirect(result.redirectTarget, state.request)
       }
 
-      throw createHttpError(500, 'No steps found in journey')
+      throw new Error('No steps found in journey')
     },
   }
 }

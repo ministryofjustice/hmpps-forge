@@ -367,7 +367,9 @@ When a user requests a specific step URL:
 
 When a user changes an earlier answer and a branch becomes
 unreachable, answers from that branch become stale. Forge tracks
-which fields belong to which steps so you can clear them.
+which fields belong to which steps and clears their values for you:
+after working out reachability for the request, it sets every stale
+answer to `undefined`.
 
 ### Automatic field tracking
 
@@ -410,8 +412,10 @@ cleardownFieldCodes: ['tripCountry', 'tripDepartureDate', '^trip.*$']
 ### Using `getFieldsToClear()` in effects
 
 The resolved list of stale field codes is available on the effect
-function context. Call it in your save effect to clear abandoned
-answers before persisting:
+function context. Forge has already set these answers to `undefined`
+by the time your submit effects run; use the list to remove the keys
+entirely before persisting, so stale fields do not linger in your
+store:
 
 ```typescript
 SaveAnswers: deps => async (context, formCode) => {

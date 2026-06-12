@@ -509,22 +509,11 @@ describe('EffectFunctionContext', () => {
   })
 
   describe('getFieldsToClear()', () => {
-    it('should only return field codes that have answers set', () => {
+    it('should return the resolved field codes when the cleardown phase has run', () => {
       // Arrange
       const mockContext = createMockContext()
 
-      mockContext.global.answers = {
-        fieldA: { current: 'value', mutations: [] },
-        fieldB: { current: 'value', mutations: [] },
-      }
-
-      mockContext.global.reachability = {
-        reachableSteps: [{ path: '/step-a' }],
-        unreachableSteps: [
-          { path: '/step-b', fieldCodes: ['fieldA', 'fieldB'] },
-          { path: '/step-c', fieldCodes: ['fieldB', 'fieldC'] },
-        ],
-      }
+      mockContext.global.fieldsToClear = ['fieldA', 'note_1']
 
       const effectContext = new EffectFunctionContext(mockContext, 'access')
 
@@ -532,11 +521,10 @@ describe('EffectFunctionContext', () => {
       const result = effectContext.getFieldsToClear()
 
       // Assert
-      expect(result).toEqual(['fieldA', 'fieldB'])
-      expect(result).not.toContain('fieldC')
+      expect(result).toEqual(['fieldA', 'note_1'])
     })
 
-    it('should return empty array when no reachability data', () => {
+    it('should return an empty array when the cleardown phase has not run', () => {
       // Arrange
       const mockContext = createMockContext()
       const effectContext = new EffectFunctionContext(mockContext, 'access')
@@ -548,84 +536,20 @@ describe('EffectFunctionContext', () => {
       expect(result).toEqual([])
     })
 
-    it('should include answer keys that match cleardown patterns', () => {
+    it('should return a copy when callers mutate the returned array', () => {
       // Arrange
       const mockContext = createMockContext()
 
-      mockContext.global.answers = {
-        task_1_status: { current: 'done', mutations: [] },
-        task_2_status: { current: 'pending', mutations: [] },
-        unrelated: { current: 'value', mutations: [] },
-      }
-
-      mockContext.global.reachability = {
-        reachableSteps: [],
-        unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^task_\\d+_status$'] }],
-      }
+      mockContext.global.fieldsToClear = ['fieldA']
 
       const effectContext = new EffectFunctionContext(mockContext, 'access')
 
       // Act
       const result = effectContext.getFieldsToClear()
+      result.push('fieldB')
 
       // Assert
-      expect(result).toContain('task_1_status')
-      expect(result).toContain('task_2_status')
-      expect(result).not.toContain('unrelated')
-    })
-
-    it('should match exact field codes as patterns', () => {
-      // Arrange
-      const mockContext = createMockContext()
-
-      mockContext.global.answers = {
-        fieldA: { current: 'value', mutations: [] },
-        fieldB: { current: 'value', mutations: [] },
-      }
-
-      mockContext.global.reachability = {
-        reachableSteps: [],
-        unreachableSteps: [{ path: '/step-a', cleardownFieldCodes: ['^fieldA$'] }],
-      }
-
-      const effectContext = new EffectFunctionContext(mockContext, 'access')
-
-      // Act
-      const result = effectContext.getFieldsToClear()
-
-      // Assert
-      expect(result).toContain('fieldA')
-      expect(result).not.toContain('fieldB')
-    })
-
-    it('should combine discovered field codes and cleardown pattern matches', () => {
-      // Arrange
-      const mockContext = createMockContext()
-
-      mockContext.global.answers = {
-        staticField: { current: 'value', mutations: [] },
-        dynamic_99: { current: 'value', mutations: [] },
-      }
-
-      mockContext.global.reachability = {
-        reachableSteps: [],
-        unreachableSteps: [
-          {
-            path: '/step-a',
-            fieldCodes: ['staticField'],
-            cleardownFieldCodes: ['^dynamic_\\d+$'],
-          },
-        ],
-      }
-
-      const effectContext = new EffectFunctionContext(mockContext, 'access')
-
-      // Act
-      const result = effectContext.getFieldsToClear()
-
-      // Assert
-      expect(result).toContain('staticField')
-      expect(result).toContain('dynamic_99')
+      expect(mockContext.global.fieldsToClear).toEqual(['fieldA'])
     })
   })
 })

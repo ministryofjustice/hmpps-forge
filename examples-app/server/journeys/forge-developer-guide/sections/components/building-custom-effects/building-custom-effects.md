@@ -230,8 +230,9 @@ context.getFieldsToClear()
 Returns answer keys from fields that are no longer reachable due
 to conditional logic (for example, a phone number field that was
 hidden because the user changed their contact method to email).
-This is useful for effects that persist answers and need to clear
-stale values.
+Forge resolves this list after working out reachability and sets
+each of these answers to `undefined`; effects that persist answers
+can use the list to remove the stale keys from their store.
 
 ---
 

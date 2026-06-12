@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import { resolveForgeRedirect } from '../navigation/resolveForgeRedirect'
 import { recordContextSnapshot } from './trace/contextSnapshot'
 import type { ForgeResult, PipelineState, RequestPhase, TerminalPhase } from './types'
@@ -49,7 +48,7 @@ export default class RequestPipeline<TOut = undefined> {
       }
 
       if (outcome.action === 'halt-error') {
-        throw createHttpError(outcome.status, outcome.message)
+        return { type: 'error', status: outcome.status, message: outcome.message }
       }
     }
 
