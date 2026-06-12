@@ -494,8 +494,13 @@ describe('evaluateNavigation', () => {
     const trace = recorder.finish('redirect')
 
     expect(trace.phases[0].units).toEqual([
-      { kind: 'navigation-step', nodeId: 'compile_ast:120', isReachable: true, isValid: true },
-      { kind: 'navigation-step', nodeId: 'compile_ast:121', isReachable: false, isValid: true },
+      expect.objectContaining({ kind: 'navigation-step', nodeId: 'compile_ast:120', isReachable: true, isValid: true }),
+      expect.objectContaining({
+        kind: 'navigation-step',
+        nodeId: 'compile_ast:121',
+        isReachable: false,
+        isValid: true,
+      }),
       expect.objectContaining({ kind: 'navigation-resolution', resumeOutcome: 'no-op', redirect: '/journey/start' }),
     ])
   })

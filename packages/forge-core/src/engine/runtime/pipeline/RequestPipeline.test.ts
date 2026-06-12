@@ -42,7 +42,7 @@ const createMockRequest = (
 }
 
 const createMockState = (overrides: Partial<PipelineState> = {}): PipelineState => ({
-  context: {} as RuntimeEvaluationContext,
+  context: { global: { data: {}, answers: {} } } as RuntimeEvaluationContext,
   request: createMockRequest(overrides.request ? { params: overrides.request.getParams() } : {}),
   responseBindings: NO_OP_RESPONSE_BINDINGS,
   ...overrides,
@@ -163,6 +163,63 @@ describe('RequestPipeline', () => {
         ['access', 'continue'],
         ['validation', 'continue'],
         ['render', 'render'],
+      ])
+    })
+
+    it('should record context snapshots at the initial point and after every phase when traced', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const phase1 = createPhase('access', { action: 'continue' })
+      const phase2 = createPhase('validation', { action: 'continue' })
+      const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
+      const pipeline = new RequestPipeline([phase1, phase2], terminal)
+
+      // Act
+      await pipeline.execute(createMockState({ trace: recorder }))
+
+      // Assert
+      const trace = recorder.finish('render')
+      const snapshotPoints = trace.phases.map(phase =>
+        phase.units.filter(unit => unit.kind === 'context-snapshot').map(unit => unit.point),
+      )
+
+      expect(snapshotPoints).toEqual([['initial', 'access'], ['validation'], ['render']])
+    })
+
+    it('should record a context snapshot for the halting phase when a phase halts with a redirect', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const phase1 = createPhase('navigation', { action: 'halt-redirect', target: '/elsewhere', reason: 'unreachable' })
+      const terminal = createTerminal('render', { type: 'render', context: {} } as ForgeResult)
+      const pipeline = new RequestPipeline([phase1], terminal)
+
+      // Act
+      await pipeline.execute(createMockState({ trace: recorder }))
+
+      // Assert
+      const trace = recorder.finish('redirect')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'context-snapshot', point: 'initial' }),
+        expect.objectContaining({ kind: 'context-snapshot', point: 'navigation' }),
+      ])
+    })
+
+    it('should record an initial context snapshot in the terminal when there are no phases', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      const terminal = createTerminal('journey-redirect', { type: 'redirect', url: '/somewhere' })
+      const pipeline = new RequestPipeline([], terminal)
+
+      // Act
+      await pipeline.execute(createMockState({ trace: recorder }))
+
+      // Assert
+      const trace = recorder.finish('redirect')
+
+      expect(trace.phases[0].units).toEqual([
+        expect.objectContaining({ kind: 'context-snapshot', point: 'initial' }),
+        expect.objectContaining({ kind: 'context-snapshot', point: 'journey-redirect' }),
       ])
     })
 

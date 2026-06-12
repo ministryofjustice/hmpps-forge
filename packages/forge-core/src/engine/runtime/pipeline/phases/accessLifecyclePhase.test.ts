@@ -98,6 +98,7 @@ describe('accessLifecyclePhase', () => {
 
       expect(trace.phases[0].units).toEqual([
         expect.objectContaining({ kind: 'access-hook', nodeId: 'compile_ast:1', outcome: 'continue' }),
+        expect.objectContaining({ kind: 'context-snapshot', point: 'access-hook:compile_ast:1' }),
       ])
     })
 

@@ -1,3 +1,4 @@
+import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { CompiledAccessHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
@@ -13,11 +14,14 @@ import type TraceRecorder from '../trace/TraceRecorder'
  *
  * When a trace recorder is supplied, one decision is recorded per hook run —
  * the halting hook included; hooks after the halt never ran and record nothing.
+ * `recordHookSnapshot` is invoked after each hook's decision is recorded so the
+ * phase can snapshot the context state that hook left behind.
  */
 export async function evaluateAccessLifecycle(
   plan: AccessLifecyclePlan,
   ctx: HookLifecycleContext,
   trace?: TraceRecorder,
+  recordHookSnapshot?: (nodeId: NodeId) => void,
 ): Promise<CompiledAccessHookResult> {
   for (const entry of plan.accessHooks) {
     const startedAt = performance.now()
@@ -32,6 +36,7 @@ export async function evaluateAccessLifecycle(
       message: result.message,
       durationMs: performance.now() - startedAt,
     })
+    recordHookSnapshot?.(entry.nodeId)
 
     if (result.outcome !== 'continue') {
       return result

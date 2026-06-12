@@ -3,6 +3,7 @@ import type { StepValidityResult } from '../../../contracts/runtime/stepValidity
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledBaseContext, buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
+import { recordContextSnapshot } from '../trace/contextSnapshot'
 import { evaluateValidation } from './evaluateValidation'
 import { evaluateSubmitLifecycle } from './evaluateSubmitLifecycle'
 import type { RequestPhase } from '../types'
@@ -20,10 +21,10 @@ import type { RequestPhase } from '../types'
  * continues.
  */
 // TODO: Probably worth revisiting what a POST to a step with no submit hooks
-// should do. With an empty plan the walk executes nothing and the request just
-// falls through to re-render; uniform with every other empty plan, but it can
-// hide an authoring mistake. The louder alternative would be to not mount the
-// POST route at all during executor assembly when a step has no hooks.
+//  should do. With an empty plan the walk executes nothing and the request just
+//  falls through to re-render; uniform with every other empty plan, but it can
+//  hide an authoring mistake. The louder alternative would be to not mount the
+//  POST route at all during executor assembly when a step has no hooks.
 export function createSubmitLifecyclePhase(
   submitLifecyclePlan: SubmitLifecyclePlan,
   validationPlan: ValidationPlan,
@@ -62,6 +63,7 @@ export function createSubmitLifecyclePhase(
         submitLifecyclePlan,
         buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, validate),
         state.trace,
+        nodeId => recordContextSnapshot(state, `submit-hook:${nodeId}`),
       )
 
       if (result.outcome === 'redirect') {
