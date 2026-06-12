@@ -24,7 +24,7 @@ export interface RenderCompilationContext {
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
 }
@@ -44,7 +44,7 @@ export interface AnswerPreparationContext {
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
 }
 
 /**

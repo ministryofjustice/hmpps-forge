@@ -30,8 +30,8 @@ export interface StepRequest {
   getParams(): Record<string, string>
   getQuery(name: string): string | string[] | undefined
   getAllQuery(): Record<string, string | string[]>
-  getPost(name: string): string | string[] | undefined
-  getAllPost(): Record<string, string | string[]>
+  getPost(name: string): unknown
+  getAllPost(): Record<string, unknown>
   getSession(): unknown
   getState(key: string): unknown
   getAllState(): Record<string, unknown>

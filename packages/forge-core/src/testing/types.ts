@@ -18,7 +18,7 @@ export interface TestRequestOptions {
   cookies?: Record<string, string>
   params?: Record<string, string>
   query?: Record<string, string | string[]>
-  body?: Record<string, string | string[]>
+  body?: Record<string, unknown>
   session?: unknown
   state?: Record<string, unknown>
 }
