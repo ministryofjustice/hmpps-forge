@@ -75,8 +75,9 @@ request's state. Through this context they can:
 - **Set data for the current request** – `context.setData(key, value)`
   makes a value available through `Data(key)` for the rest of the
   request.
-- **Read request information** – `context.getParams()`,
-  `context.getQuery()`, `context.getPost()`, `context.getSession()`.
+- **Read request information** – `context.getRequestParam(key)`,
+  `context.getQueryParam(key)`, `context.getPostData(key)`,
+  `context.getAllPostData()`, `context.getSession()`.
 - **Inspect reachability** – `context.getFieldsToClear()` returns
   answer keys from steps that are no longer reachable.
 

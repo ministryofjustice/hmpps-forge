@@ -70,8 +70,12 @@ class EffectFunctionContext<
   /**
    * Get a specific answer value by key
    */
-  getAnswer<K extends string & keyof TAnswers>(key: K): TAnswers[K] {
-    return this.context.global.answers[key]?.current as TAnswers[K]
+  getAnswer<K extends string & keyof TAnswers>(key: K): TAnswers[K]
+
+  getAnswer<TValue = unknown>(key: string): TValue
+
+  getAnswer<TValue = unknown>(key: string): TValue {
+    return this.context.global.answers[key]?.current as TValue
   }
 
   /**
@@ -139,8 +143,12 @@ class EffectFunctionContext<
   /**
    * Get stored data by key
    */
-  getData<K extends string & keyof TData>(key: K): TData[K] {
-    return this.context.global.data[key] as TData[K]
+  getData<K extends string & keyof TData>(key: K): TData[K]
+
+  getData<TValue = unknown>(key: string): TValue
+
+  getData<TValue = unknown>(key: string): TValue {
+    return this.context.global.data[key] as TValue
   }
 
   /**
@@ -206,12 +214,15 @@ class EffectFunctionContext<
   /**
    * Get raw POST data (before formatting)
    */
-  getPostData(key?: string): unknown {
-    if (key === undefined) {
-      return { ...this.context.request.getAllPost() }
-    }
+  getPostData<TValue = unknown>(key: string): TValue | undefined {
+    return this.context.request.getPost(key) as TValue | undefined
+  }
 
-    return this.context.request.getPost(key)
+  /**
+   * Get all raw POST data (before formatting)
+   */
+  getAllPostData<TValue = Record<string, unknown>>(): TValue {
+    return { ...this.context.request.getAllPost() } as TValue
   }
 
   /**
