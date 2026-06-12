@@ -75,7 +75,7 @@
     "*.md"
   ],
   "engines": {
-    "node": "20 || 22 || 24"
+    "node": "22 || 24"
   },
   "scripts": {
     "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md .",
@@ -93,6 +93,7 @@
     "@typescript/native-preview": "^7.0.0-dev.20260412.1",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
+    "@types/node": "^25.9.3",
     "@types/nunjucks": "^3.2.6",
     "@vitest/coverage-v8": "^4.1.4",
     "@yikes2000/prettier-plugin-merge-extras": "^0.7.3-extras.2",
