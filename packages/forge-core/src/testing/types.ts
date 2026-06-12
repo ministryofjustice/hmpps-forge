@@ -45,5 +45,18 @@ export type TestRedirectResult = {
   cookies: Map<string, CookieMutation>
 }
 
+/**
+ * Result returned when the engine yields an error outcome (unknown node,
+ * unsupported method, or a lifecycle hook halting with an error). `status` is
+ * the HTTP status a host adapter would respond with.
+ */
+export type TestErrorResult = {
+  type: 'error'
+  status: number
+  message: string
+  headers: Map<string, string>
+  cookies: Map<string, CookieMutation>
+}
+
 /** Discriminated union returned by {@link ForgeTestClient.get} and {@link ForgeTestClient.post}. */
-export type TestResult = TestRenderResult | TestRedirectResult
+export type TestResult = TestRenderResult | TestRedirectResult | TestErrorResult
