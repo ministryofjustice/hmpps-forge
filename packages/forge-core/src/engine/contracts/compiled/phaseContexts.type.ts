@@ -37,7 +37,7 @@ export interface RenderCompilationContext {
  * and need to observe the same answer history.
  */
 export interface AnswerPreparationContext {
-  answers: Record<string, { current: unknown; mutations: { value: unknown; source: string }[] }>
+  answers: Record<string, { current: unknown; parsed?: unknown; mutations: { value: unknown; source: string }[] }>
   data: Record<string, unknown>
   session: Record<string, unknown>
   params: Record<string, unknown>

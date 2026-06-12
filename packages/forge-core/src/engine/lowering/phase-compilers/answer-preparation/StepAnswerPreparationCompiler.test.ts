@@ -934,4 +934,55 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.name.current).toBe('  spaced  ')
     })
   })
+
+  describe('parsers', () => {
+    it('should set parsed value without changing current value on GET request', async () => {
+      // Arrange
+      const parseIso = createTransformerFunction('parseIso')
+      const block = createFieldBlock('dateOfBirth', { parsers: [parseIso] })
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        parseIso: {
+          name: 'parseIso',
+          isAsync: false,
+          evaluate: (value: unknown) => {
+            if (typeof value !== 'string') {
+              return undefined
+            }
+
+            const [year, month, day] = value.split('-')
+
+            return { year, month, day }
+          },
+        },
+      })
+
+      const localCompiler = new StepAnswerPreparationCompiler({
+        functionRegistry,
+        componentRegistry: new ComponentRegistry(),
+      })
+      const ctx = createCtx({
+        request: { method: 'GET' },
+        answers: {
+          dateOfBirth: {
+            current: '1980-03-31',
+            mutations: [],
+          },
+        },
+        conditions: functionRegistry,
+      })
+
+      // Act
+      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
+
+      // Assert
+      expect(ctx.answers.dateOfBirth.current).toBe('1980-03-31')
+      expect(ctx.answers.dateOfBirth.parsed).toEqual({
+        year: '1980',
+        month: '03',
+        day: '31',
+      })
+    })
+  })
 })
