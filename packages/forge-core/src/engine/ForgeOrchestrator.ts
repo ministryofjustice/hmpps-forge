@@ -94,7 +94,8 @@ export default class ForgeOrchestrator<TOut = undefined> {
    * pipeline by method, prepares a fresh per-request context, and runs the
    * pipeline. Returns a `navigate` outcome for a redirect result or a `render`
    * outcome (carrying the node's component registry) otherwise; yields an
-   * `error` outcome when the node is unknown or the method is unsupported.
+   * `error` outcome when the node is unknown, the method is unsupported, or a
+   * lifecycle hook halted the request with an error.
    */
   async evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<TOut>> {
     const executor = this.executorsByRouteKey.get(snapshot.nodeId)
@@ -117,6 +118,10 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
     if (result.type === 'redirect') {
       return { kind: 'navigate', url: result.url }
+    }
+
+    if (result.type === 'error') {
+      return { kind: 'error', error: { status: result.status, message: result.message } }
     }
 
     return {
