@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import { StructureType } from '../../../../authoring/types/enums'
 import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
 import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../framework/rendering/types'
@@ -54,8 +53,7 @@ function renderBlock<TOut>(
   if (!component) {
     const availableVariants = Array.from(componentRegistry.getAll().keys())
 
-    throw createHttpError(
-      500,
+    throw new Error(
       `Component variant "${block.variant}" not found in registry. ` +
         `Available variants: ${availableVariants.join(', ')}`,
     )

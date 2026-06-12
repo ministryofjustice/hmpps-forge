@@ -30,6 +30,8 @@ generic-service:
     TOKEN_VERIFICATION_ENABLED: 'true'
     AUDIT_SQS_REGION: 'eu-west-2'
     AUDIT_SERVICE_NAME: 'UNASSIGNED' # Your audit service name
+    # Statsbeat doesn't work through the egress proxy and doesn't do anything we need
+    APPLICATION_INSIGHTS_NO_STATSBEAT: 'true'
 
   # Pre-existing kubernetes secrets to load as environment variables in the deployment.
   # namespace_secrets:
@@ -45,6 +47,14 @@ generic-service:
       REDIS_AUTH_TOKEN: 'auth_token'
     hmpps-forge-examples-app-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
+    # Created by the cloud-platform-terraform-hmpps-egress-controls module
+    hmpps-envoy-https-proxy-env:
+      HTTP_PROXY: "HTTP_PROXY"
+      HTTPS_PROXY: "HTTPS_PROXY"
+      NO_PROXY: "NO_PROXY"
+      http_proxy: "HTTP_PROXY"
+      https_proxy: "HTTPS_PROXY"
+      no_proxy: "NO_PROXY"
 
   allowlist:
     groups:

@@ -6,6 +6,7 @@ import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
   CookieMutation,
+  ForgeError,
   ForgeErrorCode,
   ForgeOutcome,
   ForgeRoute,
@@ -168,7 +169,7 @@ function applyOutcome(outcome: ForgeOutcome<string>, res: express.Response, next
   }
 
   if (outcome.kind === 'error') {
-    next(createHttpError(errorCodeToStatus(outcome.error.code), outcome.error.message))
+    next(createHttpError(errorToStatus(outcome.error), outcome.error.message))
     return
   }
 
@@ -188,6 +189,6 @@ const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
   'method-not-supported': 405,
 }
 
-function errorCodeToStatus(code: ForgeErrorCode): number {
-  return ERROR_CODE_STATUS[code]
+function errorToStatus(error: ForgeError): number {
+  return 'status' in error ? error.status : ERROR_CODE_STATUS[error.code]
 }

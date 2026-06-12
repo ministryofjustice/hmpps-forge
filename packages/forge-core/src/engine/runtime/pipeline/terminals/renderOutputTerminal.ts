@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import type { ForgeRenderer } from '../../../../framework/rendering/types'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import { evaluateRenderOutput } from '../phases/evaluateRenderOutput'
@@ -21,7 +20,7 @@ export function createRenderOutputTerminal<TOut>(
       const context = state.renderContext
 
       if (!context) {
-        throw createHttpError(500, 'No render context on pipeline state: render-evaluation phase did not run')
+        throw new Error('No render context on pipeline state: render-evaluation phase did not run')
       }
 
       if (!renderer) {

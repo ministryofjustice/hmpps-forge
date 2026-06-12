@@ -142,12 +142,26 @@ describe('ForgeTestClient', () => {
       await expect(client.get('/nonexistent')).rejects.toThrow('No route matched')
     })
 
-    it('should throw an http error when the engine returns an error outcome', async () => {
+    it('should return an error result with the mapped status when the engine returns a coded error outcome', async () => {
       // Arrange
       const { client } = createClient(errorOutcome())
 
-      // Act & Assert
-      await expect(client.get('/step-one')).rejects.toMatchObject({ status: 404 })
+      // Act
+      const result = await client.get('/step-one')
+
+      // Assert
+      expect(result).toMatchObject({ type: 'error', status: 404, message: 'boom' })
+    })
+
+    it('should return an error result with the declared status when the engine returns a hook error outcome', async () => {
+      // Arrange
+      const { client } = createClient({ kind: 'error', error: { status: 403, message: 'Access denied' } })
+
+      // Act
+      const result = await client.get('/step-one')
+
+      // Assert
+      expect(result).toMatchObject({ type: 'error', status: 403, message: 'Access denied' })
     })
   })
 
