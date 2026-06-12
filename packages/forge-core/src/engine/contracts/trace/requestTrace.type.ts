@@ -99,30 +99,52 @@ export interface EntryValidationRuleTraceUnit {
 }
 
 /**
- * One journey step's reachability verdict, recorded for every step the
- * navigation evaluation considered, in declaration order. `isReachable` is the
- * graph walk's conclusion; `isValid` is how the walk treated the step's
- * validation — a step whose validation failed does not activate its forward
- * edges, which is why steps after it can be unreachable (steps without
- * validation, or never reached by the walk, are treated as valid). The
- * verdicts come out of one whole-journey evaluation, so step units carry no
- * individual timing; the evaluation's duration is on the resolution unit.
+ * One journey step's navigation state, recorded for every step the navigation
+ * evaluation considered, in declaration order. Together the units describe the
+ * journey's navigation graph for this request: `routeTemplatePath` is the
+ * step's node identity for edge references, `declaredForwardRouteTemplatePaths`
+ * are every authored forward edge (conditions ignored), and
+ * `forwardRouteTemplatePaths` are the edges active for this request given the
+ * user's answers and validation. `isReachable` is the graph walk's conclusion;
+ * `isValid` is how the walk treated the step's validation — a step whose
+ * validation failed does not activate its forward edges, which is why steps
+ * after it can be unreachable (steps without validation, or never reached by
+ * the walk, are treated as valid). The verdicts come out of one whole-journey
+ * evaluation, so step units carry no individual timing; the evaluation's
+ * duration is on the resolution unit.
  */
 export interface NavigationStepTraceUnit {
   readonly kind: 'navigation-step'
   readonly nodeId: NodeId
+  readonly routeTemplatePath: string
+  readonly code?: string
+  readonly isEntryPoint: boolean
+  readonly isConditionalEntry: boolean
+  readonly hasValidation: boolean
   readonly isReachable: boolean
   readonly isValid: boolean
+  readonly forwardRouteTemplatePaths: readonly string[]
+  readonly declaredForwardRouteTemplatePaths?: readonly string[]
+  readonly predecessorRouteTemplatePaths: readonly string[]
 }
 
 /**
  * The navigation evaluation's conclusion: whether resume wants to move the
  * user, and the redirect target navigation resolved — absent when navigation
- * let the request continue. `durationMs` times the compiled navigation
- * evaluation that produced the step verdicts.
+ * let the request continue. `currentStepNodeId` is the step being requested
+ * (absent on a journey root), `canonicalPathRouteTemplatePaths` is the walked
+ * path from entry to frontier, and the entry/frontier paths locate the
+ * journey's start and furthest-progress steps in the step units' graph.
+ * `durationMs` times the compiled navigation evaluation that produced the
+ * step verdicts.
  */
 export interface NavigationResolutionTraceUnit {
   readonly kind: 'navigation-resolution'
+  readonly currentStepNodeId?: NodeId
+  readonly defaultEntryRouteTemplatePath?: string
+  readonly frontierRouteTemplatePath?: string
+  readonly canonicalPathRouteTemplatePaths: readonly string[]
+  readonly resumeActive: boolean
   readonly resumeOutcome: ResumeOutcome
   readonly redirect?: string
   readonly durationMs: number
@@ -154,6 +176,40 @@ export interface BlockRenderTraceUnit {
 }
 
 /**
+ * One sample of the full evaluation-context state, recorded at a labelled
+ * point in the request: `initial` (before the first phase runs), a phase name
+ * (state at that phase's end, recorded for halted phases too), or
+ * `access-hook:<nodeId>` / `submit-hook:<nodeId>` (state right after that
+ * hook ran). Values are tolerant deep copies: non-serializable values are
+ * replaced with labels (`[Function: name]`, `[Circular]`,
+ * `[Unserializable: TypeName]`), so every field is `unknown`-shaped rather
+ * than its live runtime type. Carries no `durationMs` — a snapshot is a
+ * sample, not work.
+ */
+export interface ContextSnapshotTraceUnit {
+  readonly kind: 'context-snapshot'
+  readonly point: string
+  readonly request: {
+    readonly params: Record<string, unknown>
+    readonly query: Record<string, unknown>
+    readonly post: Record<string, unknown>
+    readonly headers: Record<string, unknown>
+    readonly cookies: Record<string, unknown>
+    readonly session: unknown
+    readonly state: Record<string, unknown>
+  }
+  readonly answers: Record<string, unknown>
+  readonly data: Record<string, unknown>
+  readonly validation?: unknown
+  readonly reachability?: unknown
+  readonly fieldsToClear?: readonly string[]
+  readonly response: {
+    readonly headers: Record<string, unknown>
+    readonly cookies: Record<string, unknown>
+  }
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -170,6 +226,7 @@ export type TraceUnit =
   | NavigationResolutionTraceUnit
   | BlockEvaluationTraceUnit
   | BlockRenderTraceUnit
+  | ContextSnapshotTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal
@@ -192,8 +249,8 @@ export type RequestTraceOutcome = 'render' | 'redirect' | 'error'
  * The full decision log for one request: every phase the orchestrator ran, in
  * order, each carrying the per-unit decisions recorded while walking its plan.
  *
- * How a trace leaves the engine is deliberately undecided — recording is being
- * rolled out across all phases first; the exposure mechanism comes after.
+ * Traces leave the engine through the orchestrator's `TraceObserver` — by
+ * default the `forge:request:complete` diagnostics-channel publisher.
  */
 export interface RequestTrace {
   readonly outcome: RequestTraceOutcome
