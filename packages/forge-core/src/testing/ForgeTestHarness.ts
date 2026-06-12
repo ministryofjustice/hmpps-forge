@@ -57,6 +57,6 @@ export class ForgeTestHarness {
   }
 
   createClient(): ForgeTestClient {
-    return new ForgeTestClient(new ForgeOrchestrator(this.forge))
+    return new ForgeTestClient(new ForgeOrchestrator({ core: this.forge }))
   }
 }
