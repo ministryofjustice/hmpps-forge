@@ -8,6 +8,7 @@ import {
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 import nunjucksSetup from './utils/nunjucksSetup'
+import setUpForgeTraceLog from './utils/setUpForgeTraceLog'
 import errorHandler from './errorHandler'
 import setUpCsrf from './middleware/setUpCsrf'
 import setUpHealthChecks from './middleware/setUpHealthChecks'
@@ -23,6 +24,10 @@ import type { Services } from './services'
 export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
+
+  if (process.env.NODE_ENV !== 'production') {
+    setUpForgeTraceLog()
+  }
 
   const forge = new Forge({ logger })
     .registerGlobalComponents(govukComponents)
