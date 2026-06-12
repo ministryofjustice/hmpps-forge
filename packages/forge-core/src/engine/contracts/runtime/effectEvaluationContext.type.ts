@@ -8,6 +8,8 @@ export interface EffectEvaluationContext {
     data: Record<string, unknown>
     answers: Record<string, AnswerHistory>
     reachability?: JourneyReachabilityState
+    /** Stale answer field codes resolved by the cleardown phase; absent until it runs. */
+    fieldsToClear?: readonly string[]
   }
   request: StepRequest
   response: ResponseBindings

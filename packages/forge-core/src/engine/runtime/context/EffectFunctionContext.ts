@@ -2,7 +2,6 @@ import { AnswerHistory, HookType } from '../../contracts/runtime/answerHistory.t
 import type { CookieMutation, CookieOptions } from '../../../framework/types/response.type'
 import type { EffectEvaluationContext } from '../../contracts/runtime/effectEvaluationContext.type'
 import { assertSerializable } from '../../../shared/utils/asserts'
-import FieldsToClearResolver from './FieldsToClearResolver'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {
@@ -59,8 +58,6 @@ class EffectFunctionContext<
   TSession = unknown,
   TState extends Record<string, unknown> = Record<string, unknown>,
 > {
-  private readonly fieldsToClearResolver = new FieldsToClearResolver()
-
   /** @internal */
   constructor(
     private readonly context: EffectEvaluationContext,
@@ -326,16 +323,18 @@ class EffectFunctionContext<
   }
 
   /**
-   * Get the field codes that should be cleared based on unreachable steps.
+   * Get the field codes the cleardown phase resolved as stale.
    *
-   * Combines two sources:
-   * - Field codes discovered on unreachable steps (from block definitions)
-   * - Answer keys that match any `cleardownFieldCodes` patterns on unreachable steps
+   * Resolved once per request, directly after navigation evaluates
+   * reachability: field codes discovered on unreachable steps plus answer
+   * keys matching their `cleardownFieldCodes` patterns. The engine has
+   * already pushed a clearing `cleardown` mutation onto each of these
+   * answers; use this list to drop them from your own store when persisting.
    *
-   * Returns a deduplicated array of field codes.
+   * Empty for hooks that run before navigation (access hooks).
    */
   getFieldsToClear(): string[] {
-    return this.fieldsToClearResolver.resolve(this.context.global.reachability, this.context.global.answers)
+    return [...(this.context.global.fieldsToClear ?? [])]
   }
 }
 
