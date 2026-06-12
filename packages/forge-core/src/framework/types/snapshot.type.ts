@@ -20,7 +20,7 @@ export interface RequestSnapshot {
 
   readonly params: Record<string, string>
   readonly query: Record<string, string | string[]>
-  readonly post: Record<string, string | string[]>
+  readonly post: Record<string, unknown>
   readonly headers: Record<string, string | string[] | undefined>
   readonly cookies: Record<string, string | undefined>
 

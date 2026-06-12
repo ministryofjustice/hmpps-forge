@@ -55,11 +55,11 @@ export default class SnapshotStepRequest implements StepRequest {
     return this.snapshot.query
   }
 
-  getPost(name: string): string | string[] | undefined {
+  getPost(name: string): unknown {
     return this.snapshot.post[name]
   }
 
-  getAllPost(): Record<string, string | string[]> {
+  getAllPost(): Record<string, unknown> {
     return this.snapshot.post
   }
 
