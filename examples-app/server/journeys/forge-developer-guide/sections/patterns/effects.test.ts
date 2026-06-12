@@ -53,12 +53,8 @@ function createPatternEffectContext(options: {
     setData: (key: string, value: unknown) => {
       data[key] = value
     },
-    getPostData: (key?: string) => {
-      if (key === undefined) {
-        return { ...post }
-      }
-
-      return post[key]
+    getPostData: <TValue = unknown>(key: string) => {
+      return post[key] as TValue | undefined
     },
   } satisfies Pick<
     PatternEffectContext,
