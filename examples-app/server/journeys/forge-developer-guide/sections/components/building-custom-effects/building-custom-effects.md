@@ -183,10 +183,14 @@ read and write access to the current request's state.
 Read and write field values:
 
 ```typescript
-context.getAnswer('email')           // get a single answer
-context.setAnswer('email', value)    // set a single answer
-context.getAllAnswers()               // get all answers as an object
-context.hasAnswer('email')           // check if an answer exists
+context.getAnswer('email')          // get a single answer
+context.getAnswer<string>('email')  // get a single answer with a local type hint
+context.setAnswer('email', value)   // set a single answer
+context.getAllAnswers()             // get all answers as an object
+context.getAnswerHistory('email')   // get mutation history for one answer
+context.getAllAnswerHistories()     // get mutation history for all answers
+context.hasAnswer('email')          // check if an answer exists
+context.clearAnswer('email')        // remove an answer
 ```
 
 `setAnswer` is how effects modify user state. Setting an answer
@@ -198,8 +202,10 @@ submitted on the next POST.
 Set values for `Data()` references:
 
 ```typescript
+context.getData<Slot[]>('availableSlots')
 context.setData('availableSlots', slots)
 context.setData('case', caseData)
+context.getAllData()
 ```
 
 Values set through `setData` are available through `Data()` for
@@ -212,14 +218,54 @@ in answers or in an external data store.
 Read information from the current request:
 
 ```typescript
-context.getParams()     // route parameters (e.g. { caseId: '123' })
-context.getQuery()      // query string parameters
-context.getPost()       // POST body values
-context.getSession()    // session data
+context.getRequestUrl()            // full request URL
+context.getRequestParam('caseId')  // single route parameter
+context.getAllRequestParams()      // all route parameters
+context.getQueryParam('page')      // single query string parameter
+context.getAllQueryParams()        // all query string parameters
+context.getPostData('action')      // single raw POST body value
+context.getPostData<string>('action')
+context.getAllPostData()           // all raw POST body values
+context.getSession()               // session data
+context.getState('user')           // custom request state
+context.getAllState()              // all custom request state
 ```
 
 These are read-only views of the request. To act on them, use the
 answers and data methods above.
+
+Request state is supplied by the framework adapter. In the
+Express-Nunjucks adapter, it is merged from `app.locals`,
+`res.locals`, and `req.state`, with `req.state` taking priority.
+Set values in upstream Express middleware when an effect needs to
+read them through `getState`.
+
+`getAnswer`, `getData`, `getPostData`, and `getAllPostData`
+accept call-level generic type hints. These are TypeScript hints
+only. They do not validate external request data at runtime, so
+check values from POST data before using them.
+
+### Headers and cookies
+
+Read request headers and cookies:
+
+```typescript
+context.getRequestHeader('accept')
+context.getAllRequestHeaders()
+context.getRequestCookie('session')
+context.getAllRequestCookies()
+```
+
+Set response headers and cookies through the framework adapter:
+
+```typescript
+context.setResponseHeader('cache-control', 'no-store')
+context.getResponseHeader('cache-control')
+context.getAllResponseHeaders()
+context.setResponseCookie('preference', 'compact', { httpOnly: true })
+context.getResponseCookie('preference')
+context.getAllResponseCookies()
+```
 
 ### Reachability
 
@@ -273,6 +319,16 @@ SaveAnswers: (deps) => async (context: MyContext) => {
 The answer interfaces must extend `Record<string, unknown>` so
 Forge can handle answers that are not explicitly declared in the
 type.
+
+If you are not using a typed context alias, you can type individual
+reads at the call site:
+
+```typescript
+const name = context.getAnswer<string>('fullName')
+const availableSlots = context.getData<Slot[]>('availableSlots')
+const action = context.getPostData<string>('action')
+const postData = context.getAllPostData<{ action?: string }>()
+```
 
 ---
 

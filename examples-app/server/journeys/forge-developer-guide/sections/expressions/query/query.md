@@ -65,11 +65,12 @@ Query string values are always strings. A URL like `?page=2` gives
 with a transformer if you need a different type.
 
 In effect functions, the same values are available through
-`context.getQuery()`:
+`context.getQueryParam(key)` and `context.getAllQueryParams()`:
 
 ```typescript
 LoadFilteredResults: (deps) => async (context) => {
-  const type = context.getQuery().type ?? 'current'
+  const typeParam = context.getQueryParam('type')
+  const type = typeof typeParam === 'string' ? typeParam : 'current'
   const results = await deps.api.getGoals(type)
   context.setData('goals', results)
 }

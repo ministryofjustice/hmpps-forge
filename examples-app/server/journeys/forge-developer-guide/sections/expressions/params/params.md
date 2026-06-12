@@ -56,11 +56,16 @@ When a request arrives at `/case/A1234BC/overview`, Forge extracts
 `Params('caseId')` for the duration of that request.
 
 In effect functions, the same values are available through
-`context.getParams()`:
+`context.getRequestParam(key)` and `context.getAllRequestParams()`:
 
 ```typescript
 LoadCaseData: (deps) => async (context) => {
-  const { caseId } = context.getParams()
+  const caseId = context.getRequestParam('caseId')
+
+  if (!caseId) {
+    return
+  }
+
   const caseData = await deps.caseApi.getCase(caseId)
   context.setData('case', caseData)
 }

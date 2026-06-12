@@ -508,7 +508,7 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           context.getData(collectionCode) ??
           []) as Record<string, unknown>[]
 
-        const actionValue = context.getPostData('action') as string
+        const actionValue = context.getPostData<string>('action')
         const indexStr = actionValue?.replace('remove_', '')
         const index = parseInt(indexStr, 10)
 

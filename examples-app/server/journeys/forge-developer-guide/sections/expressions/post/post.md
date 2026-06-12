@@ -75,14 +75,26 @@ The framework adapter parses the request body and makes values
 available as strings, or arrays of strings for repeated names.
 
 In effect functions, the same values are available through
-`context.getPost()`:
+`context.getPostData<T>(key)`:
 
 ```typescript
 RemoveItem: (deps) => async (context) => {
-  const action = context.getPost().action
+  const action = context.getPostData<string>('action')
+
+  if (typeof action !== 'string') {
+    return
+  }
+
   const index = Number(action.replace('remove_', ''))
   await deps.store.removeItem(context.sessionId, index)
 }
+```
+
+Use `context.getAllPostData<T>()` when an effect needs the whole
+POST body as an object:
+
+```typescript
+const postData = context.getAllPostData<{ action?: string }>()
 ```
 
 ---
@@ -155,7 +167,8 @@ submit({
 
 This matches any button whose value starts with `remove_`, such as
 `remove_0`, `remove_1`, and so on. The effect can read the full
-value from `context.getPost()` to determine which item to remove.
+value from `context.getPostData<string>('action')` to determine
+which item to remove.
 
 ---
 
