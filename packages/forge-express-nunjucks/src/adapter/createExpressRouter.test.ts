@@ -113,7 +113,10 @@ describe('createExpressRouter', () => {
 
       // Assert
       expect(NunjucksRenderer).toHaveBeenCalledWith({ nunjucksEnv, defaultTemplate: 'custom-step' })
-      expect(ForgeOrchestrator).toHaveBeenCalledWith(forge, vi.mocked(NunjucksRenderer).mock.instances[0])
+      expect(ForgeOrchestrator).toHaveBeenCalledWith({
+        core: forge,
+        renderer: vi.mocked(NunjucksRenderer).mock.instances[0],
+      })
     })
 
     it('should register one Express route per topology method', () => {

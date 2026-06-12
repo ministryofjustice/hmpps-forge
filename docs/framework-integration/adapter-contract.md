@@ -32,7 +32,7 @@ Adapters keep that boundary explicit:
 - the adapter writes the outcome (rendered page, redirect, or error) using framework APIs
 
 Rendering is not the adapter's transport job. The renderer binds at orchestrator
-construction (`new ForgeOrchestrator(forge, renderer)`) and the orchestrator
+construction (`new ForgeOrchestrator({ core, renderer })`) and the orchestrator
 drives it block by block during evaluation — see the rendering doc. The
 adapter's handlers only write the already-rendered output to the native
 response.
@@ -49,7 +49,7 @@ The `Forge` engine owns registration and topology; evaluation lives on the
 |--------|-----------------|
 | `forge.getTopology()` | A `ForgeTopology` containing every registrable route (node ID, path template, methods, kind) |
 | `forge.getLogger()` | The configured logger |
-| `new ForgeOrchestrator(forge, renderer?)` | Assembles the per-route evaluation pipelines from the engine's registered packages, binding the renderer. Construct it after registration is complete. |
+| `new ForgeOrchestrator({ core, renderer?, traceObserver? })` | Assembles the per-route evaluation pipelines from the engine's registered packages, binding the renderer. Construct it after registration is complete. |
 | `orchestrator.evaluate(snapshot, options?)` | Takes a `RequestSnapshot` and optional `EvaluateOptions` (including `ResponseBindings`), returns a `ForgeOutcome` |
 | `orchestrator.getTopology()` | Delegates to the engine's topology, so the adapter needs only one object after composition |
 
@@ -159,7 +159,7 @@ There is no post-evaluate flush step.
 
 It:
 
-- composes `new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))`
+- composes `new ForgeOrchestrator({ core: forge, renderer: new NunjucksRenderer({ nunjucksEnv }) })`
 - reads routes from the orchestrator's topology
 - registers an Express handler for each route's methods
 - builds a `RequestSnapshot` from each Express request (including `app.locals`

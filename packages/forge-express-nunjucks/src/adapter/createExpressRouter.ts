@@ -47,10 +47,10 @@ export interface ExpressForgeRouterOptions {
  */
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
   const logger = forge.getLogger()
-  const orchestrator = new ForgeOrchestrator(
-    forge,
-    new NunjucksRenderer({ nunjucksEnv: options.nunjucksEnv, defaultTemplate: options.defaultTemplate }),
-  )
+  const orchestrator = new ForgeOrchestrator({
+    core: forge,
+    renderer: new NunjucksRenderer({ nunjucksEnv: options.nunjucksEnv, defaultTemplate: options.defaultTemplate }),
+  })
   const router = express.Router({ mergeParams: true })
 
   orchestrator.getTopology().routes.forEach(route => {

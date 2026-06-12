@@ -41,7 +41,7 @@ Composing by hand is the same two lines the adapter runs:
 ```typescript
 import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 
-const orchestrator = new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))
+const orchestrator = new ForgeOrchestrator({ core: forge, renderer: new NunjucksRenderer({ nunjucksEnv }) })
 ```
 
 The renderer's output type flows through the orchestrator's types: an
