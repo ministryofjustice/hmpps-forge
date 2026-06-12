@@ -2,6 +2,8 @@ import { NodeId } from '../../engine/contracts/ast/ast.type'
 import { BlockType } from '../../authoring/types/enums'
 import { ValidationResult } from '../../engine/contracts/runtime/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
+import type { ComponentRegistryEntry } from '../../components/types/components.type'
+import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
 
 export interface RenderBlock {
   readonly id: NodeId
@@ -87,4 +89,29 @@ export interface RenderContext {
   /** Current data state */
   data: Record<string, unknown>
 
+}
+
+/**
+ * The pluggable rendering backend, bound at orchestrator construction
+ * (`new ForgeOrchestrator(forge, renderer)`). The orchestrator owns the block
+ * walk — visibility, nesting, validation attachment, registry resolution,
+ * per-block tracing — and drives the renderer with one call per block; the
+ * renderer owns only host-specific output production (HTML strings, React nodes).
+ */
+export interface ForgeRenderer<TOut> {
+  /**
+   * Render one block. The orchestrator has already resolved the registry entry,
+   * rendered nested blocks into the properties, and attached validation errors.
+   * The renderer guards its own output type.
+   */
+  renderBlock(entry: ComponentRegistryEntry<BlockDefinition, TOut>, block: EvaluatedBlock<BlockDefinition>): TOut
+
+  /** Wrap a rendered child for embedding in its parent block's properties. */
+  wrapNestedBlock(block: BlockDefinition, output: TOut): unknown
+
+  /**
+   * Assemble the final page from the render context, the top-level block
+   * outputs, and the adapter-supplied request state (e.g. template locals).
+   */
+  assemblePage(context: RenderContext, renderedBlocks: readonly TOut[], requestState: Record<string, unknown>): TOut
 }

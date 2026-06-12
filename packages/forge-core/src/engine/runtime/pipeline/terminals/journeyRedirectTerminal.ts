@@ -1,4 +1,3 @@
-import createHttpError from 'http-errors'
 import type { NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -7,11 +6,11 @@ import { resolveForgeRedirect } from '../../navigation/resolveForgeRedirect'
 import { evaluateNavigation } from '../phases/evaluateNavigation'
 import type { TerminalPhase } from '../types'
 
-export function createJourneyRedirectTerminal(
+export function createJourneyRedirectTerminal<TOut>(
   navigationPlan: NavigationRuntimePlan,
   routeTemplateCatalog: JourneyRouteTemplateCatalog,
   functionRegistry: FunctionRegistry,
-): TerminalPhase {
+): TerminalPhase<TOut> {
   return {
     name: 'journey-redirect',
     async execute(state) {
@@ -26,7 +25,7 @@ export function createJourneyRedirectTerminal(
         return resolveForgeRedirect(result.redirectTarget, state.request)
       }
 
-      throw createHttpError(500, 'No steps found in journey')
+      throw new Error('No steps found in journey')
     },
   }
 }

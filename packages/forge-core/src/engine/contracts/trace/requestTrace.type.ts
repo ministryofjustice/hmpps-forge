@@ -129,6 +129,31 @@ export interface NavigationResolutionTraceUnit {
 }
 
 /**
+ * One compiled render block function's evaluation: recorded for every block
+ * the render plan runs. `itemIndex` is present when the block evaluated inside
+ * an iterator item.
+ */
+export interface BlockEvaluationTraceUnit {
+  readonly kind: 'block-evaluation'
+  readonly nodeId: NodeId | TemplateNodeId
+  readonly itemIndex?: number
+  readonly durationMs: number
+}
+
+/**
+ * One block's host render: recorded for every block the render-output walk
+ * drives through the renderer, nested blocks included. Children render during
+ * their parent's property transformation, so child units precede their parent's
+ * and each duration covers only that block's own host render.
+ */
+export interface BlockRenderTraceUnit {
+  readonly kind: 'block-render'
+  readonly nodeId: NodeId
+  readonly variant: string
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -143,6 +168,8 @@ export type TraceUnit =
   | EntryValidationRuleTraceUnit
   | NavigationStepTraceUnit
   | NavigationResolutionTraceUnit
+  | BlockEvaluationTraceUnit
+  | BlockRenderTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

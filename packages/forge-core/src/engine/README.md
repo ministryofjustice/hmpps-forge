@@ -63,6 +63,6 @@ These sit outside the pipeline but are used across it:
 - **Follow a journey from definition to running code:** read the layer READMEs
   top to bottom - `ast/` → `lowering/` → `runtime/`.
 - **Follow a single evaluation:** start at
-  [`runtime/routes/ForgeEvaluator.ts`](./runtime/routes/ForgeEvaluator.ts).
+  [`ForgeOrchestrator.ts`](./ForgeOrchestrator.ts).
 - **Follow compilation:** start at
   [`lowering/CompilationPlanner.ts`](./lowering/CompilationPlanner.ts).

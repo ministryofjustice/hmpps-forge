@@ -4,12 +4,16 @@ import type { ValidationResult } from '../engine/contracts/runtime/validationRes
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import type { EvaluateOptions } from '../engine/Forge'
+import type { EvaluateOptions } from '../engine/ForgeOrchestrator'
 
-/** The subset of the Forge engine that {@link ForgeTestClient} drives. */
+/**
+ * The subset of the Forge engine that {@link ForgeTestClient} drives. The
+ * outcome is `ForgeOutcome<unknown>` so any renderer binding works — the test
+ * client asserts on the raw render context, never the rendered output.
+ */
 export interface ForgeEvaluationEngine {
   getTopology(): ForgeTopology
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome>
+  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<unknown>>
 }
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
@@ -41,5 +45,18 @@ export type TestRedirectResult = {
   cookies: Map<string, CookieMutation>
 }
 
+/**
+ * Result returned when the engine yields an error outcome (unknown node,
+ * unsupported method, or a lifecycle hook halting with an error). `status` is
+ * the HTTP status a host adapter would respond with.
+ */
+export type TestErrorResult = {
+  type: 'error'
+  status: number
+  message: string
+  headers: Map<string, string>
+  cookies: Map<string, CookieMutation>
+}
+
 /** Discriminated union returned by {@link ForgeTestClient.get} and {@link ForgeTestClient.post}. */
-export type TestResult = TestRenderResult | TestRedirectResult
+export type TestResult = TestRenderResult | TestRedirectResult | TestErrorResult

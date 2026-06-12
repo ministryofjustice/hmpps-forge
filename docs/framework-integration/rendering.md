@@ -2,223 +2,143 @@
 
 ## Purpose
 
-Rendering turns a Forge `RenderContext` into an HTTP response.
+Rendering turns a Forge `RenderContext` into host-specific output — HTML
+strings for Nunjucks, with other backends (React nodes, static output) able to
+plug into the same seam.
 
-`forge-core` prepares render data, but it does not own HTML generation. The
-framework integration layer receives the render context, renders the page shell,
-renders blocks through the component registry, and writes the response through
-the host framework.
+Rendering is split into two roles, following the React model where the
+reconciler drives a pluggable renderer (`react-dom`) rather than owning DOM
+production itself:
+
+- **The engine owns the block walk.** The orchestrator filters visibility,
+  resolves each block's component registry entry, renders nested blocks into
+  their parent's properties, attaches validation errors, and records one trace
+  decision per block rendered.
+- **The renderer owns host output.** A `ForgeRenderer<TOut>` produces output
+  for one block at a time when the orchestrator calls it, and assembles the
+  final page from the block outputs.
 
 This keeps the core engine independent of Express, Nunjucks, GOV.UK Frontend,
-MOJ Frontend, or any other rendering stack.
+MOJ Frontend, or any other rendering stack, while giving it full visibility of
+rendering work.
 
-## Where rendering starts
+## Binding a renderer
 
-Rendering starts when a runtime controller calls `FrameworkAdapter.render`.
+The renderer binds at orchestrator construction and lives for the lifetime of
+that orchestrator. Adapters do the composition for you — `createExpressRouter`
+builds the `NunjucksRenderer` and the `ForgeOrchestrator` internally:
 
-At that point Forge has already:
+```typescript
+import { Forge } from '@ministryofjustice/hmpps-forge/core'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-- prepared answers and data
-- evaluated navigation and reachability
-- run validation needed for the request
-- built the `RenderContext`
+const forge = new Forge({ logger }).registerPackage(myPackage)
+app.use(createExpressRouter(forge, { nunjucksEnv }))
+```
 
-The adapter receives the render context with the original framework request and
-response objects. From this point onwards, rendering is framework integration
-work.
+Composing by hand is the same two lines the adapter runs:
 
-## Inputs and outputs
+```typescript
+import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 
-The main input is a `RenderContext`.
+const orchestrator = new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))
+```
 
-The render context contains:
+The renderer's output type flows through the orchestrator's types: an
+orchestrator bound to `NunjucksRenderer` is `ForgeOrchestrator<string>`, and its
+render outcomes carry `output: string`. An orchestrator constructed without a
+renderer produces context-only render outcomes — this is how the test harness
+runs journeys without rendering anything. The `Forge` engine itself carries no
+renderer and no output type.
 
-- step metadata
-- ancestor metadata
-- evaluated blocks
-- navigation data
-- answers and data
-- field and domain validation errors
+## Where rendering happens in the request lifecycle
 
-The main output is a framework response.
+Rendering is the last two units of the orchestrator's pipeline:
 
-For the Express/Nunjucks adapter, that means rendering a HTML string and
-sending it through the Express response.
+1. **Render evaluation** (a pipeline phase): runs the step's compiled render
+   plan to produce evaluated block data, resolves step metadata, and hydrates
+   the `RenderContext`.
+2. **Render output** (the terminal): walks the context's blocks, calls the
+   bound renderer once per block (nested blocks included, children before
+   parents), asks the renderer to assemble the page, and produces the render
+   outcome.
 
-## Data shape flow
+Both stages record per-unit trace decisions when the request is traced:
+`block-evaluation` units time each compiled block function, and `block-render`
+units time each block's host render — the same per-component visibility React's
+profiler gets from Fiber.
 
-All framework integrations start with the same input: a `RenderContext`.
+## The `ForgeRenderer` interface
 
-After that point, the data shape is adapter-specific. An adapter might render
-HTML, return JSON, stream a response, or pass the context into another rendering
-system.
+A renderer implements three operations:
 
-The Express/Nunjucks adapter uses these shapes:
+- `renderBlock(entry, block)` — produce output for one block. The engine has
+  already resolved the registry `entry`, rendered nested blocks into the
+  block's properties, and attached validation errors. The renderer calls the
+  component's render function with its host context (for Nunjucks, a cached
+  template-rendering proxy) and guards the output type.
+- `wrapNestedBlock(block, output)` — wrap a rendered child for embedding in
+  its parent's properties. The Nunjucks renderer returns
+  `{ block, html }`, so wrapper or reveal-style components receive rendered
+  child content without knowing about Forge's runtime graph.
+- `assemblePage(context, renderedBlocks, requestState)` — produce the final
+  page from the render context, the top-level block outputs in order, and the
+  adapter-supplied request state (for Express, app and response locals).
 
-1. `RenderContext` contains evaluated Forge runtime data.
+## The outcome
 
-2. `TemplateRenderer` turns top-level blocks into rendered HTML strings.
+A render outcome carries all three layers:
 
-3. Nested blocks inside component properties become rendered-block objects.
+- `context` — the `RenderContext` data (blocks as data, step and ancestor
+  metadata, navigation, answers, validation errors)
+- `renderedBlocks` — the top-level block outputs in render order
+- `output` — the assembled page
 
-4. Component renderers receive component-facing block data.
+The adapter writes `output` to its native response. Consumers that compose
+their own page can use `renderedBlocks` and `context` instead.
 
-5. Page templates receive a template context containing rendered blocks.
+## The Nunjucks renderer
 
-Those shapes are kept separate because they serve different boundaries. The
-render context is the core-to-adapter contract. Component-facing blocks are the
-adapter-to-component contract. The template context is the adapter-to-template
-contract.
+`NunjucksRenderer` owns the Nunjucks-specific parts:
 
-## Key concepts
-
-### `FrameworkAdapter.render`
-
-`FrameworkAdapter.render` is the rendering boundary from `forge-core` into a
-framework adapter.
-
-The core runtime does not know whether the adapter will use Nunjucks, React,
-server-side templates, JSON, or another response format. It only passes the
-render context to the adapter.
-
-Adapters should treat `RenderContext` as the core contract for rendering a
-step response.
-
-### `RenderContext`
-
-`RenderContext` is data, not markup.
-
-It contains the evaluated values the adapter needs to render the page.
-
-Top-level blocks are still block objects at this point. Each block has:
-
-- an ID
-- a block type
-- a variant
-- evaluated properties
-
-They have not yet been rendered to HTML.
-
-This lets framework integrations choose how page templates and component
-renderers consume the data.
-
-### Template context
-
-`TemplateContext` is the data passed to the page template.
-
-For the Express/Nunjucks adapter, it is mostly the `RenderContext`, but with
-top-level blocks replaced by rendered HTML strings. It also includes any locals
-provided by the Express app, response, journey views, or step view.
-
-This means page templates do not need to know how to render individual Forge
-blocks. They receive already-rendered block output, plus the step, ancestors,
-navigation, answers, data, and validation errors needed to lay out the page.
-
-### Page template rendering
-
-The Express/Nunjucks adapter uses `TemplateRenderer` to render a full page.
-
-`TemplateRenderer` chooses the page template from the current step first, then
-from the nearest ancestor with a template, then from the configured default
-template.
-
-It also merges view locals from ancestors and the current step. Ancestor locals
-are applied from root to inner journey, and step locals are applied last.
-
-### Block rendering
-
-Blocks are rendered through the component registry.
-
-For each visible block, `TemplateRenderer` looks up the component registered for
-the block variant. It converts the evaluated block into the component-facing
-block shape and calls the component's render function.
-
-The component-facing shape keeps the authoring-level block discriminator and
-variant, then spreads the evaluated block properties onto the object. Validation
-failures are converted into an `errors` array when failures should be shown.
-
-The component render function returns HTML. The page template then receives the
-rendered block output as part of its template context.
-
-### Nested blocks
-
-Blocks can appear inside component properties.
-
-Before a component is rendered, `TemplateRenderer` can walk block properties and
-render nested blocks to a nested rendered-block shape.
-
-That nested shape contains:
-
-- `block`, with the nested block metadata and properties
-- `html`, with the rendered nested block output
-
-This allows wrapper or reveal-style components to receive rendered child
-content without needing to know about Forge's AST or runtime graph.
-
-Blocks with `visibleWhen: false` are skipped.
-
-    Note:
-    We will probably move this `visibleWhen` check into the rendering compiler 
-    function, as cutting out a block as early as possible in the process means 
-    less unused work
-
-### Validation errors
-
-The render context controls whether validation failures should be shown.
-
-When failures are visible, `TemplateRenderer` extracts failed validation results
-from a field block's `validWhen` property and passes them to the component as
-errors.
-
-Each component receives errors in a small field-error shape:
-
-- `message`
-- `details`
-
-Step/domain validation errors are passed through separately to the page
-template.
-
-### Component renderers
-
-Component renderers are registered by variant.
-
-Each component receives an evaluated block and an optional renderer object. The
-renderer object lets a framework integration pass template-engine support to
-component packages without making `forge-core` depend on that template engine.
+- **Component rendering.** Components receive a render-compatible proxy in
+  place of the raw environment; it caches resolved `Template` objects so
+  repeated component renders skip the loader chain. A component that does not
+  return a string fails with a wrapped error naming the variant.
+- **Template resolution.** The page template comes from the current step's
+  `view.template` first, then the nearest ancestor with a template, then the
+  configured default (`form-step`). The `.njk` extension is appended when
+  missing.
+- **View locals.** Ancestor locals merge root-first, step locals apply last,
+  and all of them override the adapter-supplied request state.
+- **Page assembly.** The page template receives the rendered block strings
+  plus the step, ancestors, route tree, navigation, answers, data, and
+  validation errors needed to lay out the page (`TemplateContext`).
 
 For Nunjucks components, `buildNunjucksComponent` adapts a render function that
-expects a Nunjucks renderer into a normal component registry entry.
+expects a Nunjucks renderer into a normal component registry entry. The GOV.UK
+and MOJ component packages provide concrete entries that translate Forge block
+data into the parameter shapes their templates expect.
 
-### GOV.UK and MOJ components
+## Validation errors
 
-The GOV.UK and MOJ component packages provide concrete component registry
-entries.
-
-Those packages translate Forge block data into the parameter shape expected by
-the relevant GOV.UK or MOJ template, then render through the Nunjucks renderer
-provided by the framework integration.
-
-This keeps presentation-specific mapping outside `forge-core`.
+The render context controls whether validation failures are shown. When they
+are, the engine's walk extracts failed results from a field block's `validWhen`
+property and attaches them to the block as an `errors` array
+(`{ message, details }`) before the renderer sees it. Step/domain validation
+errors pass through separately on the render context for the page template.
 
 ## What can fail
 
-Rendering should fail when the framework integration cannot turn a render
-context into a response.
+- an unknown block variant fails inside the engine's walk, naming the variant
+  and listing the registered ones
+- a component render that throws, or returns the wrong output type, fails
+  inside the renderer with a wrapped error
+- a missing or throwing page template fails inside `assemblePage`
+- writing the response can fail in the adapter
 
-Important failure cases include:
-
-- the selected page template cannot be found
-- the page template throws while rendering
-- a block variant is not registered in the component registry
-- a component renderer throws
-- nested block rendering receives unsupported block data
-- the framework response cannot be written
-
-Adapter errors should stay in the framework integration layer. Core runtime
-errors should be raised before `FrameworkAdapter.render` is called.
-
-The main rule to preserve is that `forge-core` owns render data, while
-framework and component packages own rendering.
+The rule to preserve: the engine owns render data and the block walk, the
+renderer owns host output, and the adapter owns the transport.
 
 ## Connection to other docs
 
@@ -228,4 +148,4 @@ The runtime render context doc explains how `forge-core` builds the
 The component system docs explain how component registry entries are defined.
 
 The framework adapter docs explain the broader adapter contract for routing,
-requests, responses, redirects, errors, and rendering.
+requests, responses, redirects, and errors.

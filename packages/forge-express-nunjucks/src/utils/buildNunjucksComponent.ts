@@ -4,7 +4,7 @@ import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from '@minist
 
 /**
  * Render function for Nunjucks components.
- * Receives the evaluated block and a nunjucks environment (passed as renderer by TemplateRenderer).
+ * Receives the evaluated block and a nunjucks environment (passed as renderer by NunjucksRenderer).
  */
 export type NunjucksComponentRenderer<T extends BlockDefinition> = (
   block: EvaluatedBlock<T>,

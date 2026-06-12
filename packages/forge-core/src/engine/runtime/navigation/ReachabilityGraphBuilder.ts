@@ -6,7 +6,7 @@ import type { ValidationContext } from '../../contracts/compiled/phaseContexts.t
 import type { ValidationPlan } from '../../contracts/plans/compilationArtefacts.type'
 import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
-import { evaluateValidation } from '../orchestrator/phases/evaluateValidation'
+import { evaluateValidation } from '../pipeline/phases/evaluateValidation'
 
 /**
  * Builds the reachability state for a journey.

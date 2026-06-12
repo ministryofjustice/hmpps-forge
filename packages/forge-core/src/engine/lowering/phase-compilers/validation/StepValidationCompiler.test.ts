@@ -27,8 +27,8 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepValidationCompiler from './StepValidationCompiler'
-import { evaluateEntryValidation } from '../../../runtime/orchestrator/phases/evaluateEntryValidation'
-import { evaluateValidation } from '../../../runtime/orchestrator/phases/evaluateValidation'
+import { evaluateEntryValidation } from '../../../runtime/pipeline/phases/evaluateEntryValidation'
+import { evaluateValidation } from '../../../runtime/pipeline/phases/evaluateValidation'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 
 function createFieldBlock(code: unknown): FieldBlockASTNode {

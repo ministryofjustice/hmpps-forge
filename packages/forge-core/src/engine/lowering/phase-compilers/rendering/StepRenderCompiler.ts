@@ -330,6 +330,7 @@ export default class StepRenderCompiler {
     const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
 
     const blocks: CompiledRenderBlock[] = (stepNode.properties.blocks ?? []).map(block => ({
+      nodeId: block.id,
       render: this.compileBlock(block),
     }))
 
@@ -509,7 +510,7 @@ export default class StepRenderCompiler {
 
     const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
 
-    return { evaluateInput, blocks }
+    return { nodeId: iterateNode.id, evaluateInput, blocks }
   }
 
   /**
@@ -532,6 +533,7 @@ export default class StepRenderCompiler {
     directNodes.forEach(node => {
       if (isTemplateBlockNode(node)) {
         entries.push({
+          nodeId: node.id,
           render: this.compileIteratorRenderBlock(node, ancestorIterates),
         })
 

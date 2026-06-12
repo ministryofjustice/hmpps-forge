@@ -1,11 +1,10 @@
-import createHttpError from 'http-errors'
 import { resolveForgeRedirect } from '../navigation/resolveForgeRedirect'
 import type { ForgeResult, PipelineState, RequestPhase, TerminalPhase } from './types'
 
-export default class RequestOrchestrator {
+export default class RequestPipeline<TOut = undefined> {
   constructor(
     private readonly phases: RequestPhase[],
-    private readonly terminal: TerminalPhase,
+    private readonly terminal: TerminalPhase<TOut>,
   ) {}
 
   /**
@@ -15,7 +14,7 @@ export default class RequestOrchestrator {
    * by the phase walks themselves. The recorder's owner (whoever built the
    * state) is responsible for finishing and emitting the trace.
    */
-  async execute(state: PipelineState): Promise<ForgeResult> {
+  async execute(state: PipelineState): Promise<ForgeResult<TOut>> {
     for (const phase of this.phases) {
       state.trace?.beginPhase(phase.name)
 
@@ -28,7 +27,7 @@ export default class RequestOrchestrator {
       }
 
       if (outcome.action === 'halt-error') {
-        throw createHttpError(outcome.status, outcome.message)
+        return { type: 'error', status: outcome.status, message: outcome.message }
       }
     }
 

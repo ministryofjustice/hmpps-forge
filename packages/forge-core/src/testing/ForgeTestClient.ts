@@ -1,9 +1,8 @@
-import createHttpError from 'http-errors'
 import type { HttpMethod, RequestLocation } from '../framework/types/request.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { CookieMutation } from '../framework/types/response.type'
-import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
+import type { ForgeError, ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import { extractPathname, resolvePathParams } from '../framework/path/routePath'
 import type { ForgeEvaluationEngine, TestRequestOptions, TestResult } from './types'
@@ -165,7 +164,7 @@ export class ForgeTestClient {
     return normalized
   }
 
-  private toResult(outcome: ForgeOutcome, response: TestResponseBindings): TestResult {
+  private toResult(outcome: ForgeOutcome<unknown>, response: TestResponseBindings): TestResult {
     if (outcome.kind === 'navigate') {
       return {
         type: 'redirect',
@@ -176,7 +175,13 @@ export class ForgeTestClient {
     }
 
     if (outcome.kind === 'error') {
-      throw createHttpError(errorCodeToStatus(outcome.error.code), outcome.error.message)
+      return {
+        type: 'error',
+        status: errorToStatus(outcome.error),
+        message: outcome.error.message,
+        headers: response.getAllHeaders(),
+        cookies: response.getAllCookies(),
+      }
     }
 
     const { context } = outcome
@@ -229,6 +234,6 @@ const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
   'method-not-supported': 405,
 }
 
-function errorCodeToStatus(code: ForgeErrorCode): number {
-  return ERROR_CODE_STATUS[code]
+function errorToStatus(error: ForgeError): number {
+  return 'status' in error ? error.status : ERROR_CODE_STATUS[error.code]
 }

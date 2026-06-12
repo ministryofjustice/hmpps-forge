@@ -5,37 +5,42 @@ import type { RenderContext } from '../../../../framework/rendering/types'
 import { resolvePathParams } from '../../../../framework/path/routePath'
 import { resolveBacklinkRouteTemplatePath } from '../../navigation/navigationRedirects'
 import { buildCompiledRenderContext } from '../../context/compiledEvaluationContext'
-import { evaluateRender } from '../phases/evaluateRender'
+import { evaluateRender } from './evaluateRender'
 import RenderContextFactory from '../../rendering/RenderContextFactory'
 import type { NavigationEvaluation } from '../../../contracts/navigation/navigationEvaluation.type'
 import type { StepRequest } from '../../../../framework/types/request.type'
-import type { TerminalPhase } from '../types'
+import type { RequestPhase } from '../types'
 
 /**
- * Builds the terminal render phase for a step: it runs the step's compiled
- * RenderPlan to produce blocks plus step/ancestor metadata, then assembles a
- * render ForgeResult carrying the RenderContext.
+ * Builds the render-evaluation phase for a step: it runs the step's compiled
+ * RenderPlan to produce blocks plus step/ancestor metadata, hydrates the
+ * RenderContext, and stores it on the pipeline state for the render-output
+ * terminal.
  *
  * Validation failures from the pipeline state are attached to blocks only when
  * showValidationFailures is set.
  */
-export function createStepRenderTerminal(
+export function createRenderEvaluationPhase(
   renderPlan: RenderPlan,
   routeTree: StoredRouteTree,
   currentRouteTemplatePath: string,
   functionRegistry: FunctionRegistry,
-): TerminalPhase {
+): RequestPhase {
   return {
-    name: 'render',
+    name: 'render-evaluation',
     async execute(state) {
-      const renderResult = await evaluateRender(renderPlan, buildCompiledRenderContext(state.context, functionRegistry))
+      const renderResult = await evaluateRender(
+        renderPlan,
+        buildCompiledRenderContext(state.context, functionRegistry),
+        state.trace,
+      )
       const step = resolveStepMetadata(
         renderResult.step as RenderContext['step'],
         state.request,
         state.navigationEvaluation,
       )
 
-      const context = RenderContextFactory.build(
+      state.renderContext = RenderContextFactory.build(
         {
           step,
           ancestors: renderResult.ancestors as RenderContext['ancestors'],
@@ -53,7 +58,7 @@ export function createStepRenderTerminal(
         },
       )
 
-      return { type: 'render', context }
+      return { action: 'continue' }
     },
   }
 }

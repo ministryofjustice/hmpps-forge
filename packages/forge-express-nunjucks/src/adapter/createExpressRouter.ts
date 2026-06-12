@@ -1,10 +1,12 @@
 import express from 'express'
 import type nunjucks from 'nunjucks'
 import createHttpError from 'http-errors'
+import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
   CookieMutation,
+  ForgeError,
   ForgeErrorCode,
   ForgeOutcome,
   ForgeRoute,
@@ -13,7 +15,7 @@ import type {
   RequestSnapshot,
   ResponseBindings,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import TemplateRenderer from '../renderer/TemplateRenderer'
+import NunjucksRenderer from '../renderer/NunjucksRenderer'
 import { RequestWithState } from './types'
 
 export interface ExpressForgeRouterOptions {
@@ -30,11 +32,13 @@ export interface ExpressForgeRouterOptions {
 /**
  * Build an Express router that serves a configured {@link Forge} instance.
  *
- * The router owns the Express lifecycle: it registers a route per entry in
- * `forge.getTopology()`, converts each incoming request to a
- * {@link RequestSnapshot}, calls `forge.evaluate()`, flushes the resulting
- * effects onto the response, and dispatches the outcome (render / redirect /
- * error). The engine itself never touches Express.
+ * Composes a `ForgeOrchestrator` bound to a `NunjucksRenderer` over the engine,
+ * then owns only the Express transport: it registers a route per entry in the
+ * topology, converts each incoming request to a {@link RequestSnapshot}, calls
+ * `orchestrator.evaluate()`, flushes the resulting effects onto the response,
+ * and writes the outcome (rendered page / redirect / error). Register all
+ * packages before calling this — the router and orchestrator snapshot the
+ * topology at creation.
  *
  * @example
  * ```typescript
@@ -44,14 +48,14 @@ export interface ExpressForgeRouterOptions {
  */
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
   const logger = forge.getLogger()
-  const templateRenderer = new TemplateRenderer({
-    nunjucksEnv: options.nunjucksEnv,
-    defaultTemplate: options.defaultTemplate,
-  })
+  const orchestrator = new ForgeOrchestrator(
+    forge,
+    new NunjucksRenderer({ nunjucksEnv: options.nunjucksEnv, defaultTemplate: options.defaultTemplate }),
+  )
   const router = express.Router({ mergeParams: true })
 
-  forge.getTopology().routes.forEach(route => {
-    const handler = createHandler(forge, route, logger, templateRenderer)
+  orchestrator.getTopology().routes.forEach(route => {
+    const handler = createHandler(orchestrator, route, logger)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
@@ -66,10 +70,9 @@ export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOpt
 }
 
 function createHandler(
-  forge: Forge,
+  orchestrator: ForgeOrchestrator<string>,
   route: ForgeRoute,
   logger: Logger | Console,
-  templateRenderer: TemplateRenderer,
 ): express.RequestHandler {
   return async (req, res, next) => {
     const requestPath = extractPathname(req.originalUrl ?? req.path)
@@ -83,9 +86,9 @@ function createHandler(
     const response = createExpressResponseBindings(res)
 
     try {
-      const outcome = await forge.evaluate(snapshot, { response })
+      const outcome = await orchestrator.evaluate(snapshot, { response })
 
-      applyOutcome(outcome, req, res, next, templateRenderer)
+      applyOutcome(outcome, res, next)
     } catch (err) {
       next(err)
     }
@@ -98,7 +101,9 @@ function toSnapshot(route: ForgeRoute, req: express.Request, res: express.Respon
   const params = normalizeParams(req.params)
   const query = (req.query as Record<string, string | string[]>) ?? {}
   const post = (req.body as Record<string, string | string[]>) ?? {}
-  const state = { ...res.locals, ...(req as RequestWithState).state }
+  // app.locals flow through snapshot state so the renderer's page assembly sees
+  // them as template locals; res.locals override them, matching Express precedence.
+  const state = { ...req.app.locals, ...res.locals, ...(req as RequestWithState).state }
   const origin = `${req.protocol}://${req.hostname}`
   const href = `${origin}${req.originalUrl}`
   const pathname = extractPathname(req.originalUrl)
@@ -153,31 +158,18 @@ function createExpressResponseBindings(res: express.Response): ResponseBindings 
   }
 }
 
-function applyOutcome(
-  outcome: ForgeOutcome,
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-  templateRenderer: TemplateRenderer,
-): void {
+function applyOutcome(outcome: ForgeOutcome<string>, res: express.Response, next: express.NextFunction): void {
   if (outcome.kind === 'navigate') {
     res.redirect(outcome.url)
     return
   }
 
   if (outcome.kind === 'error') {
-    next(createHttpError(errorCodeToStatus(outcome.error.code), outcome.error.message))
+    next(createHttpError(errorToStatus(outcome.error), outcome.error.message))
     return
   }
 
-  const locals = {
-    ...req.app.locals,
-    ...res.locals,
-  }
-
-  const html = templateRenderer.render(outcome.context, locals, outcome.componentRegistry)
-
-  res.type('html').send(html)
+  res.type('html').send(outcome.output)
 }
 
 function normalizeParams(params: Record<string, string | string[] | undefined>): Record<string, string> {
@@ -193,6 +185,6 @@ const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {
   'method-not-supported': 405,
 }
 
-function errorCodeToStatus(code: ForgeErrorCode): number {
-  return ERROR_CODE_STATUS[code]
+function errorToStatus(error: ForgeError): number {
+  return 'status' in error ? error.status : ERROR_CODE_STATUS[error.code]
 }

@@ -131,10 +131,7 @@ app.use(createExpressRouter(forge, { nunjucksEnv }))
 If you configured a `basePath`, the routes are already prefixed:
 
 ```typescript
-const forge = new Forge({
-  basePath: '/forms',
-  logger,
-})
+const forge = new Forge({ basePath: '/forms', logger })
 
 // Routes will be at /forms/my-journey/step-one, etc.
 app.use(createExpressRouter(forge, { nunjucksEnv }))
