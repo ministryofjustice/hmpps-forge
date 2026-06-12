@@ -8,6 +8,9 @@ import type TraceRecorder from './trace/TraceRecorder'
 
 export type ForgeRedirectResult = { type: 'redirect'; url: string }
 
+/** A lifecycle hook halted the request; `status` is the hook's declared HTTP status. */
+export type ForgeErrorResult = { type: 'error'; status: number; message: string }
+
 /**
  * `TOut` is the bound renderer's output type; a pipeline with no renderer
  * defaults it to `undefined` and render results are context-only.
@@ -15,6 +18,7 @@ export type ForgeRedirectResult = { type: 'redirect'; url: string }
 export type ForgeResult<TOut = undefined> =
   | { type: 'render'; context: RenderContext; output: TOut; renderedBlocks: readonly TOut[] }
   | ForgeRedirectResult
+  | ForgeErrorResult
 
 export type PhaseOutcome =
   | { action: 'continue' }

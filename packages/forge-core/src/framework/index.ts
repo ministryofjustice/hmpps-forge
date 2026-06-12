@@ -1,6 +1,6 @@
 export type { ComponentRegistry, Logger } from './types/adapter.type'
 export type { RequestSnapshot } from './types/snapshot.type'
-export type { ForgeError, ForgeErrorCode, ForgeOutcome } from './types/outcome.type'
+export type { ForgeEngineError, ForgeError, ForgeErrorCode, ForgeHookError, ForgeOutcome } from './types/outcome.type'
 export type { ForgeRoute, ForgeTopology, RouteMethod } from './types/topology.type'
 export type { RequestLocation, StepRequest } from './types/request.type'
 export type { CookieMutation, CookieOptions } from './types/response.type'
