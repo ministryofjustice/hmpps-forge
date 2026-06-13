@@ -347,7 +347,7 @@ describe('ForgeOrchestrator', () => {
       expect(traceObserver.onTrace.mock.calls[0][0].trace.outcome).toBe('redirect')
     })
 
-    it('should emit an error trace and rethrow when an access hook halts with an error', async () => {
+    it('should emit an error trace and return an error outcome when an access hook halts with an error', async () => {
       // Arrange
       mountStep({
         accessLifecyclePlan: {
@@ -364,10 +364,10 @@ describe('ForgeOrchestrator', () => {
       const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
-      const act = orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
 
       // Assert
-      await expect(act).rejects.toThrow('denied')
+      expect(outcome).toEqual(expect.objectContaining({ kind: 'error', error: { status: 403, message: 'denied' } }))
       expect(traceObserver.onTrace).toHaveBeenCalledTimes(1)
       expect(traceObserver.onTrace.mock.calls[0][0].trace.outcome).toBe('error')
     })
