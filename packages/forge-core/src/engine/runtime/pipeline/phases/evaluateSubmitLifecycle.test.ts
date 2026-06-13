@@ -135,5 +135,25 @@ describe('evaluateSubmitLifecycle', () => {
       // Assert
       expect(evaluate).toHaveBeenCalledTimes(1)
     })
+
+    it('should invoke the hook snapshot callback only for the executed hook', async () => {
+      // Arrange
+      const recordHookSnapshot = vi.fn()
+      const plan: SubmitLifecyclePlan = {
+        submitHooks: [
+          { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(skippedResult) },
+          {
+            nodeId: 'compile_ast:2' as const,
+            evaluate: vi.fn().mockResolvedValue({ executed: true, validated: false, outcome: 'continue' }),
+          },
+        ],
+      }
+
+      // Act
+      await evaluateSubmitLifecycle(plan, mockCtx, undefined, recordHookSnapshot)
+
+      // Assert
+      expect(recordHookSnapshot.mock.calls).toEqual([['compile_ast:2']])
+    })
   })
 })

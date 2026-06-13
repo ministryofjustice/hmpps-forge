@@ -187,13 +187,26 @@ function recordNavigationTrace(
     trace.record({
       kind: 'navigation-step',
       nodeId: step.stepNodeId,
+      routeTemplatePath: step.routeTemplatePath,
+      code: step.code,
+      isEntryPoint: step.isEntryPoint,
+      isConditionalEntry: step.isConditionalEntry,
+      hasValidation: step.hasValidation,
       isReachable: step.isReachable,
       isValid: step.isValid,
+      forwardRouteTemplatePaths: step.forwardRouteTemplatePaths,
+      declaredForwardRouteTemplatePaths: step.declaredForwardRouteTemplatePaths,
+      predecessorRouteTemplatePaths: step.predecessorRouteTemplatePaths,
     })
   })
 
   trace.record({
     kind: 'navigation-resolution',
+    currentStepNodeId: evaluation.currentStepNodeId,
+    defaultEntryRouteTemplatePath: evaluation.defaultEntryRouteTemplatePath,
+    frontierRouteTemplatePath: evaluation.frontierRouteTemplatePath,
+    canonicalPathRouteTemplatePaths: evaluation.canonicalPathRouteTemplatePaths,
+    resumeActive: evaluation.resumeActive,
     resumeOutcome: evaluation.resumeOutcome,
     redirect,
     durationMs,

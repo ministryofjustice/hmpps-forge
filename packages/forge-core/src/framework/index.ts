@@ -21,6 +21,7 @@ export { RENDER_BLOCK_BRAND } from '../engine/contracts/compiled/renderBlock.bra
 export type { AstNodeId, NodeId, TemplateNodeId } from '../engine/contracts/ast/ast.type'
 export type { HttpMethod } from './types/request.type'
 export type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
+export type { RequestTraceEvent, TraceObserver } from './types/traceObserver.type'
 export {
   extractPathname,
   joinPaths,

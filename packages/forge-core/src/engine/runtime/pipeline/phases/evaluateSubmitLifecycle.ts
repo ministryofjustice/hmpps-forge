@@ -1,3 +1,4 @@
+import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type { CompiledSubmitHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
@@ -13,12 +14,15 @@ import type TraceRecorder from '../trace/TraceRecorder'
  *
  * When a trace recorder is supplied, one decision is recorded per hook
  * evaluated — skipped hooks included; hooks after the first executed one never
- * ran and record nothing.
+ * ran and record nothing. `recordHookSnapshot` is invoked only for the executed
+ * hook - skipped hooks' guards cannot mutate state, so the phase snapshots the
+ * context only where it can have changed.
  */
 export async function evaluateSubmitLifecycle(
   plan: SubmitLifecyclePlan,
   ctx: HookLifecycleContext,
   trace?: TraceRecorder,
+  recordHookSnapshot?: (nodeId: NodeId) => void,
 ): Promise<CompiledSubmitHookResult> {
   for (const entry of plan.submitHooks) {
     const startedAt = performance.now()
@@ -37,6 +41,8 @@ export async function evaluateSubmitLifecycle(
     })
 
     if (result.executed) {
+      recordHookSnapshot?.(entry.nodeId)
+
       return result
     }
   }

@@ -1,6 +1,7 @@
 import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationArtefacts.type'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import { buildCompiledHookLifecycleContext } from '../../context/compiledEvaluationContext'
+import { recordContextSnapshot } from '../trace/contextSnapshot'
 import { evaluateAccessLifecycle } from './evaluateAccessLifecycle'
 import type { RequestPhase } from '../types'
 
@@ -23,6 +24,7 @@ export function createAccessLifecyclePhase(
         accessLifecyclePlan,
         buildCompiledHookLifecycleContext(state.context, functionRegistry, 'access', state.responseBindings),
         state.trace,
+        nodeId => recordContextSnapshot(state, `access-hook:${nodeId}`),
       )
 
       if (result.outcome === 'redirect') {

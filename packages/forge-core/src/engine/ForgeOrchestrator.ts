@@ -14,6 +14,8 @@ import { createRenderEvaluationPhase } from './runtime/pipeline/phases/renderEva
 import { createRenderOutputTerminal } from './runtime/pipeline/terminals/renderOutputTerminal'
 import { createJourneyRedirectTerminal } from './runtime/pipeline/terminals/journeyRedirectTerminal'
 import SnapshotStepRequest from './runtime/snapshot/SnapshotStepRequest'
+import TraceRecorder from './runtime/pipeline/trace/TraceRecorder'
+import { createChannelTraceObserver } from './runtime/pipeline/trace/channelTraceObserver'
 import type { NodeId } from './contracts/ast/ast.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
@@ -22,9 +24,23 @@ import type { ComponentRegistry } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
+import type { TraceObserver } from '../framework/types/traceObserver.type'
 
 export interface EvaluateOptions {
   response?: ResponseBindings
+}
+
+export interface ForgeOrchestratorOptions<TOut = undefined> {
+  /** The configured engine to serve; register all packages before constructing. */
+  readonly core: Forge
+  /** Renderer bound for the orchestrator's lifetime; absent means context-only render outcomes. */
+  readonly renderer?: ForgeRenderer<TOut>
+  /**
+   * Receives each traced request's decision log. Omitted defaults to the
+   * `forge:request:complete` diagnostics-channel publisher, which is inert
+   * until something subscribes; `'off'` or `false` disables tracing entirely.
+   */
+  readonly traceObserver?: TraceObserver | 'off' | false
 }
 
 /**
@@ -48,21 +64,27 @@ interface NodeExecutor<TOut> {
  * adapter and test harness both do). Multiple orchestrators over one engine
  * are safe: executors close over immutable compiled plans.
  *
+ * Traced requests are reported through the configured {@link TraceObserver};
+ * by default traces publish on the `forge:request:complete` diagnostics
+ * channel, which costs nothing until something subscribes.
+ *
  * @example
  * ```typescript
- * const forge = new Forge({ logger }).registerPackage(myPackage)
+ * const core = new Forge({ logger }).registerPackage(myPackage)
  *
  * // Server: bind a renderer; render outcomes carry assembled output.
- * const orchestrator = new ForgeOrchestrator(forge, new NunjucksRenderer({ nunjucksEnv }))
+ * const orchestrator = new ForgeOrchestrator({ core, renderer: new NunjucksRenderer({ nunjucksEnv }) })
  *
- * // Tests: no renderer; render outcomes are context-only.
- * const bare = new ForgeOrchestrator(forge)
+ * // Tests: no renderer; render outcomes are context-only. Tracing off.
+ * const bare = new ForgeOrchestrator({ core, traceObserver: 'off' })
  * ```
  */
 export default class ForgeOrchestrator<TOut = undefined> {
-  private readonly forge: Forge
+  private readonly core: Forge
 
   private readonly renderer?: ForgeRenderer<TOut>
+
+  private readonly traceObserver?: TraceObserver
 
   private readonly routeTreeRoots: StoredRouteTree
 
@@ -70,11 +92,15 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
   private readonly executorsByRouteKey = new Map<string, NodeExecutor<TOut>>()
 
-  constructor(forge: Forge, renderer?: ForgeRenderer<TOut>) {
-    this.forge = forge
-    this.renderer = renderer
+  constructor(options: ForgeOrchestratorOptions<TOut>) {
+    const { core, renderer, traceObserver } = options
+    const tracingDisabled = traceObserver === 'off' || traceObserver === false
 
-    const runtime = forge.getRuntime()
+    this.core = core
+    this.renderer = renderer
+    this.traceObserver = tracingDisabled ? undefined : (traceObserver ?? createChannelTraceObserver())
+
+    const runtime = core.getRuntime()
     this.routeTreeRoots = runtime.routeTreeRoots
     runtime.mounts.forEach(mount => {
       this.buildStepExecutors(mount)
@@ -84,7 +110,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
   /** The engine's topology, delegated so adapters and test clients need only one object. */
   getTopology(): ForgeTopology {
-    return this.forge.getTopology()
+    return this.core.getTopology()
   }
 
   /**
@@ -96,6 +122,10 @@ export default class ForgeOrchestrator<TOut = undefined> {
    * outcome (carrying the node's component registry) otherwise; yields an
    * `error` outcome when the node is unknown, the method is unsupported, or a
    * lifecycle hook halted the request with an error.
+   *
+   * When the trace observer accepts the request, the pipeline records into a
+   * fresh {@link TraceRecorder} and the sealed trace is handed to the observer
+   * exactly once — on render, redirect, and error completions alike.
    */
   async evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome<TOut>> {
     const executor = this.executorsByRouteKey.get(snapshot.nodeId)
@@ -112,24 +142,43 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
     const request = new SnapshotStepRequest(snapshot)
     const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request)
-    const state: PipelineState = { context, request, responseBindings: options?.response ?? NO_OP_RESPONSE_BINDINGS }
-
-    const result = await pipeline.execute(state)
-
-    if (result.type === 'redirect') {
-      return { kind: 'navigate', url: result.url }
+    const observer = this.traceObserver
+    const trace = observer && observer.shouldTrace(snapshot) ? new TraceRecorder() : undefined
+    const state: PipelineState = {
+      context,
+      request,
+      responseBindings: options?.response ?? NO_OP_RESPONSE_BINDINGS,
+      trace,
     }
 
-    if (result.type === 'error') {
-      return { kind: 'error', error: { status: result.status, message: result.message } }
-    }
+    try {
+      const result = await pipeline.execute(state)
 
-    return {
-      kind: 'render',
-      context: result.context,
-      componentRegistry: executor.componentRegistry,
-      output: result.output,
-      renderedBlocks: result.renderedBlocks,
+      if (observer && trace) {
+        observer.onTrace({ snapshot, trace: trace.finish(result.type) })
+      }
+
+      if (result.type === 'redirect') {
+        return { kind: 'navigate', url: result.url }
+      }
+
+      if (result.type === 'error') {
+        return { kind: 'error', error: { status: result.status, message: result.message } }
+      }
+
+      return {
+        kind: 'render',
+        context: result.context,
+        componentRegistry: executor.componentRegistry,
+        output: result.output,
+        renderedBlocks: result.renderedBlocks,
+      }
+    } catch (error) {
+      if (observer && trace) {
+        observer.onTrace({ snapshot, trace: trace.finish('error') })
+      }
+
+      throw error
     }
   }
 
@@ -208,7 +257,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
         renderOutputTerminal,
       )
 
-      this.executorsByRouteKey.set(ForgeOrchestrator.scopedRouteKey(journeyCode, ctx.stepNodeId), {
+      this.executorsByRouteKey.set(this.scopedRouteKey(journeyCode, ctx.stepNodeId), {
         staticData: runtimePlan.staticData,
         componentRegistry,
         get: getPipeline,
@@ -246,7 +295,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
         createJourneyRedirectTerminal<TOut>(compiledJourney.navigationPlan, routeTemplateCatalog, functionRegistry),
       )
 
-      this.executorsByRouteKey.set(ForgeOrchestrator.scopedRouteKey(journeyCode, journeyNodeId), {
+      this.executorsByRouteKey.set(this.scopedRouteKey(journeyCode, journeyNodeId), {
         staticData: runtimePlan.staticData,
         componentRegistry,
         get: pipeline,
@@ -255,7 +304,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
   }
 
   /** Namespaces a node id under its journey so route keys stay unique across journeys. */
-  private static scopedRouteKey(journeyCode: string, nodeId: NodeId): string {
+  private scopedRouteKey(journeyCode: string, nodeId: NodeId): string {
     return `${journeyCode}::${nodeId}`
   }
 

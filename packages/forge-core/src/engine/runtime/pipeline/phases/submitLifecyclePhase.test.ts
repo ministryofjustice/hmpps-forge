@@ -116,6 +116,7 @@ describe('submitLifecyclePhase', () => {
 
       expect(trace.phases[0].units).toEqual([
         expect.objectContaining({ kind: 'submit-hook', nodeId: 'compile_ast:1', executed: true, validated: true }),
+        expect.objectContaining({ kind: 'context-snapshot', point: 'submit-hook:compile_ast:1' }),
       ])
     })
 

@@ -1,13 +1,16 @@
+import { subscribe, unsubscribe } from 'node:diagnostics_channel'
 import { CompileAstNodeId, NodeId } from './contracts/ast/ast.type'
 import { PackageDependencies } from './contracts/ast/engine.type'
 import type { RouteDescriptor } from './contracts/routing/routeDescriptors.type'
 import type { CompiledJourney, CompiledStep } from './contracts/plans/compilationArtefacts.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
+import type { RequestTraceEvent } from '../framework/types/traceObserver.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
 import type PackageInstance from './PackageInstance'
 import MountRegistry from './runtime/routes/MountRegistry'
 import type Forge from './Forge'
 import ForgeOrchestrator from './ForgeOrchestrator'
+import { FORGE_REQUEST_COMPLETE_CHANNEL } from './runtime/pipeline/trace/channelTraceObserver'
 
 describe('ForgeOrchestrator', () => {
   let registry: MountRegistry
@@ -42,7 +45,7 @@ describe('ForgeOrchestrator', () => {
     return { nodeId: id, path, title, ancestorJourneyNodeIds }
   }
 
-  function createCompiledStep(descriptor: RouteDescriptor): CompiledStep {
+  function createCompiledStep(descriptor: RouteDescriptor, overrides?: Partial<CompiledStep>): CompiledStep {
     return {
       runtimePlan: {
         nodeId: descriptor.nodeId,
@@ -62,6 +65,7 @@ describe('ForgeOrchestrator', () => {
       submitLifecyclePlan: { submitHooks: [] },
       entryValidationPlan: { entryValidationRules: [] },
       validationPlan: { fieldValidations: [], iteratorValidationGroups: [] },
+      ...overrides,
     }
   }
 
@@ -88,8 +92,11 @@ describe('ForgeOrchestrator', () => {
     journeys: RouteDescriptor[],
     steps: RouteDescriptor[],
     journeyCode = 'test-journey',
+    compiledStepOverrides?: Partial<CompiledStep>,
   ): Mocked<PackageInstance> {
-    const compiledSteps = new Map<NodeId, CompiledStep>(steps.map(step => [step.nodeId, createCompiledStep(step)]))
+    const compiledSteps = new Map<NodeId, CompiledStep>(
+      steps.map(step => [step.nodeId, createCompiledStep(step, compiledStepOverrides)]),
+    )
     const compiledJourneys = new Map<NodeId, CompiledJourney>(
       journeys.map(journey => [journey.nodeId, createCompiledJourney(journey)]),
     )
@@ -137,7 +144,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'], 'test')
       const step = createStepDescriptor('compile_ast:2', '/step-one', ['compile_ast:1'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
 
       // Act
       const topology = orchestrator.getTopology()
@@ -153,7 +160,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
       const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
@@ -171,7 +178,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
       const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
@@ -191,7 +198,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry), renderer)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), renderer })
       const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
 
       // Act
@@ -209,7 +216,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
 
       // Act
       const outcome = await orchestrator.evaluate(buildSnapshot('compile_ast:999', 'GET'))
@@ -225,7 +232,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
       const journeyRoute = orchestrator.getTopology().routes.find(r => r.kind === 'journey')!
 
       // Act
@@ -242,7 +249,7 @@ describe('ForgeOrchestrator', () => {
       const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
       const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
       registry.mount(createPackageInstance([journey], [step]))
-      const orchestrator = new ForgeOrchestrator(createForgeStub(registry))
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
 
       const lateJourney = createJourneyDescriptor('compile_ast:5', '/late-journey', ['compile_ast:5'], 'late')
       const lateStep = createStepDescriptor('compile_ast:6', '/step-one', ['compile_ast:5'])
@@ -258,6 +265,170 @@ describe('ForgeOrchestrator', () => {
       expect(outcome).toEqual(
         expect.objectContaining({ kind: 'error', error: expect.objectContaining({ code: 'node-not-found' }) }),
       )
+    })
+  })
+
+  describe('evaluate() tracing', () => {
+    function mountStep(compiledStepOverrides?: Partial<CompiledStep>): void {
+      const journey = createJourneyDescriptor('compile_ast:3', '/journey', ['compile_ast:3'], 'test')
+      const step = createStepDescriptor('compile_ast:4', '/step-one', ['compile_ast:3'])
+      registry.mount(createPackageInstance([journey], [step], 'test-journey', compiledStepOverrides))
+    }
+
+    function createTraceObserver(shouldTrace: boolean) {
+      return {
+        shouldTrace: vi.fn<(snapshot: RequestSnapshot) => boolean>().mockReturnValue(shouldTrace),
+        onTrace: vi.fn<(event: RequestTraceEvent) => void>(),
+      }
+    }
+
+    it('should not record a trace when the observer declines the request', async () => {
+      // Arrange
+      mountStep()
+      const traceObserver = createTraceObserver(false)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+
+      // Act
+      await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+      await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+
+      // Assert
+      expect(traceObserver.shouldTrace).toHaveBeenCalledTimes(2)
+      expect(traceObserver.onTrace).not.toHaveBeenCalled()
+    })
+
+    it('should emit a render trace with phases when the observer accepts a GET request', async () => {
+      // Arrange
+      mountStep()
+      const traceObserver = createTraceObserver(true)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+      const snapshot = buildSnapshot(stepRoute.nodeId, 'GET')
+
+      // Act
+      const outcome = await orchestrator.evaluate(snapshot)
+
+      // Assert
+      expect(outcome.kind).toBe('render')
+      expect(traceObserver.onTrace).toHaveBeenCalledTimes(1)
+      const event = traceObserver.onTrace.mock.calls[0][0]
+      expect(event.snapshot).toBe(snapshot)
+      expect(event.trace.outcome).toBe('render')
+      expect(event.trace.phases.length).toBeGreaterThan(0)
+      expect(event.trace.durationMs).toBeGreaterThanOrEqual(0)
+      expect(event.trace.phases[0].units).toContainEqual(
+        expect.objectContaining({ kind: 'context-snapshot', point: 'initial' }),
+      )
+    })
+
+    it('should emit a redirect trace when an access hook redirects', async () => {
+      // Arrange
+      mountStep({
+        accessLifecyclePlan: {
+          accessHooks: [
+            {
+              nodeId: 'compile_ast:99',
+              evaluate: vi.fn().mockResolvedValue({ executed: true, outcome: 'redirect', redirect: '/elsewhere' }),
+            },
+          ],
+        },
+      })
+      const traceObserver = createTraceObserver(true)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+
+      // Act
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+
+      // Assert
+      expect(outcome.kind).toBe('navigate')
+      expect(traceObserver.onTrace).toHaveBeenCalledTimes(1)
+      expect(traceObserver.onTrace.mock.calls[0][0].trace.outcome).toBe('redirect')
+    })
+
+    it('should emit an error trace and return an error outcome when an access hook halts with an error', async () => {
+      // Arrange
+      mountStep({
+        accessLifecyclePlan: {
+          accessHooks: [
+            {
+              nodeId: 'compile_ast:99',
+              evaluate: vi.fn().mockResolvedValue({ executed: true, outcome: 'error', status: 403, message: 'denied' }),
+            },
+          ],
+        },
+      })
+      const traceObserver = createTraceObserver(true)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+
+      // Act
+      const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+
+      // Assert
+      expect(outcome).toEqual(expect.objectContaining({ kind: 'error', error: { status: 403, message: 'denied' } }))
+      expect(traceObserver.onTrace).toHaveBeenCalledTimes(1)
+      expect(traceObserver.onTrace.mock.calls[0][0].trace.outcome).toBe('error')
+    })
+
+    it('should publish on the diagnostics channel when no observer is configured and a subscriber is attached', async () => {
+      // Arrange
+      mountStep()
+      const channelListener = vi.fn()
+      subscribe(FORGE_REQUEST_COMPLETE_CHANNEL, channelListener)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry) })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+
+      try {
+        // Act
+        const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+
+        // Assert
+        expect(outcome.kind).toBe('render')
+        expect(channelListener).toHaveBeenCalledTimes(1)
+        expect(channelListener).toHaveBeenCalledWith(
+          expect.objectContaining({ trace: expect.objectContaining({ outcome: 'render' }) }),
+          FORGE_REQUEST_COMPLETE_CHANNEL,
+        )
+      } finally {
+        unsubscribe(FORGE_REQUEST_COMPLETE_CHANNEL, channelListener)
+      }
+    })
+
+    it.each(['off', false] as const)('should never trace when the trace observer is %s', async traceObserver => {
+      // Arrange
+      mountStep()
+      const channelListener = vi.fn()
+      subscribe(FORGE_REQUEST_COMPLETE_CHANNEL, channelListener)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+      const stepRoute = orchestrator.getTopology().routes.find(r => r.kind === 'step')!
+
+      try {
+        // Act
+        const outcome = await orchestrator.evaluate(buildSnapshot(stepRoute.nodeId, 'GET'))
+
+        // Assert
+        expect(outcome.kind).toBe('render')
+        expect(channelListener).not.toHaveBeenCalled()
+      } finally {
+        unsubscribe(FORGE_REQUEST_COMPLETE_CHANNEL, channelListener)
+      }
+    })
+
+    it('should not consult the observer when the node is unknown', async () => {
+      // Arrange
+      mountStep()
+      const traceObserver = createTraceObserver(true)
+      const orchestrator = new ForgeOrchestrator({ core: createForgeStub(registry), traceObserver })
+
+      // Act
+      const outcome = await orchestrator.evaluate(buildSnapshot('compile_ast:999', 'GET'))
+
+      // Assert
+      expect(outcome.kind).toBe('error')
+      expect(traceObserver.shouldTrace).not.toHaveBeenCalled()
+      expect(traceObserver.onTrace).not.toHaveBeenCalled()
     })
   })
 })

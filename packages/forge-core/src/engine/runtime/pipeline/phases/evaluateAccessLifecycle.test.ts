@@ -161,5 +161,26 @@ describe('evaluateAccessLifecycle', () => {
       // Assert
       expect(evaluate).toHaveBeenCalledTimes(1)
     })
+
+    it('should invoke the hook snapshot callback after every hook run including the halting one', async () => {
+      // Arrange
+      const recordHookSnapshot = vi.fn()
+      const plan: AccessLifecyclePlan = {
+        accessHooks: [
+          { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(continueResult) },
+          {
+            nodeId: 'compile_ast:2' as const,
+            evaluate: vi.fn().mockResolvedValue({ executed: true, outcome: 'redirect', redirect: '/login' }),
+          },
+          { nodeId: 'compile_ast:3' as const, evaluate: vi.fn().mockResolvedValue(continueResult) },
+        ],
+      }
+
+      // Act
+      await evaluateAccessLifecycle(plan, mockCtx, undefined, recordHookSnapshot)
+
+      // Assert
+      expect(recordHookSnapshot.mock.calls).toEqual([['compile_ast:1'], ['compile_ast:2']])
+    })
   })
 })

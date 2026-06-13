@@ -5,7 +5,27 @@ export { default as ComponentRegistry } from './engine/registries/ComponentRegis
 export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/runtime/rendering/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/contracts/compiled/renderBlock.brand'
+export { FORGE_REQUEST_COMPLETE_CHANNEL } from './engine/runtime/pipeline/trace/channelTraceObserver'
 export type { ForgeOptions, ForgeRouterAdapter } from './engine/Forge'
-export type { EvaluateOptions } from './engine/ForgeOrchestrator'
+export type { EvaluateOptions, ForgeOrchestratorOptions } from './engine/ForgeOrchestrator'
+export type {
+  AccessHookTraceUnit,
+  AnswerPreparationFieldTraceUnit,
+  BlockEvaluationTraceUnit,
+  BlockRenderTraceUnit,
+  ContextSnapshotTraceUnit,
+  DomainValidationTraceUnit,
+  EntryValidationRuleTraceUnit,
+  FieldValidationTraceUnit,
+  IteratorInputTraceUnit,
+  NavigationResolutionTraceUnit,
+  NavigationStepTraceUnit,
+  PhaseTrace,
+  PhaseTraceOutcome,
+  RequestTrace,
+  RequestTraceOutcome,
+  SubmitHookTraceUnit,
+  TraceUnit,
+} from './engine/contracts/trace/requestTrace.type'
 export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
 export type { ForgePackageRegistration, ForgeFunctionImplementations } from './engine/contracts/ast/engine.type'

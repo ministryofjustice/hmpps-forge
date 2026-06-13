@@ -93,7 +93,7 @@ export interface RenderContext {
 
 /**
  * The pluggable rendering backend, bound at orchestrator construction
- * (`new ForgeOrchestrator(forge, renderer)`). The orchestrator owns the block
+ * (`new ForgeOrchestrator({ core, renderer })`). The orchestrator owns the block
  * walk — visibility, nesting, validation attachment, registry resolution,
  * per-block tracing — and drives the renderer with one call per block; the
  * renderer owns only host-specific output production (HTML strings, React nodes).

@@ -70,9 +70,17 @@ describe('journeyRedirectTerminal', () => {
       const trace = recorder.finish('redirect')
 
       expect(trace.phases[0].units).toEqual([
-        { kind: 'navigation-step', nodeId: 'compile_ast:1', isReachable: true, isValid: true },
+        expect.objectContaining({
+          kind: 'navigation-step',
+          nodeId: 'compile_ast:1',
+          routeTemplatePath: '/journey/first-step',
+          isEntryPoint: true,
+          isReachable: true,
+          isValid: true,
+        }),
         expect.objectContaining({
           kind: 'navigation-resolution',
+          canonicalPathRouteTemplatePaths: ['/journey/first-step'],
           resumeOutcome: 'no-op',
           redirect: '/journey/first-step',
         }),
