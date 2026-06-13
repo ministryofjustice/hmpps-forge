@@ -1,0 +1,479 @@
+import { describe, expect, it } from 'vitest'
+import { BlockType } from '../authoring/types/enums'
+import type { RenderBlock } from '../framework/rendering/types'
+import { createClient, answerOf, type ContractSession } from './contractHelpers'
+import {
+  basicBlocksJourney,
+  blockOrderingJourney,
+  visibleWhenFalseJourney,
+  visibleWhenDynamicJourney,
+  visibleWhenPreservesAnswerJourney,
+  dynamicPropertyJourney,
+  stepMetadataJourney,
+  answerDisplayJourney,
+  validationDisplayJourney,
+  iteratorRenderJourney,
+  dataDisplayJourney,
+  domainValidationRenderJourney,
+  backlinkJourney,
+  ancestorJourney,
+} from './rendering.fixtures'
+
+function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
+  const collectionBlock = blocks.find(b => b.variant === 'collection-block')
+  const collection = collectionBlock?.properties.collection as RenderBlock[][] | undefined
+
+  return collection?.flat() ?? []
+}
+
+describe('rendering contracts', () => {
+  describe('block evaluation', () => {
+    it('should render field blocks with correct variant and blockType', async () => {
+      // Arrange
+      const client = createClient(basicBlocksJourney)
+
+      // Act
+      const result = await client.get('/basic-blocks/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const textInputs = result.getBlocksByVariant('govukTextInput')
+
+        expect(textInputs).toHaveLength(1)
+        expect(textInputs[0].blockType).toBe(BlockType.FIELD)
+        expect(textInputs[0].properties.code).toBe('fullName')
+        expect(textInputs[0].properties.label).toBe('Full name')
+      }
+    })
+
+    it('should render basic blocks with correct variant and blockType', async () => {
+      // Arrange
+      const client = createClient(basicBlocksJourney)
+
+      // Act
+      const result = await client.get('/basic-blocks/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const buttons = result.getBlocksByVariant('govukButton')
+
+        expect(buttons).toHaveLength(1)
+        expect(buttons[0].blockType).toBe(BlockType.BASIC)
+        expect(buttons[0].properties.text).toBe('Continue')
+      }
+    })
+
+    it('should preserve authored block ordering', async () => {
+      // Arrange
+      const client = createClient(blockOrderingJourney)
+
+      // Act
+      const result = await client.get('/ordering/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const fieldBlocks = result.context.blocks.filter(b => b.blockType === BlockType.FIELD)
+        const codes = fieldBlocks.map(b => b.properties.code)
+
+        expect(codes).toEqual(['firstName', 'lastName', 'email'])
+      }
+    })
+  })
+
+  describe('dynamic properties', () => {
+    it('should resolve Data() references in block properties', async () => {
+      // Arrange
+      const client = createClient(dynamicPropertyJourney)
+      const session: ContractSession = {
+        data: { message: 'Important notice' },
+      }
+
+      // Act
+      const result = await client.get('/dynamic-prop/info', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks).toHaveLength(1)
+        expect(insetBlocks[0].properties.text).toBe('Important notice')
+      }
+    })
+
+    it('should resolve Format() expressions in iterator block labels', async () => {
+      // Arrange
+      const client = createClient(iteratorRenderJourney)
+      const session: ContractSession = {
+        data: { members: [{ name: 'Ada' }, { name: 'Grace' }] },
+      }
+
+      // Act
+      const result = await client.get('/iter-render/members', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const expanded = iteratorBlocks(result.context.blocks)
+
+        expect(expanded[0].properties.label).toBe('Member 1 name')
+        expect(expanded[1].properties.label).toBe('Member 2 name')
+      }
+    })
+  })
+
+  describe('visibleWhen', () => {
+    it('should mark block as hidden when visibleWhen is false', async () => {
+      // Arrange
+      const client = createClient(visibleWhenFalseJourney)
+
+      // Act
+      const result = await client.get('/visible-false/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const hiddenBlock = result.context.blocks.find(b => b.properties.code === 'hidden')
+        const shownBlock = result.context.blocks.find(b => b.properties.code === 'shown')
+
+        expect(hiddenBlock?.properties.visibleWhen).toBe(false)
+        expect(shownBlock?.properties.visibleWhen).not.toBe(false)
+      }
+    })
+
+    it('should mark block as visible when dynamic condition is met', async () => {
+      // Arrange
+      const client = createClient(visibleWhenDynamicJourney)
+      const session: ContractSession = {
+        answers: { 'visible-dynamic': { contactMethod: 'email' } },
+      }
+
+      // Act
+      const result = await client.get('/visible-dynamic/contact', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const emailBlock = result.context.blocks.find(b => b.properties.code === 'emailAddress')
+
+        expect(emailBlock).toBeDefined()
+        expect(emailBlock?.properties.visibleWhen).not.toBe(false)
+      }
+    })
+
+    it('should mark block as hidden when dynamic condition is not met', async () => {
+      // Arrange
+      const client = createClient(visibleWhenDynamicJourney)
+      const session: ContractSession = {
+        answers: { 'visible-dynamic': { contactMethod: 'phone' } },
+      }
+
+      // Act
+      const result = await client.get('/visible-dynamic/contact', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const emailBlock = result.context.blocks.find(b => b.properties.code === 'emailAddress')
+
+        expect(emailBlock?.properties.visibleWhen).toBe(false)
+      }
+    })
+
+    it('should not clear answers for fields hidden by visibleWhen', async () => {
+      // Arrange
+      const client = createClient(visibleWhenPreservesAnswerJourney)
+      const session: ContractSession = {
+        answers: { 'visible-preserves': { toggle: 'no', detail: 'some value' } },
+      }
+
+      // Act
+      const result = await client.get('/visible-preserves/form', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const detailBlock = result.context.blocks.find(b => b.properties.code === 'detail')
+
+        expect(detailBlock?.properties.visibleWhen).toBe(false)
+        expect(answerOf(result.context.answers, 'detail').current).toBe('some value')
+      }
+    })
+  })
+
+  describe('iterator rendering', () => {
+    it('should expand blocks per collection item', async () => {
+      // Arrange
+      const client = createClient(iteratorRenderJourney)
+      const session: ContractSession = {
+        data: { members: [{ name: 'Ada' }, { name: 'Grace' }, { name: 'Linus' }] },
+      }
+
+      // Act
+      const result = await client.get('/iter-render/members', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const expanded = iteratorBlocks(result.context.blocks)
+
+        expect(expanded).toHaveLength(3)
+        expect(expanded.every(b => b.variant === 'govukTextInput')).toBe(true)
+      }
+    })
+
+    it('should render no expanded blocks when collection is empty', async () => {
+      // Arrange
+      const client = createClient(iteratorRenderJourney)
+      const session: ContractSession = {
+        data: { members: [] },
+      }
+
+      // Act
+      const result = await client.get('/iter-render/members', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const expanded = iteratorBlocks(result.context.blocks)
+
+        expect(expanded).toHaveLength(0)
+      }
+    })
+
+    it('should resolve per-item field codes in expanded blocks', async () => {
+      // Arrange
+      const client = createClient(iteratorRenderJourney)
+      const session: ContractSession = {
+        data: { members: [{ name: 'Ada' }, { name: 'Grace' }] },
+      }
+
+      // Act
+      const result = await client.get('/iter-render/members', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const expanded = iteratorBlocks(result.context.blocks)
+        const codes = expanded.map(b => b.properties.code)
+
+        expect(codes).toEqual(['memberName_0', 'memberName_1'])
+      }
+    })
+  })
+
+  describe('step context', () => {
+    it('should expose step title in render context', async () => {
+      // Arrange
+      const client = createClient(stepMetadataJourney)
+
+      // Act
+      const result = await client.get('/step-meta/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.title).toBe('Step Title')
+      }
+    })
+
+    it('should expose custom step metadata in render context', async () => {
+      // Arrange
+      const client = createClient(stepMetadataJourney)
+
+      // Act
+      const result = await client.get('/step-meta/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.metadata).toEqual({ section: 'personal-details' })
+      }
+    })
+
+    it('should include stored answers in render context on GET', async () => {
+      // Arrange
+      const client = createClient(answerDisplayJourney)
+      const session: ContractSession = {
+        answers: { 'answer-display': { fullName: 'Ada Lovelace' } },
+      }
+
+      // Act
+      const result = await client.get('/answer-display/name', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'fullName').current).toBe('Ada Lovelace')
+      }
+    })
+
+    it('should include loaded data in render context on GET', async () => {
+      // Arrange
+      const client = createClient(dataDisplayJourney)
+      const session: ContractSession = {
+        data: { userName: 'Ada Lovelace' },
+      }
+
+      // Act
+      const result = await client.get('/data-display/info', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.data.userName).toBe('Ada Lovelace')
+      }
+    })
+
+    it('should include explicit backlink in step context', async () => {
+      // Arrange
+      const client = createClient(backlinkJourney)
+
+      // Act
+      const result = await client.get('/backlink/step-two', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.backlink).toBe('/backlink/step-one')
+      }
+    })
+
+    it('should include journey ancestors in render context', async () => {
+      // Arrange
+      const client = createClient(ancestorJourney)
+
+      // Act
+      const result = await client.get('/parent/child/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.ancestors).toHaveLength(2)
+        expect(result.context.ancestors[0]).toEqual(
+          expect.objectContaining({
+            code: 'parent',
+            title: 'Parent Journey',
+          }),
+        )
+        expect(result.context.ancestors[1]).toEqual(
+          expect.objectContaining({
+            code: 'child',
+            title: 'Child Journey',
+          }),
+        )
+      }
+    })
+  })
+
+  describe('validation display', () => {
+    it('should attach validation errors to blocks on failed POST', async () => {
+      // Arrange
+      const client = createClient(validationDisplayJourney)
+
+      // Act
+      const result = await client.post('/validation-display/form', {
+        session: {},
+        body: { fullName: '', email: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+
+        const nameErrors = result.getValidationErrorsByFieldCode('fullName')
+        const emailErrors = result.getValidationErrorsByFieldCode('email')
+
+        expect(nameErrors).toHaveLength(1)
+        expect(nameErrors[0].message).toBe('Enter your full name')
+        expect(emailErrors).toHaveLength(1)
+        expect(emailErrors[0].message).toBe('Enter your email')
+      }
+    })
+
+    it('should not show validation errors on initial GET', async () => {
+      // Arrange
+      const client = createClient(validationDisplayJourney)
+
+      // Act
+      const result = await client.get('/validation-display/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(false)
+        expect(result.context.fieldValidationErrors).toHaveLength(0)
+      }
+    })
+
+    it('should include domain validation errors in render context', async () => {
+      // Arrange
+      const client = createClient(domainValidationRenderJourney)
+
+      // Act
+      const result = await client.post('/domain-render/range', {
+        session: {},
+        body: { minValue: '10', maxValue: '10' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.context.domainValidationErrors).toEqual([
+          expect.objectContaining({ message: 'Minimum and maximum must be different' }),
+        ])
+        expect(result.context.fieldValidationErrors).toHaveLength(0)
+      }
+    })
+
+    it('should attach validation results to block properties', async () => {
+      // Arrange
+      const client = createClient(validationDisplayJourney)
+
+      // Act
+      const result = await client.post('/validation-display/form', {
+        session: {},
+        body: { fullName: '', email: 'ada@example.com' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const nameBlock = result.context.blocks.find(b => b.properties.code === 'fullName')
+        const emailBlock = result.context.blocks.find(b => b.properties.code === 'email')
+        const nameValidations = nameBlock?.properties.validWhen as { passed: boolean; message: string }[]
+        const emailValidations = emailBlock?.properties.validWhen as { passed: boolean; message: string }[]
+
+        expect(nameValidations.some(v => !v.passed && v.message === 'Enter your full name')).toBe(true)
+        expect(emailValidations.every(v => v.passed)).toBe(true)
+      }
+    })
+  })
+})
