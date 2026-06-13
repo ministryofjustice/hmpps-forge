@@ -38,7 +38,7 @@ export interface RenderCompilationContext {
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
 }
@@ -51,14 +51,14 @@ export interface RenderCompilationContext {
  * and need to observe the same answer history.
  */
 export interface AnswerPreparationContext {
-  answers: Record<string, { current: unknown; mutations: { value: unknown; source: string }[] }>
+  answers: Record<string, { current: unknown; parsed?: unknown; mutations: { value: unknown; source: string }[] }>
   data: Record<string, unknown>
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
 }
 
 /** Context for compiled entry-validation reachability predicates; carries no extra state beyond the base. */
@@ -79,7 +79,7 @@ export interface HookLifecycleContext {
   params: Record<string, unknown>
   query: Record<string, unknown>
   /** Raw submitted form body, keyed by field name. */
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
   /** Opaque context handed to author-supplied effect functions invoked by hooks. */
