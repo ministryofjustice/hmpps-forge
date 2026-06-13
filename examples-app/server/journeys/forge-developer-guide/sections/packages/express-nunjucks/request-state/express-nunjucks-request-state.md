@@ -99,6 +99,7 @@ Request.State('csrfToken')
 
 // In an effect
 context.getState('csrfToken')
+context.getAllState()
 ```
 
 Both return the merged value - there is no need to know
@@ -131,6 +132,69 @@ with `Request.State('user')` without any extra plumbing.
 **Feature flags** - flags set on `res.locals` by a feature
 flag middleware become available as state, so you can use them
 in `visibleWhen` or `entryWhen` predicates.
+
+**Middleware outputs** - middleware can attach request-scoped
+objects to `req.state` so effects can use them later in the same
+request. This is useful for values that depend on the current user,
+such as an authenticated API client.
+
+```typescript
+import type { AxiosInstance } from 'axios'
+
+declare global {
+  namespace Express {
+    interface RequestState {
+      authenticatedAxios: AxiosInstance
+    }
+
+    interface Request {
+      state: RequestState
+    }
+  }
+}
+
+app.use((req, res, next) => {
+  req.state = {
+    ...req.state,
+    authenticatedAxios: createAuthenticatedAxios(req.user),
+  }
+
+  next()
+})
+```
+
+The effect can then read the same object from the Forge context:
+
+```typescript
+import type { EffectFunctionContext } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+type MyEffectContext = EffectFunctionContext<
+  Record<string, unknown>,
+  Record<string, unknown>,
+  unknown,
+  Express.RequestState
+>
+
+LoadClientDetails: (deps) => async (context: MyEffectContext, caseReference: string) => {
+  const authenticatedAxios = context.getState('authenticatedAxios')
+
+  if (!authenticatedAxios) {
+    return
+  }
+
+  const clientDetails = await deps.apiService.getClientDetails(
+    authenticatedAxios,
+    caseReference,
+  )
+
+  context.setData('clientDetails', clientDetails)
+}
+```
+
+`req.state` stores another reference to the same request-scoped
+object. It does not need to replace existing middleware fields like
+`req.axiosMiddleware` immediately, but using `req.state` is the
+adapter-supported path for making those values available to Forge.
 
 ---
 
