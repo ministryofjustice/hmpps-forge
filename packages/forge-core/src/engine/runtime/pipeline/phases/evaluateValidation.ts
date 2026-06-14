@@ -9,6 +9,7 @@ import type { ValidationContext } from '../../../contracts/compiled/phaseContext
 import type { IteratorItemScope } from '../../../contracts/compiled/compiledFunctions.type'
 import type { StepValidityResult, ValidationEvaluationInput } from '../../../contracts/runtime/stepValidityResult.type'
 import type TraceRecorder from '../trace/TraceRecorder'
+import { measureAsyncFrom } from '../trace/TraceRecorder'
 
 /**
  * The engine's only sub-walk: a walk with no phase of its own, run by three
@@ -69,18 +70,11 @@ async function validateField(
   groups: string[],
   trace: TraceRecorder | undefined,
 ): Promise<StepValidationFailure[]> {
-  const startedAt = performance.now()
-  const failures = await entry.validate(ctx, isSubmission, groups)
-
-  trace?.record({
-    kind: 'field-validation',
-    nodeId: entry.nodeId,
-    isValid: failures.length === 0,
-    failures,
-    durationMs: performance.now() - startedAt,
-  })
-
-  return failures
+  return measureAsyncFrom(
+    trace,
+    f => ({ kind: 'field-validation', nodeId: entry.nodeId, isValid: f.length === 0, failures: f }),
+    () => entry.validate(ctx, isSubmission, groups),
+  )
 }
 
 /**
@@ -118,15 +112,11 @@ async function evaluateSingleIteratorGroup(
   groups: string[],
   trace: TraceRecorder | undefined,
 ): Promise<StepValidationFailure[]> {
-  const inputStartedAt = performance.now()
-  const items = await group.evaluateInput(ctx)
-
-  trace?.record({
-    kind: 'iterator-input',
-    nodeId: group.nodeId,
-    itemCount: items.length,
-    durationMs: performance.now() - inputStartedAt,
-  })
+  const items = await measureAsyncFrom(
+    trace,
+    i => ({ kind: 'iterator-input', nodeId: group.nodeId, itemCount: i.length }),
+    () => group.evaluateInput(ctx),
+  )
 
   if (items.length === 0) {
     return []
@@ -153,19 +143,17 @@ async function validateIteratorField(
   itemScope: IteratorItemScope,
   trace: TraceRecorder | undefined,
 ): Promise<StepValidationFailure[]> {
-  const startedAt = performance.now()
-  const failures = await field.validate(ctx, isSubmission, groups, itemScope)
-
-  trace?.record({
-    kind: 'field-validation',
-    nodeId: field.nodeId,
-    itemIndex: itemScope.index,
-    isValid: failures.length === 0,
-    failures,
-    durationMs: performance.now() - startedAt,
-  })
-
-  return failures
+  return measureAsyncFrom(
+    trace,
+    f => ({
+      kind: 'field-validation',
+      nodeId: field.nodeId,
+      itemIndex: itemScope.index,
+      isValid: f.length === 0,
+      failures: f,
+    }),
+    () => field.validate(ctx, isSubmission, groups, itemScope),
+  )
 }
 
 /**
@@ -179,19 +167,15 @@ async function evaluateDomain(
   groups: string[],
   trace: TraceRecorder | undefined,
 ): Promise<StepValidityResult['domainFailures']> {
-  if (!validationPlan.domain) {
+  const domain = validationPlan.domain
+
+  if (!domain) {
     return []
   }
 
-  const startedAt = performance.now()
-  const failures = await validationPlan.domain(ctx, isSubmission, groups)
-
-  trace?.record({
-    kind: 'domain-validation',
-    isValid: failures.length === 0,
-    failures,
-    durationMs: performance.now() - startedAt,
-  })
-
-  return failures
+  return measureAsyncFrom(
+    trace,
+    f => ({ kind: 'domain-validation', isValid: f.length === 0, failures: f }),
+    () => domain(ctx, isSubmission, groups),
+  )
 }

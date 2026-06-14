@@ -3,6 +3,7 @@ import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationAr
 import type { CompiledSubmitHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import type TraceRecorder from '../trace/TraceRecorder'
+import { measureAsyncFrom } from '../trace/TraceRecorder'
 
 /**
  * Runs a step's submit hooks in declared order, returning the result of the
@@ -25,20 +26,20 @@ export async function evaluateSubmitLifecycle(
   recordHookSnapshot?: (nodeId: NodeId) => void,
 ): Promise<CompiledSubmitHookResult> {
   for (const entry of plan.submitHooks) {
-    const startedAt = performance.now()
-    const result = await entry.evaluate(ctx)
-
-    trace?.record({
-      kind: 'submit-hook',
-      nodeId: entry.nodeId,
-      executed: result.executed,
-      validated: result.validated,
-      outcome: result.outcome,
-      redirect: result.redirect,
-      status: result.status,
-      message: result.message,
-      durationMs: performance.now() - startedAt,
-    })
+    const result = await measureAsyncFrom(
+      trace,
+      r => ({
+        kind: 'submit-hook',
+        nodeId: entry.nodeId,
+        executed: r.executed,
+        validated: r.validated,
+        outcome: r.outcome,
+        redirect: r.redirect,
+        status: r.status,
+        message: r.message,
+      }),
+      () => entry.evaluate(ctx),
+    )
 
     if (result.executed) {
       recordHookSnapshot?.(entry.nodeId)

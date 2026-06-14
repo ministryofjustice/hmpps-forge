@@ -7,6 +7,7 @@ import type {
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { IteratorItemScope } from '../../../contracts/compiled/compiledFunctions.type'
 import type TraceRecorder from '../trace/TraceRecorder'
+import { measureAsync, measureAsyncFrom } from '../trace/TraceRecorder'
 
 /**
  * Runs the answer-preparation walk: invokes every per-field prepare function
@@ -43,15 +44,7 @@ async function prepareField(
   ctx: AnswerPreparationContext,
   trace: TraceRecorder | undefined,
 ): Promise<void> {
-  const startedAt = performance.now()
-
-  await entry.prepare(ctx)
-
-  trace?.record({
-    kind: 'answer-preparation-field',
-    nodeId: entry.nodeId,
-    durationMs: performance.now() - startedAt,
-  })
+  await measureAsync(trace, { kind: 'answer-preparation-field', nodeId: entry.nodeId }, () => entry.prepare(ctx))
 }
 
 /**
@@ -65,15 +58,11 @@ async function evaluateSingleIteratorGroup(
   ctx: AnswerPreparationContext,
   trace: TraceRecorder | undefined,
 ): Promise<void> {
-  const inputStartedAt = performance.now()
-  const items = await group.evaluateInput(ctx)
-
-  trace?.record({
-    kind: 'iterator-input',
-    nodeId: group.nodeId,
-    itemCount: items.length,
-    durationMs: performance.now() - inputStartedAt,
-  })
+  const items = await measureAsyncFrom(
+    trace,
+    i => ({ kind: 'iterator-input', nodeId: group.nodeId, itemCount: i.length }),
+    () => group.evaluateInput(ctx),
+  )
 
   for (const itemScope of items) {
     for (const field of group.fields) {
@@ -92,14 +81,9 @@ async function prepareIteratorField(
   itemScope: IteratorItemScope,
   trace: TraceRecorder | undefined,
 ): Promise<void> {
-  const startedAt = performance.now()
-
-  await field.prepare(ctx, itemScope)
-
-  trace?.record({
-    kind: 'answer-preparation-field',
-    nodeId: field.nodeId,
-    itemIndex: itemScope.index,
-    durationMs: performance.now() - startedAt,
-  })
+  await measureAsync(
+    trace,
+    { kind: 'answer-preparation-field', nodeId: field.nodeId, itemIndex: itemScope.index },
+    () => field.prepare(ctx, itemScope),
+  )
 }

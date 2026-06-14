@@ -6,6 +6,11 @@ import type {
   TraceUnit,
 } from '../../../contracts/trace/requestTrace.type'
 
+type OmitDuration<T> = T extends { durationMs: number } ? Omit<T, 'durationMs'> : never
+type OmitAutoFields<T> = T extends { durationMs: number } ? Omit<T, 'durationMs' | 'children'> : never
+type MeasuredUnitFields = OmitDuration<TraceUnit>
+type ScopedUnitFields = OmitAutoFields<TraceUnit>
+
 interface OpenPhase {
   readonly phase: string
   readonly startedAt: number
@@ -23,6 +28,8 @@ export default class TraceRecorder {
   private readonly startedAt = performance.now()
 
   private readonly phases: PhaseTrace[] = []
+
+  private readonly scopeStack: TraceUnit[][] = []
 
   private openPhase?: OpenPhase
 
@@ -45,7 +52,19 @@ export default class TraceRecorder {
   }
 
   record(unit: TraceUnit): void {
-    this.openPhase?.units.push(unit)
+    if (this.scopeStack.length > 0) {
+      this.scopeStack[this.scopeStack.length - 1].push(unit)
+    } else {
+      this.openPhase?.units.push(unit)
+    }
+  }
+
+  beginScope(): void {
+    this.scopeStack.push([])
+  }
+
+  endScope(): readonly TraceUnit[] {
+    return this.scopeStack.pop() ?? []
   }
 
   finish(outcome: RequestTraceOutcome): RequestTrace {
@@ -57,4 +76,68 @@ export default class TraceRecorder {
       phases: this.phases,
     }
   }
+}
+
+export function measure<T>(trace: TraceRecorder | undefined, fields: MeasuredUnitFields, fn: () => T): T {
+  const measuredAt = performance.now()
+  const result = fn()
+
+  trace?.record({ ...fields, durationMs: performance.now() - measuredAt } as TraceUnit)
+
+  return result
+}
+
+export function measureScoped<T>(trace: TraceRecorder | undefined, fields: ScopedUnitFields, fn: () => T): T {
+  trace?.beginScope()
+
+  const measuredAt = performance.now()
+  const result = fn()
+  const children = trace?.endScope()
+
+  trace?.record({
+    ...fields,
+    durationMs: performance.now() - measuredAt,
+    ...(children && children.length > 0 ? { children } : {}),
+  } as TraceUnit)
+
+  return result
+}
+
+export function measureFrom<T>(
+  trace: TraceRecorder | undefined,
+  buildFields: (result: T) => MeasuredUnitFields,
+  fn: () => T,
+): T {
+  const measuredAt = performance.now()
+  const result = fn()
+
+  trace?.record({ ...buildFields(result), durationMs: performance.now() - measuredAt } as TraceUnit)
+
+  return result
+}
+
+export async function measureAsync<T>(
+  trace: TraceRecorder | undefined,
+  fields: MeasuredUnitFields,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  const measuredAt = performance.now()
+  const result = await fn()
+
+  trace?.record({ ...fields, durationMs: performance.now() - measuredAt } as TraceUnit)
+
+  return result
+}
+
+export async function measureAsyncFrom<T>(
+  trace: TraceRecorder | undefined,
+  buildFields: (result: T) => MeasuredUnitFields,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  const measuredAt = performance.now()
+  const result = await fn()
+
+  trace?.record({ ...buildFields(result), durationMs: performance.now() - measuredAt } as TraceUnit)
+
+  return result
 }
