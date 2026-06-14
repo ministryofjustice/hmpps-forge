@@ -108,6 +108,7 @@ describe('ForgeOrchestrator', () => {
       getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
       getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
       getJourneyCode: vi.fn().mockReturnValue(journeyCode),
+      getJourneyTitle: vi.fn().mockReturnValue(`Journey ${journeyCode}`),
     } as unknown as Mocked<PackageInstance>
   }
 
