@@ -31,7 +31,7 @@ export function createRenderEvaluationPhase(
     async execute(state) {
       const renderResult = await evaluateRender(
         renderPlan,
-        buildCompiledRenderContext(state.context, functionRegistry),
+        buildCompiledRenderContext(state.context, functionRegistry, state.trace),
         state.trace,
       )
       const step = resolveStepMetadata(

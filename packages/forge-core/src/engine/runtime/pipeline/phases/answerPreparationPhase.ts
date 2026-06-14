@@ -20,7 +20,7 @@ export function createAnswerPreparationPhase(
     async execute(state) {
       await evaluateAnswerPreparation(
         answerPreparationPlan,
-        buildCompiledAnswerPreparationContext(state.context, functionRegistry),
+        buildCompiledAnswerPreparationContext(state.context, functionRegistry, state.trace),
         state.trace,
       )
 

@@ -4,7 +4,11 @@ import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationAr
 import type { CompiledAccessHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 
-const mockCtx = {} as HookLifecycleContext
+const passthroughRunEffect = async (_name: string, thunk: () => void | Promise<void>) => {
+  await thunk()
+}
+
+const mockCtx = { runEffect: passthroughRunEffect } as unknown as HookLifecycleContext
 
 const continueResult: CompiledAccessHookResult = { executed: true, outcome: 'continue' }
 
@@ -181,6 +185,70 @@ describe('evaluateAccessLifecycle', () => {
 
       // Assert
       expect(recordHookSnapshot.mock.calls).toEqual([['compile_ast:1'], ['compile_ast:2']])
+    })
+
+    it('should preserve async function trace units as children of the hook unit', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      recorder.beginPhase('access-lifecycle')
+      const plan: AccessLifecyclePlan = {
+        accessHooks: [
+          {
+            nodeId: 'compile_ast:1' as const,
+            evaluate: vi.fn().mockImplementation(async (ctx: HookLifecycleContext) => {
+              await ctx.runEffect('saveData', async () => {
+                recorder.record({ kind: 'async-function', name: 'saveData', durationMs: 1 })
+              })
+              await ctx.runEffect('callApi', async () => {
+                recorder.record({ kind: 'async-function', name: 'callApi', durationMs: 2 })
+              })
+
+              return continueResult
+            }),
+          },
+        ],
+      }
+
+      // Act
+      await evaluateAccessLifecycle(plan, mockCtx, recorder)
+      recorder.endPhase('continue')
+      const units = recorder.finish('render').phases[0].units
+
+      // Assert
+      expect(units).toHaveLength(1)
+      const hookUnit = units[0] as { children?: readonly { kind: string; name?: string }[] }
+      expect(hookUnit.children).toHaveLength(2)
+      expect(hookUnit.children![0]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'saveData' }))
+      expect(hookUnit.children![1]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'callApi' }))
+    })
+
+    it('should invoke the effect snapshot callback after each effect', async () => {
+      // Arrange
+      const recordEffectSnapshot = vi.fn()
+      const recorder = new TraceRecorder()
+      recorder.beginPhase('access-lifecycle')
+      const plan: AccessLifecyclePlan = {
+        accessHooks: [
+          {
+            nodeId: 'compile_ast:1' as const,
+            evaluate: vi.fn().mockImplementation(async (ctx: HookLifecycleContext) => {
+              await ctx.runEffect('saveData', async () => {})
+              await ctx.runEffect('callApi', async () => {})
+
+              return continueResult
+            }),
+          },
+        ],
+      }
+
+      // Act
+      await evaluateAccessLifecycle(plan, mockCtx, recorder, undefined, recordEffectSnapshot)
+
+      // Assert
+      expect(recordEffectSnapshot.mock.calls).toEqual([
+        ['compile_ast:1', 'saveData'],
+        ['compile_ast:1', 'callApi'],
+      ])
     })
   })
 })

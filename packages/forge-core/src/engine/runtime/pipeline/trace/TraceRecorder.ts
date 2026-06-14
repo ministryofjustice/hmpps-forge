@@ -141,3 +141,23 @@ export async function measureAsyncFrom<T>(
 
   return result
 }
+
+export async function measureAsyncScopedFrom<T>(
+  trace: TraceRecorder | undefined,
+  buildFields: (result: T) => ScopedUnitFields,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  trace?.beginScope()
+
+  const measuredAt = performance.now()
+  const result = await fn()
+  const children = trace?.endScope()
+
+  trace?.record({
+    ...buildFields(result),
+    durationMs: performance.now() - measuredAt,
+    ...(children && children.length > 0 ? { children } : {}),
+  } as TraceUnit)
+
+  return result
+}

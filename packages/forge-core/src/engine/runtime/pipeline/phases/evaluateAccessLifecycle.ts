@@ -3,7 +3,7 @@ import type { AccessLifecyclePlan } from '../../../contracts/plans/compilationAr
 import type { CompiledAccessHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 import type TraceRecorder from '../trace/TraceRecorder'
-import { measureAsyncFrom } from '../trace/TraceRecorder'
+import { measureAsyncScopedFrom } from '../trace/TraceRecorder'
 
 /**
  * Runs each compiled access hook in plan order, short-circuiting at the first
@@ -23,9 +23,17 @@ export async function evaluateAccessLifecycle(
   ctx: HookLifecycleContext,
   trace?: TraceRecorder,
   recordHookSnapshot?: (nodeId: NodeId) => void,
+  recordEffectSnapshot?: (hookNodeId: NodeId, effectName: string) => void,
 ): Promise<CompiledAccessHookResult> {
   for (const entry of plan.accessHooks) {
-    const result = await measureAsyncFrom(
+    if (trace) {
+      ctx.runEffect = async (name, thunk) => {
+        await thunk()
+        recordEffectSnapshot?.(entry.nodeId, name)
+      }
+    }
+
+    const result = await measureAsyncScopedFrom(
       trace,
       r => ({
         kind: 'access-hook',

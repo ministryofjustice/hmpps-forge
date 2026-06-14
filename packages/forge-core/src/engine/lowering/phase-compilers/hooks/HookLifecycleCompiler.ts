@@ -281,25 +281,11 @@ export default class HookLifecycleCompiler {
     effects
       .filter(this.isEffectNode)
       .forEach(effect => {
-        const callExpr = this.compileAwaitedEffectCall(effect, 'ctx.effectFunctionContext')
+        const funcName = effect.properties.name
+        const callExpr = this.compileEffectCall(effect, 'ctx.effectFunctionContext')
 
-        emitter.code(`${callExpr};`)
+        emitter.code(`await ctx.runEffect(${JSON.stringify(funcName)}, async () => ${callExpr});`)
       })
-  }
-
-  /**
-   * Returns the effect call prefixed with `await`. When the underlying compiler
-   * already returns a parenthesised `(await ...)` form, the redundant wrapper is
-   * unwrapped so the emitted expression is a single un-nested await.
-   */
-  private compileAwaitedEffectCall(effect: FunctionASTNode, effectCtxVar: string): string {
-    const callExpr = this.compileEffectCall(effect, effectCtxVar)
-
-    if (callExpr.startsWith('(await ') && callExpr.endsWith(')')) {
-      return `await ${callExpr.slice('(await '.length, -1)}`
-    }
-
-    return `await ${callExpr}`
   }
 
   /**

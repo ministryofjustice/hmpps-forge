@@ -90,4 +90,11 @@ export interface HookLifecycleContext {
    * own result is decided. Absent for access hooks.
    */
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
+  /**
+   * Delegates one effect invocation to the runtime. The generated function calls
+   * this for each effect instead of calling the function registry directly,
+   * allowing the runtime to take state snapshots after effect calls. Passthrough
+   * when tracing is disabled.
+   */
+  runEffect: (name: string, thunk: () => void | Promise<void>) => void | Promise<void>
 }

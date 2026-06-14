@@ -26,7 +26,7 @@ export function createEntryValidationPhase(
   return {
     name: 'entry-validation',
     async execute(state) {
-      const ctx = buildCompiledBaseContext(state.context, functionRegistry)
+      const ctx = buildCompiledBaseContext(state.context, functionRegistry, state.trace)
       const groups = await evaluateEntryValidation(entryValidationPlan, ctx, state.trace)
 
       if (groups.length === 0) {

@@ -1,4 +1,10 @@
-import TraceRecorder, { measure, measureAsync, measureAsyncFrom, measureScoped } from './TraceRecorder'
+import TraceRecorder, {
+  measure,
+  measureAsync,
+  measureAsyncFrom,
+  measureAsyncScopedFrom,
+  measureScoped,
+} from './TraceRecorder'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { TraceUnit } from '../../../contracts/trace/requestTrace.type'
 
@@ -306,6 +312,67 @@ describe('TraceRecorder', () => {
     it('should run the callback and skip recording when trace is undefined', () => {
       // Arrange / Act
       const result = measureScoped(undefined, { kind: 'page-assembly' }, () => 'rendered-html')
+
+      // Assert
+      expect(result).toBe('rendered-html')
+    })
+  })
+
+  describe('measureAsyncScopedFrom()', () => {
+    it('should collect inner record calls as children and derive fields from the result', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      recorder.beginPhase('access-lifecycle')
+
+      // Act
+      const result = await measureAsyncScopedFrom(
+        recorder,
+        r => ({ kind: 'access-hook', nodeId: 'compile_ast:1' as NodeId, outcome: r.outcome }),
+        async () => {
+          recorder.record({ kind: 'async-function', name: 'saveData', durationMs: 1 })
+          recorder.record({ kind: 'async-function', name: 'callApi', durationMs: 2 })
+
+          return { executed: true, outcome: 'continue' as const }
+        },
+      )
+
+      const trace = recorder.finish('render')
+
+      // Assert
+      expect(result).toEqual({ executed: true, outcome: 'continue' })
+      expect(trace.phases[0].units).toHaveLength(1)
+      const hookUnit = trace.phases[0].units[0] as TraceUnit & { children?: readonly TraceUnit[] }
+      expect(hookUnit).toEqual(expect.objectContaining({ kind: 'access-hook', outcome: 'continue' }))
+      expect(hookUnit.children).toHaveLength(2)
+      expect(hookUnit.children![0]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'saveData' }))
+      expect(hookUnit.children![1]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'callApi' }))
+    })
+
+    it('should not include children field when no units are recorded inside the scope', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      recorder.beginPhase('access-lifecycle')
+
+      // Act
+      await measureAsyncScopedFrom(
+        recorder,
+        r => ({ kind: 'access-hook', nodeId: 'compile_ast:1' as NodeId, outcome: r.outcome }),
+        async () => ({ executed: true, outcome: 'continue' as const }),
+      )
+
+      const trace = recorder.finish('render')
+
+      // Assert
+      expect(trace.phases[0].units[0]).not.toHaveProperty('children')
+    })
+
+    it('should run the callback and skip recording when trace is undefined', async () => {
+      // Arrange / Act
+      const result = await measureAsyncScopedFrom(
+        undefined,
+        () => ({ kind: 'page-assembly' }),
+        async () => 'rendered-html',
+      )
 
       // Assert
       expect(result).toBe('rendered-html')

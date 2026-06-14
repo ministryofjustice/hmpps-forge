@@ -61,6 +61,7 @@ export interface AccessHookTraceUnit {
   readonly status?: number
   readonly message?: string
   readonly durationMs: number
+  readonly children?: readonly TraceUnit[]
 }
 
 /**
@@ -81,6 +82,14 @@ export interface SubmitHookTraceUnit {
   readonly redirect?: string
   readonly status?: number
   readonly message?: string
+  readonly durationMs: number
+  readonly children?: readonly TraceUnit[]
+}
+
+/** One async registered function invocation. */
+export interface AsyncFunctionTraceUnit {
+  readonly kind: 'async-function'
+  readonly name: string
   readonly durationMs: number
 }
 
@@ -229,6 +238,7 @@ export type TraceUnit =
   | AnswerPreparationFieldTraceUnit
   | AccessHookTraceUnit
   | SubmitHookTraceUnit
+  | AsyncFunctionTraceUnit
   | EntryValidationRuleTraceUnit
   | NavigationStepTraceUnit
   | NavigationResolutionTraceUnit
