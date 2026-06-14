@@ -29,8 +29,16 @@ describe('evaluateRender', () => {
       // Arrange
       const plan: RenderPlan = {
         renderBlocks: [
-          { nodeId: 'compile_ast:2' as const, render: vi.fn().mockResolvedValue(createBlock('compile_ast:2')) },
-          { nodeId: 'compile_ast:3' as const, render: vi.fn().mockResolvedValue(createBlock('compile_ast:3')) },
+          {
+            nodeId: 'compile_ast:2' as const,
+            variant: 'text-input',
+            render: vi.fn().mockResolvedValue(createBlock('compile_ast:2')),
+          },
+          {
+            nodeId: 'compile_ast:3' as const,
+            variant: 'radios',
+            render: vi.fn().mockResolvedValue(createBlock('compile_ast:3')),
+          },
         ],
         iteratorRenderBlockGroups: [],
       }
@@ -41,8 +49,8 @@ describe('evaluateRender', () => {
       // Assert
       expect(result.blocks).toHaveLength(2)
       expect(units).toEqual([
-        expect.objectContaining({ kind: 'block-evaluation', nodeId: 'compile_ast:2' }),
-        expect.objectContaining({ kind: 'block-evaluation', nodeId: 'compile_ast:3' }),
+        expect.objectContaining({ kind: 'block-evaluation', nodeId: 'compile_ast:2', variant: 'text-input' }),
+        expect.objectContaining({ kind: 'block-evaluation', nodeId: 'compile_ast:3', variant: 'radios' }),
       ])
     })
 
@@ -50,7 +58,11 @@ describe('evaluateRender', () => {
       // Arrange
       const plan: RenderPlan = {
         renderBlocks: [
-          { nodeId: 'compile_ast:2' as const, render: vi.fn().mockResolvedValue(createBlock('compile_ast:2')) },
+          {
+            nodeId: 'compile_ast:2' as const,
+            variant: 'text-input',
+            render: vi.fn().mockResolvedValue(createBlock('compile_ast:2')),
+          },
         ],
         iteratorRenderBlockGroups: [],
       }
@@ -76,7 +88,13 @@ describe('evaluateRender', () => {
           {
             nodeId: 'compile_ast:5' as const,
             evaluateInput: vi.fn().mockResolvedValue(itemScopes),
-            blocks: [{ nodeId: 'template:1' as const, render: vi.fn().mockResolvedValue(createBlock('template:1')) }],
+            blocks: [
+              {
+                nodeId: 'template:1' as const,
+                variant: 'text-input',
+                render: vi.fn().mockResolvedValue(createBlock('template:1')),
+              },
+            ],
           },
         ],
       }

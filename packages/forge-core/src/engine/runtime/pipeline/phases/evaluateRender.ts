@@ -8,6 +8,7 @@ import type { CompiledRenderResult, IteratorItemScope } from '../../../contracts
 import type { RenderCompilationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { RenderBlock } from '../../../../framework/rendering/types'
 import type TraceRecorder from '../trace/TraceRecorder'
+import { measureAsync, measureAsyncFrom } from '../trace/TraceRecorder'
 
 /**
  * Runs a RenderPlan to produce one step's render output. The step/ancestor
@@ -46,16 +47,9 @@ async function evaluateStaticBlock(
   ctx: RenderCompilationContext,
   trace: TraceRecorder | undefined,
 ): Promise<RenderBlock> {
-  const startedAt = performance.now()
-  const block = await entry.render(ctx)
-
-  trace?.record({
-    kind: 'block-evaluation',
-    nodeId: entry.nodeId,
-    durationMs: performance.now() - startedAt,
-  })
-
-  return block
+  return measureAsync(trace, { kind: 'block-evaluation', nodeId: entry.nodeId, variant: entry.variant }, () =>
+    entry.render(ctx),
+  )
 }
 
 /**
@@ -88,15 +82,11 @@ async function evaluateSingleIteratorGroup(
   ctx: RenderCompilationContext,
   trace: TraceRecorder | undefined,
 ): Promise<RenderBlock[]> {
-  const inputStartedAt = performance.now()
-  const items = await group.evaluateInput(ctx)
-
-  trace?.record({
-    kind: 'iterator-input',
-    nodeId: group.nodeId,
-    itemCount: items.length,
-    durationMs: performance.now() - inputStartedAt,
-  })
+  const items = await measureAsyncFrom(
+    trace,
+    i => ({ kind: 'iterator-input', nodeId: group.nodeId, itemCount: i.length }),
+    () => group.evaluateInput(ctx),
+  )
 
   if (items.length === 0) {
     return []
@@ -121,15 +111,9 @@ async function evaluateIteratorBlock(
   itemScope: IteratorItemScope,
   trace: TraceRecorder | undefined,
 ): Promise<RenderBlock | RenderBlock[]> {
-  const startedAt = performance.now()
-  const result = await block.render(ctx, itemScope)
-
-  trace?.record({
-    kind: 'block-evaluation',
-    nodeId: block.nodeId,
-    itemIndex: itemScope.index,
-    durationMs: performance.now() - startedAt,
-  })
-
-  return result
+  return measureAsync(
+    trace,
+    { kind: 'block-evaluation', nodeId: block.nodeId, variant: block.variant, itemIndex: itemScope.index },
+    () => block.render(ctx, itemScope),
+  )
 }

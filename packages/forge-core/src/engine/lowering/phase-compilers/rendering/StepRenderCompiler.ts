@@ -331,6 +331,7 @@ export default class StepRenderCompiler {
 
     const blocks: CompiledRenderBlock[] = (stepNode.properties.blocks ?? []).map(block => ({
       nodeId: block.id,
+      variant: block.variant,
       render: this.compileBlock(block),
     }))
 
@@ -534,6 +535,7 @@ export default class StepRenderCompiler {
       if (isTemplateBlockNode(node)) {
         entries.push({
           nodeId: node.id,
+          variant: node.variant as string,
           render: this.compileIteratorRenderBlock(node, ancestorIterates),
         })
 

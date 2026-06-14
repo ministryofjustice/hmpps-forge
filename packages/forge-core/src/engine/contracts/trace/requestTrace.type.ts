@@ -158,6 +158,7 @@ export interface NavigationResolutionTraceUnit {
 export interface BlockEvaluationTraceUnit {
   readonly kind: 'block-evaluation'
   readonly nodeId: NodeId | TemplateNodeId
+  readonly variant?: string
   readonly itemIndex?: number
   readonly durationMs: number
 }
@@ -172,6 +173,13 @@ export interface BlockRenderTraceUnit {
   readonly kind: 'block-render'
   readonly nodeId: NodeId
   readonly variant: string
+  readonly durationMs: number
+  readonly children?: readonly BlockRenderTraceUnit[]
+}
+
+/** The host renderer's page assembly: rendering the full page template from pre-rendered blocks. */
+export interface PageAssemblyTraceUnit {
+  readonly kind: 'page-assembly'
   readonly durationMs: number
 }
 
@@ -226,6 +234,7 @@ export type TraceUnit =
   | NavigationResolutionTraceUnit
   | BlockEvaluationTraceUnit
   | BlockRenderTraceUnit
+  | PageAssemblyTraceUnit
   | ContextSnapshotTraceUnit
 
 /**

@@ -5,6 +5,7 @@ import type { ComponentRegistry } from '../../../../framework/types/adapter.type
 import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
 import { isRenderBlock } from '../../rendering/typeguards'
 import type TraceRecorder from '../trace/TraceRecorder'
+import { measureScoped } from '../trace/TraceRecorder'
 
 /**
  * Drives the bound renderer over a hydrated RenderContext's blocks: filters
@@ -38,8 +39,8 @@ function renderVisibleBlocks<TOut>(
 
 /**
  * Renders a single block through the renderer, recording the render against the
- * block's identity. Nested blocks in the properties render first, so the
- * recorded duration covers only this block's own host render.
+ * block's identity. Uses a scoped measure so that nested block renders inside
+ * the property transformation become children of this unit in the trace tree.
  */
 function renderBlock<TOut>(
   block: RenderBlock,
@@ -59,33 +60,25 @@ function renderBlock<TOut>(
     )
   }
 
-  const transformedProperties = transformPropertiesWithRenderedBlocks(
-    block.properties,
-    showValidationFailures,
-    componentRegistry,
-    renderer,
-    trace,
-  )
+  return measureScoped(trace, { kind: 'block-render', nodeId: block.id, variant: block.variant }, () => {
+    const transformedProperties = transformPropertiesWithRenderedBlocks(
+      block.properties,
+      showValidationFailures,
+      componentRegistry,
+      renderer,
+      trace,
+    )
 
-  const evaluatedBlock = toEvaluatedBlock(
-    {
-      ...block,
-      properties: transformedProperties,
-    },
-    showValidationFailures,
-  )
+    const evaluatedBlock = toEvaluatedBlock(
+      {
+        ...block,
+        properties: transformedProperties,
+      },
+      showValidationFailures,
+    )
 
-  const startedAt = performance.now()
-  const rendered = renderer.renderBlock(component, evaluatedBlock)
-
-  trace?.record({
-    kind: 'block-render',
-    nodeId: block.id,
-    variant: block.variant,
-    durationMs: performance.now() - startedAt,
+    return renderer.renderBlock(component, evaluatedBlock)
   })
-
-  return rendered
 }
 
 /** Convert RenderBlock to EvaluatedBlock for the component */

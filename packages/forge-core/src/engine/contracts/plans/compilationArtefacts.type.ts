@@ -102,6 +102,7 @@ export interface AnswerPreparationPlan {
  */
 export interface CompiledRenderBlock {
   readonly nodeId: NodeId
+  readonly variant: string
   readonly render: CompiledRenderBlockFunction
 }
 
@@ -111,6 +112,7 @@ export interface CompiledRenderBlock {
  */
 export interface CompiledIteratorRenderBlock {
   readonly nodeId: TemplateNodeId
+  readonly variant: string
   readonly render: CompiledIteratorRenderBlockFunction
 }
 
