@@ -12,6 +12,7 @@ import {
   submit,
   redirect,
   validation,
+  Transformer,
   Answer,
   Data,
   Format,
@@ -454,5 +455,146 @@ export const ancestorJourney = journey({
         step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
       ],
     }),
+  ],
+})
+
+export const autoDerivedBacklinkJourney = journey({
+  code: 'auto-backlink',
+  path: '/auto-backlink',
+  title: 'Auto Derived Backlink',
+  onAccess: [access({ effects: [Effects.LoadAnswers('auto-backlink')] })],
+  steps: [
+    step({
+      path: '/step-one',
+      title: 'Step One',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'firstName',
+          label: 'First name',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            effects: [Effects.SaveAnswers('auto-backlink')],
+            next: [redirect({ goto: 'step-two' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'step-two',
+      path: '/step-two',
+      title: 'Step Two',
+      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('auto-backlink')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const stepViewJourney = journey({
+  code: 'step-view',
+  path: '/step-view',
+  title: 'Step View',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      view: { template: 'custom-layout.njk', locals: { sidebar: 'enabled' } },
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: { next: [redirect({ goto: 'done' })] },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const blockSkipPropsJourney = journey({
+  code: 'block-skip',
+  path: '/block-skip',
+  title: 'Block Skip Props',
+  onAccess: [access({ effects: [Effects.LoadAnswers('block-skip')] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'trimmedField',
+          label: 'Trimmed field',
+          formatters: [Transformer.String.Trim()],
+          parsers: [Transformer.String.Trim()],
+          validWhen: [
+            validation({
+              condition: Self().match(Condition.IsRequired()),
+              message: 'Enter a value',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('block-skip')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const routeTreeJourney = journey({
+  code: 'route-tree',
+  path: '/route-tree',
+  title: 'Route Tree',
+  steps: [
+    step({
+      path: '/step-one',
+      title: 'Step One',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'firstName', label: 'First name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: { next: [redirect({ goto: 'step-two' })] },
+        }),
+      ],
+    }),
+    step({
+      code: 'step-two',
+      path: '/step-two',
+      title: 'Step Two',
+      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: { next: [redirect({ goto: 'done' })] },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })

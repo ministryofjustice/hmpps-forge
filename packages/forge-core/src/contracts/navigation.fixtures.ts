@@ -3,6 +3,7 @@ import {
   GovUKButton,
   GovUKRadioInput,
   GovUKInsetText,
+  govukComponents,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
@@ -14,6 +15,8 @@ import {
   throwError,
   validation,
   tieBreaker,
+  defineEffectFunctions,
+  type EffectFunctionExpr,
   Answer,
   Data,
   Post,
@@ -21,7 +24,29 @@ import {
   Self,
   Condition,
 } from '../authoring'
-import { Effects } from './contractHelpers'
+import { ForgeTestHarness } from '../testing'
+import { Effects, effectImplementations } from './contractHelpers'
+
+interface NavigationEffectShape {
+  SetHeader: (name: string, value: string) => EffectFunctionExpr
+}
+
+const { effects: NavigationEffects, implementations: navigationEffectImplementations } =
+  defineEffectFunctions<NavigationEffectShape>({
+    SetHeader: () => (context, name: string, value: string) => {
+      context.setResponseHeader(name, value)
+    },
+  })
+
+export function createNavigationClient(journeyDef: ReturnType<typeof journey>) {
+  return new ForgeTestHarness()
+    .registerGlobalComponents(govukComponents)
+    .registerPackage({
+      journey: journeyDef,
+      functions: { ...effectImplementations, ...navigationEffectImplementations },
+    })
+    .createClient()
+}
 
 export const basicRedirectJourney = journey({
   code: 'basic-redirect',
@@ -619,5 +644,58 @@ export const tieBreakerJourney = journey({
       },
       blocks: [GovUKInsetText({ text: 'High priority' })],
     }),
+  ],
+})
+
+export const unreachableRedirectToEntryJourney = journey({
+  code: 'unreach-entry',
+  path: '/unreach-entry',
+  title: 'Unreachable Entry',
+  steps: [
+    step({
+      path: '/preamble',
+      title: 'Preamble',
+      blocks: [GovUKInsetText({ text: 'Preamble' })],
+    }),
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'name',
+          label: 'Name',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: { next: [redirect({ goto: 'preamble' })] },
+        }),
+      ],
+    }),
+  ],
+})
+
+export const headerSurvivesRedirectJourney = journey({
+  code: 'header-redirect',
+  path: '/header-redirect',
+  title: 'Header Redirect',
+  onAccess: [
+    access({
+      effects: [Effects.LoadData(), NavigationEffects.SetHeader('X-Custom-Nav', 'from-access')],
+      next: [redirect({ when: Data('shouldRedirect').match(Condition.Equals(true)), goto: 'target' })],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/start',
+      title: 'Start',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Start' })],
+    }),
+    step({ code: 'target', path: '/target', title: 'Target', blocks: [] }),
   ],
 })

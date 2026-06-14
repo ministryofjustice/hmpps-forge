@@ -26,6 +26,10 @@ import {
   allDataJourney,
   fieldsToClearJourney,
   accessFieldsToClearJourney,
+  accessWhenFalseJourney,
+  firstMatchWinsJourney,
+  clearThenHasAnswerJourney,
+  accessFieldsToClearReachableJourney,
 } from './hooks.fixtures'
 
 describe('hooks and effects contracts', () => {
@@ -107,6 +111,21 @@ describe('hooks and effects contracts', () => {
       expect(session.effectLog).toEqual(['first'])
     })
 
+    it('should skip effects when access hook when-predicate evaluates false', async () => {
+      // Arrange
+      const client = createHooksClient(accessWhenFalseJourney)
+
+      // Act
+      const result = await client.get('/access-when-false/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.data.effectLog).toBeUndefined()
+      }
+    })
+
     it('should run all hook effects when no outcome halts', async () => {
       // Arrange
       const client = createHooksClient(accessContinueJourney)
@@ -119,6 +138,21 @@ describe('hooks and effects contracts', () => {
 
       if (result.type === 'render') {
         expect(result.context.data.effectLog).toEqual(['hook-one', 'hook-two'])
+      }
+    })
+
+    it('should use first matching outcome when multiple outcomes match in one next array', async () => {
+      // Arrange
+      const client = createHooksClient(firstMatchWinsJourney)
+
+      // Act
+      const result = await client.get('/first-match-wins/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/first-match-wins/first-dest')
       }
     })
   })
@@ -203,6 +237,22 @@ describe('hooks and effects contracts', () => {
       if (result.type === 'render') {
         expect(result.context.data.hasExisting).toBe(true)
         expect(result.context.data.hasMissing).toBe(false)
+      }
+    })
+
+    it('should make hasAnswer return false after clearAnswer deletes the entry', async () => {
+      // Arrange
+      const client = createHooksClient(clearThenHasAnswerJourney)
+
+      // Act
+      const result = await client.get('/clear-has/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.data.hasBeforeClearing).toBe(true)
+        expect(result.context.data.hasAfterClearing).toBe(false)
       }
     })
 
@@ -620,6 +670,24 @@ describe('hooks and effects contracts', () => {
 
       // Act
       const result = await client.get('/access-ftc/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.data.fieldsToClear).toEqual([])
+      }
+    })
+
+    it('should report empty fields to clear when answers exist but all fields are reachable', async () => {
+      // Arrange
+      const session: HooksSession = {
+        answers: { 'access-ftc-reachable': { name: 'Ada' } },
+      }
+      const client = createHooksClient(accessFieldsToClearReachableJourney)
+
+      // Act
+      const result = await client.get('/access-ftc-reachable/form', { session })
 
       // Assert
       expect(result.type).toBe('render')

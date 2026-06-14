@@ -17,6 +17,10 @@ import {
   domainValidationRenderJourney,
   backlinkJourney,
   ancestorJourney,
+  autoDerivedBacklinkJourney,
+  stepViewJourney,
+  blockSkipPropsJourney,
+  routeTreeJourney,
 } from './rendering.fixtures'
 
 function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
@@ -359,6 +363,24 @@ describe('rendering contracts', () => {
       }
     })
 
+    it('should auto-derive backlink from navigation when step has no explicit backlink', async () => {
+      // Arrange
+      const client = createClient(autoDerivedBacklinkJourney)
+      const session: ContractSession = {
+        answers: { 'auto-backlink': { firstName: 'Ada' } },
+      }
+
+      // Act
+      const result = await client.get('/auto-backlink/step-two', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.backlink).toBe('/auto-backlink/step-one')
+      }
+    })
+
     it('should include journey ancestors in render context', async () => {
       // Arrange
       const client = createClient(ancestorJourney)
@@ -383,6 +405,115 @@ describe('rendering contracts', () => {
             title: 'Child Journey',
           }),
         )
+      }
+    })
+
+    it('should compose ancestor paths cumulatively from root to child', async () => {
+      // Arrange
+      const client = createClient(ancestorJourney)
+
+      // Act
+      const result = await client.get('/parent/child/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.ancestors).toHaveLength(2)
+        expect(result.context.ancestors[0].path).toBe('/parent')
+        expect(result.context.ancestors[1].path).toBe('/parent/child')
+      }
+    })
+
+    it('should pass through ancestor metadata into render context', async () => {
+      // Arrange
+      const client = createClient(ancestorJourney)
+
+      // Act
+      const result = await client.get('/parent/child/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.ancestors[0].metadata).toEqual({ section: 'top-level' })
+      }
+    })
+
+    it('should pass through step view config into render context', async () => {
+      // Arrange
+      const client = createClient(stepViewJourney)
+
+      // Act
+      const result = await client.get('/step-view/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.view).toEqual({
+          template: 'custom-layout.njk',
+          locals: { sidebar: 'enabled' },
+        })
+      }
+    })
+
+    it('should strip BLOCK_SKIP_PROPS from rendered block properties', async () => {
+      // Arrange
+      const client = createClient(blockSkipPropsJourney)
+
+      // Act
+      const result = await client.get('/block-skip/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const fieldBlock = result.context.blocks.find(b => b.properties.code === 'trimmedField')
+
+        expect(fieldBlock).toBeDefined()
+        expect(fieldBlock?.properties).not.toHaveProperty('formatters')
+        expect(fieldBlock?.properties).not.toHaveProperty('parsers')
+        expect(fieldBlock?.properties).not.toHaveProperty('validWhen')
+        expect(fieldBlock?.properties).not.toHaveProperty('dependentWhen')
+      }
+    })
+
+    it('should expose routeTree with resolved paths and active state', async () => {
+      // Arrange
+      const client = createClient(routeTreeJourney)
+
+      // Act
+      const result = await client.get('/route-tree/step-one', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const routeTree = result.context.routeTree
+
+        expect(routeTree).toBeDefined()
+        expect(routeTree.length).toBeGreaterThan(0)
+
+        const journeyNode = routeTree.find(n => n.segment === 'route-tree')
+
+        expect(journeyNode).toBeDefined()
+
+        if (journeyNode) {
+          expect(journeyNode.path).toBe('/route-tree')
+          expect(journeyNode.active).toBe(true)
+
+          const stepOneNode = journeyNode.children.find(n => n.segment === 'step-one')
+          const stepTwoNode = journeyNode.children.find(n => n.segment === 'step-two')
+
+          expect(stepOneNode).toBeDefined()
+          expect(stepOneNode?.active).toBe(true)
+          expect(stepOneNode?.path).toBe('/route-tree/step-one')
+
+          expect(stepTwoNode).toBeDefined()
+          expect(stepTwoNode?.active).toBe(false)
+          expect(stepTwoNode?.path).toBe('/route-tree/step-two')
+        }
       }
     })
   })

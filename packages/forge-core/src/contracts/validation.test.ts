@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createClient, type ContractSession } from './contractHelpers'
+import { createClient, createTracedClient, type ContractSession } from './contractHelpers'
+import type { RequestTraceEvent } from '../testing'
 import {
   requiredFieldJourney,
   multipleRulesJourney,
@@ -410,7 +411,8 @@ describe('validation contracts', () => {
 
     it('should not show validation failures on GET without validateOnEntry', async () => {
       // Arrange
-      const client = createClient(requiredFieldJourney)
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedClient(requiredFieldJourney, traces)
 
       // Act
       const result = await client.get('/required/name', {
@@ -423,6 +425,32 @@ describe('validation contracts', () => {
       if (result.type === 'render') {
         expect(result.context.showValidationFailures).toBe(false)
         expect(result.context.fieldValidationErrors).toEqual([])
+
+        const entryPhase = traces[0].trace.phases.find(p => p.phase === 'entry-validation')
+
+        expect(entryPhase).toBeDefined()
+        expect(entryPhase!.units.filter(u => u.kind === 'entry-validation-rule')).toEqual([])
+      }
+    })
+
+    it('should produce validation errors on POST for the same journey without validateOnEntry', async () => {
+      // Arrange
+      const client = createClient(requiredFieldJourney)
+
+      // Act
+      const result = await client.post('/required/name', {
+        session: {},
+        body: { fullName: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.getValidationErrorsByFieldCode('fullName')).toEqual([
+          expect.objectContaining({ message: 'Enter your full name', passed: false }),
+        ])
       }
     })
   })
@@ -661,6 +689,31 @@ describe('validation contracts', () => {
 
       // Assert
       expect(result.type).toBe('redirect')
+    })
+
+    it('should fail validation when iterator collection is non-empty and fields are invalid', async () => {
+      // Arrange
+      const client = createClient(emptyIteratorJourney)
+      const session: ContractSession = {
+        data: { members: [{ name: 'Ada' }] },
+      }
+
+      // Act
+      const result = await client.post('/empty-iter/members', {
+        session,
+        body: { memberName_0: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+
+        const errors = result.getValidationErrorsByFieldCode('memberName_0')
+
+        expect(errors).toEqual([expect.objectContaining({ message: 'Enter a name', passed: false })])
+      }
     })
   })
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createClient, type ContractSession } from './contractHelpers'
+import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
+import type { RequestTraceEvent } from '../testing'
 import {
   basicRedirectJourney,
   validationBranchJourney,
@@ -20,6 +21,9 @@ import {
   paramRedirectJourney,
   guardsJourney,
   tieBreakerJourney,
+  unreachableRedirectToEntryJourney,
+  headerSurvivesRedirectJourney,
+  createNavigationClient,
 } from './navigation.fixtures'
 
 describe('navigation contracts', () => {
@@ -80,7 +84,8 @@ describe('navigation contracts', () => {
 
     it('should redirect from onAlways before validation runs', async () => {
       // Arrange
-      const client = createClient(onAlwaysHaltsJourney)
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedClient(onAlwaysHaltsJourney, traces)
       const session: ContractSession = {
         data: { skipValidation: true },
       }
@@ -97,6 +102,13 @@ describe('navigation contracts', () => {
       if (result.type === 'redirect') {
         expect(result.url).toBe('/always-halts/exit')
       }
+
+      const submitHookUnits = traces[0].trace.phases
+        .flatMap(phase => phase.units)
+        .filter(unit => unit.kind === 'submit-hook')
+
+      expect(submitHookUnits).toHaveLength(1)
+      expect(submitHookUnits[0].validated).toBe(false)
     })
   })
 
@@ -228,6 +240,21 @@ describe('navigation contracts', () => {
 
       if (result.type === 'redirect') {
         expect(result.url).toBe('/unreachable/step-one')
+      }
+    })
+
+    it('should redirect to entry step not first step when unreachable', async () => {
+      // Arrange
+      const client = createClient(unreachableRedirectToEntryJourney)
+
+      // Act
+      const result = await client.get('/unreach-entry/preamble', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/unreach-entry/form')
       }
     })
 
@@ -370,6 +397,10 @@ describe('navigation contracts', () => {
 
       // Assert
       expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'name').current).toBe('Ada')
+      }
     })
 
     it('should execute submit hook when guards condition passes', async () => {
@@ -552,6 +583,27 @@ describe('navigation contracts', () => {
       if (result.type === 'error') {
         expect(result.status).toBe(500)
         expect(result.message).toBe('Save failed: connection timeout')
+      }
+    })
+  })
+
+  describe('response metadata', () => {
+    it('should preserve response header set in access hook across redirect', async () => {
+      // Arrange
+      const client = createNavigationClient(headerSurvivesRedirectJourney)
+      const session: ContractSession = {
+        data: { shouldRedirect: true },
+      }
+
+      // Act
+      const result = await client.get('/header-redirect/start', { session })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/header-redirect/target')
+        expect(result.headers.get('X-Custom-Nav')).toBe('from-access')
       }
     })
   })

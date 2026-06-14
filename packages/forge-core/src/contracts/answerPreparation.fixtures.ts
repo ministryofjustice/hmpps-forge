@@ -682,3 +682,110 @@ export const checkboxMultiJourney = journey({
     }),
   ],
 })
+
+export const emptyMultipleCheckboxJourney = journey({
+  code: 'empty-multi',
+  path: '/empty-multi',
+  title: 'Empty multiple checkbox',
+  steps: [
+    step({
+      path: '/preferences',
+      title: 'Preferences',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKCheckboxInput({
+          code: 'colors',
+          fieldset: { legend: { text: 'Favourite colours' } },
+          items: [
+            { value: 'red', text: 'Red' },
+            { value: 'blue', text: 'Blue' },
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('empty-multi')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const dependentWhenWithDefaultJourney = journey({
+  code: 'dep-default',
+  path: '/dep-default',
+  title: 'DependentWhen with default reseed',
+  onAccess: [access({ effects: [Effects.LoadAnswers('dep-default')] })],
+  steps: [
+    step({
+      path: '/contact',
+      title: 'Contact',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'contactMethod',
+          fieldset: { legend: { text: 'How should we contact you?' } },
+          items: [
+            { value: 'email', text: 'Email' },
+            { value: 'phone', text: 'Phone' },
+          ],
+        }),
+        GovUKTextInput({
+          code: 'emailAddress',
+          label: 'Email address',
+          dependentWhen: Answer('contactMethod').match(Condition.Equals('email')),
+          defaultValue: 'default@example.com',
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('dep-default')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const parserTypeErrorJourney = journey({
+  code: 'parser-err',
+  path: '/parser-err',
+  title: 'Parser TypeError on GET',
+  onAccess: [access({ effects: [Effects.LoadAnswers('parser-err')] })],
+  steps: [
+    step({
+      path: '/age',
+      title: 'Age',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'age',
+          label: 'Age',
+          parsers: [Transformer.String.ToInt()],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+    }),
+  ],
+})

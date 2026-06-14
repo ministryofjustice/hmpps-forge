@@ -20,6 +20,9 @@ import {
   chainedFormatterTypeErrorJourney,
   defaultWithParserJourney,
   iteratorDependentWhenJourney,
+  emptyMultipleCheckboxJourney,
+  dependentWhenWithDefaultJourney,
+  parserTypeErrorJourney,
 } from './answerPreparation.fixtures'
 
 describe('answer preparation contracts', () => {
@@ -245,10 +248,13 @@ describe('answer preparation contracts', () => {
     })
 
     // Assert
-    expect(session.answers?.['nested-iter']?.team_0_member_0).toBe('Ada')
-    expect(session.answers?.['nested-iter']?.team_0_member_1).toBe('Grace')
-    expect(session.answers?.['nested-iter']?.team_1_member_0).toBe('Linus')
-    expect(session.answers?.['nested-iter']?.team_1_member_1).toBeUndefined()
+    const nestedAnswers = session.answers?.['nested-iter'] ?? {}
+    const teamMemberKeys = Object.keys(nestedAnswers).filter(k => k.startsWith('team_'))
+
+    expect(teamMemberKeys.sort()).toEqual(['team_0_member_0', 'team_0_member_1', 'team_1_member_0'])
+    expect(nestedAnswers.team_0_member_0).toBe('Ada')
+    expect(nestedAnswers.team_0_member_1).toBe('Grace')
+    expect(nestedAnswers.team_1_member_0).toBe('Linus')
   })
 
   it('should record a post mutation on plain submission', async () => {
@@ -339,6 +345,18 @@ describe('answer preparation contracts', () => {
     expect(session.answers?.checkbox?.colors).toEqual(['red'])
   })
 
+  it('should store empty array when multiple checkbox field is absent from POST body', async () => {
+    // Arrange
+    const client = createClient(emptyMultipleCheckboxJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/empty-multi/preferences', { session, body: {} })
+
+    // Assert
+    expect(session.answers?.['empty-multi']?.colors).toEqual([])
+  })
+
   it('should pass checkbox array values through unchanged', async () => {
     // Arrange
     const client = createClient(checkboxMultiJourney)
@@ -378,7 +396,8 @@ describe('answer preparation contracts', () => {
 
   it('should not apply parsers on POST', async () => {
     // Arrange
-    const client = createClient(parserAndFormatterJourney)
+    const traces: RequestTraceEvent[] = []
+    const client = createTracedClient(parserAndFormatterJourney, traces)
     const session: ContractSession = {}
 
     // Act
@@ -386,6 +405,12 @@ describe('answer preparation contracts', () => {
 
     // Assert
     expect(session.answers?.['parser-fmt']?.fullName).toBe('hello')
+
+    const answers = answersFromTrace(traces[0])
+    const answer = answerOf(answers, 'fullName')
+
+    expect(answer.parsed).toBeUndefined()
+    expect(answer.mutations.every(mutation => mutation.source !== 'processed' || mutation.value !== 'HELLO')).toBe(true)
   })
 
   it('should not seed defaultValue on POST', async () => {
@@ -394,10 +419,10 @@ describe('answer preparation contracts', () => {
     const session: ContractSession = {}
 
     // Act
-    await client.post('/default-post/country', { session, body: {} })
+    await client.post('/default-post/country', { session, body: { country: '' } })
 
     // Assert
-    expect(session.answers?.['default-post']?.country).toBeUndefined()
+    expect(session.answers?.['default-post']?.country).toBe('')
   })
 
   it('should revert to original value when a later formatter in the chain throws TypeError', async () => {
@@ -428,6 +453,77 @@ describe('answer preparation contracts', () => {
       expect(answer.current).toBe('ada lovelace')
       expect(answer.parsed).toBe('ADA LOVELACE')
     }
+  })
+
+  it('should fall back to original value when parser throws TypeError on GET', async () => {
+    // Arrange
+    const client = createClient(parserTypeErrorJourney)
+    const session: ContractSession = {
+      answers: { 'parser-err': { age: 'not-a-number' } },
+    }
+
+    // Act
+    const result = await client.get('/parser-err/age', { session })
+
+    // Assert
+    expect(result.type).toBe('render')
+
+    if (result.type === 'render') {
+      const answer = answerOf(result.context.answers, 'age')
+
+      expect(answer.current).toBe('not-a-number')
+      expect(answer.parsed).toBe('not-a-number')
+    }
+  })
+
+  it('should re-seed defaultValue on GET when dependentWhen previously cleared current to undefined', async () => {
+    // Arrange
+    const client = createClient(dependentWhenWithDefaultJourney)
+    const session: ContractSession = {
+      answers: {
+        'dep-default': {
+          contactMethod: 'email',
+          emailAddress: 'ada@example.com',
+        },
+      },
+    }
+
+    // Act - POST with phone to clear emailAddress via dependentWhen
+    await client.post('/dep-default/contact', {
+      session,
+      body: { contactMethod: 'phone', emailAddress: 'ada@example.com' },
+    })
+
+    expect(session.answers?.['dep-default']?.emailAddress).toBeUndefined()
+
+    // Act - GET should re-seed the defaultValue because current is undefined
+    const result = await client.get('/dep-default/contact', { session })
+
+    // Assert
+    expect(result.type).toBe('render')
+
+    if (result.type === 'render') {
+      expect(answerOf(result.context.answers, 'emailAddress').current).toBe('default@example.com')
+    }
+  })
+
+  it('should preserve iterator field answers when dependentWhen is true', async () => {
+    // Arrange
+    const client = createClient(iteratorDependentWhenJourney)
+    const session: ContractSession = {
+      data: { members: [{ name: 'Ada' }, { name: 'Grace' }] },
+    }
+
+    // Act
+    await client.post('/iter-dep/members', {
+      session,
+      body: { showDetails: 'yes', memberName_0: 'Alice', memberName_1: 'Bob' },
+    })
+
+    // Assert
+    expect(session.answers?.['iter-dep']?.showDetails).toBe('yes')
+    expect(session.answers?.['iter-dep']?.memberName_0).toBe('Alice')
+    expect(session.answers?.['iter-dep']?.memberName_1).toBe('Bob')
   })
 
   it('should clear iterator field answers when dependentWhen is false', async () => {

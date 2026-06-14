@@ -738,3 +738,91 @@ export const accessFieldsToClearJourney = journey({
     }),
   ],
 })
+
+export const accessWhenFalseJourney = journey({
+  code: 'access-when-false',
+  path: '/access-when-false',
+  title: 'Access When False',
+  onAccess: [
+    access({
+      when: Data('gate').match(Condition.Equals('open')),
+      effects: [HooksEffects.AppendLog('should-not-run')],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Content' })],
+    }),
+  ],
+})
+
+export const firstMatchWinsJourney = journey({
+  code: 'first-match-wins',
+  path: '/first-match-wins',
+  title: 'First Match Wins',
+  onAccess: [
+    access({
+      effects: [HooksEffects.DirectSetData('flag', 'yes')],
+      next: [
+        redirect({ when: Data('flag').match(Condition.Equals('yes')), goto: 'first-dest' }),
+        redirect({ when: Data('flag').match(Condition.Equals('yes')), goto: 'second-dest' }),
+      ],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Should not render' })],
+    }),
+    step({ code: 'first-dest', path: '/first-dest', title: 'First', blocks: [] }),
+    step({ code: 'second-dest', path: '/second-dest', title: 'Second', blocks: [] }),
+  ],
+})
+
+export const clearThenHasAnswerJourney = journey({
+  code: 'clear-has',
+  path: '/clear-has',
+  title: 'Clear Then Has Answer',
+  onAccess: [
+    access({
+      effects: [
+        HooksEffects.DirectSetAnswer('target', 'some-value'),
+        HooksEffects.StoreHasAnswer('target', 'hasBeforeClearing'),
+        HooksEffects.DirectClearAnswer('target'),
+        HooksEffects.StoreHasAnswer('target', 'hasAfterClearing'),
+      ],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Content' })],
+    }),
+  ],
+})
+
+export const accessFieldsToClearReachableJourney = journey({
+  code: 'access-ftc-reachable',
+  path: '/access-ftc-reachable',
+  title: 'Access Fields To Clear Reachable',
+  onAccess: [
+    access({
+      effects: [Effects.LoadAnswers('access-ftc-reachable'), HooksEffects.CaptureFieldsToClear()],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'name', label: 'Name' })],
+    }),
+  ],
+})
