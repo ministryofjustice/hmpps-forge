@@ -2,6 +2,8 @@ import Forge from '../engine/Forge'
 import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
+// TODO: restore TraceObserver type when work descriptor tracing is implemented
+type TraceObserver = unknown
 import { ForgeTestClient } from './ForgeTestClient'
 
 const silentLogger = {
@@ -55,7 +57,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  createClient(): ForgeTestClient {
+  createClient(_options?: { traceObserver?: TraceObserver }): ForgeTestClient {
     return new ForgeTestClient(this.forge)
   }
 }
