@@ -6,7 +6,9 @@ import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-const emptyValidationPlan: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
+const emptyValidationPlan: ValidationPlan = {
+  fieldValidations: [],
+}
 
 describe('entryValidationPhase', () => {
   describe('execute()', () => {
@@ -59,7 +61,6 @@ describe('entryValidationPhase', () => {
         entryValidationRules: [{ nodeId: 'compile_ast:9' as const, groups: ['group-1'] }],
       }
       const validationPlan: ValidationPlan = {
-        iteratorValidationGroups: [],
         fieldValidations: [
           {
             nodeId: 'compile_ast:2' as const,
@@ -102,7 +103,6 @@ describe('entryValidationPhase', () => {
       }
       const validationPlan: ValidationPlan = {
         fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([]) }],
-        iteratorValidationGroups: [],
       }
       const phase = createEntryValidationPhase(
         entryValidationPlan,

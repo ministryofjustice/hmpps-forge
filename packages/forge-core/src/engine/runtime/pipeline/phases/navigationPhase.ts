@@ -19,7 +19,7 @@ export function createNavigationPhase(
     async execute(state) {
       const result = await evaluateNavigation(
         navigationPlan,
-        buildCompiledBaseContext(state.context, functionRegistry),
+        buildCompiledBaseContext(state.context, functionRegistry, state.trace),
         {
           currentStepNodeId,
           routeTemplateCatalog,

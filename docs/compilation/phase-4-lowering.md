@@ -11,8 +11,9 @@ handler will need in order to evaluate a request.
 This phase builds runtime plans and phase-specific execution plans. Runtime
 plans describe the shape of the work (node IDs, topology, routing). Phase plans
 contain the compiled functions that perform the repeated expression evaluation
-work during request handling — one function per field, block, hook, or iterator
-group.
+work during request handling — one function per field, block, or hook. MAP
+iterator fields are compiled once per template node and bound into closures at
+materialisation time.
 
 ## Why Forge compiles generated functions
 
@@ -59,8 +60,9 @@ The flow is:
 1. `CompilationPlanner` builds runtime plans from the registry and tree.
 
 2. `CodegenOrchestrator` drives the phase compilers. It compiles each distinct
-   field, block, hook, and iterator group exactly once, deduplicating by node
-   ID. The compiled entries are stored in hoisted lookup maps.
+   field, block, hook, and template function exactly once, deduplicating by
+   node ID. Materialisation roots are compiled once per iterator node. The
+   compiled entries are stored in hoisted lookup maps.
 
 3. Expression compilers turn AST expressions into JavaScript source.
 
@@ -69,9 +71,10 @@ The flow is:
 5. `CodegenOrchestrator` assembles per-step and per-journey phase plans by
    looking up the hoisted entries. Each step receives its own `ValidationPlan`,
    `AnswerPreparationPlan`, `RenderPlan`, `AccessLifecyclePlan`,
-   `SubmitLifecyclePlan`, and `EntryValidationPlan` — but the compiled
-   functions inside those plans are shared across steps that reference the same
-   fields, blocks, or hooks.
+   `SubmitLifecyclePlan`, `EntryValidationPlan`, and
+   `TemplateMaterialisationPlan` — but the compiled functions inside those
+   plans are shared across steps that reference the same fields, blocks, or
+   hooks.
 
 ## Inputs and outputs
 
@@ -90,7 +93,7 @@ The main outputs are:
 - reachability runtime plans with compiled navigation functions
 
 Each `CompiledStep` carries phase plans that contain the compiled functions for
-that step's fields, blocks, hooks, and iterator groups. The plans are the
+that step's fields, blocks, hooks, and materialisation roots. The plans are the
 contract between compilation and runtime. Runtime does not need to inspect the
 original DSL. It walks each phase plan and calls the compiled functions inside
 it.
@@ -106,10 +109,13 @@ runtime plan records the current step ID, the route path, and static data.
 
 Phase plans sit alongside the runtime plan and contain the compiled functions
 for each phase of the request lifecycle. For example, a `ValidationPlan`
-contains a `FieldValidationEntry` per field and an `IteratorValidationGroup`
-per MAP iterator, each holding a compiled function. An `AccessLifecyclePlan`
-contains an `AccessHookEntry` per hook. A `RenderPlan` contains a
-`RenderBlockEntry` per block plus optional step and ancestor metadata functions.
+contains a `CompiledFieldValidation` per non-iterator field and an optional
+domain validator. An `AccessLifecyclePlan` contains a `CompiledAccessHook` per
+hook. A `RenderPlan` contains a `CompiledRenderBlock` per static block plus
+optional step and ancestor metadata functions. A `TemplateMaterialisationPlan`
+contains the materialiser function and per-template-node phase functions for
+MAP iterator fields — these are bound into closures at materialisation time
+and called directly by the per-phase evaluators.
 
 This keeps planning separate from code generation. The runtime plan says which
 node this is. The phase plans say how to evaluate it — one compiled function per
@@ -138,16 +144,17 @@ Phase compilers each own one part of request evaluation.
 
 They receive AST nodes and produce per-entry compiled functions.
 `CodegenOrchestrator` calls each compiler once per distinct node (field, block,
-hook, or iterator group), deduplicating by node ID, then assembles the results
+hook, or template node), deduplicating by node ID, then assembles the results
 into per-step phase plans.
 
 The main phase compilers are:
 
 | Compiler | Output plan | Compiled per |
 |----------|-------------|--------------|
-| `StepValidationCompiler` | `ValidationPlan` / `EntryValidationPlan` | field, iterator group, domain rule, entry rule |
-| `StepAnswerPreparationCompiler` | `AnswerPreparationPlan` | field, iterator group |
-| `StepRenderCompiler` | `RenderPlan` | block, iterator group, step metadata, ancestor metadata |
+| `TemplateMaterialisationCompiler` | `TemplateMaterialisationPlan` | materialisation root, template node |
+| `StepValidationCompiler` | `ValidationPlan` / `EntryValidationPlan` | field, materialised field, domain rule, entry rule |
+| `StepAnswerPreparationCompiler` | `AnswerPreparationPlan` | field, materialised field |
+| `StepRenderCompiler` | `RenderPlan` | block, nested block, materialised block, step metadata, ancestor metadata |
 | `HookLifecycleCompiler` | `AccessLifecyclePlan` / `SubmitLifecyclePlan` | hook |
 | `ReachabilityCompiler` | compiled navigation function | journey branch (single function) |
 | `StepFieldInventoryCompiler` | field inventory sources | step |
@@ -162,9 +169,10 @@ ordinary TypeScript runtime code.
 `CodegenOrchestrator` drives the full compilation pass.
 
 Its `compileAll` method coordinates the phase compilers in two stages. First, it
-compiles every distinct field, block, hook, and iterator group once, storing the
-results in hoisted lookup maps keyed by node ID. Second, it assembles per-step
-and per-journey phase plans by selecting entries from those maps.
+compiles every distinct field, block, hook, template function, and
+materialisation root once, storing the results in hoisted lookup maps keyed by
+node ID. Second, it assembles per-step and per-journey phase plans by selecting
+entries from those maps.
 
 This means a field shared by multiple steps is compiled once and referenced by
 each step's plan. A journey-level access hook is compiled once and shared by
@@ -248,14 +256,17 @@ After compilation, Forge has the plans needed by runtime route handlers.
 
 Each step receives a `CompiledStep` containing its runtime plan and per-phase
 execution plans: `AccessLifecyclePlan`, `AnswerPreparationPlan`,
-`ValidationPlan`, `EntryValidationPlan`, `SubmitLifecyclePlan`, and
-`RenderPlan`. Each journey root receives a `CompiledJourney` with its runtime
-plan, `AccessLifecyclePlan`, and `AnswerPreparationPlan`.
+`ValidationPlan`, `EntryValidationPlan`, `SubmitLifecyclePlan`, `RenderPlan`,
+and `TemplateMaterialisationPlan`. Each journey root receives a
+`CompiledJourney` with its runtime plan, `AccessLifecyclePlan`, and
+`AnswerPreparationPlan`.
 
 Runtime walks these phase plans and calls the compiled functions inside them.
-Each phase has a dedicated evaluator that knows the plan shape — for example,
-`evaluateValidation` walks the validation plan's field entries and iterator
-groups, calling each compiled function and collecting failures.
+The template materialisation phase runs first, expanding MAP iterator
+collections into `MaterialisedTemplateNode` instances with scope-bound
+closures. Each downstream evaluator then calls those closures directly — for
+example, `evaluateValidation` walks the validation plan's field entries and
+calls each materialised node's validate closure, collecting failures.
 
 Runtime then evaluates each request using those plans, the request context, and
 the registered functions and components for the journey.

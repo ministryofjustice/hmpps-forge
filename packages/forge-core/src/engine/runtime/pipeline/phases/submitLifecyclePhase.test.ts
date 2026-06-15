@@ -8,7 +8,9 @@ import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
 const mockFunctionRegistry = {} as FunctionRegistry
 
-const emptyValidationPlan: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
+const emptyValidationPlan: ValidationPlan = {
+  fieldValidations: [],
+}
 
 function mockHook(result: CompiledSubmitHookResult): SubmitLifecyclePlan {
   return {
@@ -125,7 +127,6 @@ describe('submitLifecyclePhase', () => {
       const failure = { blockId: 'compile_ast:2' as const, passed: false, message: 'Required', submissionOnly: false }
       const validationPlan: ValidationPlan = {
         fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockReturnValue([failure]) }],
-        iteratorValidationGroups: [],
       }
       const plan: SubmitLifecyclePlan = {
         submitHooks: [

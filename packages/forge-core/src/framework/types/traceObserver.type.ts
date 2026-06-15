@@ -2,6 +2,19 @@ import type { RequestSnapshot } from './snapshot.type'
 import type { RequestTrace } from '../../engine/contracts/trace/requestTrace.type'
 
 /**
+ * Identifies where in the journey tree a traced request landed: the root
+ * journey, any nested child journeys, and the step being evaluated.
+ */
+export interface TraceRouteContext {
+  readonly journeyCode: string
+  readonly journeyTitle: string
+  readonly stepCode?: string
+  readonly stepTitle?: string
+  readonly routeTemplatePath: string
+  readonly formattedDslPath?: string
+}
+
+/**
  * The envelope emitted for one completed traced request: the snapshot that was
  * evaluated and its sealed decision log. The snapshot supplies the request
  * identity (node, method, location) that the trace itself deliberately omits.
@@ -9,6 +22,7 @@ import type { RequestTrace } from '../../engine/contracts/trace/requestTrace.typ
 export interface RequestTraceEvent {
   readonly snapshot: RequestSnapshot
   readonly trace: RequestTrace
+  readonly route: TraceRouteContext
 }
 
 /**

@@ -3,9 +3,11 @@ import type { NodeId } from '../ast/ast.type'
 export interface RouteDescriptor {
   readonly nodeId: NodeId
   readonly path: string
+  readonly code?: string
   readonly title?: string
   readonly description?: string
   readonly metadata?: Record<string, unknown>
+  readonly formattedDslPath?: string
   readonly ancestorJourneyNodeIds: readonly NodeId[]
 }
 

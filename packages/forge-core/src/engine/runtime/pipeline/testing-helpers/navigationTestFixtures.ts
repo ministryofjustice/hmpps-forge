@@ -2,11 +2,18 @@ import { joinPaths } from '../../../../framework/path/routePath'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyRouteTemplateCatalog } from '../../../contracts/routing/routeTree.type'
 import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { TemplateMaterialisationPlan } from '../../../contracts/plans/materialisationArtefacts.type'
 import type { CompiledNavigationStep, NavigationRuntimePlan } from '../../../contracts/plans/runtimePlans.type'
 
 const routePathsByStep = new WeakMap<CompiledNavigationStep, string>()
 
-const EMPTY_VALIDATION_PLAN: ValidationPlan = { fieldValidations: [], iteratorValidationGroups: [] }
+const EMPTY_VALIDATION_PLAN: ValidationPlan = {
+  fieldValidations: [],
+}
+
+const EMPTY_MATERIALISATION_PLAN: TemplateMaterialisationPlan = {
+  roots: [],
+}
 
 interface CompiledNavigationStepOptions {
   readonly nodeId: NodeId
@@ -14,6 +21,7 @@ interface CompiledNavigationStepOptions {
   readonly code?: string
   readonly isEntryPoint?: boolean
   readonly validationPlan?: ValidationPlan
+  readonly materialisationPlan?: TemplateMaterialisationPlan
   readonly cleardownFieldCodes?: readonly string[]
   readonly declaredOutcomes?: readonly string[]
   readonly evaluateEntryWhen?: CompiledNavigationStep['evaluateEntryWhen']
@@ -27,6 +35,7 @@ export function createCompiledNavigationStep(options: CompiledNavigationStepOpti
     nodeId: options.nodeId,
     isEntryPoint: options.isEntryPoint ?? false,
     validationPlan: options.validationPlan ?? EMPTY_VALIDATION_PLAN,
+    materialisationPlan: options.materialisationPlan ?? EMPTY_MATERIALISATION_PLAN,
     cleardownFieldCodes: options.cleardownFieldCodes ?? [],
     declaredOutcomes: options.declaredOutcomes ?? [],
     ...(options.code !== undefined ? { code: options.code } : {}),
@@ -100,7 +109,6 @@ export function createNavigationValidationPlan(isValid: boolean): ValidationPlan
             : [{ blockId: 'compile_ast:999' as const, passed: false, message: 'invalid', submissionOnly: false }],
       },
     ],
-    iteratorValidationGroups: [],
   }
 }
 

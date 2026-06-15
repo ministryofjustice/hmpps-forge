@@ -13,7 +13,7 @@ describe('renderEvaluationPhase', () => {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
         renderBlocks: [],
-        iteratorRenderBlockGroups: [],
+        nestedBlocks: new Map(),
       }
       const phase = createRenderEvaluationPhase(renderPlan, [], '/journey/step', mockFunctionRegistry)
 
@@ -32,7 +32,7 @@ describe('renderEvaluationPhase', () => {
         compiledStepMetadata: vi.fn().mockReturnValue({ title: 'Test Step' }),
         compiledAncestorMetadata: vi.fn().mockReturnValue([]),
         renderBlocks: [],
-        iteratorRenderBlockGroups: [],
+        nestedBlocks: new Map(),
       }
       const phase = createRenderEvaluationPhase(renderPlan, [], '/journey/step', mockFunctionRegistry)
 

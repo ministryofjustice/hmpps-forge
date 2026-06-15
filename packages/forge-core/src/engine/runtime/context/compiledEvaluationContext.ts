@@ -7,6 +7,8 @@ import RuntimeEvaluationContext from './RuntimeEvaluationContext'
 import EffectFunctionContextImpl from './EffectFunctionContext'
 import type { RuntimeEvaluationGlobalState } from '../../contracts/runtime/evaluationState.type'
 import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
+import type TraceRecorder from '../pipeline/trace/TraceRecorder'
+import TracingFunctionRegistry from '../pipeline/trace/TracingFunctionRegistry'
 
 type CompiledRequestSnapshot = Record<string, unknown> & {
   url: string
@@ -44,8 +46,10 @@ export interface CompiledRenderContext extends CompiledBaseContext {
 export function buildCompiledBaseContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
+  trace?: TraceRecorder,
 ): CompiledBaseContext {
   const request = context.request
+  const conditions = trace ? new TracingFunctionRegistry(functionRegistry, trace) : functionRegistry
 
   return {
     answers: context.global.answers,
@@ -61,16 +65,17 @@ export function buildCompiledBaseContext(
       cookies: request.getAllCookies(),
       state: request.getAllState(),
     },
-    conditions: functionRegistry,
+    conditions,
   }
 }
 
 export function buildCompiledAnswerPreparationContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
+  trace?: TraceRecorder,
 ): CompiledAnswerPreparationContext {
   return {
-    ...buildCompiledBaseContext(context, functionRegistry),
+    ...buildCompiledBaseContext(context, functionRegistry, trace),
     post: context.request.getAllPost(),
   }
 }
@@ -78,9 +83,10 @@ export function buildCompiledAnswerPreparationContext(
 export function buildCompiledRenderContext(
   context: RuntimeEvaluationContext,
   functionRegistry: FunctionRegistry,
+  trace?: TraceRecorder,
 ): CompiledRenderContext {
   return {
-    ...buildCompiledBaseContext(context, functionRegistry),
+    ...buildCompiledBaseContext(context, functionRegistry, trace),
     post: context.request.getAllPost(),
   }
 }
@@ -91,9 +97,10 @@ export function buildCompiledHookLifecycleContext(
   hookType: HookType,
   responseBindings: ResponseBindings,
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>,
+  trace?: TraceRecorder,
 ): HookLifecycleContext {
   return {
-    ...buildCompiledBaseContext(context, functionRegistry),
+    ...buildCompiledBaseContext(context, functionRegistry, trace),
     validation: context.global.validation,
     post: context.request.getAllPost(),
     validate,
@@ -101,5 +108,8 @@ export function buildCompiledHookLifecycleContext(
       { global: context.global, request: context.request, response: responseBindings },
       hookType,
     ),
+    runEffect: async (_name, thunk) => {
+      await thunk()
+    },
   }
 }

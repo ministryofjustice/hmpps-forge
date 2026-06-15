@@ -80,6 +80,10 @@ export default class ASTNodeIndex {
     return this.nodes.has(id)
   }
 
+  findAll<T = ASTNode>(): T[] {
+    return [...this.nodes.values()] as T[]
+  }
+
   findByType<T = ASTNode>(type: IndexableNodeType): T[] {
     const nodeIds = this.typeIndex.get(type)
 

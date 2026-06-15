@@ -1,6 +1,7 @@
 import type { ForgeRenderer } from '../../../../framework/rendering/types'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import { evaluateRenderOutput } from '../phases/evaluateRenderOutput'
+import { measure } from '../trace/TraceRecorder'
 import type { TerminalPhase } from '../types'
 
 /**
@@ -30,7 +31,9 @@ export function createRenderOutputTerminal<TOut>(
       }
 
       const renderedBlocks = evaluateRenderOutput(context, componentRegistry, renderer, state.trace)
-      const output = renderer.assemblePage(context, renderedBlocks, state.request.getAllState())
+      const output = measure(state.trace, { kind: 'page-assembly' }, () =>
+        renderer.assemblePage(context, renderedBlocks, state.request.getAllState()),
+      )
 
       return { type: 'render', context, output, renderedBlocks }
     },

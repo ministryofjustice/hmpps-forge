@@ -3,13 +3,14 @@ import ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import { AstNodeId } from '../contracts/ast/engine.type'
 import {
   AccessHookASTNode,
+  IterateASTNode,
   RedirectOutcomeASTNode,
   ReferenceASTNode,
   SubmitHookASTNode,
 } from '../contracts/ast/expressions.type'
 import { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { TestPredicateASTNode } from '../contracts/ast/predicates.type'
-import { BlockType, HookType, PredicateType } from '../../authoring/types/enums'
+import { BlockType, ExpressionType, HookType, IteratorType, PredicateType } from '../../authoring/types/enums'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import type { CompilationPlan, ReachabilityCompilationPlan } from '../contracts/plans/compilationPlan.type'
 import CompilationPlanner from './CompilationPlanner'
@@ -75,6 +76,17 @@ function createStep(
   }
 
   return step.build()
+}
+
+function createMapIterateNode(id: AstNodeId): IterateASTNode {
+  return ASTTestFactory.expression(ExpressionType.ITERATE)
+    .withId(id)
+    .withProperty('input', ASTTestFactory.reference(['data', 'items']))
+    .withProperty('iterator', {
+      type: IteratorType.MAP,
+      yieldTemplate: [],
+    })
+    .build() as IterateASTNode
 }
 
 function getReachabilityPlan(plan: CompilationPlan, journeyNodeId: AstNodeId): ReachabilityCompilationPlan {
@@ -241,6 +253,54 @@ describe('CompilationPlanner', () => {
         fieldBlocks: [field],
         iterateNodes: [],
       })
+    })
+
+    it('should preserve authored field and materialisation root order for answer preparation sources', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journey = createJourney('compile_ast:1', [])
+      const step = createStep('compile_ast:2')
+      const firstField = ASTTestFactory.block('text', BlockType.FIELD)
+        .withId('compile_ast:3')
+        .withProperty('code', 'first')
+        .build()
+      const firstIterator = createMapIterateNode('compile_ast:4')
+      const nestedIterator = createMapIterateNode('compile_ast:5')
+      const secondField = ASTTestFactory.block('text', BlockType.FIELD)
+        .withId('compile_ast:6')
+        .withProperty('code', 'second')
+        .build()
+      const secondIterator = createMapIterateNode('compile_ast:7')
+
+      ;[journey, step, firstField, firstIterator, nestedIterator, secondField, secondIterator].forEach(node => {
+        nodeRegistry.register(node.id, node)
+      })
+      astNodeTree.addNode(journey.id)
+      astNodeTree.addNode(step.id, journey.id)
+      astNodeTree.addNode(firstField.id, step.id)
+      astNodeTree.addNode(firstIterator.id, step.id)
+      astNodeTree.addNode(nestedIterator.id, firstIterator.id)
+      astNodeTree.addNode(secondField.id, step.id)
+      astNodeTree.addNode(secondIterator.id, step.id)
+
+      const planner = new CompilationPlanner(nodeRegistry, astNodeTree)
+
+      // Act
+      const plan = planner.buildPlan(new Map([[step.id, step]]), new Map([[journey.id, journey]]))
+      const stepInputs = plan.stepInputs.get(step.id)
+      const journeyInputs = plan.journeyInputs.get(journey.id)
+
+      // Assert
+      expect(stepInputs?.materialisationRootNodes).toEqual([firstIterator, secondIterator])
+      expect(stepInputs?.answerPreparationSources.map(source => `${source.kind}:${source.node.id}`)).toEqual([
+        'field:compile_ast:3',
+        'materialisation-root:compile_ast:4',
+        'field:compile_ast:6',
+        'materialisation-root:compile_ast:7',
+      ])
+      expect(journeyInputs?.stepMaterialisationRootNodes).toEqual([firstIterator, secondIterator])
+      expect(journeyInputs?.answerPreparationSources).toEqual(stepInputs?.answerPreparationSources)
     })
 
     it('should collect statically-declared gotos across hooks onto the steps', () => {

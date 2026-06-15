@@ -18,7 +18,7 @@ export interface RuntimeValueCompilerPolicy {
   readonly omitUndefinedArrayItems: boolean
   readonly isStructuralValue?: (value: unknown) => boolean
   readonly compileStructuralValue?: (value: unknown, emitter: CodeEmitter, targetVar: string) => boolean
-  readonly noteInlineIterator?: (nodeId: string) => void
+  readonly compileStructuralIterate?: (node: ASTNode | TemplateNode, emitter: CodeEmitter, targetVar: string) => boolean
 }
 
 type RuntimeValueErrorMode = 'fallback' | 'throw'
@@ -344,9 +344,11 @@ export default class RuntimeValueCompiler {
     targetVar: string,
     options: RuntimeValueCompileOptions,
   ): void {
-    const iterator = this.getIteratorProperties(node)
+    if (this.policy.compileStructuralIterate?.(node, emitter, targetVar) === true) {
+      return
+    }
 
-    this.noteInlineIterator(node)
+    const iterator = this.getIteratorProperties(node)
 
     if (iterator?.type === IteratorType.MAP) {
       this.compileMapValue(node, emitter, targetVar, options)
@@ -506,13 +508,6 @@ export default class RuntimeValueCompiler {
    */
   private compileIteratorItemScope(rawItemExpr: string): string {
     return `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`
-  }
-
-  /**
-   * Reports inline iterator compilation to phase compilers that need to avoid duplicate emission.
-   */
-  private noteInlineIterator(node: ASTNode | TemplateNode): void {
-    this.policy.noteInlineIterator?.(node.id)
   }
 
   /**

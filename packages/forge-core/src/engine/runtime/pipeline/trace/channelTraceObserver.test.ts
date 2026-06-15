@@ -40,6 +40,14 @@ describe('createChannelTraceObserver', () => {
         session: undefined,
       },
       trace: { outcome: 'render', durationMs: 1, phases: [] },
+      route: {
+        journeyCode: 'test',
+        journeyTitle: 'Test Journey',
+        stepCode: 'step-one',
+        stepTitle: 'Step One',
+        routeTemplatePath: '/journey/step-one',
+        formattedDslPath: 'test > step-one',
+      },
     }
   }
 

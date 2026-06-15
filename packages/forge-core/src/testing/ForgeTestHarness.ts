@@ -3,6 +3,7 @@ import ForgeOrchestrator from '../engine/ForgeOrchestrator'
 import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
+import type { TraceObserver } from '../framework/types/traceObserver.type'
 import { ForgeTestClient } from './ForgeTestClient'
 
 const silentLogger = {
@@ -56,7 +57,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  createClient(): ForgeTestClient {
-    return new ForgeTestClient(new ForgeOrchestrator({ core: this.forge }))
+  createClient(options?: { traceObserver?: TraceObserver }): ForgeTestClient {
+    return new ForgeTestClient(new ForgeOrchestrator({ core: this.forge, traceObserver: options?.traceObserver }))
   }
 }
