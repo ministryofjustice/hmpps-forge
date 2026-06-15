@@ -8,6 +8,7 @@ import {
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
+import { NodeId, TemplateNodeId } from '../../../contracts/ast/ast.type'
 import { TemplateValue } from '../../../contracts/ast/template.type'
 import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
@@ -16,9 +17,14 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
+import TemplateMaterialisationCompiler from '../materialisation/TemplateMaterialisationCompiler'
 import { evaluateAnswerPreparation } from '../../../runtime/pipeline/phases/evaluateAnswerPreparation'
 import type { AnswerPreparationContext } from '../../../contracts/compiled/phaseContexts.type'
-import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type {
+  AnswerPreparationPlan,
+  AnswerPreparationPlanItem,
+} from '../../../contracts/plans/compilationArtefacts.type'
+import type { CompiledTemplateMaterialisationRoot } from '../../../contracts/plans/materialisationArtefacts.type'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()
@@ -33,10 +39,14 @@ function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
 }
 
 function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompiler {
-  return new StepAnswerPreparationCompiler({
+  return new StepAnswerPreparationCompiler(createSyncDependencies(...funcNames))
+}
+
+function createSyncDependencies(...funcNames: string[]): CompilationDependencies {
+  return {
     functionRegistry: createSyncRegistry(...funcNames),
     componentRegistry: new ComponentRegistry(),
-  })
+  }
 }
 
 function createFieldBlock(code: unknown, props: Record<string, unknown> = {}): FieldBlockASTNode {
@@ -169,12 +179,42 @@ describe('StepAnswerPreparationCompiler', () => {
     runCompiler: StepAnswerPreparationCompiler,
     fieldBlocks: FieldBlockASTNode[],
     iterateNodes: IterateASTNode[],
+    runDependencies: CompilationDependencies = dependencies,
   ): AnswerPreparationPlan {
+    const materialisationCompiler = new TemplateMaterialisationCompiler(runDependencies)
+    const prepFunctions = new Map<TemplateNodeId, { prepare: unknown }>()
+
+    iterateNodes.forEach(iterateNode => {
+      runCompiler.compileMaterialisedPreparations(iterateNode).forEach((entry, nodeId) => {
+        prepFunctions.set(nodeId, { prepare: entry.prepare })
+      })
+    })
+
+    const roots = new Map<NodeId, CompiledTemplateMaterialisationRoot>()
+
+    iterateNodes.forEach(iterateNode => {
+      const intermediate = materialisationCompiler.compileMaterialisationRoot(iterateNode)
+
+      if (intermediate !== undefined) {
+        roots.set(iterateNode.id, {
+          ...intermediate,
+          templateFunctions: new Map(
+            [...prepFunctions.entries()].map(([nodeId, entry]) => [nodeId, { prepare: entry.prepare }]),
+          ) as CompiledTemplateMaterialisationRoot['templateFunctions'],
+        })
+      }
+    })
+
     return {
-      fieldAnswerPreparations: fieldBlocks.map(block => runCompiler.compileFieldPreparation(block)),
-      iteratorAnswerPreparationGroups: iterateNodes
-        .map(node => runCompiler.compileIteratorGroup(node))
-        .filter((group): group is NonNullable<typeof group> => group !== undefined),
+      items: [
+        ...fieldBlocks.map(block => ({
+          kind: 'field' as const,
+          entry: runCompiler.compileFieldPreparation(block),
+        })),...iterateNodes
+          .map(iterateNode => roots.get(iterateNode.id))
+          .filter((root): root is CompiledTemplateMaterialisationRoot => root !== undefined)
+          .map(root => ({ kind: 'materialisation-root' as const, root })),
+      ] satisfies AnswerPreparationPlanItem[],
     }
   }
 
@@ -800,14 +840,18 @@ describe('StepAnswerPreparationCompiler', () => {
         },
       })
       const iterateNode = createIterateNode(createReference(['data', 'items']), template)
-      const localCompiler = createSyncCompiler(FORMAT_STRING_GENERATOR_NAME)
+      const localDependencies = createSyncDependencies(FORMAT_STRING_GENERATOR_NAME)
+      const localCompiler = new StepAnswerPreparationCompiler(localDependencies)
       const ctx = createCtx({
         post: { person_0: 'Alice', person_1: 'Bob' },
         data: { items: [{ name: 'a' }, { name: 'b' }] },
       })
 
       // Act
-      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [], [iterateNode]), ctx)
+      await evaluateAnswerPreparation(
+        compileAnswerPreparationPlan(localCompiler, [], [iterateNode], localDependencies),
+        ctx,
+      )
 
       // Assert
       expect(ctx.answers.person_0).toBeDefined()
@@ -830,7 +874,8 @@ describe('StepAnswerPreparationCompiler', () => {
       )
       const template = createTemplateValue([innerIterator])
       const iterateNode = createIterateNode(createReference(['data', 'teams']), template)
-      const localCompiler = createSyncCompiler(FORMAT_STRING_GENERATOR_NAME)
+      const localDependencies = createSyncDependencies(FORMAT_STRING_GENERATOR_NAME)
+      const localCompiler = new StepAnswerPreparationCompiler(localDependencies)
       const ctx = createCtx({
         post: {
           team_0_member_0: 'Ada',
@@ -846,7 +891,10 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [], [iterateNode]), ctx)
+      await evaluateAnswerPreparation(
+        compileAnswerPreparationPlan(localCompiler, [], [iterateNode], localDependencies),
+        ctx,
+      )
 
       // Assert
       expect(ctx.answers.team_0_member_0.current).toBe('Ada')

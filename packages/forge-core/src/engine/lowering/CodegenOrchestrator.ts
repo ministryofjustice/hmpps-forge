@@ -1,6 +1,7 @@
 import type { NodeId } from '../contracts/ast/engine.type'
 import type { IterateASTNode, SubmitHookASTNode } from '../contracts/ast/expressions.type'
-import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
+import type { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
+import type { TemplateNodeId } from '../contracts/ast/ast.type'
 import type {
   CompiledAccessHook,
   AccessLifecyclePlan,
@@ -8,14 +9,27 @@ import type {
   CompiledJourney,
   CompiledStep,
   CompiledFieldAnswerPreparation,
-  IteratorAnswerPreparationGroup,
+  CompiledNestedRenderBlock,
+  AnswerPreparationPlanItem,
+  FieldAnswerPreparationPlanItem,
+  MaterialisationRootAnswerPreparationPlanItem,
   CompiledSubmitHook,
   SubmitLifecyclePlan,
   ValidationPlan,
 } from '../contracts/plans/compilationArtefacts.type'
+import type {
+  CompiledTemplateMaterialisationRoot,
+  CompiledTemplatePhaseFunctions,
+  TemplateMaterialisationPlan,
+} from '../contracts/plans/materialisationArtefacts.type'
+import type { CompiledMaterialisedFieldAnswerPreparationFunction } from '../contracts/compiled/compiledFunctions.type'
+import TemplateMaterialisationCompiler from './phase-compilers/materialisation/TemplateMaterialisationCompiler'
 import type { CompilationDependencies } from './compilationDependencies.type'
 import type {
+  AnswerPreparationSource,
   CompilationPlan,
+  FieldAnswerPreparationSource,
+  MaterialisationRootAnswerPreparationSource,
   ReachabilityStepInputs,
   StepCompilationInputs,
 } from '../contracts/plans/compilationPlan.type'
@@ -29,14 +43,12 @@ import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 
 /**
- * Hoisted answer preparations keyed by NodeId: every field/block and MAP
- * iterator group is compiled once and shared across the steps and journeys that
- * reference it. Per-step/per-journey AnswerPreparationPlans are assembled by
- * looking them up.
+ * Hoisted answer preparations keyed by NodeId: every field/block is compiled
+ * once and shared across the steps and journeys that reference it.
+ * Per-step/per-journey AnswerPreparationPlans are assembled by looking them up.
  */
 interface HoistedAnswerPreparation {
   readonly fields: Map<NodeId, CompiledFieldAnswerPreparation>
-  readonly iteratorGroups: Map<NodeId, IteratorAnswerPreparationGroup>
 }
 
 /**
@@ -65,9 +77,17 @@ export default class CodegenOrchestrator {
     const validationPlans = this.compileValidationPlans(plan, validationCompiler)
     const hoistedAnswerPrep = this.compileHoistedAnswerPreparation(plan)
     const hoistedHooks = this.compileHoistedHooks(plan)
-    const navigationPlans = this.compileNavigationPlans(plan, nodeRegistry, validationPlans)
+    const { roots: hoistedMaterialisation, materialisedNestedBlocks } = this.compileHoistedMaterialisation(plan)
+    const materialisationPlans = this.compileMaterialisationPlans(plan, hoistedMaterialisation)
+    const navigationPlans = this.compileNavigationPlans(plan, nodeRegistry, validationPlans, materialisationPlans)
 
-    const journeys = this.compileJourneys(plan, navigationPlans, hoistedAnswerPrep, hoistedHooks)
+    const journeys = this.compileJourneys(
+      plan,
+      navigationPlans,
+      hoistedAnswerPrep,
+      hoistedHooks,
+      hoistedMaterialisation,
+    )
 
     const steps = new Map<NodeId, CompiledStep>()
 
@@ -82,6 +102,8 @@ export default class CodegenOrchestrator {
           validationCompiler,
           hoistedAnswerPrep,
           hoistedHooks,
+          hoistedMaterialisation,
+          materialisedNestedBlocks,
         ),
       )
     })
@@ -98,6 +120,7 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
     validationPlans: Map<NodeId, ValidationPlan>,
+    materialisationPlans: Map<NodeId, TemplateMaterialisationPlan>,
   ): Map<NodeId, NavigationRuntimePlan> {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
     const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
@@ -111,6 +134,7 @@ export default class CodegenOrchestrator {
             reachabilityPlan.journeyNodeId,
             nodeRegistry,
             validationPlans,
+            materialisationPlans,
             reachabilityCompiler,
             fieldInventoryCompiler,
           ),
@@ -136,6 +160,7 @@ export default class CodegenOrchestrator {
     journeyNodeId: NodeId,
     nodeRegistry: ASTNodeIndex,
     validationPlans: Map<NodeId, ValidationPlan>,
+    materialisationPlans: Map<NodeId, TemplateMaterialisationPlan>,
     reachabilityCompiler: ReachabilityCompiler,
     fieldInventoryCompiler: StepFieldInventoryCompiler,
   ): CompiledNavigationStep {
@@ -144,6 +169,7 @@ export default class CodegenOrchestrator {
       code: stepInputs.code,
       isEntryPoint: stepInputs.isEntryPoint,
       validationPlan: this.selectStepValidationPlan(journeyNodeId, stepInputs.nodeId, validationPlans),
+      materialisationPlan: materialisationPlans.get(stepInputs.nodeId) ?? { roots: [] },
       cleardownFieldCodes: stepInputs.cleardownFieldCodes,
       declaredOutcomes: stepInputs.declaredOutcomes,
       evaluateEntryWhen: reachabilityCompiler.compileEntryPredicate(stepInputs, nodeRegistry),
@@ -163,6 +189,7 @@ export default class CodegenOrchestrator {
     navigationPlans: Map<NodeId, NavigationRuntimePlan>,
     hoistedAnswerPrep: HoistedAnswerPreparation,
     hoistedHooks: HoistedHooks,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
   ): Map<NodeId, CompiledJourney> {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
@@ -178,9 +205,13 @@ export default class CodegenOrchestrator {
         navigationPlan,
         accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
         answerPreparationPlan: this.assembleAnswerPreparationPlan(
-          inputs.stepFieldBlocks,
-          inputs.stepMapIterateNodes,
+          inputs.answerPreparationSources,
           hoistedAnswerPrep,
+          hoistedMaterialisation,
+        ),
+        materialisationPlan: this.assembleMaterialisationPlan(
+          inputs.stepMaterialisationRootNodes,
+          hoistedMaterialisation,
         ),
       })
     })
@@ -202,6 +233,8 @@ export default class CodegenOrchestrator {
     validationCompiler: StepValidationCompiler,
     hoistedAnswerPrep: HoistedAnswerPreparation,
     hoistedHooks: HoistedHooks,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
+    materialisedNestedBlocks: ReadonlyMap<string, CompiledNestedRenderBlock>,
   ): CompiledStep {
     const navigationPlanId = plan.navigationPlanNodeIdByStepNodeId.get(inputs.stepNode.id)
 
@@ -223,10 +256,12 @@ export default class CodegenOrchestrator {
 
     const entryValidationPlan = validationCompiler.compileEntryValidationPlan(inputs.entryValidations)
 
-    // Per-step instance, unlike the one-per-compileAll compilers:
-    // StepRenderCompiler accumulates mutable per-step state (inlineIterateIds).
     const renderCompiler = new StepRenderCompiler(this.dependencies)
-    const renderPlan = renderCompiler.compileRenderPlan(inputs.stepNode, inputs.renderAncestors, inputs.allIterateNodes)
+    const renderPlan = renderCompiler.compileRenderPlan(
+      inputs.stepNode,
+      inputs.renderAncestors,
+      materialisedNestedBlocks,
+    )
 
     return {
       runtimePlan: inputs.runtimePlan,
@@ -234,26 +269,24 @@ export default class CodegenOrchestrator {
       accessLifecyclePlan: this.assembleAccessLifecyclePlan(inputs.accessAncestors, hoistedHooks.accessHooks),
       submitLifecyclePlan: this.assembleSubmitLifecyclePlan(inputs.submitHooks, hoistedHooks.submitHooks),
       answerPreparationPlan: this.assembleAnswerPreparationPlan(
-        inputs.fieldBlocks,
-        inputs.mapIterateNodes,
+        inputs.answerPreparationSources,
         hoistedAnswerPrep,
+        hoistedMaterialisation,
       ),
       entryValidationPlan,
       renderPlan,
       validationPlan,
+      materialisationPlan: this.assembleMaterialisationPlan(inputs.materialisationRootNodes, hoistedMaterialisation),
     }
   }
 
   /**
-   * Compiles each distinct field/block and MAP iterator group across all steps
-   * exactly once, deduplicating by NodeId so fields shared across steps are not
-   * recompiled. An iterator group whose compiler yields undefined is skipped.
+   * Compiles each distinct field/block across all steps exactly once,
+   * deduplicating by NodeId so fields shared across steps are not recompiled.
    */
   private compileHoistedAnswerPreparation(plan: CompilationPlan): HoistedAnswerPreparation {
     const compiler = new StepAnswerPreparationCompiler(this.dependencies)
     const fields = new Map<NodeId, CompiledFieldAnswerPreparation>()
-    const iteratorGroups = new Map<NodeId, IteratorAnswerPreparationGroup>()
-    const visitedIterateNodes = new Set<NodeId>()
 
     plan.stepInputs.forEach(inputs => {
       inputs.fieldBlocks.forEach(block => {
@@ -261,20 +294,9 @@ export default class CodegenOrchestrator {
           fields.set(block.id, compiler.compileFieldPreparation(block))
         }
       })
-
-      inputs.mapIterateNodes.forEach(iterateNode => {
-        if (!visitedIterateNodes.has(iterateNode.id)) {
-          visitedIterateNodes.add(iterateNode.id)
-          const group = compiler.compileIteratorGroup(iterateNode)
-
-          if (group !== undefined) {
-            iteratorGroups.set(iterateNode.id, group)
-          }
-        }
-      })
     })
 
-    return { fields, iteratorGroups }
+    return { fields }
   }
 
   /**
@@ -316,26 +338,185 @@ export default class CodegenOrchestrator {
     return { accessHooks, submitHooks }
   }
 
-  /**
-   * Selects the hoisted field preparations for the given fields and iterator nodes,
-   * preserving their declared order. Iterator nodes that produced no hoisted group
-   * (e.g. an iterator with no fields) are skipped, so the plan may hold fewer
-   * iterator groups than the input nodes.
-   */
   private assembleAnswerPreparationPlan(
-    fieldBlocks: readonly FieldBlockASTNode[],
-    mapIterateNodes: readonly IterateASTNode[],
+    sources: readonly AnswerPreparationSource[],
     hoisted: HoistedAnswerPreparation,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
   ): AnswerPreparationPlan {
-    const fields = fieldBlocks
-      .map(block => hoisted.fields.get(block.id))
-      .filter((field): field is CompiledFieldAnswerPreparation => field !== undefined)
+    const items = sources
+      .map(source => this.resolveAnswerPreparationPlanItem(source, hoisted, hoistedMaterialisation))
+      .filter((item): item is AnswerPreparationPlanItem => item !== undefined)
 
-    const groups = mapIterateNodes
-      .map(node => hoisted.iteratorGroups.get(node.id))
-      .filter((group): group is IteratorAnswerPreparationGroup => group !== undefined)
+    return { items }
+  }
 
-    return { fieldAnswerPreparations: fields, iteratorAnswerPreparationGroups: groups }
+  private resolveAnswerPreparationPlanItem(
+    source: AnswerPreparationSource,
+    hoisted: HoistedAnswerPreparation,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
+  ): AnswerPreparationPlanItem | undefined {
+    switch (source.kind) {
+      case 'field':
+        return this.resolveFieldAnswerPreparationPlanItem(source, hoisted)
+
+      case 'materialisation-root':
+        return this.resolveMaterialisationRootAnswerPreparationPlanItem(source, hoistedMaterialisation)
+
+      default: {
+        const exhaustiveSource: never = source
+
+        return exhaustiveSource
+      }
+    }
+  }
+
+  private resolveFieldAnswerPreparationPlanItem(
+    source: FieldAnswerPreparationSource,
+    hoisted: HoistedAnswerPreparation,
+  ): FieldAnswerPreparationPlanItem | undefined {
+    const entry = hoisted.fields.get(source.node.id)
+
+    if (entry === undefined) {
+      return undefined
+    }
+
+    return { kind: 'field', entry }
+  }
+
+  private resolveMaterialisationRootAnswerPreparationPlanItem(
+    source: MaterialisationRootAnswerPreparationSource,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
+  ): MaterialisationRootAnswerPreparationPlanItem | undefined {
+    const root = hoistedMaterialisation.get(source.node.id)
+
+    if (root === undefined) {
+      return undefined
+    }
+
+    return { kind: 'materialisation-root', root }
+  }
+
+  private compileHoistedMaterialisation(plan: CompilationPlan): {
+    roots: Map<NodeId, CompiledTemplateMaterialisationRoot>
+    materialisedNestedBlocks: ReadonlyMap<string, CompiledNestedRenderBlock>
+  } {
+    const materialisationCompiler = new TemplateMaterialisationCompiler(this.dependencies)
+    const { functions: templateFunctions, materialisedNestedBlocks } = this.compileHoistedTemplateFunctions(plan)
+    const roots = new Map<NodeId, CompiledTemplateMaterialisationRoot>()
+
+    plan.stepInputs.forEach(inputs => {
+      inputs.materialisationRootNodes.forEach(iterateNode => {
+        if (!roots.has(iterateNode.id)) {
+          const intermediate = materialisationCompiler.compileMaterialisationRoot(iterateNode)
+
+          if (intermediate !== undefined) {
+            roots.set(iterateNode.id, {
+              nodeId: intermediate.nodeId,
+              materialise: intermediate.materialise,
+              templateFunctions,
+            })
+          }
+        }
+      })
+    })
+
+    return { roots, materialisedNestedBlocks }
+  }
+
+  /**
+   * Compiles materialised phase functions (render, validate, prepare) for all
+   * MAP iterate nodes across all steps, deduplicating by iterate node id.
+   * Returns a map keyed by TemplateNodeId containing functions from all three
+   * phase compilers merged together, plus nested blocks from materialised render
+   * compilation that must be merged into each step's render plan.
+   */
+  private compileHoistedTemplateFunctions(plan: CompilationPlan): {
+    functions: Map<TemplateNodeId, CompiledTemplatePhaseFunctions>
+    materialisedNestedBlocks: ReadonlyMap<string, CompiledNestedRenderBlock>
+  } {
+    const renderCompiler = new StepRenderCompiler(this.dependencies)
+    const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
+
+    const allIterateNodes: IterateASTNode[] = []
+    const visitedIterateNodeIds = new Set<NodeId>()
+
+    plan.stepInputs.forEach(inputs => {
+      inputs.mapIterateNodes.forEach(iterateNode => {
+        if (!visitedIterateNodeIds.has(iterateNode.id)) {
+          visitedIterateNodeIds.add(iterateNode.id)
+          allIterateNodes.push(iterateNode)
+        }
+      })
+    })
+
+    const { entries: renderFunctions, nestedBlocks: materialisedNestedBlocks } =
+      renderCompiler.compileMaterialisedRenderFunctions(allIterateNodes)
+    const validationFunctions = validationCompiler.compileMaterialisedValidationFunctions(allIterateNodes)
+
+    const prepareFunctions = new Map<
+      TemplateNodeId,
+      { nodeId: TemplateNodeId; prepare: CompiledMaterialisedFieldAnswerPreparationFunction }
+    >()
+
+    for (const iterateNode of allIterateNodes) {
+      const materialised = answerPrepCompiler.compileMaterialisedPreparations(iterateNode)
+
+      materialised.forEach((entry, nodeId) => {
+        if (!prepareFunctions.has(nodeId)) {
+          prepareFunctions.set(nodeId, entry)
+        }
+      })
+    }
+
+    const merged = new Map<TemplateNodeId, CompiledTemplatePhaseFunctions>()
+    const allNodeIds = new Set<TemplateNodeId>([
+      ...renderFunctions.keys(),
+      ...validationFunctions.keys(),
+      ...prepareFunctions.keys(),
+    ])
+
+    allNodeIds.forEach(nodeId => {
+      const renderEntry = renderFunctions.get(nodeId)
+      const validationEntry = validationFunctions.get(nodeId)
+      const prepareEntry = prepareFunctions.get(nodeId)
+
+      merged.set(nodeId, {
+        render: renderEntry?.render,
+        renderVariant: renderEntry?.variant,
+        validate: validationEntry?.validate,
+        prepare: prepareEntry?.prepare,
+      })
+    })
+
+    return { functions: merged, materialisedNestedBlocks }
+  }
+
+  private compileMaterialisationPlans(
+    plan: CompilationPlan,
+    hoistedMaterialisation: Map<NodeId, CompiledTemplateMaterialisationRoot>,
+  ): Map<NodeId, TemplateMaterialisationPlan> {
+    const materialisationPlans = new Map<NodeId, TemplateMaterialisationPlan>()
+
+    plan.stepInputs.forEach((inputs, stepNodeId) => {
+      materialisationPlans.set(
+        stepNodeId,
+        this.assembleMaterialisationPlan(inputs.materialisationRootNodes, hoistedMaterialisation),
+      )
+    })
+
+    return materialisationPlans
+  }
+
+  private assembleMaterialisationPlan(
+    materialisationRootNodes: readonly IterateASTNode[],
+    hoisted: Map<NodeId, CompiledTemplateMaterialisationRoot>,
+  ): TemplateMaterialisationPlan {
+    const roots = materialisationRootNodes
+      .map(node => hoisted.get(node.id))
+      .filter((root): root is CompiledTemplateMaterialisationRoot => root !== undefined)
+
+    return { roots }
   }
 
   /**
@@ -390,11 +571,7 @@ export default class CodegenOrchestrator {
     plan.stepInputs.forEach((inputs, stepNodeId) => {
       validationPlans.set(
         stepNodeId,
-        compiler.compileValidationPlan(
-          inputs.validatingFieldBlocks,
-          inputs.stepNode.properties.validWhen,
-          inputs.mapIterateNodes,
-        ),
+        compiler.compileValidationPlan(inputs.validatingFieldBlocks, inputs.stepNode.properties.validWhen),
       )
     })
 

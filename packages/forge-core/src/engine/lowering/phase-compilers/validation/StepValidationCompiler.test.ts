@@ -26,8 +26,11 @@ import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
+import type { CompiledTemplateMaterialisationRoot } from '../../../contracts/plans/materialisationArtefacts.type'
 import StepValidationCompiler from './StepValidationCompiler'
+import TemplateMaterialisationCompiler from '../materialisation/TemplateMaterialisationCompiler'
 import { evaluateEntryValidation } from '../../../runtime/pipeline/phases/evaluateEntryValidation'
+import { evaluateTemplateMaterialisation } from '../../../runtime/pipeline/phases/evaluateTemplateMaterialisation'
 import { evaluateValidation } from '../../../runtime/pipeline/phases/evaluateValidation'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 
@@ -145,6 +148,27 @@ function createCtx(overrides: Partial<ValidationContext> = {}): ValidationContex
     } as unknown as ValidationContext['conditions'],
     ...overrides,
   }
+}
+
+async function materialiseTemplates(
+  runDependencies: CompilationDependencies,
+  iterateNodes: IterateASTNode[],
+  ctx: ValidationContext,
+) {
+  const materialisationCompiler = new TemplateMaterialisationCompiler(runDependencies)
+  const validationCompiler = new StepValidationCompiler(runDependencies)
+  const validationFunctions = validationCompiler.compileMaterialisedValidationFunctions(iterateNodes)
+  const roots = iterateNodes
+    .map(iterateNode => materialisationCompiler.compileMaterialisationRoot(iterateNode))
+    .filter(root => root !== undefined)
+    .map(root => ({
+      ...root,
+      templateFunctions: new Map(
+        [...validationFunctions.entries()].map(([nodeId, entry]) => [nodeId, { validate: entry.validate }]),
+      ) as CompiledTemplateMaterialisationRoot['templateFunctions'],
+    }))
+
+  return evaluateTemplateMaterialisation({ roots }, ctx)
 }
 
 describe('StepValidationCompiler', () => {
@@ -286,7 +310,7 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const plan = localCompiler.compileValidationPlan([block], [], [])
+      const plan = localCompiler.compileValidationPlan([block], [])
       const result = await evaluateValidation(
         plan,
         createCtx({
@@ -350,7 +374,7 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const plan = localCompiler.compileValidationPlan([block], [], [])
+      const plan = localCompiler.compileValidationPlan([block], [])
       const result = await evaluateValidation(
         plan,
         createCtx({
@@ -1069,8 +1093,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1129,8 +1159,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -1184,9 +1220,22 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const inactiveResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['default'] })
-      const activeResult = await evaluateValidation(plan, ctx, { isSubmission: false, groups: ['items'] })
+      const plan = compiler.compileValidationPlan([], [])
+      const materialisedNodes = await materialiseTemplates(dependencies, [iterateNode], ctx)
+      const inactiveResult = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: ['default'] },
+        undefined,
+        materialisedNodes,
+      )
+      const activeResult = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: ['items'] },
+        undefined,
+        materialisedNodes,
+      )
 
       // Assert
       expect(inactiveResult.isValid).toBe(true)
@@ -1251,8 +1300,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1306,8 +1361,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1369,8 +1430,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1423,8 +1490,14 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
-      const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
+      const plan = compiler.compileValidationPlan([], [])
+      const result = await evaluateValidation(
+        plan,
+        ctx,
+        { isSubmission: false, groups: [] },
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
+      )
 
       // Assert
       expect(result.isValid).toBe(false)
@@ -1453,7 +1526,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([block], [], [])
+      const plan = compiler.compileValidationPlan([block], [])
       const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
@@ -1485,7 +1558,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([block], [], [])
+      const plan = compiler.compileValidationPlan([block], [])
       const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
@@ -1513,7 +1586,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([block], [], [])
+      const plan = compiler.compileValidationPlan([block], [])
       const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
@@ -1539,7 +1612,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [iterateNode], [])
+      const plan = compiler.compileValidationPlan([], [iterateNode])
       const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert
@@ -1550,48 +1623,10 @@ describe('StepValidationCompiler', () => {
 
     it('should handle empty input arrays', async () => {
       // Arrange
-      const iterateNode = createIterateNode(
-        createReference(['data', 'items']),
-        createTemplateValue({
-          type: ASTNodeType.BLOCK,
-          variant: 'text-input',
-          blockType: BlockType.FIELD,
-          properties: {
-            code: 'field',
-            validWhen: [
-              {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
-                properties: {
-                  condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
-                    properties: {
-                      subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
-                        properties: { path: ['answers', '@self'] },
-                      },
-                      condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
-                        properties: { name: 'isRequired', arguments: [] },
-                      },
-                      negate: false,
-                    },
-                  },
-                  message: 'Required',
-                },
-              },
-            ],
-          },
-        }),
-      )
-
       const ctx = createCtx({ data: { items: [] } })
 
       // Act
-      const plan = compiler.compileValidationPlan([], [], [iterateNode])
+      const plan = compiler.compileValidationPlan([], [])
       const result = await evaluateValidation(plan, ctx, { isSubmission: false, groups: [] })
 
       // Assert

@@ -1,6 +1,7 @@
 import type { NodeId, TemplateNodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
 import type { NavigationRuntimePlan, RuntimePlan } from './runtimePlans.type'
+import type { CompiledTemplateMaterialisationRoot, TemplateMaterialisationPlan } from './materialisationArtefacts.type'
 import type {
   CompiledAccessHookFunction,
   CompiledAncestorMetadataFunction,
@@ -8,10 +9,7 @@ import type {
   CompiledEntryValidationRuleFunction,
   CompiledFieldAnswerPreparationFunction,
   CompiledFieldValidationFunction,
-  CompiledIteratorFieldAnswerPreparationFunction,
-  CompiledIteratorFieldValidationFunction,
-  CompiledIteratorInputFunction,
-  CompiledIteratorRenderBlockFunction,
+  CompiledNestedRenderBlockFunction,
   CompiledRenderBlockFunction,
   CompiledStepMetadataFunction,
   CompiledSubmitHookFunction,
@@ -27,31 +25,14 @@ export interface CompiledFieldValidation {
   readonly validate: CompiledFieldValidationFunction
 }
 
-/** One compiled validation function for a field inside an iterator, invoked once per item scope. */
-export interface CompiledIteratorFieldValidation {
-  readonly nodeId: TemplateNodeId
-  readonly validate: CompiledIteratorFieldValidationFunction
-}
-
 /**
- * A MAP iterator's validation work: `evaluateInput` expands the collection into
- * per-item scopes, then every entry in `fields` runs once for each scope.
- * `nodeId` identifies the iterate node for trace attribution.
- */
-export interface IteratorValidationGroup {
-  readonly nodeId: NodeId
-  readonly evaluateInput: CompiledIteratorInputFunction
-  readonly fields: readonly CompiledIteratorFieldValidation[]
-}
-
-/**
- * All validation for one step or journey: a flat list of plain field validators,
- * the iterator groups whose fields validate per item, and an optional domain
- * validator that runs cross-field checks over the whole step.
+ * All validation for one step or journey: a flat list of plain field validators
+ * and an optional domain validator that runs cross-field checks over the whole
+ * step. Materialised field validations are bound into closures at
+ * materialisation time and called directly from the materialised nodes.
  */
 export interface ValidationPlan {
   readonly fieldValidations: readonly CompiledFieldValidation[]
-  readonly iteratorValidationGroups: readonly IteratorValidationGroup[]
   readonly domain?: CompiledDomainValidationFunction
 }
 
@@ -66,33 +47,25 @@ export interface CompiledFieldAnswerPreparation {
   readonly prepare: CompiledFieldAnswerPreparationFunction
 }
 
-/**
- * One compiled prepare function for a field inside an iterator, invoked once per
- * item scope; mutates `ctx.answers` in place for that item.
- */
-export interface CompiledIteratorFieldAnswerPreparation {
-  readonly nodeId: TemplateNodeId
-  readonly prepare: CompiledIteratorFieldAnswerPreparationFunction
+export interface FieldAnswerPreparationPlanItem {
+  readonly kind: 'field'
+  readonly entry: CompiledFieldAnswerPreparation
 }
 
-/**
- * A MAP iterator's answer-preparation work: `evaluateInput` expands the
- * collection into per-item scopes, then every prepare entry runs once per scope.
- * `nodeId` identifies the iterate node for trace attribution.
- */
-export interface IteratorAnswerPreparationGroup {
-  readonly nodeId: NodeId
-  readonly evaluateInput: CompiledIteratorInputFunction
-  readonly fields: readonly CompiledIteratorFieldAnswerPreparation[]
+export interface MaterialisationRootAnswerPreparationPlanItem {
+  readonly kind: 'materialisation-root'
+  readonly root: CompiledTemplateMaterialisationRoot
 }
+
+export type AnswerPreparationPlanItem = FieldAnswerPreparationPlanItem | MaterialisationRootAnswerPreparationPlanItem
 
 /**
  * All answer preparation for one step or journey. Each entry formats one field's
- * answer and mutates `ctx.answers` in place; iterator groups prepare per item.
+ * answer and mutates `ctx.answers` in place; iterator groups prepare per item
+ * via scope-bound closures on the materialised nodes.
  */
 export interface AnswerPreparationPlan {
-  readonly fieldAnswerPreparations: readonly CompiledFieldAnswerPreparation[]
-  readonly iteratorAnswerPreparationGroups: readonly IteratorAnswerPreparationGroup[]
+  readonly items: readonly AnswerPreparationPlanItem[]
 }
 
 /**
@@ -107,36 +80,29 @@ export interface CompiledRenderBlock {
 }
 
 /**
- * One compiled render function for a block inside an iterator, invoked once per
- * item scope; may yield a single RenderBlock or an array of them.
+ * One compiled render function for a nested child block (e.g. a conditional
+ * reveal). The block is compiled separately from its parent so the runtime can
+ * trace and time it independently. The parent's generated code calls
+ * `evaluateChild(childId)` instead of evaluating the child inline.
  */
-export interface CompiledIteratorRenderBlock {
-  readonly nodeId: TemplateNodeId
+export interface CompiledNestedRenderBlock {
+  readonly nodeId: NodeId | TemplateNodeId
   readonly variant: string
-  readonly render: CompiledIteratorRenderBlockFunction
-}
-
-/**
- * A MAP iterator's render work: `evaluateInput` expands the collection into
- * per-item scopes, then every block entry renders once per scope. `nodeId`
- * identifies the iterate node for trace attribution.
- */
-export interface IteratorRenderBlockGroup {
-  readonly nodeId: NodeId
-  readonly evaluateInput: CompiledIteratorInputFunction
-  readonly blocks: readonly CompiledIteratorRenderBlock[]
+  readonly render: CompiledNestedRenderBlockFunction
 }
 
 /**
  * Everything needed to render one step: optional functions producing step and
- * ancestor metadata, the flat list of block renderers, and iterator groups whose
- * blocks render per item.
+ * ancestor metadata, the flat list of static block renderers, and nested child
+ * blocks evaluated via callback. Materialised block renderers are bound into
+ * closures at materialisation time and called directly from the materialised
+ * nodes.
  */
 export interface RenderPlan {
   readonly compiledStepMetadata?: CompiledStepMetadataFunction
   readonly compiledAncestorMetadata?: CompiledAncestorMetadataFunction
   readonly renderBlocks: readonly CompiledRenderBlock[]
-  readonly iteratorRenderBlockGroups: readonly IteratorRenderBlockGroup[]
+  readonly nestedBlocks: ReadonlyMap<string, CompiledNestedRenderBlock>
 }
 
 /**
@@ -202,6 +168,7 @@ export interface CompiledStep {
   renderPlan: RenderPlan
   validationPlan: ValidationPlan
   answerPreparationPlan: AnswerPreparationPlan
+  materialisationPlan: TemplateMaterialisationPlan
 }
 
 /**
@@ -214,6 +181,7 @@ export interface CompiledJourney {
   navigationPlan: NavigationRuntimePlan
   accessLifecyclePlan: AccessLifecyclePlan
   answerPreparationPlan: AnswerPreparationPlan
+  materialisationPlan: TemplateMaterialisationPlan
 }
 
 /**

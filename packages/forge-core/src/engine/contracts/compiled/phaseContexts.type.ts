@@ -1,4 +1,5 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
+import type { RenderBlock } from '../../../framework/rendering/types'
 import type { AnswerHistory } from '../runtime/answerHistory.type'
 import type { StepValidationState } from '../runtime/evaluationState.type'
 import type { StepValidityResult } from '../runtime/stepValidityResult.type'
@@ -41,6 +42,7 @@ export interface RenderCompilationContext {
   post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
+  materialisedBlocks?: ReadonlyMap<string, RenderBlock[]>
 }
 
 /**

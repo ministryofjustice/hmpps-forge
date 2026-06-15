@@ -50,12 +50,20 @@ interface RuntimeEvaluationDiagnostics {
 
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
 
+export interface ScopeFrame {
+  readonly item: unknown
+  readonly index: number
+  readonly rawItem: unknown
+  readonly inputLength: number
+}
+
 export interface GeneratedFunctionHelpers {
   renderBlockBrand: symbol
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
+  resolveScopeReferences(value: unknown, scopeStack: ScopeFrame[]): unknown
   evaluateFunction(
     ctx: FunctionEvaluationContext,
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
@@ -180,6 +188,122 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
       throw error
     }
   },
+
+  resolveScopeReferences(value, scopeStack) {
+    return resolveScopeReferencesWalk(value, scopeStack)
+  },
+}
+
+function resolveScopeReferencesWalk(value: unknown, scopeStack: ScopeFrame[]): unknown {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => resolveScopeReferencesWalk(item, scopeStack))
+  }
+
+  const obj = value as Record<string, unknown>
+
+  if (
+    obj.type === 'AstNode.Template' &&
+    obj.originalType === 'AstNode.Expression' &&
+    obj.expressionType === 'ExpressionType.Reference'
+  ) {
+    const properties = obj.properties as Record<string, unknown> | undefined
+    const path = properties?.path as unknown[] | undefined
+
+    if (Array.isArray(path) && path.length >= 2) {
+      if (path[0] === '@scope') {
+        return resolveScopeReference(path, scopeStack)
+      }
+
+      if (path[0] === '@loop') {
+        return resolveLoopReference(path, scopeStack)
+      }
+    }
+  }
+
+  const result: Record<string, unknown> = {}
+
+  for (const key of Object.keys(obj)) {
+    result[key] = resolveScopeReferencesWalk(obj[key], scopeStack)
+  }
+
+  return result
+}
+
+function resolveScopeReference(path: unknown[], scopeStack: ScopeFrame[]): unknown {
+  const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
+  const frame = scopeStack[level]
+
+  if (!frame) {
+    return undefined
+  }
+
+  if (path.length === 2) {
+    return frame.rawItem
+  }
+
+  const property = path[2] as string
+
+  if (property === '@key') {
+    return (frame.item as Record<string, unknown>)?.['@key']
+  }
+
+  if (property === '@item') {
+    return frame.rawItem
+  }
+
+  if (property === '@value') {
+    return (frame.item as Record<string, unknown>)?.['@value']
+  }
+
+  let current: unknown = frame.item
+
+  for (let i = 2; i < path.length; i++) {
+    if (current === null || current === undefined) {
+      return undefined
+    }
+
+    current = (current as Record<string, unknown>)[path[i] as string]
+  }
+
+  return current
+}
+
+function resolveLoopReference(path: unknown[], scopeStack: ScopeFrame[]): unknown {
+  if (path.length < 3) {
+    return undefined
+  }
+
+  const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
+  const frame = scopeStack[level]
+
+  if (!frame) {
+    return undefined
+  }
+
+  const property = path[2] as string
+
+  switch (property) {
+    case 'index':
+      return frame.index + 1
+    case 'index0':
+      return frame.index
+    case 'revindex':
+      return frame.inputLength - frame.index
+    case 'revindex0':
+      return frame.inputLength - frame.index - 1
+    case 'first':
+      return frame.index === 0
+    case 'last':
+      return frame.index === frame.inputLength - 1
+    case 'length':
+      return frame.inputLength
+    default:
+      return undefined
+  }
 }
 
 function evaluateWithDiagnostics(

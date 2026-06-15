@@ -33,6 +33,7 @@ export function createRenderEvaluationPhase(
         renderPlan,
         buildCompiledRenderContext(state.context, functionRegistry, state.trace),
         state.trace,
+        state.materialisation,
       )
       const step = resolveStepMetadata(
         renderResult.step as RenderContext['step'],

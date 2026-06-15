@@ -8,6 +8,8 @@ import type {
 } from './phaseContexts.type'
 import type { DomainValidationFailure, StepValidationFailure } from '../runtime/evaluationState.type'
 import type { RenderBlock } from '../../../framework/rendering/types'
+import type { CompiledTemplatePhaseFunctions, MaterialisedTemplateNode } from '../plans/materialisationArtefacts.type'
+import type { TemplateNodeId } from '../ast/ast.type'
 
 /**
  * The render output for one step: the ordered render blocks plus the resolved
@@ -15,6 +17,7 @@ import type { RenderBlock } from '../../../framework/rendering/types'
  */
 export interface CompiledRenderResult {
   blocks: RenderBlock[]
+  materialisedBlocks: ReadonlyMap<string, RenderBlock[]>
   step: Record<string, unknown>
   ancestors: Record<string, unknown>[]
 }
@@ -108,24 +111,25 @@ export interface IteratorItemScope {
 }
 
 /**
- * Expands a MAP iterator's source collection into one scope per item. Returns an
- * empty array for an empty or absent collection, so the group simply produces
- * nothing. Async iff resolving the collection awaits.
+ * Materialises one MAP iterator root into scope-bound template node instances.
+ * Expands the collection and wraps each template's phase functions in closures
+ * that capture the iterator scope, so downstream phases call them without
+ * scope threading.
  */
-export type CompiledIteratorInputFunction = (
+export type CompiledTemplateMaterialiserFunction = (
   ctx: BasePhaseContext,
-) => IteratorItemScope[] | Promise<IteratorItemScope[]>
+  templateFunctions: ReadonlyMap<TemplateNodeId, CompiledTemplatePhaseFunctions>,
+) => MaterialisedTemplateNode[] | Promise<MaterialisedTemplateNode[]>
 
 /**
- * Validates one iterator-group field for a single item scope, returning that
- * item's failures. The caller invokes it once per IteratorItemScope; nesting is
- * handled inside the compiled body, which walks any intermediate iterator levels.
+ * Validates one materialised template node, using the scope stack to resolve
+ * iterator references. Nested iterators are already flattened by the materialiser.
  */
-export type CompiledIteratorFieldValidationFunction = (
+export type CompiledMaterialisedFieldValidationFunction = (
   ctx: ValidationContext,
   isSubmission: boolean,
   groups: string[],
-  iteratorScope: IteratorItemScope,
+  scopeStack: readonly IteratorItemScope[],
 ) => StepValidationFailure[] | Promise<StepValidationFailure[]>
 
 /**
@@ -135,12 +139,12 @@ export type CompiledIteratorFieldValidationFunction = (
 export type CompiledFieldAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
 
 /**
- * Answer preparation for one iterator-group field, scoped to a single item.
- * Mutates ctx.answers in place for that item; invoked once per IteratorItemScope.
+ * Answer preparation for one materialised template node, using the scope stack
+ * to resolve iterator references. Nested iterators are already flattened.
  */
-export type CompiledIteratorFieldAnswerPreparationFunction = (
+export type CompiledMaterialisedFieldAnswerPreparationFunction = (
   ctx: AnswerPreparationContext,
-  iteratorScope: IteratorItemScope,
+  scopeStack: readonly IteratorItemScope[],
 ) => void | Promise<void>
 
 /**
@@ -160,19 +164,48 @@ export type CompiledAncestorMetadataFunction = (
 ) => Record<string, unknown>[] | Promise<Record<string, unknown>[]>
 
 /**
- * Produces a single RenderBlock for one non-iterator block in the RenderPlan.
+ * Callback the runtime provides to a compiled render block function so it can
+ * delegate evaluation of nested child blocks. The runtime wraps each call in
+ * trace measurement, making every child block a separately-timed unit.
+ *
+ * When a child block lives inside an inline iterator, the parent passes the
+ * iterator's current scope frames so the runtime can build the child's full
+ * scope stack.
  */
-export type CompiledRenderBlockFunction = (ctx: RenderCompilationContext) => RenderBlock | Promise<RenderBlock>
+export type EvaluateChildFunction = (childId: string, additionalScopes?: IteratorItemScope[]) => Promise<RenderBlock>
 
 /**
- * Produces the RenderBlock(s) for one iterator-group block at a single item
- * scope. May return an array when the block expands to multiple blocks (e.g. an
- * inner iterator level); invoked once per IteratorItemScope.
+ * Produces a single RenderBlock for one non-iterator block in the RenderPlan.
+ * `evaluateChild` is provided when the plan declares nested blocks; the
+ * generated code calls it for each child position instead of evaluating inline.
  */
-export type CompiledIteratorRenderBlockFunction = (
+export type CompiledRenderBlockFunction = (
   ctx: RenderCompilationContext,
-  iteratorScope: IteratorItemScope,
-) => RenderBlock | RenderBlock[] | Promise<RenderBlock | RenderBlock[]>
+  evaluateChild?: EvaluateChildFunction,
+) => RenderBlock | Promise<RenderBlock>
+
+/**
+ * Produces a single RenderBlock for one materialised template node, using the
+ * scope stack from the materialised node to resolve iterator references. Nested
+ * iterators are already flattened by the materialiser. `evaluateChild` is
+ * provided when the plan declares nested blocks.
+ */
+export type CompiledMaterialisedRenderBlockFunction = (
+  ctx: RenderCompilationContext,
+  scopeStack: readonly IteratorItemScope[],
+  evaluateChild?: EvaluateChildFunction,
+) => RenderBlock | Promise<RenderBlock>
+
+/**
+ * Produces a single RenderBlock for a nested child block. Takes the render
+ * context, an optional scope stack (present when the block is nested inside an
+ * iterator parent), and an optional evaluateChild for further recursion.
+ */
+export type CompiledNestedRenderBlockFunction = (
+  ctx: RenderCompilationContext,
+  scopeStack?: readonly IteratorItemScope[],
+  evaluateChild?: EvaluateChildFunction,
+) => RenderBlock | Promise<RenderBlock>
 
 /**
  * Selects which validation groups run on GET entry: a per-rule predicate that

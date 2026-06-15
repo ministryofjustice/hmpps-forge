@@ -33,7 +33,13 @@ export function createEntryValidationPhase(
         return { action: 'continue' }
       }
 
-      const result = await evaluateValidation(validationPlan, ctx, { isSubmission: false, groups }, state.trace)
+      const result = await evaluateValidation(
+        validationPlan,
+        ctx,
+        { isSubmission: false, groups },
+        state.trace,
+        state.materialisation,
+      )
 
       state.context.global.validation = {
         stepNodeId,

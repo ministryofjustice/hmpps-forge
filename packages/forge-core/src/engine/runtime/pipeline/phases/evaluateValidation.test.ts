@@ -2,19 +2,38 @@ import { evaluateValidation } from './evaluateValidation'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { ValidationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { ValidationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type { MaterialisedTemplateNode } from '../../../contracts/plans/materialisationArtefacts.type'
 
 const mockCtx = {} as ValidationContext
 
-const runTraced = async (plan: ValidationPlan) => {
+const runTraced = async (plan: ValidationPlan, materialisedNodes: MaterialisedTemplateNode[] = []) => {
   const recorder = new TraceRecorder()
 
   recorder.beginPhase('validation')
 
-  const result = await evaluateValidation(plan, mockCtx, { isSubmission: true, groups: [] }, recorder)
+  const result = await evaluateValidation(
+    plan,
+    mockCtx,
+    { isSubmission: true, groups: [] },
+    recorder,
+    materialisedNodes,
+  )
 
   recorder.endPhase('continue')
 
   return { result, units: recorder.finish('render').phases[0].units }
+}
+
+function createMaterialisedNode(index: number): MaterialisedTemplateNode {
+  return {
+    sourceNodeId: 'template:1' as const,
+    instanceKey: `compile_ast:5[${index}]/template:1`,
+    origin: {
+      iteratorNodeId: 'compile_ast:5' as const,
+      itemIndex: index,
+    },
+    validate: vi.fn().mockResolvedValue([]),
+  }
 }
 
 describe('evaluateValidation', () => {
@@ -27,7 +46,6 @@ describe('evaluateValidation', () => {
           { nodeId: 'compile_ast:2' as const, validate: vi.fn().mockResolvedValue([]) },
           { nodeId: 'compile_ast:3' as const, validate: vi.fn().mockResolvedValue([failure]) },
         ],
-        iteratorValidationGroups: [],
       }
 
       // Act
@@ -50,7 +68,6 @@ describe('evaluateValidation', () => {
       // Arrange
       const plan: ValidationPlan = {
         fieldValidations: [{ nodeId: 'compile_ast:2' as const, validate: vi.fn().mockResolvedValue([]) }],
-        iteratorValidationGroups: [],
       }
 
       // Act
@@ -62,30 +79,19 @@ describe('evaluateValidation', () => {
   })
 
   describe('iterator and domain tracing', () => {
-    it('should record the iterator expansion and one verdict per field per item when tracing', async () => {
+    it('should record one verdict per materialised field when tracing', async () => {
       // Arrange
-      const itemScopes = [
-        { item: { value: 'a' }, index: 0, rawItem: 'a', inputLength: 2 },
-        { item: { value: 'b' }, index: 1, rawItem: 'b', inputLength: 2 },
-      ]
+      const materialisedNodes = [createMaterialisedNode(0), createMaterialisedNode(1)]
       const plan: ValidationPlan = {
         fieldValidations: [],
-        iteratorValidationGroups: [
-          {
-            nodeId: 'compile_ast:5' as const,
-            evaluateInput: vi.fn().mockResolvedValue(itemScopes),
-            fields: [{ nodeId: 'template:1' as const, validate: vi.fn().mockResolvedValue([]) }],
-          },
-        ],
       }
 
       // Act
-      const { result, units } = await runTraced(plan)
+      const { result, units } = await runTraced(plan, materialisedNodes)
 
       // Assert
       expect(result.isValid).toBe(true)
       expect(units).toEqual([
-        expect.objectContaining({ kind: 'iterator-input', nodeId: 'compile_ast:5', itemCount: 2 }),
         expect.objectContaining({ kind: 'field-validation', nodeId: 'template:1', itemIndex: 0, isValid: true }),
         expect.objectContaining({ kind: 'field-validation', nodeId: 'template:1', itemIndex: 1, isValid: true }),
       ])
@@ -96,7 +102,6 @@ describe('evaluateValidation', () => {
       const domainFailure = { passed: false, message: 'Dates must not overlap', submissionOnly: false }
       const plan: ValidationPlan = {
         fieldValidations: [],
-        iteratorValidationGroups: [],
         domain: vi.fn().mockResolvedValue([domainFailure]),
       }
 

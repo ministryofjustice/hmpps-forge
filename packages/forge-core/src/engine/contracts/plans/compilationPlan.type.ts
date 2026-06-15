@@ -54,13 +54,27 @@ export interface ReachabilityCompilationPlan {
   readonly reachabilityDisabled: boolean
 }
 
+export interface FieldAnswerPreparationSource {
+  readonly kind: 'field'
+  readonly node: FieldBlockASTNode
+}
+
+export interface MaterialisationRootAnswerPreparationSource {
+  readonly kind: 'materialisation-root'
+  readonly node: IterateASTNode
+}
+
+export type AnswerPreparationSource = FieldAnswerPreparationSource | MaterialisationRootAnswerPreparationSource
+
 export interface StepCompilationInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: RuntimePlan
   readonly fieldBlocks: FieldBlockASTNode[]
   readonly validatingFieldBlocks: FieldBlockASTNode[]
   readonly mapIterateNodes: IterateASTNode[]
+  readonly materialisationRootNodes: IterateASTNode[]
   readonly allIterateNodes: IterateASTNode[]
+  readonly answerPreparationSources: readonly AnswerPreparationSource[]
   readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
   readonly renderAncestors: JourneyASTNode[]
   readonly submitHooks: SubmitHookASTNode[]
@@ -73,6 +87,8 @@ export interface JourneyCompilationInputs {
   readonly reachabilityPlanId: NodeId
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
+  readonly stepMaterialisationRootNodes: IterateASTNode[]
+  readonly answerPreparationSources: readonly AnswerPreparationSource[]
   readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
 }
 

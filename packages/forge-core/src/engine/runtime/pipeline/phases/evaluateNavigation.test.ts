@@ -452,7 +452,6 @@ describe('evaluateNavigation', () => {
           isEntryPoint: true,
           validationPlan: {
             fieldValidations: [{ nodeId: 'compile_ast:999' as const, validate: validationSpy }],
-            iteratorValidationGroups: [],
           },
           evaluateOutcomes: vi.fn().mockReturnValue(['next']),
         }),

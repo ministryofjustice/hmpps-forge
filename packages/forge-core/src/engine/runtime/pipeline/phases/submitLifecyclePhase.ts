@@ -42,6 +42,7 @@ export function createSubmitLifecyclePhase(
           buildCompiledBaseContext(state.context, functionRegistry, state.trace),
           { isSubmission: true, groups },
           state.trace,
+          state.materialisation,
         )
 
         state.context.global.validation = {

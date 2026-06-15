@@ -162,13 +162,15 @@ export interface NavigationResolutionTraceUnit {
 /**
  * One compiled render block function's evaluation: recorded for every block
  * the render plan runs. `itemIndex` is present when the block evaluated inside
- * an iterator item.
+ * an iterator item. `properties` carries the evaluated property bag when trace
+ * verbosity includes block output.
  */
 export interface BlockEvaluationTraceUnit {
   readonly kind: 'block-evaluation'
   readonly nodeId: NodeId | TemplateNodeId
   readonly variant?: string
   readonly itemIndex?: number
+  readonly properties?: Record<string, unknown>
   readonly durationMs: number
 }
 
@@ -227,6 +229,18 @@ export interface ContextSnapshotTraceUnit {
 }
 
 /**
+ * One MAP iterator root's materialisation: how many items the collection
+ * expanded to and how many concrete template nodes were produced.
+ */
+export interface TemplateMaterialisationTraceUnit {
+  readonly kind: 'template-materialisation'
+  readonly nodeId: NodeId
+  readonly itemCount: number
+  readonly nodeCount: number
+  readonly durationMs: number
+}
+
+/**
  * One recorded decision from walking a phase plan. The union grows as phases
  * gain trace coverage; consumers must switch on `kind` and ignore kinds they
  * do not recognise.
@@ -246,6 +260,7 @@ export type TraceUnit =
   | BlockRenderTraceUnit
   | PageAssemblyTraceUnit
   | ContextSnapshotTraceUnit
+  | TemplateMaterialisationTraceUnit
 
 /**
  * How a phase concluded: a pipeline phase continues or halts, the terminal

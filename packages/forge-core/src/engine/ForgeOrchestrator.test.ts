@@ -60,11 +60,14 @@ describe('ForgeOrchestrator', () => {
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       },
-      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
-      renderPlan: { renderBlocks: [], iteratorRenderBlockGroups: [] },
+      answerPreparationPlan: {
+        items: [],
+      },
+      renderPlan: { renderBlocks: [], nestedBlocks: new Map() },
       submitLifecyclePlan: { submitHooks: [] },
       entryValidationPlan: { entryValidationRules: [] },
-      validationPlan: { fieldValidations: [], iteratorValidationGroups: [] },
+      validationPlan: { fieldValidations: [] },
+      materialisationPlan: { roots: [] },
       ...overrides,
     }
   }
@@ -84,7 +87,10 @@ describe('ForgeOrchestrator', () => {
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       },
-      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
+      answerPreparationPlan: {
+        items: [],
+      },
+      materialisationPlan: { roots: [] },
     }
   }
 

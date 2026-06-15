@@ -10,6 +10,7 @@ import { createNavigationPhase } from './runtime/pipeline/phases/navigationPhase
 import { createCleardownPhase } from './runtime/pipeline/phases/cleardownPhase'
 import { createEntryValidationPhase } from './runtime/pipeline/phases/entryValidationPhase'
 import { createSubmitLifecyclePhase } from './runtime/pipeline/phases/submitLifecyclePhase'
+import { createTemplateMaterialisationPhase } from './runtime/pipeline/phases/templateMaterialisationPhase'
 import { createRenderEvaluationPhase } from './runtime/pipeline/phases/renderEvaluationPhase'
 import { createRenderOutputTerminal } from './runtime/pipeline/terminals/renderOutputTerminal'
 import { createJourneyRedirectTerminal } from './runtime/pipeline/terminals/journeyRedirectTerminal'
@@ -203,7 +204,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
       const stepDescriptor = stepRouteIndex.get(ctx.stepNodeId)
 
       const accessPhase = createAccessLifecyclePhase(compiledStep.accessLifecyclePlan, functionRegistry)
-
       const answersPhase = createAnswerPreparationPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
       const renderEvaluationPhase = createRenderEvaluationPhase(
@@ -233,6 +233,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          createTemplateMaterialisationPhase(compiledStep.materialisationPlan, functionRegistry),
           renderEvaluationPhase,
         ],
         renderOutputTerminal,
@@ -256,6 +257,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          createTemplateMaterialisationPhase(compiledStep.materialisationPlan, functionRegistry),
           renderEvaluationPhase,
         ],
         renderOutputTerminal,
