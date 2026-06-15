@@ -39,9 +39,10 @@ export function createSubmitLifecyclePhase(
       const validate = async (groups: string[]) => {
         const validation = await evaluateValidation(
           validationPlan,
-          buildCompiledBaseContext(state.context, functionRegistry),
+          buildCompiledBaseContext(state.context, functionRegistry, state.trace),
           { isSubmission: true, groups },
           state.trace,
+          state.materialisation,
         )
 
         state.context.global.validation = {
@@ -61,9 +62,17 @@ export function createSubmitLifecyclePhase(
 
       const result = await evaluateSubmitLifecycle(
         submitLifecyclePlan,
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'submit', state.responseBindings, validate),
+        buildCompiledHookLifecycleContext(
+          state.context,
+          functionRegistry,
+          'submit',
+          state.responseBindings,
+          validate,
+          state.trace,
+        ),
         state.trace,
         nodeId => recordContextSnapshot(state, `submit-hook:${nodeId}`),
+        (hookNodeId, effectName) => recordContextSnapshot(state, `submit-hook:${hookNodeId}:effect:${effectName}`),
       )
 
       if (result.outcome === 'redirect') {

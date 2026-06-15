@@ -10,6 +10,7 @@ import { createNavigationPhase } from './runtime/pipeline/phases/navigationPhase
 import { createCleardownPhase } from './runtime/pipeline/phases/cleardownPhase'
 import { createEntryValidationPhase } from './runtime/pipeline/phases/entryValidationPhase'
 import { createSubmitLifecyclePhase } from './runtime/pipeline/phases/submitLifecyclePhase'
+import { createTemplateMaterialisationPhase } from './runtime/pipeline/phases/templateMaterialisationPhase'
 import { createRenderEvaluationPhase } from './runtime/pipeline/phases/renderEvaluationPhase'
 import { createRenderOutputTerminal } from './runtime/pipeline/terminals/renderOutputTerminal'
 import { createJourneyRedirectTerminal } from './runtime/pipeline/terminals/journeyRedirectTerminal'
@@ -17,6 +18,7 @@ import SnapshotStepRequest from './runtime/snapshot/SnapshotStepRequest'
 import TraceRecorder from './runtime/pipeline/trace/TraceRecorder'
 import { createChannelTraceObserver } from './runtime/pipeline/trace/channelTraceObserver'
 import type { NodeId } from './contracts/ast/ast.type'
+import type { RouteDescriptor } from './contracts/routing/routeDescriptors.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
@@ -24,7 +26,7 @@ import type { ComponentRegistry } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import type { TraceObserver } from '../framework/types/traceObserver.type'
+import type { TraceObserver, TraceRouteContext } from '../framework/types/traceObserver.type'
 
 export interface EvaluateOptions {
   response?: ResponseBindings
@@ -51,6 +53,7 @@ export interface ForgeOrchestratorOptions<TOut = undefined> {
 interface NodeExecutor<TOut> {
   readonly staticData: Record<string, unknown>
   readonly componentRegistry: ComponentRegistry
+  readonly route: TraceRouteContext
   readonly get?: RequestPipeline<TOut>
   readonly post?: RequestPipeline<TOut>
 }
@@ -155,7 +158,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       const result = await pipeline.execute(state)
 
       if (observer && trace) {
-        observer.onTrace({ snapshot, trace: trace.finish(result.type) })
+        observer.onTrace({ snapshot, trace: trace.finish(result.type), route: executor.route })
       }
 
       if (result.type === 'redirect') {
@@ -175,7 +178,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       }
     } catch (error) {
       if (observer && trace) {
-        observer.onTrace({ snapshot, trace: trace.finish('error') })
+        observer.onTrace({ snapshot, trace: trace.finish('error'), route: executor.route })
       }
 
       throw error
@@ -193,13 +196,14 @@ export default class ForgeOrchestrator<TOut = undefined> {
   private buildStepExecutors(mount: MountedPackage): void {
     const { functionRegistry, componentRegistry } = mount.dependencies
     const { journeyCode, packageInstance } = mount
+    const stepRouteIndex = packageInstance.getStepRouteIndex()
 
     mount.stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepNodeId)
       const runtimePlan = compiledStep.runtimePlan
+      const stepDescriptor = stepRouteIndex.get(ctx.stepNodeId)
 
       const accessPhase = createAccessLifecyclePhase(compiledStep.accessLifecyclePlan, functionRegistry)
-
       const answersPhase = createAnswerPreparationPhase(compiledStep.answerPreparationPlan, functionRegistry)
 
       const renderEvaluationPhase = createRenderEvaluationPhase(
@@ -229,6 +233,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          createTemplateMaterialisationPhase(compiledStep.materialisationPlan, functionRegistry),
           renderEvaluationPhase,
         ],
         renderOutputTerminal,
@@ -252,6 +257,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.nodeId,
             functionRegistry,
           ),
+          createTemplateMaterialisationPhase(compiledStep.materialisationPlan, functionRegistry),
           renderEvaluationPhase,
         ],
         renderOutputTerminal,
@@ -260,6 +266,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       this.executorsByRouteKey.set(this.scopedRouteKey(journeyCode, ctx.stepNodeId), {
         staticData: runtimePlan.staticData,
         componentRegistry,
+        route: this.buildRouteContext(mount, stepDescriptor, ctx.routeTemplatePath),
         get: getPipeline,
         post: postPipeline,
       })
@@ -276,6 +283,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
   private buildJourneyExecutors(mount: MountedPackage): void {
     const { functionRegistry, componentRegistry } = mount.dependencies
     const { journeyCode, packageInstance } = mount
+    const journeyRouteIndex = packageInstance.getJourneyRouteIndex()
 
     mount.journeyContexts.forEach(({ journeyNodeId, templatePath }) => {
       const compiledJourney = packageInstance.getCompiledJourney(journeyNodeId)
@@ -286,6 +294,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       }
 
       const runtimePlan = compiledJourney.runtimePlan
+      const journeyDescriptor = journeyRouteIndex.get(journeyNodeId)
 
       const pipeline = new RequestPipeline(
         [
@@ -298,9 +307,25 @@ export default class ForgeOrchestrator<TOut = undefined> {
       this.executorsByRouteKey.set(this.scopedRouteKey(journeyCode, journeyNodeId), {
         staticData: runtimePlan.staticData,
         componentRegistry,
+        route: this.buildRouteContext(mount, journeyDescriptor, templatePath),
         get: pipeline,
       })
     })
+  }
+
+  private buildRouteContext(
+    mount: MountedPackage,
+    descriptor: RouteDescriptor | undefined,
+    routeTemplatePath: string,
+  ): TraceRouteContext {
+    return {
+      journeyCode: mount.journeyCode,
+      journeyTitle: mount.packageInstance.getJourneyTitle(),
+      stepCode: descriptor?.code,
+      stepTitle: descriptor?.title,
+      routeTemplatePath,
+      formattedDslPath: descriptor?.formattedDslPath,
+    }
   }
 
   /** Namespaces a node id under its journey so route keys stay unique across journeys. */

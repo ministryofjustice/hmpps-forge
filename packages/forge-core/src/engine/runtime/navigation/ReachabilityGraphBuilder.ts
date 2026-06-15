@@ -7,6 +7,7 @@ import type { ValidationPlan } from '../../contracts/plans/compilationArtefacts.
 import type { CompiledReachabilityResult } from '../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 import { evaluateValidation } from '../pipeline/phases/evaluateValidation'
+import { evaluateTemplateMaterialisation } from '../pipeline/phases/evaluateTemplateMaterialisation'
 
 /**
  * Builds the reachability state for a journey.
@@ -69,7 +70,7 @@ export default class ReachabilityGraphBuilder {
         declarationIndex,
         isEntryPoint: compiledStep.isEntryPoint,
         isConditionalEntry: false,
-        hasValidation: this.hasValidationChecks(compiledStep.validationPlan),
+        hasValidation: this.hasStaticValidationChecks(compiledStep.validationPlan),
         isReachable: false,
         isValid: true,
         forwardRouteTemplatePaths: [],
@@ -84,12 +85,14 @@ export default class ReachabilityGraphBuilder {
   /**
    * An empty ValidationPlan is trivially valid, so it must not mark the step as
    * one whose validity is evidence of user progress (NavigationPathAnalyzer
-   * reads `hasValidation && isValid` as "completed").
+   * reads `hasValidation && isValid` as "completed"). Materialised validations
+   * are bound at materialisation time and counted via the materialisation plan,
+   * but for reachability purposes the static field check is sufficient — a step
+   * with only materialised validation will still pass through the graph walk
+   * and have its validity evaluated at runtime.
    */
-  private hasValidationChecks(validationPlan: ValidationPlan): boolean {
-    return validationPlan.fieldValidations.length > 0 ||
-      validationPlan.iteratorValidationGroups.length > 0 ||
-      validationPlan.domain !== undefined
+  private hasStaticValidationChecks(validationPlan: ValidationPlan): boolean {
+    return validationPlan.fieldValidations.length > 0 || validationPlan.domain !== undefined
   }
 
   private seedEntryPointsFromCompiled(
@@ -220,13 +223,21 @@ export default class ReachabilityGraphBuilder {
         continue
       }
 
-      // No trace recorder on purpose: the step's own pipeline records these
-      // units; a reachability re-check would double-record them. An empty
-      // validation plan no-ops to valid.
-      const validationResult = await evaluateValidation(compiledStep.validationPlan, validationCtx, {
-        isSubmission: false,
-        groups: ['default'],
-      })
+      const materialisedNodes = await evaluateTemplateMaterialisation(compiledStep.materialisationPlan, validationCtx)
+      const hasMaterialisedValidation = materialisedNodes.some(node => node.validate !== undefined)
+
+      current.hasValidation = this.hasStaticValidationChecks(compiledStep.validationPlan) || hasMaterialisedValidation
+
+      const validationResult = await evaluateValidation(
+        compiledStep.validationPlan,
+        validationCtx,
+        {
+          isSubmission: false,
+          groups: ['default'],
+        },
+        undefined,
+        materialisedNodes,
+      )
 
       current.isValid = validationResult.isValid
       current.fieldFailures = validationResult.fieldFailures

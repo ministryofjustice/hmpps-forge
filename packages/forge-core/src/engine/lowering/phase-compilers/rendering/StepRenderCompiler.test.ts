@@ -18,7 +18,10 @@ import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRunti
 import { attachDSLSourceMetadata } from '../../../diagnostics/sourceMetadata'
 import type { RenderCompilationContext } from '../../../contracts/compiled/phaseContexts.type'
 import type { RenderBlock } from '../../../../framework/rendering/types'
+import type { CompiledTemplateMaterialisationRoot } from '../../../contracts/plans/materialisationArtefacts.type'
 import { evaluateRender } from '../../../runtime/pipeline/phases/evaluateRender'
+import { evaluateTemplateMaterialisation } from '../../../runtime/pipeline/phases/evaluateTemplateMaterialisation'
+import TemplateMaterialisationCompiler from '../materialisation/TemplateMaterialisationCompiler'
 import StepRenderCompiler from './StepRenderCompiler'
 
 function createStep(): StepASTNode {
@@ -97,6 +100,37 @@ function createCtx(overrides: Partial<RenderCompilationContext> = {}): RenderCom
   }
 }
 
+async function materialiseTemplates(
+  runDependencies: CompilationDependencies,
+  iterateNodes: IterateASTNode[],
+  ctx: RenderCompilationContext,
+) {
+  const materialisationCompiler = new TemplateMaterialisationCompiler(runDependencies)
+  const renderCompiler = new StepRenderCompiler(runDependencies)
+  const { entries: renderFunctions } = renderCompiler.compileMaterialisedRenderFunctions(iterateNodes)
+  const roots = iterateNodes
+    .map(iterateNode => materialisationCompiler.compileMaterialisationRoot(iterateNode))
+    .filter(root => root !== undefined)
+    .map(root => ({
+      ...root,
+      templateFunctions: new Map(
+        [...renderFunctions.entries()].map(([nodeId, entry]) => [
+          nodeId,
+          { render: entry.render, renderVariant: entry.variant },
+        ]),
+      ) as CompiledTemplateMaterialisationRoot['templateFunctions'],
+    }))
+
+  return evaluateTemplateMaterialisation({ roots }, ctx)
+}
+
+function getMaterialisedBlocks(
+  result: Awaited<ReturnType<typeof evaluateRender>>,
+  iterateNode: IterateASTNode,
+): RenderBlock[] {
+  return result.materialisedBlocks.get(String(iterateNode.id)) ?? []
+}
+
 describe('StepRenderCompiler', () => {
   let compiler: StepRenderCompiler
   const dependencies: CompilationDependencies = {
@@ -129,7 +163,7 @@ describe('StepRenderCompiler', () => {
       const syncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const plan = syncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = syncCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
       const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -161,7 +195,7 @@ describe('StepRenderCompiler', () => {
       const asyncCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const plan = asyncCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = asyncCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
       const blockResult = plan.renderBlocks[0].render(createCtx({ conditions: functionRegistry }))
       const result = await evaluateRender(plan, createCtx({ conditions: functionRegistry }))
 
@@ -175,16 +209,11 @@ describe('StepRenderCompiler', () => {
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', 'Hello')
         .build()
-      const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
-      const iterateNode = createIterateNode(createTemplate([field]))
-
       // Act
-      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [], [iterateNode])
+      const plan = compiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Assert
       expect(plan.renderBlocks[0].nodeId).toBe(block.id)
-      expect(plan.iteratorRenderBlockGroups[0].nodeId).toBe(iterateNode.id)
-      expect(plan.iteratorRenderBlockGroups[0].blocks[0].nodeId).toBeDefined()
     })
 
     it('should not mutate source collection objects when rendering iterator blocks', async () => {
@@ -195,13 +224,18 @@ describe('StepRenderCompiler', () => {
       const iterateNode = createIterateNode(createTemplate([field]))
 
       // Act
+      const ctx = createCtx({ data: { members } })
       const result = await evaluateRender(
-        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
-        createCtx({ data: { members } }),
+        compiler.compileRenderPlan(createStep(), []),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      expect(result.blocks).toHaveLength(1)
+      const blocks = getMaterialisedBlocks(result, iterateNode)
+
+      expect(blocks).toHaveLength(1)
       expect(member).toEqual({ memberName: 'Ada' })
       expect(JSON.stringify(members)).toBe('[{"memberName":"Ada"}]')
     })
@@ -214,16 +248,21 @@ describe('StepRenderCompiler', () => {
       const iterateNode = createIterateNode(createTemplate([field]))
 
       // Act
+      const ctx = createCtx({ data: { members } })
       const result = await evaluateRender(
-        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
-        createCtx({ data: { members } }),
+        compiler.compileRenderPlan(createStep(), []),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      expect(result.blocks[0].properties.defaultValue).toBe(member)
-      expect(result.blocks[0].properties.value).toBe(member)
-      expect(result.blocks[0].properties.value).not.toHaveProperty('@index')
-      expect(result.blocks[0].properties.value).not.toHaveProperty('@item')
+      const blocks = getMaterialisedBlocks(result, iterateNode)
+
+      expect(blocks[0].properties.defaultValue).toBe(member)
+      expect(blocks[0].properties.value).toBe(member)
+      expect(blocks[0].properties.value).not.toHaveProperty('@index')
+      expect(blocks[0].properties.value).not.toHaveProperty('@item')
     })
 
     it('should evaluate generator expressions when rendering block properties', async () => {
@@ -432,7 +471,7 @@ describe('StepRenderCompiler', () => {
         )
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
-      const plan = compiler.compileRenderPlan(createStep(), [], [iterateNode])
+      const plan = compiler.compileRenderPlan(createStep(), [])
 
       const get = vi.fn((name: string) => {
         if (name === 'renderMember') {
@@ -446,16 +485,21 @@ describe('StepRenderCompiler', () => {
       })
 
       // Act
+      const ctx = createCtx({
+        data: { members },
+        conditions: { get } as unknown as RenderCompilationContext['conditions'],
+      })
       const result = await evaluateRender(
         plan,
-        createCtx({
-          data: { members },
-          conditions: { get } as unknown as RenderCompilationContext['conditions'],
-        }),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      expect(result.blocks[0].properties.html).toBe('Ada<br>Member')
+      const blocks = getMaterialisedBlocks(result, iterateNode)
+
+      expect(blocks[0].properties.html).toBe('Ada<br>Member')
     })
 
     it('should evaluate Loop metadata inside iterator blocks', async () => {
@@ -474,13 +518,18 @@ describe('StepRenderCompiler', () => {
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
 
       // Act
+      const ctx = createCtx({ data: { members } })
       const result = await evaluateRender(
-        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
-        createCtx({ data: { members } }),
+        compiler.compileRenderPlan(createStep(), []),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      expect(result.blocks.map(block => block.properties)).toMatchObject([
+      const blocks = getMaterialisedBlocks(result, iterateNode)
+
+      expect(blocks.map(block => block.properties)).toMatchObject([
         {
           index: 1,
           index0: 0,
@@ -545,86 +594,93 @@ describe('StepRenderCompiler', () => {
       const iterateNode = createIterateNode(createTemplate([templateBlock]), createReference(['data', 'teams']))
 
       // Act
+      const ctx = createCtx({ data: { teams } })
       const result = await evaluateRender(
-        compiler.compileRenderPlan(createStep(), [], [iterateNode]),
-        createCtx({ data: { teams } }),
+        compiler.compileRenderPlan(createStep(), []),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      expect(result.blocks[0].properties.members).toEqual([
+      const blocks = getMaterialisedBlocks(result, iterateNode)
+
+      expect(blocks[0].properties.members).toEqual([
         { teamIndex: 1, teamIndex0: 0, memberIndex: 1, teamName: 'Alpha', memberName: 'Ada' },
         { teamIndex: 1, teamIndex0: 0, memberIndex: 2, teamName: 'Alpha', memberName: 'Grace' },
       ])
-      expect(result.blocks[1].properties.members).toEqual([
+      expect(blocks[1].properties.members).toEqual([
         { teamIndex: 2, teamIndex0: 1, memberIndex: 1, teamName: 'Beta', memberName: 'Linus' },
       ])
     })
 
     it('should keep newly added inline iterator fields blank when existing rows have POST values', async () => {
       // Arrange
-      const collection = createCollectionBlock(
-        createIterateNode(
-          createTemplate([
-            {
-              type: ASTNodeType.BLOCK,
-              variant: 'text-input',
-              blockType: BlockType.FIELD,
-              properties: {
-                code: ASTTestFactory.formatExpression('memberName_%1', [
-                  {
-                    type: ASTNodeType.EXPRESSION,
-                    expressionType: ExpressionType.REFERENCE,
-                    properties: {
-                      path: ['@loop', 0, 'index0'],
-                    },
-                  },
-                ]),
-                defaultValue: {
+      const iterateNode = createIterateNode(
+        createTemplate([
+          {
+            type: ASTNodeType.BLOCK,
+            variant: 'text-input',
+            blockType: BlockType.FIELD,
+            properties: {
+              code: ASTTestFactory.formatExpression('memberName_%1', [
+                {
                   type: ASTNodeType.EXPRESSION,
                   expressionType: ExpressionType.REFERENCE,
                   properties: {
-                    path: ['@scope', 0, 'memberName'],
+                    path: ['@loop', 0, 'index0'],
                   },
+                },
+              ]),
+              defaultValue: {
+                type: ASTNodeType.EXPRESSION,
+                expressionType: ExpressionType.REFERENCE,
+                properties: {
+                  path: ['@scope', 0, 'memberName'],
                 },
               },
             },
-          ]),
-        ),
+          },
+        ]),
       )
+      const collection = createCollectionBlock(iterateNode)
       const plan = compiler.compileRenderPlan(createStepWithBlocks([collection]), [])
 
       // Act
+      const ctx = createCtx({
+        data: {
+          members: [{ memberName: 'Alice' }, { memberName: '' }],
+        },
+        request: { method: 'POST' },
+        answers: {
+          memberName_0: {
+            current: 'Alice',
+            mutations: [
+              { source: 'post', value: 'Alice' },
+              { source: 'action', value: 'Alice' },
+            ],
+          },
+          memberName_1: {
+            current: '',
+            mutations: [{ source: 'action', value: '' }],
+          },
+        },
+      })
       const result = await evaluateRender(
         plan,
-        createCtx({
-          data: {
-            members: [{ memberName: 'Alice' }, { memberName: '' }],
-          },
-          request: { method: 'POST' },
-          answers: {
-            memberName_0: {
-              current: 'Alice',
-              mutations: [
-                { source: 'post', value: 'Alice' },
-                { source: 'action', value: 'Alice' },
-              ],
-            },
-            memberName_1: {
-              current: '',
-              mutations: [{ source: 'action', value: '' }],
-            },
-          },
-        }),
+        ctx,
+        undefined,
+        await materialiseTemplates(dependencies, [iterateNode], ctx),
       )
 
       // Assert
-      const rows = result.blocks[0].properties.collection as Array<Array<RenderBlock>>
+      const blocks = getMaterialisedBlocks(result, iterateNode)
 
-      expect(rows).toHaveLength(2)
-      expect(rows[0][0].properties.code).toBe('memberName_0')
-      expect(rows[0][0].properties.value).toBe('Alice')
-      expect(rows[1][0].properties.code).toBe('memberName_1')
-      expect(rows[1][0].properties.value).toBe('')
+      expect(blocks).toHaveLength(2)
+      expect(blocks[0].properties.code).toBe('memberName_0')
+      expect(blocks[0].properties.value).toBe('Alice')
+      expect(blocks[1].properties.code).toBe('memberName_1')
+      expect(blocks[1].properties.value).toBe('')
     })
 
     it('should compile summary-list rows with match expressions and visibleWhen predicates', async () => {
@@ -862,7 +918,7 @@ describe('StepRenderCompiler', () => {
       })
 
       const pipelineCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const plan = pipelineCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = pipelineCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
       const result = await evaluateRender(
@@ -940,7 +996,7 @@ describe('StepRenderCompiler', () => {
       })
 
       const findCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const plan = findCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = findCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
       const result = await evaluateRender(
@@ -1015,7 +1071,7 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const result = await evaluateRender(
-        formatCompiler.compileRenderPlan(createStepWithBlocks([block]), [], []),
+        formatCompiler.compileRenderPlan(createStepWithBlocks([block]), []),
         createCtx({ conditions: functionRegistry }),
       )
 
@@ -1051,7 +1107,7 @@ describe('StepRenderCompiler', () => {
 
       // Act
       const result = await evaluateRender(
-        skipCompiler.compileRenderPlan(createStepWithBlocks([block]), [], []),
+        skipCompiler.compileRenderPlan(createStepWithBlocks([block]), []),
         createCtx({ conditions: functionRegistry }),
       )
 
@@ -1078,7 +1134,7 @@ describe('StepRenderCompiler', () => {
       })
 
       const typeErrorCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const plan = typeErrorCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = typeErrorCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
       let thrown: unknown
@@ -1133,7 +1189,7 @@ describe('StepRenderCompiler', () => {
       })
 
       const throwCompiler = new StepRenderCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const plan = throwCompiler.compileRenderPlan(createStepWithBlocks([block]), [], [])
+      const plan = throwCompiler.compileRenderPlan(createStepWithBlocks([block]), [])
 
       // Act
       let thrown: unknown

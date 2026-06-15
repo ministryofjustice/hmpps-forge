@@ -17,7 +17,7 @@ import NodeRegistrationWalker from './ast/ast-state/NodeRegistrationWalker'
 import CompilationPlanner from './lowering/CompilationPlanner'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
 import ASTSemanticValidator from './ast/validation/ASTSemanticValidator'
-import { createDSLSourceMap } from './diagnostics/sourceMetadata'
+import { createDSLSourceMap, getDSLSourceMetadata } from './diagnostics/sourceMetadata'
 import getAncestorChain from './ast/ast-state/getAncestorChain'
 
 export default class JourneyCompiler {
@@ -108,9 +108,11 @@ export default class JourneyCompiler {
           {
             nodeId: node.id,
             path: node.properties.path,
+            code: node.properties.code,
             title: node.properties.title,
             description: node.properties.description,
             metadata: node.properties.metadata,
+            formattedDslPath: getDSLSourceMetadata(node)?.formattedDslPath,
             ancestorJourneyNodeIds,
           },
         ]

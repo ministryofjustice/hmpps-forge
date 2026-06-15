@@ -4,11 +4,12 @@ import {
   ExpressionType,
   FunctionType,
   HookType,
+  IteratorType,
   OutcomeType,
   PredicateType,
   StructureType,
 } from '../../authoring/types/enums'
-import type { FieldBlockDefinition } from '../../components/types/structures.type'
+import type { BlockDefinition, FieldBlockDefinition } from '../../components/types/structures.type'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { ReachabilityContext } from '../contracts/compiled/phaseContexts.type'
 import JourneyCompiler from '../JourneyCompiler'
@@ -41,6 +42,7 @@ function createComponentRegistry(): ComponentRegistry {
   const componentRegistry = new ComponentRegistry()
 
   componentRegistry.registerMany([buildComponent<FieldBlockDefinition>('text', () => '<input />')])
+  componentRegistry.registerMany([buildComponent<BlockDefinition>('collection-block', () => '<div />')])
 
   return componentRegistry
 }
@@ -178,6 +180,84 @@ describe('CodegenOrchestrator', () => {
       expect(fieldCodes).toEqual(['name'])
       expect(outcomes).toEqual(['/next'])
       expect(resumeActive).toBe(true)
+    })
+
+    it('should assemble answer preparation items in authored order', () => {
+      // Arrange
+      const compiler = new JourneyCompiler({
+        functionRegistry: createFunctionRegistry(),
+        componentRegistry: createComponentRegistry(),
+      })
+      const journey = createJourneyDefinition()
+      const startStep = journey.steps?.[0]
+
+      if (startStep === undefined) {
+        throw new Error('Expected start step')
+      }
+
+      startStep.blocks = [
+        createFieldBlock(),
+        {
+          type: StructureType.BLOCK,
+          blockType: BlockType.BASIC,
+          variant: 'collection-block',
+          collection: {
+            type: ExpressionType.ITERATE,
+            input: { type: ExpressionType.REFERENCE, path: ['data', 'firstItems'] },
+            iterator: {
+              type: IteratorType.MAP,
+              yield: {
+                blocks: [
+                  {
+                    type: StructureType.BLOCK,
+                    blockType: BlockType.FIELD,
+                    variant: 'text',
+                    code: 'firstItem',
+                  },
+                ],
+              },
+            },
+          },
+        } as BlockDefinition,
+        {
+          ...createFieldBlock(),
+          code: 'secondName',
+        },
+        {
+          type: StructureType.BLOCK,
+          blockType: BlockType.BASIC,
+          variant: 'collection-block',
+          collection: {
+            type: ExpressionType.ITERATE,
+            input: { type: ExpressionType.REFERENCE, path: ['answers', 'firstItem'] },
+            iterator: {
+              type: IteratorType.MAP,
+              yield: {
+                blocks: [
+                  {
+                    type: StructureType.BLOCK,
+                    blockType: BlockType.FIELD,
+                    variant: 'text',
+                    code: 'secondItem',
+                  },
+                ],
+              },
+            },
+          },
+        } as BlockDefinition,
+      ]
+
+      // Act
+      const result = compiler.compile(journey)
+      const step = getCompiledStep(Array.from(result.steps.values()), 'start')
+
+      // Assert
+      expect(step.answerPreparationPlan.items.map(item => item.kind)).toEqual([
+        'field',
+        'materialisation-root',
+        'field',
+        'materialisation-root',
+      ])
     })
   })
 })

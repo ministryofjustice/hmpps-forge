@@ -64,6 +64,38 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return this.usedAwait
   }
 
+  markAsAsync(): void {
+    this.usedAwait = true
+  }
+
+  saveState(): {
+    usedAwait: boolean
+    iteratorFrames: IteratorScopeFrame[]
+    selfCodeExprs: string[]
+    localVarCounter: number
+  } {
+    return {
+      usedAwait: this.usedAwait,
+      iteratorFrames: [...this.iteratorFrames],
+      selfCodeExprs: [...this.selfCodeExprs],
+      localVarCounter: this.localVarCounter,
+    }
+  }
+
+  restoreState(state: {
+    usedAwait: boolean
+    iteratorFrames: IteratorScopeFrame[]
+    selfCodeExprs: string[]
+    localVarCounter: number
+  }): void {
+    this.usedAwait = state.usedAwait
+    this.iteratorFrames.length = 0
+    this.iteratorFrames.push(...state.iteratorFrames)
+    this.selfCodeExprs.length = 0
+    this.selfCodeExprs.push(...state.selfCodeExprs)
+    this.localVarCounter = state.localVarCounter
+  }
+
   /**
    * Clears per-function generation state before a phase compiler builds source.
    */

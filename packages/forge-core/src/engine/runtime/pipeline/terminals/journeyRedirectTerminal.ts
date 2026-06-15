@@ -16,7 +16,7 @@ export function createJourneyRedirectTerminal<TOut>(
     async execute(state) {
       const result = await evaluateNavigation(
         navigationPlan,
-        buildCompiledBaseContext(state.context, functionRegistry),
+        buildCompiledBaseContext(state.context, functionRegistry, state.trace),
         { routeTemplateCatalog, redirectRule: 'journey-root' },
         state.trace,
       )

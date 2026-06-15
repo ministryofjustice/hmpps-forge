@@ -60,11 +60,14 @@ describe('ForgeOrchestrator', () => {
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       },
-      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
-      renderPlan: { renderBlocks: [], iteratorRenderBlockGroups: [] },
+      answerPreparationPlan: {
+        items: [],
+      },
+      renderPlan: { renderBlocks: [], nestedBlocks: new Map() },
       submitLifecyclePlan: { submitHooks: [] },
       entryValidationPlan: { entryValidationRules: [] },
-      validationPlan: { fieldValidations: [], iteratorValidationGroups: [] },
+      validationPlan: { fieldValidations: [] },
+      materialisationPlan: { roots: [] },
       ...overrides,
     }
   }
@@ -84,7 +87,10 @@ describe('ForgeOrchestrator', () => {
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       },
-      answerPreparationPlan: { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] },
+      answerPreparationPlan: {
+        items: [],
+      },
+      materialisationPlan: { roots: [] },
     }
   }
 
@@ -108,6 +114,7 @@ describe('ForgeOrchestrator', () => {
       getCompiledStep: vi.fn((stepNodeId: NodeId) => compiledSteps.get(stepNodeId)),
       getCompiledJourney: vi.fn((journeyNodeId: NodeId) => compiledJourneys.get(journeyNodeId)),
       getJourneyCode: vi.fn().mockReturnValue(journeyCode),
+      getJourneyTitle: vi.fn().mockReturnValue(`Journey ${journeyCode}`),
     } as unknown as Mocked<PackageInstance>
   }
 
