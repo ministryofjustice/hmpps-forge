@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RequestTraceEvent } from '../testing'
+import type { RequestTraceEvent } from '../../src/testing'
 import { answerOf, answersFromTrace } from './contractHelpers'
 import {
   createHooksClient,
@@ -30,6 +30,7 @@ import {
   firstMatchWinsJourney,
   clearThenHasAnswerJourney,
   accessFieldsToClearReachableJourney,
+  throwErrorBeforeValidationJourney,
 } from './hooks.fixtures'
 
 describe('hooks and effects contracts', () => {
@@ -168,6 +169,25 @@ describe('hooks and effects contracts', () => {
 
       // Assert
       expect(session.effectLog).toEqual(['always', 'valid'])
+    })
+
+    it('should return error when onAlways throwError fires before validation runs', async () => {
+      // Arrange
+      const client = createHooksClient(throwErrorBeforeValidationJourney)
+
+      // Act
+      const result = await client.post('/throw-before-valid/form', {
+        session: {},
+        body: { name: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('error')
+
+      if (result.type === 'error') {
+        expect(result.status).toBe(503)
+        expect(result.message).toBe('Service unavailable')
+      }
     })
 
     it('should run onAlways effects before onInvalid effects when validation fails', async () => {

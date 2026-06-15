@@ -11,6 +11,7 @@ import {
   access,
   submit,
   redirect,
+  throwError,
   validation,
   defineEffectFunctions,
   type EffectFunctionExpr,
@@ -18,8 +19,8 @@ import {
   Data,
   Self,
   Condition,
-} from '../authoring'
-import { ForgeTestHarness, type RequestTraceEvent } from '../testing'
+} from '../../src/authoring'
+import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import { Effects, effectImplementations, type ContractSession } from './contractHelpers'
 
 export interface HooksSession extends ContractSession {
@@ -824,5 +825,48 @@ export const accessFieldsToClearReachableJourney = journey({
       reachability: { entryWhen: true },
       blocks: [GovUKTextInput({ code: 'name', label: 'Name' })],
     }),
+  ],
+})
+
+export const throwErrorBeforeValidationJourney = journey({
+  code: 'throw-before-valid',
+  path: '/throw-before-valid',
+  title: 'Throw Error Before Validation',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'name',
+          label: 'Name',
+          validWhen: [
+            validation({
+              condition: Self().match(Condition.IsRequired()),
+              message: 'Enter your name',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onAlways: {
+            next: [
+              throwError({
+                status: 503,
+                message: 'Service unavailable',
+              }),
+            ],
+          },
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })

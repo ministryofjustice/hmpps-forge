@@ -20,8 +20,8 @@ import {
   Loop,
   Self,
   Condition,
-} from '../authoring'
-import { CollectionBlock } from '../components'
+} from '../../src/authoring'
+import { CollectionBlock } from '../../src/components'
 import { Effects } from './contractHelpers'
 
 export const basicBlocksJourney = journey({
@@ -592,6 +592,38 @@ export const routeTreeJourney = journey({
         submit({
           validate: false,
           onAlways: { next: [redirect({ goto: 'done' })] },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const parsedValueRenderJourney = journey({
+  code: 'parsed-render',
+  path: '/parsed-render',
+  title: 'Parsed Value Render',
+  onAccess: [access({ effects: [Effects.LoadAnswers('parsed-render')] })],
+  steps: [
+    step({
+      path: '/name',
+      title: 'Name',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'fullName',
+          label: 'Full name',
+          parsers: [Transformer.String.ToUpperCase()],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('parsed-render')],
+            next: [redirect({ goto: 'done' })],
+          },
         }),
       ],
     }),

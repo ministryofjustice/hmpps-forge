@@ -23,8 +23,8 @@ import {
   Format,
   Self,
   Condition,
-} from '../authoring'
-import { ForgeTestHarness } from '../testing'
+} from '../../src/authoring'
+import { ForgeTestHarness } from '../../src/testing'
 import { Effects, effectImplementations } from './contractHelpers'
 
 interface NavigationEffectShape {

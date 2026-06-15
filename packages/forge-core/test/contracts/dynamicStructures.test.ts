@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { RequestTraceEvent } from '../testing'
+import type { RequestTraceEvent } from '../../src/testing'
 import { createClient, createTracedClient, answerOf, answersFromTrace, type ContractSession } from './contractHelpers'
 import {
   dependentWhenClearsAnswerJourney,
@@ -24,6 +24,7 @@ import {
   orDependentWhenJourney,
   formatterThenDependentWhenJourney,
   cleardownMutationTrailJourney,
+  cleardownOnGetJourney,
 } from './dynamicStructures.fixtures'
 
 describe('dynamic structures', () => {
@@ -483,6 +484,24 @@ describe('dynamic structures', () => {
 
       if (result.type === 'redirect') {
         expect(result.url).toBe('/cond-entry/standard')
+      }
+    })
+
+    it('should clear stale answers on GET when step becomes unreachable', async () => {
+      // Arrange
+      const client = createClient(cleardownOnGetJourney)
+      const session: ContractSession = {
+        answers: { 'cleardown-get': { route: 'skip', detail: 'stale info' } },
+      }
+
+      // Act
+      const result = await client.get('/cleardown-get/choose', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'detail').current).toBeUndefined()
       }
     })
 

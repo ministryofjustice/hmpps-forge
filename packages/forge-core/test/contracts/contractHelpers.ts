@@ -1,6 +1,6 @@
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { journey, defineEffectFunctions, type EffectFunctionExpr } from '../authoring'
-import { ForgeTestHarness, type RequestTraceEvent } from '../testing'
+import { journey, defineEffectFunctions, type EffectFunctionExpr } from '../../src/authoring'
+import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 
 export interface ContractEffectShape {
   LoadAnswers: (journeyCode: string) => EffectFunctionExpr

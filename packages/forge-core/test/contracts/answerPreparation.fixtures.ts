@@ -21,8 +21,8 @@ import {
   Self,
   Condition,
   Transformer,
-} from '../authoring'
-import { CollectionBlock } from '../components'
+} from '../../src/authoring'
+import { CollectionBlock } from '../../src/components'
 import { Effects } from './contractHelpers'
 
 export const storeValuesJourney = journey({

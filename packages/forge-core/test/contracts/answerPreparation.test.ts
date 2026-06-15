@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RequestTraceEvent } from '../testing'
+import type { RequestTraceEvent } from '../../src/testing'
 import { createClient, createTracedClient, answerOf, answersFromTrace, type ContractSession } from './contractHelpers'
 import {
   storeValuesJourney,

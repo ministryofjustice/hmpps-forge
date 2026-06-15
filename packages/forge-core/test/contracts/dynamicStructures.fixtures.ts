@@ -19,7 +19,7 @@ import {
   Condition,
   Self,
   Transformer,
-} from '../authoring'
+} from '../../src/authoring'
 import { Effects } from './contractHelpers'
 
 export const dependentWhenClearsAnswerJourney = journey({
@@ -919,6 +919,58 @@ export const cleardownMutationTrailJourney = journey({
           validate: false,
           onAlways: {
             effects: [Effects.SaveAnswers('cleardown-trail')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const cleardownOnGetJourney = journey({
+  code: 'cleardown-get',
+  path: '/cleardown-get',
+  title: 'Cleardown on GET',
+  onAccess: [access({ effects: [Effects.LoadAnswers('cleardown-get')] })],
+  steps: [
+    step({
+      path: '/choose',
+      title: 'Choose',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'route',
+          fieldset: { legend: { text: 'Which route?' } },
+          items: [
+            { value: 'detail', text: 'Detail' },
+            { value: 'skip', text: 'Skip' },
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('cleardown-get')],
+            next: [
+              redirect({ when: Answer('route').match(Condition.Equals('detail')), goto: 'detail' }),
+              redirect({ goto: 'done' }),
+            ],
+          },
+        }),
+      ],
+    }),
+    step({
+      path: '/detail',
+      title: 'Detail',
+      blocks: [GovUKTextInput({ code: 'detail', label: 'Detail' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('cleardown-get')],
             next: [redirect({ goto: 'done' })],
           },
         }),

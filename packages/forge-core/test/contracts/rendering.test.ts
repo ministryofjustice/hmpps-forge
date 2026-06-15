@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BlockType } from '../authoring/types/enums'
-import type { RenderBlock } from '../framework/rendering/types'
+import { BlockType } from '../../src/authoring/types/enums'
+import type { RenderBlock } from '../../src/framework/rendering/types'
 import { createClient, answerOf, type ContractSession } from './contractHelpers'
 import {
   basicBlocksJourney,
@@ -21,6 +21,7 @@ import {
   stepViewJourney,
   blockSkipPropsJourney,
   routeTreeJourney,
+  parsedValueRenderJourney,
 } from './rendering.fixtures'
 
 function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
@@ -476,6 +477,27 @@ describe('rendering contracts', () => {
         expect(fieldBlock?.properties).not.toHaveProperty('parsers')
         expect(fieldBlock?.properties).not.toHaveProperty('validWhen')
         expect(fieldBlock?.properties).not.toHaveProperty('dependentWhen')
+      }
+    })
+
+    it('should use parsed value as block value on GET when field has parsers', async () => {
+      // Arrange
+      const client = createClient(parsedValueRenderJourney)
+      const session: ContractSession = {
+        answers: { 'parsed-render': { fullName: 'ada lovelace' } },
+      }
+
+      // Act
+      const result = await client.get('/parsed-render/name', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const nameBlock = result.context.blocks.find(b => b.properties.code === 'fullName')
+
+        expect(nameBlock).toBeDefined()
+        expect(nameBlock?.properties.value).toBe('ADA LOVELACE')
       }
     })
 
