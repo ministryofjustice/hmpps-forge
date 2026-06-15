@@ -60,9 +60,10 @@ export interface MaterialisationRootAnswerPreparationPlanItem {
 export type AnswerPreparationPlanItem = FieldAnswerPreparationPlanItem | MaterialisationRootAnswerPreparationPlanItem
 
 /**
- * All answer preparation for one step or journey. Each entry formats one field's
- * answer and mutates `ctx.answers` in place; iterator groups prepare per item
- * via scope-bound closures on the materialised nodes.
+ * All answer preparation for one step or journey. Items are walked in declared
+ * order: plain fields format one answer each; materialisation roots expand a
+ * MAP iterator's collection and prepare each materialised field's answer via
+ * scope-bound closures.
  */
 export interface AnswerPreparationPlan {
   readonly items: readonly AnswerPreparationPlanItem[]

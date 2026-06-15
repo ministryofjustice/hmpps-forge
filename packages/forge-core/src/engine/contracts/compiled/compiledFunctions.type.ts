@@ -95,9 +95,9 @@ export type CompiledDomainValidationFunction = (
 ) => DomainValidationFailure[] | Promise<DomainValidationFailure[]>
 
 /**
- * One iteration scope produced by expanding a MAP iterator's collection. Every
- * field/block in the iterator group runs once per scope; @scope/@loop references
- * resolve against these values.
+ * One iteration scope produced by expanding a MAP iterator's collection.
+ * The materialiser builds a scope stack of these frames (outermost first) for
+ * each materialised node; @scope/@loop references resolve against these values.
  */
 export interface IteratorItemScope {
   /** The per-item value bound for this iteration */

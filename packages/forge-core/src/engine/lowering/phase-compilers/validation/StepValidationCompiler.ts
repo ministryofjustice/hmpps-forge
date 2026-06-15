@@ -112,10 +112,11 @@ export default class StepValidationCompiler {
 
   /**
    * Assembles the step's {@link ValidationPlan}: one compiled validation function per
-   * field that declares `validWhen`, one iterator group per MAP iterate node, and an
-   * optional step-level domain validation function. Fields and iterate nodes without
-   * configured validation contribute nothing; a step where nothing validates yields
-   * an empty plan, which trivially passes.
+   * non-iterator field that declares `validWhen`, plus an optional step-level domain
+   * validation function. Materialised field validations are compiled separately via
+   * {@link compileMaterialisedValidationFunctions} and bound into closures at
+   * materialisation time. Fields without configured validation contribute nothing;
+   * a step where nothing validates yields an empty plan, which trivially passes.
    */
   compileValidationPlan(fieldBlocks: readonly FieldBlockASTNode[], domainValidWhen: unknown): ValidationPlan {
     const fields: CompiledFieldValidation[] = []
