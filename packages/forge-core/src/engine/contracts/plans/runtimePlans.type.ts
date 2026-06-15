@@ -6,6 +6,7 @@ import type {
   CompiledStepFieldCodesFunction,
 } from '../compiled/compiledFunctions.type'
 import type { ValidationPlan } from './compilationArtefacts.type'
+import type { TemplateMaterialisationPlan } from './materialisationArtefacts.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface RuntimePlan {
@@ -31,6 +32,8 @@ export interface CompiledNavigationStep {
   readonly isEntryPoint: boolean
   /** Validation the reachability walk evaluates to decide step validity; empty when the step declares none. */
   readonly validationPlan: ValidationPlan
+  /** Materialisation plan the reachability walk runs per step before validating iterator fields. */
+  readonly materialisationPlan: TemplateMaterialisationPlan
   /** Field codes cleared down when the step becomes unreachable. */
   readonly cleardownFieldCodes: readonly string[]
   /** Statically-declared forward gotos across all hooks, regardless of guards (devtools-only). */

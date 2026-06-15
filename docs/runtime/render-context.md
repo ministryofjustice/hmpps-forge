@@ -17,8 +17,10 @@ response.
 Render context assembly has two distinct responsibilities.
 
 First, Forge evaluates the dynamic values in the compiled journey. This is done
-by walking the step's `RenderPlan` — calling each per-block compiled function,
-each iterator group, and the optional step and ancestor metadata functions.
+by running the materialised template nodes' render closures (producing the
+iterator-expanded blocks), then walking the step's `RenderPlan` — calling each
+per-block compiled function and the optional step and ancestor metadata
+functions.
 
 Second, Forge assembles the final `RenderContext`. This is done by runtime code
 that attaches validation failures, resolves navigation metadata, adds backlinks,
@@ -70,14 +72,16 @@ renderable output. Rather than a single monolithic function, it holds:
 
 - an optional `compiledStepMetadata` function for step-level properties
 - an optional `compiledAncestorMetadata` function for journey ancestor metadata
-- a `RenderBlockEntry` per static block, each with a `render` function
-- an `IteratorRenderBlockGroup` per MAP iterator, each with an input evaluator
-  and per-template-block render functions
+- a `CompiledRenderBlock` per static block, each with a `render` function
+- a `CompiledNestedRenderBlock` per nested child block (e.g. conditional
+  reveals inside iterator-expanded blocks), each delegated via `evaluateChild`
 
-The runtime evaluator (`evaluateRender`) calls all of these concurrently —
-step metadata, ancestor metadata, static blocks, and iterator groups all run in
-parallel. Iterator groups expand their collection into per-item scopes and
-render each template block once per item.
+MAP iterators that yield blocks are handled by the materialiser — a separate
+pipeline phase that runs before rendering. The materialiser expands the
+collection and produces `MaterialisedTemplateNode` instances whose render
+closures capture the iterator scope. `evaluateRender` calls those closures
+first, groups the resulting blocks by iterator node ID, then runs the static
+blocks and metadata functions concurrently.
 
 Static values are emitted directly into generated source. Expression values are
 compiled through the shared expression compiler and evaluated against the
@@ -124,20 +128,23 @@ earlier in the request lifecycle.
 
 This keeps field values in the render context aligned with answer preparation.
 
-### Iterator blocks
+### Materialised blocks
 
-MAP iterators can produce blocks.
+MAP iterators that yield blocks are handled by the template materialisation
+phase, which runs before rendering.
 
-Each MAP iterator is compiled as an `IteratorRenderBlockGroup` containing an
-input evaluator and per-template-block render functions. At runtime, the input
-evaluator expands the collection into per-item scopes, and each template block
-renders once per item. Nested MAP iterators are supported at any depth — the
-compiled function body handles intermediate iterator levels internally.
+The `TemplateMaterialisationCompiler` generates a materialiser function per
+step that expands all MAP iterators into a flat list of `MaterialisedTemplateNode`
+instances. Each node carries a scope stack (outermost iterator frame first) and
+pre-bound phase closures — including `render`. Nested MAP iterators are supported
+at any depth; each nesting level adds a frame to the scope stack.
 
-Runtime does not expand iterator templates into AST nodes.
+At render time, `evaluateRender` calls each materialised node's render closure
+and groups the resulting blocks by iterator node ID. Static block compiled code
+looks up the pre-rendered blocks via `ctx.materialisedBlocks`.
 
-Iterator-generated field blocks use deterministic compiled IDs so validation
-failures can attach to the evaluated blocks.
+Materialised field blocks use deterministic compiled IDs so validation failures
+can attach to the evaluated blocks.
 
 ### Nested blocks
 

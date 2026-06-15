@@ -5,12 +5,15 @@ import type { IterateASTNode, ReferenceASTNode, SubmitHookASTNode } from '../con
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { ASTNodeType } from '../contracts/ast/enums'
 import { isASTNode } from '../contracts/ast/nodes'
+import { isIterateExprNode } from '../contracts/ast/expression-nodes'
+import { isFieldBlockStructNode } from '../contracts/ast/structure-nodes'
 import { isRedirectOutcomeNode } from '../contracts/ast/outcome-nodes'
 import getAncestorChain from '../ast/ast-state/getAncestorChain'
 import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import type { RuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type {
+  AnswerPreparationSource,
   CompilationPlan,
   ForwardOutcomeGroup,
   JourneyCompilationInputs,
@@ -110,8 +113,10 @@ export default class CompilationPlanner {
       .filter(block => hasConfiguredValue(block.properties.validWhen))
     const mapIterateNodes = this.allMapIterateNodes
       .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId))
+    const materialisationRootNodes = this.buildMaterialisationRootNodes(mapIterateNodes)
     const allIterateNodes = this.allIterateNodes
       .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId))
+    const answerPreparationSources = this.buildAnswerPreparationSources(stepNodeId, materialisationRootNodes)
 
     return {
       stepNode,
@@ -119,7 +124,9 @@ export default class CompilationPlanner {
       fieldBlocks,
       validatingFieldBlocks,
       mapIterateNodes,
+      materialisationRootNodes,
       allIterateNodes,
+      answerPreparationSources,
       accessAncestors: this.resolveAccessAncestors(ancestorIds),
       renderAncestors: this.resolveRenderAncestors(ancestorIds),
       submitHooks: stepNode.properties.onSubmission ?? [],
@@ -138,6 +145,16 @@ export default class CompilationPlanner {
       .filter(block => stepNodeIds.some(stepNodeId => this.astNodeTree.isDescendantOf(block.id, stepNodeId)))
     const stepMapIterateNodes = this.allMapIterateNodes
       .filter(node => stepNodeIds.some(stepNodeId => this.astNodeTree.isDescendantOf(node.id, stepNodeId)))
+    const stepMaterialisationRootNodes = this.buildMaterialisationRootNodes(stepMapIterateNodes)
+    const rootsByStepNodeId = new Map(
+      stepNodeIds.map(stepNodeId => [
+        stepNodeId,
+        stepMaterialisationRootNodes.filter(root => this.astNodeTree.isDescendantOf(root.id, stepNodeId)),
+      ]),
+    )
+    const answerPreparationSources = stepNodeIds.flatMap(stepNodeId =>
+      this.buildAnswerPreparationSources(stepNodeId, rootsByStepNodeId.get(stepNodeId) ?? []),
+    )
 
     return {
       journeyNode,
@@ -145,8 +162,48 @@ export default class CompilationPlanner {
       reachabilityPlanId: reachabilityPlan.journeyNodeId,
       stepFieldBlocks,
       stepMapIterateNodes,
+      stepMaterialisationRootNodes,
+      answerPreparationSources,
       accessAncestors: this.resolveAccessAncestors(ancestorIds),
     }
+  }
+
+  private buildMaterialisationRootNodes(mapIterateNodes: readonly IterateASTNode[]): IterateASTNode[] {
+    return mapIterateNodes.filter(node => !this.isNestedUnderMapIterateNode(node, mapIterateNodes))
+  }
+
+  private isNestedUnderMapIterateNode(node: IterateASTNode, mapIterateNodes: readonly IterateASTNode[]): boolean {
+    return mapIterateNodes.some(
+      candidate => candidate.id !== node.id && this.astNodeTree.isDescendantOf(node.id, candidate.id),
+    )
+  }
+
+  private buildAnswerPreparationSources(
+    stepNodeId: NodeId,
+    materialisationRootNodes: readonly IterateASTNode[],
+  ): AnswerPreparationSource[] {
+    const materialisationRootNodeIds = new Set(materialisationRootNodes.map(node => node.id))
+
+    return this.nodeRegistry.findAll<ASTNode>()
+      .filter(node => this.astNodeTree.isDescendantOf(node.id, stepNodeId))
+      .map(node => this.toAnswerPreparationSource(node, materialisationRootNodeIds))
+      .filter((source): source is AnswerPreparationSource => source !== undefined)
+  }
+
+  private toAnswerPreparationSource(
+    node: ASTNode,
+    materialisationRootNodeIds: ReadonlySet<NodeId>,
+  ): AnswerPreparationSource | undefined {
+    if (isFieldBlockNode(node)) {
+      return { kind: 'field', node }
+    }
+
+    if (isMapIterateNode(node) && materialisationRootNodeIds.has(node.id)) {
+      return { kind: 'materialisation-root', node }
+    }
+
+    // Won't be reached
+    return undefined
   }
 
   private buildRuntimePlan(node: StepASTNode | JourneyASTNode, ancestorIds: NodeId[]): RuntimePlan {
@@ -358,6 +415,14 @@ function hasConfiguredValue(value: unknown): boolean {
   }
 
   return true
+}
+
+function isFieldBlockNode(node: ASTNode): node is FieldBlockASTNode {
+  return isFieldBlockStructNode(node)
+}
+
+function isMapIterateNode(node: ASTNode): node is IterateASTNode {
+  return isIterateExprNode(node) && node.properties.iterator.type === IteratorType.MAP
 }
 
 // Namespaces whose values are tied to a single request and would resolve against

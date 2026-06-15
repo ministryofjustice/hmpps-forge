@@ -18,11 +18,9 @@ export function createAnswerPreparationPhase(
   return {
     name: 'answer-preparation',
     async execute(state) {
-      await evaluateAnswerPreparation(
-        answerPreparationPlan,
-        buildCompiledAnswerPreparationContext(state.context, functionRegistry),
-        state.trace,
-      )
+      const ctx = buildCompiledAnswerPreparationContext(state.context, functionRegistry, state.trace)
+
+      state.materialisation = await evaluateAnswerPreparation(answerPreparationPlan, ctx, state.trace)
 
       return { action: 'continue' }
     },

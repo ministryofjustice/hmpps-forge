@@ -393,7 +393,7 @@ describe('evaluateRenderOutput', () => {
       return { outputs, units: recorder.finish('render').phases[0].units }
     }
 
-    it('should record one render per block with nested children before parents when tracing', () => {
+    it('should record nested blocks as children of their parent in the trace tree', () => {
       // Arrange
       mockComponentRegistry.get.mockReturnValue({
         variant: 'fieldset',
@@ -415,10 +415,68 @@ describe('evaluateRenderOutput', () => {
       const { units } = runTraced(context)
 
       // Assert
-      expect(units).toEqual([
-        expect.objectContaining({ kind: 'block-render', nodeId: 'compile_ast:10', variant: 'fieldset' }),
-        expect.objectContaining({ kind: 'block-render', nodeId: 'compile_ast:9', variant: 'fieldset' }),
-      ])
+      expect(units).toHaveLength(1)
+      expect(units[0]).toEqual(
+        expect.objectContaining({
+          kind: 'block-render',
+          nodeId: 'compile_ast:9',
+          variant: 'fieldset',
+          children: [expect.objectContaining({ kind: 'block-render', nodeId: 'compile_ast:10', variant: 'fieldset' })],
+        }),
+      )
+    })
+
+    it('should nest three levels deep when blocks are deeply nested', () => {
+      // Arrange
+      mockComponentRegistry.get.mockReturnValue({
+        variant: 'fieldset',
+        render: vi.fn().mockReturnValue('<div />'),
+      })
+
+      const grandchild = createMockBlock({ id: 'compile_ast:11', variant: 'fieldset', blockType: BlockType.BASIC })
+      const child = createMockBlock({ id: 'compile_ast:10', variant: 'fieldset', properties: { children: grandchild } })
+      const context = createRenderContext({
+        blocks: [
+          createMockBlock({
+            id: 'compile_ast:9',
+            variant: 'fieldset',
+            properties: { children: child },
+          }),
+        ],
+      })
+
+      // Act
+      const { units } = runTraced(context)
+
+      // Assert
+      expect(units).toHaveLength(1)
+      const parent = units[0] as { children?: readonly unknown[] }
+      expect(parent.children).toHaveLength(1)
+
+      const childUnit = parent.children![0] as { children?: readonly unknown[] }
+      expect(childUnit).toEqual(expect.objectContaining({ nodeId: 'compile_ast:10' }))
+      expect(childUnit.children).toHaveLength(1)
+      expect(childUnit.children![0]).toEqual(expect.objectContaining({ nodeId: 'compile_ast:11' }))
+    })
+
+    it('should not include children field on leaf blocks', () => {
+      // Arrange
+      mockComponentRegistry.get.mockReturnValue({
+        variant: 'text-input',
+        render: vi.fn().mockReturnValue('<input />'),
+      })
+
+      const context = createRenderContext({
+        blocks: [createMockBlock({ id: 'compile_ast:1' }), createMockBlock({ id: 'compile_ast:2' })],
+      })
+
+      // Act
+      const { units } = runTraced(context)
+
+      // Assert
+      expect(units).toHaveLength(2)
+      expect(units[0]).not.toHaveProperty('children')
+      expect(units[1]).not.toHaveProperty('children')
     })
 
     it('should record nothing and still render when no recorder is supplied', () => {

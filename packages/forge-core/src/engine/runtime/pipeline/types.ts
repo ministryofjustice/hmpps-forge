@@ -4,6 +4,7 @@ import type { ResponseBindings } from '../../../framework/types/responseBindings
 import type { NavigationEvaluation } from '../../contracts/navigation/navigationEvaluation.type'
 import type RuntimeEvaluationContext from '../context/RuntimeEvaluationContext'
 import type { StepValidityResult } from '../../contracts/runtime/stepValidityResult.type'
+import type { MaterialisedTemplateNode } from '../../contracts/plans/materialisationArtefacts.type'
 import type TraceRecorder from './trace/TraceRecorder'
 
 export type ForgeRedirectResult = { type: 'redirect'; url: string }
@@ -32,6 +33,7 @@ export interface PipelineState {
   navigationEvaluation?: NavigationEvaluation
   validation?: StepValidityResult
   showValidationFailures?: boolean
+  materialisation?: MaterialisedTemplateNode[]
   /** Hydrated render context, written by the render-evaluation phase for the render-output terminal. */
   renderContext?: RenderContext
   /** Present when the request is being traced; the pipeline and phase walks record decisions here. */

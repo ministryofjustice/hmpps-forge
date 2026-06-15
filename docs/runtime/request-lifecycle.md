@@ -9,9 +9,9 @@ Runtime applies those decisions to a specific request snapshot: session, answers
 data, route params, and query string.
 
 This phase does not rebuild the journey structure. It prepares context, walks
-the per-phase execution plans (calling each compiled function), evaluates
-navigation, and returns a `ForgeOutcome` (render, navigate, or error) for the
-adapter to dispatch.
+the per-phase execution plans (calling each compiled function and running the
+template materialisation phase), evaluates navigation, and returns a
+`ForgeOutcome` (render, navigate, or error) for the adapter to dispatch.
 
 ## Why runtime is driven by plans/compiled-functions
 
@@ -21,9 +21,11 @@ current request.
 Forge keeps runtime plan-driven so evaluation does not need to inspect the
 original DSL. The evaluator already knows which step or journey-root plan a
 given node owns. Each phase has a dedicated evaluator that walks the phase plan
-and calls its compiled functions — one per field, block, hook, or iterator
-group. Runtime code handles policy decisions such as redirect handling,
-reachability graph walking, and render-context assembly.
+and calls its compiled functions — one per field, block, or hook. MAP iterator
+fields are handled by a centralised template materialisation phase that
+produces scope-bound closures the per-phase evaluators call directly. Runtime
+code handles policy decisions such as redirect handling, reachability graph
+walking, and render-context assembly.
 
 This keeps the split between compilation and runtime clear:
 
@@ -79,10 +81,11 @@ reachable.
 After navigation, Forge may run entry validation. Entry validation is used when
 a step is configured to show validation failures before submission.
 
-Finally, Forge walks the step's render plan — calling each per-block compiled
-function, each iterator group, and the optional metadata functions — builds the
-render context, and returns a render outcome containing the context and the
-component registry.
+Finally, Forge materialises the step's template nodes (expanding MAP iterator
+collections into scope-bound closures), then walks the render plan — calling
+each materialised node's render closure and each static block's compiled
+function, plus the optional metadata functions — builds the render context, and
+returns a render outcome containing the context and the component registry.
 
 ## POST step evaluations
 
@@ -102,7 +105,7 @@ run.
 Submit hooks run after answers and navigation are prepared. Hooks can validate,
 run effects, return errors, or redirect. Validation called from submit hooks
 walks the step's validation plan — calling each per-field compiled function,
-each iterator group, and the optional domain validator.
+each materialised node's validate closure, and the optional domain validator.
 
 If a submit hook redirects, the outcome is a navigation. If it returns an error,
 the outcome is an error.
@@ -212,12 +215,13 @@ ordinary TypeScript code that is easier to inspect and test.
 
 Rendering starts with the step's `RenderPlan`.
 
-The dedicated evaluator (`evaluateRender`) walks the plan, calling each
-per-block compiled function, each iterator group's input evaluator and template
-block functions, and the optional step and ancestor metadata functions. All
-independent entries run concurrently. `RenderContextFactory` then attaches
-validation failures, builds navigation metadata, resolves active navigation
-state, and produces the final render context.
+The dedicated evaluator (`evaluateRender`) first calls each materialised
+node's render closure (producing the iterator-expanded blocks grouped by
+iterator node ID), then calls each static block's compiled function and the
+optional step and ancestor metadata functions concurrently.
+`RenderContextFactory` then attaches validation failures, builds navigation
+metadata, resolves active navigation state, and produces the final render
+context.
 
 The engine returns the render context inside the outcome. The adapter decides
 how that context becomes an HTTP response.

@@ -4,7 +4,11 @@ import type { SubmitLifecyclePlan } from '../../../contracts/plans/compilationAr
 import type { CompiledSubmitHookResult } from '../../../contracts/compiled/compiledFunctions.type'
 import type { HookLifecycleContext } from '../../../contracts/compiled/phaseContexts.type'
 
-const mockCtx = {} as HookLifecycleContext
+const passthroughRunEffect = async (_name: string, thunk: () => void | Promise<void>) => {
+  await thunk()
+}
+
+const mockCtx = { runEffect: passthroughRunEffect } as unknown as HookLifecycleContext
 
 const skippedResult: CompiledSubmitHookResult = { executed: false, validated: false, outcome: 'continue' }
 
@@ -154,6 +158,61 @@ describe('evaluateSubmitLifecycle', () => {
 
       // Assert
       expect(recordHookSnapshot.mock.calls).toEqual([['compile_ast:2']])
+    })
+
+    it('should preserve async function trace units as children of the executed hook unit', async () => {
+      // Arrange
+      const recorder = new TraceRecorder()
+      recorder.beginPhase('submit-lifecycle')
+      const plan: SubmitLifecyclePlan = {
+        submitHooks: [
+          {
+            nodeId: 'compile_ast:1' as const,
+            evaluate: vi.fn().mockImplementation(async (ctx: HookLifecycleContext) => {
+              await ctx.runEffect('submitForm', async () => {
+                recorder.record({ kind: 'async-function', name: 'submitForm', durationMs: 1 })
+              })
+              await ctx.runEffect('logAudit', async () => {
+                recorder.record({ kind: 'async-function', name: 'logAudit', durationMs: 2 })
+              })
+
+              return { executed: true, validated: false, outcome: 'continue' }
+            }),
+          },
+        ],
+      }
+
+      // Act
+      await evaluateSubmitLifecycle(plan, mockCtx, recorder)
+      recorder.endPhase('continue')
+      const units = recorder.finish('render').phases[0].units
+
+      // Assert
+      expect(units).toHaveLength(1)
+      const hookUnit = units[0] as { children?: readonly { kind: string; name?: string }[] }
+      expect(hookUnit.children).toHaveLength(2)
+      expect(hookUnit.children![0]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'submitForm' }))
+      expect(hookUnit.children![1]).toEqual(expect.objectContaining({ kind: 'async-function', name: 'logAudit' }))
+    })
+
+    it('should not record children for skipped hooks', async () => {
+      // Arrange
+      const plan: SubmitLifecyclePlan = {
+        submitHooks: [
+          { nodeId: 'compile_ast:1' as const, evaluate: vi.fn().mockResolvedValue(skippedResult) },
+          {
+            nodeId: 'compile_ast:2' as const,
+            evaluate: vi.fn().mockResolvedValue({ executed: true, validated: false, outcome: 'continue' }),
+          },
+        ],
+      }
+
+      // Act
+      const { units } = await runTraced(plan)
+
+      // Assert
+      expect(units[0]).not.toHaveProperty('children')
+      expect(units[1]).not.toHaveProperty('children')
     })
   })
 })

@@ -1,4 +1,5 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
+import type { RenderBlock } from '../../../framework/rendering/types'
 import type { AnswerHistory } from '../runtime/answerHistory.type'
 import type { StepValidationState } from '../runtime/evaluationState.type'
 import type { StepValidityResult } from '../runtime/stepValidityResult.type'
@@ -41,6 +42,7 @@ export interface RenderCompilationContext {
   post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
+  materialisedBlocks?: ReadonlyMap<string, RenderBlock[]>
 }
 
 /**
@@ -90,4 +92,11 @@ export interface HookLifecycleContext {
    * own result is decided. Absent for access hooks.
    */
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
+  /**
+   * Delegates one effect invocation to the runtime. The generated function calls
+   * this for each effect instead of calling the function registry directly,
+   * allowing the runtime to take state snapshots after effect calls. Passthrough
+   * when tracing is disabled.
+   */
+  runEffect: (name: string, thunk: () => void | Promise<void>) => void | Promise<void>
 }

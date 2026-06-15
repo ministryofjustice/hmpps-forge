@@ -6,9 +6,9 @@
  * expression values are emitted through ExpressionDispatcher. Registry
  * metadata decides whether the generated source is sync or async.
  *
- * MAP iterators that yield blocks are emitted as loops that push blocks directly
- * into the render result. FILTER/FIND/MAP iterators used as property values are
- * compiled inline as expressions. No runtime node expansion is required.
+ * Block-yielding MAP iterators are handled by the materialiser — their compiled
+ * code emits a lookup from `ctx.materialisedBlocks`. FILTER/FIND/MAP iterators
+ * that yield non-block values are compiled inline as expressions.
  */
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { BlockType, IteratorType } from '../../../../authoring/types/enums'
@@ -30,16 +30,16 @@ import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import type { IteratorScopeFrame } from '../../expressions/ExpressionDispatcher'
 
+import type { ASTNode, TemplateNodeId } from '../../../contracts/ast/ast.type'
 import type {
   CompiledAncestorMetadataFunction,
-  CompiledIteratorInputFunction,
-  CompiledIteratorRenderBlockFunction,
+  CompiledMaterialisedRenderBlockFunction,
+  CompiledNestedRenderBlockFunction,
   CompiledRenderBlockFunction,
   CompiledStepMetadataFunction,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
-  CompiledIteratorRenderBlock,
-  IteratorRenderBlockGroup,
+  CompiledNestedRenderBlock,
   CompiledRenderBlock,
   RenderPlan,
 } from '../../../contracts/plans/compilationArtefacts.type'
@@ -81,10 +81,15 @@ export default class StepRenderCompiler {
 
   private readonly values: RuntimeValueCompiler
 
-  // Iterates used as property values are compiled at that property site. Track
-  // them so block-yielding MAP iterators are not emitted a second time as
-  // top-level blocks.
-  private readonly inlineIterateIds = new Set<string>()
+  private readonly nestedBlockEntries = new Map<string, CompiledNestedRenderBlock>()
+
+  private currentBlockHasChildren = false
+
+  private currentBlockBaseDepth = 0
+
+  private nestedBlockCounter = 0
+
+  private compilingMaterialisedBlock = false
 
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
@@ -96,9 +101,8 @@ export default class StepRenderCompiler {
       omitUndefinedArrayItems: true,
       isStructuralValue: value => this.isRenderBlockValue(value),
       compileStructuralValue: (value, emitter, targetVar) => this.tryCompileRenderBlockValue(value, emitter, targetVar),
-      noteInlineIterator: nodeId => {
-        this.inlineIterateIds.add(nodeId)
-      },
+      compileStructuralIterate: (node, emitter, targetVar) =>
+        this.tryCompileMaterialisedMapLookup(node, emitter, targetVar),
     })
   }
 
@@ -169,11 +173,54 @@ export default class StepRenderCompiler {
   }
 
   /**
+   * Intercepts MAP iterators whose yield template contains blocks. These are
+   * handled by the materialiser — the compiled code reads the pre-rendered
+   * blocks from `ctx.materialisedBlocks` instead of inline-rendering.
+   */
+  private tryCompileMaterialisedMapLookup(
+    node: ASTNode | TemplateNode,
+    emitter: CodeEmitter,
+    targetVar: string,
+  ): boolean {
+    const properties = (node.properties ?? {}) as Record<string, unknown>
+    const iterator = properties.iterator as Record<string, unknown> | undefined
+
+    if (iterator?.type !== IteratorType.MAP || iterator.yieldTemplate === undefined) {
+      return false
+    }
+
+    if (!this.yieldTemplateContainsBlocks(iterator.yieldTemplate)) {
+      return false
+    }
+
+    emitter.assign(
+      targetVar,
+      `ctx.materialisedBlocks && ctx.materialisedBlocks.get(${JSON.stringify(String(node.id))}) || []`,
+    )
+
+    return true
+  }
+
+  private yieldTemplateContainsBlocks(template: unknown): boolean {
+    if (template === null || template === undefined) {
+      return false
+    }
+
+    if (this.isRenderBlockValue(template)) {
+      return true
+    }
+
+    if (Array.isArray(template)) {
+      return template.some(item => this.yieldTemplateContainsBlocks(item))
+    }
+
+    return false
+  }
+
+  /**
    * Gives render-specific nested blocks first chance at value compilation.
-   *
-   * Returns true when the value was a render block and code has been emitted
-   * into resultVar. Returns false when the generic value compiler should handle
-   * the value normally.
+   * Every nested block is compiled as its own function and delegated via
+   * evaluateChild — regardless of iterator depth.
    */
   private tryCompileRenderBlockValue(value: unknown, emitter: CodeEmitter, resultVar: string): boolean {
     if (this.expr.isTemplateNode(value)) {
@@ -181,7 +228,7 @@ export default class StepRenderCompiler {
         return false
       }
 
-      this.compileTemplateNestedBlock(value, emitter, resultVar)
+      this.emitNestedBlockDelegation(value, emitter, resultVar)
 
       return true
     }
@@ -190,91 +237,107 @@ export default class StepRenderCompiler {
       return false
     }
 
-    this.compileNestedBlock(value, emitter, resultVar)
+    this.emitNestedBlockDelegation(value, emitter, resultVar)
 
     return true
   }
 
   /**
-   * Emits a nested block object used as a property value, such as a conditional reveal.
+   * Compiles a nested block as a separate function, registers it in the plan,
+   * and emits a delegating `await evaluateChild(childId)` in the parent. When
+   * inside an inline iterator, passes the current scope frames so the runtime
+   * can build the child's full scope stack.
    */
-  private compileNestedBlock(block: RenderBlockValue, emitter: CodeEmitter, resultVar: string): void {
-    emitter.comment('StepRenderCompiler.compileNestedBlock')
-    const properties = block.properties ?? {}
-    const blockType = block.blockType
+  private emitNestedBlockDelegation(
+    block: TemplateNode | RenderBlockValue,
+    emitter: CodeEmitter,
+    resultVar: string,
+  ): void {
+    const inlineFrames = this.expr.iteratorStack.slice(this.currentBlockBaseDepth)
 
-    emitter.scope(() => {
-      const propsVar = emitter.const('nestedBlockProps', '{}')
+    const savedExprState = this.expr.saveState()
+    const savedBaseDepth = this.currentBlockBaseDepth
+    const childId = this.registerNestedBlock(block)
+    this.expr.restoreState(savedExprState)
+    this.currentBlockBaseDepth = savedBaseDepth
 
-      Object.entries(properties).forEach(([key, value]) => {
-        if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
-          return
-        }
-
-        if (blockType === BlockType.FIELD && key === 'code') {
-          this.fieldCodes.assignProperty(value, emitter, propsVar, key)
-
-          return
-        }
-
-        this.compilePropertyAssignment(value, emitter, propsVar, key)
-      })
-
-      if (blockType === BlockType.FIELD && properties.value === undefined) {
-        this.compileFieldValueResolution(emitter, propsVar)
-      }
-
-      emitter.assign(
-        resultVar,
-        `{
-          [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
-          id: ${JSON.stringify(block.id)},
-          variant: ${JSON.stringify(block.variant)},
-          blockType: ${JSON.stringify(blockType)},
-          properties: ${propsVar}
-        }`,
+    if (inlineFrames.length > 0) {
+      const frameExprs = inlineFrames.map(
+        f =>
+          `{ item: ${f.itemVar}, index: ${f.indexVar}, rawItem: ${f.rawItemExpr}, inputLength: ${f.inputLengthExpr} }`,
       )
-    })
+      emitter.assign(resultVar, `await evaluateChild(${JSON.stringify(childId)}, [${frameExprs.join(', ')}])`)
+    } else if (this.compilingMaterialisedBlock && this.currentBlockBaseDepth > 0) {
+      emitter.assign(resultVar, `await evaluateChild(${JSON.stringify(childId)}, scopeStack)`)
+    } else {
+      emitter.assign(resultVar, `await evaluateChild(${JSON.stringify(childId)})`)
+    }
+
+    this.expr.markAsAsync()
+    this.currentBlockHasChildren = true
   }
 
   /**
-   * Emits a nested template block produced inside an iterator yield.
+   * Compiles a nested block as its own function and registers it in the plan's
+   * nested block map. Returns the child ID used to look it up at runtime.
    */
-  private compileTemplateNestedBlock(block: TemplateNode, emitter: CodeEmitter, resultVar: string): void {
-    emitter.comment('StepRenderCompiler.compileTemplateNestedBlock')
-    const blockType = block.blockType
+  private registerNestedBlock(block: TemplateNode | RenderBlockValue): string {
+    const childId = block.id !== undefined ? String(block.id) : `nested_render_block:${this.nestedBlockCounter++}`
+    const variant = String(block.variant ?? 'unknown')
+    const iteratorDepth = this.expr.iteratorDepth
 
-    const properties = block.properties ?? {}
+    const render = compileGeneratedFunction<CompiledNestedRenderBlockFunction>(
+      this.expr,
+      ['ctx', 'scopeStack', 'evaluateChild'],
+      () => this.buildNestedBlockSource(block, iteratorDepth),
+      { phase: 'render', forceAsync: true },
+    )
 
-    emitter.scope(() => {
-      const propsVar = emitter.const('templateNestedBlockProps', '{}')
+    this.nestedBlockEntries.set(childId, { nodeId: childId as TemplateNodeId, variant, render })
 
-      Object.entries(properties).forEach(([key, value]) => {
+    return childId
+  }
+
+  /**
+   * Builds the JS source for a nested block function: pushes iterator frames
+   * from scopeStack (when inside an iterator), evaluates properties, and
+   * returns a branded RenderBlock.
+   */
+  private buildNestedBlockSource(block: TemplateNode | RenderBlockValue, iteratorDepth: number): string {
+    this.currentBlockBaseDepth = iteratorDepth
+
+    const emitter = CodeEmitter.strict()
+    const blockType = block.blockType as string
+    const properties = (block.properties ?? {}) as Record<string, unknown>
+    const isTemplateBlock = this.expr.isTemplateNode(block)
+
+    const emitBlockBody = (): void => {
+      const propsVar = emitter.const('nestedBlockProps', '{}')
+
+      for (const [key, value] of Object.entries(properties)) {
         if (StepRenderCompiler.BLOCK_SKIP_PROPS.has(key)) {
-          return
+          continue
         }
 
         if (blockType === BlockType.FIELD && key === 'code') {
           this.fieldCodes.assignProperty(value, emitter, propsVar, key)
 
-          return
+          continue
         }
 
         this.compilePropertyAssignment(value, emitter, propsVar, key)
-      })
+      }
 
       if (blockType === BlockType.FIELD && properties.value === undefined) {
         this.compileFieldValueResolution(emitter, propsVar)
       }
 
-      // The code property has already been compiled into propsVar at this point.
       const idExpr =
-        blockType === BlockType.FIELD
+        isTemplateBlock && blockType === BlockType.FIELD
           ? this.fieldCodes.compileIteratorFieldBlockIdExpression(`${propsVar}["code"]`, String(block.id))
           : JSON.stringify(block.id)
 
-      emitter.assign(
-        resultVar,
+      emitter.return(
         `{
           [${GENERATED_FUNCTION_HELPERS_PARAM}.renderBlockBrand]: true,
           id: ${idExpr},
@@ -283,7 +346,32 @@ export default class StepRenderCompiler {
           properties: ${propsVar}
         }`,
       )
-    })
+    }
+
+    if (iteratorDepth > 0) {
+      const pushFramesAndEmit = (level: number): void => {
+        if (level < 0) {
+          emitBlockBody()
+
+          return
+        }
+
+        const frame: IteratorScopeFrame = {
+          itemVar: `scopeStack[${level}].item`,
+          indexVar: `scopeStack[${level}].index`,
+          inputLengthExpr: `scopeStack[${level}].inputLength`,
+          rawItemExpr: `scopeStack[${level}].rawItem`,
+        }
+
+        this.expr.withIteratorFrame(frame, () => pushFramesAndEmit(level - 1))
+      }
+
+      pushFramesAndEmit(iteratorDepth - 1)
+    } else {
+      emitBlockBody()
+    }
+
+    return emitter.toString()
   }
 
   /**
@@ -312,48 +400,79 @@ export default class StepRenderCompiler {
 
   /**
    * Compiles a step into its RenderPlan: optional step and ancestor metadata
-   * functions, one CompiledRenderBlockFunction per top-level block, and a render
-   * group per block-yielding MAP iterator.
-   *
-   * Block-yielding iterates consumed inline as property values are tracked while
-   * compiling blocks and skipped here so they are not emitted a second time as
-   * top-level iterator groups.
+   * functions, one CompiledRenderBlockFunction per top-level block, and nested
+   * block functions for child blocks delegated via evaluateChild. Block-yielding
+   * MAP iterators are handled by the materialiser — their compiled code emits a
+   * lookup from `ctx.materialisedBlocks` instead of inline-rendering.
    */
   compileRenderPlan(
     stepNode: StepASTNode,
     ancestorNodes: JourneyASTNode[],
-    iterateNodes: IterateASTNode[] = [],
+    materialisedNestedBlocks?: ReadonlyMap<string, CompiledNestedRenderBlock>,
   ): RenderPlan {
-    this.inlineIterateIds.clear()
+    this.nestedBlockEntries.clear()
+    this.nestedBlockCounter = 0
 
     const compiledStepMetadata = this.compileStepMetadataFunction(stepNode)
     const compiledAncestorMetadata = this.compileAncestorMetadataFunction(ancestorNodes)
 
     const blocks: CompiledRenderBlock[] = (stepNode.properties.blocks ?? []).map(block => ({
       nodeId: block.id,
+      variant: block.variant,
       render: this.compileBlock(block),
     }))
 
-    const iteratorGroups: IteratorRenderBlockGroup[] = []
+    const nestedBlocks = new Map(this.nestedBlockEntries)
 
-    for (const iterateNode of iterateNodes) {
-      if (this.inlineIterateIds.has(iterateNode.id)) {
-        continue
-      }
-
-      const group = this.compileIteratorRenderGroup(iterateNode)
-
-      if (group !== undefined) {
-        iteratorGroups.push(group)
-      }
+    if (materialisedNestedBlocks) {
+      materialisedNestedBlocks.forEach((entry, key) => nestedBlocks.set(key, entry))
     }
 
     return {
       compiledStepMetadata,
       compiledAncestorMetadata,
       renderBlocks: blocks,
-      iteratorRenderBlockGroups: iteratorGroups,
+      nestedBlocks,
     }
+  }
+
+  /**
+   * Compiles materialised render functions for the given iterate nodes. Returns
+   * a map keyed by TemplateNodeId containing the compiled render function and
+   * metadata for each template block found in the iterate nodes' yield templates,
+   * plus nested blocks accumulated during compilation (needed at render time when
+   * a materialised block delegates to evaluateChild).
+   */
+  compileMaterialisedRenderFunctions(iterateNodes: IterateASTNode[]): {
+    entries: Map<
+      TemplateNodeId,
+      { nodeId: TemplateNodeId; variant: string; render: CompiledMaterialisedRenderBlockFunction }
+    >
+    nestedBlocks: ReadonlyMap<string, CompiledNestedRenderBlock>
+  } {
+    this.nestedBlockEntries.clear()
+    this.nestedBlockCounter = 0
+
+    const entries = new Map<
+      TemplateNodeId,
+      { nodeId: TemplateNodeId; variant: string; render: CompiledMaterialisedRenderBlockFunction }
+    >()
+
+    for (const iterateNode of iterateNodes) {
+      if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
+        continue
+      }
+
+      const template = iterateNode.properties.iterator.yieldTemplate
+
+      if (template === undefined) {
+        continue
+      }
+
+      this.collectMaterialisedRenderBlocks(template, entries, 1)
+    }
+
+    return { entries, nestedBlocks: new Map(this.nestedBlockEntries) }
   }
 
   /**
@@ -432,9 +551,11 @@ export default class StepRenderCompiler {
    * Compiles one top-level block into a function producing a single RenderBlock.
    */
   private compileBlock(block: BlockASTNode): CompiledRenderBlockFunction {
+    this.currentBlockHasChildren = false
+
     return compileGeneratedFunction<CompiledRenderBlockFunction>(
       this.expr,
-      ['ctx'],
+      ['ctx', 'evaluateChild'],
       () => this.buildBlockSource(block),
       { phase: 'render' },
     )
@@ -447,6 +568,8 @@ export default class StepRenderCompiler {
    * answer value when no explicit value is authored.
    */
   private buildBlockSource(block: BlockASTNode): string {
+    this.currentBlockBaseDepth = 0
+
     const emitter = CodeEmitter.strict()
     emitter.comment('StepRenderCompiler.buildBlockSource')
 
@@ -481,194 +604,6 @@ export default class StepRenderCompiler {
     )
 
     return emitter.toString()
-  }
-
-  /**
-   * Compiles a block-yielding MAP iterate into a render group pairing its input
-   * evaluator with one render function per leaf block. Returns undefined for
-   * non-MAP iterators, iterators with no yield template, or templates that yield
-   * no blocks.
-   */
-  private compileIteratorRenderGroup(iterateNode: IterateASTNode): IteratorRenderBlockGroup | undefined {
-    if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
-      return undefined
-    }
-
-    const template = iterateNode.properties.iterator.yieldTemplate
-
-    if (template === undefined) {
-      return undefined
-    }
-
-    const blocks: CompiledIteratorRenderBlock[] = []
-
-    this.collectLeafBlocks(template, blocks, [])
-
-    if (blocks.length === 0) {
-      return undefined
-    }
-
-    const evaluateInput = this.compileIteratorInputEvaluator(iterateNode)
-
-    return { nodeId: iterateNode.id, evaluateInput, blocks }
-  }
-
-  /**
-   * Walks a yield template collecting each leaf block into `entries`, recursing
-   * through nested MAP iterates without descending past matched nodes. Each leaf
-   * is compiled with the chain of enclosing iterates so it can emit its own
-   * inline loops, accumulated outermost-first in `ancestorIterates`.
-   */
-  private collectLeafBlocks(
-    template: TemplateValue,
-    entries: CompiledIteratorRenderBlock[],
-    ancestorIterates: readonly TemplateNode[],
-  ): void {
-    const directNodes = this.templates.findTemplateNodes(
-      template,
-      node => isTemplateBlockNode(node) || isTemplateIterateNode(node),
-      { descendIntoMatches: false },
-    )
-
-    directNodes.forEach(node => {
-      if (isTemplateBlockNode(node)) {
-        entries.push({
-          nodeId: node.id,
-          render: this.compileIteratorRenderBlock(node, ancestorIterates),
-        })
-
-        return
-      }
-
-      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
-
-      if (yieldTemplate !== undefined) {
-        this.collectLeafBlocks(yieldTemplate, entries, [...ancestorIterates, node])
-      }
-    })
-  }
-
-  /**
-   * Compiles the function that evaluates an iterate's input into the per-item
-   * IteratorItemScope array driving the group's render blocks.
-   */
-  private compileIteratorInputEvaluator(iterateNode: IterateASTNode): CompiledIteratorInputFunction {
-    return compileGeneratedFunction<CompiledIteratorInputFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildIteratorInputEvaluatorSource(iterateNode),
-      { phase: 'iterator-input' },
-    )
-  }
-
-  /**
-   * Builds the JS source for an iterate input evaluator: normalizes the input
-   * (objects become keyed entries, arrays drop nullish items), then returns one
-   * scope per surviving item carrying item, index, rawItem, and inputLength.
-   * A non-array input yields an empty array.
-   */
-  private buildIteratorInputEvaluatorSource(iterateNode: IterateASTNode): string {
-    const emitter = CodeEmitter.strict()
-    emitter.comment('StepRenderCompiler.buildIteratorInputEvaluatorSource')
-
-    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(iterateNode.properties.input))
-
-    this.templates.compileNormalizeIteratorInput(inputVar, emitter)
-
-    emitter.declareConst('result', '[]')
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      const indexVar = emitter.let('i', '0')
-
-      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
-        const rawItemVar = emitter.const('rawItem', `${inputVar}[${indexVar}]`)
-
-        emitter.assign(indexVar, `${indexVar} + 1`)
-        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
-
-        const itemVar = emitter.const('item', this.templates.compileIteratorItemScope(rawItemVar))
-
-        emitter.code(
-          `result.push({ item: ${itemVar}, index: ${indexVar} - 1, rawItem: ${rawItemVar}, inputLength: ${inputVar}.length });`,
-        )
-      })
-    })
-    emitter.emitBlank()
-    emitter.return('result')
-
-    return emitter.toString()
-  }
-
-  /**
-   * Compiles one leaf block of an iterate render group into a function invoked
-   * once per outer IteratorItemScope. The result is a single RenderBlock when
-   * the block is directly under the group's iterate, or a RenderBlock array when
-   * intermediate iterates expand into inline loops.
-   */
-  private compileIteratorRenderBlock(
-    block: TemplateNode,
-    ancestorIterates: readonly TemplateNode[],
-  ): CompiledIteratorRenderBlockFunction {
-    return compileGeneratedFunction<CompiledIteratorRenderBlockFunction>(
-      this.expr,
-      ['ctx', 'iteratorScope'],
-      () => this.buildIteratorRenderBlockSource(block, ancestorIterates),
-      { phase: 'render' },
-    )
-  }
-
-  /**
-   * Builds the JS source for an iterate render block under the outer scope
-   * frame bound to the passed-in iteratorScope argument. With no intermediate
-   * iterates it returns one RenderBlock; otherwise it pushes blocks into a
-   * `nestedBlocks` array as each intermediate iterate's inline loops run, and
-   * returns that array.
-   */
-  private buildIteratorRenderBlockSource(block: TemplateNode, ancestorIterates: readonly TemplateNode[]): string {
-    const emitter = CodeEmitter.strict()
-    emitter.comment('StepRenderCompiler.buildIteratorRenderBlockSource')
-
-    const outerFrame: IteratorScopeFrame = {
-      itemVar: 'iteratorScope.item',
-      indexVar: 'iteratorScope.index',
-      inputLengthExpr: 'iteratorScope.inputLength',
-      rawItemExpr: 'iteratorScope.rawItem',
-    }
-
-    this.expr.withIteratorFrame(outerFrame, () => {
-      if (ancestorIterates.length === 0) {
-        this.emitRenderBlock(block, emitter, true)
-
-        return
-      }
-
-      emitter.declareConst('nestedBlocks', '[]')
-      this.emitNestedLoopsAndCompileBlock(block, ancestorIterates, 0, emitter)
-      emitter.return('nestedBlocks')
-    })
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits one inline MAP loop per intermediate iterate from `depth` downward,
-   * each pushing an iterator frame for its nesting level, then emits the leaf
-   * block (pushed onto `nestedBlocks`) at the innermost depth.
-   */
-  private emitNestedLoopsAndCompileBlock(
-    block: TemplateNode,
-    ancestorIterates: readonly TemplateNode[],
-    depth: number,
-    emitter: CodeEmitter,
-  ): void {
-    if (depth >= ancestorIterates.length) {
-      this.emitRenderBlock(block, emitter, false)
-
-      return
-    }
-
-    this.templates.compileTemplateMapIterator(ancestorIterates[depth], emitter, () => {
-      this.emitNestedLoopsAndCompileBlock(block, ancestorIterates, depth + 1, emitter)
-    })
   }
 
   /**
@@ -720,5 +655,81 @@ export default class StepRenderCompiler {
     } else {
       emitter.code(`nestedBlocks.push(${blockExpr});`)
     }
+  }
+
+  private collectMaterialisedRenderBlocks(
+    template: TemplateValue,
+    entries: Map<
+      TemplateNodeId,
+      { nodeId: TemplateNodeId; variant: string; render: CompiledMaterialisedRenderBlockFunction }
+    >,
+    depth: number,
+  ): void {
+    const directNodes = this.templates.findTemplateNodes(
+      template,
+      node => isTemplateBlockNode(node) || isTemplateIterateNode(node),
+      { descendIntoMatches: false },
+    )
+
+    directNodes.forEach(node => {
+      if (isTemplateBlockNode(node)) {
+        entries.set(node.id as TemplateNodeId, {
+          nodeId: node.id as TemplateNodeId,
+          variant: node.variant as string,
+          render: this.compileMaterialisedRenderBlock(node, depth),
+        })
+
+        return
+      }
+
+      const yieldTemplate = this.templates.getMapIterateYieldTemplate(node)
+
+      if (yieldTemplate !== undefined) {
+        this.collectMaterialisedRenderBlocks(yieldTemplate, entries, depth + 1)
+      }
+    })
+  }
+
+  private compileMaterialisedRenderBlock(
+    block: TemplateNode,
+    nestingDepth: number,
+  ): CompiledMaterialisedRenderBlockFunction {
+    this.currentBlockHasChildren = false
+
+    return compileGeneratedFunction<CompiledMaterialisedRenderBlockFunction>(
+      this.expr,
+      ['ctx', 'scopeStack', 'evaluateChild'],
+      () => this.buildMaterialisedRenderBlockSource(block, nestingDepth),
+      { phase: 'render' },
+    )
+  }
+
+  private buildMaterialisedRenderBlockSource(block: TemplateNode, nestingDepth: number): string {
+    this.currentBlockBaseDepth = nestingDepth
+    this.compilingMaterialisedBlock = true
+
+    const emitter = CodeEmitter.strict()
+
+    const pushFramesAndEmit = (level: number): void => {
+      if (level < 0) {
+        this.emitRenderBlock(block, emitter, true)
+
+        return
+      }
+
+      const frame: IteratorScopeFrame = {
+        itemVar: `scopeStack[${level}].item`,
+        indexVar: `scopeStack[${level}].index`,
+        inputLengthExpr: `scopeStack[${level}].inputLength`,
+        rawItemExpr: `scopeStack[${level}].rawItem`,
+      }
+
+      this.expr.withIteratorFrame(frame, () => pushFramesAndEmit(level - 1))
+    }
+
+    pushFramesAndEmit(nestingDepth - 1)
+    this.compilingMaterialisedBlock = false
+
+    return emitter.toString()
   }
 }

@@ -1,6 +1,10 @@
 import { createAnswerPreparationPhase } from './answerPreparationPhase'
 import TraceRecorder from '../trace/TraceRecorder'
 import type { AnswerPreparationPlan } from '../../../contracts/plans/compilationArtefacts.type'
+import type {
+  CompiledTemplateMaterialisationRoot,
+  MaterialisedTemplateNode,
+} from '../../../contracts/plans/materialisationArtefacts.type'
 import { createPipelineState } from '../testing-helpers/pipelineStateFixtures'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 
@@ -12,8 +16,7 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const prepareFn = vi.fn()
       const plan: AnswerPreparationPlan = {
-        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
-        iteratorAnswerPreparationGroups: [],
+        items: [{ kind: 'field', entry: { nodeId: 'compile_ast:1' as const, prepare: prepareFn } }],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -39,8 +42,7 @@ describe('answerPreparationPhase', () => {
         prepared = true
       })
       const plan: AnswerPreparationPlan = {
-        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: prepareFn }],
-        iteratorAnswerPreparationGroups: [],
+        items: [{ kind: 'field', entry: { nodeId: 'compile_ast:1' as const, prepare: prepareFn } }],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -55,8 +57,7 @@ describe('answerPreparationPhase', () => {
       // Arrange
       const recorder = new TraceRecorder()
       const plan: AnswerPreparationPlan = {
-        fieldAnswerPreparations: [{ nodeId: 'compile_ast:1' as const, prepare: vi.fn() }],
-        iteratorAnswerPreparationGroups: [],
+        items: [{ kind: 'field', entry: { nodeId: 'compile_ast:1' as const, prepare: vi.fn() } }],
       }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
@@ -74,9 +75,62 @@ describe('answerPreparationPhase', () => {
       ])
     })
 
+    it('should store materialisation produced during ordered answer preparation', async () => {
+      // Arrange
+      const order: string[] = []
+      const prepareFn = vi.fn(_ctx => {
+        order.push('materialised:0')
+      })
+      const node: MaterialisedTemplateNode = {
+        sourceNodeId: 'template:1' as const,
+        instanceKey: 'compile_ast:2[0]/template:1',
+        origin: {
+          iteratorNodeId: 'compile_ast:2' as const,
+          itemIndex: 0,
+        },
+        prepare: prepareFn,
+      }
+      const root: CompiledTemplateMaterialisationRoot = {
+        nodeId: 'compile_ast:2' as const,
+        templateFunctions: new Map(),
+        materialise: vi.fn(ctx => {
+          order.push(`materialise:${ctx.answers.seed?.current}`)
+
+          return [node]
+        }),
+      }
+      const plan: AnswerPreparationPlan = {
+        items: [
+          {
+            kind: 'field',
+            entry: {
+              nodeId: 'compile_ast:1' as const,
+              prepare: vi.fn(ctx => {
+                order.push('field')
+                ctx.answers.seed = { current: 'ready', mutations: [{ value: 'ready', source: 'default' }] }
+              }),
+            },
+          },
+          { kind: 'materialisation-root', root },
+        ],
+      }
+      const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
+      const state = createPipelineState()
+
+      // Act
+      const result = await phase.execute(state)
+
+      // Assert
+      expect(result).toEqual({ action: 'continue' })
+      expect(order).toEqual(['field', 'materialise:ready', 'materialised:0'])
+      expect(state.materialisation).toEqual([node])
+    })
+
     it('should no-op when plan has no fields', async () => {
       // Arrange
-      const plan: AnswerPreparationPlan = { fieldAnswerPreparations: [], iteratorAnswerPreparationGroups: [] }
+      const plan: AnswerPreparationPlan = {
+        items: [],
+      }
       const phase = createAnswerPreparationPhase(plan, mockFunctionRegistry)
 
       // Act

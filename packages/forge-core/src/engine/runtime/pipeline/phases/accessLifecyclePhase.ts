@@ -22,9 +22,17 @@ export function createAccessLifecyclePhase(
     async execute(state) {
       const result = await evaluateAccessLifecycle(
         accessLifecyclePlan,
-        buildCompiledHookLifecycleContext(state.context, functionRegistry, 'access', state.responseBindings),
+        buildCompiledHookLifecycleContext(
+          state.context,
+          functionRegistry,
+          'access',
+          state.responseBindings,
+          undefined,
+          state.trace,
+        ),
         state.trace,
         nodeId => recordContextSnapshot(state, `access-hook:${nodeId}`),
+        (hookNodeId, effectName) => recordContextSnapshot(state, `access-hook:${hookNodeId}:effect:${effectName}`),
       )
 
       if (result.outcome === 'redirect') {

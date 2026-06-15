@@ -91,6 +91,9 @@ function createContext(
       domainFailures: overrides.validation?.domainFailures ?? [],
     })),
     effectFunctionContext: new EffectFunctionContextImpl({ global: { answers, data }, request, response }, 'access'),
+    runEffect: async (_name, thunk) => {
+      await thunk()
+    },
     ...overrides,
   }
 }
