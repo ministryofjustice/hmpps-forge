@@ -76,7 +76,7 @@
     "@types/supertest": "^7.2.0",
     "@typescript/native-preview": "^7.0.0-dev.20260412.1",
     "audit-ci": "^7.1.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-manifest": "^1.0.5",
     "esbuild-sass-plugin": "^3.6.0",
