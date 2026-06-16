@@ -630,3 +630,97 @@ export const parsedValueRenderJourney = journey({
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
+
+export const postBlockValueAfterDependentWhenJourney = journey({
+  code: 'post-block-dw',
+  path: '/post-block-dw',
+  title: 'POST Block Value After DependentWhen',
+  onAccess: [access({ effects: [Effects.LoadAnswers('post-block-dw')] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'contactMethod',
+          fieldset: { legend: { text: 'How should we contact you?' } },
+          items: [
+            { value: 'email', text: 'Email' },
+            { value: 'phone', text: 'Phone' },
+          ],
+        }),
+        GovUKTextInput({
+          code: 'emailAddress',
+          label: 'Email address',
+          dependentWhen: Answer('contactMethod').match(Condition.Equals('email')),
+        }),
+        GovUKTextInput({
+          code: 'fullName',
+          label: 'Full name',
+          validWhen: [
+            validation({
+              condition: Self().match(Condition.IsRequired()),
+              message: 'Enter your full name',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            effects: [Effects.SaveAnswers('post-block-dw')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const nestedBlockValidationJourney = journey({
+  code: 'nested-valid',
+  path: '/nested-valid',
+  title: 'Nested Block Validation',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'choice',
+          fieldset: { legend: { text: 'Choose' } },
+          items: [
+            {
+              value: 'yes',
+              text: 'Yes',
+              block: GovUKTextInput({
+                code: 'detail',
+                label: 'Detail',
+                validWhen: [
+                  validation({
+                    condition: Self().match(Condition.IsRequired()),
+                    message: 'Enter a detail',
+                  }),
+                ],
+              }),
+            },
+            { value: 'no', text: 'No' },
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: { next: [redirect({ goto: 'done' })] },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})

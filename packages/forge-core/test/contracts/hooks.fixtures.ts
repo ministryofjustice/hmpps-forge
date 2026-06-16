@@ -42,6 +42,7 @@ interface HooksEffectShape {
   DirectSetAnswer: (code: string, value: string) => EffectFunctionExpr
   DirectSetData: (key: string, value: string) => EffectFunctionExpr
   DirectClearAnswer: (code: string) => EffectFunctionExpr
+  ThrowUnhandled: (message: string) => EffectFunctionExpr
   StoreHasAnswer: (code: string, dataKey: string) => EffectFunctionExpr
 }
 
@@ -189,6 +190,10 @@ const { effects: HooksEffects, implementations: hooksEffectImplementations } = d
     if (session) {
       session.captured = { ...session.captured, fieldsToClear }
     }
+  },
+
+  ThrowUnhandled: () => (_context, message: string) => {
+    throw new Error(message)
   },
 })
 
@@ -868,5 +873,71 @@ export const throwErrorBeforeValidationJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const submitGuardsBlocksEffectsJourney = journey({
+  code: 'submit-guards-effects',
+  path: '/submit-guards-effects',
+  title: 'Submit Guards Blocks Effects',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'name', label: 'Name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          guards: Data('guardOpen').match(Condition.Equals(true)),
+          validate: false,
+          onAlways: {
+            effects: [HooksEffects.AppendLog('guarded-effect')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const journeyRootAccessRedirectJourney = journey({
+  code: 'root-access-redirect',
+  path: '/root-access-redirect',
+  title: 'Root Access Redirect',
+  onAccess: [
+    access({
+      effects: [HooksEffects.AppendLog('root-hook')],
+      next: [redirect({ goto: 'intercepted' })],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Content' })],
+    }),
+    step({ code: 'intercepted', path: '/intercepted', title: 'Intercepted', blocks: [] }),
+  ],
+})
+
+export const crashingEffectJourney = journey({
+  code: 'crash-effect',
+  path: '/crash-effect',
+  title: 'Crashing Effect',
+  onAccess: [
+    access({
+      effects: [HooksEffects.ThrowUnhandled('boom')],
+    }),
+  ],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Content' })],
+    }),
   ],
 })

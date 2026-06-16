@@ -23,6 +23,7 @@ import {
   tieBreakerJourney,
   unreachableRedirectToEntryJourney,
   headerSurvivesRedirectJourney,
+  dynamicGotoFallbackJourney,
   createNavigationClient,
 } from './navigation.fixtures'
 
@@ -210,6 +211,27 @@ describe('navigation contracts', () => {
         expect(result.url).toBe('/dynamic-goto/step-a')
       }
     })
+
+    it('should fall through to next redirect when dynamic goto resolves to undefined', async () => {
+      // Arrange
+      const client = createClient(dynamicGotoFallbackJourney)
+      const session: ContractSession = {
+        data: {},
+      }
+
+      // Act
+      const result = await client.post('/dynamic-fallback/form', {
+        session,
+        body: { name: 'Ada' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/dynamic-fallback/fallback')
+      }
+    })
   })
 
   describe('journey entry', () => {
@@ -255,6 +277,24 @@ describe('navigation contracts', () => {
 
       if (result.type === 'redirect') {
         expect(result.url).toBe('/unreach-entry/form')
+      }
+    })
+
+    it('should redirect to entry step when POSTing to unreachable step', async () => {
+      // Arrange
+      const client = createClient(unreachableStepJourney)
+
+      // Act
+      const result = await client.post('/unreachable/step-two', {
+        session: {},
+        body: {},
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/unreachable/step-one')
       }
     })
 
@@ -524,6 +564,24 @@ describe('navigation contracts', () => {
 
       // Assert
       expect(result.type).toBe('render')
+    })
+
+    it('should redirect journey root to frontier when resume is active', async () => {
+      // Arrange
+      const client = createClient(resumeJourney)
+      const session: ContractSession = {
+        answers: { resume: { firstName: 'Ada' } },
+      }
+
+      // Act
+      const result = await client.get('/resume', { session })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/resume/step-two')
+      }
     })
   })
 
