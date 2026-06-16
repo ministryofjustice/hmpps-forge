@@ -23,6 +23,7 @@ import {
   emptyMultipleCheckboxJourney,
   dependentWhenWithDefaultJourney,
   parserTypeErrorJourney,
+  arrayNonMultipleJourney,
 } from './answerPreparation.fixtures'
 
 describe('answer preparation contracts', () => {
@@ -548,5 +549,17 @@ describe('answer preparation contracts', () => {
     expect(session.answers?.['iter-dep']?.showDetails).toBe('no')
     expect(session.answers?.['iter-dep']?.memberName_0).toBeUndefined()
     expect(session.answers?.['iter-dep']?.memberName_1).toBeUndefined()
+  })
+
+  it('should pick first non-empty value when non-multiple field receives an array', async () => {
+    // Arrange
+    const client = createClient(arrayNonMultipleJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/array-non-multiple/name', { session, body: { fieldCode: ['', 'selected'] } })
+
+    // Assert
+    expect(session.answers?.['array-non-multiple']?.fieldCode).toBe('selected')
   })
 })

@@ -31,6 +31,9 @@ import {
   clearThenHasAnswerJourney,
   accessFieldsToClearReachableJourney,
   throwErrorBeforeValidationJourney,
+  submitGuardsBlocksEffectsJourney,
+  journeyRootAccessRedirectJourney,
+  crashingEffectJourney,
 } from './hooks.fixtures'
 
 describe('hooks and effects contracts', () => {
@@ -156,6 +159,24 @@ describe('hooks and effects contracts', () => {
         expect(result.url).toBe('/first-match-wins/first-dest')
       }
     })
+
+    it('should fire journey onAccess redirect when GETting journey root path', async () => {
+      // Arrange
+      const session: HooksSession = {}
+      const client = createHooksClient(journeyRootAccessRedirectJourney)
+
+      // Act
+      const result = await client.get('/root-access-redirect', { session })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/root-access-redirect/intercepted')
+      }
+
+      expect(session.effectLog).toEqual(['root-hook'])
+    })
   })
 
   describe('submit hook lifecycle', () => {
@@ -204,6 +225,43 @@ describe('hooks and effects contracts', () => {
       if (result.type === 'render') {
         expect(result.context.data.effectLog).toEqual(['always', 'invalid'])
       }
+    })
+
+    it('should skip effects when submit hook guards predicate evaluates false', async () => {
+      // Arrange
+      const session: HooksSession = {}
+      const client = createHooksClient(submitGuardsBlocksEffectsJourney)
+
+      // Act
+      const result = await client.post('/submit-guards-effects/form', {
+        session,
+        body: { name: 'Ada' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(false)
+      }
+
+      expect(session.effectLog).toBeUndefined()
+    })
+
+    it('should run effects when submit hook guards predicate evaluates true', async () => {
+      // Arrange
+      const session: HooksSession = { data: { guardOpen: true } }
+      const client = createHooksClient(submitGuardsBlocksEffectsJourney)
+
+      // Act
+      const result = await client.post('/submit-guards-effects/form', {
+        session,
+        body: { name: 'Ada' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+      expect(session.effectLog).toEqual(['guarded-effect'])
     })
   })
 
@@ -736,6 +794,20 @@ describe('hooks and effects contracts', () => {
       const fieldsToClear = session.captured?.fieldsToClear as string[]
 
       expect(fieldsToClear).toContain('detail')
+    })
+  })
+
+  describe('trace emission', () => {
+    it('should emit trace to observer even when pipeline throws an unhandled error', async () => {
+      // Arrange
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedHooksClient(crashingEffectJourney, traces)
+
+      // Act & Assert
+      await expect(client.get('/crash-effect/form', { session: {} })).rejects.toThrow('boom')
+
+      expect(traces).toHaveLength(1)
+      expect(traces[0].trace.outcome).toBe('error')
     })
   })
 })

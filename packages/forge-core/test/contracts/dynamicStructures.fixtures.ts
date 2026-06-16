@@ -979,3 +979,145 @@ export const cleardownOnGetJourney = journey({
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
+
+export const iteratorCleardownJourney = journey({
+  code: 'iter-cleardown',
+  path: '/iter-cleardown',
+  title: 'Iterator cleardown',
+  onAccess: [access({ effects: [Effects.LoadAnswers('iter-cleardown')] })],
+  steps: [
+    step({
+      path: '/choose',
+      title: 'Choose',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'route',
+          fieldset: { legend: { text: 'Which route?' } },
+          items: [
+            { value: 'members', text: 'Members' },
+            { value: 'skip', text: 'Skip' },
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('iter-cleardown')],
+            next: [
+              redirect({ when: Answer('route').match(Condition.Equals('members')), goto: 'members' }),
+              redirect({ goto: 'done' }),
+            ],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'members',
+      path: '/members',
+      title: 'Members',
+      cleardownFieldCodes: ['^memberName_\\d+$'],
+      blocks: [GovUKTextInput({ code: 'memberName_0', label: 'Member 1 name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('iter-cleardown')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const conditionalEntryCleardownJourney = journey({
+  code: 'cond-entry-clear',
+  path: '/cond-entry-clear',
+  title: 'Conditional entry cleardown',
+  onAccess: [access({ effects: [Effects.LoadData(), Effects.LoadAnswers('cond-entry-clear')] })],
+  steps: [
+    step({
+      path: '/main',
+      title: 'Main',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Main step' })],
+    }),
+    step({
+      path: '/bonus',
+      title: 'Bonus',
+      reachability: { entryWhen: Data('bonusEnabled').match(Condition.Equals(true)) },
+      blocks: [GovUKTextInput({ code: 'bonusDetail', label: 'Bonus detail' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('cond-entry-clear')],
+            next: [redirect({ goto: 'bonus-done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'bonus-done',
+      path: '/bonus-done',
+      title: 'Bonus Done',
+      blocks: [GovUKInsetText({ text: 'Bonus complete' })],
+    }),
+  ],
+})
+
+export const parameterizedCleardownJourney = journey({
+  code: 'param-cleardown',
+  path: '/param-cleardown/:id',
+  title: 'Parameterized Cleardown',
+  onAccess: [access({ effects: [Effects.LoadAnswers('param-cleardown')] })],
+  steps: [
+    step({
+      path: '/choose',
+      title: 'Choose',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'route',
+          fieldset: { legend: { text: 'Which route?' } },
+          items: [
+            { value: 'detail', text: 'Detail' },
+            { value: 'skip', text: 'Skip' },
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('param-cleardown')],
+            next: [
+              redirect({ when: Answer('route').match(Condition.Equals('detail')), goto: 'detail' }),
+              redirect({ goto: 'done' }),
+            ],
+          },
+        }),
+      ],
+    }),
+    step({
+      path: '/detail',
+      title: 'Detail',
+      blocks: [GovUKTextInput({ code: 'detail', label: 'Detail' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('param-cleardown')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})

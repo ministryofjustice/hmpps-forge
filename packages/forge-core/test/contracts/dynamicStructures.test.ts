@@ -25,6 +25,9 @@ import {
   formatterThenDependentWhenJourney,
   cleardownMutationTrailJourney,
   cleardownOnGetJourney,
+  iteratorCleardownJourney,
+  conditionalEntryCleardownJourney,
+  parameterizedCleardownJourney,
 } from './dynamicStructures.fixtures'
 
 describe('dynamic structures', () => {
@@ -534,6 +537,102 @@ describe('dynamic structures', () => {
       expect(cleardownMutation).toBeDefined()
       expect(cleardownMutation?.value).toBeUndefined()
     })
+
+    it('should clear iterator-derived answers via regex when iterator step becomes unreachable', async () => {
+      // Arrange
+      const client = createClient(iteratorCleardownJourney)
+      const session: ContractSession = {
+        answers: {
+          'iter-cleardown': {
+            route: 'members',
+            memberName_0: 'Alice',
+            memberName_1: 'Bob',
+          },
+        },
+      }
+
+      const before = await client.get('/iter-cleardown/choose', { session })
+
+      expect(before.type).toBe('render')
+
+      if (before.type === 'render') {
+        expect(answerOf(before.context.answers, 'memberName_0').current).toBe('Alice')
+        expect(answerOf(before.context.answers, 'memberName_1').current).toBe('Bob')
+      }
+
+      // Act
+      await client.post('/iter-cleardown/choose', {
+        body: { route: 'skip' },
+        session,
+      })
+
+      // Assert
+      expect(session.answers?.['iter-cleardown']?.memberName_0).toBeUndefined()
+      expect(session.answers?.['iter-cleardown']?.memberName_1).toBeUndefined()
+      expect(session.answers?.['iter-cleardown']?.route).toBe('skip')
+    })
+
+    it('should retain iterator-derived answers when iterator step remains reachable', async () => {
+      // Arrange
+      const client = createClient(iteratorCleardownJourney)
+      const session: ContractSession = {
+        answers: {
+          'iter-cleardown': {
+            route: 'members',
+            memberName_0: 'Alice',
+            memberName_1: 'Bob',
+          },
+        },
+      }
+
+      // Act
+      await client.post('/iter-cleardown/choose', {
+        body: { route: 'members' },
+        session,
+      })
+
+      // Assert
+      expect(session.answers?.['iter-cleardown']?.memberName_0).toBe('Alice')
+      expect(session.answers?.['iter-cleardown']?.memberName_1).toBe('Bob')
+    })
+
+    it('should not clear answers for conditional entry forward steps when condition is true', async () => {
+      // Arrange
+      const client = createClient(conditionalEntryCleardownJourney)
+      const session: ContractSession = {
+        data: { bonusEnabled: true },
+        answers: { 'cond-entry-clear': { bonusDetail: 'existing bonus' } },
+      }
+
+      // Act
+      const result = await client.get('/cond-entry-clear/main', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'bonusDetail').current).toBe('existing bonus')
+      }
+    })
+
+    it('should clear answers for conditional entry forward steps when condition is false', async () => {
+      // Arrange
+      const client = createClient(conditionalEntryCleardownJourney)
+      const session: ContractSession = {
+        data: { bonusEnabled: false },
+        answers: { 'cond-entry-clear': { bonusDetail: 'stale bonus' } },
+      }
+
+      // Act
+      const result = await client.get('/cond-entry-clear/main', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'bonusDetail').current).toBeUndefined()
+      }
+    })
   })
 
   describe('POST then GET cycle', () => {
@@ -812,6 +911,43 @@ describe('dynamic structures', () => {
       expect(sources).toContain('post')
       expect(sources).toContain('processed')
       expect(sources).not.toContain('dependentWhen')
+    })
+  })
+
+  describe('parameterized route cleardown', () => {
+    it('should clear stale answers when step becomes unreachable on a parameterized route', async () => {
+      // Arrange
+      const client = createClient(parameterizedCleardownJourney)
+      const session: ContractSession = {
+        answers: { 'param-cleardown': { route: 'detail', detail: 'stale info' } },
+      }
+
+      // Act
+      await client.post('/param-cleardown/42/choose', {
+        body: { route: 'skip' },
+        session,
+      })
+
+      // Assert
+      expect(session.answers?.['param-cleardown']?.detail).toBeUndefined()
+      expect(session.answers?.['param-cleardown']?.route).toBe('skip')
+    })
+
+    it('should retain answers when step remains reachable on a parameterized route', async () => {
+      // Arrange
+      const client = createClient(parameterizedCleardownJourney)
+      const session: ContractSession = {
+        answers: { 'param-cleardown': { route: 'detail', detail: 'keep this' } },
+      }
+
+      // Act
+      await client.post('/param-cleardown/42/choose', {
+        body: { route: 'detail' },
+        session,
+      })
+
+      // Assert
+      expect(session.answers?.['param-cleardown']?.detail).toBe('keep this')
     })
   })
 })

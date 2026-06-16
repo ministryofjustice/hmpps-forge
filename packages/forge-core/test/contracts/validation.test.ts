@@ -24,6 +24,8 @@ import {
   notCombinatorJourney,
   xorCombinatorJourney,
   visibleWhenValidationJourney,
+  entryDomainValidationJourney,
+  entryConditionalWhenFalseJourney,
 } from './validation.fixtures'
 
 describe('validation contracts', () => {
@@ -452,6 +454,69 @@ describe('validation contracts', () => {
         expect(result.getValidationErrorsByFieldCode('fullName')).toEqual([
           expect.objectContaining({ message: 'Enter your full name', passed: false }),
         ])
+      }
+    })
+
+    it('should show domain validation errors on GET when validateOnEntry is set', async () => {
+      // Arrange
+      const client = createClient(entryDomainValidationJourney)
+      const session: ContractSession = {
+        answers: { 'entry-domain': { minValue: '10', maxValue: '10' } },
+      }
+
+      // Act
+      const result = await client.get('/entry-domain/range', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.context.domainValidationErrors).toEqual([
+          expect.objectContaining({ message: 'Minimum and maximum must be different' }),
+        ])
+        expect(result.context.fieldValidationErrors).toEqual([])
+      }
+    })
+
+    it('should skip entry validation when validateOnEntry when predicate is false', async () => {
+      // Arrange
+      const client = createClient(entryConditionalWhenFalseJourney)
+      const session: ContractSession = {
+        data: { shouldValidate: false },
+        answers: { 'entry-cond-false': { fullName: '' } },
+      }
+
+      // Act
+      const result = await client.get('/entry-cond-false/name', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(false)
+        expect(result.context.fieldValidationErrors).toEqual([])
+      }
+    })
+
+    it('should run entry validation when validateOnEntry when predicate is true', async () => {
+      // Arrange
+      const client = createClient(entryConditionalWhenFalseJourney)
+      const session: ContractSession = {
+        data: { shouldValidate: true },
+        answers: { 'entry-cond-false': { fullName: '' } },
+      }
+
+      // Act
+      const result = await client.get('/entry-cond-false/name', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.context.fieldValidationErrors).toHaveLength(1)
+        expect(result.context.fieldValidationErrors[0].message).toBe('Enter your full name')
       }
     })
   })

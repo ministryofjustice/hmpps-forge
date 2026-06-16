@@ -699,3 +699,28 @@ export const headerSurvivesRedirectJourney = journey({
     step({ code: 'target', path: '/target', title: 'Target', blocks: [] }),
   ],
 })
+
+export const dynamicGotoFallbackJourney = journey({
+  code: 'dynamic-fallback',
+  path: '/dynamic-fallback',
+  title: 'Dynamic Fallback',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'name', label: 'Name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            next: [redirect({ goto: Data('destination') }), redirect({ goto: 'fallback' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'step-a', path: '/step-a', title: 'Step A', blocks: [] }),
+    step({ code: 'fallback', path: '/fallback', title: 'Fallback', blocks: [] }),
+  ],
+})

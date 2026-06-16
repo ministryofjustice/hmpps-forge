@@ -789,3 +789,32 @@ export const parserTypeErrorJourney = journey({
     }),
   ],
 })
+
+export const arrayNonMultipleJourney = journey({
+  code: 'array-non-multiple',
+  path: '/array-non-multiple',
+  title: 'Array for non-multiple field',
+  steps: [
+    step({
+      path: '/name',
+      title: 'Name',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'fieldCode', label: 'Field' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('array-non-multiple')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
