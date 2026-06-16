@@ -1014,3 +1014,85 @@ export const visibleWhenValidationJourney = journey({
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
+
+export const entryDomainValidationJourney = journey({
+  code: 'entry-domain',
+  path: '/entry-domain',
+  title: 'Entry domain validation',
+  onAccess: [access({ effects: [Effects.LoadAnswers('entry-domain')] })],
+  steps: [
+    step({
+      path: '/range',
+      title: 'Range',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({ code: 'minValue', label: 'Minimum' }),
+        GovUKTextInput({ code: 'maxValue', label: 'Maximum' }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      validWhen: [
+        validation({
+          condition: Answer('minValue').not.match(Condition.Equals(Answer('maxValue'))),
+          message: 'Minimum and maximum must be different',
+        }),
+      ],
+      validateOnEntry: [{ groups: ['default'], when: true }],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const entryConditionalWhenFalseJourney = journey({
+  code: 'entry-cond-false',
+  path: '/entry-cond-false',
+  title: 'Entry conditional when false',
+  onAccess: [access({ effects: [Effects.LoadData(), Effects.LoadAnswers('entry-cond-false')] })],
+  steps: [
+    step({
+      path: '/name',
+      title: 'Name',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'fullName',
+          label: 'Full name',
+          validWhen: [
+            validation({
+              condition: Self().match(Condition.IsRequired()),
+              message: 'Enter your full name',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      validateOnEntry: [{ groups: ['default'], when: Data('shouldValidate').match(Condition.Equals(true)) }],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})

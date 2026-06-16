@@ -22,6 +22,8 @@ import {
   blockSkipPropsJourney,
   routeTreeJourney,
   parsedValueRenderJourney,
+  postBlockValueAfterDependentWhenJourney,
+  nestedBlockValidationJourney,
 } from './rendering.fixtures'
 
 function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
@@ -310,6 +312,10 @@ describe('rendering contracts', () => {
 
       if (result.type === 'render') {
         expect(result.context.step.metadata).toEqual({ section: 'personal-details' })
+        expect(result.context.step).not.toHaveProperty('onAccess')
+        expect(result.context.step).not.toHaveProperty('onSubmission')
+        expect(result.context.step).not.toHaveProperty('blocks')
+        expect(result.context.step).not.toHaveProperty('reachability')
       }
     })
 
@@ -501,6 +507,29 @@ describe('rendering contracts', () => {
       }
     })
 
+    it('should use current value after non-processed mutation on POST render', async () => {
+      // Arrange
+      const client = createClient(postBlockValueAfterDependentWhenJourney)
+
+      // Act
+      const result = await client.post('/post-block-dw/form', {
+        session: {},
+        body: { contactMethod: 'phone', emailAddress: 'test@example.com', fullName: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+
+        const emailBlock = result.context.blocks.find(b => b.properties.code === 'emailAddress')
+
+        expect(emailBlock).toBeDefined()
+        expect(emailBlock?.properties.value).toBeUndefined()
+      }
+    })
+
     it('should expose routeTree with resolved paths and active state', async () => {
       // Arrange
       const client = createClient(routeTreeJourney)
@@ -626,6 +655,43 @@ describe('rendering contracts', () => {
 
         expect(nameValidations.some(v => !v.passed && v.message === 'Enter your full name')).toBe(true)
         expect(emailValidations.every(v => v.passed)).toBe(true)
+
+        expect(nameBlock?.properties.value).toBe('')
+        expect(emailBlock?.properties.value).toBe('ada@example.com')
+      }
+    })
+
+    it('should attach validation errors to nested blocks inside radio conditional reveal', async () => {
+      // Arrange
+      const client = createClient(nestedBlockValidationJourney)
+
+      // Act
+      const result = await client.post('/nested-valid/form', {
+        session: {},
+        body: { choice: 'yes' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+
+        const detailErrors = result.getValidationErrorsByFieldCode('detail')
+
+        expect(detailErrors).toHaveLength(1)
+        expect(detailErrors[0].message).toBe('Enter a detail')
+
+        const radioBlock = result.context.blocks.find(b => b.properties.code === 'choice')
+        const items = radioBlock?.properties.items as { value: string; block?: RenderBlock }[]
+        const nestedBlock = items?.find(i => i.value === 'yes')?.block
+
+        expect(nestedBlock).toBeDefined()
+
+        const nestedValidWhen = nestedBlock?.properties.validWhen as { passed: boolean; message: string }[]
+
+        expect(nestedValidWhen).toBeDefined()
+        expect(nestedValidWhen.some(v => !v.passed && v.message === 'Enter a detail')).toBe(true)
       }
     })
   })
