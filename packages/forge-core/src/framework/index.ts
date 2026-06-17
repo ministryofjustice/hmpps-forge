@@ -1,5 +1,4 @@
 export type { ComponentRegistry, Logger } from './types/adapter.type'
-export { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 export type { RequestSnapshot } from './types/snapshot.type'
 export type { ForgeError, ForgeErrorCode, ForgeOutcome } from './types/outcome.type'
 export type { ForgeRoute, ForgeTopology, RouteMethod } from './types/topology.type'

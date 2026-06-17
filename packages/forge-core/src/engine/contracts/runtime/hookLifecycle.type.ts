@@ -2,7 +2,6 @@ import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { AnswerHistory } from './answerHistory.type'
 import type { StepValidationState } from './evaluationState.type'
 import type { StepValidityResult } from './stepValidityResult.type'
-import type { ForgeInstrumentation } from '../../../instrumentation/ForgeInstrumentation'
 
 export interface HookLifecycleContext {
   answers: Record<string, AnswerHistory>
@@ -14,7 +13,6 @@ export interface HookLifecycleContext {
   post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
-  instrumentation: ForgeInstrumentation
   effectFunctionContext: unknown
   validate?: (groups: string[]) => StepValidityResult | Promise<StepValidityResult>
 }

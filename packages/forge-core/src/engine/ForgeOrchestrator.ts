@@ -1,6 +1,5 @@
 import type Forge from './Forge'
 import type { EvaluateOptions } from './Forge'
-import type { ForgeDependencies } from './contracts/ast/engine.type'
 import type { ForgeRenderer, RenderBlock, RenderContext } from '../framework/rendering/types'
 import type { ComponentRegistry } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
@@ -56,11 +55,10 @@ export default class ForgeOrchestrator<TOut = undefined> {
     this.renderer = options.renderer
 
     const runtime = this.forge.getRuntime()
-    const dependencies = this.forge.getDependencies()
 
     runtime.mounts.forEach(mount => {
-      this.buildStepExecutors(mount, runtime.routeTreeRoots, dependencies)
-      this.buildJourneyExecutors(mount, dependencies)
+      this.buildStepExecutors(mount, runtime.routeTreeRoots)
+      this.buildJourneyExecutors(mount)
     })
   }
 
@@ -80,13 +78,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
     if (!orchestrator) {
       return this.errorOutcome('method-not-supported', `${snapshot.method} not allowed for node "${snapshot.nodeId}"`)
     }
-
-    const dependencies = this.forge.getDependencies()
-
-    dependencies.instrumentation.getCurrentSpan()?.setAttributes({
-      'http.route': executor.route,
-      'forge.journey.code': executor.journeyCode,
-    })
 
     const request = new SnapshotStepRequest(snapshot)
     const context = this.contextPreparer.prepare({ staticData: executor.staticData }, request)
@@ -264,12 +255,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       }))
   }
 
-  private buildStepExecutors(
-    mount: MountedPackage,
-    routeTreeRoots: StoredRouteTree,
-    forgeDependencies: ForgeDependencies,
-  ): void {
-    const { instrumentation } = forgeDependencies
+  private buildStepExecutors(mount: MountedPackage, routeTreeRoots: StoredRouteTree): void {
     const { functionRegistry, componentRegistry } = mount.dependencies
     const { journeyCode, packageInstance, stepContexts } = mount
 
@@ -281,7 +267,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
         compiledStep.compiledAccessLifecycle,
         runtimePlan.path,
         functionRegistry,
-        instrumentation,
       )
 
       const answersPhase = createAnswerPreparationPhase(
@@ -309,7 +294,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
             ctx.routeTemplateCatalog,
             resolveStepRequestRedirect,
             functionRegistry,
-            instrumentation,
           ),
           createEntryValidationPhase(
             compiledStep.compiledEntryValidation,
@@ -317,11 +301,9 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
-            instrumentation,
           ),
         ],
         renderTerminal,
-        instrumentation,
       )
 
       const postOrchestrator = new RequestOrchestrator(
@@ -335,7 +317,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
             ctx.routeTemplateCatalog,
             resolvePostRequestRedirect,
             functionRegistry,
-            instrumentation,
           ),
           createSubmitPhase(
             compiledStep.compiledSubmitHooks,
@@ -343,11 +324,9 @@ export default class ForgeOrchestrator<TOut = undefined> {
             runtimePlan.stepId,
             runtimePlan.path,
             functionRegistry,
-            instrumentation,
           ),
         ],
         renderTerminal,
-        instrumentation,
       )
 
       const routeKey = MountRegistryClass.scopedRouteKey(journeyCode, ctx.stepId)
@@ -363,8 +342,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
     })
   }
 
-  private buildJourneyExecutors(mount: MountedPackage, forgeDependencies: ForgeDependencies): void {
-    const { instrumentation } = forgeDependencies
+  private buildJourneyExecutors(mount: MountedPackage): void {
     const { functionRegistry, componentRegistry } = mount.dependencies
     const { journeyCode, packageInstance, journeyContexts, catalogsByBasePath } = mount
 
@@ -380,12 +358,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
 
       const orchestrator = new RequestOrchestrator(
         [
-          createAccessLifecyclePhase(
-            compiledJourney.compiledAccessLifecycle,
-            runtimePlan.path,
-            functionRegistry,
-            instrumentation,
-          ),
+          createAccessLifecyclePhase(compiledJourney.compiledAccessLifecycle, runtimePlan.path, functionRegistry),
           createAnswerPreparationPhase(compiledJourney.compiledAnswerPreparation, runtimePlan.path, functionRegistry),
         ],
         createJourneyRedirectTerminal(
@@ -394,7 +367,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
           routeTemplateCatalog,
           functionRegistry,
         ),
-        instrumentation,
       )
 
       const routeKey = MountRegistryClass.scopedRouteKey(journeyCode, journeyId)

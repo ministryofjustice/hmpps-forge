@@ -1,7 +1,7 @@
 import express from 'express'
 import type nunjucks from 'nunjucks'
 import createHttpError from 'http-errors'
-import type { Forge, ForgeInstrumentation } from '@ministryofjustice/hmpps-forge/core'
+import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
@@ -29,7 +29,6 @@ export interface ExpressForgeRouterOptions {
 }
 
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
-  const instrumentation = forge.getInstrumentation()
   const logger = forge.getLogger()
 
   const renderer = new NunjucksRenderer({
@@ -41,7 +40,7 @@ export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOpt
   const router = express.Router({ mergeParams: true })
 
   orchestrator.getTopology().routes.forEach(route => {
-    const handler = createHandler(orchestrator, route, instrumentation, logger)
+    const handler = createHandler(orchestrator, route, logger)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
@@ -58,10 +57,9 @@ export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOpt
 function createHandler(
   orchestrator: ForgeOrchestrator<string>,
   route: ForgeRoute,
-  instrumentation: ForgeInstrumentation,
   logger: Logger | Console,
 ): express.RequestHandler {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const requestPath = extractPathname(req.originalUrl ?? req.path)
     const reqWithState = req as RequestWithState
 
@@ -72,17 +70,13 @@ function createHandler(
     const snapshot = toSnapshot(route, req, res)
     const response = createExpressResponseBindings(res)
 
-    return (
-      instrumentation
-        .spanAsync('forge-request', async span => {
-          span.setAttribute('http.method', req.method)
+    try {
+      const outcome = await orchestrator.evaluate(snapshot, { response })
 
-          const outcome = await orchestrator.evaluate(snapshot, { response })
-
-          applyOutcome(outcome, req, res, next)
-        })
-        .catch(next)
-    )
+      applyOutcome(outcome, req, res, next)
+    } catch (error) {
+      next(error)
+    }
   }
 }
 
