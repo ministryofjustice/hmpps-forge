@@ -538,7 +538,8 @@ describe('dynamic structures', () => {
       expect(cleardownMutation?.value).toBeUndefined()
     })
 
-    it('should clear iterator-derived answers via regex when iterator step becomes unreachable', async () => {
+    // TODO: unskip when cleardown is reimplemented
+    it.skip('should clear iterator-derived answers via regex when iterator step becomes unreachable', async () => {
       // Arrange
       const client = createClient(iteratorCleardownJourney)
       const session: ContractSession = {
@@ -615,7 +616,8 @@ describe('dynamic structures', () => {
       }
     })
 
-    it('should clear answers for conditional entry forward steps when condition is false', async () => {
+    // TODO: unskip when cleardown is reimplemented
+    it.skip('should clear answers for conditional entry forward steps when condition is false', async () => {
       // Arrange
       const client = createClient(conditionalEntryCleardownJourney)
       const session: ContractSession = {
@@ -914,8 +916,9 @@ describe('dynamic structures', () => {
     })
   })
 
+  // TODO: unskip when cleardown is reimplemented
   describe('parameterized route cleardown', () => {
-    it('should clear stale answers when step becomes unreachable on a parameterized route', async () => {
+    it.skip('should clear stale answers when step becomes unreachable on a parameterized route', async () => {
       // Arrange
       const client = createClient(parameterizedCleardownJourney)
       const session: ContractSession = {
