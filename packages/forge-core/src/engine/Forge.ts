@@ -10,14 +10,12 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
-import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
-import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
-import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
 import { ForgeInstrumentation } from '../instrumentation/ForgeInstrumentation'
 import type { ForgeInstrumentationOptions } from '../instrumentation/ForgeInstrumentation'
-import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
+import MountRegistry from './runtime/routes/MountRegistry'
+import type { ForgeRuntime } from './runtime/routes/MountRegistry'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 
 export interface ForgeOptions {
@@ -115,7 +113,7 @@ export default class Forge {
 
   private readonly dependencies: ForgeDependencies
 
-  private readonly forgeEvaluator: ForgeEvaluator
+  private readonly mountRegistry: MountRegistry
 
   /**
    * Create a new Forge instance
@@ -166,7 +164,7 @@ export default class Forge {
       instrumentation: this.instrumentation,
     }
 
-    this.forgeEvaluator = new ForgeEvaluator(this.dependencies, this.options)
+    this.mountRegistry = new MountRegistry(this.options.basePath)
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -248,7 +246,7 @@ export default class Forge {
   }
 
   private registerPackageInstance(packageInstance: PackageInstance): number {
-    return this.forgeEvaluator.mount(packageInstance)
+    return this.mountRegistry.mount(packageInstance)
   }
 
   private handleRegistrationError(e: unknown): void {
@@ -267,24 +265,21 @@ export default class Forge {
   }
 
   /**
-   * Evaluate a single request against the registered journeys.
-   *
-   * Takes a framework-agnostic {@link RequestSnapshot} (built by an adapter from
-   * its native request) and returns a {@link ForgeOutcome} describing what to
-   * render, where to navigate, or which error to surface.
-   */
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome> {
-    return this.forgeEvaluator.evaluate(snapshot, options?.response ?? NO_OP_RESPONSE_BINDINGS)
-  }
-
-  /**
    * The routes exposed by the registered journeys, as plain data.
    *
    * Adapters consume this to register routes with their framework and to map an
    * incoming request back to a {@link RequestSnapshot.nodeId}.
    */
   getTopology(): ForgeTopology {
-    return this.forgeEvaluator.getTopology()
+    return this.mountRegistry.getTopology()
+  }
+
+  getRuntime(): ForgeRuntime {
+    return this.mountRegistry.getRuntime()
+  }
+
+  getDependencies(): ForgeDependencies {
+    return this.dependencies
   }
 
   /** The instrumentation instance, so adapters can nest request spans under the engine's. */

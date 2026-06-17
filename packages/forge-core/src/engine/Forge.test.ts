@@ -1,7 +1,8 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
-import ForgeEvaluator from './runtime/routes/ForgeEvaluator'
+import MountRegistry from './runtime/routes/MountRegistry'
+import type { ForgeRuntime } from './runtime/routes/MountRegistry'
 import type { PackageDependencies } from './contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
 import Forge from './Forge'
@@ -9,13 +10,13 @@ import Forge from './Forge'
 vi.mock('./PackageInstance')
 vi.mock('./registries/ComponentRegistry')
 vi.mock('./registries/FunctionRegistry')
-vi.mock('./runtime/routes/ForgeEvaluator')
+vi.mock('./runtime/routes/MountRegistry')
 
 describe('Forge', () => {
   let mockLogger: Mocked<Console>
   let mockPackageInstance: Mocked<PackageInstance>
   let mockPackageDependencies: PackageDependencies
-  let mockForgeEvaluator: Mocked<ForgeEvaluator>
+  let mockMountRegistry: Mocked<MountRegistry>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,13 +30,13 @@ describe('Forge', () => {
       debug: vi.fn(),
     } as any
 
-    mockForgeEvaluator = {
+    mockMountRegistry = {
       mount: vi.fn().mockReturnValue(3),
       getTopology: vi.fn().mockReturnValue({ routes: [] }),
-      evaluate: vi.fn(),
+      getRuntime: vi.fn().mockReturnValue({ routeTreeRoots: [], mounts: [] } as ForgeRuntime),
     } as any
-    ;(ForgeEvaluator as MockedClass<typeof ForgeEvaluator>).mockImplementation(function mockForgeEvaluatorCtor() {
-      return mockForgeEvaluator as any
+    ;(MountRegistry as MockedClass<typeof MountRegistry>).mockImplementation(function mockMountRegistryCtor() {
+      return mockMountRegistry as any
     })
 
     mockPackageDependencies = {
@@ -70,7 +71,7 @@ describe('Forge', () => {
 
       expect(ComponentRegistry).toHaveBeenCalledTimes(1)
       expect(FunctionRegistry).toHaveBeenCalledTimes(1)
-      expect(ForgeEvaluator).toHaveBeenCalledTimes(1)
+      expect(MountRegistry).toHaveBeenCalledTimes(1)
     })
 
     it('should use custom options when provided', () => {
@@ -195,7 +196,7 @@ describe('Forge', () => {
           functionDependencies,
         }),
       )
-      expect(mockForgeEvaluator.mount).toHaveBeenCalledWith(mockPackageInstance)
+      expect(mockMountRegistry.mount).toHaveBeenCalledWith(mockPackageInstance)
     })
 
     it('should skip registration when enabled is false', () => {
@@ -255,7 +256,7 @@ describe('Forge', () => {
       const topology = engine.getTopology()
 
       expect(topology).toEqual({ routes: [] })
-      expect(mockForgeEvaluator.getTopology).toHaveBeenCalledTimes(1)
+      expect(mockMountRegistry.getTopology).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -304,7 +305,7 @@ describe('Forge', () => {
         .registerPackage({ journey: 'config-2' })
 
       expect(result).toBe(engine)
-      expect(mockForgeEvaluator.mount).toHaveBeenCalledTimes(2)
+      expect(mockMountRegistry.mount).toHaveBeenCalledTimes(2)
     })
 
     it('should support chaining even when package registration fails', () => {
@@ -326,7 +327,7 @@ describe('Forge', () => {
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockForgeEvaluator.mount).toHaveBeenCalledTimes(1)
+      expect(mockMountRegistry.mount).toHaveBeenCalledTimes(1)
     })
 
     it('should handle complete registration workflow with chaining', () => {
@@ -352,7 +353,7 @@ describe('Forge', () => {
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
         CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
       })
-      expect(mockForgeEvaluator.mount).toHaveBeenCalledWith(mockPackageInstance)
+      expect(mockMountRegistry.mount).toHaveBeenCalledWith(mockPackageInstance)
     })
   })
 })

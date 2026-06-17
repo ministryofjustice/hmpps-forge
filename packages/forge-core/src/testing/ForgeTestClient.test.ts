@@ -1,6 +1,6 @@
 import { ForgeTestClient } from './ForgeTestClient'
-import type Forge from '../engine/Forge'
 import type { EvaluateOptions } from '../engine/Forge'
+import type { ForgeEvaluationEngine } from './types'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeRoute } from '../framework/types/topology.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
@@ -50,7 +50,7 @@ function createClient(
 
       return typeof resolve === 'function' ? resolve(snapshot, options) : resolve
     },
-  } as unknown as Forge
+  } as unknown as ForgeEvaluationEngine
 
   return { client: new ForgeTestClient(fakeForge), snapshots }
 }

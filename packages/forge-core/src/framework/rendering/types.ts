@@ -2,6 +2,8 @@ import { NodeId } from '../../engine/contracts/ast/ast.type'
 import { BlockType } from '../../authoring/types/enums'
 import { ValidationResult } from '../../engine/contracts/runtime/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
+import type { ComponentRegistryEntry } from '../../components/types/components.type'
+import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
 
 export interface RenderBlock {
   readonly id: NodeId
@@ -86,5 +88,10 @@ export interface RenderContext {
 
   /** Current data state */
   data: Record<string, unknown>
+}
 
+export interface ForgeRenderer<TOut> {
+  renderBlock(entry: ComponentRegistryEntry<BlockDefinition, TOut>, block: EvaluatedBlock<BlockDefinition>): TOut
+  wrapNestedBlock(block: BlockDefinition, output: TOut): unknown
+  assemblePage(context: RenderContext, renderedBlocks: readonly TOut[], requestState: Record<string, unknown>): TOut
 }

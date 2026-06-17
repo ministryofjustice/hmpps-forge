@@ -8,6 +8,7 @@ export type { CookieMutation, CookieOptions } from './types/response.type'
 export type { ResponseBindings } from './types/responseBindings.type'
 export { NO_OP_RESPONSE_BINDINGS } from './types/responseBindings.type'
 export type {
+  ForgeRenderer,
   JourneyAncestor,
   RenderBlock,
   RenderContext,

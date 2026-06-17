@@ -1,4 +1,6 @@
 export { default as Forge } from './engine/Forge'
+export { default as ForgeOrchestrator } from './engine/ForgeOrchestrator'
+export type { ForgeOrchestratorOptions } from './engine/ForgeOrchestrator'
 export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
 export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'

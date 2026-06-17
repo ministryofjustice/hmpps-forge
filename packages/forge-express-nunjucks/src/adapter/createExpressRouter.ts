@@ -1,13 +1,8 @@
 import express from 'express'
 import type nunjucks from 'nunjucks'
 import createHttpError from 'http-errors'
-import type {
-  Forge,
-  ForgeHtmlRenderDebugBridge,
-  ForgeHtmlRenderDebugSink,
-  ForgeInstrumentation,
-  ForgeInstrumentationSink,
-} from '@ministryofjustice/hmpps-forge/core'
+import type { Forge, ForgeInstrumentation } from '@ministryofjustice/hmpps-forge/core'
+import { ForgeOrchestrator } from '@ministryofjustice/hmpps-forge/core'
 import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
 import type {
   CookieMutation,
@@ -19,7 +14,7 @@ import type {
   RequestSnapshot,
   ResponseBindings,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import TemplateRenderer from '../renderer/TemplateRenderer'
+import NunjucksRenderer from '../renderer/NunjucksRenderer'
 import { RequestWithState } from './types'
 
 export interface ExpressForgeRouterOptions {
@@ -33,34 +28,20 @@ export interface ExpressForgeRouterOptions {
   defaultTemplate?: string
 }
 
-/**
- * Build an Express router that serves a configured {@link Forge} instance.
- *
- * The router owns the Express lifecycle: it registers a route per entry in
- * `forge.getTopology()`, converts each incoming request to a
- * {@link RequestSnapshot}, calls `forge.evaluate()`, flushes the resulting
- * effects onto the response, and dispatches the outcome (render / redirect /
- * error). The engine itself never touches Express.
- *
- * @example
- * ```typescript
- * const forge = new Forge({ logger }).registerPackage(myPackage)
- * app.use(createExpressRouter(forge, { nunjucksEnv }))
- * ```
- */
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
   const instrumentation = forge.getInstrumentation()
   const logger = forge.getLogger()
-  const templateRenderer = new TemplateRenderer({
+
+  const renderer = new NunjucksRenderer({
     nunjucksEnv: options.nunjucksEnv,
-    instrumentation,
     defaultTemplate: options.defaultTemplate,
-    htmlRenderDebugBridge: findHtmlRenderDebugBridge(instrumentation.getSinks()),
   })
+
+  const orchestrator = new ForgeOrchestrator({ core: forge, renderer })
   const router = express.Router({ mergeParams: true })
 
-  forge.getTopology().routes.forEach(route => {
-    const handler = createHandler(forge, route, instrumentation, logger, templateRenderer)
+  orchestrator.getTopology().routes.forEach(route => {
+    const handler = createHandler(orchestrator, route, instrumentation, logger)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
@@ -75,11 +56,10 @@ export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOpt
 }
 
 function createHandler(
-  forge: Forge,
+  orchestrator: ForgeOrchestrator<string>,
   route: ForgeRoute,
   instrumentation: ForgeInstrumentation,
   logger: Logger | Console,
-  templateRenderer: TemplateRenderer,
 ): express.RequestHandler {
   return (req, res, next) => {
     const requestPath = extractPathname(req.originalUrl ?? req.path)
@@ -97,9 +77,9 @@ function createHandler(
         .spanAsync('forge-request', async span => {
           span.setAttribute('http.method', req.method)
 
-          const outcome = await forge.evaluate(snapshot, { response })
+          const outcome = await orchestrator.evaluate(snapshot, { response })
 
-          applyOutcome(outcome, req, res, next, templateRenderer)
+          applyOutcome(outcome, req, res, next)
         })
         .catch(next)
     )
@@ -168,11 +148,10 @@ function createExpressResponseBindings(res: express.Response): ResponseBindings 
 }
 
 function applyOutcome(
-  outcome: ForgeOutcome,
+  outcome: ForgeOutcome<string>,
   req: express.Request,
   res: express.Response,
   next: express.NextFunction,
-  templateRenderer: TemplateRenderer,
 ): void {
   if (outcome.kind === 'navigate') {
     res.redirect(outcome.url)
@@ -184,14 +163,12 @@ function applyOutcome(
     return
   }
 
-  const locals = {
-    ...req.app.locals,
-    ...res.locals,
+  if (outcome.output) {
+    res.type('html').send(outcome.output)
+    return
   }
 
-  const html = templateRenderer.render(outcome.context, locals, outcome.componentRegistry)
-
-  res.type('html').send(html)
+  next(createHttpError(500, 'Render outcome produced no output — renderer not bound'))
 }
 
 function normalizeParams(params: Record<string, string | string[] | undefined>): Record<string, string> {
@@ -200,21 +177,6 @@ function normalizeParams(params: Record<string, string | string[] | undefined>):
       .map(([name, value]) => [name, Array.isArray(value) ? value[0] : value])
       .filter((entry): entry is [string, string] => entry[1] !== undefined),
   )
-}
-
-function findHtmlRenderDebugBridge(sinks: ForgeInstrumentationSink[]): ForgeHtmlRenderDebugBridge | undefined {
-  for (const sink of sinks) {
-    if (isHtmlRenderDebugSink(sink)) {
-      return sink.getHtmlRenderDebugBridge()
-    }
-  }
-
-  return undefined
-}
-
-function isHtmlRenderDebugSink(sink: ForgeInstrumentationSink): sink is ForgeHtmlRenderDebugSink {
-  return 'getHtmlRenderDebugBridge' in sink &&
-    typeof (sink as ForgeHtmlRenderDebugSink).getHtmlRenderDebugBridge === 'function'
 }
 
 const ERROR_CODE_STATUS: Record<ForgeErrorCode, number> = {

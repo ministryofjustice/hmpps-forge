@@ -8,11 +8,12 @@ export interface ForgeError {
   readonly message: string
 }
 
-export type ForgeOutcome =
+export type ForgeOutcome<TOut = undefined> =
   | {
       readonly kind: 'render'
       readonly context: RenderContext
       readonly componentRegistry: ComponentRegistry
+      readonly output?: TOut
     }
   | { readonly kind: 'navigate'; readonly url: string }
   | { readonly kind: 'error'; readonly error: ForgeError }
