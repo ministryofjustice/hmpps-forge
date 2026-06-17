@@ -5,7 +5,6 @@ import type { ComponentRegistry } from '../framework/types/adapter.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ForgeErrorCode, ForgeOutcome } from '../framework/types/outcome.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import { NO_OP_RESPONSE_BINDINGS } from '../framework/types/responseBindings.type'
 import type { StoredRouteTree } from './contracts/routing/routeTree.type'
 import type { MountedPackage } from './runtime/routes/MountRegistry'
@@ -23,6 +22,7 @@ import { resolveStepRequestRedirect, resolvePostRequestRedirect } from './runtim
 import SnapshotStepRequest from './runtime/snapshot/SnapshotStepRequest'
 import ContextPreparer from './runtime/lifecycle/ContextPreparer'
 import { isRenderBlock } from './runtime/rendering/typeguards'
+import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../components/types/structures.type'
 import { StructureType } from '../authoring/types/enums'
 import type { ValidationResult } from './contracts/runtime/validationResult.type'
@@ -94,7 +94,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
     }
 
     if (this.renderer) {
-      const output = this.renderOutput(result.context, executor.componentRegistry, options?.response)
+      const output = this.renderOutput(result.context, executor.componentRegistry, request.getAllState())
 
       return {
         kind: 'render',
@@ -114,7 +114,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
   private renderOutput(
     renderContext: RenderContext,
     componentRegistry: ComponentRegistry,
-    responseBindings?: ResponseBindings,
+    requestState: Record<string, unknown>,
   ): TOut {
     const renderer = this.renderer!
 
@@ -125,8 +125,6 @@ export default class ForgeOrchestrator<TOut = undefined> {
     const renderedBlocks = visibleBlocks.map(block =>
       this.renderBlock(block, renderContext.showValidationFailures, componentRegistry, renderer),
     )
-
-    const requestState = responseBindings ? {} : {}
 
     return renderer.assemblePage(renderContext, renderedBlocks, requestState)
   }
@@ -160,7 +158,7 @@ export default class ForgeOrchestrator<TOut = undefined> {
       showValidationFailures,
     )
 
-    return component.render(evaluatedBlock, renderer) as TOut
+    return renderer.renderBlock(component as ComponentRegistryEntry<BlockDefinition, TOut>, evaluatedBlock)
   }
 
   private transformPropertiesWithRenderedBlocks(
