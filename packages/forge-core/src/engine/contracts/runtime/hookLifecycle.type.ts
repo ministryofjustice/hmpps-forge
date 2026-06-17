@@ -11,7 +11,7 @@ export interface HookLifecycleContext {
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
-  post: Record<string, string | string[]>
+  post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
   instrumentation: ForgeInstrumentation

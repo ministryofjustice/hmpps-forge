@@ -974,7 +974,8 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      await evaluateAnswerPreparation(compileAnswerPreparationPlan(localCompiler, [block], []), ctx)
+      const source = localCompiler.generateSource([block])
+      runGeneratedSource(source, ctx)
 
       // Assert
       expect(ctx.answers.dateOfBirth.current).toBe('1980-03-31')
