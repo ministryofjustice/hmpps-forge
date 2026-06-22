@@ -11,6 +11,8 @@ const subpaths = {
   'express-nunjucks': 'forge-express-nunjucks/src/index.ts',
   'govuk-components': 'forge-govuk-components/src/index.ts',
   'moj-components': 'forge-moj-components/src/index.ts',
+  'next-react': 'forge-next-react/src/index.ts',
+  'next-react/client': 'forge-next-react/src/client.tsx',
 }
 
 const packageName = '@ministryofjustice/hmpps-forge'
@@ -20,12 +22,26 @@ const jsFormats = [
   { extension: 'cjs', format: 'cjs' },
 ]
 
-const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
+const external = [
+  'express',
+  'express-session',
+  '@ministryofjustice/hmpps-forge/core',
+  'http-errors',
+  'next',
+  'nunjucks',
+  'react',
+  'react-dom',
+  'zod',
+]
 const externalPrefixes = [
   '@ministryofjustice/hmpps-forge/core/',
   '@ministryofjustice/hmpps-forge/express-nunjucks',
   '@ministryofjustice/hmpps-forge/govuk-components',
   '@ministryofjustice/hmpps-forge/moj-components',
+  '@ministryofjustice/hmpps-forge/next-react',
+  'next/',
+  'react/',
+  'react-dom/',
 ]
 
 const dtsOwnershipRules = [
@@ -41,6 +57,8 @@ const dtsOwnershipRules = [
   { match: '/forge-core/src/instrumentation/', entrypoint: 'core' },
   { match: '/forge-core/src/index.ts', entrypoint: 'core' },
   { match: '/forge-core/src/engine/', entrypoint: 'core' },
+  { match: '/forge-next-react/src/client', entrypoint: 'next-react/client' },
+  { match: '/forge-next-react/src/', entrypoint: 'next-react' },
 ]
 
 const normalizeId = id => id.replaceAll('\\', '/')

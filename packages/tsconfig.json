@@ -12,6 +12,7 @@
     "rootDir": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "paths": {
       "@ministryofjustice/hmpps-forge/core": ["./forge-core/src/index.ts"],
       "@ministryofjustice/hmpps-forge/core/authoring": ["./forge-core/src/authoring/index.ts"],
@@ -19,9 +20,11 @@
       "@ministryofjustice/hmpps-forge/core/framework": ["./forge-core/src/framework/index.ts"],
       "@ministryofjustice/hmpps-forge/express-nunjucks": ["./forge-express-nunjucks/src/index.ts"],
       "@ministryofjustice/hmpps-forge/govuk-components": ["./forge-govuk-components/src/index.ts"],
-      "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"]
+      "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/next-react": ["./forge-next-react/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/next-react/client": ["./forge-next-react/src/client.tsx"]
     }
   },
-  "include": ["./**/src/**/*.ts", "./vitest.d.ts", "./vitest.config.ts"],
+  "include": ["./**/src/**/*.ts", "./**/src/**/*.tsx", "./vitest.d.ts", "./vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

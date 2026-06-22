@@ -1,10 +1,33 @@
 import hmppsConfig from '@ministryofjustice/eslint-config-hmpps'
+import tsParser from '@typescript-eslint/parser'
 
 export default [
   { ignores: ['**/dist/**'] },
   ...hmppsConfig({
     extraIgnorePaths: ['dist/', '*.config.*'],
   }),
+  {
+    files: ['**/*.tsx'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+        sourceType: 'module',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      'class-methods-use-this': 'off',
+    },
+  },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
+    },
+  },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
@@ -186,6 +209,39 @@ export default [
             '**/forge-express-nunjucks/src/**',
             '**/forge-govuk-components/src',
             '**/forge-govuk-components/src/**',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['forge-next-react/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        Console: 'readonly',
+        FormData: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+      },
+    },
+    rules: {
+      'class-methods-use-this': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['@ministryofjustice/hmpps-forge/next-react'],
+          patterns: [
+            '**/forge-core/src',
+            '**/forge-core/src/**',
+            '**/forge-express-nunjucks/src',
+            '**/forge-express-nunjucks/src/**',
+            '**/forge-govuk-components/src',
+            '**/forge-govuk-components/src/**',
+            '**/forge-moj-components/src',
+            '**/forge-moj-components/src/**',
           ],
         },
       ],

@@ -33,6 +33,14 @@ export default defineConfig({
         find: /^@ministryofjustice\/hmpps-forge\/moj-components$/,
         replacement: resolve(import.meta.dirname, './forge-moj-components/src/index.ts'),
       },
+      {
+        find: /^@ministryofjustice\/hmpps-forge\/next-react\/client$/,
+        replacement: resolve(import.meta.dirname, './forge-next-react/src/client.tsx'),
+      },
+      {
+        find: /^@ministryofjustice\/hmpps-forge\/next-react$/,
+        replacement: resolve(import.meta.dirname, './forge-next-react/src/index.ts'),
+      },
     ],
   },
   test: {
