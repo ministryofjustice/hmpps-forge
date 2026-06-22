@@ -32,6 +32,15 @@ Session('roles').match(Condition.Array.ContainsAny(['admin', 'superuser']))
 
 ## Conditions
 
+### IsArray
+
+Tests whether a given value is an array.
+
+```typescript
+Answer('status').match(Condition.Array.IsArray())
+// ["this", "is", "an", "array"] -> true, "this is not an array" -> false
+```
+
 ### IsIn
 
 Tests whether a single value exists in a given array. The value
