@@ -56,7 +56,7 @@ describe('ForgeRuntimeEvaluationError', () => {
       expect(stack).toContain('Path: journey > step > blocks[0]')
       expect(stack).toContain('Node: compile_ast:1')
       expect(stack).toContain('Function: explode')
-      expect(stack).toContain('Cause: Error: boom')
+      expect(stack).toContain('Type: FunctionType.Generator')
     })
   })
 

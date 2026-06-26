@@ -1,11 +1,20 @@
 export { default as Forge } from './engine/Forge'
-export { default as ForgeOrchestrator } from './engine/ForgeOrchestrator'
-export type { ForgeOrchestratorOptions } from './engine/ForgeOrchestrator'
 export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
-export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'
-export { isRenderBlock } from './engine/runtime/rendering/typeguards'
+export { default as EffectFunctionContext } from './engine/runtime/evaluation/context/EffectFunctionContext'
+export { isRenderBlock } from './engine/runtime/evaluation/phases/resolve/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/contracts/compiled/renderBlock.brand'
-export type { EvaluateOptions, ForgeOptions, ForgeRouterAdapter } from './engine/Forge'
+export type { ForgeExecutionRequest, ForgeOptions } from './engine/Forge'
+export type {
+  ForgeInstrumentation,
+  ForgeInstrumentationOptions,
+  ForgeInstrumentationSink,
+} from './engine/diagnostics/ForgeTraceSinkDispatcher'
 export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
 export type { ForgePackageRegistration, ForgeFunctionImplementations } from './engine/contracts/ast/engine.type'
+export type {
+  RequestTrace,
+  RequestTraceEvent,
+  RequestTracePhase,
+  RequestTraceUnit,
+} from './engine/contracts/runtime/trace.type'
