@@ -6,7 +6,7 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import JourneyCompiler from './JourneyCompiler'
+import CompilationPipeline from './compilation/CompilationPipeline'
 
 import type {
   CompiledJourney,
@@ -36,12 +36,12 @@ export default class PackageInstance {
 
     this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
 
-    const compiler = new JourneyCompiler({
+    const pipeline = new CompilationPipeline({
       functionRegistry: this.dependencies.functionRegistry,
       componentRegistry: this.dependencies.componentRegistry,
     })
 
-    this.compilation = compiler.compile(this.rawConfiguration)
+    this.compilation = pipeline.compile(this.rawConfiguration)
   }
 
   getDependencies(): PackageDependencies {
@@ -56,6 +56,10 @@ export default class PackageInstance {
     }
 
     return step
+  }
+
+  getCompiledSteps(): ReadonlyMap<NodeId, CompiledStep> {
+    return this.compilation.steps
   }
 
   getStepRouteIndex(): StepRouteIndex {

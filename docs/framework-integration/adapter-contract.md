@@ -5,7 +5,7 @@
 The adapter contract is the boundary between `forge-core` and a web framework.
 
 Forge evaluates journeys and returns structured outcomes. It does not mount
-routes, read HTTP requests, or write HTTP responses. The adapter owns those
+routes, read HTTP requests, or write HTTP responses. The host adapter owns those
 responsibilities, consuming the engine's public surface to bridge the gap.
 
 The contract lets the core runtime stay framework-independent while giving
@@ -17,53 +17,76 @@ dispatch.
 Forge evaluates journeys, but web frameworks own HTTP details.
 
 Different frameworks have different request objects, response objects, router
-APIs, error handling models, and rendering mechanisms. If `forge-core` depended
+APIs, error-handling models, and rendering mechanisms. If `forge-core` depended
 on one of those models directly, the engine would become harder to reuse and
 test.
 
-Adapters keep that boundary explicit:
+Adapters keep that boundary explicit, and the host stays in control of the
+request:
 
-- `forge-core` exposes routes as data (`ForgeTopology`) and an `evaluate` function
-- the adapter registers those routes in the host framework
-- the adapter converts framework requests into a `RequestSnapshot`
-- the adapter calls `forge.evaluate(snapshot)` and receives a `ForgeOutcome`
-- the adapter dispatches the outcome (render, redirect, or error) using framework APIs
+- `forge-core` exposes its routes as data (`ForgeTopology`) and a single
+  execution entry point (`forge.execute`)
+- the adapter registers those routes with its framework's router
+- when a request arrives, the adapter turns it into a `RequestSnapshot`, calls
+  `forge.execute({ snapshot, responseBindings?, renderer? })`, and acts on the
+  returned `ForgeOutcome`
+- the engine never calls back into the adapter to resolve routes, build
+  snapshots, or commit responses. The only host objects it uses during
+  evaluation are the optional `ResponseBindings` sink (for hook effects that set
+  headers or cookies) and the optional `ForgeRenderer` (during the render phase)
 
 The Express/Nunjucks package is the reference implementation. It is not the only
 shape the contract allows.
 
 ## Engine surface
 
-The adapter consumes three things from a configured `Forge` instance:
+The adapter holds a configured `Forge` instance and drives every request through
+it. `forge-core` does not expose `RequestEvaluator` to the host; `Forge`
+constructs it internally.
 
 | Method | What it provides |
 |--------|-----------------|
-| `forge.getTopology()` | A `ForgeTopology` containing every registrable route (node ID, path template, methods, kind) |
-| `forge.evaluate(snapshot, options?)` | Takes a `RequestSnapshot` and optional `EvaluateOptions` (including `ResponseBindings`), returns a `ForgeOutcome` |
-| `forge.getInstrumentation()` | The instrumentation instance, so adapters can nest request spans |
+| `forge.getTopology()` | A `ForgeTopology` (`{ routes }`) listing every registrable route (`nodeId`, `kind`, `templatePath`, `basePath`, `methods`, optional `title`) |
+| `forge.execute({ snapshot, responseBindings?, renderer? })` | Looks up the node by `snapshot.nodeId`, evaluates it, and resolves to a `ForgeOutcome<unknown>` for the host to dispatch. Throws if no node is registered for the `nodeId` |
 | `forge.getLogger()` | The configured logger |
+| `forge.getInstrumentation()` | The configured request instrumentation dispatcher |
+
+`forge.execute` is the single entry point. The host builds the `RequestSnapshot`
+and passes it in; `execute` returns a `Promise<ForgeOutcome<unknown>>`. There is
+no host-implemented config object and no engine-driven `createSnapshot`/`commit`
+step — the snapshot is an input and the outcome is the return value.
+
+For request observability, `Forge` owns instrumentation through
+`new Forge({ instrumentation: { sinks: [...] } })`. The runtime emits
+`RequestTraceEvent` objects to those sinks after the request, and emits a
+partial trace if the request fails.
 
 ## Inputs and outputs
 
-The adapter provides a `RequestSnapshot` to the engine. A snapshot contains:
+The host builds a `RequestSnapshot` from its native request and passes it in on
+the execution request. A snapshot contains:
 
 - `nodeId` (which compiled node to evaluate, taken from the matched route)
-- method (GET or POST)
-- location (origin, href, pathname, basePath)
-- params, query, post body
-- headers, cookies
-- session
-- request state
+- `method` (GET or POST)
+- `location` (origin, href, pathname, basePath)
+- `params`, `query`, `post` body
+- `headers`, `cookies`
+- `state` (adapter-managed request state, e.g. Express `res.locals`)
+- `session`
 
-The engine returns a `ForgeOutcome`:
+`forge.execute` resolves to a `ForgeOutcome<TOut>`, a discriminated union the
+host dispatches:
 
-- `{ kind: 'render', context, componentRegistry }` - render a page
+- `{ kind: 'render', context, output? }` - render a page. `context` is the
+  `RenderContext`; `output` is the assembled result, present only when a
+  `ForgeRenderer` was supplied
 - `{ kind: 'navigate', url }` - redirect to a URL
-- `{ kind: 'error', error }` - surface a structured error
+- `{ kind: 'error', error }` - a `ForgeError` (`{ status, message }`) from a
+  journey hook
 
-The outcome is pure data. Response IO (headers, cookies) is handled live
-during evaluation through the adapter-provided `ResponseBindings`, not
-carried on the outcome.
+The outcome is pure data. Response IO (headers, cookies) is written during
+evaluation through the host-provided `ResponseBindings`; the host then dispatches
+the returned outcome to its framework.
 
 ## Key concepts
 
@@ -72,44 +95,79 @@ carried on the outcome.
 `RequestSnapshot` is the framework-agnostic input to evaluation.
 
 The adapter builds it from whatever the host framework provides. It contains
-everything the engine needs to evaluate a step: the node to evaluate, the HTTP
-method, location data, all request values, and the session.
+everything the engine needs to evaluate a node: the node to evaluate, the HTTP
+method, location data, all request values, request state, and the session.
 
 This keeps compiled functions and runtime evaluation away from framework request
 objects.
 
+### `forge.execute`
+
+`forge.execute(request)` is the engine's only execution entry point. `request`
+is a `ForgeExecutionRequest`:
+
+- `snapshot` - the `RequestSnapshot` to evaluate (required)
+- `responseBindings` - an optional `ResponseBindings` sink; defaults to
+  `NO_OP_RESPONSE_BINDINGS`
+- `renderer` - an optional `ForgeRenderer`; when omitted, a render outcome
+  carries only its `context` and no `output`
+
+`Forge` resolves `snapshot.nodeId` to a registered node and runs the runtime
+against it. The host drives this call directly; the engine does not call back
+into the host to assemble the request.
+
 ### `ForgeOutcome`
 
-`ForgeOutcome` is the engine's output. It is a discriminated union with three
-variants:
+`ForgeOutcome<TOut>` is the engine's output, returned from `forge.execute`. The
+host inspects it and dispatches it to its framework's response model. It is a
+discriminated union with three variants:
 
-- **render** - includes a `RenderContext` and the `ComponentRegistry` needed to
-  resolve block variants into rendered HTML
-- **navigate** - includes the resolved redirect URL
-- **error** - includes a `ForgeError` with a typed `ForgeErrorCode`
-  (`node-not-found`, `method-not-supported`)
-
-The adapter interprets this outcome into the framework's response model.
+- **render** - carries a `RenderContext` (`context`) and an optional `output`.
+  When a `ForgeRenderer` was supplied, the engine resolves and assembles the
+  page and returns the assembled result on `output`; otherwise `output` is
+  omitted and the host renders from `context` itself. There is no component
+  registry on the outcome — component lookup happens inside the engine's render
+  phase
+- **navigate** - carries the resolved redirect `url`
+- **error** - carries a `ForgeError`: a journey hook error with an HTTP `status`
+  and `message`. Route and method matching is the adapter's job, so the engine
+  raises no route-level errors of its own
 
 ### `ResponseBindings`
 
-The adapter provides a `ResponseBindings` implementation when calling
-`forge.evaluate(snapshot, { response })`. This is a callback interface
-with methods like `setHeader`, `getHeader`, `setCookie`, `getCookie`,
-`getAllHeaders`, and `getAllCookies`.
+`ResponseBindings` is the sink hook effects use to write response headers and
+cookies during evaluation. It is a callback interface with two methods:
 
-Effect hooks call these bindings directly during evaluation. The engine
-never touches the real response object -- the adapter decides what each
-method does. The Express adapter writes live to `res`; the test client
-records into local Maps for assertions.
+- `setHeader(name, value)`
+- `setCookie(name, value, options?)`
 
-This mirrors how session already works: the adapter owns the mutable
-reference, and the engine calls into it during evaluation.
+The host decides what each method does. The Express handler writes straight
+through to the response (`res.setHeader`, `res.cookie`); the test client
+captures the writes into Maps for assertions. `forge-core` ships
+`NO_OP_RESPONSE_BINDINGS` and uses it when the execution request supplies no
+bindings. `forge-core` does not buffer responses itself — there is no
+`BufferedResponseBindings`; any buffering or flushing is the host's choice.
+
+### `ForgeRenderer`
+
+`ForgeRenderer<TOut>` is the optional render strategy the host supplies on the
+execution request. The engine's render phase drives it; the host does not render
+blocks itself. It has three methods:
+
+- `renderBlock(entry, block)` - render one evaluated block to `TOut` (the engine
+  has already resolved `entry` from the component registry)
+- `wrapNestedBlock(block, output)` - wrap a rendered nested block
+- `assemblePage(context, renderedBlocks, requestState)` - assemble the rendered
+  blocks and render context into the page output
+
+When no renderer is supplied, the pipeline ends after the resolve phase and the
+render outcome carries only `context`. See the rendering doc for the full render
+flow.
 
 ### `ForgeTopology`
 
-`ForgeTopology` is the route table exposed by the engine after packages are
-registered.
+`ForgeTopology` (`{ routes }`) is the route table the engine exposes after
+packages are registered.
 
 Each `ForgeRoute` contains:
 
@@ -117,7 +175,8 @@ Each `ForgeRoute` contains:
 - `kind` - `'step'` or `'journey'`
 - `templatePath` - the full URL path template (e.g. `/forms/order/:id/details`)
 - `basePath` - the owning journey's base path template
-- `methods` - which HTTP methods apply (`['GET', 'POST']` for steps, `['GET']` for journey roots)
+- `methods` - which HTTP methods apply (`['GET', 'POST']` for steps, `['GET']`
+  for journey roots)
 - `title` - optional display title
 
 The adapter registers one route per entry, using the template path and methods
@@ -125,39 +184,51 @@ to wire up the framework's routing table.
 
 ### Route handler pattern
 
-Each adapter creates its own route handlers. A handler:
+Each adapter creates its own route handlers. The host drives the whole request;
+the engine is one call inside the handler. A handler:
 
-1. Converts the framework request into a `RequestSnapshot` (using the matched
-   route's `nodeId` and `basePath`, plus request data)
-2. Creates a `ResponseBindings` implementation for this request
-3. Calls `forge.evaluate(snapshot, { response })`
-4. Dispatches the outcome:
-   - render: resolve blocks through the component registry, render a template,
-     send the HTML response
-   - navigate: perform a framework redirect
-   - error: forward to the framework's error model
+1. matches the request to a `ForgeRoute` (the framework's router already did this
+   when the route was registered from the topology)
+2. builds a `RequestSnapshot` from the native request
+3. builds a `ResponseBindings` sink (or omits it to use the no-op default)
+4. calls `forge.execute({ snapshot, responseBindings, renderer })` and awaits the
+   `ForgeOutcome`
+5. dispatches the outcome:
+   - render: send the assembled `output` as the response body (or render
+     `context` itself when no renderer was supplied)
+   - navigate: perform a framework redirect to `url`
+   - error: forward the `ForgeError` to the framework's error model
 
-Response writes (headers, cookies) happen live during step 3 via the bindings.
-There is no post-evaluate flush step.
+Response writes (headers, cookies) happen through the `ResponseBindings` during
+evaluation, so by the time the handler dispatches the outcome they have already
+been applied to whatever sink the host provided.
 
 ### Express/Nunjucks reference adapter
 
-`createExpressRouter(forge, { nunjucksEnv })` is the reference implementation.
+`createExpressRouter(forge, { nunjucksEnv, defaultTemplate? })` is the reference
+implementation. It returns an `express.Router`.
 
-It:
+It creates a `NunjucksRenderer`, reads routes from `forge.getTopology()`, and
+registers one `ExpressHandlerFactory.create(forge, route, logger, renderer)`
+handler per route method (`router.get` / `router.post`).
 
-- reads routes from `forge.getTopology()`
-- registers an Express handler for each route's methods
-- builds a `RequestSnapshot` from each Express request (including `res.locals` as state)
-- creates `ResponseBindings` that write live to the Express `res` (with a
-  local cookie cache for read-after-set, since `res.cookie` has no getter)
-- calls `forge.evaluate(snapshot, { response })`
-- renders with Nunjucks through `TemplateRenderer`, redirects with `res.redirect`,
-  or forwards errors with `next(createHttpError(...))`
+Each handler (`ExpressHandlerFactory`):
 
-`ExpressFrameworkAdapter.configure({ nunjucksEnv })` is a back-compat wrapper
-that returns a builder conforming to the `ForgeRouterAdapter` interface. Both
-produce the same router.
+- builds the `RequestSnapshot` with `ExpressSnapshotFactory.create(route, req, res)`
+  (merging `req.app.locals`, `res.locals`, and any `req.state` into `state`, and
+  using `req.session` as the session)
+- builds a live `ResponseBindings` that writes straight to the response
+  (`res.setHeader`, `res.cookie`) — nothing is buffered
+- calls `forge.execute({ snapshot, responseBindings, renderer })`
+- commits the returned outcome: `navigate` redirects with `res.redirect(url)`;
+  `error` forwards with `next(createHttpError(status, message))`; `render` sends
+  the assembled output with `res.type('html').send(output)` (or a 500 when a
+  render outcome has no `output`, which means no renderer was bound)
+
+`NunjucksRenderer` implements `ForgeRenderer<string>`: `renderBlock` calls the
+component entry's `render`, `wrapNestedBlock` returns `{ block, html }`, and
+`assemblePage` selects the page template and renders it. See the rendering doc
+for detail.
 
     # Note
     We've never tried to implement anything but Express/Nunjucks here. We think
@@ -166,27 +237,33 @@ produce the same router.
     the official GOVUK packages, there's not really much push to explore this 
     currently.
 
-### Test adapter (`ForgeTestClient`)
+### Test client
 
-`ForgeTestClient` is an in-memory adapter used for testing journeys without HTTP
-or HTML rendering.
+`forge-core` ships a test harness that drives the same `forge.execute` path
+without HTTP or HTML rendering — there is no separate test adapter type.
 
-It follows the same contract as a real adapter:
+`ForgeTestHarness` wraps a `Forge` instance (with a silent logger). Its
+`registerGlobalComponents`, `registerGlobalFunctions`, and `registerPackage`
+methods delegate to `Forge`, and `createClient()` returns a `ForgeTestClient`.
 
-- reads routes from `forge.getTopology()`
-- matches a test path against route template paths to find the target node
-- extracts params from the matched path template
-- builds a `RequestSnapshot` from the matched route and test options (session,
-  state, body, headers, cookies)
-- creates recording `ResponseBindings` (Maps for headers and cookies)
-- calls `forge.evaluate(snapshot, { response })`
-- maps the `ForgeOutcome` to a `TestResult`, sourcing headers and cookies from
-  the recording bindings
+`ForgeTestClient.get(path, options?)` / `.post(path, options?)`:
 
-Because it consumes the same `evaluate` + `getTopology` surface as the Express
-adapter, tests exercise the full engine pipeline without framework dependencies.
-The test adapter provides its own recording bindings instead of live framework
-writes, exposing captured response data for assertions alongside the outcome.
+- resolves the path to a route with
+  `TestRouteResolver.resolve(path, method, forge.getTopology())`
+- builds a `RequestSnapshot` with `TestSnapshotFactory.create(method, path, resolved, options)`
+  from the test options (session, state, body, headers, cookies)
+- creates a `ResponseBindings` that captures headers and cookies into Maps
+- calls `forge.execute({ snapshot, responseBindings })` with no renderer, then
+  maps the `ForgeOutcome` to a `TestResult`:
+  - `navigate` becomes `{ type: 'redirect', url, headers, cookies }`
+  - `error` becomes `{ type: 'error', status, message, headers, cookies }`
+  - `render` becomes `{ type: 'render', context, headers, cookies }` plus
+    `getBlocksByVariant` and `getValidationErrorsByFieldCode` helpers
+
+Because it goes through the same `forge.execute` as the Express adapter, tests
+exercise the full engine pipeline without framework dependencies. With no
+renderer supplied, render results expose the `RenderContext` (block data) for
+assertions rather than HTML.
 
 ## What can fail
 
@@ -195,11 +272,12 @@ contract the engine expects.
 
 Important failure cases include:
 
-- a request cannot be converted into a `RequestSnapshot`
-- `forge.evaluate()` throws (internal engine error)
-- the adapter cannot interpret a `ForgeOutcome` variant
-- the adapter's `ResponseBindings` implementation fails during evaluation
-- rendering fails inside the adapter's template layer
+- the host cannot convert a request into a `RequestSnapshot`
+- `snapshot.nodeId` does not match a registered node (`forge.execute` throws)
+- `forge.execute()` throws (internal engine error)
+- the host cannot interpret a `ForgeOutcome` variant
+- the host's `ResponseBindings` implementation fails during evaluation
+- rendering fails inside the supplied `ForgeRenderer`
 - redirect targets cannot be written to the response
 - errors cannot be forwarded into the framework's error model
 
@@ -209,11 +287,11 @@ into `forge-core`. The `RequestSnapshot` is the inbound boundary; the
 
 ## Connection to other docs
 
-The request lifecycle doc explains what happens inside `forge.evaluate()` for
-each request type.
+The request lifecycle doc explains what happens inside `forge.execute()`
+for each request type.
 
 The framework integration rendering doc explains how an adapter turns a render
 outcome's `RenderContext` into a response.
 
-The component system docs explain how component registry entries are supplied
-through the render outcome.
+The component system docs explain how component registry entries are resolved
+during the engine's render phase.

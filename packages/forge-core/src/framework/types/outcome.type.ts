@@ -1,18 +1,21 @@
-import type { ComponentRegistry } from './adapter.type'
 import type { RenderContext } from '../rendering/types'
 
-export type ForgeErrorCode = 'node-not-found' | 'method-not-supported'
-
-export interface ForgeError {
-  readonly code: ForgeErrorCode
+/**
+ * Error raised by a journey's lifecycle hooks. The status is the HTTP status
+ * code declared in the journey configuration. Route and method matching is the
+ * adapter's responsibility, so a hook error is the only error the engine produces.
+ */
+export interface ForgeHookError {
+  readonly status: number
   readonly message: string
 }
+
+export type ForgeError = ForgeHookError
 
 export type ForgeOutcome<TOut = undefined> =
   | {
       readonly kind: 'render'
       readonly context: RenderContext
-      readonly componentRegistry: ComponentRegistry
       readonly output?: TOut
     }
   | { readonly kind: 'navigate'; readonly url: string }

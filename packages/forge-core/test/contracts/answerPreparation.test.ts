@@ -258,8 +258,7 @@ describe('answer preparation contracts', () => {
     expect(nestedAnswers.team_1_member_0).toBe('Linus')
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  it.skip('should record a post mutation on plain submission', async () => {
+  it('should record a post mutation on plain submission', async () => {
     // Arrange
     const traces: RequestTraceEvent[] = []
     const client = createTracedClient(storeValuesJourney, traces)
@@ -273,8 +272,7 @@ describe('answer preparation contracts', () => {
     expect(answerOf(answers, 'fullName').mutations).toEqual([{ value: 'Ada', source: 'post' }])
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  it.skip('should record post and processed mutations when formatters change the value', async () => {
+  it('should record post and processed mutations when formatters change the value', async () => {
     // Arrange
     const traces: RequestTraceEvent[] = []
     const client = createTracedClient(formattersJourney, traces)
@@ -291,8 +289,7 @@ describe('answer preparation contracts', () => {
     ])
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  it.skip('should record a default mutation when seeding on GET', async () => {
+  it('should record a default mutation when seeding on GET', async () => {
     // Arrange
     const traces: RequestTraceEvent[] = []
     const client = createTracedClient(defaultValueJourney, traces)
@@ -306,8 +303,7 @@ describe('answer preparation contracts', () => {
     expect(answerOf(answers, 'country').mutations).toEqual([{ value: 'United Kingdom', source: 'default' }])
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  it.skip('should record a dependentWhen mutation when condition is false', async () => {
+  it('should record a dependentWhen mutation when condition is false', async () => {
     // Arrange
     const traces: RequestTraceEvent[] = []
     const client = createTracedClient(dependentWhenJourney, traces)
@@ -399,8 +395,7 @@ describe('answer preparation contracts', () => {
     }
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  it.skip('should not apply parsers on POST', async () => {
+  it('should not apply parsers on POST', async () => {
     // Arrange
     const traces: RequestTraceEvent[] = []
     const client = createTracedClient(parserAndFormatterJourney, traces)

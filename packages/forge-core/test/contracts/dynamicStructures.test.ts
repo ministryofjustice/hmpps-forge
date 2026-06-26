@@ -89,8 +89,7 @@ describe('dynamic structures', () => {
       expect(session.answers?.['dw-clears']?.emailAddress).toBeUndefined()
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should record dependentWhen mutation in answer history', async () => {
+    it('should record dependentWhen mutation in answer history', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(dependentWhenMutationTrailJourney, traces)
@@ -423,8 +422,7 @@ describe('dynamic structures', () => {
       }
     })
 
-    // TODO: unskip when cleardown is reimplemented
-    it.skip('should clear answers for steps that become unreachable', async () => {
+    it('should clear answers for steps that become unreachable', async () => {
       // Arrange
       const client = createClient(unreachableStepCleardownJourney)
       const session: ContractSession = {
@@ -492,8 +490,7 @@ describe('dynamic structures', () => {
       }
     })
 
-    // TODO: unskip when cleardown is reimplemented
-    it.skip('should clear stale answers on GET when step becomes unreachable', async () => {
+    it('should clear stale answers on GET when step becomes unreachable', async () => {
       // Arrange
       const client = createClient(cleardownOnGetJourney)
       const session: ContractSession = {
@@ -511,8 +508,7 @@ describe('dynamic structures', () => {
       }
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should record cleardown mutation in answer history', async () => {
+    it('should record cleardown mutation in answer history', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(cleardownMutationTrailJourney, traces)
@@ -538,8 +534,7 @@ describe('dynamic structures', () => {
       expect(cleardownMutation?.value).toBeUndefined()
     })
 
-    // TODO: unskip when cleardown is reimplemented
-    it.skip('should clear iterator-derived answers via regex when iterator step becomes unreachable', async () => {
+    it('should clear iterator-derived answers via regex when iterator step becomes unreachable', async () => {
       // Arrange
       const client = createClient(iteratorCleardownJourney)
       const session: ContractSession = {
@@ -616,8 +611,7 @@ describe('dynamic structures', () => {
       }
     })
 
-    // TODO: unskip when cleardown is reimplemented
-    it.skip('should clear answers for conditional entry forward steps when condition is false', async () => {
+    it('should clear answers for conditional entry forward steps when condition is false', async () => {
       // Arrange
       const client = createClient(conditionalEntryCleardownJourney)
       const session: ContractSession = {
@@ -754,8 +748,7 @@ describe('dynamic structures', () => {
       expect(session.answers?.['multi-dw']?.postalAddress).toBeUndefined()
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should clear all dependent fields when none match', async () => {
+    it('should clear all dependent fields when none match', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(multipleDependentWhenFieldsJourney, traces)
@@ -890,8 +883,7 @@ describe('dynamic structures', () => {
       expect(session.answers?.['fmt-dw']?.notes).toBeUndefined()
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should apply formatter then retain when dependentWhen is true', async () => {
+    it('should apply formatter then retain when dependentWhen is true', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(formatterThenDependentWhenJourney, traces)
@@ -916,9 +908,8 @@ describe('dynamic structures', () => {
     })
   })
 
-  // TODO: unskip when cleardown is reimplemented
   describe('parameterized route cleardown', () => {
-    it.skip('should clear stale answers when step becomes unreachable on a parameterized route', async () => {
+    it('should clear stale answers when step becomes unreachable on a parameterized route', async () => {
       // Arrange
       const client = createClient(parameterizedCleardownJourney)
       const session: ContractSession = {

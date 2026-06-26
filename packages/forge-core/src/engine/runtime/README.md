@@ -1,97 +1,240 @@
-# runtime - execution
+# Runtime
 
-Runtime evaluates request snapshots. It takes the compiled functions that
-[`lowering/`](../lowering/README.md) produced, runs them in a fixed order, and
-returns a `ForgeOutcome` (render, navigate, or error). It never sees the AST,
-never knows how the functions were built - it just calls them.
+## Scope
 
-## Why a separate layer?
+This document covers `packages/forge-core/src/engine/runtime`.
 
-The compiled functions are opaque values. Runtime receives them through
-[`contracts/`](../contracts) types (`CompiledRenderFunction`,
-`CompiledAccessLifecycleFunction`, etc.) and calls them - it can't inspect their
-source, their dependencies, or how they were generated. That isolation means
-lowering and runtime can change independently: lowering can rewrite its codegen
-without touching the request path, and runtime can restructure its phase
-pipeline without touching compilation.
+This code executes compiled Forge journeys for one mounted node and one `RequestSnapshot`.
+It builds request work, runs runtime phases, records traces, and returns a `ForgeOutcome`.
 
-## Follow one evaluation
+This document does not cover compilation, package loading, authoring schema validation, framework adapter routing, or component implementation.
 
-A user visits `/demo/name`. The adapter matches the URL against the topology,
-builds a `RequestSnapshot`, and calls `forge.evaluate(snapshot)`. Here's what
-happens inside the engine.
+## Background
 
-[`ForgeEvaluator`](./routes/ForgeEvaluator.ts) resolves the matching
-`NodeExecutor` for the snapshot's `nodeId`. It wraps the snapshot in a
-[`SnapshotStepRequest`](./snapshot/SnapshotStepRequest.ts), then calls
-[`ContextPreparer`](./lifecycle/ContextPreparer.ts) to build a
-`RuntimeEvaluationContext` (request and the mutable global state - answers,
-data, validation) and hands it to a `RequestOrchestrator` along with the
-adapter-provided `ResponseBindings` on the `PipelineState`.
+Runtime is where a compiled Forge journey answers a real request.
 
-The orchestrator ([`RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts))
-is a `for` loop over an ordered list of phases. Each phase runs a compiled
-function, then returns one of three outcomes:
+Compilation has already produced `CompiledStep`, `CompiledJourney`, route indexes, and generated functions.
+Mounting has already turned those compiled artifacts into `MountedNode` values.
+That still is not a final response.
+Runtime must copy request state into `RuntimeContext`, run access checks, prepare answers, evaluate reachability, resolve render blocks, and either redirect, error, or render.
 
-- **`continue`** - move to the next phase
-- **`halt-redirect`** - stop the pipeline, return a redirect
-- **`halt-error`** - stop the pipeline, throw an HTTP error
+For example, a step `POST` cannot just call the step's resolve function.
+It needs prepared answers first.
+It needs eager step validities before navigation.
+It needs submit hooks before render.
+It needs validation failures attached to rendered fields by block ID.
 
-For a GET request to a step, the phases are:
+Runtime does not rebuild compiler state.
+It consumes mounted compiled artifacts and request snapshots.
+No AST nodes, `CompilationPlan`, lowering, or registration should appear in this layer.
 
+## Responsibilities
+
+- Evaluate one `RequestEvaluationRequest`.
+- Build a `RequestExecutionContext` for the request.
+- Build and run the root `request.pipeline` task.
+- Run request phases in the correct order for journey, step `GET`, and step `POST`.
+- Execute nested phase work through `WorkExecutor`.
+- Mutate `RuntimeContext` only for request-time state.
+- Record request traces through `RequestPipelineTraceProjector`.
+- Convert `RequestPipelineResult` into `ForgeOutcome`.
+- Build route-tree lookup data from compiled route indexes during mounting support.
+- Keep compiler artifacts out of request execution.
+
+## Data Model
+
+`RequestEvaluator` is the root runtime entry point.
+It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
+
+`RequestEvaluationRequest` contains:
+- `node`, the `MountedNode` selected by the framework layer.
+- `snapshot`, the `RequestSnapshot` for the current request.
+- `responseBindings`, used by effect hooks.
+- `renderer`, optional component rendering support.
+
+`MountedNode` is created by `MountRegistry`.
+It carries compiled functions, registries, route data, static data, and navigation plans for either a step or a journey.
+Step nodes include step-only compiled functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
+
+`RuntimeContext` is the mutable state for one request.
+It has three branches:
+- `request`, copied from `RequestSnapshot`.
+- `domain`, with `data` and `answers`.
+- `evaluation`, with step validities, reachability, and answer-cleardown state.
+
+`RequestExecutionContext` wraps `RuntimeContext`.
+It adds request-phase signals such as `reachabilityEvaluation`, `validation`, `showValidationFailures`, `renderContext`, `renderedBlocks`, and `pipelineResult`.
+It also carries `functionRegistry`, `responseBindings`, `currentStepId`, `hasRenderer`, `buildStepValidation()`, and `recordStepValidation()`.
+
+`WorkTask` is the runtime execution unit.
+Compiled functions and request phases return work tasks instead of directly running every child operation.
+`WorkExecutor` runs those tasks and returns completed work.
+
+`RequestPipelineResult` is the request pipeline output.
+It is one of:
+- `render`, with a `RenderContext` and optional renderer output.
+- `redirect`, with a target path.
+- `error`, with status and message.
+
+`ForgeOutcome` is the public runtime output.
+`RequestEvaluator.buildOutcome()` turns redirects into navigation URLs, errors into error outcomes, and render results into render outcomes.
+
+Route-tree state lives beside request execution.
+`RouteTreeBuilder` builds `RouteTreeIndex`, `StoredRouteTree`, `JourneyRouteTemplateCatalog`, `JourneyRouteContext`, and `StepRouteContext` from compiled route indexes.
+`MountRegistry` uses those structures to create mounted nodes.
+
+## Flow
+
+Runtime starts with a mounted node.
+The framework layer has already matched a route and chosen the node.
+`RequestEvaluator.evaluate()` builds a request pipeline, runs it as work, projects traces, then converts the result.
+
+```mermaid
+flowchart TD
+  compiled["JourneyCompilationResult"] -->|"registered package"| mount["MountRegistry.register()"]
+  mount -->|"build route tree + mounted nodes"| mounted["MountedNode"]
+  request["RequestSnapshot"] --> runtime["RequestEvaluator.evaluate()"]
+  mounted --> runtime
+  runtime -->|"preparePipeline()"| bootstrap["RequestPipelineBootstrap"]
+  bootstrap -->|"buildExecutionContext()"| requestContext["RequestExecutionContext"]
+  bootstrap -->|"buildPipelineElement()"| pipelineTask["request.pipeline WorkTask"]
+  requestContext --> executor["WorkExecutor.executeWithUnit()"]
+  pipelineTask --> executor
+  executor -->|"run request phases + nested work"| pipelineResult["RequestPipelineResult"]
+  executor -->|"completed WorkUnit tree"| trace["RequestPipelineTraceProjector"]
+  pipelineResult -->|"buildOutcome()"| outcome["ForgeOutcome"]
 ```
-1. access-lifecycle     run the compiled access hooks (can redirect or deny)
-        │ continue
-2. answer-preparation   run the compiled answer-prep (format/default answers into state)
-        │ continue
-3. navigation           run the compiled navigation (evaluate reachability, check step is reachable)
-        │ continue
-4. entry-validation     run entry validation groups if configured
-        │ continue
-        ▼
-   stepRenderTerminal   run the compiled render → produce blocks, step metadata, backlink
-        │
-        ▼
-   ForgeOutcome { kind: 'render', context, componentRegistry }
+
+The request pipeline then runs phase work.
+The phase list depends on whether the mounted node is a journey or step, and whether the request method is `GET` or `POST`.
+
+```mermaid
+flowchart TD
+  pipeline["request.pipeline"] -->|"first-match"| contextPrep["request.context-preparation"]
+  contextPrep --> access["request.access"]
+  access --> answerPrep["request.answer-preparation"]
+  answerPrep --> validities["request.validities"]
+  validities --> reachability["request.reachability"]
+  reachability --> nodeKind{"Mounted node kind"}
+  nodeKind -->|"journey"| journeyRedirect["redirect to reachable step"]
+  nodeKind -->|"step"| cleardown["request.answer-cleardown"]
+  cleardown --> method{"Request method"}
+  method -->|"GET"| entryValidation["request.entry-validation"]
+  method -->|"POST"| submit["request.submit"]
+  entryValidation --> resolve["request.resolve"]
+  submit --> resolve
+  resolve --> renderer{"Renderer supplied"}
+  renderer -->|"no"| renderContext["RenderContext result"]
+  renderer -->|"yes"| render["request.render"]
+  render --> renderOutput["renderer output"]
 ```
 
-If any phase halts, the pipeline stops early. For example, if the navigation
-phase finds the step is unreachable, it returns `halt-redirect` to the entry
-point or frontier - the render terminal never runs.
+Runtime has a deliberate symmetry with compilation, but the phases do different jobs.
+Compilation chooses what work exists.
+Runtime executes that work against one request.
 
-POST requests use the same orchestrator with a different phase list: the
-fourth slot is `submitPhase` (runs submit hooks, validates, branches on
-outcomes) instead of `entryValidationPhase`. Both share the same access,
-answer-preparation, and navigation phases, and the same render terminal.
+| Runtime concern | Compiled artifact | Runtime phase |
+|---|---|---|
+| Access | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
+| Answer preparation | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
+| Step validities | `compiledStepValidations` | `request.validities` runs `validation.step` tasks |
+| Reachability | `navigationPlan` | `request.reachability` runs `reachability.evaluation` |
+| Answer cleardown | `navigationPlan` and reachability state | `request.answer-cleardown` clears stale answers |
+| Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
+| Submit | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
+| Resolve | `compiledResolve` | `request.resolve` builds `RenderContext` |
+| Render | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
-Journey root requests (e.g. `/demo/`) use a simpler pipeline: just access +
-answer-preparation, with a
-[`journeyRedirectTerminal`](./orchestrator/terminals/journeyRedirectTerminal.ts)
-that evaluates navigation and redirects to the entry step or resume frontier.
+- [RequestEvaluator.ts](RequestEvaluator.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
+- [evaluation/request/README.md](evaluation/request/README.md) covers request phase order and cross-phase request state.
+- [evaluation/work/README.md](evaluation/work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
+- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, resolve, and render.
+- [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
 
-The orchestrator's internal result is mapped by `ForgeEvaluator` into a
-`ForgeOutcome`: either `{ kind: 'render', context, componentRegistry }`,
-`{ kind: 'navigate', url }`, or `{ kind: 'error', error }`. Response IO
-(headers, cookies) is handled live by the adapter's `ResponseBindings` during
-hook execution, not carried on the outcome.
+## Boundaries
 
-## Key files
+- `RequestEvaluator` owns request execution from mounted node to `ForgeOutcome`.
+  It should not choose routes, compile packages, or implement phase rules.
+- `RequestPipelineBootstrap` owns request pipeline construction.
+  It should not execute the pipeline.
+- `WorkExecutor` owns work execution mechanics.
+  It should not know about request phase semantics, hooks, validation, or rendering.
+- Request work handlers own request-level orchestration.
+  They should call compiled functions and phase tasks, not recreate compiler decisions.
+- Phase work handlers own phase-specific runtime behavior.
+  They should not alter request phase order.
+- `RuntimeContext` owns request-time state.
+  It should not store compiler-only structures.
+- `RouteTreeBuilder` owns route tree construction from compiled route indexes.
+  It should not resolve request outcomes.
+- `MountRegistry` owns mounted node creation.
+  Runtime should receive a `MountedNode`, not raw compiled maps.
 
-| File | Role |
-|------|------|
-| [`routes/ForgeEvaluator.ts`](./routes/ForgeEvaluator.ts) | Stores NodeExecutor records keyed by node ID; exposes `evaluate(snapshot)` and `getTopology()` |
-| [`snapshot/SnapshotStepRequest.ts`](./snapshot/SnapshotStepRequest.ts) | Wraps a `RequestSnapshot` as a `StepRequest` for the evaluation pipeline |
-| [`routes/RouteTreeBuilder.ts`](./routes/RouteTreeBuilder.ts) | Builds the hierarchical route tree from step/journey route indices |
-| [`orchestrator/RequestOrchestrator.ts`](./orchestrator/RequestOrchestrator.ts) | The `for` loop: runs phases in order, halts on redirect/error, falls through to terminal |
-| [`orchestrator/types.ts`](./orchestrator/types.ts) | `ForgeResult`, `PhaseOutcome`, `PipelineState`, `RequestPhase`, `TerminalPhase` |
-| [`orchestrator/phases/`](./orchestrator/phases/) | `accessLifecyclePhase`, `answerPreparationPhase`, `navigationPhase`, `entryValidationPhase`, `submitPhase` |
-| [`orchestrator/terminals/`](./orchestrator/terminals/) | `stepRenderTerminal` (render a step), `journeyRedirectTerminal` (redirect from journey root) |
-| [`context/RuntimeEvaluationContext.ts`](./context/RuntimeEvaluationContext.ts) | Request-scoped mutable state: answers, data, validation, reachability |
-| [`context/compiledEvaluationContext.ts`](./context/compiledEvaluationContext.ts) | Snapshot builders that extract what each compiled function needs from the full context |
-| [`context/EffectFunctionContext.ts`](./context/EffectFunctionContext.ts) | The typed wrapper passed to author-defined effect functions |
-| [`lifecycle/ContextPreparer.ts`](./lifecycle/ContextPreparer.ts) | Creates the evaluation context from the snapshot-derived request + static data |
-| [`navigation/navigationRedirects.ts`](./navigation/navigationRedirects.ts) | Resolves redirect targets from navigation evaluation (backlink, unreachable, resume) |
-| [`rendering/RenderContextFactory.ts`](./rendering/RenderContextFactory.ts) | Hydrates `RenderContext` from render results + validation + route tree |
+## Quirks
 
-`runtime/` may depend on `contracts/`, never on `ast/` or `lowering/` - enforced
-by eslint, so a stray import fails the build.
+- `request.pipeline` uses `first-match`.
+  Redirects, errors, and render results stop later phases from running.
+- Compiled functions usually return `WorkTask`s.
+  They do not directly call every child operation, because the runtime executor owns ordering, concurrency, tracing, and output folding.
+- Resolve can be terminal.
+  Without a renderer, `request.resolve` returns a `RenderContext` as the render result.
+  With a renderer, resolve stores `renderContext` and `request.render` produces renderer output.
+- Step and journey requests share the early pipeline.
+  Journey requests stop at reachability and redirect to a reachable step.
+- Field validation failures attach to render blocks by `blockId`.
+  Field code is answer identity and debug metadata, not render block identity.
+- Route tree construction allows a step route to occupy the same template path as a journey route.
+  Other duplicate concrete routes throw `DuplicateRouteError`.
+
+## Constraints
+
+- Do not run compilation during runtime execution.
+  Request handling must consume mounted compiled functions, route data, registries, and plans.
+- Do not expose AST nodes, `ASTNodeIndex`, `ASTNodeTree`, `CompilationPlan`, or lowering details to runtime.
+  Runtime state should only carry compiled artifacts and request-time values.
+- Keep `RequestPipelineBootstrap` as the source of request phase order.
+  Splitting order decisions across handlers makes `GET`, `POST`, and journey behavior hard to reason about.
+- Keep `request.context-preparation` first.
+  Later phases read request data, params, post data, session, headers, cookies, and static data.
+- Keep access before request phases that can mutate or render state.
+  Access must be able to halt before answer preparation, validation, submit hooks, resolve, or render.
+- Keep validities before reachability.
+  Reachability reads validation state when navigation is validation-gated.
+- Keep resolve before render.
+  Render requires the `RenderContext` created by resolve.
+- Preserve `WorkTask` child order in completed output.
+  Validation display order, render prop replacement, and trace readability depend on it.
+- Do not continue after a terminal `PhaseWorkOutput`.
+  Later phases may mutate answers, session, validation, or render state after the request has already decided an outcome.
+- Keep `NodeId` as the join key between mounted nodes, compiled artifacts, route catalogs, validation state, and render block identity.
+  Route paths and authored codes are not safe substitutes.
+
+## Editing Notes
+
+- To change runtime entry behavior, start in [RequestEvaluator.ts](RequestEvaluator.ts).
+  Keep route selection outside this class.
+- To change request phase order, start in [evaluation/request/RequestPipelineBootstrap.ts](evaluation/request/RequestPipelineBootstrap.ts).
+  Check journey, step `GET`, and step `POST` paths together.
+- To add a new request phase, update request phase props, `WorkTaskFactory`, the new request handler, and `RequestPipelineBootstrap`.
+  Then document the phase in [evaluation/request/README.md](evaluation/request/README.md).
+- To change work execution behavior, start in [evaluation/work/WorkExecutor.ts](evaluation/work/WorkExecutor.ts).
+  Update order, failure, and trace tests together.
+- To change a phase's internal behavior, start in the matching child folder under [evaluation/phases](evaluation/phases).
+  Keep request ordering rules in request evaluation.
+- To change render block attachment, start in [evaluation/request/RequestResolveWorkHandler.ts](evaluation/request/RequestResolveWorkHandler.ts) and the resolve phase docs.
+  Keep matching by block ID.
+- To change route tree shape, start in [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) and route tree contracts.
+  Then check mounted node creation in `MountRegistry`.
+- To change trace output, start in [evaluation/request/RequestPipelineTraceProjector.ts](evaluation/request/RequestPipelineTraceProjector.ts) and [evaluation/work/tracing](evaluation/work/tracing).
+
+## Entry Points
+
+- [RequestEvaluator.ts](RequestEvaluator.ts) answers how one mounted request becomes a `ForgeOutcome`.
+- [evaluation/request/README.md](evaluation/request/README.md) explains request pipeline order and `RequestExecutionContext`.
+- [evaluation/work/README.md](evaluation/work/README.md) explains the runtime work executor and trace tree.
+- [evaluation/phases/README.md](evaluation/phases/README.md) explains the phase work-handler families.
+- [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) answers how compiled route indexes become runtime route-tree data.
+- [../registries/MountRegistry.ts](../registries/MountRegistry.ts) answers how compiled package artifacts become `MountedNode` values.
+- [../contracts/runtime/RequestExecutionContext.type.ts](../contracts/runtime/RequestExecutionContext.type.ts) defines `RequestExecutionContext`, `PhaseWorkOutput`, and `RequestPipelineResult`.
+- [../contracts/runtime/evaluationState.type.ts](../contracts/runtime/evaluationState.type.ts) defines `RuntimeContext`.
+- [../contracts/runtime/work.type.ts](../contracts/runtime/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkGroup`, and `CompletedWork`.

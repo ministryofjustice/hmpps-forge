@@ -1,0 +1,71 @@
+import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
+import UnregisteredFunctionError from '../../../errors/UnregisteredFunctionError'
+import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { ASTValidationContext, ASTValidationRule } from './types'
+import { walkTemplateValue } from './templateWalker'
+
+const FUNCTION_TYPES = Object.values(FunctionType)
+
+function buildError(
+  name: string,
+  functionType: string,
+  source: DSLSourceLocation | undefined,
+): UnregisteredFunctionError {
+  return new UnregisteredFunctionError({
+    path: source?.path ? [...source.path] : [],
+    formattedPath: source?.formattedPath,
+    functionName: name,
+    functionType,
+  })
+}
+
+export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
+  const { nodeIndex, functionRegistry } = context
+  const errors: Error[] = []
+
+  FUNCTION_TYPES.forEach(functionType => {
+    const functionNodes = nodeIndex.findByType<FunctionASTNode>(functionType)
+
+    functionNodes.forEach(node => {
+      if (!functionRegistry.has(node.properties.name)) {
+        errors.push(buildError(node.properties.name, functionType, node.diagnostics?.source))
+      }
+    })
+  })
+
+  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+
+  iterateNodes.forEach(iterateNode => {
+    const { iterator } = iterateNode.properties
+
+    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
+      (t): t is NonNullable<typeof t> => t !== undefined,
+    )
+
+    templates.forEach(template => {
+      walkTemplateValue(template, {
+        onTemplateNode(templateNode, templateMetadata) {
+          if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
+            return
+          }
+
+          const expressionType = (templateNode as Record<string, unknown>).expressionType as string | undefined
+
+          if (!expressionType || !FUNCTION_TYPES.includes(expressionType as FunctionType)) {
+            return
+          }
+
+          const name = (templateNode.properties?.name as string) ?? ''
+
+          if (!functionRegistry.has(name)) {
+            errors.push(buildError(name, expressionType, templateMetadata))
+          }
+        },
+      })
+    })
+  })
+
+  return errors
+}

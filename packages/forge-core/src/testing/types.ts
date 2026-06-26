@@ -1,16 +1,6 @@
 import type { CookieMutation } from '../framework/types/response.type'
 import type { RenderBlock, RenderContext } from '../framework/rendering/types'
 import type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
-import type { RequestSnapshot } from '../framework/types/snapshot.type'
-import type { ForgeOutcome } from '../framework/types/outcome.type'
-import type { ForgeTopology } from '../framework/types/topology.type'
-import type { EvaluateOptions } from '../engine/Forge'
-
-/** The subset of the Forge engine that {@link ForgeTestClient} drives. */
-export interface ForgeEvaluationEngine {
-  getTopology(): ForgeTopology
-  evaluate(snapshot: RequestSnapshot, options?: EvaluateOptions): Promise<ForgeOutcome>
-}
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
 export interface TestRequestOptions {
@@ -41,5 +31,14 @@ export type TestRedirectResult = {
   cookies: Map<string, CookieMutation>
 }
 
+/** Result returned when the engine yields an error outcome. */
+export type TestErrorResult = {
+  type: 'error'
+  status: number
+  message: string
+  headers: Map<string, string>
+  cookies: Map<string, CookieMutation>
+}
+
 /** Discriminated union returned by {@link ForgeTestClient.get} and {@link ForgeTestClient.post}. */
-export type TestResult = TestRenderResult | TestRedirectResult
+export type TestResult = TestRenderResult | TestRedirectResult | TestErrorResult

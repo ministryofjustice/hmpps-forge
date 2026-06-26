@@ -1,68 +1,122 @@
-# The Forge engine
+# Engine
 
-The engine is a compiler. An author writes a journey as plain definitions
-(steps, blocks, expressions, hooks); the engine turns those definitions into
-JavaScript functions and evaluates those functions against a request snapshot
-to produce an outcome.
+The engine is the core Forge pipeline.
 
-These docs are for people working **on the engine**. They name internal types
-freely. If you're building a journey, you want the author docs instead.
+It takes an authored journey, checks it, compiles it, mounts it, and evaluates it for requests.
+Most maintainers should understand the four broad stages before changing a subsystem.
 
-## The pipeline
+## The Shape
 
-```
-  authoring definitions  (journey / step / block / expression objects)
-          │
-          ▼
-  ast/        build the AST          definitions  ──▶  frozen ASTNode tree
-              validate the AST       semantic rules on typed nodes
-          │
-          ▼
-  lowering/   codegen                ASTNode tree ──▶  compiled JS functions
-          │
-          ▼
-  runtime/    execution              compiled fns + RequestSnapshot ──▶  ForgeOutcome
+Forge has four broad stages:
 
-  contracts/  the shared type vocabulary every layer above speaks
+1. Authors write a journey in the Forge DSL.
+2. Schema validation checks the raw authored shape.
+3. Compilation turns the validated journey into runtime artifacts.
+4. Runtime evaluates those artifacts for one mounted request.
+
+```mermaid
+flowchart TD
+  dsl["DSL: authored journey definition"] -->|"JSON + Zod checks"| schema["Schema Validation"]
+  schema -->|"validated JourneyDefinition"| compilation["Compilation"]
+  compilation -->|"JourneyCompilationResult"| mounting["Mounting"]
+  mounting -->|"MountedNode"| runtime["Runtime"]
+  request["RequestSnapshot"] --> runtime
+  runtime -->|"ForgeOutcome"| outcome["render, navigate, or error"]
 ```
 
-| Layer | What it does | README |
-|-------|--------------|--------|
-| `contracts/` | Declares the types that cross layer boundaries - no logic | [`contracts/`](./contracts/README.md) |
-| `ast/` | Normalises author definitions into a frozen, id'd node tree; runs semantic validation on the result | [`ast/`](./ast/README.md) |
-| `lowering/` | Generates JavaScript source from the AST, compiles it with `new Function` | [`lowering/`](./lowering/README.md) |
-| `runtime/` | Runs compiled functions against a RequestSnapshot, returns a ForgeOutcome (render/navigate/error) | [`runtime/`](./runtime/README.md) |
+## DSL
 
-## Layer boundaries
+The DSL is the author-facing shape.
+It lives outside this folder under [../authoring](../authoring).
 
-The layer separation is enforced by eslint (`import/no-restricted-paths` in
-`packages/eslint.config.mjs`). A stray import fails the build.
+Authors describe journeys, steps, blocks, hooks, conditions, generators, transformers, predicates, and references as plain TypeScript objects and helper calls.
+That shape is built for people first.
+It keeps journey definitions readable, but it is not the shape the engine wants to execute directly.
 
+Important entry points:
+
+- [../authoring/types](../authoring/types) defines the authoring object shapes.
+- [../authoring/builders](../authoring/builders) defines expression and reference builders.
+- [../authoring/conditions](../authoring/conditions), [../authoring/generators](../authoring/generators), and [../authoring/transformers](../authoring/transformers) define built-in function sets.
+- [../authoring/utils](../authoring/utils) contains helpers for defining functions and function scopes.
+
+## Schema Validation
+
+Schema validation is the first engine check.
+It lives under [validation](validation).
+
+This stage checks that the authored definition is JSON-compatible and matches the broad Zod schemas.
+It catches shape errors before the compiler builds AST nodes.
+For example, it can reject a malformed block, a wrong property type, or a value that cannot be safely serialized.
+
+This stage does not know enough to answer semantic questions.
+It cannot decide whether `Item()` is inside an iterator, whether an effect function is inside a hook, or whether a component variant is registered.
+Those checks need compiler state.
+
+Read [validation/README.md](validation/README.md) for details.
+
+## Compilation
+
+Compilation turns a validated journey into runtime artifacts.
+It lives under [compilation](compilation).
+
+This stage builds the AST, validates semantic rules, gathers dependency inputs, lowers those inputs into compiled functions, and builds route indexes.
+It pays that cost when a package is registered.
+Request handling should not run any of this work.
+
+The important output is `JourneyCompilationResult`.
+It contains route indexes plus compiled step and journey maps.
+AST nodes, AST indexes, AST trees, and compilation plans should not leave compilation.
+
+```mermaid
+flowchart TD
+  validated["Validated JourneyDefinition"] -->|"build and register nodes"| ast["AST"]
+  ast -->|"semantic checks"| semantics["Semantic Analysis"]
+  semantics -->|"collect phase inputs"| dependencies["Dependency Analysis"]
+  dependencies -->|"build CompilationPlan"| plan["CompilationPlan"]
+  plan -->|"emit compiled functions"| lowering["Lowering"]
+  lowering -->|"compiled maps + route indexes"| result["JourneyCompilationResult"]
 ```
-  contracts/   depends on nothing in the engine
-  ast/         may depend on  contracts/
-  lowering/    may depend on  contracts/ + ast/
-  runtime/     may depend on  contracts/        (NOT ast/, NOT lowering/)
+
+Read [compilation/README.md](compilation/README.md) for details.
+
+## Runtime
+
+Runtime evaluates compiled artifacts for one request.
+It lives under [runtime](runtime).
+
+The framework layer selects a `MountedNode` and passes a `RequestSnapshot`.
+`RequestEvaluator.evaluate()` builds a request pipeline, executes work tasks, records traces, and returns a `ForgeOutcome`.
+
+Runtime calls compiled functions.
+It does not rebuild AST nodes, plans, route indexes, or generated source.
+That boundary is important.
+It keeps compiler cost and compiler failures out of request handling.
+
+```mermaid
+flowchart TD
+  compiled["JourneyCompilationResult"] -->|"MountRegistry.register()"| mounted["MountedNode"]
+  mounted --> evaluator["RequestEvaluator.evaluate()"]
+  snapshot["RequestSnapshot"] --> evaluator
+  evaluator -->|"request.pipeline WorkTask"| work["WorkExecutor"]
+  work -->|"RequestPipelineResult"| result["RequestPipelineResult"]
+  result -->|"buildOutcome()"| outcome["ForgeOutcome"]
 ```
 
-Tests and `testing-helpers/` are exempt.
+Read [runtime/README.md](runtime/README.md) for details.
 
-## Cross-cutting directories
+## Supporting Areas
 
-These sit outside the pipeline but are used across it:
+- [Forge.ts](Forge.ts) is the public engine facade.
+- [PackageInstance.ts](PackageInstance.ts) owns package-level validation and compilation.
+- [registries](registries) owns function, component, and mount registries.
+- [contracts](contracts) owns the shared types between validation, compilation, runtime, and framework adapters.
+- [diagnostics](diagnostics) owns source locations and trace wiring.
+- [errors](errors) owns engine error types and formatting.
 
-| Directory | What it does | README |
-|-----------|--------------|--------|
-| `registries/` | Lookup tables for functions and components, populated at startup | [`registries/`](./registries/README.md) |
-| `validation/` | Schema checks (Zod) on the authored definition before it reaches the AST | [`validation/`](./validation/README.md) |
-| `errors/` | Error classes for each failure mode (configuration, compilation, runtime) | [`errors/`](./errors/README.md) |
-| `diagnostics/` | Source location metadata and DSL path formatting for error messages | [`diagnostics/`](./diagnostics/README.md) |
+## Where To Start
 
-## Where to start reading
-
-- **Follow a journey from definition to running code:** read the layer READMEs
-  top to bottom - `ast/` → `lowering/` → `runtime/`.
-- **Follow a single evaluation:** start at
-  [`runtime/routes/ForgeEvaluator.ts`](./runtime/routes/ForgeEvaluator.ts).
-- **Follow compilation:** start at
-  [`lowering/CompilationPlanner.ts`](./lowering/CompilationPlanner.ts).
+- To follow the whole path, read this file, then [compilation/README.md](compilation/README.md), then [runtime/README.md](runtime/README.md).
+- To debug authoring shape errors, start in [validation](validation).
+- To debug generated runtime behavior, start in [compilation/lowering](compilation/lowering) and the matching runtime phase under [runtime/evaluation/phases](runtime/evaluation/phases).
+- To debug one request, start in [runtime/RequestEvaluator.ts](runtime/RequestEvaluator.ts) and [runtime/evaluation/request](runtime/evaluation/request).

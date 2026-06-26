@@ -162,16 +162,6 @@ const { effects: HooksEffects, implementations: hooksEffectImplementations } = d
     }
   },
 
-  CaptureResponseReadback: () => context => {
-    context.setResponseHeader('X-Readback', 'header-value')
-    context.setResponseCookie('readback', 'cookie-value')
-
-    context.setData('readbackHeader', context.getResponseHeader('X-Readback'))
-    context.setData('readbackCookie', context.getResponseCookie('readback'))
-    context.setData('allHeaderCount', context.getAllResponseHeaders().size)
-    context.setData('allCookieCount', context.getAllResponseCookies().size)
-  },
-
   CaptureAllData: () => context => {
     const session = context.getSession() as HooksSession | undefined
 
@@ -208,18 +198,21 @@ export function createHooksClient(journeyDef: ReturnType<typeof journey>) {
 }
 
 export function createTracedHooksClient(journeyDef: ReturnType<typeof journey>, traces: RequestTraceEvent[]) {
-  return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
-    .registerPackage({
-      journey: journeyDef,
-      functions: { ...effectImplementations, ...hooksEffectImplementations },
-    })
-    .createClient({
-      traceObserver: {
-        shouldTrace: () => true,
-        onTrace: event => traces.push(event),
+  return new ForgeTestHarness({
+      instrumentation: {
+        sinks: [
+          {
+            onRequestTrace: event => traces.push(event),
+          },
+        ],
       },
     })
+      .registerGlobalComponents(govukComponents)
+      .registerPackage({
+        journey: journeyDef,
+        functions: { ...effectImplementations, ...hooksEffectImplementations },
+      })
+      .createClient()
 }
 
 export const accessEffectOrderJourney = journey({
@@ -620,25 +613,6 @@ export const requestMetadataJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const responseReadbackJourney = journey({
-  code: 'res-readback',
-  path: '/res-readback',
-  title: 'Response Readback',
-  onAccess: [
-    access({
-      effects: [HooksEffects.CaptureResponseReadback()],
-    }),
-  ],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: 'Content' })],
-    }),
   ],
 })
 

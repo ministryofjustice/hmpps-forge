@@ -10,11 +10,30 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
 import type { Logger } from '../framework/types/adapter.type'
+import type { ForgeRenderer } from '../framework/rendering/types'
+import type { ForgeOutcome } from '../framework/types/outcome.type'
+import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import MountRegistry from './runtime/routes/MountRegistry'
-import type { ForgeRuntime } from './runtime/routes/MountRegistry'
+import MountRegistry from './registries/MountRegistry'
+import RequestEvaluator from './runtime/RequestEvaluator'
+import ForgeTraceSinkDispatcher from './diagnostics/ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './diagnostics/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
+import ForgeRegistrationError from './errors/ForgeRegistrationError'
+
+export interface ForgeExecutionRequest {
+  readonly snapshot: RequestSnapshot
+  readonly responseBindings?: ResponseBindings
+  readonly renderer?: ForgeRenderer<unknown>
+}
+
+/**
+ * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
+ */
+export interface ForgeRouterAdapter {
+  build(forge: Forge): unknown
+}
 
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
@@ -58,42 +77,16 @@ export interface ForgeOptions {
    */
   basePath?: string
 
+  instrumentation?: ForgeInstrumentationOptions
+
   /**
-   * Optional framework adapter that builds a router from this engine.
-   *
-   * Convenience for the common server case: when provided, {@link Forge.getRouter}
-   * returns the router this adapter builds. It is exactly equivalent to calling
-   * the adapter directly — `app.use(createExpressRouter(forge, options))` — so
-   * you can use either style.
-   *
-   * @example
-   * ```typescript
-   * const forge = new Forge({
-   *   logger,
-   *   frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-   * })
-   * app.use(forge.getRouter() as express.Router)
-   * ```
+   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
   frameworkAdapter?: ForgeRouterAdapter
 }
 
-/**
- * Builds a framework router/handler from a configured {@link Forge} engine.
- *
- * Implementations consume the engine's public surface ({@link Forge.getTopology},
- * {@link Forge.evaluate}, …) — see `createExpressRouter` / `ExpressFrameworkAdapter`.
- */
-export interface ForgeRouterAdapter {
-  build(forge: Forge): unknown
-}
-
-export interface EvaluateOptions {
-  response?: ResponseBindings
-}
-
 export default class Forge {
-  private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & { frameworkAdapter?: ForgeRouterAdapter }
+  private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & Pick<ForgeOptions, 'frameworkAdapter'>
 
   private readonly functionRegistry = new FunctionRegistry()
 
@@ -102,6 +95,10 @@ export default class Forge {
   private readonly dependencies: ForgeDependencies
 
   private readonly mountRegistry: MountRegistry
+
+  private readonly instrumentation: ForgeInstrumentation
+
+  private readonly requestEvaluator: RequestEvaluator
 
   /**
    * Create a new Forge instance
@@ -130,6 +127,7 @@ export default class Forge {
       strictRegistration: true,
       logger: console,
       basePath: '',
+      instrumentation: {},
     }
 
     this.options = {
@@ -150,6 +148,8 @@ export default class Forge {
     }
 
     this.mountRegistry = new MountRegistry(this.options.basePath)
+    this.instrumentation = new ForgeTraceSinkDispatcher(this.options.instrumentation)
+    this.requestEvaluator = new RequestEvaluator({ instrumentation: this.instrumentation })
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -219,8 +219,8 @@ export default class Forge {
     return this
   }
 
-  private registerPackageInstance(packageInstance: PackageInstance): number {
-    return this.mountRegistry.mount(packageInstance)
+  private registerPackageInstance(packageInstance: PackageInstance): void {
+    this.mountRegistry.register(packageInstance)
   }
 
   private handleRegistrationError(e: unknown): void {
@@ -228,10 +228,7 @@ export default class Forge {
 
     if (this.options.strictRegistration) {
       if (typeof formatted === 'string') {
-        const clean = new Error(formatted)
-        clean.stack = clean.message
-
-        throw clean
+        throw new ForgeRegistrationError(formatted)
       }
 
       throw e
@@ -250,10 +247,6 @@ export default class Forge {
     return this.mountRegistry.getTopology()
   }
 
-  getRuntime(): ForgeRuntime {
-    return this.mountRegistry.getRuntime()
-  }
-
   getDependencies(): ForgeDependencies {
     return this.dependencies
   }
@@ -263,14 +256,18 @@ export default class Forge {
     return this.options.logger
   }
 
+  getInstrumentation(): ForgeInstrumentation {
+    return this.instrumentation
+  }
+
   /**
-   * Build the framework router from the configured `frameworkAdapter`.
-   *
-   * Convenience for the common server case; equivalent to invoking the adapter
-   * directly (e.g. `createExpressRouter(forge, options)`). Requires a
-   * `frameworkAdapter` to have been passed to the constructor.
+   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
   getRouter(): unknown {
+    this.options.logger.warn(
+      '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+    )
+
     if (!this.options.frameworkAdapter) {
       throw new Error(
         'getRouter() requires a frameworkAdapter. Pass one to new Forge({ frameworkAdapter }), ' +
@@ -279,5 +276,15 @@ export default class Forge {
     }
 
     return this.options.frameworkAdapter.build(this)
+  }
+
+  execute(request: ForgeExecutionRequest): Promise<ForgeOutcome<unknown>> {
+    const node = this.mountRegistry.getNode(request.snapshot.nodeId)
+
+    if (!node) {
+      throw new Error(`[Forge] No node registered for "${request.snapshot.nodeId}"`)
+    }
+
+    return this.requestEvaluator.evaluate({ node, ...request })
   }
 }
