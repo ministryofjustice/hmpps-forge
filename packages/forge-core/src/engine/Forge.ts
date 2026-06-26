@@ -28,6 +28,13 @@ export interface ForgeExecutionRequest {
   readonly renderer?: ForgeRenderer<unknown>
 }
 
+/**
+ * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
+ */
+export interface ForgeRouterAdapter {
+  build(forge: Forge): unknown
+}
+
 export interface ForgeOptions {
   /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
   disableBuiltInFunctions?: boolean
@@ -71,10 +78,15 @@ export interface ForgeOptions {
   basePath?: string
 
   instrumentation?: ForgeInstrumentationOptions
+
+  /**
+   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
+   */
+  frameworkAdapter?: ForgeRouterAdapter
 }
 
 export default class Forge {
-  private readonly options: Required<ForgeOptions>
+  private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & Pick<ForgeOptions, 'frameworkAdapter'>
 
   private readonly functionRegistry = new FunctionRegistry()
 
@@ -246,6 +258,24 @@ export default class Forge {
 
   getInstrumentation(): ForgeInstrumentation {
     return this.instrumentation
+  }
+
+  /**
+   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
+   */
+  getRouter(): unknown {
+    this.options.logger.warn(
+      '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+    )
+
+    if (!this.options.frameworkAdapter) {
+      throw new Error(
+        'getRouter() requires a frameworkAdapter. Pass one to new Forge({ frameworkAdapter }), ' +
+          'or build the router directly (e.g. createExpressRouter(forge, options)).',
+      )
+    }
+
+    return this.options.frameworkAdapter.build(this)
   }
 
   execute(request: ForgeExecutionRequest): Promise<ForgeOutcome<unknown>> {

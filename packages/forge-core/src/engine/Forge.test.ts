@@ -307,6 +307,39 @@ describe('Forge', () => {
     })
   })
 
+  describe('getRouter()', () => {
+    it('should build the router through the deprecated framework adapter', () => {
+      // Arrange
+      const router = { kind: 'router' }
+      const frameworkAdapter = { build: vi.fn().mockReturnValue(router) }
+      const engine = new Forge(createDefaultOptions({ frameworkAdapter, logger: mockLogger }))
+
+      // Act
+      const result = engine.getRouter()
+
+      // Assert
+      expect(result).toBe(router)
+      expect(frameworkAdapter.build).toHaveBeenCalledWith(engine)
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+      )
+    })
+
+    it('should throw when no framework adapter is configured', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      const act = () => engine.getRouter()
+
+      // Assert
+      expect(act).toThrow('getRouter() requires a frameworkAdapter')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+      )
+    })
+  })
+
   describe('getInstrumentation()', () => {
     it('should return enabled instrumentation when sinks are configured', () => {
       // Arrange
