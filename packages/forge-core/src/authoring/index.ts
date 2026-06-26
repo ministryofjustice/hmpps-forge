@@ -10,7 +10,7 @@ export { defineGeneratorFunctions } from './utils/defineGeneratorFunctions'
 export { defineTransformerFunctions } from './utils/defineTransformerFunctions'
 export { createFunctionScope, type FunctionScope } from './utils/createFunctionScope'
 
-export { EffectFunctionContext } from '../engine/runtime/context/EffectFunctionContext'
+export { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
 
 export { StructureType, BlockType, FunctionType, ExpressionType } from './types/enums'
 export { ConditionalExprBuilder } from './builders/ConditionalExprBuilder'

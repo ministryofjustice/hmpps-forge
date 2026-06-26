@@ -22,7 +22,15 @@ export class GovukComponentTestHelper<T extends BlockDefinition> {
   private mockNunjucksEnv: Mocked<nunjucks.Environment>
 
   constructor(component: ComponentRegistryEntry<T, string>) {
-    this.renderFn = (block, nunjucksEnv) => component.render(block, nunjucksEnv)
+    this.renderFn = (block, nunjucksEnv) => {
+      const rendered = component.render(block, nunjucksEnv)
+
+      if (typeof rendered !== 'string') {
+        throw new Error('GOV.UK component test helpers only support synchronous Nunjucks components')
+      }
+
+      return rendered
+    }
     this.mockNunjucksEnv = {
       render: vi.fn().mockReturnValue('<div>Mocked HTML</div>'),
     } as unknown as Mocked<nunjucks.Environment>

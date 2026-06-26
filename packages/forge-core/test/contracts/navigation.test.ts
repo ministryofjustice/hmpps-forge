@@ -16,6 +16,7 @@ import {
   dynamicErrorMessageJourney,
   conditionalEntryJourney,
   resumeJourney,
+  resumeWithInfoEntryJourney,
   unreachableFrontierJourney,
   queryStringRedirectJourney,
   paramRedirectJourney,
@@ -83,8 +84,7 @@ describe('navigation contracts', () => {
       }
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should redirect from onAlways before validation runs', async () => {
+    it('should redirect from onAlways before validation runs', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(onAlwaysHaltsJourney, traces)
@@ -107,10 +107,11 @@ describe('navigation contracts', () => {
 
       const submitHookUnits = traces[0].trace.phases
         .flatMap(phase => phase.units)
-        .filter(unit => unit.kind === 'submit-hook')
+        .flatMap(unit => [unit, ...unit.children])
+        .filter(unit => unit.kind === 'submit.hook')
 
       expect(submitHookUnits).toHaveLength(1)
-      expect(submitHookUnits[0].validated).toBe(false)
+      expect(submitHookUnits[0].completeFields.validated).toBe(false)
     })
   })
 
@@ -152,8 +153,7 @@ describe('navigation contracts', () => {
     })
   })
 
-  // TODO: unskip when error routing through outcomes is reimplemented
-  describe.skip('error outcomes', () => {
+  describe('error outcomes', () => {
     it('should return error when throwError condition is met', async () => {
       // Arrange
       const client = createClient(throwErrorCascadeJourney)
@@ -367,8 +367,7 @@ describe('navigation contracts', () => {
       expect(result.type).toBe('render')
     })
 
-    // TODO: unskip when error routing through outcomes is reimplemented
-    it.skip('should return error when access hook throws', async () => {
+    it('should return error when access hook throws', async () => {
       // Arrange
       const client = createClient(accessErrorJourney)
       const session: ContractSession = {
@@ -586,6 +585,25 @@ describe('navigation contracts', () => {
         expect(result.url).toBe('/resume/step-two')
       }
     })
+
+    it('should advance past a validation-free info entry step to the frontier', async () => {
+      // Arrange
+      const client = createClient(resumeWithInfoEntryJourney)
+      const session: ContractSession = {
+        answers: { 'resume-info': { firstName: 'Ada' } },
+      }
+
+      // Act
+      const result = await client.get('/resume-info/name', { session })
+
+      // Assert — the info-only overview entry must not count as progress, so resume
+      // advances from the completed name step to the role frontier.
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/resume-info/role')
+      }
+    })
   })
 
   describe('path resolution', () => {
@@ -625,8 +643,7 @@ describe('navigation contracts', () => {
       }
     })
 
-    // TODO: unskip when error routing through outcomes is reimplemented
-    it.skip('should resolve dynamic error message from data', async () => {
+    it('should resolve dynamic error message from data', async () => {
       // Arrange
       const client = createClient(dynamicErrorMessageJourney)
       const session: ContractSession = {

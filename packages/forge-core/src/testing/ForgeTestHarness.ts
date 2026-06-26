@@ -1,11 +1,9 @@
 import Forge from '../engine/Forge'
-import ForgeOrchestrator from '../engine/ForgeOrchestrator'
 import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
-import { ForgeTestClient } from './ForgeTestClient'
-// TODO: restore TraceObserver type when work descriptor tracing is implemented
-type TraceObserver = unknown
+import type { ForgeInstrumentationOptions } from '../engine/diagnostics/ForgeTraceSinkDispatcher'
+import { ForgeTestClient } from './test-client/ForgeTestClient'
 
 const silentLogger = {
   info: () => {},
@@ -13,6 +11,10 @@ const silentLogger = {
   error: () => {},
   debug: () => {},
 } as unknown as Console
+
+export interface ForgeTestHarnessOptions {
+  readonly instrumentation?: ForgeInstrumentationOptions
+}
 
 /**
  * Convenience wrapper for testing Forge journeys without boilerplate.
@@ -34,9 +36,10 @@ const silentLogger = {
 export class ForgeTestHarness {
   private readonly forge: Forge
 
-  constructor() {
+  constructor(options: ForgeTestHarnessOptions = {}) {
     this.forge = new Forge({
       logger: silentLogger,
+      instrumentation: options.instrumentation,
     })
   }
 
@@ -58,7 +61,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  createClient(_options?: { traceObserver?: TraceObserver }): ForgeTestClient {
-    return new ForgeTestClient(new ForgeOrchestrator({ core: this.forge }))
+  createClient(): ForgeTestClient {
+    return new ForgeTestClient(this.forge)
   }
 }

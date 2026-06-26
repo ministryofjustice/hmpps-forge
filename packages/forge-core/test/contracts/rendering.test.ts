@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { BlockType } from '../../src/authoring/types/enums'
 import type { RenderBlock } from '../../src/framework/rendering/types'
-import { createClient, answerOf, type ContractSession } from './contractHelpers'
+import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
+import type { RequestTraceEvent } from '../../src/testing'
 import {
   basicBlocksJourney,
   blockOrderingJourney,
@@ -90,6 +91,82 @@ describe('rendering contracts', () => {
 
         expect(codes).toEqual(['firstName', 'lastName', 'email'])
       }
+    })
+
+    it('should emit render work units to trace observer', async () => {
+      // Arrange
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedClient(basicBlocksJourney, traces)
+
+      // Act
+      await client.get('/basic-blocks/form', { session: {} })
+
+      // Assert
+      expect(traces).toHaveLength(1)
+      expect(traces[0].trace.phases).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phase: 'access',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                kind: 'access.lifecycle',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            phase: 'answer-preparation',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                kind: 'answer.preparation',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            phase: 'reachability',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                kind: 'reachability.evaluation',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            phase: 'answer-cleardown',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                key: 'after-answer-cleardown',
+                kind: 'context-snapshot',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            phase: 'entry-validation',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                key: 'after-entry-validation',
+                kind: 'context-snapshot',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            phase: 'resolve',
+            units: expect.arrayContaining([
+              expect.objectContaining({
+                kind: 'resolve.blocks',
+                children: expect.arrayContaining([
+                  expect.objectContaining({
+                    kind: 'resolve.block',
+                    beginFields: expect.objectContaining({ variant: 'govukTextInput' }),
+                  }),
+                  expect.objectContaining({
+                    kind: 'resolve.block',
+                    beginFields: expect.objectContaining({ variant: 'govukButton' }),
+                  }),
+                ]),
+              }),
+            ]),
+          }),
+        ]),
+      )
     })
   })
 
