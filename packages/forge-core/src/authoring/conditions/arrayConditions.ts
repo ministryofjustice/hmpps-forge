@@ -11,6 +11,12 @@ import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.typ
  */
 export interface ArrayConditionGroup {
   /**
+   * Checks if a value is an array (not null, not undefined)
+   * @returns true if value is an array
+   */
+  IsArray: (expected: ResolvableValue) => ConditionFunctionExpr
+
+  /**
    * Checks if a value exists within an array of options
    * Uses strict equality (===) for comparison
    * @param expected - The array of options to search within
@@ -48,6 +54,10 @@ export interface ArrayConditionGroup {
 
 export const { conditions: ArrayConditions, implementations: ArrayConditionsImplementations } =
   defineConditionFunctions<ArrayConditionGroup>({
+    IsArray: () => (value: unknown) => {
+      return Array.isArray(value)
+    },
+
     IsIn: () => (value: unknown, expected: ResolvableValue) => {
       assertArray(expected, 'Condition.Array.IsIn (expected)')
 

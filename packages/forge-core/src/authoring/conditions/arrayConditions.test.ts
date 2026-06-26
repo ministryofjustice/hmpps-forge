@@ -5,6 +5,23 @@ import { FunctionType } from '../types/enums'
 describe('ArrayConditions', () => {
   const registry = createFunctionsRegistry(ArrayConditionsImplementations)
 
+  describe('IsArray', () => {
+    const { evaluate } = registry.IsArray
+
+    test('should return true when value is an array', () => {
+      expect(evaluate([])).toBe(true)
+      expect(evaluate(['foo', 'bar', 'baz'])).toBe(true)
+    })
+
+    test('should return false when value is not an array', () => {
+      expect(evaluate('foo')).toBe(false)
+      expect(evaluate(123)).toBe(false)
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
+      expect(evaluate({})).toBe(false)
+    })
+  })
+
   describe('IsIn', () => {
     const { evaluate } = registry.IsIn
 

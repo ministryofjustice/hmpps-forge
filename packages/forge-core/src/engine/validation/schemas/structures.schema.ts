@@ -36,7 +36,7 @@ export const ResolvableStringSchema = z.union([
 export const ValidationExprSchema = z.looseObject({
   type: z.literal(ExpressionType.VALIDATION),
   condition: PredicateExprSchema,
-  message: z.string().trim().min(1, { message: 'Validation message must not be empty' }),
+  message: ResolvableStringSchema,
   submissionOnly: z.boolean().optional(),
   groups: z.array(z.string().trim().min(1)).optional(),
   details: z.record(z.string(), z.any()).optional(),
