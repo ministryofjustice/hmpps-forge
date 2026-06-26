@@ -37,7 +37,6 @@ const dtsOwnershipRules = [
   { match: '/forge-core/src/engine/contracts/ast/expressions.type', entrypoint: 'core/framework' },
   { match: '/forge-core/src/engine/contracts/ast/structures.type', entrypoint: 'core/framework' },
   { match: '/forge-core/src/engine/contracts/ast/template.type', entrypoint: 'core/framework' },
-  { match: '/forge-core/src/engine/nodes/expressions/validation/ValidationHandler', entrypoint: 'core/framework' },
   { match: '/forge-core/src/testing/', entrypoint: 'core/testing' },
   { match: '/forge-core/src/instrumentation/', entrypoint: 'core' },
   { match: '/forge-core/src/index.ts', entrypoint: 'core' },

@@ -25,12 +25,12 @@ The component model is then used across the pipeline:
 
 3. Intermediate representation keeps block variants as part of block nodes.
 
-4. Compilation emits render functions that evaluate block properties.
+4. Compilation emits resolve functions that evaluate block properties.
 
 5. Runtime builds a render context containing evaluated blocks.
 
-6. Framework rendering looks up each block variant and calls the registered
-   component renderer.
+6. forge-core's runtime resolves each block variant to its registered
+   component entry, then framework rendering calls that entry's renderer.
 
 This means the component variant is the stable link between the authored block
 and the render implementation.
@@ -66,8 +66,8 @@ The variant is the name that connects a block to a component renderer.
 For example, a GOV.UK input wrapper can produce a block with a GOV.UK input
 variant. The registry then needs a component entry for that same variant.
 
-Variants are checked during DSL validation. If a block references a variant
-that is not registered for that journey, validation fails before routes are
+Variants are checked during semantic analysis. If a block references a variant
+that is not registered for that journey, compilation fails before routes are
 mounted.
 
 This protects rendering from discovering missing components late in the request
@@ -136,9 +136,10 @@ registered through the same registry contract.
 `forge-core` prepares render data, but framework integrations perform the final
 rendering.
 
-For the Express/Nunjucks integration, the page renderer looks up each evaluated
-block by variant in the component registry. It then calls the component's
-render function with the evaluated block and a Nunjucks renderer.
+For the Express/Nunjucks integration, forge-core's runtime resolves each evaluated block's variant to its component
+entry in the component registry and hands that entry to the page renderer, which
+calls the component's render function with the evaluated block and a Nunjucks
+renderer.
 
 Other framework integrations can use the same core contract differently. The
 important contract is that the adapter receives evaluated blocks and resolves
