@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface RegistryValidationErrorOptions {
   /** Type of registry (function or component) */
@@ -30,7 +29,6 @@ export default class RegistryValidationError extends Error {
     this.itemName = options.itemName
     this.expected = options.expected
     this.received = options.received
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {

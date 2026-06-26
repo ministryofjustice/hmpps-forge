@@ -7,9 +7,15 @@ import {
   PredicateType,
   StructureType,
 } from '../../authoring/types/enums'
-import { formatDSLPath } from './formatDSLPath'
+import DSLPathFormatter from './DSLPathFormatter'
 
-describe('formatDSLPath', () => {
+describe('DSLPathFormatter', () => {
+  let formatter: DSLPathFormatter
+
+  beforeEach(() => {
+    formatter = new DSLPathFormatter()
+  })
+
   it('should format a field validation error path with block context', () => {
     // Arrange
     const journey = {
@@ -35,7 +41,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, ['steps', 0, 'blocks', 0, 'validWhen', 0, 'message'])
+    const result = formatter.format(journey, ['steps', 0, 'blocks', 0, 'validWhen', 0, 'message'])
 
     // Assert
     expect(result).toBe(
@@ -65,7 +71,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, ['steps', 0, 'blocks', 2, 'visibleWhen'])
+    const result = formatter.format(journey, ['steps', 0, 'blocks', 2, 'visibleWhen'])
 
     // Assert
     expect(result).toBe('travel-declaration > personal-details > blocks[2] (GovUKHtml) > visibleWhen')
@@ -103,7 +109,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, ['steps', 0, 'onSubmission', 0, 'onValid', 'effects', 0, 'arguments', 2])
+    const result = formatter.format(journey, ['steps', 0, 'onSubmission', 0, 'onValid', 'effects', 0, 'arguments', 2])
 
     // Assert
     expect(result).toBe(
@@ -144,7 +150,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, ['children', 0, 'steps', 0, 'blocks', 0, 'validWhen', 0, 'condition'])
+    const result = formatter.format(journey, ['children', 0, 'steps', 0, 'blocks', 0, 'validWhen', 0, 'condition'])
 
     // Assert
     expect(result).toBe(
@@ -193,7 +199,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, [
+    const result = formatter.format(journey, [
       'steps',
       0,
       'blocks',
@@ -253,7 +259,7 @@ describe('formatDSLPath', () => {
     }
 
     // Act
-    const result = formatDSLPath(journey, [
+    const result = formatter.format(journey, [
       'steps',
       0,
       'blocks',

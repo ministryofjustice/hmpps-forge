@@ -9,8 +9,8 @@ evaluation failures without parsing message strings.
 | [`ForgeConfigurationSchemaError`](./ForgeConfigurationSchemaError.ts) | An authored definition fails Zod schema validation |
 | [`ForgeConfigurationReferenceScopeError`](./ForgeConfigurationReferenceScopeError.ts) | A reference (e.g. `Answer()`, `Params()`) is used in a scope where its data source isn't available |
 | [`ForgeConfigurationSerialisationError`](./ForgeConfigurationSerialisationError.ts) | The authored input can't be serialised into a valid journey |
-| [`ForgeCompilationError`](./ForgeCompilationError.ts) | Something goes wrong during AST construction or codegen |
-| [`ForgeRuntimeEvaluationError`](./ForgeRuntimeEvaluationError.ts) | A compiled function throws at request time - wraps the original error with diagnostic context (node id, DSL path) |
+| [`ForgeCompilationError`](./ForgeCompilationError.ts) | Generated source can't be compiled into a function during codegen (`new Function`) |
+| [`ForgeRuntimeEvaluationError`](./ForgeRuntimeEvaluationError.ts) | A compiled function throws at request time and carries diagnostic context such as node id and DSL path |
 | [`InvalidNodeError`](./InvalidNodeError.ts) | An AST node has an unexpected shape or missing properties |
 | [`UnknownNodeTypeError`](./UnknownNodeTypeError.ts) | `NodeFactory` encounters a type it has no factory for |
 | [`DuplicateRouteError`](./DuplicateRouteError.ts) | Two steps or journeys declare the same route path |
@@ -18,7 +18,12 @@ evaluation failures without parsing message strings.
 | [`RegistryValidationError`](./RegistryValidationError.ts) | A registry entry is malformed (e.g. missing `evaluate` or `variant`) |
 | [`UnregisteredComponentError`](./UnregisteredComponentError.ts) | A block references a component variant that isn't in the registry |
 | [`UnregisteredFunctionError`](./UnregisteredFunctionError.ts) | An expression references a function name that isn't in the registry |
+| [`ForgeRegistrationError`](./ForgeRegistrationError.ts) | Package registration fails while `strictRegistration` is enabled |
 
-[`formatDiagnosticStack.ts`](./formatDiagnosticStack.ts) and
-[`RegistrationErrorFormatter.ts`](./RegistrationErrorFormatter.ts) format error
-context for display.
+Most engine errors keep their native stack traces. Runtime evaluation errors are
+special because production loggers often serialize `stack`, so they append a
+`Forge diagnostics:` block through
+[`DiagnosticErrorFormatter`](../diagnostics/DiagnosticErrorFormatter.ts).
+
+[`RegistrationErrorFormatter.ts`](./RegistrationErrorFormatter.ts) formats
+registry error context for display.

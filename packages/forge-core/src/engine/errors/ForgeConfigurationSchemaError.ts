@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface ForgeConfigurationSchemaErrorOptions {
   /** Path to the invalid field */
@@ -31,7 +30,6 @@ export default class ForgeConfigurationSchemaError extends Error {
     this.path = options.path
     this.expected = options.expected
     this.formattedPath = options.formattedPath
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {
