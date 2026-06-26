@@ -5,7 +5,7 @@ import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } fro
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
-  CompiledRenderFunction,
+  CompiledResolveFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 
@@ -17,7 +17,8 @@ export interface CompiledStep {
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
   compiledValidation?: CompiledValidationFunction
   compiledEntryValidation?: CompiledEntryValidationFunction
-  compiledRender?: CompiledRenderFunction
+  compiledResolve?: CompiledResolveFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
 export interface CompiledJourney {
@@ -25,6 +26,7 @@ export interface CompiledJourney {
   navigationPlan: NavigationRuntimePlan
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
 export interface JourneyCompilationResult {

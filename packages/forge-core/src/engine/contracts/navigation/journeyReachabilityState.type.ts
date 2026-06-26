@@ -1,4 +1,4 @@
-export interface ReachabilityStep {
+export interface StepReachabilityProjection {
   path: string
   code?: string
   fieldCodes?: string[]
@@ -7,6 +7,6 @@ export interface ReachabilityStep {
 }
 
 export interface JourneyReachabilityState {
-  reachableSteps: ReachabilityStep[]
-  unreachableSteps: ReachabilityStep[]
+  reachableSteps: StepReachabilityProjection[]
+  unreachableSteps: StepReachabilityProjection[]
 }

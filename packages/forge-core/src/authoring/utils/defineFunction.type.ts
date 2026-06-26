@@ -1,6 +1,6 @@
 import { FunctionEvaluator } from '../types/functions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import type { EffectFunctionContext } from '../../engine/runtime/context/EffectFunctionContext'
+import type { EffectFunctionContext } from '../../engine/runtime/evaluation/context/EffectFunctionContext'
 import {
   ConditionFunctionExpr,
   EffectFunctionExpr,

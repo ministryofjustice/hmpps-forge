@@ -1,5 +1,6 @@
 import { ASTNodeType } from './enums'
 import { TemplateNodeId } from './ast.type'
+import type { ASTNodeDiagnostics } from '../../diagnostics/sourceLocation.type'
 
 /**
  * A template node preserves the shape of an AST node but with:
@@ -11,6 +12,7 @@ export interface TemplateNode {
   type: ASTNodeType.TEMPLATE
   originalType: ASTNodeType
   id: TemplateNodeId
+  diagnostics?: ASTNodeDiagnostics
   properties?: Record<string, TemplateValue>
   [key: string]: unknown
 }
