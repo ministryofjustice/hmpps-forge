@@ -4,6 +4,7 @@ import type {
   CompilationPlan,
   JourneyCompilationInputs,
   NavigationCompilationInputs,
+  RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type { NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
@@ -49,6 +50,7 @@ export default class CompilationPlanBuilder {
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
     const navigationInputs = new Map<NodeId, NavigationCompilationInputs>()
+    const routeMetadataInputs = new Map<NodeId, RouteMetadataCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
       const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
@@ -59,6 +61,12 @@ export default class CompilationPlanBuilder {
       }
 
       stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
+      routeMetadataInputs.set(stepNode.id, {
+        nodeId: stepNode.id,
+        title: stepNode.properties.title,
+        description: stepNode.properties.description,
+        metadata: stepNode.properties.metadata,
+      })
 
       const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
 
@@ -83,6 +91,12 @@ export default class CompilationPlanBuilder {
 
       if (journeyNode) {
         journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.navigationPlan))
+        routeMetadataInputs.set(journeyNode.id, {
+          nodeId: journeyNode.id,
+          title: journeyNode.properties.title,
+          description: journeyNode.properties.description,
+          metadata: journeyNode.properties.metadata,
+        })
       }
     })
 
@@ -90,6 +104,7 @@ export default class CompilationPlanBuilder {
       stepInputs,
       journeyInputs,
       navigationInputs,
+      routeMetadataInputs,
     }
   }
 

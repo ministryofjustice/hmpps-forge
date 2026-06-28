@@ -98,6 +98,7 @@ describe('CodegenOrchestrator', () => {
             },
           ],
         ]),
+        routeMetadataInputs: new Map(),
       }
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),
