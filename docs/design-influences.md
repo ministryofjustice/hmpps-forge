@@ -121,9 +121,8 @@ benefit of code emission: repeated validation can run quickly because the
 runtime executes generated code rather than interpreting the schema structure
 each time.
 
-Forge uses a similar principle for its phase compilers. Validation, rendering,
-answer preparation, hooks, and navigation-related evaluation can be compiled
-into functions that are attached to runtime plans.
+Forge uses a similar principle for its phase compilers. Validation, answer preparation, hooks, resolve, and navigation-related evaluation can be compiled
+into functions that are attached to runtime plans. Rendering is not compiled; the render phase runs the host renderer over the already-resolved blocks.
 
 ### Vue and Svelte
 

@@ -1,4 +1,5 @@
 import { ASTNodeType } from './enums'
+import type { ASTNodeDiagnostics } from '../../diagnostics/sourceLocation.type'
 
 /**
  * Template literal types for enforcing NodeID structure
@@ -23,6 +24,6 @@ export type AstNodeId = CompileAstNodeId
 export interface ASTNode {
   type: ASTNodeType
   id: AstNodeId
+  diagnostics?: ASTNodeDiagnostics
   properties?: Record<string, any>
-  raw?: any
 }

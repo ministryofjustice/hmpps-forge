@@ -1,35 +1,78 @@
 import type {
-  AnswerPreparationContext,
-  ReachabilityContext,
-  RenderCompilationContext,
-  ValidationContext,
-} from './phaseContexts.type'
-import type { StepValidityResult } from '../runtime/stepValidityResult.type'
-import type { RenderBlock } from '../../../framework/rendering/types'
-import type {
-  NavigationEvaluationInput,
-  NavigationEvaluationResult,
-} from '../navigation/generatedNavigationEvaluation.type'
+  CompiledAnswerPreparationContext,
+  CompiledNavigationContext,
+  CompiledReachabilityContext,
+  CompiledResolveContext,
+  CompiledValidationContext,
+} from './compiledContexts.type'
+import { NodeId } from '../ast/ast.type'
+import { BlockType } from '../../../authoring/types/enums'
+import type { ReachabilityEvaluationInput } from '../navigation/generatedReachabilityEvaluation.type'
+
+export type CompiledStaticDataFunction = () => Record<string, unknown>
 
 export type CompiledValidationFunction = (
-  ctx: ValidationContext,
+  ctx: CompiledValidationContext,
   isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult | Promise<StepValidityResult>
+) => CompiledValidationWorkTask | Promise<CompiledValidationWorkTask>
 
-export type CompiledEntryValidationFunction = (ctx: ValidationContext) => string[] | Promise<string[]>
+export type CompiledEntryValidationFunction = (ctx: CompiledValidationContext) => string[] | Promise<string[]>
 
-export interface CompiledRenderResult {
-  blocks: RenderBlock[]
-  step: Record<string, unknown>
-  ancestors: Record<string, unknown>[]
+export interface CompiledResolveBlockWorkProps {
+  readonly id: NodeId
+  readonly variant: string
+  readonly blockType: BlockType
+  readonly properties: Record<PropertyKey, unknown>
 }
 
-export type CompiledRenderFunction = (
-  ctx: RenderCompilationContext,
-) => CompiledRenderResult | Promise<CompiledRenderResult>
+export interface CompiledValidationWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: unknown
+}
 
-export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
+export interface CompiledAnswerPreparationWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: unknown
+}
+
+export interface CompiledNavigationWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: unknown
+}
+
+export interface CompiledResolveBlockWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: CompiledResolveBlockWorkProps
+}
+
+export interface CompiledResolveBlocksWorkProps {
+  readonly blocks: CompiledResolveBlockWorkTask[]
+  readonly step: Record<string, unknown>
+  readonly ancestors: Record<string, unknown>[]
+}
+
+export interface CompiledResolveBlocksWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: CompiledResolveBlocksWorkProps
+}
+
+export type CompiledResolveFunction = (
+  ctx: CompiledResolveContext,
+) => CompiledResolveBlocksWorkTask | Promise<CompiledResolveBlocksWorkTask>
+
+export type CompiledAnswerPreparationFunction = (
+  ctx: CompiledAnswerPreparationContext,
+) => CompiledAnswerPreparationWorkTask | Promise<CompiledAnswerPreparationWorkTask>
 
 /**
  * The result of calling the compiled reachability function. Arrays are indexed
@@ -50,10 +93,10 @@ export interface CompiledReachabilityResult {
 }
 
 export type CompiledReachabilityFunction = (
-  ctx: ReachabilityContext,
+  ctx: CompiledReachabilityContext,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
 export type CompiledNavigationFunction = (
-  ctx: ReachabilityContext,
-  navigation: NavigationEvaluationInput,
-) => Promise<NavigationEvaluationResult>
+  ctx: CompiledNavigationContext,
+  navigation: ReachabilityEvaluationInput,
+) => CompiledNavigationWorkTask | Promise<CompiledNavigationWorkTask>

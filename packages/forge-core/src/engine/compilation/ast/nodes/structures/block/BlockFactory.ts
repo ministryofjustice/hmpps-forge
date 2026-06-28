@@ -1,0 +1,85 @@
+import { isFieldBlockDefinition } from '../../../../../../authoring/typeguards/structures'
+import { ASTNodeType } from '../../../../../contracts/ast/enums'
+import { BlockType } from '../../../../../../authoring/types/enums'
+import { BasicBlockASTNode, BlockASTNode, FieldBlockASTNode } from '../../../../../contracts/ast/structures.type'
+import InvalidNodeError from '../../../../../errors/InvalidNodeError'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeFactory } from '../../NodeFactory'
+import type { BlockDefinition, FieldBlockDefinition } from '../../../../../../components/types/structures.type'
+
+/**
+ * BlockFactory: Creates Block AST nodes (both basic and field blocks)
+ *
+ * Basic blocks are UI components that render but don't collect data.
+ * Field blocks are UI components that collect user data via a code property.
+ */
+export default class BlockFactory {
+  constructor(
+    private readonly nodeIDGenerator: NodeIDGenerator,
+    private readonly nodeFactory: NodeFactory,
+  ) {}
+
+  /**
+   * Create a Block node, delegating to the appropriate type
+   */
+  create(json: BlockDefinition | FieldBlockDefinition): BlockASTNode {
+    if (isFieldBlockDefinition(json)) {
+      return this.createFieldBlock(json)
+    }
+
+    return this.createBasicBlock(json)
+  }
+
+  private createBasicBlock(json: BlockDefinition): BasicBlockASTNode {
+    const { variant, type, ...dataProperties } = json
+    const properties: BasicBlockASTNode['properties'] = {}
+
+    Object.entries(dataProperties).forEach(([key, value]) => {
+      properties[key] = this.nodeFactory.transformChild(value, key)
+    })
+
+    if (dataProperties.metadata !== undefined) {
+      properties.metadata = dataProperties.metadata
+    }
+
+    return {
+      id: this.nodeIDGenerator.nextAstNodeId(),
+      type: ASTNodeType.BLOCK,
+      variant,
+      blockType: BlockType.BASIC,
+      properties,
+    }
+  }
+
+  private createFieldBlock(json: FieldBlockDefinition): FieldBlockASTNode {
+    const { variant, type, ...dataProperties } = json
+
+    if (dataProperties.code === undefined) {
+      throw new InvalidNodeError({
+        message: 'Field block requires a code property',
+        node: json,
+        expected: 'code property',
+        actual: 'undefined',
+      })
+    }
+
+    const properties: FieldBlockASTNode['properties'] = {}
+
+    Object.entries(dataProperties).forEach(([key, value]) => {
+      properties[key] = this.nodeFactory.transformChild(value, key)
+    })
+
+    // Override properties that should not be transformed
+    if (dataProperties.metadata !== undefined) {
+      properties.metadata = dataProperties.metadata
+    }
+
+    return {
+      id: this.nodeIDGenerator.nextAstNodeId(),
+      type: ASTNodeType.BLOCK,
+      variant,
+      blockType: BlockType.FIELD,
+      properties,
+    }
+  }
+}

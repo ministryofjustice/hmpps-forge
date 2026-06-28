@@ -142,13 +142,19 @@ definition.
 
 ## Diagnostic stacks
 
-Forge custom errors format their stack from `toString()`.
+Most Forge custom errors keep their native stack trace and expose diagnostic
+fields only through an overridden `toString()`.
 
-This means diagnostic fields appear in logs that serialise `error.stack`,
-rather than only in direct calls to `error.toString()`.
+Runtime evaluation errors are the exception. Because production loggers often
+serialise `error.stack`, `ForgeRuntimeEvaluationError` (and any foreign error
+decorated via `decorateForgeRuntimeEvaluationError`) appends a `Forge
+diagnostics:` block to its native stack. This means diagnostic fields for those
+errors appear in logs that serialise `error.stack`, not only in direct calls to
+`error.toString()`.
 
-The rule is simple: if a custom error has useful diagnostic fields, its string
-form should include them.
+The rule is simple: if a custom error has useful diagnostic fields, its
+`toString()` output should include them, and runtime evaluation errors should
+also surface them in `error.stack`.
 
 ## Aggregate errors during registration
 
@@ -167,7 +173,9 @@ problems.
 
 `strictRegistration` controls whether registration errors are rethrown after
 logging. When strict registration is off, Forge logs the error and continues.
-When it is on, Forge rethrows the original error.
+When it is on, Forge rethrows: for an `AggregateError` it throws a fresh
+`ForgeRegistrationError` carrying the formatted aggregate text; for any other
+error it rethrows the original error.
 
 ## Generated-function diagnostics
 

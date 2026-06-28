@@ -1,7 +1,9 @@
 import type { NodeId } from '../ast/engine.type'
 import type { AnswerHistory } from './answerHistory.type'
 import type { JourneyReachabilityState } from '../navigation/journeyReachabilityState.type'
+import type { RequestLocation } from '../../../framework/types/request.type'
 import type { ValidationResult } from './validationResult.type'
+import type { StepValidityResult } from './stepValidityResult.type'
 
 export interface StepValidationFailure extends ValidationResult {
   blockId: NodeId
@@ -9,22 +11,33 @@ export interface StepValidationFailure extends ValidationResult {
 
 export type DomainValidationFailure = ValidationResult
 
-export interface StepValidationState {
-  stepId: NodeId
-  validated: boolean
-  groups?: string[]
-  isSubmission?: boolean
-  isValid: boolean
-  fieldFailures: StepValidationFailure[]
-  domainFailures: DomainValidationFailure[]
+export interface RequestContextState {
+  url: string
+  path: string
+  method: string
+  location: RequestLocation
+  headers: Record<string, string | string[] | undefined>
+  cookies: Record<string, string | undefined>
+  state: Record<string, unknown>
+  params: Record<string, string>
+  query: Record<string, string | string[]>
+  post: Record<string, unknown>
+  session: Record<string, unknown>
 }
 
-/**
- * Global mutable state shared by the compiled functions for one request.
- */
-export interface RuntimeEvaluationGlobalState {
+export interface DomainContextState {
   data: Record<string, unknown>
   answers: Record<string, AnswerHistory>
-  validation?: StepValidationState
+}
+
+export interface EvaluationContextState {
+  stepValidities?: Map<NodeId, StepValidityResult>
   reachability?: JourneyReachabilityState
+  fieldsToClear?: readonly string[]
+}
+
+export interface RuntimeContext {
+  request: RequestContextState
+  domain: DomainContextState
+  evaluation: EvaluationContextState
 }

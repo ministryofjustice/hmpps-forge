@@ -1,12 +1,11 @@
 import type { NodeId } from '../ast/ast.type'
-import type { CompiledNavigationFunction, CompiledValidationFunction } from '../compiled/compiledFunctions.type'
+import type { CompiledNavigationFunction } from '../compiled/compiledFunctions.type'
 import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
 export interface StepRuntimePlan {
   stepId: NodeId
   path: string
-  staticData: Record<string, unknown>
 }
 
 export interface NavigationRuntimePlan {
@@ -15,15 +14,22 @@ export interface NavigationRuntimePlan {
   unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
   compiledNavigation?: CompiledNavigationFunction
-  compiledStepValidations: Map<NodeId, CompiledValidationFunction>
 }
 
 export interface NavigationRuntimeEntry {
   stepId: NodeId
   code?: string
   isEntryPoint: boolean
-  hasValidation: boolean
+  /**
+   * Whether the step has real validation (validating field blocks or domain
+   * validWhen). The eager validities phase validates only these steps, so the
+   * navigation walk treats a step absent from the validity map as valid.
+   */
+  hasValidation?: boolean
+  forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }
+
+export type ForwardOutcomeEvaluation = 'exact' | 'over-approximate'
 
 export interface ReachabilityCompilationPlan {
   navigationPlan: NavigationRuntimePlan
@@ -52,11 +58,11 @@ export interface ReachabilityCompilationEntry extends NavigationRuntimeEntry {
  */
 export interface ForwardOutcomeGroup {
   hookWhenNodeId?: NodeId
+  overApproximateOutcomeIds?: NodeId[]
   outcomeIds: NodeId[]
 }
 
 export interface JourneyRuntimePlan {
   journeyId: NodeId
   path: string
-  staticData: Record<string, unknown>
 }

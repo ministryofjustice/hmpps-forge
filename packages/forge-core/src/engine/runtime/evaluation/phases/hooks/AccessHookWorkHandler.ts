@@ -1,0 +1,63 @@
+import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledAccessHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
+import type {
+  CompletedWork,
+  WorkContextContract,
+  WorkTask,
+  WorkHandler,
+  WorkInstrumentation,
+  WorkUnitFields,
+} from '../../../../contracts/runtime/work.type'
+import { createWorkTask, findTerminalStage, isTerminalStage } from '../../work/workTask'
+import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
+import type { AccessHookWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
+
+export const ACCESS_HOOK_KIND = 'access.hook'
+
+export const ACCESS_HOOK_WORK_INSTRUMENTATION: WorkInstrumentation<AccessHookWorkProps, CompiledAccessHookResult> = {
+  resolveTraceMetadataAtStart() {
+    return undefined
+  },
+
+  resolveTraceMetadataAtFinish(_ctx, output) {
+    return traceComplete(output)
+  },
+}
+
+/**
+ * A single access hook as a fixed ordered stage list: when → effects → next, run as
+ * one `first-match` group that stops at the first terminal stage. `when=false` ends
+ * the hook before effects run; `next` is always terminal. The `next` function prop is
+ * wrapped into a stage here so the compiler keeps emitting a plain props bag.
+ */
+export const ACCESS_HOOK_WORK_HANDLER: WorkHandler<'access.hook', AccessHookWorkProps> = {
+  kind: ACCESS_HOOK_KIND,
+
+  begin(ctx: WorkContextContract<RequestExecutionContext, AccessHookWorkProps>) {
+    const next = createWorkTask(
+      'next',
+      ACCESS_HOOK_NEXT_WORK_HANDLER,
+      { next: ctx.props.next },
+      ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION,
+    )
+    const stages: WorkTask[] = [ctx.props.when, ...ctx.props.effects, next]
+
+    return {
+      groups: [{ mode: 'first-match', matches: stage => isTerminalStage(stage.output), children: stages }],
+    }
+  },
+
+  complete(
+    _ctx: WorkContextContract<RequestExecutionContext, AccessHookWorkProps>,
+    children: readonly CompletedWork[],
+  ): CompiledAccessHookResult {
+    return findTerminalStage<CompiledAccessHookResult>(children) ?? { executed: true, outcome: 'continue' }
+  },
+}
+
+function traceComplete(output: CompiledAccessHookResult): WorkUnitFields {
+  return {
+    executed: output.executed,
+    outcome: output.outcome,
+  }
+}

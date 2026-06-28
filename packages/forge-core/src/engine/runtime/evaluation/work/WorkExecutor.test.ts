@@ -1,0 +1,525 @@
+import WorkContext from './WorkContext'
+import WorkUnit from './WorkUnit'
+import WorkExecutor from './WorkExecutor'
+import WorkExecutionError from './WorkExecutionError'
+import type { CompletedWork, WorkTask, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import { createWorkTask } from './workTask'
+import type { WorkUnitReference } from '../../../contracts/runtime/workUnit.type'
+
+interface TestCompiledContext {
+  readonly phase: string
+}
+
+interface Deferred<TValue> {
+  readonly promise: Promise<TValue>
+  resolve(value: TValue): void
+}
+
+type TestWorkGroupTemplate =
+  | { readonly mode: 'sequential' }
+  | { readonly mode: 'concurrent' }
+  | { readonly mode: 'first-match'; readonly matches: (work: CompletedWork) => boolean }
+
+function createDeferred<TValue>(): Deferred<TValue> {
+  let resolveDeferred: (value: TValue) => void = () => {}
+  const promise = new Promise<TValue>(resolve => {
+    resolveDeferred = resolve
+  })
+
+  return {
+    promise,
+    resolve: resolveDeferred,
+  }
+}
+
+function createContext(work?: WorkUnit): WorkContext<TestCompiledContext> {
+  return new WorkContext({ phase: 'test' }, work)
+}
+
+function createOutputElement(key: string, output: string, calls: string[] = []): WorkTask {
+  const type: WorkHandler = {
+    kind: 'test.child',
+    begin: () => {
+      calls.push(key)
+
+      return { output }
+    },
+  }
+
+  return createWorkTask(key, type, {})
+}
+
+function createParentElement(children: readonly WorkTask[], group: TestWorkGroupTemplate): WorkTask {
+  const type: WorkHandler = {
+    kind: 'test.parent',
+    begin: () => ({
+      groups: [
+        {
+          ...group,
+          children,
+        },
+      ],
+    }),
+    complete: (_ctx, completedChildren) => completedChildren.map(child => child.output),
+  }
+
+  return createWorkTask('parent', type, {})
+}
+
+describe('WorkExecutor', () => {
+  describe('execute()', () => {
+    it('should complete begin-only work with no children', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const result = await executor.execute(element, createContext())
+
+      // Assert
+      expect(result).toEqual({
+        key: 'child-1',
+        kind: 'test.child',
+        output: 'done',
+        children: [],
+      })
+    })
+
+    it('should return the executor-created work unit with executeWithUnit', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const result = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      expect(result.completedWork).toEqual({
+        key: 'child-1',
+        kind: 'test.child',
+        output: 'done',
+        children: [],
+      })
+      expect(result.workUnit.key).toBe('child-1')
+      expect(result.workUnit.kind).toBe('test.child')
+      expect(result.workUnit.completed).toBe(true)
+    })
+
+    it('should run sequential reduce-all children in declaration order', async () => {
+      // Arrange
+      const calls: string[] = []
+      const executor = new WorkExecutor()
+      const element = createParentElement(
+        [
+          createOutputElement('child-1', 'one', calls),
+          createOutputElement('child-2', 'two', calls),
+          createOutputElement('child-3', 'three', calls),
+        ],
+        { mode: 'sequential' },
+      )
+
+      // Act
+      const result = await executor.execute(element, createContext())
+
+      // Assert
+      expect(calls).toEqual(['child-1', 'child-2', 'child-3'])
+      expect(result.children.map(child => child.key)).toEqual(['child-1', 'child-2', 'child-3'])
+      expect(result.output).toEqual(['one', 'two', 'three'])
+    })
+
+    it('should run concurrent reduce-all children and preserve declaration order', async () => {
+      // Arrange
+      const calls: string[] = []
+      const first = createDeferred<string>()
+      const second = createDeferred<string>()
+      const executor = new WorkExecutor()
+      const firstType: WorkHandler = {
+        kind: 'test.child',
+        begin: async () => {
+          calls.push('child-1')
+
+          return { output: await first.promise }
+        },
+      }
+      const secondType: WorkHandler = {
+        kind: 'test.child',
+        begin: async () => {
+          calls.push('child-2')
+          second.resolve('two')
+
+          return { output: await second.promise }
+        },
+      }
+      const element = createParentElement(
+        [createWorkTask('child-1', firstType, {}), createWorkTask('child-2', secondType, {})],
+        { mode: 'concurrent' },
+      )
+      const pending = executor.execute(element, createContext())
+
+      while (calls.length < 2) {
+        await Promise.resolve()
+      }
+
+      first.resolve('one')
+
+      // Act
+      const result = await pending
+
+      // Assert
+      expect(calls).toEqual(['child-1', 'child-2'])
+      expect(result.children.map(child => child.key)).toEqual(['child-1', 'child-2'])
+      expect(result.output).toEqual(['one', 'two'])
+    })
+
+    it('should stop sequential first-match children after the fired predicate matches', async () => {
+      // Arrange
+      const calls: string[] = []
+      const executor = new WorkExecutor()
+      const element = createParentElement(
+        [
+          createOutputElement('child-1', 'continue', calls),
+          createOutputElement('child-2', 'stop', calls),
+          createOutputElement('child-3', 'skipped', calls),
+        ],
+        {
+          mode: 'first-match',
+          matches: completedWork => completedWork.output === 'stop',
+        },
+      )
+
+      // Act
+      const result = await executor.execute(element, createContext())
+
+      // Assert
+      expect(calls).toEqual(['child-1', 'child-2'])
+      expect(result.children.map(child => child.key)).toEqual(['child-1', 'child-2'])
+      expect(result.output).toEqual(['continue', 'stop'])
+    })
+
+    it('should pass completed children to complete and return its output', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      let receivedChildren: readonly CompletedWork[] = []
+      const child = createOutputElement('child-1', 'done')
+      const type: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [{ mode: 'sequential', children: [child] }],
+        }),
+        complete: (_ctx, children) => {
+          receivedChildren = children
+
+          return { count: children.length, first: children[0].output }
+        },
+      }
+      const element = createWorkTask('parent', type, {})
+
+      // Act
+      const result = await executor.execute(element, createContext())
+
+      // Assert
+      expect(receivedChildren).toHaveLength(1)
+      expect(result.output).toEqual({ count: 1, first: 'done' })
+    })
+
+    it('should reject when begin throws and leave the work unit incomplete', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const error = new Error('begin failed')
+      const type: WorkHandler = {
+        kind: 'test.failure',
+        begin: () => {
+          throw error
+        },
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => ({ phase: 'begin' }),
+        resolveTraceMetadataAtFinish: () => ({ phase: 'complete' }),
+      }
+      const element = createWorkTask('failed', type, {}, instrumentation)
+
+      // Act & Assert
+      await expect(executor.execute(element, createContext(parent))).rejects.toBe(error)
+      expect(parent.children).toHaveLength(1)
+      expect(parent.children[0].beginFields).toEqual({ phase: 'begin' })
+      expect(parent.children[0].completed).toBe(false)
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should reject when start instrumentation throws and leave the work unit incomplete', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const error = new Error('start instrumentation failed')
+      const type: WorkHandler = {
+        kind: 'test.trace-begin-failure',
+        begin: () => ({ output: 'done' }),
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => {
+          throw error
+        },
+        resolveTraceMetadataAtFinish: () => undefined,
+      }
+      const element = createWorkTask('failed', type, {}, instrumentation)
+
+      // Act & Assert
+      await expect(executor.execute(element, createContext(parent))).rejects.toBe(error)
+      expect(parent.children).toHaveLength(1)
+      expect(parent.children[0].completed).toBe(false)
+      expect(parent.children[0].beginFields).toEqual({})
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should reject when a child throws and leave parent and child work units incomplete', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const root = new WorkUnit('root', 'test.root')
+      const error = new Error('child failed')
+      const childType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          throw error
+        },
+      }
+      const parentType: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [
+            {
+              mode: 'sequential',
+              children: [createWorkTask('child', childType, {})],
+            },
+          ],
+        }),
+        complete: () => 'should-not-complete',
+      }
+      const element = createWorkTask('parent', parentType, {})
+
+      // Act & Assert
+      await expect(executor.execute(element, createContext(root))).rejects.toBe(error)
+      expect(root.children).toHaveLength(1)
+      expect(root.children[0].completed).toBe(false)
+      expect(root.children[0].children).toHaveLength(1)
+      expect(root.children[0].children[0].completed).toBe(false)
+    })
+
+    it('should reject when complete throws and leave the work unit incomplete', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const error = new Error('complete failed')
+      const type: WorkHandler = {
+        kind: 'test.failure',
+        begin: () => ({ output: 'begin-output' }),
+        complete: () => {
+          throw error
+        },
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => undefined,
+        resolveTraceMetadataAtFinish: () => ({ phase: 'complete' }),
+      }
+      const element = createWorkTask('failed', type, {}, instrumentation)
+
+      // Act & Assert
+      await expect(executor.execute(element, createContext(parent))).rejects.toBe(error)
+      expect(parent.children).toHaveLength(1)
+      expect(parent.children[0].completed).toBe(false)
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should reject when finish instrumentation throws and leave the work unit incomplete', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const error = new Error('finish instrumentation failed')
+      const type: WorkHandler = {
+        kind: 'test.trace-failure',
+        begin: () => ({ output: 'done' }),
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => ({ phase: 'begin' }),
+        resolveTraceMetadataAtFinish: () => {
+          throw error
+        },
+      }
+      const element = createWorkTask('failed', type, {}, instrumentation)
+
+      // Act & Assert
+      await expect(executor.execute(element, createContext(parent))).rejects.toBe(error)
+      expect(parent.children).toHaveLength(1)
+      expect(parent.children[0].beginFields).toEqual({ phase: 'begin' })
+      expect(parent.children[0].completed).toBe(false)
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should attach trace fields and nest runtime work units', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const childType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => ({ output: 'child-output' }),
+      }
+      const childInstrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: ctx => ({ key: ctx.work?.key, stage: 'child-begin' }),
+        resolveTraceMetadataAtFinish: (_ctx, output) => ({ output, stage: 'child-complete' }),
+      }
+      const parentType: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [
+            {
+              mode: 'sequential',
+              children: [createWorkTask('child', childType, {}, childInstrumentation)],
+            },
+          ],
+        }),
+        complete: (_ctx, children) => children[0].output,
+      }
+      const parentInstrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: ctx => ({ key: ctx.work?.key, stage: 'parent-begin' }),
+        resolveTraceMetadataAtFinish: (_ctx, output) => ({ output, stage: 'parent-complete' }),
+      }
+      const element = createWorkTask('parent', parentType, {}, parentInstrumentation)
+
+      // Act
+      const result = await executor.execute(element, createContext(parent))
+
+      // Assert
+      expect(result.output).toBe('child-output')
+      expect(parent.children).toHaveLength(1)
+      expect(parent.children[0].beginFields).toEqual({ key: 'parent', stage: 'parent-begin' })
+      expect(parent.children[0].completeFields).toEqual({ output: 'child-output', stage: 'parent-complete' })
+      expect(parent.children[0].children).toHaveLength(1)
+      expect(parent.children[0].children[0].beginFields).toEqual({ key: 'child', stage: 'child-begin' })
+      expect(parent.children[0].children[0].completeFields).toEqual({
+        output: 'child-output',
+        stage: 'child-complete',
+      })
+    })
+
+    it('should skip instrumentation when tracing is disabled', async () => {
+      // Arrange
+      const executor = new WorkExecutor(false)
+      const parent = new WorkUnit('root', 'test.root')
+      let startCalls = 0
+      let finishCalls = 0
+      const type: WorkHandler = {
+        kind: 'test.instrumented',
+        begin: () => ({ output: 'done' }),
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => {
+          startCalls += 1
+
+          return { phase: 'begin' }
+        },
+        resolveTraceMetadataAtFinish: () => {
+          finishCalls += 1
+
+          return { phase: 'complete' }
+        },
+      }
+      const element = createWorkTask('instrumented', type, {}, instrumentation)
+
+      // Act
+      await executor.execute(element, createContext(parent))
+
+      // Assert
+      expect(startCalls).toBe(0)
+      expect(finishCalls).toBe(0)
+      expect(parent.children[0].beginFields).toEqual({})
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should record empty fields when one instrumentation side returns undefined', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const parent = new WorkUnit('root', 'test.root')
+      const type: WorkHandler = {
+        kind: 'test.instrumented',
+        begin: () => ({ output: 'done' }),
+      }
+      const instrumentation: WorkInstrumentation = {
+        resolveTraceMetadataAtStart: () => ({ phase: 'begin' }),
+        resolveTraceMetadataAtFinish: () => undefined,
+      }
+      const element = createWorkTask('instrumented', type, {}, instrumentation)
+
+      // Act
+      await executor.execute(element, createContext(parent))
+
+      // Assert
+      expect(parent.children[0].beginFields).toEqual({ phase: 'begin' })
+      expect(parent.children[0].completeFields).toEqual({})
+    })
+
+    it('should reject when the work context parent is not a WorkUnit', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const foreignParent: WorkUnitReference = {
+        key: 'foreign',
+        kind: 'foreign.parent',
+        children: [],
+        beginFields: {},
+        completeFields: {},
+        completed: false,
+        startedAtMs: 0,
+      }
+      const ctx = new WorkContext({ phase: 'test' }, foreignParent)
+      const element = createOutputElement('child', 'child-output')
+
+      // Act & Assert
+      await expect(executor.execute(element, ctx)).rejects.toThrow('must be a WorkUnit')
+    })
+
+    it('should wrap an executeWithUnit failure in a WorkExecutionError carrying the partial unit', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const error = new Error('child failed')
+      const childType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          throw error
+        },
+      }
+      const parentType: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [
+            {
+              mode: 'sequential',
+              children: [createWorkTask('child', childType, {})],
+            },
+          ],
+        }),
+        complete: () => 'unreached',
+      }
+      const element = createWorkTask('parent', parentType, {})
+
+      // Act
+      let rejection: unknown
+
+      try {
+        await executor.executeWithUnit(element, createContext())
+      } catch (caught) {
+        rejection = caught
+      }
+
+      // Assert
+      expect(rejection).toBeInstanceOf(WorkExecutionError)
+      if (!(rejection instanceof WorkExecutionError)) {
+        throw new Error('expected a WorkExecutionError')
+      }
+
+      expect(rejection.original).toBe(error)
+      expect(rejection.workUnit.key).toBe('parent')
+      expect(rejection.workUnit.completed).toBe(false)
+      expect(rejection.workUnit.children).toHaveLength(1)
+      expect(rejection.workUnit.children[0].completed).toBe(false)
+    })
+  })
+})

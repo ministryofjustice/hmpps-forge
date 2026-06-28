@@ -9,30 +9,3 @@ export interface RequestLocation {
   readonly pathname: string
   readonly basePath: string
 }
-
-/**
- * Framework-agnostic request interface.
- *
- * Provides methods for reading request data. The framework adapter implements
- * these methods to read from the native request object.
- */
-export interface StepRequest {
-  readonly method: HttpMethod
-  readonly url: string
-  readonly baseUrl: string
-  readonly location: RequestLocation
-
-  getHeader(name: string): string | string[] | undefined
-  getAllHeaders(): Record<string, string | string[] | undefined>
-  getCookie(name: string): string | undefined
-  getAllCookies(): Record<string, string | undefined>
-  getParam(name: string): string | undefined
-  getParams(): Record<string, string>
-  getQuery(name: string): string | string[] | undefined
-  getAllQuery(): Record<string, string | string[]>
-  getPost(name: string): unknown
-  getAllPost(): Record<string, unknown>
-  getSession(): unknown
-  getState(key: string): unknown
-  getAllState(): Record<string, unknown>
-}

@@ -1,0 +1,70 @@
+import type { ComponentRegistry } from '../../../framework/types/adapter.type'
+import type { ForgeRenderer } from '../../../framework/rendering/types'
+import type { NodeId } from '../ast/ast.type'
+import type {
+  CompiledAnswerPreparationFunction,
+  CompiledEntryValidationFunction,
+  CompiledNavigationFunction,
+  CompiledResolveFunction,
+  CompiledStaticDataFunction,
+  CompiledValidationFunction,
+} from '../compiled/compiledFunctions.type'
+import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
+import type { NavigationRuntimePlan } from '../plans/runtimePlans.type'
+import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../routing/routeTree.type'
+import type { HttpMethod } from '../../../framework/types/request.type'
+import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
+import type { WorkTask } from './work.type'
+
+export interface RequestPipelineWorkProps {
+  readonly phases: readonly WorkTask[]
+}
+
+/**
+ * The shared shape of a phase that runs one compiled function over the step path.
+ * Access, answer-preparation, entry-validation, submit, and render all instantiate
+ * it; `compiled` is the phase's compiled function (absent when the step has none).
+ */
+export interface PhaseWorkProps<TCompiled> {
+  readonly compiled: TCompiled | undefined
+  readonly path: string
+}
+
+export type RequestAccessWorkProps = PhaseWorkProps<CompiledAccessLifecycleFunction>
+
+export type RequestAnswerPreparationWorkProps = PhaseWorkProps<CompiledAnswerPreparationFunction>
+
+export type RequestEntryValidationWorkProps = PhaseWorkProps<CompiledEntryValidationFunction>
+
+export type RequestSubmitWorkProps = PhaseWorkProps<CompiledSubmitHooksFunction>
+
+export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & {
+  readonly routeTree: StoredRouteTree
+  readonly currentRouteTemplatePath: string
+}
+
+export interface RequestReachabilityWorkProps {
+  readonly mode: 'step' | 'journey'
+  readonly compiledNavigation: CompiledNavigationFunction | undefined
+  readonly navigationPlan: NavigationRuntimePlan
+  readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
+  readonly method: HttpMethod
+}
+
+export interface RequestAnswerCleardownWorkProps {
+  readonly navigationPlan: NavigationRuntimePlan
+}
+
+export interface RequestValiditiesWorkProps {
+  readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+}
+
+export interface RequestRenderWorkProps {
+  readonly renderer: ForgeRenderer<unknown>
+  readonly componentRegistry: ComponentRegistry
+}
+
+export interface RequestContextPreparationWorkProps {
+  readonly compiledStaticData: CompiledStaticDataFunction
+  readonly snapshot: RequestSnapshot
+}

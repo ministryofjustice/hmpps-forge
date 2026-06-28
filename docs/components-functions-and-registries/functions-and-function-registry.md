@@ -153,7 +153,7 @@ Effects are different from the other function types because they are expected
 to do work, not just produce a value.
 
 Hook evaluation gives effects the context they need to interact with the
-request, response, global runtime state, validation, and logger.
+request, response, and global runtime state (answers and data).
 
 This is why effects are only valid inside access and submit hooks. Outside
 hooks, expressions should remain value evaluation.

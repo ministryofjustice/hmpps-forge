@@ -5,6 +5,8 @@ import type { ViewConfig } from '../../authoring/types/structures.type'
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
 
+type MaybePromise<T> = T | Promise<T>
+
 export interface RenderBlock {
   readonly id: NodeId
   readonly variant: string
@@ -47,7 +49,7 @@ export interface JourneyAncestor {
 }
 
 /**
- * Render context built by RenderContextFactory.
+ * Render context assembled by the resolve phase (`request.resolve`).
  * Contains all data needed to render a page
  */
 export interface RenderContext {
@@ -91,7 +93,14 @@ export interface RenderContext {
 }
 
 export interface ForgeRenderer<TOut> {
-  renderBlock(entry: ComponentRegistryEntry<BlockDefinition, TOut>, block: EvaluatedBlock<BlockDefinition>): TOut
-  wrapNestedBlock(block: BlockDefinition, output: TOut): unknown
-  assemblePage(context: RenderContext, renderedBlocks: readonly TOut[], requestState: Record<string, unknown>): TOut
+  renderBlock(
+    entry: ComponentRegistryEntry<BlockDefinition, TOut>,
+    block: EvaluatedBlock<BlockDefinition>,
+  ): MaybePromise<TOut>
+  wrapNestedBlock(block: BlockDefinition, output: TOut): MaybePromise<unknown>
+  assemblePage(
+    context: RenderContext,
+    renderedBlocks: readonly TOut[],
+    requestState: Record<string, unknown>,
+  ): MaybePromise<TOut>
 }

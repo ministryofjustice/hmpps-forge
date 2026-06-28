@@ -504,6 +504,71 @@ export const resumeJourney = journey({
   ],
 })
 
+// Mirrors the real "resuming" demo: a validation-free info step is the default
+// landing entry (highest tie-breaker), alongside the first question entry. The
+// info step has no onward navigation, so if resume ever treats it as completed
+// progress it wins the tie-break and finds no frontier, stalling on the current
+// step instead of advancing.
+export const resumeWithInfoEntryJourney = journey({
+  code: 'resume-info',
+  path: '/resume-info',
+  title: 'Resume with info entry',
+  reachability: { resumeWhen: true },
+  onAccess: [access({ effects: [Effects.LoadAnswers('resume-info')] })],
+  steps: [
+    step({
+      path: '/overview',
+      title: 'Overview',
+      reachability: { entryWhen: true, tieBreakers: [tieBreaker({ priority: 100 })] },
+      blocks: [GovUKButton({ text: 'Start' })],
+    }),
+    step({
+      path: '/name',
+      title: 'Name',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'firstName',
+          label: 'First name',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            effects: [Effects.SaveAnswers('resume-info')],
+            next: [redirect({ goto: 'role' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      path: '/role',
+      title: 'Role',
+      blocks: [
+        GovUKTextInput({
+          code: 'lastName',
+          label: 'Last name',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            effects: [Effects.SaveAnswers('resume-info')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
 export const unreachableFrontierJourney = journey({
   code: 'frontier',
   path: '/frontier',

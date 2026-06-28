@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface DuplicateRouteErrorOptions {
   /** The duplicate route path */
@@ -15,7 +14,6 @@ export default class DuplicateRouteError extends Error {
     super(options.message ?? `Duplicate route path: ${options.path}`)
     this.name = new.target.name
     this.path = options.path
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {
