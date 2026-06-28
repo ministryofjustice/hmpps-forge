@@ -125,7 +125,8 @@ describe('rendering contracts', () => {
             phase: 'reachability',
             units: expect.arrayContaining([
               expect.objectContaining({
-                kind: 'reachability.evaluation',
+                key: 'after-reachability',
+                kind: 'context-snapshot',
               }),
             ]),
           }),

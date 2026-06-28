@@ -15,6 +15,7 @@ import type {
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
+import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
 import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
@@ -77,11 +78,14 @@ export default class CodegenOrchestrator {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
 
     plan.navigationInputs.forEach(navigationInputs => {
-      navigationInputs.runtimePlan.compiledNavigation = reachabilityCompiler.compileNavigation(
+      const navigationPlan = navigationInputs.runtimePlan
+
+      navigationPlan.compiledReachabilityFacts = reachabilityCompiler.compileFacts(
         navigationInputs.reachabilityPlan,
         navigationInputs.fieldInventorySources,
         nodeRegistry,
       )
+      navigationPlan.compiledReachabilityState = input => evaluateReachabilityState(navigationPlan, input)
     })
   }
 

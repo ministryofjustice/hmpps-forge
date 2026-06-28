@@ -5,8 +5,6 @@ import type { NodeId } from '../../../../contracts/ast/ast.type'
 import type { ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
 import type { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
-import { isStepValid } from '../validation/stepValidity'
 
 /**
  * Builds the reachability state for a journey: seeds entry points, walks
@@ -14,9 +12,10 @@ import { isStepValid } from '../validation/stepValidity'
  * predecessor route-template paths and tie-breaker priority.
  *
  * Entry predicates, forward outcomes, and tie-breaker priorities come from the
- * compiled reachability result; per-step validity is read from the precomputed
- * `stepValidities` map (absence means the step has no validation and cannot
- * block). An invalid step does not propagate reachability to its successors.
+ * compiled reachability result; per-step navigation-mode validity is read from the
+ * precomputed `stepValidities` map (a step absent from the map has no validation
+ * and is treated as valid). An invalid step does not propagate reachability to its
+ * successors.
  */
 export default class ReachabilityGraphBuilder {
   private steps!: ReachabilityNode[]
@@ -25,7 +24,7 @@ export default class ReachabilityGraphBuilder {
 
   private routeTemplateCatalog!: JourneyRouteTemplateCatalog
 
-  private stepValidities!: ReadonlyMap<NodeId, StepValidityResult>
+  private stepValidities!: ReadonlyMap<NodeId, boolean>
 
   private stateByRouteTemplatePath!: Map<string, ReachabilityNode>
 
@@ -36,7 +35,7 @@ export default class ReachabilityGraphBuilder {
     currentStepId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     compiledResult: CompiledReachabilityResult,
-    stepValidities: ReadonlyMap<NodeId, StepValidityResult>,
+    stepValidities: ReadonlyMap<NodeId, boolean>,
   ): ReachabilityNode[] {
     this.compiled = compiledResult
     this.routeTemplateCatalog = routeTemplateCatalog
@@ -158,9 +157,9 @@ export default class ReachabilityGraphBuilder {
 
   private evaluateStepReachability(step: ReachabilityNode): void {
     // Absence from the map means the step has no validation, so it is valid and
-    // cannot block forward reachability. Reachability uses navigation-mode validity:
+    // cannot block forward reachability. The map carries navigation-mode validity:
     // non-submission, default group - `submissionOnly` and off-default failures don't gate.
-    step.isValid = isStepValid(this.stepValidities.get(step.stepId), { isSubmission: false, groups: ['default'] })
+    step.isValid = this.stepValidities.get(step.stepId) ?? true
 
     const entryIndex = this.stepIndexByStepId.get(step.stepId)!
 

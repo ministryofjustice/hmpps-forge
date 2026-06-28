@@ -1,7 +1,5 @@
 import type { WorkTask } from '../../../contracts/runtime/work.type'
 import { createWorkTask } from './workTask'
-import type { CompiledReachabilityResult } from '../../../contracts/compiled/compiledFunctions.type'
-import type { ReachabilityEvaluationInput } from '../../../contracts/navigation/generatedReachabilityEvaluation.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { BlockType } from '../../../../authoring/types/enums'
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
@@ -57,10 +55,6 @@ import {
   RENDER_ASSEMBLE_PAGE_WORK_HANDLER,
   RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION,
 } from '../phases/render/RenderAssemblePageWorkHandler'
-import {
-  REACHABILITY_EVALUATION_WORK_HANDLER,
-  REACHABILITY_EVALUATION_WORK_INSTRUMENTATION,
-} from '../phases/reachability/ReachabilityEvaluationWorkHandler'
 import type {
   AccessHookWhenWorkProps,
   AccessHookWorkProps,
@@ -231,15 +225,6 @@ export default class WorkTaskFactory {
       RENDER_ASSEMBLE_PAGE_WORK_HANDLER,
       { renderContext, renderer },
       RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION,
-    )
-  }
-
-  static reachabilityEvaluation(input: ReachabilityEvaluationInput, compiledResult: CompiledReachabilityResult) {
-    return createWorkTask(
-      'navigation',
-      REACHABILITY_EVALUATION_WORK_HANDLER,
-      { input, compiledResult },
-      REACHABILITY_EVALUATION_WORK_INSTRUMENTATION,
     )
   }
 

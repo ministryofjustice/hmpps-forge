@@ -4,7 +4,8 @@ import type { NodeId } from '../ast/ast.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
-  CompiledNavigationFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
   CompiledResolveFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
@@ -45,8 +46,8 @@ export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & 
 
 export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
-  readonly compiledNavigation: CompiledNavigationFunction | undefined
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction | undefined
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }

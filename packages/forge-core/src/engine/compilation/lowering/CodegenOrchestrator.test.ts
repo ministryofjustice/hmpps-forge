@@ -110,7 +110,8 @@ describe('CodegenOrchestrator', () => {
       // Assert
       expect(result.steps.get(stepNode.id)?.navigationPlan).toBe(navigationPlan)
       expect(result.journeys.get(journeyNode.id)?.navigationPlan).toBe(navigationPlan)
-      expect(navigationPlan.compiledNavigation).toEqual(expect.any(Function))
+      expect(navigationPlan.compiledReachabilityFacts).toEqual(expect.any(Function))
+      expect(navigationPlan.compiledReachabilityState).toEqual(expect.any(Function))
       expect(result.steps.get(stepNode.id)?.compiledStaticData()).toEqual({ shared: 'step' })
       expect(result.journeys.get(journeyNode.id)?.compiledStaticData()).toEqual({ shared: 'journey' })
     })

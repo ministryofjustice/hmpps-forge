@@ -1,9 +1,9 @@
 /**
- * Emits navigation evaluators for a reachability compilation plan.
+ * Emits the compiled reachability facts function for a reachability compilation
+ * plan.
  *
- * Dynamic result arrays are indexed by step position in `plan.entries`.
- * Navigation evaluators also emit field inventory when request params are
- * present.
+ * Dynamic result arrays are indexed by step position in `plan.entries`. The facts
+ * function also emits per-step field inventory when request params are present.
  */
 import { ASTNode } from '../../../../contracts/ast/ast.type'
 import type {
@@ -14,10 +14,7 @@ import type {
 import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
-import type {
-  CompiledNavigationFunction,
-  CompiledReachabilityFunction,
-} from '../../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledReachabilityFactsFunction } from '../../../../contracts/compiled/compiledFunctions.type'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
 import { isRedirectOutcomeNode } from '../../../../contracts/ast/outcome-nodes'
 import type { FieldInventoryStepSource } from '../../../../contracts/plans/compilationPlan.type'
@@ -25,7 +22,7 @@ import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 /**
- * Builds generated functions from a reachability compilation plan.
+ * Builds the generated reachability facts function from a reachability compilation plan.
  */
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
@@ -38,78 +35,44 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Compiles the plan into an executable reachability evaluator.
+   * Compiles the plan into a reachability facts evaluator.
+   *
+   * The generated function evaluates dynamic reachability expressions and, when
+   * params are available, the per-step field inventory. It returns the facts as a
+   * plain result object; the static graph walk over those facts runs in the
+   * compiled reachability state function.
    */
-  compile(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): CompiledReachabilityFunction | undefined {
-    return compileGeneratedFunction<CompiledReachabilityFunction>(
+  compileFacts(
+    plan: ReachabilityCompilationPlan,
+    fieldInventorySources: FieldInventoryStepSource[],
+    nodeRegistry: ASTNodeIndex,
+  ): CompiledReachabilityFactsFunction {
+    return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
-      ['ctx'],
-      () => this.buildSource(plan, nodeRegistry),
+      ['ctx', 'navigation'],
+      () => this.buildFactsSource(plan, fieldInventorySources, nodeRegistry),
       { phase: 'reachability' },
     )
   }
 
   /**
-   * Compiles the plan into a navigation evaluator.
-   *
-   * The generated function evaluates dynamic reachability expressions and, when
-   * params are available, emits field inventory.
-   */
-  compileNavigation(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
-  ): CompiledNavigationFunction {
-    return compileGeneratedFunction<CompiledNavigationFunction>(
-      this.expr,
-      ['ctx', 'navigation'],
-      () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry),
-      { forceAsync: true, phase: 'navigation' },
-    )
-  }
-
-  /**
-   * Builds the generated source without constructing a function, mainly for debugging.
-   */
-  generateSource(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(plan, nodeRegistry))
-  }
-
-  /**
-   * Builds inspectable generated navigation source.
+   * Builds inspectable generated facts source.
    *
    * Function metadata determines whether emitted calls need `await`.
    */
-  generateNavigationSource(
+  generateFactsSource(
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
     nodeRegistry: ASTNodeIndex,
   ): string {
-    return buildGeneratedSource(this.expr, () => this.buildNavigationSource(plan, fieldInventorySources, nodeRegistry))
+    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan, fieldInventorySources, nodeRegistry))
   }
 
   /**
-   * Emits the full reachability function body in compilation-plan step order.
+   * Emits the generated facts function body with reachability arrays and optional
+   * field inventory.
    */
-  private buildSource(plan: ReachabilityCompilationPlan, nodeRegistry: ASTNodeIndex): string {
-    const emitter = new CodeEmitter()
-    const stepCount = plan.entries.length
-
-    emitter.code('"use strict";')
-
-    emitter.comment('ReachabilityCompiler.buildSource')
-    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
-
-    emitter.return(this.buildReachabilityResultExpression())
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits the generated navigation function body with reachability arrays and
-   * optional field inventory.
-   */
-  private buildNavigationSource(
+  private buildFactsSource(
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
     nodeRegistry: ASTNodeIndex,
@@ -119,17 +82,11 @@ export default class ReachabilityCompiler {
 
     emitter.code('"use strict";')
 
-    emitter.comment('ReachabilityCompiler.buildNavigationSource')
+    emitter.comment('ReachabilityCompiler.buildFactsSource')
     this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
     this.compileFieldInventory(fieldInventorySources, emitter)
 
-    const navigationInputVar = emitter.const(
-      'navigationInput',
-      'fieldInventory === undefined ? navigation : { ...navigation, fieldInventory: fieldInventory }',
-    )
-    const compiledResultVar = emitter.const('compiledNavigationResult', this.buildReachabilityResultExpression())
-
-    emitter.return(`ctx.workTasks.reachabilityEvaluation(${navigationInputVar}, ${compiledResultVar})`)
+    emitter.return(this.buildReachabilityResultExpression())
 
     return emitter.toString()
   }
@@ -155,12 +112,13 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Emits field inventory only for navigation calls that can project params.
+   * Emits field inventory only when a request supplies params (step requests). The
+   * `navigation` argument is absent for facts-only calls, so the guard tolerates it.
    */
   private compileFieldInventory(fieldInventorySources: FieldInventoryStepSource[], emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileFieldInventory')
     emitter.declareLet('fieldInventory')
-    emitter.if('navigation.params !== undefined', () => {
+    emitter.if('navigation !== undefined && navigation.params !== undefined', () => {
       emitter.assign('fieldInventory', '[]')
       this.fieldInventory.compileInto(fieldInventorySources, emitter, 'fieldInventory')
     })
@@ -170,7 +128,7 @@ export default class ReachabilityCompiler {
    * Builds the reachability result object literal.
    */
   private buildReachabilityResultExpression(): string {
-    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
+    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive, fieldInventory: fieldInventory }'
   }
 
   /**
@@ -445,5 +403,4 @@ export default class ReachabilityCompiler {
 
     emitter.declareConst('resumeActive', `Boolean(${conditionExpr})`)
   }
-
 }

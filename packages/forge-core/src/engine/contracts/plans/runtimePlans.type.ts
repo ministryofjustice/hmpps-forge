@@ -1,5 +1,8 @@
 import type { NodeId } from '../ast/ast.type'
-import type { CompiledNavigationFunction } from '../compiled/compiledFunctions.type'
+import type {
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
+} from '../compiled/compiledFunctions.type'
 import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
@@ -13,7 +16,8 @@ export interface NavigationRuntimePlan {
   resumeConfigured: boolean
   unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
-  compiledNavigation?: CompiledNavigationFunction
+  compiledReachabilityFacts?: CompiledReachabilityFactsFunction
+  compiledReachabilityState?: CompiledReachabilityStateFunction
 }
 
 export interface NavigationRuntimeEntry {

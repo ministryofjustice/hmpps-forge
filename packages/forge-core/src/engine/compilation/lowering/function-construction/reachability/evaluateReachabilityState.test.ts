@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { joinPaths } from '../../../../../framework/path/routePath'
 import type { NavigationRuntimePlan, NavigationRuntimeEntry } from '../../../../contracts/plans/runtimePlans.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
 import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
@@ -10,7 +9,7 @@ import { evaluateReachabilityState } from './evaluateReachabilityState'
 
 const routePathsByStepId = new Map<NodeId, string>()
 const validationStepIds = new Set<NodeId>()
-let stepValidities = new Map<NodeId, StepValidityResult>()
+let stepValidities = new Map<NodeId, boolean>()
 
 function createEntry(options: {
   stepId: NodeId
@@ -50,7 +49,7 @@ function createRouteTemplateCatalog(entries: NavigationRuntimeEntry[]): JourneyR
   }
 }
 
-function createCompiledResult(
+function createFacts(
   plan: NavigationRuntimePlan,
   overrides: {
     entryResults?: Record<number, boolean>
@@ -58,6 +57,7 @@ function createCompiledResult(
     declaredOutcomeValues?: Record<number, string[]>
     tieBreakerPriorities?: Record<number, number>
     resumeActive?: boolean
+    fieldInventory?: StepFieldInventory[]
   } = {},
 ): CompiledReachabilityResult {
   const count = plan.entries.length
@@ -71,9 +71,12 @@ function createCompiledResult(
     ),
     tieBreakerPriorities: Array.from({ length: count }, (_, i) => overrides.tieBreakerPriorities?.[i]),
     resumeActive: overrides.resumeActive ?? false,
+    fieldInventory: overrides.fieldInventory,
   }
 }
 
+// The compiled state function receives navigation-mode validity as a boolean map:
+// a step is present iff it has validation, and the value is its validity.
 function setStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]): void {
   stepValidities = new Map()
 
@@ -82,19 +85,7 @@ function setStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]):
       return
     }
 
-    const fieldFailures = validStepIds.includes(entry.stepId)
-      ? []
-      : [
-          {
-            blockId: `${entry.stepId}-field` as NodeId,
-            passed: false,
-            message: 'Required',
-            submissionOnly: false,
-            groups: ['default'],
-          },
-        ]
-
-    stepValidities.set(entry.stepId, { fieldFailures, domainFailures: [] })
+    stepValidities.set(entry.stepId, validStepIds.includes(entry.stepId))
   })
 }
 
@@ -118,13 +109,15 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, { entryResults: { 1: true } })
+    const facts = createFacts(plan, { entryResults: { 1: true } })
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:3', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:3',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.steps.filter(step => step.isReachable).map(step => step.routeTemplatePath)).toEqual([
@@ -148,17 +141,17 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, {
-      outcomeValues: { 0: ['middle'], 1: ['end'] },
-    })
+    const facts = createFacts(plan, { outcomeValues: { 0: ['middle'], 1: ['end'] } })
 
     setStepValidities(plan, ['compile_ast:110'])
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:112', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:112',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.steps.find(step => step.stepId === 'compile_ast:111')?.isReachable).toBe(true)
@@ -179,7 +172,7 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, {
+    const facts = createFacts(plan, {
       outcomeValues: { 0: ['your-role'], 1: ['check-answers'] },
       resumeActive: true,
     })
@@ -187,10 +180,12 @@ describe('evaluateReachabilityState', () => {
     setStepValidities(plan, ['compile_ast:30'])
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:30', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:30',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.canonicalPathRouteTemplatePaths).toEqual(['/journey/your-name', '/journey/your-role'])
@@ -210,18 +205,17 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, {
-      outcomeValues: { 0: ['your-role'] },
-      resumeActive: true,
-    })
+    const facts = createFacts(plan, { outcomeValues: { 0: ['your-role'] }, resumeActive: true })
 
     setStepValidities(plan, ['compile_ast:40'])
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:42', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:42',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.frontierRouteTemplatePath).toBe('/journey/your-role')
@@ -242,7 +236,7 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, {
+    const facts = createFacts(plan, {
       outcomeValues: { 0: ['branch-a', 'branch-b'], 1: ['merge'], 2: ['merge'] },
       tieBreakerPriorities: { 1: 10, 2: 100 },
     })
@@ -250,10 +244,12 @@ describe('evaluateReachabilityState', () => {
     setStepValidities(plan, ['compile_ast:73', 'compile_ast:75', 'compile_ast:77'])
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:77', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:77',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.canonicalPathRouteTemplatePaths).toEqual([
@@ -276,13 +272,15 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: true,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan)
+    const facts = createFacts(plan)
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:91', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:91',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.steps.every(step => step.isReachable)).toBe(true)
@@ -302,13 +300,15 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan)
+    const facts = createFacts(plan)
 
     // Act
-    const { evaluation } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:81', routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:81',
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(evaluation.defaultEntryRouteTemplatePath).toBe('/journey/first')
@@ -334,20 +334,23 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan, {
+    const facts = createFacts(plan, {
       outcomeValues: { 0: ['question'] },
+      fieldInventory: [
+        { stepId: 'compile_ast:201', fieldCodes: ['question-field'], cleardownFieldCodes: ['question-clear'] },
+      ],
     })
-    const fieldInventory: StepFieldInventory[] = [
-      { stepId: 'compile_ast:201', fieldCodes: ['question-field'], cleardownFieldCodes: ['question-clear'] },
-    ]
 
     setStepValidities(plan, ['compile_ast:200', 'compile_ast:201'])
 
     // Act
-    const { reachability } = evaluateReachabilityState(
-      { plan, currentStepId: 'compile_ast:201', routeTemplateCatalog, stepValidities, fieldInventory, params: {} },
-      compiledResult,
-    )
+    const { reachability } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:201',
+      routeTemplateCatalog,
+      stepValidities,
+      params: {},
+    })
 
     // Assert
     expect(reachability?.reachableSteps.map(step => step.path)).toEqual(['/journey/entry', '/journey/question'])
@@ -367,13 +370,15 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const compiledResult = createCompiledResult(plan)
+    const facts = createFacts(plan)
 
     // Act
-    const result = evaluateReachabilityState(
-      { plan, currentStepId: undefined, routeTemplateCatalog, stepValidities },
-      compiledResult,
-    )
+    const result = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: undefined,
+      routeTemplateCatalog,
+      stepValidities,
+    })
 
     // Assert
     expect(result.reachability).toBeUndefined()
