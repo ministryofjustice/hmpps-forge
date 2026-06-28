@@ -4,13 +4,12 @@ import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../contracts
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import type { TestPredicateASTNode } from '../contracts/ast/predicates.type'
 import type { TemplateNode } from '../contracts/ast/template.type'
-import { NodeIDCategory, NodeIDGenerator } from '../compilation/ast/ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../compilation/ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from '../compilation/ast/nodes/NodeFactory'
 import { ASTNodeType } from '../contracts/ast/enums'
 import DSLSourceLocator from './DSLSourceLocator'
 
-const createFactory = (journey: JourneyDefinition): NodeFactory =>
-  new NodeFactory(new NodeIDGenerator(), NodeIDCategory.COMPILE_AST, journey)
+const createFactory = (journey: JourneyDefinition): NodeFactory => new NodeFactory(new NodeIDGenerator(), journey)
 
 describe('DSLSourceLocator', () => {
   describe('fromPath()', () => {

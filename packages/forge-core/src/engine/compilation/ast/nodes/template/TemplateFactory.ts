@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { ASTNode } from '../../../../contracts/ast/engine.type'
 import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
 import { isASTNode, isTemplateNode } from '../../../../contracts/ast/nodes'
-import { NodeIDCategory, NodeIDGenerator } from '../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../ast-state/NodeIDGenerator'
 import { ExpressionType } from '../../../../../authoring/types/enums'
 import { isObjectValue } from '../../../../../shared/typeguards/primitives'
 
@@ -12,6 +12,7 @@ import { isObjectValue } from '../../../../../shared/typeguards/primitives'
  * Templates preserve the shape of AST nodes but swap the type to TEMPLATE
  * so they're excluded from traversal, registration, and normalization.
  * The original type is stored in originalType for restoration on instantiation.
+ * Template IDs become stable generated runtime instance ID prefixes.
  *
  * Used by IterateFactory to compile iterator payloads once, then instantiate
  * them per collection item at runtime with fresh IDs.
@@ -52,7 +53,7 @@ export default class TemplateFactory {
     const compiled: TemplateNode = {
       type: ASTNodeType.TEMPLATE,
       originalType: node.type,
-      id: this.nodeIDGenerator.next(NodeIDCategory.TEMPLATE),
+      id: this.nodeIDGenerator.nextTemplateNodeId(),
       diagnostics: node.diagnostics,
     }
 

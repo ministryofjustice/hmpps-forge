@@ -2,14 +2,13 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType } from '../../../../../../authoring/types/enums'
 import { TieBreakerASTNode } from '../../../../../contracts/ast/expressions.type'
 import type { TieBreaker } from '../../../../../../authoring/types/structures.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 
 export default class TieBreakerFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   create(json: TieBreaker): TieBreakerASTNode {
@@ -22,7 +21,7 @@ export default class TieBreakerFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.TIE_BREAKER,
       properties,

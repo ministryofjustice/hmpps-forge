@@ -7,7 +7,7 @@ import type {
   ReferenceExpr,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { ASTNode } from '../../../../../contracts/ast/engine.type'
 import { ExpressionASTNode } from '../../../../../contracts/ast/expressions.type'
@@ -21,8 +21,8 @@ describe('RedirectOutcomeFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    redirectOutcomeFactory = new RedirectOutcomeFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    redirectOutcomeFactory = new RedirectOutcomeFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

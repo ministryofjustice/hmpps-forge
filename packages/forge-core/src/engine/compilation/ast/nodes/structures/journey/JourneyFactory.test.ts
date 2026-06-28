@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { StructureType } from '../../../../../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../../../components/types/structures.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { StepASTNode } from '../../../../../contracts/ast/structures.type'
 import { NodeFactory } from '../../NodeFactory'
 import JourneyFactory from './JourneyFactory'
@@ -14,8 +14,8 @@ describe('JourneyFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    journeyFactory = new JourneyFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    journeyFactory = new JourneyFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

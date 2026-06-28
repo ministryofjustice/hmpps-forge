@@ -6,7 +6,7 @@ import type {
   PredicateTestExpr,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
 import { TestPredicateASTNode } from '../../../../../contracts/ast/predicates.type'
@@ -19,8 +19,8 @@ describe('ConditionalFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    conditionalFactory = new ConditionalFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    conditionalFactory = new ConditionalFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

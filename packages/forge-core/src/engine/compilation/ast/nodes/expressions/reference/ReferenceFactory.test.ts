@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType } from '../../../../../../authoring/types/enums'
 import type { ReferenceExpr } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { ExpressionASTNode } from '../../../../../contracts/ast/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import ReferenceFactory from './ReferenceFactory'
@@ -13,8 +13,8 @@ describe('ReferenceFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    referenceFactory = new ReferenceFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    referenceFactory = new ReferenceFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

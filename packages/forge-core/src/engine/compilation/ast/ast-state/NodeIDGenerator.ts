@@ -1,38 +1,41 @@
-import { AstNodeId, NodeId, TemplateNodeId } from '../../../contracts/ast/engine.type'
+import { AstNodeId, TemplateNodeId } from '../../../contracts/ast/engine.type'
 
 /**
- * Separate ID namespaces make it obvious whether a node is part of the shared
- * compiled AST or a frozen iterator template.
+ * Separate ID namespaces keep shared AST IDs deterministic while template
+ * compilation creates stable runtime instance ID prefixes.
  */
-export enum NodeIDCategory {
-  COMPILE_AST = 'compile_ast',
-  TEMPLATE = 'template',
-}
+type NodeIDCounterName = 'compile_ast' | 'template'
 
 /**
  * Generates deterministic compile-time IDs for the shared AST and templates.
  */
 export class NodeIDGenerator {
-  private readonly counters = new Map<NodeIDCategory, number>([
-    [NodeIDCategory.COMPILE_AST, 0],
-    [NodeIDCategory.TEMPLATE, 0],
+  private readonly counters = new Map<NodeIDCounterName, number>([
+    ['compile_ast', 0],
+    ['template', 0],
   ])
 
   /**
-   * Each category advances independently so template creation cannot perturb the
-   * IDs used by registered AST nodes and runtime plans.
+   * AST IDs are used by registered AST nodes and runtime plans.
    */
-  next(category: NodeIDCategory.TEMPLATE): TemplateNodeId
+  nextAstNodeId(): AstNodeId {
+    return this.next('compile_ast') as AstNodeId
+  }
 
-  next(category: NodeIDCategory.COMPILE_AST): AstNodeId
+  /**
+   * Template IDs become the stable prefix for generated collection block IDs.
+   */
+  nextTemplateNodeId(): TemplateNodeId {
+    return this.next('template') as TemplateNodeId
+  }
 
-  next(category: NodeIDCategory): NodeId | TemplateNodeId {
-    const current = this.counters.get(category)!
+  private next(counterName: NodeIDCounterName): string {
+    const current = this.counters.get(counterName)!
     const next = current + 1
 
-    this.counters.set(category, next)
+    this.counters.set(counterName, next)
 
-    return `${category}:${next}`
+    return `${counterName}:${next}`
   }
 
   /**

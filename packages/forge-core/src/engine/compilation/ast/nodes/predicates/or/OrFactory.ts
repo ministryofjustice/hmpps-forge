@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { PredicateType } from '../../../../../../authoring/types/enums'
 import { PredicateOrExpr } from '../../../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { OrPredicateASTNode, PredicateASTNode } from '../../../../../contracts/ast/predicates.type'
 
@@ -15,7 +15,6 @@ export default class OrFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -32,7 +31,7 @@ export default class OrFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.OR,
       properties: {

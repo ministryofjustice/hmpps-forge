@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { BlockType } from '../../../../../../authoring/types/enums'
 import { BasicBlockASTNode, BlockASTNode, FieldBlockASTNode } from '../../../../../contracts/ast/structures.type'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import type { BlockDefinition, FieldBlockDefinition } from '../../../../../../components/types/structures.type'
 
@@ -17,7 +17,6 @@ export default class BlockFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -44,7 +43,7 @@ export default class BlockFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.BLOCK,
       variant,
       blockType: BlockType.BASIC,
@@ -76,7 +75,7 @@ export default class BlockFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.BLOCK,
       variant,
       blockType: BlockType.FIELD,
