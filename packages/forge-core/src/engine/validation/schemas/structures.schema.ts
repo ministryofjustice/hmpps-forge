@@ -1,5 +1,14 @@
 import { z } from 'zod'
-import { BlockType, StructureType, ExpressionType, HookType } from '../../../authoring/types/enums'
+import {
+  BlockType,
+  ExpressionType,
+  FunctionType,
+  HookType,
+  IteratorType,
+  OutcomeType,
+  PredicateType,
+  StructureType,
+} from '../../../authoring/types/enums'
 import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {
@@ -16,6 +25,45 @@ export const ViewConfigSchema = z.object({
   template: z.string().optional(),
   locals: z.record(z.string(), z.unknown()).optional(),
 })
+
+const staticDataDynamicMarkers = new Set<string>([
+  ...Object.values(ExpressionType),
+  ...Object.values(FunctionType),
+  ...Object.values(HookType),
+  ...Object.values(IteratorType),
+  ...Object.values(OutcomeType),
+  ...Object.values(PredicateType),
+])
+
+const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
+  z
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(StaticDataValueSchema),
+      z.record(z.string(), StaticDataValueSchema),
+    ])
+    .superRefine((value, ctx) => {
+      if (value === null || Array.isArray(value) || typeof value !== 'object') {
+        return
+      }
+
+      const type = (value as { type?: unknown }).type
+
+      if (typeof type !== 'string' || !staticDataDynamicMarkers.has(type)) {
+        return
+      }
+
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Forge expressions are not supported in static data',
+      })
+    }),
+)
+
+const StaticDataSchema = z.record(z.string(), StaticDataValueSchema)
 
 // TODO: Probably should add other resolvable schemas, such as ResolvableBoolean.
 /**
@@ -188,7 +236,7 @@ export const StepSchema = z.looseObject({
   reachability: StepReachabilitySchema,
   backlink: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
+  data: StaticDataSchema.optional(),
   validWhen: ValidWhenSchema.optional(),
 })
 
@@ -207,7 +255,7 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     description: z.string().optional(),
     view: ViewConfigSchema.optional(),
     metadata: z.record(z.string(), z.any()).optional(),
-    data: z.record(z.string(), z.unknown()).optional(),
+    data: StaticDataSchema.optional(),
     reachability: JourneyReachabilitySchema,
   }),
 )
