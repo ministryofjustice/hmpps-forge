@@ -11,7 +11,7 @@ import CompilationPipeline from './compilation/CompilationPipeline'
 import type {
   CompiledJourney,
   CompiledStep,
-  JourneyCompilationResult,
+  CompiledPackage,
 } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 
@@ -24,7 +24,7 @@ export interface PackageInstanceOptions<TDeps> {
 export default class PackageInstance {
   private readonly dependencies: PackageDependencies
 
-  private readonly compilation: JourneyCompilationResult
+  private readonly compilation: CompiledPackage
 
   private readonly rawConfiguration: JourneyDefinition
 

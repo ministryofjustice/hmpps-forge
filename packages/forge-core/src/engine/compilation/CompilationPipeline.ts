@@ -5,7 +5,7 @@ import type { NodeId } from '../contracts/ast/engine.type'
 import type {
   CompiledJourney,
   CompiledStep,
-  JourneyCompilationResult,
+  CompiledPackage,
 } from '../contracts/plans/compilationArtefacts.type'
 import type { CompilationPlan } from '../contracts/plans/compilationPlan.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
@@ -29,7 +29,7 @@ type AstContext = {
 export default class CompilationPipeline {
   constructor(private readonly dependencies: CompilationDependencies) {}
 
-  compile(journeyDef: JourneyDefinition): JourneyCompilationResult {
+  compile(journeyDef: JourneyDefinition): CompiledPackage {
     const ast = this.buildAstTree(journeyDef)
 
     this.validateSemantics(ast)

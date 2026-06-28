@@ -32,7 +32,7 @@ export interface CompiledJourney {
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
-export interface JourneyCompilationResult {
+export interface CompiledPackage {
   readonly journeyCode: string
   readonly stepRouteIndex: StepRouteIndex
   readonly journeyRouteIndex: JourneyRouteIndex
