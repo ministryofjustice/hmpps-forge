@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { HookType } from '../../../../../../authoring/types/enums'
 import { SubmitHookASTNode } from '../../../../../contracts/ast/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { SubmitHook } from '../../../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import type { ASTNode } from '../../../../../contracts/ast/ast.type'
@@ -21,7 +21,6 @@ export default class SubmitFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -55,7 +54,7 @@ export default class SubmitFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.HOOK,
       hookType: HookType.SUBMIT,
       properties,

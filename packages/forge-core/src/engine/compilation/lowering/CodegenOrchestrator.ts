@@ -1,7 +1,10 @@
 import type { NodeId } from '../../contracts/ast/engine.type'
 import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
 import type { NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
-import type { CompiledValidationFunction } from '../../contracts/compiled/compiledFunctions.type'
+import type {
+  CompiledStaticDataFunction,
+  CompiledValidationFunction,
+} from '../../contracts/compiled/compiledFunctions.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
 import type {
   CompilationPlan,
@@ -91,6 +94,7 @@ export default class CodegenOrchestrator {
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
         navigationPlan: inputs.navigationPlan,
+        compiledStaticData: this.compileStaticData(inputs.staticData),
         compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
         compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
         compiledStepValidations: new Map(),
@@ -136,6 +140,7 @@ export default class CodegenOrchestrator {
     return {
       runtimePlan: inputs.core.runtimePlan,
       navigationPlan,
+      compiledStaticData: this.compileStaticData(inputs.core.staticData),
       compiledAccessLifecycle,
       compiledSubmitHooks,
       compiledAnswerPreparation,
@@ -154,5 +159,9 @@ export default class CodegenOrchestrator {
     }
 
     return navigationInputs
+  }
+
+  private compileStaticData(staticData: Record<string, unknown>): CompiledStaticDataFunction {
+    return () => ({ ...staticData })
   }
 }

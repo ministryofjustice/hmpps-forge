@@ -5,7 +5,7 @@ import type { ASTNode } from '../../../../../contracts/ast/engine.type'
 import { ReferenceExpr } from '../../../../../../authoring/types/expressions.type'
 import { isExpression } from '../../../../../../authoring/typeguards/expressions'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 
 /**
@@ -22,7 +22,6 @@ export default class ReferenceFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -36,7 +35,7 @@ export default class ReferenceFactory {
     const referencePath = this.buildReferencePath(json.path, !!base)
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.REFERENCE,
       properties: { path: referencePath, base },

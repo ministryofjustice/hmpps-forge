@@ -1,5 +1,5 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import type { IterateExpr, PredicateTestExpr, ReferenceExpr } from '../../../../../../authoring/types/expressions.type'
 import {
@@ -22,8 +22,8 @@ describe('IterateFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    iterateFactory = new IterateFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    iterateFactory = new IterateFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

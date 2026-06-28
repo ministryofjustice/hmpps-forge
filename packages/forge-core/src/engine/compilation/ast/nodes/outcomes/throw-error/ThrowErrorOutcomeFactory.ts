@@ -3,7 +3,7 @@ import { OutcomeType } from '../../../../../../authoring/types/enums'
 import { ThrowErrorOutcomeASTNode } from '../../../../../contracts/ast/expressions.type'
 import type { ASTNode } from '../../../../../contracts/ast/engine.type'
 import { ThrowErrorOutcome } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 
 /**
@@ -16,7 +16,6 @@ export default class ThrowErrorOutcomeFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -34,7 +33,7 @@ export default class ThrowErrorOutcomeFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.OUTCOME,
       outcomeType: OutcomeType.THROW_ERROR,
       properties,

@@ -9,7 +9,33 @@ describe('RuntimePlanAnalyzer', () => {
   })
 
   describe('buildStepRuntimePlan()', () => {
-    it('should normalize the step path and merge static data from ancestors', () => {
+    it('should normalize the step path', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
+      const stepNode = ASTTestFactory.step().withPath('/step').build()
+
+      nodeRegistry.register(journeyNode.id, journeyNode)
+      nodeRegistry.register(stepNode.id, stepNode)
+      astNodeTree.addNode(journeyNode.id)
+      astNodeTree.addNode(stepNode.id, journeyNode.id)
+
+      const analyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
+
+      // Act
+      const result = analyzer.buildStepRuntimePlan(stepNode)
+
+      // Assert
+      expect(result).toEqual({
+        stepId: stepNode.id,
+        path: 'step',
+      })
+    })
+  })
+
+  describe('resolveStaticData()', () => {
+    it('should merge static data from ancestors', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
       const astNodeTree = new ASTNodeTree()
@@ -30,19 +56,14 @@ describe('RuntimePlanAnalyzer', () => {
       const analyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
 
       // Act
-      const result = analyzer.buildStepRuntimePlan(stepNode)
+      const result = analyzer.resolveStaticData(stepNode.id)
 
       // Assert
       expect(result).toEqual({
-        stepId: stepNode.id,
-        path: 'step',
-        staticData: {
-          shared: 'step',
-          journeyOnly: true,
-          stepOnly: true,
-        },
+        shared: 'step',
+        journeyOnly: true,
+        stepOnly: true,
       })
     })
   })
-
 })

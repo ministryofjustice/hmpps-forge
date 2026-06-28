@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType } from '../../../../../../authoring/types/enums'
 import { ConditionalExpr } from '../../../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { ConditionalASTNode } from '../../../../../contracts/ast/expressions.type'
 
@@ -16,7 +16,6 @@ export default class ConditionalFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -34,7 +33,7 @@ export default class ConditionalFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.CONDITIONAL,
       properties: {

@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../../../authoring/types/enums'
 import type { PredicateTestExpr, ResolvableValue } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
 import { ExpressionASTNode } from '../../../../../contracts/ast/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -14,8 +14,8 @@ describe('TestFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    testFactory = new TestFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    testFactory = new TestFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

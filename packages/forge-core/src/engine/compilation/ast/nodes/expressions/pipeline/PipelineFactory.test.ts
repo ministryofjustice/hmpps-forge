@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType, FunctionType } from '../../../../../../authoring/types/enums'
 import type { PipelineExpr, ReferenceExpr } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { FunctionASTNode } from '../../../../../contracts/ast/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import PipelineFactory from './PipelineFactory'
@@ -13,8 +13,8 @@ describe('PipelineFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    pipelineFactory = new PipelineFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    pipelineFactory = new PipelineFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType, PredicateType } from '../../../../../../authoring/types/enums'
 import { MatchExpr } from '../../../../../../authoring/types/expressions.type'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { MatchASTNode } from '../../../../../contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../../../contracts/ast/predicates.type'
@@ -21,7 +21,6 @@ export default class MatchFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   create(json: MatchExpr): MatchASTNode {
@@ -49,7 +48,7 @@ export default class MatchFactory {
     }))
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.MATCH,
       properties: {
@@ -63,7 +62,7 @@ export default class MatchFactory {
 
   private createBranchPredicate(json: MatchExpr, branchIndex: number): TestPredicateASTNode {
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.TEST,
       diagnostics: this.nodeFactory.createChildDiagnostics('branches', branchIndex, 'condition'),

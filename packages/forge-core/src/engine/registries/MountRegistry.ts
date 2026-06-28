@@ -9,6 +9,7 @@ import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
   CompiledResolveFunction,
+  CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
 import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
@@ -35,11 +36,11 @@ interface MountedNodeBase {
   readonly templatePath: string
   readonly basePath: string
   readonly title?: string
-  readonly staticData: Record<string, unknown>
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
   readonly navigationPlan: NavigationRuntimePlan
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
+  readonly compiledStaticData: CompiledStaticDataFunction
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined
   readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
@@ -138,11 +139,11 @@ export default class MountRegistry {
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
         title: stepRouteIndex.get(ctx.stepId)?.title,
-        staticData: runtimePlan.staticData,
         functionRegistry,
         componentRegistry,
         navigationPlan,
         routeTemplateCatalog: ctx.routeTemplateCatalog,
+        compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledStep.compiledAnswerPreparation,
         compiledStepValidations: compiledStep.compiledStepValidations,
@@ -184,11 +185,11 @@ export default class MountRegistry {
         templatePath,
         basePath: templatePath,
         title: journeyRouteIndex.get(journeyId)?.title,
-        staticData: runtimePlan.staticData,
         functionRegistry,
         componentRegistry,
         navigationPlan,
         routeTemplateCatalog,
+        compiledStaticData: compiledJourney.compiledStaticData,
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledJourney.compiledAnswerPreparation,
         compiledStepValidations: compiledJourney.compiledStepValidations,

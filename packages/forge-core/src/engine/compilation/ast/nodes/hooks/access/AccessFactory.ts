@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { HookType } from '../../../../../../authoring/types/enums'
 import { AccessHookASTNode } from '../../../../../contracts/ast/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { AccessHook } from '../../../../../../authoring/types/expressions.type'
 
@@ -17,7 +17,6 @@ export default class AccessFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -43,7 +42,7 @@ export default class AccessFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.HOOK,
       hookType: HookType.ACCESS,
       properties,

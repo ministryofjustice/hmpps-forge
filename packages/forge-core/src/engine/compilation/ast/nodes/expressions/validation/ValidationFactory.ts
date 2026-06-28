@@ -3,7 +3,7 @@ import { ExpressionType } from '../../../../../../authoring/types/enums'
 import { ValidationASTNode } from '../../../../../contracts/ast/expressions.type'
 import type { ASTNode } from '../../../../../contracts/ast/engine.type'
 import type { ValidationExpr } from '../../../../../../authoring/types/structures.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 
 /**
@@ -16,7 +16,6 @@ export default class ValidationFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -45,7 +44,7 @@ export default class ValidationFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.VALIDATION,
       properties,

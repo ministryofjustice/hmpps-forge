@@ -15,7 +15,7 @@ import type {
   HookOutcome,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { BlockASTNode } from '../../../../../contracts/ast/structures.type'
 import { NodeFactory } from '../../NodeFactory'
 import StepFactory from './StepFactory'
@@ -27,8 +27,8 @@ describe('StepFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    stepFactory = new StepFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    stepFactory = new StepFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

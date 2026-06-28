@@ -6,7 +6,7 @@ import {
   PredicateType,
   HookType,
 } from '../../../../../../authoring/types/enums'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { RedirectOutcome, SubmitHook, ResolvableValue } from '../../../../../../authoring/types/expressions.type'
 import { NodeFactory } from '../../NodeFactory'
 import SubmitFactory from './SubmitFactory'
@@ -18,8 +18,8 @@ describe('SubmitFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    submitFactory = new SubmitFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    submitFactory = new SubmitFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

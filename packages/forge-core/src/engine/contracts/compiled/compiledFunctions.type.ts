@@ -9,6 +9,8 @@ import { NodeId } from '../ast/ast.type'
 import { BlockType } from '../../../authoring/types/enums'
 import type { ReachabilityEvaluationInput } from '../navigation/generatedReachabilityEvaluation.type'
 
+export type CompiledStaticDataFunction = () => Record<string, unknown>
+
 export type CompiledValidationFunction = (
   ctx: CompiledValidationContext,
   isSubmission: boolean,

@@ -59,6 +59,82 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate static data with ordinary nested type fields', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        data: {
+          service: {
+            type: 'static-service',
+            enabled: true,
+          },
+        },
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            data: {
+              values: [{ type: 'static-value', label: 'Allowed' }],
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject Forge expressions in nested static data', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            data: {
+              values: [
+                {
+                  label: 'Disallowed',
+                  value: {
+                    type: ExpressionType.REFERENCE,
+                    path: ['request', 'user'],
+                  },
+                },
+              ],
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateSchema(invalidJourney)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const dataError = error.errors.find(
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'steps.0.data.values.0.value',
+          )
+
+          expect(dataError).toBeInstanceOf(ForgeConfigurationSchemaError)
+          expect(dataError?.message).toContain('Forge expressions are not supported in static data')
+        }
+      }
+    })
+
     it('should reject invalid journey unreachable redirect targets', () => {
       // Arrange
       const invalidJourney = {

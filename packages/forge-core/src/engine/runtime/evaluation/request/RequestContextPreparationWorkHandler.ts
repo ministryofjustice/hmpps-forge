@@ -19,8 +19,9 @@ export const REQUEST_CONTEXT_PREPARATION_WORK_HANDLER: WorkHandler<
   begin(ctx: WorkContextContract<RequestExecutionContext, RequestContextPreparationWorkProps>) {
     const context = ctx.request.context
     const snapshot = ctx.props.snapshot
+    const staticData = ctx.props.compiledStaticData()
 
-    Object.assign(context.domain.data, ctx.props.staticData)
+    Object.assign(context.domain.data, staticData)
 
     context.request = {
       url: snapshot.location.href,

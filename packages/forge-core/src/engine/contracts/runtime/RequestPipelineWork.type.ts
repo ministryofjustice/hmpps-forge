@@ -6,6 +6,7 @@ import type {
   CompiledEntryValidationFunction,
   CompiledNavigationFunction,
   CompiledResolveFunction,
+  CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
@@ -64,6 +65,6 @@ export interface RequestRenderWorkProps {
 }
 
 export interface RequestContextPreparationWorkProps {
-  readonly staticData: Record<string, unknown>
+  readonly compiledStaticData: CompiledStaticDataFunction
   readonly snapshot: RequestSnapshot
 }

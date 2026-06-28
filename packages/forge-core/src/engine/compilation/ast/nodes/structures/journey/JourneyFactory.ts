@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { JourneyASTNode, JourneyReachabilityAST } from '../../../../../contracts/ast/structures.type'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import type { JourneyDefinition } from '../../../../../../authoring/types/structures.type'
 import { isExpression } from '../../../../../../authoring/typeguards/expressions'
@@ -15,7 +15,6 @@ export default class JourneyFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -110,7 +109,7 @@ export default class JourneyFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.JOURNEY,
       properties,
     }

@@ -6,7 +6,7 @@ import {
   PredicateType,
   HookType,
 } from '../../../../../../authoring/types/enums'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import {
   AccessHookASTNode,
   FunctionASTNode,
@@ -32,8 +32,8 @@ describe('AccessFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    accessFactory = new AccessFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    accessFactory = new AccessFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

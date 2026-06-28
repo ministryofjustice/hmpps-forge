@@ -3,7 +3,7 @@ import { ExpressionType } from '../../../../../../authoring/types/enums'
 import { PipelineASTNode } from '../../../../../contracts/ast/expressions.type'
 import type { ASTNode } from '../../../../../contracts/ast/engine.type'
 import { PipelineExpr } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 
 /**
@@ -16,7 +16,6 @@ export default class PipelineFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {}
 
   /**
@@ -30,7 +29,7 @@ export default class PipelineFactory {
     const steps = json.steps.map((arg: unknown, index) => this.nodeFactory.transformChild<ASTNode>(arg, 'steps', index))
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.PIPELINE,
       properties: {

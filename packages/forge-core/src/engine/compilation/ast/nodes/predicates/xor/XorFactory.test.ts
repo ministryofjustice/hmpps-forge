@@ -5,7 +5,7 @@ import type {
   PredicateXorExpr,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
 import { PredicateASTNode } from '../../../../../contracts/ast/predicates.type'
@@ -18,8 +18,8 @@ describe('XorFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    xorFactory = new XorFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    xorFactory = new XorFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {
