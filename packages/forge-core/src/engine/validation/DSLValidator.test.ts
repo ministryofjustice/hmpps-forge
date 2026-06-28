@@ -89,6 +89,43 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate dynamic route metadata schema', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: { type: ExpressionType.REFERENCE, path: ['data', 'journeyTitle'] },
+        description: { type: ExpressionType.REFERENCE, path: ['data', 'journeyDescription'] },
+        metadata: {
+          hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideJourney'] },
+          navGroup: {
+            type: FunctionType.GENERATOR,
+            name: 'Format',
+            arguments: ['Group %1', { type: ExpressionType.REFERENCE, path: ['params', 'groupId'] }],
+          },
+        },
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: { type: ExpressionType.REFERENCE, path: ['data', 'stepTitle'] },
+            description: { type: ExpressionType.REFERENCE, path: ['data', 'stepDescription'] },
+            metadata: {
+              hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideStep'] },
+              navigation: {
+                label: { type: ExpressionType.REFERENCE, path: ['data', 'stepNavLabel'] },
+              },
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
     it('should reject Forge expressions in nested static data', () => {
       // Arrange
       const invalidJourney = {
