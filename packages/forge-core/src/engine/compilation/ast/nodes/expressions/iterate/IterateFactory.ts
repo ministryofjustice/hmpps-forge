@@ -8,7 +8,7 @@ import {
   isFilterIteratorConfig,
   isFindIteratorConfig,
 } from '../../../../../../authoring/typeguards/expressions'
-import { NodeIDGenerator, NodeIDCategory } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { TemplateValue } from '../../../../../contracts/ast/template.type'
 import TemplateFactory from '../../template/TemplateFactory'
@@ -27,7 +27,6 @@ export default class IterateFactory {
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
     private readonly nodeFactory: NodeFactory,
-    private readonly category: NodeIDCategory.COMPILE_AST,
   ) {
     this.templateFactory = new TemplateFactory(nodeIDGenerator)
   }
@@ -75,7 +74,7 @@ export default class IterateFactory {
     }
 
     return {
-      id: this.nodeIDGenerator.next(this.category),
+      id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.ITERATE,
       properties,

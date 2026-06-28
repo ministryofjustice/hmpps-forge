@@ -9,7 +9,7 @@ import {
 import type { ValidationExpr } from '../../../../../../authoring/types/structures.type'
 import type { BlockDefinition, FieldBlockDefinition } from '../../../../../../components/types/structures.type'
 import type { PredicateTestExpr, ResolvableValue } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { BlockASTNode } from '../../../../../contracts/ast/structures.type'
 import { NodeFactory } from '../../NodeFactory'
 import BlockFactory from './BlockFactory'
@@ -21,8 +21,8 @@ describe('BlockFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    blockFactory = new BlockFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    blockFactory = new BlockFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create() - basic blocks', () => {

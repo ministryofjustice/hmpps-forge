@@ -24,7 +24,7 @@ import { isAccessHook, isSubmitHook } from '../../../../authoring/typeguards/hoo
 import UnknownNodeTypeError from '../../../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
-import { NodeIDGenerator, NodeIDCategory } from '../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import DSLSourceLocator from '../../../diagnostics/DSLSourceLocator'
 import type { ASTNodeDiagnostics, DSLPathSegment } from '../../../diagnostics/sourceLocation.type'
 import JourneyFactory from './structures/journey/JourneyFactory'
@@ -101,33 +101,32 @@ export class NodeFactory {
 
   constructor(
     private readonly nodeIDGenerator: NodeIDGenerator,
-    private readonly category: NodeIDCategory.COMPILE_AST,
     sourceRoot?: unknown,
   ) {
     if (sourceRoot !== undefined) {
       this.sourceLocator = new DSLSourceLocator(sourceRoot)
     }
 
-    this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this, this.category)
-    this.stepFactory = new StepFactory(this.nodeIDGenerator, this, this.category)
-    this.blockFactory = new BlockFactory(this.nodeIDGenerator, this, this.category)
-    this.accessFactory = new AccessFactory(this.nodeIDGenerator, this, this.category)
-    this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this, this.category)
-    this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this, this.category)
-    this.matchFactory = new MatchFactory(this.nodeIDGenerator, this, this.category)
-    this.testFactory = new TestFactory(this.nodeIDGenerator, this, this.category)
-    this.notFactory = new NotFactory(this.nodeIDGenerator, this, this.category)
-    this.andFactory = new AndFactory(this.nodeIDGenerator, this, this.category)
-    this.orFactory = new OrFactory(this.nodeIDGenerator, this, this.category)
-    this.xorFactory = new XorFactory(this.nodeIDGenerator, this, this.category)
-    this.referenceFactory = new ReferenceFactory(this.nodeIDGenerator, this, this.category)
-    this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this, this.category)
-    this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this, this.category)
-    this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this, this.category)
-    this.tieBreakerFactory = new TieBreakerFactory(this.nodeIDGenerator, this, this.category)
-    this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this, this.category)
-    this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this, this.category)
-    this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this, this.category)
+    this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this)
+    this.stepFactory = new StepFactory(this.nodeIDGenerator, this)
+    this.blockFactory = new BlockFactory(this.nodeIDGenerator, this)
+    this.accessFactory = new AccessFactory(this.nodeIDGenerator, this)
+    this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this)
+    this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this)
+    this.matchFactory = new MatchFactory(this.nodeIDGenerator, this)
+    this.testFactory = new TestFactory(this.nodeIDGenerator, this)
+    this.notFactory = new NotFactory(this.nodeIDGenerator, this)
+    this.andFactory = new AndFactory(this.nodeIDGenerator, this)
+    this.orFactory = new OrFactory(this.nodeIDGenerator, this)
+    this.xorFactory = new XorFactory(this.nodeIDGenerator, this)
+    this.referenceFactory = new ReferenceFactory(this.nodeIDGenerator, this)
+    this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this)
+    this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this)
+    this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this)
+    this.tieBreakerFactory = new TieBreakerFactory(this.nodeIDGenerator, this)
+    this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this)
+    this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this)
+    this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this)
   }
 
   /**

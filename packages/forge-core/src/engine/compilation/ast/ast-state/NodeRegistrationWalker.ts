@@ -1,5 +1,5 @@
 import { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
-import { NodeIDCategory, NodeIDGenerator } from './NodeIDGenerator'
+import { NodeIDGenerator } from './NodeIDGenerator'
 import ASTNodeIndex from './ASTNodeIndex'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
@@ -20,7 +20,6 @@ import ASTNodeTree from './ASTNodeTree'
 export default class NodeRegistrationWalker {
   constructor(
     private readonly nodeIdGenerator: NodeIDGenerator,
-    private readonly idCategory: NodeIDCategory.COMPILE_AST,
     private readonly nodeRegistry: ASTNodeIndex,
     private readonly astNodeTree: ASTNodeTree,
   ) {}
@@ -63,7 +62,7 @@ export default class NodeRegistrationWalker {
     // Cloned @self expressions can arrive without IDs, but every registered AST
     // node needs a stable compile ID for runtime plans and source generation.
     if (!node.id) {
-      ;(node as { id: string }).id = this.nodeIdGenerator.next(this.idCategory)
+      ;(node as { id: string }).id = this.nodeIdGenerator.nextAstNodeId()
     }
 
     const isField = isFieldBlockStructNode(node)
@@ -160,7 +159,7 @@ export default class NodeRegistrationWalker {
     }
 
     if (isASTNode(value) && !value.id) {
-      ;(value as { id: string }).id = this.nodeIdGenerator.next(this.idCategory)
+      ;(value as { id: string }).id = this.nodeIdGenerator.nextAstNodeId()
     }
 
     Object.values(value as Record<string, unknown>).forEach(v => this.assignIdsRecursive(v))

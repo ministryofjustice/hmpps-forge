@@ -7,7 +7,7 @@ import type {
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
 import type { ValidationExpr } from '../../../../../../authoring/types/structures.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import ValidationFactory from './ValidationFactory'
 
@@ -18,8 +18,8 @@ describe('ValidationFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    validationFactory = new ValidationFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    validationFactory = new ValidationFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

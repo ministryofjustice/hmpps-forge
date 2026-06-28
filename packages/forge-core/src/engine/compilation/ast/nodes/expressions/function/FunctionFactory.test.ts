@@ -7,7 +7,7 @@ import type {
   TransformerFunctionExpr,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { NodeIDCategory, NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import FunctionFactory from './FunctionFactory'
 
@@ -18,8 +18,8 @@ describe('FunctionFactory', () => {
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
-    nodeFactory = new NodeFactory(nodeIDGenerator, NodeIDCategory.COMPILE_AST)
-    functionFactory = new FunctionFactory(nodeIDGenerator, nodeFactory, NodeIDCategory.COMPILE_AST)
+    nodeFactory = new NodeFactory(nodeIDGenerator)
+    functionFactory = new FunctionFactory(nodeIDGenerator, nodeFactory)
   })
 
   describe('create()', () => {

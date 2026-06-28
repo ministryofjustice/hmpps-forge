@@ -10,7 +10,7 @@ import type {
 import type { CompilationPlan } from '../contracts/plans/compilationPlan.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
 import type { CompilationDependencies } from './lowering/compilationDependencies.type'
-import { NodeIDCategory, NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
+import { NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from './ast/nodes/NodeFactory'
 import ASTNodeIndex from './ast/ast-state/ASTNodeIndex'
 import ASTNodeTree from './ast/ast-state/ASTNodeTree'
@@ -47,13 +47,13 @@ export default class CompilationPipeline {
 
   private buildAstTree(journeyDef: JourneyDefinition): AstContext {
     const nodeIdGenerator = new NodeIDGenerator()
-    const nodeFactory = new NodeFactory(nodeIdGenerator, NodeIDCategory.COMPILE_AST, journeyDef)
+    const nodeFactory = new NodeFactory(nodeIdGenerator, journeyDef)
     const nodeRegistry = new ASTNodeIndex()
     const astNodeTree = new ASTNodeTree()
 
     const rootNode = nodeFactory.createNode(journeyDef) as JourneyASTNode
 
-    const walker = new NodeRegistrationWalker(nodeIdGenerator, NodeIDCategory.COMPILE_AST, nodeRegistry, astNodeTree)
+    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeRegistry, astNodeTree)
 
     walker.register(rootNode)
 
