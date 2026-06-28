@@ -6,7 +6,6 @@ import type { UnreachableRedirectTarget } from '../../../authoring/types/structu
 export interface StepRuntimePlan {
   stepId: NodeId
   path: string
-  staticData: Record<string, unknown>
 }
 
 export interface NavigationRuntimePlan {
@@ -66,5 +65,4 @@ export interface ForwardOutcomeGroup {
 export interface JourneyRuntimePlan {
   journeyId: NodeId
   path: string
-  staticData: Record<string, unknown>
 }

@@ -98,6 +98,7 @@ export default class CompilationPlanBuilder {
       core: {
         stepNode,
         runtimePlan: this.runtimePlanAnalyzer.buildStepRuntimePlan(stepNode),
+        staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode.id),
         navigationId,
       },
       answerPreparation: this.answerPreparationInputAnalyzer.buildInputs(stepNode),
@@ -115,6 +116,7 @@ export default class CompilationPlanBuilder {
 
     return {
       runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(journeyNode),
+      staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode.id),
       navigationPlan,
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
       accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode.id),

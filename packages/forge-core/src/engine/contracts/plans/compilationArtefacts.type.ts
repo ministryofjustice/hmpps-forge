@@ -6,12 +6,14 @@ import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
   CompiledResolveFunction,
+  CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   navigationPlan: NavigationRuntimePlan
+  compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
@@ -24,6 +26,7 @@ export interface CompiledStep {
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
   navigationPlan: NavigationRuntimePlan
+  compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>

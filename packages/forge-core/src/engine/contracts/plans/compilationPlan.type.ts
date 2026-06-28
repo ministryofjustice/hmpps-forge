@@ -16,6 +16,7 @@ export interface ReachabilityTieBreakerEntry {
 export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
+  readonly staticData: Record<string, unknown>
   readonly navigationId: NodeId
 }
 
@@ -51,6 +52,7 @@ export interface StepCompilationInputs {
 
 export interface JourneyCompilationInputs {
   readonly runtimePlan: JourneyRuntimePlan
+  readonly staticData: Record<string, unknown>
   readonly navigationPlan: NavigationRuntimePlan
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]

@@ -58,7 +58,7 @@ export default class RequestPipelineBootstrap {
     const { method, node, snapshot } = this.config
 
     const contextPreparation = WorkTaskFactory.contextPreparation({
-      staticData: node.staticData,
+      compiledStaticData: node.compiledStaticData,
       snapshot,
     })
 

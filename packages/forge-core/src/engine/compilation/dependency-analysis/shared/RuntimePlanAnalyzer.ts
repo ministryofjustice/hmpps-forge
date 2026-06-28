@@ -17,7 +17,6 @@ export default class RuntimePlanAnalyzer {
     return {
       stepId: stepNode.id,
       path: normalizeRelativePath(stepNode.properties.path),
-      staticData: this.resolveStaticData(stepNode.id),
     }
   }
 
@@ -25,7 +24,6 @@ export default class RuntimePlanAnalyzer {
     return {
       journeyId: journeyNode.id,
       path: normalizeRelativePath(journeyNode.properties.path),
-      staticData: this.resolveStaticData(journeyNode.id),
     }
   }
 

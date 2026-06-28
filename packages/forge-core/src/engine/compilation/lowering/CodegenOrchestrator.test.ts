@@ -46,8 +46,8 @@ describe('CodegenOrchestrator', () => {
           runtimePlan: {
             stepId: stepNode.id,
             path: 'first',
-            staticData: {},
           },
+          staticData: { shared: 'step' },
           navigationId: journeyNode.id,
         },
         answerPreparation: {
@@ -78,8 +78,8 @@ describe('CodegenOrchestrator', () => {
               runtimePlan: {
                 journeyId: journeyNode.id,
                 path: 'journey',
-                staticData: {},
               },
+              staticData: { shared: 'journey' },
               navigationPlan,
               stepFieldBlocks: [],
               stepMapIterateNodes: [],
@@ -111,6 +111,8 @@ describe('CodegenOrchestrator', () => {
       expect(result.steps.get(stepNode.id)?.navigationPlan).toBe(navigationPlan)
       expect(result.journeys.get(journeyNode.id)?.navigationPlan).toBe(navigationPlan)
       expect(navigationPlan.compiledNavigation).toEqual(expect.any(Function))
+      expect(result.steps.get(stepNode.id)?.compiledStaticData()).toEqual({ shared: 'step' })
+      expect(result.journeys.get(journeyNode.id)?.compiledStaticData()).toEqual({ shared: 'journey' })
     })
   })
 })
