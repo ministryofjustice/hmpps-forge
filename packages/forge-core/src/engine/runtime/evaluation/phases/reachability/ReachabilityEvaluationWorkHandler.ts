@@ -1,7 +1,6 @@
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
 import type { ReachabilityEvaluationResult } from '../../../../contracts/navigation/generatedReachabilityEvaluation.type'
-import { finalizeReachabilityEvaluation } from './evaluateGeneratedNavigation'
-import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
+import { evaluateReachabilityState } from './evaluateReachabilityState'
 import type {
   WorkContextContract,
   WorkHandler,
@@ -45,22 +44,7 @@ export const REACHABILITY_EVALUATION_WORK_HANDLER: WorkHandler<
   complete(
     ctx: WorkContextContract<RequestExecutionContext, ReachabilityEvaluationWorkProps>,
   ): ReachabilityEvaluationResult {
-    const builder = new ReachabilityGraphBuilder()
-    const steps = builder.buildReachableSteps(
-      ctx.props.input.plan,
-      ctx.props.input.currentStepId,
-      ctx.props.input.routeTemplateCatalog,
-      ctx.props.compiledResult,
-      ctx.props.input.stepValidities ?? new Map(),
-    )
-    const defaultEntryRouteTemplatePath = builder.resolveDefaultEntryRouteTemplatePath()
-
-    return finalizeReachabilityEvaluation(
-      steps,
-      defaultEntryRouteTemplatePath,
-      ctx.props.input,
-      ctx.props.compiledResult,
-    )
+    return evaluateReachabilityState(ctx.props.input, ctx.props.compiledResult)
   },
 }
 
