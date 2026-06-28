@@ -21,8 +21,6 @@ export interface ForgeRoute {
 
   /** Steps accept GET (view) and POST (submit); journey roots accept GET (enter). */
   readonly methods: RouteMethod[]
-
-  readonly title?: string
 }
 
 /** The full set of routes a registered set of journeys exposes. */

@@ -35,7 +35,6 @@ interface MountedNodeBase {
   readonly path: string
   readonly templatePath: string
   readonly basePath: string
-  readonly title?: string
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
   readonly navigationPlan: NavigationRuntimePlan
@@ -110,7 +109,6 @@ export default class MountRegistry {
         templatePath: node.templatePath,
         basePath: node.basePath,
         methods: node.kind === 'step' ? ['GET', 'POST'] : ['GET'],
-        title: node.title,
       })
     })
 
@@ -138,7 +136,6 @@ export default class MountRegistry {
         path: runtimePlan.path,
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
-        title: stepRouteIndex.get(ctx.stepId)?.title,
         functionRegistry,
         componentRegistry,
         navigationPlan,
@@ -184,7 +181,6 @@ export default class MountRegistry {
         path: runtimePlan.path,
         templatePath,
         basePath: templatePath,
-        title: journeyRouteIndex.get(journeyId)?.title,
         functionRegistry,
         componentRegistry,
         navigationPlan,
