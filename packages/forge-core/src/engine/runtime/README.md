@@ -55,6 +55,7 @@ It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 `MountedNode` is created by `MountRegistry`.
 It carries compiled functions, registries, route data, and static data for either a step or a journey.
 Both step and journey nodes carry the reachability pair `compiledReachabilityFacts` and `compiledReachabilityState`; step nodes add step-only functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
+Both node kinds also carry `compiledStepValidations`, the journey-scoped index of validating step ids to step-specific validation functions.
 
 `RuntimeContext` is the mutable state for one request.
 It has three branches:
@@ -137,7 +138,7 @@ Runtime executes that work against one request.
 |---|---|---|
 | Access | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
 | Answer preparation | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
-| Step validities | `compiledStepValidations` | `request.validities` runs `validation.step` tasks |
+| Step validities | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks |
 | Reachability | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
 | Answer cleardown | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
 | Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |

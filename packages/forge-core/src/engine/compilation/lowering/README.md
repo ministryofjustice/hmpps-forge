@@ -58,9 +58,13 @@ under heavy-load - so Forge remains performant!
 - `steps`, a `Map<NodeId, CompiledStep>`.
 - `journeys`, a `Map<NodeId, CompiledJourney>`.
 
-`CompiledStep` contains the step runtime plan, the shared navigation plan, compiled lifecycle functions, compiled answer preparation, compiled validation, compiled entry validation, compiled resolve, and `compiledStepValidations`.
+`CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped compiled functions/indexes it needs at runtime.
+Step-owned functions include step access lifecycle, submit hooks, answer preparation, submit validation, entry validation, and resolve.
+Journey-scoped fields include reachability facts, reachability state, and `compiledStepValidations`.
 
-`CompiledJourney` contains the journey runtime plan, the shared navigation plan, compiled access lifecycle, compiled answer preparation, and `compiledStepValidations`.
+`CompiledJourney` contains the journey runtime plan and journey-owned compiled functions/indexes.
+Journey-owned functions include reachability facts, reachability state, static data, access lifecycle, and answer preparation.
+`compiledStepValidations` is a journey-scoped index of validating step ids to step-specific validation functions.
 
 Most compiled functions return a `WorkTask` or a promise of one.
 The task describes what should happen next: the handler kind, the task key, the props, and any child tasks.
@@ -134,28 +138,36 @@ The generated function builds the work description; it does not execute the answ
 ## Flow
 
 Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationPlan` and `ASTNodeIndex`.
-It compiles navigation first, then journeys, then steps, then links compiled validations back onto every compiled step and journey.
+It compiles package functions first, then loops over journeys.
+For each journey, it compiles journey functions and the journey validation index from plan inputs, then loops over that journey's steps and compiles step functions.
+The final step artifacts receive their step-owned functions plus the journey-scoped functions/indexes they need at runtime.
 
 ```mermaid
 flowchart TD
   compilationPlan["CompilationPlan"] --> orchestrator["CodegenOrchestrator.compileAll()"]
   nodeRegistry["ASTNodeIndex"] --> orchestrator
-  orchestrator --> navigation["compileReachability()"]
-  navigation --> reachabilityByJourney["Map<NodeId, compiled reachability fns>"]
-  reachabilityByJourney --> journeys["compileJourneys()"]
-  journeys --> compiledJourneys["Map<NodeId, CompiledJourney>"]
-  reachabilityByJourney --> steps["compileStep() for each StepCompilationInputs"]
-  steps --> phaseCompilers["Phase compilers"]
+  orchestrator --> packageFunctions["compilePackageFunctions()"]
+  packageFunctions --> journeyLoop["for each JourneyCompilationInputs"]
+  journeyLoop --> journeyFunctions["compileJourneyFunctions()"]
+  journeyFunctions --> validationIndex["compileJourneyValidationIndex()"]
+  journeyFunctions --> compiledJourney["CompiledJourney"]
+  validationIndex --> compiledJourney
+  journeyLoop --> stepLoop["for each step in journey state table"]
+  stepLoop --> stepFunctions["compileStepFunctions()"]
+  stepFunctions --> compiledStep["CompiledStep"]
+  journeyFunctions --> compiledStep
+  validationIndex --> compiledStep
+  journeyFunctions --> phaseCompilers["Phase compilers"]
+  stepFunctions --> phaseCompilers
   phaseCompilers --> source["Generated JavaScript source"]
   source --> generatedFunction["compileGeneratedFunction()"]
-  generatedFunction --> compiledSteps["Map<NodeId, CompiledStep>"]
-  compiledSteps --> validations["resolveStepValidations()"]
-  compiledJourneys --> validations
-  validations --> result["Compiled steps and journeys"]
+  compiledJourney --> result["Compiled steps and journeys"]
+  compiledStep --> result
 ```
 
 - [CodegenOrchestrator.ts](CodegenOrchestrator.ts) owns compile order.
-  Navigation is compiled first because `compileStep()` and `compileJourneys()` share the same `ReachabilityStateTable`.
+  The order follows ownership: package scope, journey scope, then step scope.
+  Child scopes may receive parent-scoped compiled functions at assembly time, but parent scopes do not depend on compiled child artifacts.
 - [phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts](phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts) compiles GET and POST answer preparation.
 - [phase-compilers/hooks/HookLifecycleCompiler.ts](phase-compilers/hooks/HookLifecycleCompiler.ts) compiles access lifecycles and submit hook lifecycles.
 - [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation functions.
@@ -202,10 +214,11 @@ flowchart TD
   `ExpressionDispatcher.usesAwait` flips when a registered async function is compiled, and `compileGeneratedFunction()` chooses `AsyncFunction`.
 - Hook lifecycles force async.
   Effects are awaited even when the current hook list does not visibly contain an async function.
-- Navigation compiles before steps and journeys.
-  The compiled navigation function is attached to a shared `ReachabilityStateTable` object that compiled steps and journeys also carry.
-- `compiledStepValidations` is resolved after every step is compiled.
-  A navigation plan can reference a step that appears later in the compile pass.
+- Journey reachability is compiled at journey scope.
+  The compiled reachability state function closes over that journey's `ReachabilityStateTable`, and compiled step artifacts receive the journey-scoped reachability functions during assembly.
+- `compiledStepValidations` is compiled at journey scope.
+  Each entry is keyed by a validating step id and points at a validation function compiled from that step's validation inputs.
+  Non-validating steps are intentionally absent from the index, even though each final step artifact has a no-op-capable `compiledValidation` function.
 - Direct function expressions are not wrapped twice for diagnostics.
   `ExpressionDispatcher` lets `_forgeHelpers.evaluateFunction()` carry function metadata instead of adding an outer `evaluateTracked()` wrapper.
 - `CodeEmitter` tracks lexical and function-scoped names differently.
@@ -224,7 +237,8 @@ flowchart TD
 - Preserve generated diagnostics.
   Runtime errors need node IDs, function names, function types, and DSL source paths to be useful.
 - Preserve phase ordering in `CodegenOrchestrator.compileAll()`.
-  Navigation must be attached before compiled steps and journeys reuse the navigation plan.
+  Keep parent scopes before child scopes: package, journey, then step.
+  Do not make journey compilation depend on compiled step artifacts.
 - Do not import runtime implementation details into lowering.
   Lowering should emit calls to work-task factories and helper interfaces, not execute runtime handlers directly.
 - Do not make generated functions call child work directly.
