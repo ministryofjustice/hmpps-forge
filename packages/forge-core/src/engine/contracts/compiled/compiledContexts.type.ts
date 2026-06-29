@@ -77,3 +77,10 @@ export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
  * the generated facts function, against this context.
  */
 export type CompiledReachabilityContext = CompiledBaseContext
+
+/**
+ * Context passed to the package-level compiled route-metadata function. Route
+ * metadata expressions (title/description/metadata) are evaluated once per
+ * request against the same base snapshot every other compiled function sees.
+ */
+export type CompiledRouteMetadataContext = CompiledBaseContext

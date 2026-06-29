@@ -2,6 +2,7 @@ import type {
   CompiledAnswerPreparationContext,
   CompiledReachabilityContext,
   CompiledResolveContext,
+  CompiledRouteMetadataContext,
   CompiledValidationContext,
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
@@ -14,6 +15,30 @@ import type {
 } from '../reachability/generatedReachabilityEvaluation.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
+
+export interface ResolvedRouteMetadataEntry {
+  title?: string
+  description?: string
+  metadata?: Record<string, unknown>
+}
+
+/**
+ * Per-request resolved route metadata, keyed by the node ID of the step or
+ * journey each entry describes. The package-level route-metadata function builds
+ * this in one pass; the resolve phase merges it onto the statically built route
+ * topology by node ID.
+ */
+export type ResolvedRouteMetadata = Record<NodeId, ResolvedRouteMetadataEntry>
+
+/**
+ * The package-level compiled function. Evaluates every step's and journey's
+ * authored title/description/metadata expressions and returns them keyed by node
+ * ID, ready to merge onto the route tree. Like CompiledStaticDataFunction it
+ * returns plain data rather than a work task.
+ */
+export type CompiledRouteMetadataFunction = (
+  ctx: CompiledRouteMetadataContext,
+) => ResolvedRouteMetadata | Promise<ResolvedRouteMetadata>
 
 export type CompiledValidationFunction = (
   ctx: CompiledValidationContext,
