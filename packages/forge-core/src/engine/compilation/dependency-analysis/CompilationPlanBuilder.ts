@@ -17,6 +17,7 @@ import AnswerPreparationInputAnalyzer from './answer-preparation/AnswerPreparati
 import HookInputAnalyzer from './hooks/HookInputAnalyzer'
 import ValidationInputAnalyzer from './validation/ValidationInputAnalyzer'
 import ResolveInputAnalyzer from './resolve/ResolveInputAnalyzer'
+import RouteMetadataInputAnalyzer from './route-metadata/RouteMetadataInputAnalyzer'
 
 type StepIndex = Map<NodeId, StepASTNode>
 type JourneyIndex = Map<NodeId, JourneyASTNode>
@@ -34,6 +35,8 @@ export default class CompilationPlanBuilder {
 
   private readonly resolveInputAnalyzer: ResolveInputAnalyzer
 
+  private readonly routeMetadataInputAnalyzer: RouteMetadataInputAnalyzer
+
   constructor(nodeRegistry: ASTNodeIndex, astNodeTree: ASTNodeTree) {
     const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
 
@@ -43,6 +46,7 @@ export default class CompilationPlanBuilder {
     this.hookInputAnalyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
     this.validationInputAnalyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
     this.resolveInputAnalyzer = new ResolveInputAnalyzer(nodeRegistry, astNodeTree, fieldInventoryAnalyzer)
+    this.routeMetadataInputAnalyzer = new RouteMetadataInputAnalyzer()
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
@@ -61,12 +65,6 @@ export default class CompilationPlanBuilder {
       }
 
       stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
-      routeMetadataInputs.set(stepNode.id, {
-        nodeId: stepNode.id,
-        title: stepNode.properties.title,
-        description: stepNode.properties.description,
-        metadata: stepNode.properties.metadata,
-      })
 
       const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
 
@@ -91,13 +89,17 @@ export default class CompilationPlanBuilder {
 
       if (journeyNode) {
         journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
-        routeMetadataInputs.set(journeyNode.id, {
-          nodeId: journeyNode.id,
-          title: journeyNode.properties.title,
-          description: journeyNode.properties.description,
-          metadata: journeyNode.properties.metadata,
-        })
       }
+    })
+
+    // Route metadata is a per-node concern, collected for every step and journey — including
+    // container journeys with no direct steps, which the reachability loop above never visits.
+    stepIndex.forEach(stepNode => {
+      routeMetadataInputs.set(stepNode.id, this.routeMetadataInputAnalyzer.buildInputs(stepNode))
+    })
+
+    journeyIndex.forEach(journeyNode => {
+      routeMetadataInputs.set(journeyNode.id, this.routeMetadataInputAnalyzer.buildInputs(journeyNode))
     })
 
     return {

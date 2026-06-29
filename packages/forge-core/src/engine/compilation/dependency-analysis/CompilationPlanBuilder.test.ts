@@ -58,5 +58,38 @@ describe('CompilationPlanBuilder', () => {
         },
       ])
     })
+
+    it('should collect route metadata for a container journey that has no direct steps', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
+      const stepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
+      const containerJourneyNode = ASTTestFactory.journey()
+        .withProperty('path', '/demos')
+        .withMetadata({ hiddenFromNav: true })
+        .build()
+
+      nodeRegistry.register(journeyNode.id, journeyNode)
+      nodeRegistry.register(stepNode.id, stepNode)
+      nodeRegistry.register(containerJourneyNode.id, containerJourneyNode)
+      astNodeTree.addNode(journeyNode.id)
+      astNodeTree.addNode(stepNode.id, journeyNode.id)
+      astNodeTree.addNode(containerJourneyNode.id, journeyNode.id)
+
+      const builder = new CompilationPlanBuilder(nodeRegistry, astNodeTree)
+
+      // Act
+      const result = builder.buildPlan(
+        new Map([[stepNode.id, stepNode]]),
+        new Map([
+          [journeyNode.id, journeyNode],
+          [containerJourneyNode.id, containerJourneyNode],
+        ]),
+      )
+
+      // Assert
+      expect(result.routeMetadataInputs.get(containerJourneyNode.id)?.metadata).toEqual({ hiddenFromNav: true })
+    })
   })
 })
