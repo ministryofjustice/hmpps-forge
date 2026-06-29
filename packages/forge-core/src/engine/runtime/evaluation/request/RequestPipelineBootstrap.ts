@@ -78,8 +78,8 @@ export default class RequestPipelineBootstrap {
 
     const reachability = WorkTaskFactory.requestReachability({
       mode: node.kind,
-      compiledNavigation: node.navigationPlan.compiledNavigation,
-      navigationPlan: node.navigationPlan,
+      compiledReachabilityFacts: node.compiledReachabilityFacts,
+      compiledReachabilityState: node.compiledReachabilityState,
       routeTemplateCatalog: node.routeTemplateCatalog,
       method,
     })
@@ -90,9 +90,7 @@ export default class RequestPipelineBootstrap {
 
     const stepNode = node as MountedStepNode
 
-    const answerCleardown = WorkTaskFactory.requestAnswerCleardown({
-      navigationPlan: node.navigationPlan,
-    })
+    const answerCleardown = WorkTaskFactory.requestAnswerCleardown({})
 
     const resolve = WorkTaskFactory.requestResolve({
       compiled: stepNode.compiledResolve,

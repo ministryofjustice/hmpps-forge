@@ -1,13 +1,17 @@
 import type {
   CompiledAnswerPreparationContext,
-  CompiledNavigationContext,
   CompiledReachabilityContext,
   CompiledResolveContext,
   CompiledValidationContext,
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
 import { BlockType } from '../../../authoring/types/enums'
-import type { ReachabilityEvaluationInput } from '../navigation/generatedReachabilityEvaluation.type'
+import type { StepFieldInventory } from '../plans/stepFieldInventory.type'
+import type {
+  ReachabilityEvaluationResult,
+  ReachabilityFactsInput,
+  ReachabilityStateInput,
+} from '../reachability/generatedReachabilityEvaluation.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
 
@@ -33,13 +37,6 @@ export interface CompiledValidationWorkTask {
 }
 
 export interface CompiledAnswerPreparationWorkTask {
-  readonly $$typeof: symbol
-  readonly key: string
-  readonly handler: unknown
-  readonly props: unknown
-}
-
-export interface CompiledNavigationWorkTask {
   readonly $$typeof: symbol
   readonly key: string
   readonly handler: unknown
@@ -90,13 +87,25 @@ export interface CompiledReachabilityResult {
   tieBreakerPriorities: (number | undefined)[]
   /** Whether the journey's resume condition evaluated to true */
   resumeActive: boolean
+  /** Per-step field inventory for projection (present only when request params were available) */
+  fieldInventory?: StepFieldInventory[]
 }
 
-export type CompiledReachabilityFunction = (
+/**
+ * Evaluates the journey's dynamic reachability expressions (entry predicates,
+ * forward outcomes, tie-breakers, resume condition) and, when request params are
+ * supplied, the per-step field inventory. The static graph walk that turns these
+ * facts into reachability state lives in `CompiledReachabilityStateFunction`.
+ */
+export type CompiledReachabilityFactsFunction = (
   ctx: CompiledReachabilityContext,
+  factsInput?: ReachabilityFactsInput,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
-export type CompiledNavigationFunction = (
-  ctx: CompiledNavigationContext,
-  navigation: ReachabilityEvaluationInput,
-) => CompiledNavigationWorkTask | Promise<CompiledNavigationWorkTask>
+/**
+ * Turns precomputed reachability facts and per-step validities into the full
+ * reachability evaluation (and, when field inventory and params are present, its
+ * consumer-facing projection). Lowering binds the static navigation plan into the
+ * closure, so the runtime calls it with request-time inputs only.
+ */
+export type CompiledReachabilityStateFunction = (input: ReachabilityStateInput) => ReachabilityEvaluationResult

@@ -5,7 +5,7 @@ import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../..
 import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'
 import type {
   ForwardOutcomeGroup,
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../../contracts/plans/runtimePlans.type'
@@ -16,15 +16,7 @@ import ComponentRegistry from '../../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler from './ReachabilityCompiler'
-import type {
-  CompiledNavigationContext,
-  CompiledReachabilityContext,
-} from '../../../../contracts/compiled/compiledContexts.type'
-import WorkContext from '../../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../../runtime/evaluation/work/workTask'
-import type { WorkTask } from '../../../../contracts/runtime/work.type'
-import { REACHABILITY_EVALUATION_WORK_HANDLER } from '../../../../runtime/evaluation/phases/reachability/ReachabilityEvaluationWorkHandler'
+import type { CompiledReachabilityContext } from '../../../../contracts/compiled/compiledContexts.type'
 import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createReference(path: string[]): ReferenceASTNode {
@@ -98,17 +90,17 @@ function createGroup(
 
 function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
   const entries = overrides.entries ?? []
-  const navigationPlan = overrides.navigationPlan ?? createNavigationPlan(entries)
+  const stateTable = overrides.stateTable ?? createStateTable(entries)
 
   return {
     entries,
     resumeAlways: false,
-    navigationPlan,
+    stateTable,
     ...overrides,
   }
 }
 
-function createNavigationPlan(entries: ReachabilityCompilationEntry[]): NavigationRuntimePlan {
+function createStateTable(entries: ReachabilityCompilationEntry[]): ReachabilityStateTable {
   return {
     entries: entries.map(entry => ({
       stepId: entry.stepId,
@@ -152,17 +144,6 @@ function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): Compil
   }
 }
 
-function createNavigationCtx(overrides: Partial<CompiledNavigationContext> = {}): CompiledNavigationContext {
-  return {
-    ...createCtx(overrides),
-    ...overrides,
-  }
-}
-
-function isNavigationTask(value: unknown): value is WorkTask<'reachability.evaluation'> {
-  return isWorkTask(value) && value.handler.kind === REACHABILITY_EVALUATION_WORK_HANDLER.kind
-}
-
 describe('ReachabilityCompiler', () => {
   let compiler: ReachabilityCompiler
   let registry: ASTNodeIndex
@@ -201,8 +182,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateSource(plan, registry)
-      const fn = localCompiler.compile(plan, registry)
+      const source = localCompiler.generateFactsSource(plan, [], registry)
+      const fn = localCompiler.compileFacts(plan, [], registry)
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -238,8 +219,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateSource(plan, registry)
-      const fn = localCompiler.compile(plan, registry)
+      const source = localCompiler.generateFactsSource(plan, [], registry)
+      const fn = localCompiler.compileFacts(plan, [], registry)
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -272,8 +253,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateSource(plan, registry)
-      const fn = localCompiler.compile(plan, registry)
+      const source = localCompiler.generateFactsSource(plan, [], registry)
+      const fn = localCompiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -288,7 +269,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
 
       // Assert
       expect(fn).toBeDefined()
@@ -316,7 +297,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { isAdmin: true } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -339,7 +320,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { isAdmin: false } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -359,7 +340,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -384,7 +365,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -408,7 +389,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -428,7 +409,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -455,7 +436,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -482,7 +463,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -513,7 +494,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -552,7 +533,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -576,7 +557,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -613,7 +594,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { route: { current: 'a' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -648,7 +629,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { a: { current: 'no' }, b: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -668,7 +649,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -695,7 +676,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'high' } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -722,7 +703,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'low' } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -736,7 +717,7 @@ describe('ReachabilityCompiler', () => {
       const plan = createPlan({ resumeAlways: true })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(createCtx())
 
       // Assert
@@ -757,7 +738,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { hasProgress: true } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -778,7 +759,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { hasProgress: false } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert
@@ -808,7 +789,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
 
       // Assert
       await expect(fn!(ctx)).rejects.toThrow('boom')
@@ -848,7 +829,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource(plan, registry)
+      const source = compiler.generateFactsSource(plan, [], registry)
 
       // Assert
       expect(source).toContain('"use strict"')
@@ -858,46 +839,6 @@ describe('ReachabilityCompiler', () => {
       expect(source).toContain('"equals"')
       expect(source).toContain('"/step-2"')
       expect(source).toContain('return {')
-    })
-  })
-
-  describe('compileNavigation()', () => {
-    it('should evaluate navigation through generated function helpers', async () => {
-      // Arrange
-      const entry = createEntry({ isEntryPoint: true })
-      const plan = createPlan({ entries: [entry] })
-      const functionRegistry = new FunctionRegistry()
-      const routeTemplatePath = '/journey/start'
-      const routeTemplateCatalog = {
-        routeTemplatePathByStepId: new Map([[entry.stepId, routeTemplatePath]]),
-        stepIdByRouteTemplatePath: new Map([[routeTemplatePath, entry.stepId]]),
-      }
-
-      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-
-      // Act
-      const source = localCompiler.generateNavigationSource(plan, [], registry)
-      const fn = localCompiler.compileNavigation(plan, [], registry)
-      const ctx = createNavigationCtx({ conditions: functionRegistry })
-      const task = await fn(ctx, {
-        plan: plan.navigationPlan,
-        currentStepId: entry.stepId,
-        routeTemplateCatalog,
-      })
-
-      if (!isNavigationTask(task)) {
-        throw new Error('Expected navigation task')
-      }
-
-      const result = (await new WorkExecutor().execute(task, new WorkContext(ctx))).output
-
-      // Assert
-      expect(source).toContain('ctx.workTasks.reachabilityEvaluation')
-      expect(source).not.toContain('_forgeHelpers.workBrand')
-      expect(task.handler).toBe(REACHABILITY_EVALUATION_WORK_HANDLER)
-      expect(result.evaluation.currentStepId).toBe(entry.stepId)
-      expect(result.evaluation.defaultEntryRouteTemplatePath).toBe(routeTemplatePath)
-      expect(result.evaluation.steps[0].isReachable).toBe(true)
     })
   })
 
@@ -933,7 +874,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { skipIntro: true } })
 
       // Act
-      const fn = compiler.compile(plan, registry)
+      const fn = compiler.compileFacts(plan, [], registry)
       const result = await fn!(ctx)
 
       // Assert

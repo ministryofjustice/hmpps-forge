@@ -2,7 +2,7 @@ import type { ResponseBindings } from '../../../../framework/types/responseBindi
 import type {
   CompiledAnswerPreparationContext,
   CompiledBaseContext,
-  CompiledNavigationContext,
+  CompiledReachabilityContext,
   CompiledResolveContext,
   CompiledValidationContext,
 } from '../../../contracts/compiled/compiledContexts.type'
@@ -68,10 +68,10 @@ export function buildCompiledValidationContext(
   }
 }
 
-export function buildCompiledNavigationContext(
+export function buildCompiledReachabilityContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
-): CompiledNavigationContext {
+): CompiledReachabilityContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
   }

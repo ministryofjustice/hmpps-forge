@@ -185,6 +185,18 @@ describe('HookLifecycleCompiler', () => {
   })
 
   describe('access lifecycle', () => {
+    it('should return continue when no access hooks are configured', async () => {
+      // Arrange
+      const fn = compiler.compileAccessLifecycle([])
+      const ctx = createContext(functionRegistry)
+
+      // Act
+      const result = await executeCompiledAccessLifecycle(fn, ctx)
+
+      // Assert
+      expect(result).toEqual({ executed: true, outcome: 'continue' })
+    })
+
     it('should execute access effects and return continue when no outcome matches', async () => {
       // Arrange
       const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
@@ -308,6 +320,18 @@ describe('HookLifecycleCompiler', () => {
   })
 
   describe('submit hooks', () => {
+    it('should return continue when no submit hooks are configured', async () => {
+      // Arrange
+      const fn = compiler.compileSubmitHooks([])
+      const ctx = createContext(functionRegistry)
+
+      // Act
+      const result = await executeCompiledSubmitHooks(fn, ctx)
+
+      // Assert
+      expect(result).toEqual({ executed: false, validated: false, outcome: 'continue' })
+    })
+
     it('should execute onValid after onAlways and return the first matching outcome', async () => {
       // Arrange
       const alwaysRedirect = ASTTestFactory.redirectOutcome({ goto: '/always' })

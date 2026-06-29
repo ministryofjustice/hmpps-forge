@@ -8,11 +8,12 @@ import type {
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
   CompiledResolveFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
-import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type FunctionRegistry from './FunctionRegistry'
 import type { ComponentRegistry } from '../../framework/types/adapter.type'
 import {
@@ -37,20 +38,21 @@ interface MountedNodeBase {
   readonly basePath: string
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
-  readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined
-  readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined
+  readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
 export interface MountedStepNode extends MountedNodeBase {
   readonly kind: 'step'
-  readonly compiledEntryValidation: CompiledEntryValidationFunction | undefined
-  readonly compiledSubmitHooks: CompiledSubmitHooksFunction | undefined
-  readonly compiledValidation: CompiledValidationFunction | undefined
-  readonly compiledResolve: CompiledResolveFunction | undefined
+  readonly compiledEntryValidation: CompiledEntryValidationFunction
+  readonly compiledSubmitHooks: CompiledSubmitHooksFunction
+  readonly compiledValidation: CompiledValidationFunction
+  readonly compiledResolve: CompiledResolveFunction
   readonly routeTree: StoredRouteTree
 }
 
@@ -125,7 +127,7 @@ export default class MountRegistry {
   ): void {
     stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
-      const { runtimePlan, navigationPlan } = compiledStep
+      const { runtimePlan } = compiledStep
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, ctx.stepId)
 
       this.nodesByMountKey.set(mountKey, {
@@ -138,7 +140,8 @@ export default class MountRegistry {
         basePath: ctx.journeyBasePath,
         functionRegistry,
         componentRegistry,
-        navigationPlan,
+        compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
+        compiledReachabilityState: compiledStep.compiledReachabilityState,
         routeTemplateCatalog: ctx.routeTemplateCatalog,
         compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
@@ -170,7 +173,7 @@ export default class MountRegistry {
         return
       }
 
-      const { runtimePlan, navigationPlan } = compiledJourney
+      const { runtimePlan } = compiledJourney
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, journeyId)
 
       this.nodesByMountKey.set(mountKey, {
@@ -183,7 +186,8 @@ export default class MountRegistry {
         basePath: templatePath,
         functionRegistry,
         componentRegistry,
-        navigationPlan,
+        compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
+        compiledReachabilityState: compiledJourney.compiledReachabilityState,
         routeTemplateCatalog,
         compiledStaticData: compiledJourney.compiledStaticData,
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,

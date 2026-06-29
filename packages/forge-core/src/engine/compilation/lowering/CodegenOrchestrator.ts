@@ -1,6 +1,12 @@
 import type { NodeId } from '../../contracts/ast/engine.type'
-import type { CompiledJourney, CompiledStep } from '../../contracts/plans/compilationArtefacts.type'
-import type { NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
+import type {
+  CompiledJourney,
+  CompiledJourneyFunctions,
+  CompiledPackageFunctions,
+  CompiledStep,
+  CompiledStepFunctions,
+} from '../../contracts/plans/compilationArtefacts.type'
+import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
 import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
@@ -8,13 +14,14 @@ import type {
 import type { CompilationDependencies } from './compilationDependencies.type'
 import type {
   CompilationPlan,
-  NavigationCompilationInputs,
+  JourneyCompilationInputs,
+  ReachabilityCompilationInputs,
   StepCompilationInputs,
-  StepCoreInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
+import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
 import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
@@ -26,139 +33,173 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    this.compileNavigation(plan, nodeRegistry)
-    const journeys = this.compileJourneys(plan)
-
+    const packageFunctions = this.compilePackageFunctions()
+    const journeys = new Map<NodeId, CompiledJourney>()
     const steps = new Map<NodeId, CompiledStep>()
 
-    plan.stepInputs.forEach((inputs, stepId) => {
-      steps.set(stepId, this.compileStep(inputs, plan))
-    })
+    plan.journeyInputs.forEach((journeyInputs, journeyId) => {
+      const reachabilityInputs = this.resolveReachabilityInputs(plan, journeyId)
+      const journeyFunctions = this.compileJourneyFunctions(
+        plan,
+        nodeRegistry,
+        packageFunctions,
+        journeyInputs,
+        reachabilityInputs,
+      )
+      const journeyStepIds = this.resolveJourneyStepIds(reachabilityInputs.stateTable)
 
-    this.resolveStepValidations(steps, journeys)
+      journeys.set(journeyId, {
+        runtimePlan: journeyInputs.runtimePlan,
+        ...journeyFunctions,
+      })
+
+      journeyStepIds.forEach(stepId => {
+        const stepInputs = this.resolveStepInputs(plan, stepId)
+        const stepFunctions = this.compileStepFunctions(stepInputs, packageFunctions, journeyFunctions)
+
+        steps.set(stepId, {
+          runtimePlan: stepInputs.core.runtimePlan,
+          compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
+          compiledReachabilityState: journeyFunctions.compiledReachabilityState,
+          compiledStepValidations: journeyFunctions.compiledStepValidations,
+          ...stepFunctions,
+        })
+      })
+    })
 
     return { steps, journeys }
   }
 
-  // Each step/journey carries the compiled validators of every step reachable in its navigation
-  // plan, so the runtime can check the validity of surrounding steps. This runs once all steps are
-  // compiled, since a navigation plan can reference steps compiled later in the pass.
-  private resolveStepValidations(steps: Map<NodeId, CompiledStep>, journeys: Map<NodeId, CompiledJourney>): void {
-    steps.forEach(step => {
-      step.compiledStepValidations = this.collectStepValidations(step.navigationPlan, steps)
-    })
-    journeys.forEach(journey => {
-      journey.compiledStepValidations = this.collectStepValidations(journey.navigationPlan, steps)
-    })
+  private compilePackageFunctions(): CompiledPackageFunctions {
+    return {}
   }
 
-  private collectStepValidations(
-    navigationPlan: NavigationRuntimePlan,
-    steps: ReadonlyMap<NodeId, CompiledStep>,
+  private compileStepFunctions(
+    inputs: StepCompilationInputs,
+    _packageFunctions: CompiledPackageFunctions,
+    _journeyFunctions: CompiledJourneyFunctions,
+  ): CompiledStepFunctions {
+    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
+    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
+    const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const resolveCompiler = new StepResolveCompiler(this.dependencies)
+
+    return {
+      compiledStaticData: this.compileStaticData(inputs.core.staticData),
+      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.hooks.accessHooks),
+      compiledSubmitHooks: hookCompiler.compileSubmitHooks(inputs.hooks.submitHooks),
+      compiledAnswerPreparation: answerPrepCompiler.compile(
+        inputs.answerPreparation.fieldBlocks,
+        inputs.answerPreparation.mapIterateNodes,
+      ),
+      compiledValidation: validationCompiler.compileOnSubmitValidation(
+        inputs.validation.stepNode,
+        inputs.validation.validatingFieldBlocks,
+        inputs.validation.stepNode.properties.validWhen,
+        inputs.validation.mapIterateNodes,
+      ),
+      compiledEntryValidation: validationCompiler.compileOnEntryValidation(
+        inputs.validation.stepNode.properties.validateOnEntry,
+      ),
+      compiledResolve: resolveCompiler.compile(
+        inputs.resolve.stepNode,
+        inputs.resolve.ancestorJourneys,
+        inputs.resolve.allIterateNodes,
+      ),
+    }
+  }
+
+  private compileJourneyFunctions(
+    plan: CompilationPlan,
+    nodeRegistry: ASTNodeIndex,
+    _packageFunctions: CompiledPackageFunctions,
+    inputs: JourneyCompilationInputs,
+    reachabilityInputs: ReachabilityCompilationInputs,
+  ): CompiledJourneyFunctions {
+    const { stateTable } = reachabilityInputs
+    const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
+    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
+    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
+
+    return {
+      compiledReachabilityFacts: reachabilityCompiler.compileFacts(
+        reachabilityInputs.reachabilityPlan,
+        reachabilityInputs.fieldInventorySources,
+        nodeRegistry,
+      ),
+      compiledReachabilityState: input => evaluateReachabilityState(stateTable, input),
+      compiledStaticData: this.compileStaticData(inputs.staticData),
+      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
+      compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
+      compiledStepValidations: this.compileJourneyValidationIndex(plan, stateTable),
+    }
+  }
+
+  private compileJourneyValidationIndex(
+    plan: CompilationPlan,
+    stateTable: ReachabilityStateTable,
   ): ReadonlyMap<NodeId, CompiledValidationFunction> {
+    const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const validatingStepIds = this.resolveValidatingStepIds(plan)
     const compiledStepValidations = new Map<NodeId, CompiledValidationFunction>()
 
-    navigationPlan.entries.forEach(entry => {
-      if (!entry.hasValidation) {
+    stateTable.entries.forEach(entry => {
+      const stepInputs = this.resolveStepInputs(plan, entry.stepId)
+
+      if (!validatingStepIds.has(entry.stepId)) {
         return
       }
 
-      const compiledValidation = steps.get(entry.stepId)?.compiledValidation
-
-      if (compiledValidation !== undefined) {
-        compiledStepValidations.set(entry.stepId, compiledValidation)
-      }
+      compiledStepValidations.set(
+        entry.stepId,
+        validationCompiler.compileOnSubmitValidation(
+          stepInputs.validation.stepNode,
+          stepInputs.validation.validatingFieldBlocks,
+          stepInputs.validation.stepNode.properties.validWhen,
+          stepInputs.validation.mapIterateNodes,
+        ),
+      )
     })
 
     return compiledStepValidations
   }
 
-  private compileNavigation(plan: CompilationPlan, nodeRegistry: ASTNodeIndex): void {
-    const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
+  // Which steps the eager validities phase validates is a validation fact, not a navigation one:
+  // a step has validation when it carries validating field blocks or a domain `validWhen`.
+  private resolveValidatingStepIds(plan: CompilationPlan): ReadonlySet<NodeId> {
+    const validatingStepIds = new Set<NodeId>()
 
-    plan.navigationInputs.forEach(navigationInputs => {
-      navigationInputs.runtimePlan.compiledNavigation = reachabilityCompiler.compileNavigation(
-        navigationInputs.reachabilityPlan,
-        navigationInputs.fieldInventorySources,
-        nodeRegistry,
-      )
-    })
-  }
-
-  private compileJourneys(plan: CompilationPlan): Map<NodeId, CompiledJourney> {
-    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
-    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
-    const compiledJourneys = new Map<NodeId, CompiledJourney>()
-
-    plan.journeyInputs.forEach((inputs, journeyId) => {
-      compiledJourneys.set(journeyId, {
-        runtimePlan: inputs.runtimePlan,
-        navigationPlan: inputs.navigationPlan,
-        compiledStaticData: this.compileStaticData(inputs.staticData),
-        compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
-        compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
-        compiledStepValidations: new Map(),
-      })
+    plan.stepInputs.forEach((inputs, stepId) => {
+      if (inputs.validation.hasValidation) {
+        validatingStepIds.add(stepId)
+      }
     })
 
-    return compiledJourneys
+    return validatingStepIds
   }
 
-  private compileStep(inputs: StepCompilationInputs, plan: CompilationPlan): CompiledStep {
-    const navigationInputs = this.resolveNavigationInputs(inputs.core, plan)
-
-    const navigationPlan = navigationInputs.runtimePlan
-
-    const hookCompiler = new HookLifecycleCompiler(this.dependencies)
-    const compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(inputs.hooks.accessHooks)
-    const compiledSubmitHooks = hookCompiler.compileSubmitHooks(inputs.hooks.submitHooks)
-
-    const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
-    const compiledAnswerPreparation = answerPrepCompiler.compile(
-      inputs.answerPreparation.fieldBlocks,
-      inputs.answerPreparation.mapIterateNodes,
-    )
-
-    const validationCompiler = new StepValidationCompiler(this.dependencies)
-    const compiledValidation = validationCompiler.compileOnSubmitValidation(
-      inputs.validation.stepNode,
-      inputs.validation.validatingFieldBlocks,
-      inputs.validation.stepNode.properties.validWhen,
-      inputs.validation.mapIterateNodes,
-    )
-    const compiledEntryValidation = validationCompiler.compileOnEntryValidation(
-      inputs.validation.stepNode.properties.validateOnEntry,
-    )
-
-    const resolveCompiler = new StepResolveCompiler(this.dependencies)
-    const compiledResolve = resolveCompiler.compile(
-      inputs.resolve.stepNode,
-      inputs.resolve.ancestorJourneys,
-      inputs.resolve.allIterateNodes,
-    )
-
-    return {
-      runtimePlan: inputs.core.runtimePlan,
-      navigationPlan,
-      compiledStaticData: this.compileStaticData(inputs.core.staticData),
-      compiledAccessLifecycle,
-      compiledSubmitHooks,
-      compiledAnswerPreparation,
-      compiledValidation,
-      compiledEntryValidation,
-      compiledResolve,
-      compiledStepValidations: new Map(),
-    }
+  private resolveJourneyStepIds(stateTable: ReachabilityStateTable): NodeId[] {
+    return stateTable.entries.map(entry => entry.stepId)
   }
 
-  private resolveNavigationInputs(core: StepCoreInputs, plan: CompilationPlan): NavigationCompilationInputs {
-    const navigationInputs = plan.navigationInputs.get(core.navigationId)
+  private resolveReachabilityInputs(plan: CompilationPlan, journeyId: NodeId): ReachabilityCompilationInputs {
+    const inputs = plan.reachabilityInputs.get(journeyId)
 
-    if (!navigationInputs) {
-      throw new Error(`Unable to compile step "${core.stepNode.id}" - navigation inputs not found`)
+    if (inputs === undefined) {
+      throw new Error(`Reachability inputs missing for journey "${journeyId}"`)
     }
 
-    return navigationInputs
+    return inputs
+  }
+
+  private resolveStepInputs(plan: CompilationPlan, stepId: NodeId): StepCompilationInputs {
+    const inputs = plan.stepInputs.get(stepId)
+
+    if (inputs === undefined) {
+      throw new Error(`Step inputs missing for step "${stepId}"`)
+    }
+
+    return inputs
   }
 
   private compileStaticData(staticData: Record<string, unknown>): CompiledStaticDataFunction {

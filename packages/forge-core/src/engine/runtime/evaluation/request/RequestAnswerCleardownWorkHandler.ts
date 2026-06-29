@@ -42,7 +42,6 @@ export const REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER: WorkHandler<
       context.evaluation.reachability,
       context.domain.answers,
       evaluation,
-      ctx.props.navigationPlan,
       ctx.request.context.request.params,
     )
 

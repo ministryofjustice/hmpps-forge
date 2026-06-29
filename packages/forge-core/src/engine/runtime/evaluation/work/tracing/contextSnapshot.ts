@@ -1,7 +1,7 @@
 import type {
-  JourneyReachabilityState,
+  JourneyReachabilityProjection,
   StepReachabilityProjection,
-} from '../../../../contracts/navigation/journeyReachabilityState.type'
+} from '../../../../contracts/reachability/journeyReachabilityProjection.type'
 import type { AnswerHistory, AnswerMutation } from '../../../../contracts/runtime/answerHistory.type'
 import type {
   DomainValidationFailure,
@@ -21,7 +21,7 @@ export type ContextSnapshotData = {
   readonly answers: Record<string, AnswerHistory>
   readonly data: Record<string, unknown>
   readonly stepValidities?: Record<NodeId, StepValidityResult>
-  readonly reachability?: JourneyReachabilityState
+  readonly reachability?: JourneyReachabilityProjection
 }
 
 export function captureContextSnapshot(context: RuntimeContext): ContextSnapshotData {
@@ -97,7 +97,9 @@ function cloneDomainValidationFailure(failure: DomainValidationFailure): DomainV
   }
 }
 
-function cloneReachability(reachability: JourneyReachabilityState | undefined): JourneyReachabilityState | undefined {
+function cloneReachability(
+  reachability: JourneyReachabilityProjection | undefined,
+): JourneyReachabilityProjection | undefined {
   if (reachability === undefined) {
     return undefined
   }

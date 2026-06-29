@@ -200,6 +200,7 @@ flowchart TD
   That is why access redirects, reachability redirects, submit redirects, and render can stop later phases from running.
 - `request.validities` runs before `request.reachability` on every request.
   Reachability reads step validities to decide whether navigation can pass through validation-gated steps.
+  It runs the mounted node's journey-scoped `compiledStepValidations` index, not every step's local `compiledValidation` function.
 - `request.entry-validation` does not run field validation itself.
   It selects active groups and projects the already-stored current step validity.
 - `request.submit` does not write `ctx.request.validation` directly.

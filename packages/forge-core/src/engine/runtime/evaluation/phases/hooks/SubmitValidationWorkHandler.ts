@@ -52,7 +52,7 @@ export const SUBMIT_VALIDATION_WORK_HANDLER: WorkHandler<'submit.validation', Su
     const validation = await ctx.request.buildStepValidation(stepId, true)
 
     if (validation === undefined) {
-      throw new Error('[Forge] Compiled validation missing for submit')
+      throw new Error('[Forge] Submit validation task missing')
     }
 
     return singleTaskGroup(validation)

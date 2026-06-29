@@ -4,162 +4,128 @@
 
 This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/reachability`.
 
-This code evaluates runtime navigation reachability from compiled navigation output.
-It builds reachable step state, resolves redirect targets, projects unreachable field inventory, and handles resume behavior.
+This code turns a finished reachability evaluation into a redirect decision, and resolves redirect target strings into concrete URLs.
+It decides whether a request should redirect and to which route-template path, derives the current step's backlink, and resolves redirect targets against the request location.
 
-This document does not cover dependency-analysis reachability, route tree building, or request phase ordering.
+This document does not cover building the reachability evaluation.
+The graph walk, path/frontier/resume, and projection are compiled in `compilation/lowering/function-construction/reachability` and run as the compiled state function; `RequestReachabilityWorkHandler` orchestrates the phase and stores the result before this code runs.
 
 ## Background
 
-Reachability decides which steps are currently available.
+By the time this code runs, the reachability evaluation already exists.
 
-Compilation has already produced `NavigationRuntimePlan` and `CompiledReachabilityResult`.
-Runtime still needs to combine that compiled output with current answers, request params, and step validities.
-For example, an invalid step should block forward reachability in navigation mode.
-A resume-enabled journey may redirect to the frontier.
-A journey request should redirect to its default reachable step.
+`RequestReachabilityWorkHandler` (in `runtime/evaluation/request`) calls the compiled reachability facts function, then the compiled reachability state function, and stores the resulting `ReachabilityEvaluation` on the request context.
+That evaluation already knows which steps are reachable, the default entry, the frontier, and the resume outcome.
 
-The compiled result is not enough by itself.
-It contains evaluated predicates and outcomes, but runtime must walk the graph, apply validation gates, resolve route-template paths, and project unreachable steps for answer cleardown.
+What is left is a routing decision.
+Given that evaluation, should the request continue to render, or halt and redirect, and if so to which step?
+Then, once a redirect produces a route-template path or an authored target string, what concrete URL does the user go to?
+Those questions are all this folder answers.
 
 ## Responsibilities
 
-- Build reachable step nodes from `NavigationRuntimePlan.entries`.
-- Seed static and conditional entry points.
-- Walk forward navigation edges.
-- Gate propagation through navigation-mode step validity.
-- Resolve route-template target paths.
-- Pick default entry and tie-breaker winners.
-- Compute resume outcome and frontier path.
-- Project `JourneyReachabilityState` for answer cleardown.
-- Resolve redirect targets for journey and step requests.
+- Decide whether a step or journey request should redirect, and to which route-template path.
+- Choose the frontier path when a resume should jump forward.
+- Fall back to the configured unreachable target when a requested step is unreachable.
+- Derive the backlink route-template path for the current step.
+- Classify a redirect target as external, absolute, or relative.
+- Resolve a redirect target into a concrete URL against the request location.
 
 ## Data Model
 
-`ReachabilityEvaluationWorkProps` contains:
-- `input`, the reachability input built by `RequestReachabilityWorkHandler`.
-- `compiledResult`, the `CompiledReachabilityResult` from generated navigation.
+`resolveRedirect()` receives:
+- `evaluation`, the `ReachabilityEvaluation` produced by the compiled state function.
+- `nodeKind`, `'step'` or `'journey'`.
+- `method`, the request `HttpMethod`.
 
-`ReachabilityEvaluationInput` contains:
-- `plan`, the `NavigationRuntimePlan`.
-- `currentStepId`, present for step requests.
-- `routeTemplateCatalog`.
-- `params`, present when projection can resolve concrete paths.
-- `fieldInventory`, present when reachability projection can include field codes.
-- `stepValidities`, filled by the eager validities request phase.
+It returns the route-template path to redirect to, or `undefined` to continue the pipeline.
 
-`ReachabilityNode` is the per-step runtime state.
-It records route template path, declaration index, entry status, reachability, validity, forward paths, declared forward paths, and predecessor paths.
+`resolveBacklinkRouteTemplatePath()` receives the `ReachabilityEvaluation` and returns the current step's predecessor on the canonical path, or `undefined` when there is none.
 
-`ReachabilityEvaluation` is the request-facing result.
-It contains reachable steps, default entry path, frontier path, canonical path, progress state, resume state, and unreachable redirect configuration.
+`resolveRedirectTarget()` receives:
+- `target`, a redirect string or an already-parsed target.
+- `location`, the request `origin`, `pathname`, and optional `basePath`.
 
-`JourneyReachabilityState` is the projected state used by answer cleardown.
-It records unreachable steps and their field inventories after params are resolved.
+It returns a `ResolvedRedirectTarget` with `kind`, `value`, and `pathname`.
+
+`ParsedRedirectTarget` classifies a target as `external` (an `http(s)` URL), `absolute` (a `/`-rooted path), or `relative`.
 
 ### Example
 
-A compiled navigation result can say:
+A reachable step on a `GET` continues; an unreachable one redirects to the configured fallback:
 
 ```ts
-{
-  entryResults: [undefined, true],
-  outcomeValues: [['/b'], ['/c'], []],
-  declaredOutcomeValues: [['/b'], ['/c'], []],
-  tieBreakerPriorities: [undefined, undefined, undefined],
-  resumeActive: true,
-}
+resolveRedirect(evaluation, 'step', 'GET') // undefined — continue to render
+resolveRedirect(unreachableEvaluation, 'step', 'GET') // '/apply/check-answers'
 ```
 
-Runtime combines that with step validities:
+`RequestReachabilityWorkHandler` turns a returned path into a `halt-redirect`.
+`RequestEvaluator` later resolves that route-template path to a concrete URL:
 
 ```ts
-stepValidities.get(stepA) // invalid
+resolveRedirectTarget('/apply/check-answers', snapshot.location)
+// { kind: 'absolute', value: '/apply/check-answers', pathname: '/apply/check-answers' }
 ```
-
-The graph can mark step A reachable but not propagate through it.
-The compiled outcome said there was a forward path.
-Runtime validity decides whether that path is usable now.
 
 ## Flow
 
 ```mermaid
 flowchart TD
-  compiled["CompiledReachabilityResult"] --> handler["ReachabilityEvaluationWorkHandler"]
-  input["ReachabilityEvaluationInput"] --> handler
-  handler --> builder["ReachabilityGraphBuilder"]
-  builder --> steps["ReachabilityNode[]"]
-  steps --> finalize["finalizeReachabilityEvaluation()"]
-  finalize --> analyzer["NavigationPathAnalyzer"]
-  finalize --> projector["ReachabilityStateProjector"]
-  analyzer --> evaluation["ReachabilityEvaluation"]
-  projector --> state["JourneyReachabilityState"]
+  evaluation["ReachabilityEvaluation"] --> redirect["resolveRedirect()"]
+  redirect -->|route-template path| halt["halt-redirect"]
+  redirect -->|undefined| continueRender["continue to render"]
+  evaluation --> backlink["resolveBacklinkRouteTemplatePath()"]
+  halt --> target["resolveRedirectTarget()"]
+  target --> url["concrete URL"]
 ```
 
-- [ReachabilityEvaluationWorkHandler.ts](ReachabilityEvaluationWorkHandler.ts) builds the graph and finalizes the result.
-- [ReachabilityGraphBuilder.ts](ReachabilityGraphBuilder.ts) creates step states, seeds entries, walks forward edges, and applies validity gates.
-- [evaluateGeneratedNavigation.ts](evaluateGeneratedNavigation.ts) finalizes the evaluation, resume outcome, and optional projection.
-- [NavigationPathAnalyzer.ts](NavigationPathAnalyzer.ts) derives canonical path, frontier, and progress state.
-- [ReachabilityStateProjector.ts](ReachabilityStateProjector.ts) projects unreachable steps and field inventory for cleardown.
-- [navigationRedirects.ts](navigationRedirects.ts) decides whether the request should redirect.
-- [redirectTarget.ts](redirectTarget.ts) resolves redirect targets against the current request location.
-- [routeTemplateTargetResolver.ts](routeTemplateTargetResolver.ts) resolves authored navigation targets to route-template paths.
+- [reachabilityRedirects.ts](reachabilityRedirects.ts) decides the redirect and backlink route-template paths from the evaluation.
+  `RequestReachabilityWorkHandler` reads the redirect; `RequestResolveWorkHandler` reads the backlink.
+- [redirectTarget.ts](redirectTarget.ts) classifies a redirect target and resolves it into a concrete URL.
+  `RequestEvaluator` calls it once a phase has chosen to redirect.
 
 ## Boundaries
 
-- Compiled navigation owns evaluating predicates and outcome expressions.
-  Runtime reachability should not re-evaluate authored expressions.
-- `ReachabilityGraphBuilder` owns graph walk state.
-  Redirect helpers should not mutate graph nodes.
-- `NavigationPathAnalyzer` owns path analysis.
-  The graph builder should not decide resume outcome.
-- `ReachabilityStateProjector` owns cleardown projection.
-  Answer cleardown should not rebuild reachability.
-- Request handlers own whether a redirect stops the pipeline.
-  Reachability helpers only compute targets and evaluations.
+- The compiled state function owns building the evaluation.
+  These helpers read `ReachabilityEvaluation`; they never rebuild reachability or re-evaluate authored expressions.
+- `resolveRedirect` owns the redirect decision; it returns a target or `undefined`.
+  `RequestReachabilityWorkHandler` owns whether that target halts the pipeline.
+- `redirectTarget` owns string-to-URL resolution.
+  It runs from `RequestEvaluator`, after a phase has chosen to redirect.
+- Route-template paths stay distinct from resolved URLs.
+  Redirect decisions work in route templates; `resolveRedirectTarget` resolves the target against the request origin and base path. Route params are substituted earlier, before it runs.
 
 ## Quirks
 
-- Missing step validity means valid.
-  Steps without compiled validation should not block navigation.
-- Reachability-disabled plans mark every step reachable.
-  They still populate declared forward paths and tie-breaker priority.
-- Current-step-relative reachability can make forward steps appear unreachable.
-  Answer cleardown compensates by retaining the current step's forward paths.
-- Resume can be active but still no-op.
-  It redirects only when progress exists and the current step is not already the frontier.
-- Projection only happens when `fieldInventory` and `params` are present.
-  Journey redirects do not need answer-cleardown projection.
+- `resolveRedirect` returns `undefined` to mean "do not redirect".
+  A reachable step on a normal request continues to render rather than redirecting.
+- Journey requests always redirect.
+  They resolve to the frontier on a resume redirect, otherwise the default entry; a missing target is an error the handler raises.
+- On step requests, a resume redirect only applies to `GET`.
+  A resume outcome on a non-GET step request does not jump to the frontier; the unreachable check applies instead.
+- Relative targets distinguish dot-relative from base-relative.
+  `./` and `../` resolve against the current pathname; a bare relative path resolves against the base path when one is set.
+- Path templates encode `:` while resolving.
+  `resolveRedirectTarget` percent-encodes `:` so the URL parser keeps route-template params, then decodes them back.
 
 ## Constraints
 
-- Keep eager validities before reachability in the request layer.
-  The graph walk depends on `stepValidities`.
-- Do not propagate reachability through invalid steps.
-  Navigation would allow progress through failed validation.
-- Preserve declared forward paths separately from reachable forward paths.
-  Devtools and diagnostics need declared navigation even when runtime gates it.
-- Do not run compiled navigation inside graph helpers.
-  They must consume `CompiledReachabilityResult`.
-- Keep route-template paths distinct from resolved paths.
-  The navigation graph operates on route templates; render and redirects resolve params later.
+- Run reachability evaluation before this code.
+  `resolveRedirect` and `resolveBacklinkRouteTemplatePath` assume a finished `ReachabilityEvaluation`.
+- Do not mutate the evaluation.
+  These helpers only read it; the phase has already stored it on the context.
+- Keep the redirect decision and the URL resolution separate.
+  One produces a route-template path; the other turns a path or authored target into a URL.
 
 ## Editing Notes
 
-- To change graph traversal, start in `ReachabilityGraphBuilder`.
-- To change resume or frontier behavior, start in `evaluateGeneratedNavigation.ts` and `NavigationPathAnalyzer.ts`.
-- To change unreachable projection for cleardown, start in `ReachabilityStateProjector`.
-- To change redirect choice, start in `navigationRedirects.ts`.
-- To change target path resolution, start in `routeTemplateTargetResolver.ts` or `redirectTarget.ts`.
-- To change compiled navigation output shape, update lowering and contracts before changing this folder.
+- To change when a request redirects, start in `resolveRedirect()`.
+- To change the unreachable fallback, start in `resolveUnreachableRedirect()`.
+- To change the backlink, start in `resolveBacklinkRouteTemplatePath()`.
+- To change how targets become URLs, start in `resolveRedirectTarget()` and `parseRedirectTarget()`.
+- To change how the evaluation is built, edit `compilation/lowering/function-construction/reachability`, not this folder.
 
 ## Entry Points
 
-- [ReachabilityEvaluationWorkHandler.ts](ReachabilityEvaluationWorkHandler.ts) answers how one reachability work task runs.
-- [ReachabilityGraphBuilder.ts](ReachabilityGraphBuilder.ts) answers how reachable steps are built.
-- [evaluateGeneratedNavigation.ts](evaluateGeneratedNavigation.ts) answers how graph output becomes `ReachabilityEvaluationResult`.
-- [NavigationPathAnalyzer.ts](NavigationPathAnalyzer.ts) answers how canonical path, frontier, and progress are derived.
-- [ReachabilityStateProjector.ts](ReachabilityStateProjector.ts) answers how unreachable field state is projected.
-- [navigationRedirects.ts](navigationRedirects.ts) answers when reachability redirects.
-- [routeTemplateTargetResolver.ts](routeTemplateTargetResolver.ts) answers how navigation targets become route-template paths.
-- [redirectTarget.ts](redirectTarget.ts) answers how redirect targets become concrete URLs.
+- [reachabilityRedirects.ts](reachabilityRedirects.ts) answers whether a request redirects and to which route-template path.
+- [redirectTarget.ts](redirectTarget.ts) answers how a redirect target string becomes a concrete URL.
