@@ -1,4 +1,4 @@
-import type { ReachabilityEvaluation } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import type { HttpMethod } from '../../../../../framework/types/request.type'
 
 export function resolveBacklinkRouteTemplatePath(evaluation: ReachabilityEvaluation): string | undefined {

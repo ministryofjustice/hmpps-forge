@@ -1,7 +1,7 @@
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type {
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
@@ -28,12 +28,11 @@ export default class ReachabilityPlanAnalyzer {
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
-    const navigationPlan: NavigationRuntimePlan = {
+    const stateTable: ReachabilityStateTable = {
       entries: entries.map(entry => ({
         stepId: entry.stepId,
         code: entry.code,
         isEntryPoint: entry.isEntryPoint,
-        hasValidation: entry.hasValidation,
         forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
@@ -42,7 +41,7 @@ export default class ReachabilityPlanAnalyzer {
     }
 
     return {
-      navigationPlan,
+      stateTable,
       entries,
       resumeAlways,
       resumeWhenNodeId,
@@ -56,9 +55,6 @@ export default class ReachabilityPlanAnalyzer {
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
     const { forwardOutcomeEvaluation, forwardOutcomeGroups } = this.forwardNavigationAnalyzer.analyze(stepNode)
-    const hasValidation =
-      this.fieldInventoryAnalyzer.hasValidationBlocks(stepId) ||
-      this.fieldInventoryAnalyzer.hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
@@ -70,7 +66,6 @@ export default class ReachabilityPlanAnalyzer {
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeEvaluation,
       forwardOutcomeGroups,
-      hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,

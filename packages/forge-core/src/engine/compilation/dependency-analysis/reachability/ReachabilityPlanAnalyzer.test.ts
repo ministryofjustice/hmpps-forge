@@ -55,7 +55,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       const result = analyzer.buildReachabilityPlan([stepNode], journeyNode, new Map([[journeyNode.id, journeyNode]]))
 
       // Assert
-      expect(result.navigationPlan.unreachableRedirect).toBe('entry')
+      expect(result.stateTable.unreachableRedirect).toBe('entry')
     })
 
     it('should store configured unreachable redirect without inheriting ancestor values', () => {
@@ -88,7 +88,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       )
 
       // Assert
-      expect(result.navigationPlan.unreachableRedirect).toBe('entry')
+      expect(result.stateTable.unreachableRedirect).toBe('entry')
     })
 
     it('should inherit reachability disabled from ancestors unless the journey overrides it', () => {
@@ -123,7 +123,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       )
 
       // Assert
-      expect(result.navigationPlan.reachabilityDisabled).toBe(false)
+      expect(result.stateTable.reachabilityDisabled).toBe(false)
     })
 
     it('should build resume and reachability entry metadata in step order', () => {
@@ -177,14 +177,13 @@ describe('ReachabilityPlanAnalyzer', () => {
 
       // Assert
       expect(result.resumeWhenNodeId).toBe(resumeWhen.id)
-      expect(result.navigationPlan.resumeConfigured).toBe(true)
+      expect(result.stateTable.resumeConfigured).toBe(true)
       expect(result.entries.map(entry => entry.stepId)).toEqual([firstStepNode.id, secondStepNode.id])
       expect(result.entries[0]).toMatchObject({
         stepId: firstStepNode.id,
         code: 'first',
         isEntryPoint: false,
         entryWhenNodeId: entryWhen.id,
-        hasValidation: true,
         cleardownFieldCodes: ['fieldA'],
         reachabilityTieBreakers: [{ priority: 10, whenNodeId: tieBreakerWhen.id }],
       })

@@ -2,11 +2,7 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { ASTNodeType } from '../contracts/ast/enums'
 import type { NodeId } from '../contracts/ast/engine.type'
-import type {
-  CompiledJourney,
-  CompiledStep,
-  JourneyCompilationResult,
-} from '../contracts/plans/compilationArtefacts.type'
+import type { CompiledJourney, CompiledStep, CompiledPackage } from '../contracts/plans/compilationArtefacts.type'
 import type { CompilationPlan } from '../contracts/plans/compilationPlan.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
 import type { CompilationDependencies } from './lowering/compilationDependencies.type'
@@ -29,7 +25,7 @@ type AstContext = {
 export default class CompilationPipeline {
   constructor(private readonly dependencies: CompilationDependencies) {}
 
-  compile(journeyDef: JourneyDefinition): JourneyCompilationResult {
+  compile(journeyDef: JourneyDefinition): CompiledPackage {
     const ast = this.buildAstTree(journeyDef)
 
     this.validateSemantics(ast)

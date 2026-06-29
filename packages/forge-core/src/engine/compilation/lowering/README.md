@@ -39,7 +39,7 @@ under heavy-load - so Forge remains performant!
 
 - Compile every `StepCompilationInputs` entry into a `CompiledStep`.
 - Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
-- Compile every `NavigationCompilationInputs` entry into a `CompiledNavigationFunction`.
+- Compile every `ReachabilityCompilationInputs` entry into a `CompiledReachabilityFactsFunction`.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
@@ -140,11 +140,11 @@ It compiles navigation first, then journeys, then steps, then links compiled val
 flowchart TD
   compilationPlan["CompilationPlan"] --> orchestrator["CodegenOrchestrator.compileAll()"]
   nodeRegistry["ASTNodeIndex"] --> orchestrator
-  orchestrator --> navigation["compileNavigation()"]
-  navigation --> navigationPlan["NavigationRuntimePlan.compiledNavigation"]
-  navigationPlan --> journeys["compileJourneys()"]
+  orchestrator --> navigation["compileReachability()"]
+  navigation --> reachabilityByJourney["Map<NodeId, compiled reachability fns>"]
+  reachabilityByJourney --> journeys["compileJourneys()"]
   journeys --> compiledJourneys["Map<NodeId, CompiledJourney>"]
-  navigationPlan --> steps["compileStep() for each StepCompilationInputs"]
+  reachabilityByJourney --> steps["compileStep() for each StepCompilationInputs"]
   steps --> phaseCompilers["Phase compilers"]
   phaseCompilers --> source["Generated JavaScript source"]
   source --> generatedFunction["compileGeneratedFunction()"]
@@ -155,7 +155,7 @@ flowchart TD
 ```
 
 - [CodegenOrchestrator.ts](CodegenOrchestrator.ts) owns compile order.
-  Navigation is compiled first because `compileStep()` and `compileJourneys()` share the same `NavigationRuntimePlan`.
+  Navigation is compiled first because `compileStep()` and `compileJourneys()` share the same `ReachabilityStateTable`.
 - [phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts](phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts) compiles GET and POST answer preparation.
 - [phase-compilers/hooks/HookLifecycleCompiler.ts](phase-compilers/hooks/HookLifecycleCompiler.ts) compiles access lifecycles and submit hook lifecycles.
 - [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation functions.
@@ -203,7 +203,7 @@ flowchart TD
 - Hook lifecycles force async.
   Effects are awaited even when the current hook list does not visibly contain an async function.
 - Navigation compiles before steps and journeys.
-  The compiled navigation function is attached to a shared `NavigationRuntimePlan` object that compiled steps and journeys also carry.
+  The compiled navigation function is attached to a shared `ReachabilityStateTable` object that compiled steps and journeys also carry.
 - `compiledStepValidations` is resolved after every step is compiled.
   A navigation plan can reference a step that appears later in the compile pass.
 - Direct function expressions are not wrapped twice for diagnostics.

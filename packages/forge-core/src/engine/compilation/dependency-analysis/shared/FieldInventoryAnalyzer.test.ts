@@ -85,7 +85,7 @@ describe('FieldInventoryAnalyzer', () => {
 
       // Act
       const result = analyzer.buildFieldInventorySources({
-        navigationPlan: {
+        stateTable: {
           entries: [],
           resumeConfigured: false,
           unreachableRedirect: 'entry',

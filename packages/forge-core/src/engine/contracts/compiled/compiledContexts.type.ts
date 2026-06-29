@@ -71,17 +71,9 @@ export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
 }
 
 /**
- * Context passed to the compiled reachability function. Reachability expressions
- * run at journey scope, so no iterator scope stack is needed here. There is no
- * dedicated builder — the reachability function runs inline inside the generated
- * navigation function, against the navigation context.
+ * Context passed to the compiled reachability facts function. Reachability
+ * expressions run at journey scope, so no iterator scope stack is needed here.
+ * There is no dedicated builder — the reachability expressions run inline inside
+ * the generated facts function, against this context.
  */
 export type CompiledReachabilityContext = CompiledBaseContext
-
-/**
- * Context passed to the compiled navigation task factory.
- *
- * Reachability expression evaluation stays generated, while the navigation work
- * type owns graph evaluation and trace nesting.
- */
-export type CompiledNavigationContext = CompiledReachabilityContext

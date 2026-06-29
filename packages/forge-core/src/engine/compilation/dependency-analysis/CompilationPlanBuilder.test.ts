@@ -36,15 +36,14 @@ describe('CompilationPlanBuilder', () => {
       )
 
       // Assert
-      const navigationInputs = result.navigationInputs.get(journeyNode.id)
+      const reachabilityInputs = result.reachabilityInputs.get(journeyNode.id)
 
       expect(result.stepInputs.get(firstStepNode.id)?.core.runtimePlan.path).toBe('first')
-      expect(result.stepInputs.get(firstStepNode.id)?.core.navigationId).toBe(journeyNode.id)
-      expect(result.stepInputs.get(secondStepNode.id)?.core.navigationId).toBe(journeyNode.id)
-      expect(result.journeyInputs.get(journeyNode.id)?.navigationPlan).toBe(navigationInputs?.runtimePlan)
-      expect(navigationInputs?.navigationId).toBe(journeyNode.id)
-      expect(navigationInputs?.reachabilityPlan.navigationPlan).toBe(navigationInputs?.runtimePlan)
-      expect(navigationInputs?.fieldInventorySources).toEqual([
+      expect(result.stepInputs.get(firstStepNode.id)?.core.reachabilityId).toBe(journeyNode.id)
+      expect(result.stepInputs.get(secondStepNode.id)?.core.reachabilityId).toBe(journeyNode.id)
+      expect(reachabilityInputs?.reachabilityId).toBe(journeyNode.id)
+      expect(reachabilityInputs?.reachabilityPlan.stateTable).toBe(reachabilityInputs?.stateTable)
+      expect(reachabilityInputs?.fieldInventorySources).toEqual([
         {
           stepId: firstStepNode.id,
           fieldBlocks: [],

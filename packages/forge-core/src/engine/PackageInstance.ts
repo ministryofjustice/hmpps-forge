@@ -8,11 +8,7 @@ import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import CompilationPipeline from './compilation/CompilationPipeline'
 
-import type {
-  CompiledJourney,
-  CompiledStep,
-  JourneyCompilationResult,
-} from './contracts/plans/compilationArtefacts.type'
+import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 
 export interface PackageInstanceOptions<TDeps> {
@@ -24,7 +20,7 @@ export interface PackageInstanceOptions<TDeps> {
 export default class PackageInstance {
   private readonly dependencies: PackageDependencies
 
-  private readonly compilation: JourneyCompilationResult
+  private readonly compilation: CompiledPackage
 
   private readonly rawConfiguration: JourneyDefinition
 

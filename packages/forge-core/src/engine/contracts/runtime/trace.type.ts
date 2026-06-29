@@ -1,5 +1,5 @@
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import type { JourneyReachabilityState } from '../navigation/journeyReachabilityState.type'
+import type { JourneyReachabilityProjection } from '../reachability/journeyReachabilityProjection.type'
 import type { AnswerHistory } from './answerHistory.type'
 import type { NodeId } from '../ast/ast.type'
 import type { StepValidityResult } from './stepValidityResult.type'
@@ -27,7 +27,7 @@ export interface RuntimeContextSnapshotTrace {
   readonly answers: Record<string, AnswerHistory>
   readonly data: Record<string, unknown>
   readonly stepValidities?: Record<NodeId, StepValidityResult>
-  readonly reachability?: JourneyReachabilityState
+  readonly reachability?: JourneyReachabilityProjection
 }
 
 export type RequestTraceUnit = WorkUnitTrace | RuntimeContextSnapshotTrace

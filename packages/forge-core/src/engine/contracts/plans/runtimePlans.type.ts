@@ -1,5 +1,4 @@
 import type { NodeId } from '../ast/ast.type'
-import type { CompiledNavigationFunction } from '../compiled/compiledFunctions.type'
 import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
@@ -8,37 +7,36 @@ export interface StepRuntimePlan {
   path: string
 }
 
-export interface NavigationRuntimePlan {
-  entries: NavigationRuntimeEntry[]
+/**
+ * The per-journey static data the compiled reachability state function reads: the
+ * ordered step table plus the journey-level navigation flags. Pure data — the
+ * compiled functions live on `CompiledStep` / `CompiledJourney`, and the state
+ * closure captures this table privately.
+ */
+export interface ReachabilityStateTable {
+  entries: ReachabilityStateTableEntry[]
   resumeConfigured: boolean
   unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
-  compiledNavigation?: CompiledNavigationFunction
 }
 
-export interface NavigationRuntimeEntry {
+export interface ReachabilityStateTableEntry {
   stepId: NodeId
   code?: string
   isEntryPoint: boolean
-  /**
-   * Whether the step has real validation (validating field blocks or domain
-   * validWhen). The eager validities phase validates only these steps, so the
-   * navigation walk treats a step absent from the validity map as valid.
-   */
-  hasValidation?: boolean
   forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }
 
 export type ForwardOutcomeEvaluation = 'exact' | 'over-approximate'
 
 export interface ReachabilityCompilationPlan {
-  navigationPlan: NavigationRuntimePlan
+  stateTable: ReachabilityStateTable
   entries: ReachabilityCompilationEntry[]
   resumeAlways: boolean
   resumeWhenNodeId?: NodeId
 }
 
-export interface ReachabilityCompilationEntry extends NavigationRuntimeEntry {
+export interface ReachabilityCompilationEntry extends ReachabilityStateTableEntry {
   entryWhenNodeId?: NodeId
   forwardOutcomeGroups: ForwardOutcomeGroup[]
   cleardownFieldCodes: string[]

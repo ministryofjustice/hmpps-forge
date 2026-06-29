@@ -1,10 +1,10 @@
-import type { ReachabilityEvaluation } from '../../../contracts/navigation/reachabilityEvaluation.type'
+import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
 import { resolvePathParams } from '../../../../framework/path/routePath'
 import type { RenderContext } from '../../../../framework/rendering/types'
 import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
-import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/navigationRedirects'
+import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/reachabilityRedirects'
 import { hydrateRouteTree } from '../phases/resolve/hydrateRouteTree'
 import { RESOLVE_BLOCKS_KIND } from '../phases/resolve/ResolveBlocksWorkHandler'
 import type {

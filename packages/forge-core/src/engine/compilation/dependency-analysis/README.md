@@ -29,7 +29,7 @@ so lowering receives explicit inputs instead of searching the AST repeatedly.
 
 - Build `StepCompilationInputs` for every step in a journey.
 - Build `JourneyCompilationInputs` for every journey with steps.
-- Build `NavigationCompilationInputs` for every journey with steps.
+- Build `ReachabilityCompilationInputs` for every journey with steps.
 - Group steps under their parent journey.
 - Build runtime plans for steps and journeys.
 - Resolve field inventories, hook inheritance, validation inputs, resolve inputs, and reachability facts.
@@ -41,19 +41,19 @@ so lowering receives explicit inputs instead of searching the AST repeatedly.
 It contains three maps:
 - `stepInputs`, keyed by step node ID.
 - `journeyInputs`, keyed by journey node ID.
-- `navigationInputs`, keyed by journey node ID.
+- `reachabilityInputs`, keyed by journey node ID.
 
 `StepCompilationInputs` contains:
-- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and parent `navigationId`.
+- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and parent `reachabilityId`.
 - `answerPreparation`, with field blocks and map iterate nodes for the step.
 - `hooks`, with inherited access hooks and submit hooks for the step.
 - `validation`, with the step node, validating field blocks, and map iterate nodes.
 - `resolve`, with the step node, ancestor journeys, and all iterate nodes.
 
-`JourneyCompilationInputs` contains the journey runtime plan, navigation plan, field blocks from the journey's steps,
+`JourneyCompilationInputs` contains the journey runtime plan, field blocks from the journey's steps,
 map iterate nodes from those steps, and journey access hooks.
 
-`NavigationCompilationInputs` contains the parent `navigationId`, the navigation runtime plan, the richer reachability
+`ReachabilityCompilationInputs` contains the parent `reachabilityId`, the reachability state table, the richer reachability
 compilation plan, and field inventory sources for each reachable entry.
 
 The analyzers share two core structures:
@@ -102,7 +102,7 @@ A journey with two steps starts as registered AST nodes:
           path: 'personal-details',
           staticData: {},
         },
-        navigationId: 'compile_ast:1',
+        reachabilityId: 'compile_ast:1',
       },
       answerPreparation: { fieldBlocks: [...], mapIterateNodes: [...] },
       hooks: { accessHooks: [...], submitHooks: [...] },
@@ -113,17 +113,16 @@ A journey with two steps starts as registered AST nodes:
   journeyInputs: Map {
     'compile_ast:1' => {
       runtimePlan: { journeyId: 'compile_ast:1', path: 'travel-declaration', staticData: {} },
-      navigationPlan: { entries: [...], resumeConfigured: false, unreachableRedirect: 'entry', ... },
       stepFieldBlocks: [...],
       stepMapIterateNodes: [...],
       accessHooks: [...],
     },
   },
-  navigationInputs: Map {
+  reachabilityInputs: Map {
     'compile_ast:1' => {
-      navigationId: 'compile_ast:1',
-      runtimePlan: { entries: [...], ... },
-      reachabilityPlan: { navigationPlan: ..., entries: [...], resumeAlways: false },
+      reachabilityId: 'compile_ast:1',
+      stateTable: { entries: [...], ... },
+      reachabilityPlan: { stateTable: ..., entries: [...], resumeAlways: false },
       fieldInventorySources: [...],
     },
   },
@@ -136,7 +135,7 @@ It is turning one tree into the exact dependency bundles each lowering compiler 
 ## Flow
 
 Dependency analysis starts when `CompilationPlanBuilder.buildPlan()` receives a step index and a journey index.
-It groups steps by parent journey, builds step inputs, builds journey inputs, and builds navigation inputs.
+It groups steps by parent journey, builds step inputs, builds journey inputs, and builds reachability inputs.
 
 ```mermaid
 flowchart TD
@@ -147,11 +146,11 @@ flowchart TD
   planBuilder -->|build the plan| groupSteps["Group steps by parent journey"]
   groupSteps -->|per step| stepInputs["StepCompilationInputs"]
   groupSteps -->|per journey| reachability["ReachabilityPlanAnalyzer"]
-  reachability -->|navigation + reachability facts| navigationInputs["NavigationCompilationInputs"]
-  reachability -->|journey fields + nav plan| journeyInputs["JourneyCompilationInputs"]
+  reachability -->|reachability facts| reachabilityInputs["ReachabilityCompilationInputs"]
+  reachability -->|journey fields| journeyInputs["JourneyCompilationInputs"]
   stepInputs -->|collect entries| compilationPlan["CompilationPlan"]
   journeyInputs -->|collect entries| compilationPlan
-  navigationInputs -->|collect entries| compilationPlan
+  reachabilityInputs -->|collect entries| compilationPlan
 ```
 
 - [CompilationPlanBuilder.ts](CompilationPlanBuilder.ts) owns the pass orchestration.

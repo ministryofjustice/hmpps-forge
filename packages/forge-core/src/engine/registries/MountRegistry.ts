@@ -8,11 +8,12 @@ import type {
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
   CompiledResolveFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
-import type { NavigationRuntimePlan } from '../contracts/plans/runtimePlans.type'
 import type FunctionRegistry from './FunctionRegistry'
 import type { ComponentRegistry } from '../../framework/types/adapter.type'
 import {
@@ -38,7 +39,8 @@ interface MountedNodeBase {
   readonly title?: string
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined
@@ -127,7 +129,7 @@ export default class MountRegistry {
   ): void {
     stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
-      const { runtimePlan, navigationPlan } = compiledStep
+      const { runtimePlan } = compiledStep
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, ctx.stepId)
 
       this.nodesByMountKey.set(mountKey, {
@@ -141,7 +143,8 @@ export default class MountRegistry {
         title: stepRouteIndex.get(ctx.stepId)?.title,
         functionRegistry,
         componentRegistry,
-        navigationPlan,
+        compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
+        compiledReachabilityState: compiledStep.compiledReachabilityState,
         routeTemplateCatalog: ctx.routeTemplateCatalog,
         compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
@@ -173,7 +176,7 @@ export default class MountRegistry {
         return
       }
 
-      const { runtimePlan, navigationPlan } = compiledJourney
+      const { runtimePlan } = compiledJourney
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, journeyId)
 
       this.nodesByMountKey.set(mountKey, {
@@ -187,7 +190,8 @@ export default class MountRegistry {
         title: journeyRouteIndex.get(journeyId)?.title,
         functionRegistry,
         componentRegistry,
-        navigationPlan,
+        compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
+        compiledReachabilityState: compiledJourney.compiledReachabilityState,
         routeTemplateCatalog,
         compiledStaticData: compiledJourney.compiledStaticData,
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,

@@ -1,10 +1,13 @@
 import { resolvePathParams } from '../../../../../framework/path/routePath'
 import {
-  JourneyReachabilityState,
+  JourneyReachabilityProjection,
   StepReachabilityProjection,
-} from '../../../../contracts/navigation/journeyReachabilityState.type'
-import { ReachabilityEvaluation, ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
-import { resolveBacklinkRouteTemplatePathForStep } from './NavigationPathAnalyzer'
+} from '../../../../contracts/reachability/journeyReachabilityProjection.type'
+import {
+  ReachabilityEvaluation,
+  ReachabilityNode,
+} from '../../../../contracts/reachability/reachabilityEvaluation.type'
+import { resolveBacklinkRouteTemplatePathForStep } from './ReachabilityPathAnalyzer'
 import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
@@ -12,7 +15,7 @@ export default class ReachabilityStateProjector {
     evaluation: ReachabilityEvaluation,
     fieldInventory: StepFieldInventory[],
     params: Record<string, string>,
-  ): JourneyReachabilityState {
+  ): JourneyReachabilityProjection {
     const inventoryByStepId = new Map(fieldInventory.map(inv => [inv.stepId, inv]))
     const reachableSteps: StepReachabilityProjection[] = []
     const unreachableSteps: StepReachabilityProjection[] = []

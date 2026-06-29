@@ -3,7 +3,7 @@ import type { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../as
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../ast/structures.type'
 import type {
   JourneyRuntimePlan,
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationPlan,
   StepRuntimePlan,
 } from './runtimePlans.type'
@@ -17,7 +17,7 @@ export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly navigationId: NodeId
+  readonly reachabilityId: NodeId
 }
 
 export interface AnswerPreparationInputs {
@@ -32,6 +32,12 @@ export interface HookInputs {
 
 export interface ValidationInputs {
   readonly stepNode: StepASTNode
+  /**
+   * Whether the step has real validation (validating field blocks or a domain
+   * `validWhen`). Owns the answer to "which steps does the eager validities phase
+   * validate" — independent of reachability/navigation.
+   */
+  readonly hasValidation: boolean
   readonly validatingFieldBlocks: FieldBlockASTNode[]
   readonly mapIterateNodes: IterateASTNode[]
 }
@@ -53,7 +59,6 @@ export interface StepCompilationInputs {
 export interface JourneyCompilationInputs {
   readonly runtimePlan: JourneyRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly navigationPlan: NavigationRuntimePlan
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
   readonly accessHooks: AccessHookASTNode[]
@@ -66,9 +71,9 @@ export interface FieldInventoryStepSource {
   readonly cleardownFieldCodes: string[]
 }
 
-export interface NavigationCompilationInputs {
-  readonly navigationId: NodeId
-  readonly runtimePlan: NavigationRuntimePlan
+export interface ReachabilityCompilationInputs {
+  readonly reachabilityId: NodeId
+  readonly stateTable: ReachabilityStateTable
   readonly reachabilityPlan: ReachabilityCompilationPlan
   readonly fieldInventorySources: FieldInventoryStepSource[]
 }
@@ -76,5 +81,5 @@ export interface NavigationCompilationInputs {
 export interface CompilationPlan {
   readonly stepInputs: ReadonlyMap<NodeId, StepCompilationInputs>
   readonly journeyInputs: ReadonlyMap<NodeId, JourneyCompilationInputs>
-  readonly navigationInputs: ReadonlyMap<NodeId, NavigationCompilationInputs>
+  readonly reachabilityInputs: ReadonlyMap<NodeId, ReachabilityCompilationInputs>
 }

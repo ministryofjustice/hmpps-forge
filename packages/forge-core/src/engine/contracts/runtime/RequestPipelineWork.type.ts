@@ -4,13 +4,13 @@ import type { NodeId } from '../ast/ast.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
-  CompiledNavigationFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
   CompiledResolveFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
-import type { NavigationRuntimePlan } from '../plans/runtimePlans.type'
 import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../routing/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
@@ -45,15 +45,15 @@ export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & 
 
 export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
-  readonly compiledNavigation: CompiledNavigationFunction | undefined
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }
 
-export interface RequestAnswerCleardownWorkProps {
-  readonly navigationPlan: NavigationRuntimePlan
-}
+// Answer-cleardown reads everything it needs (projection, evaluation, answers, params)
+// from the request context, so the phase carries no compiled props of its own.
+export type RequestAnswerCleardownWorkProps = Record<string, never>
 
 export interface RequestValiditiesWorkProps {
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
