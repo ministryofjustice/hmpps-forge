@@ -3,7 +3,7 @@ import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures
 import type {
   CompilationPlan,
   JourneyCompilationInputs,
-  NavigationCompilationInputs,
+  ReachabilityCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
@@ -48,7 +48,7 @@ export default class CompilationPlanBuilder {
     const journeyStepMap = new Map<NodeId, StepASTNode[]>()
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
-    const navigationInputs = new Map<NodeId, NavigationCompilationInputs>()
+    const reachabilityInputs = new Map<NodeId, ReachabilityCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
       const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
@@ -74,7 +74,7 @@ export default class CompilationPlanBuilder {
         journeyIndex,
       )
 
-      navigationInputs.set(journeyId, {
+      reachabilityInputs.set(journeyId, {
         navigationId: journeyId,
         stateTable: reachabilityPlan.stateTable,
         reachabilityPlan,
@@ -89,7 +89,7 @@ export default class CompilationPlanBuilder {
     return {
       stepInputs,
       journeyInputs,
-      navigationInputs,
+      reachabilityInputs,
     }
   }
 

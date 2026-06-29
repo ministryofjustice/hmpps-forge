@@ -71,7 +71,7 @@ export interface FieldInventoryStepSource {
   readonly cleardownFieldCodes: string[]
 }
 
-export interface NavigationCompilationInputs {
+export interface ReachabilityCompilationInputs {
   readonly navigationId: NodeId
   readonly stateTable: ReachabilityStateTable
   readonly reachabilityPlan: ReachabilityCompilationPlan
@@ -81,5 +81,5 @@ export interface NavigationCompilationInputs {
 export interface CompilationPlan {
   readonly stepInputs: ReadonlyMap<NodeId, StepCompilationInputs>
   readonly journeyInputs: ReadonlyMap<NodeId, JourneyCompilationInputs>
-  readonly navigationInputs: ReadonlyMap<NodeId, NavigationCompilationInputs>
+  readonly reachabilityInputs: ReadonlyMap<NodeId, ReachabilityCompilationInputs>
 }

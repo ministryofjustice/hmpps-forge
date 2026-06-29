@@ -87,7 +87,7 @@ describe('CodegenOrchestrator', () => {
             },
           ],
         ]),
-        navigationInputs: new Map([
+        reachabilityInputs: new Map([
           [
             journeyNode.id,
             {

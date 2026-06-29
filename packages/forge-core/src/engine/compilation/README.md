@@ -53,7 +53,7 @@ It contains:
 - `astNodeTree`, an `ASTNodeTree` for parent and ancestor lookup.
 
 `CompilationPlan` is produced by dependency analysis.
-It contains `stepInputs`, `journeyInputs`, and `navigationInputs`.
+It contains `stepInputs`, `journeyInputs`, and `reachabilityInputs`.
 Those maps are shaped around lowering phases.
 
 `JourneyCompilationResult` is the final output.
@@ -119,7 +119,7 @@ The names are intentionally close, but they do not mean the same thing:
 | Submit hooks | `HookInputAnalyzer` collects step submit hooks | `HookLifecycleCompiler.compileSubmitHooks()` | `request.submit` runs `submit.lifecycle` on POST |
 | Answer preparation | `AnswerPreparationInputAnalyzer` selects fields and map iterates | `StepAnswerPreparationCompiler.compile()` | `request.answer-preparation` runs `answer.preparation` |
 | Validation | `ValidationInputAnalyzer` selects validating fields and groups | `StepValidationCompiler.compileOnSubmitValidation()` and `compileOnEntryValidation()` | `request.validities`, `request.entry-validation`, and `submit.validation` read or run validation work |
-| Reachability | `ReachabilityPlanAnalyzer` builds navigation and reachability facts | `ReachabilityCompiler.compileNavigation()` | `request.reachability` runs `reachability.evaluation` |
+| Reachability | `ReachabilityPlanAnalyzer` builds the reachability table and facts source | `ReachabilityCompiler.compileFacts()` | `request.reachability` evaluates reachability |
 | Resolve | `ResolveInputAnalyzer` selects the step, ancestors, and iterates | `StepResolveCompiler.compile()` | `request.resolve` runs `resolve.blocks` |
 
 *Note: Some runtime phases do not have lowering phase compilers.*

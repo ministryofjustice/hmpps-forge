@@ -45,8 +45,8 @@ export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & 
 
 export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
-  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction | undefined
-  readonly compiledReachabilityState: CompiledReachabilityStateFunction | undefined
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }

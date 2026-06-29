@@ -39,7 +39,7 @@ under heavy-load - so Forge remains performant!
 
 - Compile every `StepCompilationInputs` entry into a `CompiledStep`.
 - Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
-- Compile every `NavigationCompilationInputs` entry into a `CompiledNavigationFunction`.
+- Compile every `ReachabilityCompilationInputs` entry into a `CompiledNavigationFunction`.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
@@ -140,7 +140,7 @@ It compiles navigation first, then journeys, then steps, then links compiled val
 flowchart TD
   compilationPlan["CompilationPlan"] --> orchestrator["CodegenOrchestrator.compileAll()"]
   nodeRegistry["ASTNodeIndex"] --> orchestrator
-  orchestrator --> navigation["compileNavigation()"]
+  orchestrator --> navigation["compileReachability()"]
   navigation --> reachabilityByJourney["Map<NodeId, compiled reachability fns>"]
   reachabilityByJourney --> journeys["compileJourneys()"]
   journeys --> compiledJourneys["Map<NodeId, CompiledJourney>"]

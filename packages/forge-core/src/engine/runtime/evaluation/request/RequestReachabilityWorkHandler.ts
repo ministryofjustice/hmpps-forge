@@ -70,12 +70,6 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
   ): Promise<WorkBegin<'request.reachability'>> {
     const { compiledReachabilityFacts, compiledReachabilityState } = ctx.props
 
-    if (!compiledReachabilityFacts || !compiledReachabilityState) {
-      throw new Error(
-        '[Forge] Navigation compilation is required — compiled reachability functions are missing from plan',
-      )
-    }
-
     const navigationContext = buildCompiledNavigationContext(ctx.request.context, ctx.request.functionRegistry)
     const stepValidities = toNavigationValidities(ctx.request.context.evaluation.stepValidities)
     const params = ctx.request.context.request.params

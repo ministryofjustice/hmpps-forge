@@ -39,8 +39,8 @@ interface MountedNodeBase {
   readonly title?: string
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
-  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction | undefined
-  readonly compiledReachabilityState: CompiledReachabilityStateFunction | undefined
+  readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined

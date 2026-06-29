@@ -29,7 +29,7 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const compiledReachabilityByJourney = this.compileNavigation(plan, nodeRegistry)
+    const compiledReachabilityByJourney = this.compileReachability(plan, nodeRegistry)
     const journeys = this.compileJourneys(plan, compiledReachabilityByJourney)
 
     const steps = new Map<NodeId, CompiledStep>()
@@ -43,20 +43,19 @@ export default class CodegenOrchestrator {
     return { steps, journeys }
   }
 
-  // Compiles, once per journey, the reachability facts function and the state closure. The state
-  // closure captures the pure static table privately; the runtime calls it without ever seeing the
-  // table. Keyed by navigation id so each step and journey can pick up its journey's pair.
-  private compileNavigation(plan: CompilationPlan, nodeRegistry: ASTNodeIndex): Map<NodeId, CompiledReachability> {
+  // Compiles, once per journey, the reachability facts function and the state closure (which captures
+  // the pure static table privately). Keyed by navigation id so each step and journey picks up its pair.
+  private compileReachability(plan: CompilationPlan, nodeRegistry: ASTNodeIndex): Map<NodeId, CompiledReachability> {
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
     const compiledReachabilityByJourney = new Map<NodeId, CompiledReachability>()
 
-    plan.navigationInputs.forEach((navigationInputs, navigationId) => {
-      const { stateTable } = navigationInputs
+    plan.reachabilityInputs.forEach((reachabilityInputs, navigationId) => {
+      const { stateTable } = reachabilityInputs
 
       compiledReachabilityByJourney.set(navigationId, {
         compiledReachabilityFacts: reachabilityCompiler.compileFacts(
-          navigationInputs.reachabilityPlan,
-          navigationInputs.fieldInventorySources,
+          reachabilityInputs.reachabilityPlan,
+          reachabilityInputs.fieldInventorySources,
           nodeRegistry,
         ),
         compiledReachabilityState: input => evaluateReachabilityState(stateTable, input),
@@ -64,6 +63,21 @@ export default class CodegenOrchestrator {
     })
 
     return compiledReachabilityByJourney
+  }
+
+  // Every step's parent journey and every compiled journey is built with a navigation input in the
+  // same pass, so this is always present; the throw turns a broken invariant into a clear failure.
+  private resolveCompiledReachability(
+    compiledReachabilityByJourney: ReadonlyMap<NodeId, CompiledReachability>,
+    navigationId: NodeId,
+  ): CompiledReachability {
+    const reachability = compiledReachabilityByJourney.get(navigationId)
+
+    if (reachability === undefined) {
+      throw new Error(`Compiled reachability functions missing for journey "${navigationId}"`)
+    }
+
+    return reachability
   }
 
   // Which steps the eager validities phase validates is a validation fact, not a navigation one:
@@ -91,12 +105,12 @@ export default class CodegenOrchestrator {
   ): void {
     steps.forEach((step, stepId) => {
       const navigationId = plan.stepInputs.get(stepId)?.core.navigationId
-      const stateTable = navigationId !== undefined ? plan.navigationInputs.get(navigationId)?.stateTable : undefined
+      const stateTable = navigationId !== undefined ? plan.reachabilityInputs.get(navigationId)?.stateTable : undefined
 
       step.compiledStepValidations = this.collectStepValidations(stateTable, steps, validatingStepIds)
     })
     journeys.forEach((journey, journeyId) => {
-      const stateTable = plan.navigationInputs.get(journeyId)?.stateTable
+      const stateTable = plan.reachabilityInputs.get(journeyId)?.stateTable
 
       journey.compiledStepValidations = this.collectStepValidations(stateTable, steps, validatingStepIds)
     })
@@ -133,12 +147,12 @@ export default class CodegenOrchestrator {
     const compiledJourneys = new Map<NodeId, CompiledJourney>()
 
     plan.journeyInputs.forEach((inputs, journeyId) => {
-      const reachability = compiledReachabilityByJourney.get(journeyId)
+      const reachability = this.resolveCompiledReachability(compiledReachabilityByJourney, journeyId)
 
       compiledJourneys.set(journeyId, {
         runtimePlan: inputs.runtimePlan,
-        compiledReachabilityFacts: reachability?.compiledReachabilityFacts,
-        compiledReachabilityState: reachability?.compiledReachabilityState,
+        compiledReachabilityFacts: reachability.compiledReachabilityFacts,
+        compiledReachabilityState: reachability.compiledReachabilityState,
         compiledStaticData: this.compileStaticData(inputs.staticData),
         compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
         compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
@@ -153,7 +167,7 @@ export default class CodegenOrchestrator {
     inputs: StepCompilationInputs,
     compiledReachabilityByJourney: ReadonlyMap<NodeId, CompiledReachability>,
   ): CompiledStep {
-    const reachability = compiledReachabilityByJourney.get(inputs.core.navigationId)
+    const reachability = this.resolveCompiledReachability(compiledReachabilityByJourney, inputs.core.navigationId)
 
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const compiledAccessLifecycle = hookCompiler.compileAccessLifecycle(inputs.hooks.accessHooks)
@@ -185,8 +199,8 @@ export default class CodegenOrchestrator {
 
     return {
       runtimePlan: inputs.core.runtimePlan,
-      compiledReachabilityFacts: reachability?.compiledReachabilityFacts,
-      compiledReachabilityState: reachability?.compiledReachabilityState,
+      compiledReachabilityFacts: reachability.compiledReachabilityFacts,
+      compiledReachabilityState: reachability.compiledReachabilityState,
       compiledStaticData: this.compileStaticData(inputs.core.staticData),
       compiledAccessLifecycle,
       compiledSubmitHooks,

@@ -11,9 +11,7 @@ This document does not cover reachability plan construction or runtime navigatio
 
 ## Inputs
 
-`ReachabilityCompiler.compile()` receives a `ReachabilityCompilationPlan` and `ASTNodeIndex`.
-
-`ReachabilityCompiler.compileNavigation()` receives:
+`ReachabilityCompiler.compileFacts()` receives:
 - a `ReachabilityCompilationPlan`.
 - field inventory sources.
 - `ASTNodeIndex`.
@@ -22,14 +20,10 @@ This document does not cover reachability plan construction or runtime navigatio
 
 ## Work Returned
 
-`compile()` returns a `CompiledReachabilityFunction`.
-That function returns a `CompiledReachabilityResult`, not a `WorkTask`.
+`compileFacts()` returns a `CompiledReachabilityFactsFunction`.
+That function returns a `CompiledReachabilityResult` (the dynamic facts), not a `WorkTask`.
 
-`compileNavigation()` returns a `CompiledNavigationFunction`.
-That function returns:
-- `ctx.workTasks.reachabilityEvaluation(navigationInput, compiledResult)`.
-
-Field inventory is emitted into the navigation input when request params are available.
+Field inventory is emitted into the result when request params are available.
 
 ## Rules
 
@@ -45,9 +39,9 @@ Field inventory is emitted into the navigation input when request params are ava
 
 - To change reachability result shape, start in `ReachabilityCompiler.compileReachabilityResult()`.
 - To change forward outcome evaluation, start in `compileForwardOutcomes()` and `compileForwardOutcomeGroup()`.
-- To change navigation work shape, start in `buildNavigationSource()`.
+- To change the facts function shape, start in `buildFactsSource()`.
 - To change field inventory behavior, start in `StepFieldInventoryCompiler`.
-- To inspect generated source, use `generateSource()` or `generateNavigationSource()` in the tests.
+- To inspect generated source, use `generateFactsSource()` in the tests.
 
 ## Entry Points
 

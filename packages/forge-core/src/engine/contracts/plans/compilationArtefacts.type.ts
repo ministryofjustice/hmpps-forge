@@ -14,8 +14,8 @@ import type {
 
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
-  compiledReachabilityFacts?: CompiledReachabilityFactsFunction
-  compiledReachabilityState?: CompiledReachabilityStateFunction
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
@@ -28,8 +28,8 @@ export interface CompiledStep {
 
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
-  compiledReachabilityFacts?: CompiledReachabilityFactsFunction
-  compiledReachabilityState?: CompiledReachabilityStateFunction
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction
