@@ -33,7 +33,7 @@ No compilation, tree walking etc happens at runtime. Request evaluation calls co
 - Stop the pipeline on redirect, error, or render.
 - Convert phase outputs into `RequestPipelineResult`.
 - Store mutable request signals for later phases.
-- Build compiled-function contexts for access, answer preparation, reachability, validation, submit, and resolve.
+- Build compiled-function contexts for access, answer preparation, reachability, route metadata, validation, submit, and resolve.
 - Project work traces into request trace phases.
 - Preserve partial trace data when request work fails.
 
@@ -76,10 +76,10 @@ It contains:
 
 The phase props live in `RequestPipelineWork.type.ts`.
 Most phase props follow `PhaseWorkProps<TCompiled>`, which means they carry a compiled function and a path.
-Reachability, validities, answer cleardown, resolve, render, and context preparation have extra runtime inputs.
+Reachability, validities, answer cleardown, route-tree, resolve, render, and context preparation have extra runtime inputs.
 
 Special cases:
-- Journey requests do not run submit, entry validation, answer cleardown, resolve, or render.
+- Journey requests do not run submit, entry validation, answer cleardown, route-tree, resolve, or render.
   They run enough phases to resolve reachability and redirect to a step.
 - Step `GET` and step `POST` share the early phases, then split.
   `GET` runs entry validation before terminal phases.
@@ -101,6 +101,7 @@ A step `POST` with a renderer becomes an ordered phase list:
   'request.reachability',
   'request.answer-cleardown',
   'request.submit',
+  'request.route-tree',
   'request.resolve',
   'request.render',
 ]
@@ -146,8 +147,9 @@ flowchart TD
   cleardown --> method{"Request method"}
   method -->|GET| entryValidation["request.entry-validation"]
   method -->|POST| submit["request.submit"]
-  entryValidation --> resolve["request.resolve"]
-  submit --> resolve
+  entryValidation --> routeTree["request.route-tree"]
+  submit --> routeTree
+  routeTree --> resolve["request.resolve"]
   resolve --> renderer{"Renderer?"}
   renderer -->|no| renderContext["render RenderContext"]
   renderer -->|yes| render["request.render"]
@@ -170,7 +172,8 @@ flowchart TD
 - [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) clears stale answers after reachability has been evaluated.
 - [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and projects stored validation failures for render.
 - [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) runs compiled submit hooks on step `POST` and decides whether validation failures should be shown.
-- [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) runs compiled resolve, builds `RenderContext`, hydrates route tree data, and attaches validation errors.
+- [RequestRouteTreeWorkHandler.ts](RequestRouteTreeWorkHandler.ts) evaluates compiled route metadata and hydrates the route tree before resolve.
+- [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) runs compiled resolve, builds `RenderContext`, and attaches validation errors.
 - [RequestRenderWorkHandler.ts](RequestRenderWorkHandler.ts) renders blocks, then assembles the page.
 - [requestPhase.ts](requestPhase.ts) contains shared helpers for compiled-task phases and phase trace snapshots.
 - [RequestPipelineTraceProjector.ts](RequestPipelineTraceProjector.ts) turns the work-unit tree into request trace phases.
@@ -230,6 +233,8 @@ flowchart TD
   Running submit on `GET` would execute effects and validation at the wrong time.
 - Keep entry validation on `GET` only.
   Running it on `POST` would mix initial display validation with submission validation.
+- Keep route-tree before resolve.
+  Resolve reads `ctx.request.routeTree`, which the route-tree phase builds.
 - Keep resolve before render.
   Render requires `ctx.request.renderContext`, which resolve creates.
 - Do not continue after terminal `PhaseWorkOutput`.
@@ -270,6 +275,7 @@ flowchart TD
 - [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) answers when stale answers are cleared.
 - [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) answers how GET validation groups are selected for render.
 - [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) answers how POST submit hooks halt, continue, or show validation failures.
+- [RequestRouteTreeWorkHandler.ts](RequestRouteTreeWorkHandler.ts) answers how route metadata is resolved and the route tree hydrated.
 - [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) answers how resolved blocks become `RenderContext`.
 - [RequestRenderWorkHandler.ts](RequestRenderWorkHandler.ts) answers how a stored `RenderContext` becomes renderer output.
 - [requestPhase.ts](requestPhase.ts) answers how compiled phase tasks are validated and how phase snapshots are recorded.
