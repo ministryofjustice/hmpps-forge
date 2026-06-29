@@ -39,10 +39,7 @@ export type RequestEntryValidationWorkProps = PhaseWorkProps<CompiledEntryValida
 
 export type RequestSubmitWorkProps = PhaseWorkProps<CompiledSubmitHooksFunction>
 
-export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & {
-  readonly routeTree: StoredRouteTree
-  readonly currentRouteTemplatePath: string
-}
+export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction>
 
 /**
  * The route-tree phase resolves the package's route metadata and hydrates it onto

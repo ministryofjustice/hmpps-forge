@@ -4,6 +4,7 @@ import type {
   CompiledBaseContext,
   CompiledReachabilityContext,
   CompiledResolveContext,
+  CompiledRouteMetadataContext,
   CompiledValidationContext,
 } from '../../../contracts/compiled/compiledContexts.type'
 import type { CompiledHookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
@@ -72,6 +73,15 @@ export function buildCompiledReachabilityContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
 ): CompiledReachabilityContext {
+  return {
+    ...buildCompiledBaseContext(context, functionRegistry),
+  }
+}
+
+export function buildCompiledRouteMetadataContext(
+  context: RuntimeContext,
+  functionRegistry: FunctionRegistry,
+): CompiledRouteMetadataContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
   }
