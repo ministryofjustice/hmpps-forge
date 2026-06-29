@@ -20,7 +20,7 @@ Runtime must copy request state into `RuntimeContext`, run access checks, prepar
 
 For example, a step `POST` cannot just call the step's resolve function.
 It needs prepared answers first.
-It needs eager step validities before navigation.
+It needs eager step validities before reachability.
 It needs submit hooks before render.
 It needs validation failures attached to rendered fields by block ID.
 
@@ -53,8 +53,8 @@ It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 - `renderer`, optional component rendering support.
 
 `MountedNode` is created by `MountRegistry`.
-It carries compiled functions, registries, route data, static data, and navigation plans for either a step or a journey.
-Step nodes include step-only compiled functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
+It carries compiled functions, registries, route data, and static data for either a step or a journey.
+Both step and journey nodes carry the reachability pair `compiledReachabilityFacts` and `compiledReachabilityState`; step nodes add step-only functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
 
 `RuntimeContext` is the mutable state for one request.
 It has three branches:
@@ -91,7 +91,7 @@ The framework layer has already matched a route and chosen the node.
 
 ```mermaid
 flowchart TD
-  compiled["JourneyCompilationResult"] -->|"registered package"| mount["MountRegistry.register()"]
+  compiled["CompiledPackage"] -->|"registered package"| mount["MountRegistry.register()"]
   mount -->|"build route tree + mounted nodes"| mounted["MountedNode"]
   request["RequestSnapshot"] --> runtime["RequestEvaluator.evaluate()"]
   mounted --> runtime
@@ -199,7 +199,7 @@ Runtime executes that work against one request.
 - Keep access before request phases that can mutate or render state.
   Access must be able to halt before answer preparation, validation, submit hooks, resolve, or render.
 - Keep validities before reachability.
-  Reachability reads validation state when navigation is validation-gated.
+  Reachability reads validation state when forward movement is validation-gated.
 - Keep resolve before render.
   Render requires the `RenderContext` created by resolve.
 - Preserve `WorkTask` child order in completed output.

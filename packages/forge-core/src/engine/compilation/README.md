@@ -15,7 +15,7 @@ Compilation is the bridge between authored Forge configuration and runtime execu
 
 Authors write journeys as nested objects and DSL helpers.
 That shape is useful for people, but the engine needs something more explicit before it can answer request-time questions.
-For example, it needs to know which steps belong to each journey, which hooks apply to a step, which fields can affect navigation, and which generated function should prepare answers or resolve blocks.
+For example, it needs to know which steps belong to each journey, which hooks apply to a step, which fields can affect reachability, and which generated function should prepare answers or resolve blocks.
 
 The compiler pays that cost once when a package is loaded.
 It turns the raw journey into registered AST nodes, checks rules that the schema cannot know, builds phase-specific dependency bundles, and compiles request-time work into functions.
@@ -24,7 +24,7 @@ The runtime can then look up a compiled step or journey by `NodeId` and call the
 Compilation does not run a journey.
 It builds the route indexes, runtime plans, compiled functions, and work-task-producing functions that later runtime code uses when a request arrives.
 No part of compilation should run during request handling.
-Runtime receives `JourneyCompilationResult` and executes what is already there.
+Runtime receives `CompiledPackage` and executes what is already there.
 
 ## Responsibilities
 
@@ -34,13 +34,13 @@ Runtime receives `JourneyCompilationResult` and executes what is already there.
 - Build a `CompilationPlan` from registered AST nodes.
 - Lower the `CompilationPlan` into `CompiledStep` and `CompiledJourney` maps.
 - Build `StepRouteIndex` and `JourneyRouteIndex` from the AST.
-- Return a `JourneyCompilationResult`.
+- Return a `CompiledPackage`.
 - Keep phase orchestration in one place without moving phase-specific rules into the root pipeline.
 
 ## Data Model
 
 `CompilationPipeline` is the root compiler orchestrator.
-It accepts a `JourneyDefinition` and returns a `JourneyCompilationResult`.
+It accepts a `JourneyDefinition` and returns a `CompiledPackage`.
 
 `CompilationDependencies` carries the registries needed during semantic analysis and lowering:
 - `functionRegistry`, used to validate function names and decide generated async behavior.
@@ -56,7 +56,7 @@ It contains:
 It contains `stepInputs`, `journeyInputs`, and `reachabilityInputs`.
 Those maps are shaped around lowering phases.
 
-`JourneyCompilationResult` is the final output.
+`CompiledPackage` is the final output.
 It contains:
 - `journeyCode`, copied from the root journey node.
 - `stepRouteIndex`, a `Map<NodeId, StepRouteDescriptor>`.
@@ -86,7 +86,7 @@ flowchart TD
   plan -->|emit compiled functions| lowering["CodegenOrchestrator.compileAll()"]
   lowering -->|return compiled maps| compiledMaps["steps and journeys"]
   astContext -->|derive route descriptors| routes["buildRouteIndexes()"]
-  routes -->|add route lookups| result["JourneyCompilationResult"]
+  routes -->|add route lookups| result["CompiledPackage"]
   compiledMaps -->|add runtime artifacts| result
 ```
 
@@ -94,16 +94,14 @@ The final result has two kinds of lookup data:
 
 ```mermaid
 flowchart LR
-  result["JourneyCompilationResult"] --> routeIndexes["Route indexes"]
+  result["CompiledPackage"] --> routeIndexes["Route indexes"]
   result --> compiledArtifacts["Compiled artifacts"]
   routeIndexes --> stepRouteIndex["stepRouteIndex: Map<NodeId, StepRouteDescriptor>"]
   routeIndexes --> journeyRouteIndex["journeyRouteIndex: Map<NodeId, JourneyRouteDescriptor>"]
   compiledArtifacts --> steps["steps: Map<NodeId, CompiledStep>"]
   compiledArtifacts --> journeys["journeys: Map<NodeId, CompiledJourney>"]
-  steps --> stepFunctions["compiled answer, validation, resolve, hooks"]
-  journeys --> journeyFunctions["compiled access, answer, step validations"]
-  steps --> sharedNavigation["shared ReachabilityStateTable"]
-  journeys --> sharedNavigation
+  steps --> stepFunctions["compiled reachability, answer, validation, resolve, hooks, static data"]
+  journeys --> journeyFunctions["compiled reachability, access, answer, step validations, static data"]
 ```
 
 Compilation also has a deliberate symmetry with runtime phases.
@@ -118,8 +116,8 @@ The names are intentionally close, but they do not mean the same thing:
 | Access hooks | `HookInputAnalyzer` collects inherited access hooks | `HookLifecycleCompiler.compileAccessLifecycle()` | `request.access` runs `access.lifecycle` |
 | Submit hooks | `HookInputAnalyzer` collects step submit hooks | `HookLifecycleCompiler.compileSubmitHooks()` | `request.submit` runs `submit.lifecycle` on POST |
 | Answer preparation | `AnswerPreparationInputAnalyzer` selects fields and map iterates | `StepAnswerPreparationCompiler.compile()` | `request.answer-preparation` runs `answer.preparation` |
-| Validation | `ValidationInputAnalyzer` selects validating fields and groups | `StepValidationCompiler.compileOnSubmitValidation()` and `compileOnEntryValidation()` | `request.validities`, `request.entry-validation`, and `submit.validation` read or run validation work |
-| Reachability | `ReachabilityPlanAnalyzer` builds the reachability table and facts source | `ReachabilityCompiler.compileFacts()` | `request.reachability` evaluates reachability |
+| Validation | `ValidationInputAnalyzer` selects validating fields and map iterates | `StepValidationCompiler.compileOnSubmitValidation()` and `compileOnEntryValidation()` | `request.validities`, `request.entry-validation`, and `submit.validation` read or run validation work |
+| Reachability | `ReachabilityPlanAnalyzer` builds the reachability state table, plan, and field inventory sources | `ReachabilityCompiler.compileFacts()` | `request.reachability` evaluates reachability |
 | Resolve | `ResolveInputAnalyzer` selects the step, ancestors, and iterates | `StepResolveCompiler.compile()` | `request.resolve` runs `resolve.blocks` |
 
 *Note: Some runtime phases do not have lowering phase compilers.*
@@ -131,7 +129,7 @@ The names are intentionally close, but they do not mean the same thing:
 - [semantic-analysis/README.md](semantic-analysis/README.md) covers semantic checks.
   This phase reads the registered AST and registries, then rejects legal-looking nodes that are illegal in their current compiler context.
 - [dependency-analysis/README.md](dependency-analysis/README.md) covers plan building.
-  This phase turns the registered AST into `CompilationPlan` inputs for step, journey, and navigation compilation.
+  This phase turns the registered AST into `CompilationPlan` inputs for step, journey, and reachability compilation.
 - [lowering/README.md](lowering/README.md) covers code generation.
   This phase turns the `CompilationPlan` into `CompiledStep` and `CompiledJourney` maps.
 - `CompilationPipeline.buildRouteIndexes()` builds route descriptors from `JourneyASTNode` and `StepASTNode`.
@@ -157,7 +155,7 @@ The names are intentionally close, but they do not mean the same thing:
 ## Quirks
 
 - Route indexes are built after lowering, but they do not depend on lowering.
-  They are built at the end because `compile()` assembles the final `JourneyCompilationResult` there.
+  They are built at the end because `compile()` assembles the final `CompiledPackage` there.
 - Journey route descriptors include the journey itself in `ancestorJourneyIds`.
   Step route descriptors filter the step itself out and keep only ancestor journeys.
 - The compiled artifacts are keyed by AST `NodeId`, not by route path or authored `code`.
@@ -183,7 +181,7 @@ The names are intentionally close, but they do not mean the same thing:
 - Preserve `NodeId` as the join key between route indexes, compilation plans, compiled steps, and compiled journeys.
   Mixing in route paths or authored codes can break lookup when values collide or change.
 - Do not expose AST nodes, `ASTNodeIndex`, or `ASTNodeTree` outside compilation.
-  Runtime code should consume `JourneyCompilationResult`, not compiler inspection structures.
+  Runtime code should consume `CompiledPackage`, not compiler inspection structures.
 
 ## Editing Notes
 
@@ -205,5 +203,5 @@ The names are intentionally close, but they do not mean the same thing:
 - [semantic-analysis/README.md](semantic-analysis/README.md) explains which AST placements and references are legal.
 - [dependency-analysis/README.md](dependency-analysis/README.md) explains how compiler inputs are gathered for lowering.
 - [lowering/README.md](lowering/README.md) explains how phase inputs become compiled functions.
-- [../contracts/plans/compilationArtefacts.type.ts](../contracts/plans/compilationArtefacts.type.ts) defines `CompiledStep`, `CompiledJourney`, and `JourneyCompilationResult`.
+- [../contracts/plans/compilationArtefacts.type.ts](../contracts/plans/compilationArtefacts.type.ts) defines `CompiledStep`, `CompiledJourney`, and `CompiledPackage`.
 - [../contracts/routing/routeDescriptors.type.ts](../contracts/routing/routeDescriptors.type.ts) defines `StepRouteIndex`, `JourneyRouteIndex`, and their route descriptors.
