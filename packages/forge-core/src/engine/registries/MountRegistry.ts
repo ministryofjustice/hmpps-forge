@@ -11,6 +11,7 @@ import type {
   CompiledReachabilityFactsFunction,
   CompiledReachabilityStateFunction,
   CompiledResolveFunction,
+  CompiledRouteMetadataFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
@@ -45,6 +46,7 @@ interface MountedNodeBase {
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
   readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  readonly compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
 export interface MountedStepNode extends MountedNodeBase {
@@ -147,6 +149,7 @@ export default class MountRegistry {
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledStep.compiledAnswerPreparation,
         compiledStepValidations: compiledStep.compiledStepValidations,
+        compiledRouteMetadata: compiledStep.compiledRouteMetadata,
         compiledEntryValidation: compiledStep.compiledEntryValidation,
         compiledSubmitHooks: compiledStep.compiledSubmitHooks,
         compiledValidation: compiledStep.compiledValidation,
@@ -193,6 +196,7 @@ export default class MountRegistry {
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledJourney.compiledAnswerPreparation,
         compiledStepValidations: compiledJourney.compiledStepValidations,
+        compiledRouteMetadata: compiledJourney.compiledRouteMetadata,
       })
     })
   }
