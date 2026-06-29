@@ -13,7 +13,7 @@ This document does not cover runtime navigation evaluation or generated navigati
 
 `ReachabilityPlanAnalyzer.buildReachabilityPlan()` returns a `ReachabilityCompilationPlan`.
 It contains:
-- `navigationPlan`, the smaller runtime navigation shape.
+- `stateTable`, the smaller runtime reachability table.
 - `entries`, the richer compile-time reachability entries.
 - `resumeAlways` and `resumeWhenNodeId`, which describe resume behavior.
 
@@ -22,7 +22,6 @@ Each reachability entry can include:
 - `forwardOutcomeGroups`, one group per submit hook with redirect outcomes.
 - `cleardownFieldCodes`, copied from the step.
 - `reachabilityTieBreakers`, copied from step reachability config.
-- `hasValidation`, derived from field and step validation configuration.
 
 `ForwardNavigationAnalyzer` extracts redirect outcomes from submit hooks.
 `RequestTimeReferenceAnalyzer` detects references that cannot be evaluated during compile-time navigation.
@@ -41,7 +40,7 @@ flowchart TD
   stepMetadata -->|compile-time entry| reachabilityPlan["ReachabilityCompilationPlan.entries"]
   overApproximate -->|with evaluation flag| reachabilityPlan
   exact -->|with evaluation flag| reachabilityPlan
-  reachabilityPlan -->|project runtime subset| navigationPlan["NavigationRuntimePlan.entries"]
+  reachabilityPlan -->|project runtime subset| stateTable["ReachabilityStateTable.entries"]
 ```
 
 ## Rules
@@ -63,7 +62,7 @@ flowchart TD
 - To change resume behavior, entry predicates, tie-breakers, cleardown fields, or reachability-disabled inheritance, start in `ReachabilityPlanAnalyzer`.
 - To change which submit outcomes count as forward navigation, start in `ForwardNavigationAnalyzer`.
 - To change request-time namespaces, update `RequestTimeReferenceAnalyzer.REQUEST_TIME_NAMESPACES`.
-- Keep `NavigationRuntimePlan.entries` smaller than `ReachabilityCompilationPlan.entries`.
+- Keep `ReachabilityStateTable.entries` smaller than `ReachabilityCompilationPlan.entries`.
   Runtime navigation does not need all compiler-only metadata.
 
 ## Entry Points

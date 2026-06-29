@@ -102,7 +102,7 @@ flowchart LR
   compiledArtifacts --> journeys["journeys: Map<NodeId, CompiledJourney>"]
   steps --> stepFunctions["compiled answer, validation, resolve, hooks"]
   journeys --> journeyFunctions["compiled access, answer, step validations"]
-  steps --> sharedNavigation["shared NavigationRuntimePlan"]
+  steps --> sharedNavigation["shared ReachabilityStateTable"]
   journeys --> sharedNavigation
 ```
 

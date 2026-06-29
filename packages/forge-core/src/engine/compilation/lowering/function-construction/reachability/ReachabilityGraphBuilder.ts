@@ -1,4 +1,4 @@
-import type { NavigationRuntimeEntry, NavigationRuntimePlan } from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
 import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
 import type { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
@@ -31,7 +31,7 @@ export default class ReachabilityGraphBuilder {
   private stepIndexByStepId!: Map<NodeId, number>
 
   buildReachableSteps(
-    plan: NavigationRuntimePlan,
+    plan: ReachabilityStateTable,
     currentStepId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     compiledResult: CompiledReachabilityResult,
@@ -75,7 +75,7 @@ export default class ReachabilityGraphBuilder {
     return this.steps[0]?.routeTemplatePath
   }
 
-  private createStepStates(entries: NavigationRuntimeEntry[]): ReachabilityNode[] {
+  private createStepStates(entries: ReachabilityStateTableEntry[]): ReachabilityNode[] {
     return entries.map((entry, declarationIndex) => {
       const routeTemplatePath = this.routeTemplateCatalog.routeTemplatePathByStepId.get(entry.stepId)
 
@@ -100,7 +100,7 @@ export default class ReachabilityGraphBuilder {
     })
   }
 
-  private seedEntryPoints(entries: NavigationRuntimeEntry[]): void {
+  private seedEntryPoints(entries: ReachabilityStateTableEntry[]): void {
     entries.forEach((entry, index) => {
       if (entry.isEntryPoint) {
         this.steps[index].isReachable = true
@@ -113,7 +113,7 @@ export default class ReachabilityGraphBuilder {
     })
   }
 
-  private walkReachabilityGraph(plan: NavigationRuntimePlan, currentStepId: NodeId | undefined): void {
+  private walkReachabilityGraph(plan: ReachabilityStateTable, currentStepId: NodeId | undefined): void {
     if (this.steps.length === 0) {
       return
     }

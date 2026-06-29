@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { joinPaths } from '../../../../../framework/path/routePath'
 import type {
   ForwardOutcomeEvaluation,
-  NavigationRuntimePlan,
-  NavigationRuntimeEntry,
+  ReachabilityStateTable,
+  ReachabilityStateTableEntry,
 } from '../../../../contracts/plans/runtimePlans.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
@@ -22,7 +22,7 @@ function createEntry(options: {
   isEntryPoint?: boolean
   hasValidation?: boolean
   forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
-}): NavigationRuntimeEntry {
+}): ReachabilityStateTableEntry {
   routePathsByStepId.set(options.stepId, options.path)
 
   if (options.hasValidation) {
@@ -37,7 +37,7 @@ function createEntry(options: {
   }
 }
 
-function createRouteTemplateCatalog(entries: NavigationRuntimeEntry[]): JourneyRouteTemplateCatalog {
+function createRouteTemplateCatalog(entries: ReachabilityStateTableEntry[]): JourneyRouteTemplateCatalog {
   const routeTemplatePathByStepId = new Map<NodeId, string>()
   const stepIdByRouteTemplatePath = new Map<string, NodeId>()
 
@@ -56,7 +56,7 @@ function createRouteTemplateCatalog(entries: NavigationRuntimeEntry[]): JourneyR
 }
 
 function createFacts(
-  plan: NavigationRuntimePlan,
+  plan: ReachabilityStateTable,
   overrides: {
     entryResults?: Record<number, boolean>
     outcomeValues?: Record<number, string[]>
@@ -83,7 +83,7 @@ function createFacts(
 
 // The compiled state function receives navigation-mode validity as a boolean map:
 // a step is present iff it has validation, and the value is its validity.
-function setStepValidities(plan: NavigationRuntimePlan, validStepIds: NodeId[]): void {
+function setStepValidities(plan: ReachabilityStateTable, validStepIds: NodeId[]): void {
   stepValidities = new Map()
 
   plan.entries.forEach(entry => {
@@ -104,7 +104,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should seed unconditional and conditional entry points when entry results are true', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:1', path: 'start', isEntryPoint: true }),
         createEntry({ stepId: 'compile_ast:2', path: 'gated' }),
@@ -136,7 +136,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should not propagate reachability past an invalid step', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:110', path: 'entry', isEntryPoint: true, hasValidation: true }),
         createEntry({ stepId: 'compile_ast:111', path: 'middle', hasValidation: true }),
@@ -167,7 +167,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should redirect resume requests to the first invalid non-entry step on the progress path', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:30', path: 'your-name', isEntryPoint: true, hasValidation: true }),
         createEntry({ stepId: 'compile_ast:32', path: 'your-role', hasValidation: true }),
@@ -201,7 +201,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should not redirect when the current step is already the frontier', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:40', path: 'your-name', isEntryPoint: true, hasValidation: true }),
         createEntry({ stepId: 'compile_ast:42', path: 'your-role', hasValidation: true }),
@@ -230,7 +230,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should derive a canonical current-step path using predecessor tie-breakers for converging branches', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:70', path: 'entry', isEntryPoint: true }),
         createEntry({ stepId: 'compile_ast:73', path: 'branch-a', hasValidation: true }),
@@ -267,7 +267,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should mark all steps reachable and skip the walk when reachabilityDisabled is true', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:90', path: 'page-one' }),
         createEntry({ stepId: 'compile_ast:91', path: 'page-two' }),
@@ -296,7 +296,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should fall back to the first declared step when no active entry point exists', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:80', path: 'first' }),
         createEntry({ stepId: 'compile_ast:81', path: 'second' }),
@@ -323,7 +323,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should retain the current step forward paths for cleardown when forward outcomes are exact', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:400', path: 'entry', isEntryPoint: true }),
         createEntry({ stepId: 'compile_ast:401', path: 'next' }),
@@ -349,7 +349,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should retain nothing for cleardown when the current step forward outcomes are over-approximated', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({
           stepId: 'compile_ast:410',
@@ -380,7 +380,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should project reachable and unreachable steps when field inventory and params are supplied', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [
         createEntry({
           stepId: 'compile_ast:200',
@@ -426,7 +426,7 @@ describe('evaluateReachabilityState', () => {
 
   it('should omit the projection when field inventory or params are absent', () => {
     // Arrange
-    const plan: NavigationRuntimePlan = {
+    const plan: ReachabilityStateTable = {
       entries: [createEntry({ stepId: 'compile_ast:300', path: 'entry', isEntryPoint: true })],
       resumeConfigured: false,
       unreachableRedirect: 'entry',

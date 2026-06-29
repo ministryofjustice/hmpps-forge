@@ -41,9 +41,8 @@ describe('CompilationPlanBuilder', () => {
       expect(result.stepInputs.get(firstStepNode.id)?.core.runtimePlan.path).toBe('first')
       expect(result.stepInputs.get(firstStepNode.id)?.core.navigationId).toBe(journeyNode.id)
       expect(result.stepInputs.get(secondStepNode.id)?.core.navigationId).toBe(journeyNode.id)
-      expect(result.journeyInputs.get(journeyNode.id)?.navigationPlan).toBe(navigationInputs?.runtimePlan)
       expect(navigationInputs?.navigationId).toBe(journeyNode.id)
-      expect(navigationInputs?.reachabilityPlan.navigationPlan).toBe(navigationInputs?.runtimePlan)
+      expect(navigationInputs?.reachabilityPlan.stateTable).toBe(navigationInputs?.stateTable)
       expect(navigationInputs?.fieldInventorySources).toEqual([
         {
           stepId: firstStepNode.id,

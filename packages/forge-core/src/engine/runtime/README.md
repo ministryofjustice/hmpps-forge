@@ -138,8 +138,8 @@ Runtime executes that work against one request.
 | Access | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
 | Answer preparation | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
 | Step validities | `compiledStepValidations` | `request.validities` runs `validation.step` tasks |
-| Reachability | `navigationPlan` | `request.reachability` runs `reachability.evaluation` |
-| Answer cleardown | `navigationPlan` and reachability state | `request.answer-cleardown` clears stale answers |
+| Reachability | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
+| Answer cleardown | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
 | Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
 | Submit | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
 | Resolve | `compiledResolve` | `request.resolve` builds `RenderContext` |

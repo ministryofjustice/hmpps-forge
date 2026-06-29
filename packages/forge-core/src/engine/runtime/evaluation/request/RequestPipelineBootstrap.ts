@@ -78,8 +78,8 @@ export default class RequestPipelineBootstrap {
 
     const reachability = WorkTaskFactory.requestReachability({
       mode: node.kind,
-      compiledReachabilityFacts: node.navigationPlan.compiledReachabilityFacts,
-      compiledReachabilityState: node.navigationPlan.compiledReachabilityState,
+      compiledReachabilityFacts: node.compiledReachabilityFacts,
+      compiledReachabilityState: node.compiledReachabilityState,
       routeTemplateCatalog: node.routeTemplateCatalog,
       method,
     })

@@ -6,7 +6,7 @@ import type {
   NavigationCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
-import type { NavigationRuntimePlan } from '../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
 import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import FieldInventoryAnalyzer from './shared/FieldInventoryAnalyzer'
@@ -76,13 +76,13 @@ export default class CompilationPlanBuilder {
 
       navigationInputs.set(journeyId, {
         navigationId: journeyId,
-        runtimePlan: reachabilityPlan.navigationPlan,
+        stateTable: reachabilityPlan.stateTable,
         reachabilityPlan,
         fieldInventorySources: this.reachabilityPlanAnalyzer.buildFieldInventorySources(reachabilityPlan),
       })
 
       if (journeyNode) {
-        journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.navigationPlan))
+        journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
       }
     })
 
@@ -110,14 +110,13 @@ export default class CompilationPlanBuilder {
 
   private buildJourneyInputs(
     journeyNode: JourneyASTNode,
-    navigationPlan: NavigationRuntimePlan,
+    stateTable: ReachabilityStateTable,
   ): JourneyCompilationInputs {
-    const stepIds = navigationPlan.entries.map(entry => entry.stepId)
+    const stepIds = stateTable.entries.map(entry => entry.stepId)
 
     return {
       runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(journeyNode),
       staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode.id),
-      navigationPlan,
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
       accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode.id),
     }

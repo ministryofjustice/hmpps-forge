@@ -5,7 +5,7 @@ import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../..
 import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'
 import type {
   ForwardOutcomeGroup,
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../../contracts/plans/runtimePlans.type'
@@ -90,17 +90,17 @@ function createGroup(
 
 function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
   const entries = overrides.entries ?? []
-  const navigationPlan = overrides.navigationPlan ?? createNavigationPlan(entries)
+  const stateTable = overrides.stateTable ?? createStateTable(entries)
 
   return {
     entries,
     resumeAlways: false,
-    navigationPlan,
+    stateTable,
     ...overrides,
   }
 }
 
-function createNavigationPlan(entries: ReachabilityCompilationEntry[]): NavigationRuntimePlan {
+function createStateTable(entries: ReachabilityCompilationEntry[]): ReachabilityStateTable {
   return {
     entries: entries.map(entry => ({
       stepId: entry.stepId,

@@ -35,8 +35,7 @@ This is why cleardown uses both the full reachability projection and the current
 `evaluateAnswerCleardown()` receives:
 - `reachability`, a `JourneyReachabilityProjection` from reachability projection.
 - `answers`, the live `Record<string, AnswerHistory>`.
-- `evaluation`, the current `ReachabilityEvaluation`.
-- `navigationPlan`, used to find the current step's forward edges.
+- `evaluation`, the current `ReachabilityEvaluation` — its `cleardownRetentionRouteTemplatePaths` lists the current step's forward edges to retain.
 - `params`, used to resolve route-template paths.
 
 `AnswerHistory` is mutated in place:
@@ -79,8 +78,7 @@ answers.petName = {
 ```mermaid
 flowchart TD
   reachability["JourneyReachabilityProjection"] --> fields["resolveFieldsToClear()"]
-  evaluation["ReachabilityEvaluation"] --> retained["resolveCurrentForwardStepPaths()"]
-  navigationPlan["NavigationRuntimePlan"] --> retained
+  evaluation["ReachabilityEvaluation.cleardownRetentionRouteTemplatePaths"] --> retained["resolve retained paths"]
   retained --> fields
   answers["AnswerHistory map"] --> fields
   fields --> clear["clearStaleAnswers()"]

@@ -3,7 +3,7 @@ import type { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../as
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../ast/structures.type'
 import type {
   JourneyRuntimePlan,
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationPlan,
   StepRuntimePlan,
 } from './runtimePlans.type'
@@ -59,7 +59,6 @@ export interface StepCompilationInputs {
 export interface JourneyCompilationInputs {
   readonly runtimePlan: JourneyRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly navigationPlan: NavigationRuntimePlan
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
   readonly accessHooks: AccessHookASTNode[]
@@ -74,7 +73,7 @@ export interface FieldInventoryStepSource {
 
 export interface NavigationCompilationInputs {
   readonly navigationId: NodeId
-  readonly runtimePlan: NavigationRuntimePlan
+  readonly stateTable: ReachabilityStateTable
   readonly reachabilityPlan: ReachabilityCompilationPlan
   readonly fieldInventorySources: FieldInventoryStepSource[]
 }

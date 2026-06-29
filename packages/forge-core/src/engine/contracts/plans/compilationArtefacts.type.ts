@@ -1,10 +1,12 @@
 import type { NodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
-import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
   CompiledResolveFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
@@ -12,7 +14,8 @@ import type {
 
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
-  navigationPlan: NavigationRuntimePlan
+  compiledReachabilityFacts?: CompiledReachabilityFactsFunction
+  compiledReachabilityState?: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledSubmitHooks?: CompiledSubmitHooksFunction
@@ -25,7 +28,8 @@ export interface CompiledStep {
 
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
-  navigationPlan: NavigationRuntimePlan
+  compiledReachabilityFacts?: CompiledReachabilityFactsFunction
+  compiledReachabilityState?: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle?: CompiledAccessLifecycleFunction
   compiledAnswerPreparation?: CompiledAnswerPreparationFunction

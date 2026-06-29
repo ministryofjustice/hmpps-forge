@@ -13,7 +13,7 @@ This document does not cover dependency-analysis reachability, route tree buildi
 
 Reachability decides which steps are currently available.
 
-Compilation has already produced `NavigationRuntimePlan` and `CompiledReachabilityResult`.
+Compilation has already produced `ReachabilityStateTable` and `CompiledReachabilityResult`.
 Runtime still needs to combine that compiled output with current answers, request params, and step validities.
 For example, an invalid step should block forward reachability in navigation mode.
 A resume-enabled journey may redirect to the frontier.
@@ -24,7 +24,7 @@ It contains evaluated predicates and outcomes, but runtime must walk the graph, 
 
 ## Responsibilities
 
-- Build reachable step nodes from `NavigationRuntimePlan.entries`.
+- Build reachable step nodes from `ReachabilityStateTable.entries`.
 - Seed static and conditional entry points.
 - Walk forward navigation edges.
 - Gate propagation through navigation-mode step validity.
@@ -41,7 +41,7 @@ It contains evaluated predicates and outcomes, but runtime must walk the graph, 
 - `compiledResult`, the `CompiledReachabilityResult` from generated navigation.
 
 `ReachabilityEvaluationInput` contains:
-- `plan`, the `NavigationRuntimePlan`.
+- `plan`, the `ReachabilityStateTable`.
 - `currentStepId`, present for step requests.
 - `routeTemplateCatalog`.
 - `params`, present when projection can resolve concrete paths.

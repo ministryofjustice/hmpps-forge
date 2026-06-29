@@ -113,7 +113,6 @@ A journey with two steps starts as registered AST nodes:
   journeyInputs: Map {
     'compile_ast:1' => {
       runtimePlan: { journeyId: 'compile_ast:1', path: 'travel-declaration', staticData: {} },
-      navigationPlan: { entries: [...], resumeConfigured: false, unreachableRedirect: 'entry', ... },
       stepFieldBlocks: [...],
       stepMapIterateNodes: [...],
       accessHooks: [...],
@@ -122,8 +121,8 @@ A journey with two steps starts as registered AST nodes:
   navigationInputs: Map {
     'compile_ast:1' => {
       navigationId: 'compile_ast:1',
-      runtimePlan: { entries: [...], ... },
-      reachabilityPlan: { navigationPlan: ..., entries: [...], resumeAlways: false },
+      stateTable: { entries: [...], ... },
+      reachabilityPlan: { stateTable: ..., entries: [...], resumeAlways: false },
       fieldInventorySources: [...],
     },
   },

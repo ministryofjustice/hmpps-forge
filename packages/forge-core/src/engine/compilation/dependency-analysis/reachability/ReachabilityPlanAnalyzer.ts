@@ -1,7 +1,7 @@
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type {
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
@@ -28,7 +28,7 @@ export default class ReachabilityPlanAnalyzer {
     const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
-    const navigationPlan: NavigationRuntimePlan = {
+    const stateTable: ReachabilityStateTable = {
       entries: entries.map(entry => ({
         stepId: entry.stepId,
         code: entry.code,
@@ -41,7 +41,7 @@ export default class ReachabilityPlanAnalyzer {
     }
 
     return {
-      navigationPlan,
+      stateTable,
       entries,
       resumeAlways,
       resumeWhenNodeId,

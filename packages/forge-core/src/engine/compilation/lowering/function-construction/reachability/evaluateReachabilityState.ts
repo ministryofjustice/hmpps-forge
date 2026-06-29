@@ -1,7 +1,7 @@
 import NavigationPathAnalyzer from './NavigationPathAnalyzer'
 import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import type { NavigationRuntimePlan } from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
 import type {
   ReachabilityEvaluation,
@@ -24,7 +24,7 @@ import type {
  * so the runtime can call it with only request-time inputs.
  */
 export function evaluateReachabilityState(
-  plan: NavigationRuntimePlan,
+  plan: ReachabilityStateTable,
   input: ReachabilityStateInput,
 ): ReachabilityEvaluationResult {
   const builder = new ReachabilityGraphBuilder()
@@ -81,7 +81,7 @@ export function evaluateReachabilityState(
  * which case nothing can be safely retained.
  */
 function resolveCleardownRetentionRouteTemplatePaths(
-  plan: NavigationRuntimePlan,
+  plan: ReachabilityStateTable,
   currentStepId: NodeId | undefined,
   steps: ReachabilityNode[],
 ): string[] {

@@ -1,7 +1,7 @@
 import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import type { CompilationPlan, StepCompilationInputs } from '../../contracts/plans/compilationPlan.type'
-import type { NavigationRuntimePlan, ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CodegenOrchestrator from './CodegenOrchestrator'
@@ -12,11 +12,11 @@ describe('CodegenOrchestrator', () => {
   })
 
   describe('compileAll()', () => {
-    it('should attach compiled navigation to the shared navigation runtime plan', () => {
+    it('should attach the compiled reachability functions to each step and journey', () => {
       // Arrange
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
-      const navigationPlan: NavigationRuntimePlan = {
+      const stateTable: ReachabilityStateTable = {
         entries: [
           {
             stepId: stepNode.id,
@@ -28,7 +28,7 @@ describe('CodegenOrchestrator', () => {
         reachabilityDisabled: false,
       }
       const reachabilityPlan: ReachabilityCompilationPlan = {
-        navigationPlan,
+        stateTable,
         entries: [
           {
             stepId: stepNode.id,
@@ -81,7 +81,6 @@ describe('CodegenOrchestrator', () => {
                 path: 'journey',
               },
               staticData: { shared: 'journey' },
-              navigationPlan,
               stepFieldBlocks: [],
               stepMapIterateNodes: [],
               accessHooks: [],
@@ -93,7 +92,7 @@ describe('CodegenOrchestrator', () => {
             journeyNode.id,
             {
               navigationId: journeyNode.id,
-              runtimePlan: navigationPlan,
+              stateTable,
               reachabilityPlan,
               fieldInventorySources: [],
             },
@@ -109,10 +108,10 @@ describe('CodegenOrchestrator', () => {
       const result = orchestrator.compileAll(plan, new ASTNodeIndex())
 
       // Assert
-      expect(result.steps.get(stepNode.id)?.navigationPlan).toBe(navigationPlan)
-      expect(result.journeys.get(journeyNode.id)?.navigationPlan).toBe(navigationPlan)
-      expect(navigationPlan.compiledReachabilityFacts).toEqual(expect.any(Function))
-      expect(navigationPlan.compiledReachabilityState).toEqual(expect.any(Function))
+      expect(result.steps.get(stepNode.id)?.compiledReachabilityFacts).toEqual(expect.any(Function))
+      expect(result.steps.get(stepNode.id)?.compiledReachabilityState).toEqual(expect.any(Function))
+      expect(result.journeys.get(journeyNode.id)?.compiledReachabilityFacts).toEqual(expect.any(Function))
+      expect(result.journeys.get(journeyNode.id)?.compiledReachabilityState).toEqual(expect.any(Function))
       expect(result.steps.get(stepNode.id)?.compiledStaticData()).toEqual({ shared: 'step' })
       expect(result.journeys.get(journeyNode.id)?.compiledStaticData()).toEqual({ shared: 'journey' })
     })
