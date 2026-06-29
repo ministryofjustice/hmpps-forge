@@ -1,4 +1,4 @@
-import { assertString } from '../../shared/utils/asserts'
+import { assertString, isAbsent } from '../../shared/utils/asserts'
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 
@@ -13,6 +13,10 @@ export interface AddressConditionGroup {
 export const { conditions: AddressConditions, implementations: AddressConditionsImplementations } =
   defineConditionFunctions<AddressConditionGroup>({
     IsValidPostcode: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Address.IsValidPostcode')
 
       const postcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}| ?0A{2})$/i

@@ -19,13 +19,15 @@ describe('StringConditions', () => {
       expect(evaluate('abc', '^\\d+$')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
+    test('should throw error when value is present but not a string', () => {
       expect(() => evaluate(123, 'pattern')).toThrow(
         'Condition.String.MatchesRegex expects a string but received number',
       )
-      expect(() => evaluate(null, 'pattern')).toThrow(
-        'Condition.String.MatchesRegex expects a string but received object',
-      )
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 'pattern')).toBe(false)
+      expect(evaluate(undefined, 'pattern')).toBe(false)
     })
 
     test('should throw error for invalid regex pattern', () => {
@@ -264,10 +266,9 @@ describe('StringConditions', () => {
       expect(evaluate('')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(null)).toThrow(
-        'Condition.String.LettersWithCommonPunctuation expects a string but received object',
-      )
+    test('should return false when value is absent', () => {
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -298,10 +299,9 @@ describe('StringConditions', () => {
       expect(evaluate('test.')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.String.LettersWithSpaceDashApostrophe expects a string but received undefined',
-      )
+    test('should return false when value is absent', () => {
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -466,8 +466,9 @@ describe('StringConditions', () => {
       expect(evaluate('', 'o')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(null, 'suffix')).toThrow('Condition.String.EndsWith expects a string but received object')
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 'suffix')).toBe(false)
+      expect(evaluate(undefined, 'suffix')).toBe(false)
     })
 
     test('should throw error when suffix is not a string', () => {

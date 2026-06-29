@@ -119,20 +119,19 @@ describe('ArrayConditions', () => {
       expect(evaluate([[1, 2]], [1, 2])).toBe(false)
     })
 
-    test('should throw error when value is not an array', () => {
+    test('should throw error when value is present but not an array', () => {
       expect(() => evaluate('not-an-array' as any, 'test')).toThrow(
         'Condition.Array.Contains expects an array but received string',
-      )
-      expect(() => evaluate(null as any, 'test')).toThrow(
-        'Condition.Array.Contains expects an array but received object',
-      )
-      expect(() => evaluate(undefined as any, 'test')).toThrow(
-        'Condition.Array.Contains expects an array but received undefined',
       )
       expect(() => evaluate(123 as any, 'test')).toThrow(
         'Condition.Array.Contains expects an array but received number',
       )
       expect(() => evaluate({} as any, 'test')).toThrow('Condition.Array.Contains expects an array but received object')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null as any, 'test')).toBe(false)
+      expect(evaluate(undefined as any, 'test')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -186,19 +185,18 @@ describe('ArrayConditions', () => {
       expect(evaluate([arr1, 'test'], [arr2])).toBe(false)
     })
 
-    test('should throw error when value is not an array', () => {
+    test('should throw error when value is present but not an array', () => {
       expect(() => evaluate('not-an-array' as any, ['test'])).toThrow(
         'Condition.Array.ContainsAny expects an array but received string',
-      )
-      expect(() => evaluate(null as any, ['test'])).toThrow(
-        'Condition.Array.ContainsAny expects an array but received object',
-      )
-      expect(() => evaluate(undefined as any, ['test'])).toThrow(
-        'Condition.Array.ContainsAny expects an array but received undefined',
       )
       expect(() => evaluate(123 as any, ['test'])).toThrow(
         'Condition.Array.ContainsAny expects an array but received number',
       )
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null as any, ['test'])).toBe(false)
+      expect(evaluate(undefined as any, ['test'])).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -266,19 +264,18 @@ describe('ArrayConditions', () => {
       expect(evaluate([arr1], [arr2])).toBe(false)
     })
 
-    test('should throw error when value is not an array', () => {
+    test('should throw error when value is present but not an array', () => {
       expect(() => evaluate('not-an-array' as any, [1, 2])).toThrow(
         'Condition.Array.ContainsAll expects an array but received string',
-      )
-      expect(() => evaluate(null as any, [1, 2])).toThrow(
-        'Condition.Array.ContainsAll expects an array but received object',
-      )
-      expect(() => evaluate(undefined as any, [1, 2])).toThrow(
-        'Condition.Array.ContainsAll expects an array but received undefined',
       )
       expect(() => evaluate(123 as any, [1, 2])).toThrow(
         'Condition.Array.ContainsAll expects an array but received number',
       )
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null as any, [1, 2])).toBe(false)
+      expect(evaluate(undefined as any, [1, 2])).toBe(false)
     })
 
     test('should build correct expression object', () => {

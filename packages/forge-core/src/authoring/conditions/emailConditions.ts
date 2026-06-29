@@ -1,4 +1,4 @@
-import { assertString } from '../../shared/utils/asserts'
+import { assertString, isAbsent } from '../../shared/utils/asserts'
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 
@@ -14,6 +14,10 @@ export interface EmailConditionGroup {
 export const { conditions: EmailConditions, implementations: EmailConditionsImplementations } =
   defineConditionFunctions<EmailConditionGroup>({
     IsValidEmail: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Email.IsValidEmail')
 
       const emailRegex =

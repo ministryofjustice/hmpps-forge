@@ -1,4 +1,4 @@
-import { assertString } from '../../shared/utils/asserts'
+import { assertString, isAbsent } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
@@ -91,6 +91,10 @@ export interface DateConditionGroup {
 export const { conditions: DateConditions, implementations: DateConditionsImplementations } =
   defineConditionFunctions<DateConditionGroup>({
     IsValid: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsValid')
 
       const parsed = parseISODate(value)
@@ -107,6 +111,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsValidYear: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsValidYear')
 
       const parsed = parseISODate(value)
@@ -118,6 +126,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsValidMonth: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsValidMonth')
 
       const parsed = parseISODate(value)
@@ -129,6 +141,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsValidDay: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsValidDay')
 
       const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -150,6 +166,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsBefore: () => (value: unknown, dateStr: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsBefore')
       assertString(dateStr, 'Condition.Date.IsBefore (dateStr)')
 
@@ -170,6 +190,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsAfter: () => (value: unknown, dateStr: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsAfter')
       assertString(dateStr, 'Condition.Date.IsAfter (dateStr)')
 
@@ -190,6 +214,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsFutureDate: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsFutureDate')
 
       const parsed = parseISODate(value)
@@ -205,6 +233,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsPastDate: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsPastDate')
 
       const parsed = parseISODate(value)
@@ -220,6 +252,10 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
     },
 
     IsToday: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Date.IsToday')
 
       const parsed = parseISODate(value)

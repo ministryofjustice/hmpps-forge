@@ -1,4 +1,4 @@
-import { assertNumber, assertString } from '../../shared/utils/asserts'
+import { assertNumber, assertString, isAbsent } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
@@ -116,6 +116,10 @@ export interface StringConditionGroup {
 export const { conditions: StringConditions, implementations: StringConditionsImplementations } =
   defineConditionFunctions<StringConditionGroup>({
     MatchesRegex: () => (value: unknown, pattern: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.MatchesRegex')
       assertString(pattern, 'Condition.String.MatchesRegex (pattern)')
 
@@ -127,6 +131,10 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
     },
 
     HasMinLength: () => (value: unknown, min: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.HasMinLength')
       assertNumber(min, 'Condition.String.HasMinLength (min)')
 
@@ -138,6 +146,10 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
     },
 
     HasMaxLength: () => (value: unknown, max: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.HasMaxLength')
       assertNumber(max, 'Condition.String.HasMaxLength (max)')
 
@@ -149,6 +161,10 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
     },
 
     HasExactLength: () => (value: unknown, len: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.HasExactLength')
       assertNumber(len, 'Condition.String.HasExactLength (len)')
 
@@ -160,6 +176,10 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
     },
 
     HasMaxWords: () => (value: unknown, maxWords: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.HasMaxWords')
       assertNumber(maxWords, 'Condition.String.HasMaxWords (maxWords)')
 
@@ -176,53 +196,93 @@ export const { conditions: StringConditions, implementations: StringConditionsIm
     },
 
     LettersOnly: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.LettersOnly')
       return /^[A-Za-z]+$/.test(value)
     },
 
     DigitsOnly: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.DigitsOnly')
       return /^[0-9]+$/.test(value)
     },
 
     LettersWithCommonPunctuation: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.LettersWithCommonPunctuation')
       return /^[A-Za-z.,'"()\-!? ]+$/.test(value)
     },
 
     LettersWithSpaceDashApostrophe: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.LettersWithSpaceDashApostrophe')
       return /^[A-Za-z\s\-']+$/.test(value)
     },
 
     LettersAndDigitsOnly: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.LettersAndDigitsOnly')
       return /^[A-Za-z0-9]+$/.test(value)
     },
 
     AlphanumericWithCommonPunctuation: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.AlphanumericWithCommonPunctuation')
       return /^[A-Za-z0-9.,'"()\-!? ]+$/.test(value)
     },
 
     AlphanumericWithAllSafeSymbols: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.AlphanumericWithAllSafeSymbols')
       return /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)
     },
 
     StartsWith: () => (value: unknown, prefix: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.StartsWith')
       assertString(prefix, 'Condition.String.StartsWith (prefix)')
       return value.startsWith(prefix)
     },
 
     EndsWith: () => (value: unknown, suffix: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.EndsWith')
       assertString(suffix, 'Condition.String.EndsWith (suffix)')
       return value.endsWith(suffix)
     },
 
     Contains: () => (value: unknown, substring: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.String.Contains')
       assertString(substring, 'Condition.String.Contains (substring)')
       return value.includes(substring)
