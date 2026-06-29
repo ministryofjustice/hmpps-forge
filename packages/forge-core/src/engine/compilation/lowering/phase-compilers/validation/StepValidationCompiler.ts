@@ -70,7 +70,7 @@ export default class StepValidationCompiler {
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
-  ): CompiledValidationFunction | undefined {
+  ): CompiledValidationFunction {
     return compileGeneratedFunction<CompiledValidationFunction>(
       this.expr,
       ['ctx', 'isSubmission'],
@@ -82,15 +82,11 @@ export default class StepValidationCompiler {
   /**
    * Builds the generated group-selector used before rendering a GET request.
    */
-  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction | undefined {
-    if (entries === undefined || entries.length === 0) {
-      return undefined
-    }
-
+  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction {
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildEntryValidationSource(entries),
+      () => this.buildEntryValidationSource(entries ?? []),
       { phase: 'entry-validation' },
     )
   }

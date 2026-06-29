@@ -12,17 +12,38 @@ import type {
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 
+export type CompiledPackageFunctions = Record<PropertyKey, never>
+
+export interface CompiledJourneyFunctions {
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+}
+
+export interface CompiledStepFunctions {
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledSubmitHooks: CompiledSubmitHooksFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledValidation: CompiledValidationFunction
+  compiledEntryValidation: CompiledEntryValidationFunction
+  compiledResolve: CompiledResolveFunction
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledSubmitHooks?: CompiledSubmitHooksFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
-  compiledValidation?: CompiledValidationFunction
-  compiledEntryValidation?: CompiledEntryValidationFunction
-  compiledResolve?: CompiledResolveFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledSubmitHooks: CompiledSubmitHooksFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledValidation: CompiledValidationFunction
+  compiledEntryValidation: CompiledEntryValidationFunction
+  compiledResolve: CompiledResolveFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
@@ -31,8 +52,8 @@ export interface CompiledJourney {
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
   compiledStaticData: CompiledStaticDataFunction
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 

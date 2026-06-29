@@ -23,10 +23,10 @@ export interface RequestPipelineWorkProps {
 /**
  * The shared shape of a phase that runs one compiled function over the step path.
  * Access, answer-preparation, entry-validation, submit, and render all instantiate
- * it; `compiled` is the phase's compiled function (absent when the step has none).
+ * it; `compiled` is the phase's compiled function.
  */
 export interface PhaseWorkProps<TCompiled> {
-  readonly compiled: TCompiled | undefined
+  readonly compiled: TCompiled
   readonly path: string
 }
 

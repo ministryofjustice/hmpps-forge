@@ -43,17 +43,17 @@ interface MountedNodeBase {
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
-  readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction | undefined
-  readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction | undefined
+  readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
 export interface MountedStepNode extends MountedNodeBase {
   readonly kind: 'step'
-  readonly compiledEntryValidation: CompiledEntryValidationFunction | undefined
-  readonly compiledSubmitHooks: CompiledSubmitHooksFunction | undefined
-  readonly compiledValidation: CompiledValidationFunction | undefined
-  readonly compiledResolve: CompiledResolveFunction | undefined
+  readonly compiledEntryValidation: CompiledEntryValidationFunction
+  readonly compiledSubmitHooks: CompiledSubmitHooksFunction
+  readonly compiledValidation: CompiledValidationFunction
+  readonly compiledResolve: CompiledResolveFunction
   readonly routeTree: StoredRouteTree
 }
 

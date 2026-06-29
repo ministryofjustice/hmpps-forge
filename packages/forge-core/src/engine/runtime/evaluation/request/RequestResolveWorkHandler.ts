@@ -34,12 +34,6 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
   kind: REQUEST_RESOLVE_KIND,
 
   async begin(ctx: WorkContextContract<RequestExecutionContext, RequestResolveWorkProps>) {
-    if (!ctx.props.compiled) {
-      throw new Error(
-        `[Forge] Resolve compilation is required — compiledResolve function is missing for step "${ctx.props.path}"`,
-      )
-    }
-
     const fieldFailures: Record<string, ValidationResult[]> = ctx.request.showValidationFailures
       ? groupFieldFailuresByBlockId(ctx.request.validation?.fieldFailures ?? [])
       : {}

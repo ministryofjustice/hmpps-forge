@@ -52,14 +52,14 @@ describe('SubmitValidationWorkHandler', () => {
       expect(completed.children.map(child => child.key)).toEqual(['validation:stub'])
     })
 
-    it('should reject when validation task is missing', async () => {
+    it('should reject when the validation builder returns no task', async () => {
       // Arrange
       const buildStepValidation = vi.fn(() => undefined)
       const validation = createWorkTask('submit-validation', SUBMIT_VALIDATION_WORK_HANDLER, { groups: ['lookup'] })
 
       // Act & Assert
       await expect(new WorkExecutor().execute(validation, createContext({ buildStepValidation }))).rejects.toThrow(
-        'Compiled validation missing for submit',
+        'Submit validation task missing',
       )
     })
   })

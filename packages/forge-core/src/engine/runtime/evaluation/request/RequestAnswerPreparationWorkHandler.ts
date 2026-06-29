@@ -29,12 +29,6 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
   kind: REQUEST_ANSWER_PREPARATION_KIND,
 
   async begin(ctx: WorkContextContract<RequestExecutionContext, RequestAnswerPreparationWorkProps>) {
-    if (!ctx.props.compiled) {
-      throw new Error(
-        `[Forge] Answer preparation compilation is required — compiledAnswerPreparation is missing for "${ctx.props.path}"`,
-      )
-    }
-
     const answerPreparationContext = buildCompiledAnswerPreparationContext(
       ctx.request.context,
       ctx.request.functionRegistry,

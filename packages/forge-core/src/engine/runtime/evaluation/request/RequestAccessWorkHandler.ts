@@ -26,10 +26,6 @@ export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestA
   kind: REQUEST_ACCESS_KIND,
 
   async begin(ctx: WorkContextContract<RequestExecutionContext, RequestAccessWorkProps>) {
-    if (!ctx.props.compiled) {
-      throw new Error(`[Forge] Hook fallback is disabled — compiledAccessLifecycle is missing for "${ctx.props.path}"`)
-    }
-
     const hookLifecycleContext = buildCompiledHookLifecycleContext(
       ctx.request.context,
       ctx.request.functionRegistry,
