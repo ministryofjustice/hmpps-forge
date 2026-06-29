@@ -214,6 +214,21 @@ describe('StepAnswerPreparationCompiler', () => {
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
+  describe('compile()', () => {
+    it('should return an empty answer preparation task when no fields are configured', async () => {
+      // Arrange
+      const ctx = createCtx()
+
+      // Act
+      const fn = compiler.compile([])
+
+      await executeAnswerPreparation(fn, ctx)
+
+      // Assert
+      expect(ctx.answers).toEqual({})
+    })
+  })
+
   describe('hybrid async compilation', () => {
     it('should keep compiled answer preparation synchronous when registry functions are sync', async () => {
       // Arrange

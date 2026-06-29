@@ -216,12 +216,13 @@ describe('StepValidationCompiler', () => {
   })
 
   describe('compileOnEntryValidation()', () => {
-    it('should return undefined when no entries are configured', () => {
+    it('should return an empty group selector when no entries are configured', async () => {
       // Act
       const fn = compiler.compileOnEntryValidation(undefined)
+      const groups = await fn(createCtx())
 
       // Assert
-      expect(fn).toBeUndefined()
+      expect(groups).toEqual([])
     })
 
     it('should collect groups for matching entries', async () => {
@@ -309,6 +310,18 @@ describe('StepValidationCompiler', () => {
   })
 
   describe('compileOnSubmitValidation()', () => {
+    it('should return an empty validation task when no validation rules are configured', async () => {
+      // Arrange
+      const step = createStep()
+      const ctx = createCtx()
+
+      // Act
+      const fn = compiler.compileOnSubmitValidation(step, [], undefined)
+      const result = await executeValidationTask(await fn(ctx, false), ctx)
+
+      // Assert
+      expect(result).toEqual({ fieldFailures: [], domainFailures: [] })
+    })
     it('should keep compiled validation synchronous when registry functions are sync', async () => {
       // Arrange
       const step = createStep()

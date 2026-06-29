@@ -96,7 +96,7 @@ export default class StepResolveCompiler {
     stepNode: StepASTNode,
     ancestorNodes: JourneyASTNode[],
     iterateNodes: IterateASTNode[] = [],
-  ): CompiledResolveFunction | undefined {
+  ): CompiledResolveFunction {
     return compileGeneratedFunction<CompiledResolveFunction>(
       this.expr,
       ['ctx'],

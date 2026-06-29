@@ -25,7 +25,7 @@ export default class HookLifecycleCompiler {
     this.expr = new ExpressionDispatcher(dependencies)
   }
 
-  compileAccessLifecycle(hooks: AccessHookASTNode[]): CompiledAccessLifecycleFunction | undefined {
+  compileAccessLifecycle(hooks: AccessHookASTNode[]): CompiledAccessLifecycleFunction {
     return compileGeneratedFunction<CompiledAccessLifecycleFunction>(
       this.expr,
       ['ctx'],
@@ -34,7 +34,7 @@ export default class HookLifecycleCompiler {
     )
   }
 
-  compileSubmitHooks(hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction | undefined {
+  compileSubmitHooks(hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction {
     return compileGeneratedFunction<CompiledSubmitHooksFunction>(
       this.expr,
       ['ctx'],

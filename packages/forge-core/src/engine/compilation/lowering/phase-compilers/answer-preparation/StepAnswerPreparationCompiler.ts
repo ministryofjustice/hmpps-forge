@@ -65,10 +65,7 @@ export default class StepAnswerPreparationCompiler {
   /**
    * Builds the generated answer-preparation function for a step.
    */
-  compile(
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-  ): CompiledAnswerPreparationFunction | undefined {
+  compile(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): CompiledAnswerPreparationFunction {
     return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
       this.expr,
       ['ctx'],

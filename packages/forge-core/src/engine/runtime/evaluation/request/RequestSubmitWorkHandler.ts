@@ -27,10 +27,6 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
   kind: REQUEST_SUBMIT_KIND,
 
   async begin(ctx: WorkContextContract<RequestExecutionContext, RequestSubmitWorkProps>) {
-    if (!ctx.props.compiled) {
-      throw new Error(`[Forge] Hook fallback is disabled — compiledSubmitHooks is missing for step "${ctx.props.path}"`)
-    }
-
     const hookLifecycleContext = buildCompiledHookLifecycleContext(
       ctx.request.context,
       ctx.request.functionRegistry,
