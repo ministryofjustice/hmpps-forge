@@ -120,9 +120,6 @@ export default class CompilationPipeline {
           {
             nodeId: node.id,
             path: node.properties.path,
-            title: node.properties.title,
-            description: node.properties.description,
-            metadata: node.properties.metadata,
             ancestorJourneyIds,
           },
         ]
@@ -146,9 +143,6 @@ export default class CompilationPipeline {
           {
             nodeId: node.id,
             path: node.properties.path,
-            title: node.properties.title,
-            description: node.properties.description,
-            metadata: node.properties.metadata,
             ancestorJourneyIds,
           },
         ]
