@@ -29,4 +29,11 @@ export interface ReachabilityEvaluation {
   resumeActive: boolean
   resumeOutcome: ResumeOutcome
   unreachableRedirect: UnreachableRedirectTarget
+  /**
+   * The current step's forward-edge route-template paths that answer-cleardown must
+   * retain (empty when there is no current step, it is unreachable or invalid, or its
+   * forward outcomes are over-approximated). Lets cleardown keep progress the user can
+   * still return to without consulting the navigation plan.
+   */
+  cleardownRetentionRouteTemplatePaths: string[]
 }

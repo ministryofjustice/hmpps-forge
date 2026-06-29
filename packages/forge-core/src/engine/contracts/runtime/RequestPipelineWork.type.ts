@@ -11,7 +11,6 @@ import type {
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
-import type { NavigationRuntimePlan } from '../plans/runtimePlans.type'
 import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../routing/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
@@ -52,9 +51,9 @@ export interface RequestReachabilityWorkProps {
   readonly method: HttpMethod
 }
 
-export interface RequestAnswerCleardownWorkProps {
-  readonly navigationPlan: NavigationRuntimePlan
-}
+// Answer-cleardown reads everything it needs (projection, evaluation, answers, params)
+// from the request context, so the phase carries no compiled props of its own.
+export type RequestAnswerCleardownWorkProps = Record<string, never>
 
 export interface RequestValiditiesWorkProps {
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>

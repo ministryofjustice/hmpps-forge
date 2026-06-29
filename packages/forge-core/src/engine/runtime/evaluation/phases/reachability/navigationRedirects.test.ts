@@ -28,6 +28,7 @@ function createEvaluation(overrides: Partial<ReachabilityEvaluation> = {}): Reac
     resumeActive: false,
     resumeOutcome: 'no-op',
     unreachableRedirect: 'entry',
+    cleardownRetentionRouteTemplatePaths: [],
     ...overrides,
   }
 }

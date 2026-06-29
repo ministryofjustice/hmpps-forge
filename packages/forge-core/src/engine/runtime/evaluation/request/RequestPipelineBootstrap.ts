@@ -90,9 +90,7 @@ export default class RequestPipelineBootstrap {
 
     const stepNode = node as MountedStepNode
 
-    const answerCleardown = WorkTaskFactory.requestAnswerCleardown({
-      navigationPlan: node.navigationPlan,
-    })
+    const answerCleardown = WorkTaskFactory.requestAnswerCleardown({})
 
     const resolve = WorkTaskFactory.requestResolve({
       compiled: stepNode.compiledResolve,

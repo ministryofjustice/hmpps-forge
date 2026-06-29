@@ -60,6 +60,7 @@ export function evaluateReachabilityState(
       pathAnalysis.frontierRouteTemplatePath,
     ),
     unreachableRedirect: plan.unreachableRedirect,
+    cleardownRetentionRouteTemplatePaths: resolveCleardownRetentionRouteTemplatePaths(plan, input.currentStepId, steps),
   }
 
   if (input.facts.fieldInventory === undefined || input.params === undefined) {
@@ -70,6 +71,33 @@ export function evaluateReachabilityState(
     evaluation,
     reachability: new ReachabilityStateProjector().project(evaluation, input.facts.fieldInventory, input.params),
   }
+}
+
+/**
+ * Navigation's `isReachable` is current-step-relative: steps ahead of the requested
+ * step count as unreachable so users cannot jump forward. Answer-cleardown must not
+ * treat those as stale, so the current step's own forward edges are retained — unless
+ * the step is unreachable, invalid, or its forward outcomes are over-approximated, in
+ * which case nothing can be safely retained.
+ */
+function resolveCleardownRetentionRouteTemplatePaths(
+  plan: NavigationRuntimePlan,
+  currentStepId: NodeId | undefined,
+  steps: ReachabilityNode[],
+): string[] {
+  const currentStep = steps.find(step => step.stepId === currentStepId)
+  const currentEntry = plan.entries.find(entry => entry.stepId === currentStepId)
+
+  if (
+    currentStep === undefined ||
+    currentEntry?.forwardOutcomeEvaluation === 'over-approximate' ||
+    !currentStep.isReachable ||
+    !currentStep.isValid
+  ) {
+    return []
+  }
+
+  return currentStep.forwardRouteTemplatePaths
 }
 
 function resolveResumeOutcome(

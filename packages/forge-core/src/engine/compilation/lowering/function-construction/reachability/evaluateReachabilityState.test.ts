@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { joinPaths } from '../../../../../framework/path/routePath'
-import type { NavigationRuntimePlan, NavigationRuntimeEntry } from '../../../../contracts/plans/runtimePlans.type'
+import type {
+  ForwardOutcomeEvaluation,
+  NavigationRuntimePlan,
+  NavigationRuntimeEntry,
+} from '../../../../contracts/plans/runtimePlans.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
@@ -17,6 +21,7 @@ function createEntry(options: {
   code?: string
   isEntryPoint?: boolean
   hasValidation?: boolean
+  forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }): NavigationRuntimeEntry {
   routePathsByStepId.set(options.stepId, options.path)
 
@@ -28,6 +33,7 @@ function createEntry(options: {
     stepId: options.stepId,
     code: options.code,
     isEntryPoint: options.isEntryPoint ?? false,
+    forwardOutcomeEvaluation: options.forwardOutcomeEvaluation,
   }
 }
 
@@ -313,6 +319,63 @@ describe('evaluateReachabilityState', () => {
     // Assert
     expect(evaluation.defaultEntryRouteTemplatePath).toBe('/journey/first')
     expect(evaluation.steps.every(step => !step.isReachable)).toBe(true)
+  })
+
+  it('should retain the current step forward paths for cleardown when forward outcomes are exact', () => {
+    // Arrange
+    const plan: NavigationRuntimePlan = {
+      entries: [
+        createEntry({ stepId: 'compile_ast:400', path: 'entry', isEntryPoint: true }),
+        createEntry({ stepId: 'compile_ast:401', path: 'next' }),
+      ],
+      resumeConfigured: false,
+      unreachableRedirect: 'entry',
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const facts = createFacts(plan, { outcomeValues: { 0: ['next'] } })
+
+    // Act
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:400',
+      routeTemplateCatalog,
+      stepValidities,
+    })
+
+    // Assert
+    expect(evaluation.cleardownRetentionRouteTemplatePaths).toEqual(['/journey/next'])
+  })
+
+  it('should retain nothing for cleardown when the current step forward outcomes are over-approximated', () => {
+    // Arrange
+    const plan: NavigationRuntimePlan = {
+      entries: [
+        createEntry({
+          stepId: 'compile_ast:410',
+          path: 'entry',
+          isEntryPoint: true,
+          forwardOutcomeEvaluation: 'over-approximate',
+        }),
+        createEntry({ stepId: 'compile_ast:411', path: 'next' }),
+      ],
+      resumeConfigured: false,
+      unreachableRedirect: 'entry',
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const facts = createFacts(plan, { outcomeValues: { 0: ['next'] } })
+
+    // Act
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: 'compile_ast:410',
+      routeTemplateCatalog,
+      stepValidities,
+    })
+
+    // Assert
+    expect(evaluation.cleardownRetentionRouteTemplatePaths).toEqual([])
   })
 
   it('should project reachable and unreachable steps when field inventory and params are supplied', () => {
