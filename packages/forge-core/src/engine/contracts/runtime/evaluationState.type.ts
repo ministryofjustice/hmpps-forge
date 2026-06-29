@@ -1,6 +1,6 @@
 import type { NodeId } from '../ast/engine.type'
 import type { AnswerHistory } from './answerHistory.type'
-import type { JourneyReachabilityProjection } from '../navigation/journeyReachabilityProjection.type'
+import type { JourneyReachabilityProjection } from '../reachability/journeyReachabilityProjection.type'
 import type { RequestLocation } from '../../../framework/types/request.type'
 import type { ValidationResult } from './validationResult.type'
 import type { StepValidityResult } from './stepValidityResult.type'

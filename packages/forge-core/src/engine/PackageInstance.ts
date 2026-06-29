@@ -8,11 +8,7 @@ import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import CompilationPipeline from './compilation/CompilationPipeline'
 
-import type {
-  CompiledJourney,
-  CompiledStep,
-  CompiledPackage,
-} from './contracts/plans/compilationArtefacts.type'
+import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 
 export interface PackageInstanceOptions<TDeps> {

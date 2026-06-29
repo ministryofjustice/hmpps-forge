@@ -44,7 +44,7 @@ It contains three maps:
 - `reachabilityInputs`, keyed by journey node ID.
 
 `StepCompilationInputs` contains:
-- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and parent `navigationId`.
+- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and parent `reachabilityId`.
 - `answerPreparation`, with field blocks and map iterate nodes for the step.
 - `hooks`, with inherited access hooks and submit hooks for the step.
 - `validation`, with the step node, validating field blocks, and map iterate nodes.
@@ -53,7 +53,7 @@ It contains three maps:
 `JourneyCompilationInputs` contains the journey runtime plan, field blocks from the journey's steps,
 map iterate nodes from those steps, and journey access hooks.
 
-`ReachabilityCompilationInputs` contains the parent `navigationId`, the reachability state table, the richer reachability
+`ReachabilityCompilationInputs` contains the parent `reachabilityId`, the reachability state table, the richer reachability
 compilation plan, and field inventory sources for each reachable entry.
 
 The analyzers share two core structures:
@@ -102,7 +102,7 @@ A journey with two steps starts as registered AST nodes:
           path: 'personal-details',
           staticData: {},
         },
-        navigationId: 'compile_ast:1',
+        reachabilityId: 'compile_ast:1',
       },
       answerPreparation: { fieldBlocks: [...], mapIterateNodes: [...] },
       hooks: { accessHooks: [...], submitHooks: [...] },
@@ -120,7 +120,7 @@ A journey with two steps starts as registered AST nodes:
   },
   reachabilityInputs: Map {
     'compile_ast:1' => {
-      navigationId: 'compile_ast:1',
+      reachabilityId: 'compile_ast:1',
       stateTable: { entries: [...], ... },
       reachabilityPlan: { stateTable: ..., entries: [...], resumeAlways: false },
       fieldInventorySources: [...],

@@ -48,7 +48,7 @@ describe('CodegenOrchestrator', () => {
             path: 'first',
           },
           staticData: { shared: 'step' },
-          navigationId: journeyNode.id,
+          reachabilityId: journeyNode.id,
         },
         answerPreparation: {
           fieldBlocks: [],
@@ -91,7 +91,7 @@ describe('CodegenOrchestrator', () => {
           [
             journeyNode.id,
             {
-              navigationId: journeyNode.id,
+              reachabilityId: journeyNode.id,
               stateTable,
               reachabilityPlan,
               fieldInventorySources: [],

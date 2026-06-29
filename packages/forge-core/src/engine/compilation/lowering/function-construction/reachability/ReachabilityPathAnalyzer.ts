@@ -1,7 +1,7 @@
 import { NodeId } from '../../../../contracts/ast/ast.type'
-import { ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import { ReachabilityNode } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 
-export interface NavigationPathAnalysis {
+export interface ReachabilityPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]
   frontierRouteTemplatePath: string | undefined
   progressExists: boolean
@@ -49,13 +49,13 @@ export function resolveBacklinkRouteTemplatePathForStep(
   return canonicalPathRouteTemplatePaths[currentIndex - 1]
 }
 
-export default class NavigationPathAnalyzer {
+export default class ReachabilityPathAnalyzer {
   analyze(
     steps: ReachabilityNode[],
     currentStepId: NodeId | undefined,
     defaultEntryRouteTemplatePath: string | undefined,
     resumeActive: boolean,
-  ): NavigationPathAnalysis {
+  ): ReachabilityPathAnalysis {
     const progressExists = this.resolveProgressExists(steps)
     const defaultPath = this.resolvePathFromAnchorRouteTemplatePath(defaultEntryRouteTemplatePath, steps)
     const resumePath = this.resolveResumePath(steps)

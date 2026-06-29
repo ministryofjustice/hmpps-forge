@@ -21,9 +21,9 @@ the pipeline speaks.
 | Folder | What it defines |
 |--------|-----------------|
 | [`ast/`](./ast/) | AST node types (`ASTNode`, `JourneyASTNode`, `StepASTNode`, `ExpressionASTNode`, etc.), the `ASTNodeType` enum, and type guard functions (`isReferenceExprNode`, `isFieldBlockStructNode`, etc.) |
-| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledNavigationFunction`, etc.), the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, all extending `CompiledBaseContext`), and the render block brand symbol |
+| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledReachabilityFactsFunction`, etc.), the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, all extending `CompiledBaseContext`), and the render block brand symbol |
 | [`plans/`](./plans/) | `CompilationPlan` (the handoff from planner to codegen), `StepRuntimePlan` / `JourneyRuntimePlan` / `ReachabilityStateTable` (minimal metadata that survives into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
-| [`navigation/`](./navigation/) | `ReachabilityEvaluation` and `JourneyReachabilityProjection` (the result of evaluating reachability at request time), plus the input/output types for the compiled reachability function (`ReachabilityEvaluationInput` / `ReachabilityEvaluationResult`) |
+| [`navigation/`](reachability/) | `ReachabilityEvaluation` and `JourneyReachabilityProjection` (the result of evaluating reachability at request time), plus the input/output types for the compiled reachability function (`ReachabilityEvaluationInput` / `ReachabilityEvaluationResult`) |
 | [`routing/`](./routing/) | Route descriptors (`JourneyRouteDescriptor`, `StepRouteDescriptor`), the route tree structures (`StoredRouteTreeNode`, `RouteTreeIndex`), and the route template catalog |
 | [`runtime/`](./runtime/) | Request-scoped state types: `AnswerHistory` (the mutation log), `RuntimeContext`, `StepValidityResult`, `ValidationResult`, `CompiledHookLifecycleContext`, `HookEffectWorkProps` |
 

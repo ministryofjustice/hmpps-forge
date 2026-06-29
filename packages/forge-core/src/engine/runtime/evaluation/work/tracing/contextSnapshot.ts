@@ -1,7 +1,7 @@
 import type {
   JourneyReachabilityProjection,
   StepReachabilityProjection,
-} from '../../../../contracts/navigation/journeyReachabilityProjection.type'
+} from '../../../../contracts/reachability/journeyReachabilityProjection.type'
 import type { AnswerHistory, AnswerMutation } from '../../../../contracts/runtime/answerHistory.type'
 import type {
   DomainValidationFailure,

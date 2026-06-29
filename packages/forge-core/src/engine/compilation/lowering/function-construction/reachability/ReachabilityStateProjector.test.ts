@@ -1,11 +1,14 @@
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import { ReachabilityEvaluation, ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import {
+  ReachabilityEvaluation,
+  ReachabilityNode,
+} from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {
   const projector = new ReachabilityStateProjector()
 
-  function createNavigationStep(overrides: Partial<ReachabilityNode> = {}): ReachabilityNode {
+  function createReachabilityNode(overrides: Partial<ReachabilityNode> = {}): ReachabilityNode {
     return {
       stepId: 'compile_ast:40',
       routeTemplatePath: '/journey/step-a',
@@ -42,7 +45,7 @@ describe('ReachabilityStateProjector', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:40',
       steps: [
-        createNavigationStep({
+        createReachabilityNode({
           code: 'step-a',
           isEntryPoint: true,
         }),
@@ -63,12 +66,12 @@ describe('ReachabilityStateProjector', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:42',
       steps: [
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:42',
           code: 'step-a',
           isEntryPoint: true,
         }),
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:43',
           routeTemplatePath: '/journey/step-b',
           isReachable: false,
@@ -94,18 +97,18 @@ describe('ReachabilityStateProjector', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:54',
       steps: [
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:50',
           routeTemplatePath: '/journey/first',
           isEntryPoint: true,
           declarationIndex: 0,
         }),
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:52',
           routeTemplatePath: '/journey/second',
           declarationIndex: 1,
         }),
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:54',
           routeTemplatePath: '/journey/third',
           declarationIndex: 2,
@@ -138,7 +141,7 @@ describe('ReachabilityStateProjector', () => {
     const evaluation = createEvaluation({
       currentStepId: 'compile_ast:59',
       steps: [
-        createNavigationStep({
+        createReachabilityNode({
           stepId: 'compile_ast:59',
           routeTemplatePath: '/journey/converge',
         }),

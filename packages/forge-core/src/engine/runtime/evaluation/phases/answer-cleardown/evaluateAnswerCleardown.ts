@@ -1,7 +1,7 @@
 import { resolvePathParams } from '../../../../../framework/path/routePath'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityProjection } from '../../../../contracts/navigation/journeyReachabilityProjection.type'
-import type { ReachabilityEvaluation } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import type { JourneyReachabilityProjection } from '../../../../contracts/reachability/journeyReachabilityProjection.type'
+import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 
 /**
  * Resolves the answers of steps no active path can reach and clears each in place,

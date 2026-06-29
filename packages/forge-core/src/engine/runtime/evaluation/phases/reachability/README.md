@@ -90,7 +90,7 @@ flowchart TD
   handler --> builder["ReachabilityGraphBuilder"]
   builder --> steps["ReachabilityNode[]"]
   steps --> finalize["finalizeReachabilityEvaluation()"]
-  finalize --> analyzer["NavigationPathAnalyzer"]
+  finalize --> analyzer["ReachabilityPathAnalyzer"]
   finalize --> projector["ReachabilityStateProjector"]
   analyzer --> evaluation["ReachabilityEvaluation"]
   projector --> state["JourneyReachabilityProjection"]
@@ -98,10 +98,10 @@ flowchart TD
 
 - [ReachabilityEvaluationWorkHandler.ts](ReachabilityEvaluationWorkHandler.ts) builds the graph and finalizes the result.
 - [ReachabilityGraphBuilder.ts](ReachabilityGraphBuilder.ts) creates step states, seeds entries, walks forward edges, and applies validity gates.
-- [evaluateGeneratedNavigation.ts](evaluateGeneratedNavigation.ts) finalizes the evaluation, resume outcome, and optional projection.
-- [NavigationPathAnalyzer.ts](NavigationPathAnalyzer.ts) derives canonical path, frontier, and progress state.
+- [evaluateReachabilityState.ts](evaluateReachabilityState.ts) finalizes the evaluation, resume outcome, and optional projection.
+- [ReachabilityPathAnalyzer.ts](ReachabilityPathAnalyzer.ts) derives canonical path, frontier, and progress state.
 - [ReachabilityStateProjector.ts](ReachabilityStateProjector.ts) projects unreachable steps and field inventory for cleardown.
-- [navigationRedirects.ts](navigationRedirects.ts) decides whether the request should redirect.
+- [reachabilityRedirects.ts](reachabilityRedirects.ts) decides whether the request should redirect.
 - [redirectTarget.ts](redirectTarget.ts) resolves redirect targets against the current request location.
 - [routeTemplateTargetResolver.ts](routeTemplateTargetResolver.ts) resolves authored navigation targets to route-template paths.
 
@@ -111,7 +111,7 @@ flowchart TD
   Runtime reachability should not re-evaluate authored expressions.
 - `ReachabilityGraphBuilder` owns graph walk state.
   Redirect helpers should not mutate graph nodes.
-- `NavigationPathAnalyzer` owns path analysis.
+- `ReachabilityPathAnalyzer` owns path analysis.
   The graph builder should not decide resume outcome.
 - `ReachabilityStateProjector` owns cleardown projection.
   Answer cleardown should not rebuild reachability.
@@ -147,9 +147,9 @@ flowchart TD
 ## Editing Notes
 
 - To change graph traversal, start in `ReachabilityGraphBuilder`.
-- To change resume or frontier behavior, start in `evaluateGeneratedNavigation.ts` and `NavigationPathAnalyzer.ts`.
+- To change resume or frontier behavior, start in `evaluateReachabilityState.ts` and `ReachabilityPathAnalyzer.ts`.
 - To change unreachable projection for cleardown, start in `ReachabilityStateProjector`.
-- To change redirect choice, start in `navigationRedirects.ts`.
+- To change redirect choice, start in `reachabilityRedirects.ts`.
 - To change target path resolution, start in `routeTemplateTargetResolver.ts` or `redirectTarget.ts`.
 - To change compiled navigation output shape, update lowering and contracts before changing this folder.
 
@@ -157,9 +157,9 @@ flowchart TD
 
 - [ReachabilityEvaluationWorkHandler.ts](ReachabilityEvaluationWorkHandler.ts) answers how one reachability work task runs.
 - [ReachabilityGraphBuilder.ts](ReachabilityGraphBuilder.ts) answers how reachable steps are built.
-- [evaluateGeneratedNavigation.ts](evaluateGeneratedNavigation.ts) answers how graph output becomes `ReachabilityEvaluationResult`.
-- [NavigationPathAnalyzer.ts](NavigationPathAnalyzer.ts) answers how canonical path, frontier, and progress are derived.
+- [evaluateReachabilityState.ts](evaluateReachabilityState.ts) answers how graph output becomes `ReachabilityEvaluationResult`.
+- [ReachabilityPathAnalyzer.ts](ReachabilityPathAnalyzer.ts) answers how canonical path, frontier, and progress are derived.
 - [ReachabilityStateProjector.ts](ReachabilityStateProjector.ts) answers how unreachable field state is projected.
-- [navigationRedirects.ts](navigationRedirects.ts) answers when reachability redirects.
+- [reachabilityRedirects.ts](reachabilityRedirects.ts) answers when reachability redirects.
 - [routeTemplateTargetResolver.ts](routeTemplateTargetResolver.ts) answers how navigation targets become route-template paths.
 - [redirectTarget.ts](redirectTarget.ts) answers how redirect targets become concrete URLs.

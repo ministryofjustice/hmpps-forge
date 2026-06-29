@@ -1,5 +1,5 @@
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import type { JourneyReachabilityProjection } from '../navigation/journeyReachabilityProjection.type'
+import type { JourneyReachabilityProjection } from '../reachability/journeyReachabilityProjection.type'
 import type { AnswerHistory } from './answerHistory.type'
 import type { NodeId } from '../ast/ast.type'
 import type { StepValidityResult } from './stepValidityResult.type'

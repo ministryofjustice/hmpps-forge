@@ -49,7 +49,7 @@ export default class ReachabilityCompiler {
   ): CompiledReachabilityFactsFunction {
     return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
-      ['ctx', 'navigation'],
+      ['ctx', 'factsInput'],
       () => this.buildFactsSource(plan, fieldInventorySources, nodeRegistry),
       { phase: 'reachability' },
     )
@@ -113,12 +113,12 @@ export default class ReachabilityCompiler {
 
   /**
    * Emits field inventory only when a request supplies params (step requests). The
-   * `navigation` argument is absent for facts-only calls, so the guard tolerates it.
+   * `factsInput` argument is absent for facts-only calls, so the guard tolerates it.
    */
   private compileFieldInventory(fieldInventorySources: FieldInventoryStepSource[], emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileFieldInventory')
     emitter.declareLet('fieldInventory')
-    emitter.if('navigation !== undefined && navigation.params !== undefined', () => {
+    emitter.if('factsInput !== undefined && factsInput.params !== undefined', () => {
       emitter.assign('fieldInventory', '[]')
       this.fieldInventory.compileInto(fieldInventorySources, emitter, 'fieldInventory')
     })

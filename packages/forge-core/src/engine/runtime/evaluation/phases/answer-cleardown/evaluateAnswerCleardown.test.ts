@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityProjection } from '../../../../contracts/navigation/journeyReachabilityProjection.type'
-import type { ReachabilityEvaluation } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import type { JourneyReachabilityProjection } from '../../../../contracts/reachability/journeyReachabilityProjection.type'
+import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
 
 const noCurrentStep = {

@@ -1,6 +1,6 @@
 import type {
   CompiledAnswerPreparationContext,
-  CompiledNavigationContext,
+  CompiledReachabilityContext,
   CompiledResolveContext,
   CompiledValidationContext,
 } from './compiledContexts.type'
@@ -11,7 +11,7 @@ import type {
   ReachabilityEvaluationResult,
   ReachabilityFactsInput,
   ReachabilityStateInput,
-} from '../navigation/generatedReachabilityEvaluation.type'
+} from '../reachability/generatedReachabilityEvaluation.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
 
@@ -98,8 +98,8 @@ export interface CompiledReachabilityResult {
  * facts into reachability state lives in `CompiledReachabilityStateFunction`.
  */
 export type CompiledReachabilityFactsFunction = (
-  ctx: CompiledNavigationContext,
-  navigation?: ReachabilityFactsInput,
+  ctx: CompiledReachabilityContext,
+  factsInput?: ReachabilityFactsInput,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
 /**

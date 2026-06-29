@@ -14,7 +14,7 @@ export interface ReachabilityStateInput {
   facts: CompiledReachabilityResult
   currentStepId?: NodeId
   routeTemplateCatalog: JourneyRouteTemplateCatalog
-  // Present iff the step has validation; the value is its navigation-mode validity.
+  // Present iff the step has validation; the value is its reachability-mode validity.
   stepValidities: ReadonlyMap<NodeId, boolean>
   params?: Record<string, string>
 }

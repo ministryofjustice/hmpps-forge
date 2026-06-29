@@ -1,4 +1,4 @@
-import type { ReachabilityEvaluationResult } from '../navigation/generatedReachabilityEvaluation.type'
+import type { ReachabilityEvaluationResult } from '../reachability/generatedReachabilityEvaluation.type'
 import type { CompiledAccessHookResult, CompiledSubmitHookResult } from './hookLifecycle.type'
 import type { DomainValidationFailure, StepValidationFailure } from './evaluationState.type'
 import type { StepValidityResult } from './stepValidityResult.type'

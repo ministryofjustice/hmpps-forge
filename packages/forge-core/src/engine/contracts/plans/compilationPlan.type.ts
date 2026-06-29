@@ -17,7 +17,7 @@ export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly navigationId: NodeId
+  readonly reachabilityId: NodeId
 }
 
 export interface AnswerPreparationInputs {
@@ -72,7 +72,7 @@ export interface FieldInventoryStepSource {
 }
 
 export interface ReachabilityCompilationInputs {
-  readonly navigationId: NodeId
+  readonly reachabilityId: NodeId
   readonly stateTable: ReachabilityStateTable
   readonly reachabilityPlan: ReachabilityCompilationPlan
   readonly fieldInventorySources: FieldInventoryStepSource[]

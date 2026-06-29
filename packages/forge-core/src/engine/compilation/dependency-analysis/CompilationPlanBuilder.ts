@@ -75,7 +75,7 @@ export default class CompilationPlanBuilder {
       )
 
       reachabilityInputs.set(journeyId, {
-        navigationId: journeyId,
+        reachabilityId: journeyId,
         stateTable: reachabilityPlan.stateTable,
         reachabilityPlan,
         fieldInventorySources: this.reachabilityPlanAnalyzer.buildFieldInventorySources(reachabilityPlan),
@@ -93,13 +93,13 @@ export default class CompilationPlanBuilder {
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, navigationId: NodeId): StepCompilationInputs {
+  private buildStepInputs(stepNode: StepASTNode, reachabilityId: NodeId): StepCompilationInputs {
     return {
       core: {
         stepNode,
         runtimePlan: this.runtimePlanAnalyzer.buildStepRuntimePlan(stepNode),
         staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode.id),
-        navigationId,
+        reachabilityId,
       },
       answerPreparation: this.answerPreparationInputAnalyzer.buildInputs(stepNode),
       hooks: this.hookInputAnalyzer.buildInputs(stepNode),

@@ -1,7 +1,10 @@
-import { ReachabilityEvaluation, ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
-import { resolveBacklinkRouteTemplatePath, resolveRedirect } from './navigationRedirects'
+import {
+  ReachabilityEvaluation,
+  ReachabilityNode,
+} from '../../../../contracts/reachability/reachabilityEvaluation.type'
+import { resolveBacklinkRouteTemplatePath, resolveRedirect } from './reachabilityRedirects'
 
-function createNavigationStep(overrides: Partial<ReachabilityNode> = {}): ReachabilityNode {
+function createReachabilityNode(overrides: Partial<ReachabilityNode> = {}): ReachabilityNode {
   return {
     stepId: 'compile_ast:500',
     routeTemplatePath: '/journey/current',
@@ -20,7 +23,7 @@ function createNavigationStep(overrides: Partial<ReachabilityNode> = {}): Reacha
 function createEvaluation(overrides: Partial<ReachabilityEvaluation> = {}): ReachabilityEvaluation {
   return {
     currentStepId: 'compile_ast:500',
-    steps: [createNavigationStep()],
+    steps: [createReachabilityNode()],
     defaultEntryRouteTemplatePath: '/journey/entry',
     frontierRouteTemplatePath: undefined,
     canonicalPathRouteTemplatePaths: [],
@@ -33,11 +36,11 @@ function createEvaluation(overrides: Partial<ReachabilityEvaluation> = {}): Reac
   }
 }
 
-describe('navigationRedirects', () => {
+describe('reachabilityRedirects', () => {
   it('should resolve backlink from canonical navigation path', () => {
     // Arrange
     const evaluation = createEvaluation({
-      steps: [createNavigationStep({ routeTemplatePath: '/journey/current' })],
+      steps: [createReachabilityNode({ routeTemplatePath: '/journey/current' })],
       canonicalPathRouteTemplatePaths: ['/journey/previous', '/journey/current'],
     })
 
@@ -66,7 +69,7 @@ describe('navigationRedirects', () => {
 
   it('should redirect unreachable GET step requests to the default entry', () => {
     // Arrange
-    const unreachable = createNavigationStep({ isReachable: false })
+    const unreachable = createReachabilityNode({ isReachable: false })
     const evaluation = createEvaluation({
       currentStepId: unreachable.stepId,
       steps: [unreachable],
@@ -81,7 +84,7 @@ describe('navigationRedirects', () => {
 
   it('should redirect unreachable GET step requests to the frontier when configured', () => {
     // Arrange
-    const unreachable = createNavigationStep({ isReachable: false })
+    const unreachable = createReachabilityNode({ isReachable: false })
     const evaluation = createEvaluation({
       currentStepId: unreachable.stepId,
       steps: [unreachable],
@@ -98,7 +101,7 @@ describe('navigationRedirects', () => {
 
   it('should fall back to the default entry when frontier redirect is configured without a frontier', () => {
     // Arrange
-    const unreachable = createNavigationStep({ isReachable: false })
+    const unreachable = createReachabilityNode({ isReachable: false })
     const evaluation = createEvaluation({
       currentStepId: unreachable.stepId,
       steps: [unreachable],
@@ -114,7 +117,7 @@ describe('navigationRedirects', () => {
 
   it('should redirect to resume frontier before unreachable redirect config on GET step requests', () => {
     // Arrange
-    const unreachable = createNavigationStep({ isReachable: false })
+    const unreachable = createReachabilityNode({ isReachable: false })
     const evaluation = createEvaluation({
       currentStepId: unreachable.stepId,
       steps: [unreachable],
@@ -133,7 +136,7 @@ describe('navigationRedirects', () => {
 
   it('should use unreachable redirect config for POST step requests', () => {
     // Arrange
-    const unreachable = createNavigationStep({ isReachable: false })
+    const unreachable = createReachabilityNode({ isReachable: false })
     const evaluation = createEvaluation({
       currentStepId: unreachable.stepId,
       steps: [unreachable],

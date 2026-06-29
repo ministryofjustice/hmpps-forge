@@ -1,4 +1,4 @@
-import NavigationPathAnalyzer from './NavigationPathAnalyzer'
+import ReachabilityPathAnalyzer from './ReachabilityPathAnalyzer'
 import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
 import ReachabilityStateProjector from './ReachabilityStateProjector'
 import type { ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
@@ -7,15 +7,15 @@ import type {
   ReachabilityEvaluation,
   ReachabilityNode,
   ResumeOutcome,
-} from '../../../../contracts/navigation/reachabilityEvaluation.type'
+} from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import type {
   ReachabilityStateInput,
   ReachabilityEvaluationResult,
-} from '../../../../contracts/navigation/generatedReachabilityEvaluation.type'
+} from '../../../../contracts/reachability/generatedReachabilityEvaluation.type'
 
 /**
  * The compiled reachability state function's body. From precomputed facts (the
- * dynamic expression results) and per-step navigation-mode validities it seeds
+ * dynamic expression results) and per-step reachability-mode validities it seeds
  * entry points, walks reachability, resolves the default entry and canonical path,
  * derives the frontier and resume outcome, and projects the consumer-facing
  * reachability state when field inventory and params are available.
@@ -37,7 +37,7 @@ export function evaluateReachabilityState(
   )
   const defaultEntryRouteTemplatePath = builder.resolveDefaultEntryRouteTemplatePath()
   const resumeActive = input.facts.resumeActive
-  const pathAnalysis = new NavigationPathAnalyzer().analyze(
+  const pathAnalysis = new ReachabilityPathAnalyzer().analyze(
     steps,
     input.currentStepId,
     defaultEntryRouteTemplatePath,

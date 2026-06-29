@@ -1,5 +1,5 @@
-import { buildCompiledNavigationContext } from '../context/compiledEvaluationContext'
-import { resolveRedirect } from '../phases/reachability/navigationRedirects'
+import { buildCompiledReachabilityContext } from '../context/compiledEvaluationContext'
+import { resolveRedirect } from '../phases/reachability/reachabilityRedirects'
 import { isStepValid } from '../phases/validation/stepValidity'
 import { captureContextSnapshot } from '../work/tracing/contextSnapshot'
 import type {
@@ -12,17 +12,17 @@ import type { RequestReachabilityWorkProps } from '../../../contracts/runtime/Re
 import type {
   ReachabilityFactsInput,
   ReachabilityStateInput,
-} from '../../../contracts/navigation/generatedReachabilityEvaluation.type'
+} from '../../../contracts/reachability/generatedReachabilityEvaluation.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { ReachabilityEvaluation } from '../../../contracts/navigation/reachabilityEvaluation.type'
+import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
 export const REQUEST_REACHABILITY_KIND = 'request.reachability'
 
-// Reachability reads navigation-mode validity: non-submission, default group, so
+// Reachability reads each step's non-submission, default-group validity, so
 // `submissionOnly` and off-default failures never gate forward reachability.
-const NAVIGATION_VALIDITY_FILTER = { isSubmission: false, groups: ['default'] }
+const REACHABILITY_VALIDITY_FILTER = { isSubmission: false, groups: ['default'] }
 
 export const REQUEST_REACHABILITY_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestReachabilityWorkProps,
@@ -70,12 +70,12 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
   ): Promise<WorkBegin<'request.reachability'>> {
     const { compiledReachabilityFacts, compiledReachabilityState } = ctx.props
 
-    const navigationContext = buildCompiledNavigationContext(ctx.request.context, ctx.request.functionRegistry)
-    const stepValidities = toNavigationValidities(ctx.request.context.evaluation.stepValidities)
+    const reachabilityContext = buildCompiledReachabilityContext(ctx.request.context, ctx.request.functionRegistry)
+    const stepValidities = toReachabilityValidities(ctx.request.context.evaluation.stepValidities)
     const params = ctx.request.context.request.params
     const factsInput: ReachabilityFactsInput = ctx.props.mode === 'journey' ? {} : { params }
 
-    const facts = await compiledReachabilityFacts(navigationContext, factsInput)
+    const facts = await compiledReachabilityFacts(reachabilityContext, factsInput)
 
     const stateInput: ReachabilityStateInput =
       ctx.props.mode === 'journey'
@@ -120,14 +120,14 @@ function resolvePhaseOutput(evaluation: ReachabilityEvaluation, props: RequestRe
   return { action: 'continue' }
 }
 
-function toNavigationValidities(
+function toReachabilityValidities(
   stepValidities: ReadonlyMap<NodeId, StepValidityResult> | undefined,
 ): Map<NodeId, boolean> {
-  const navigationValidities = new Map<NodeId, boolean>()
+  const reachabilityValidities = new Map<NodeId, boolean>()
 
   stepValidities?.forEach((result, stepId) => {
-    navigationValidities.set(stepId, isStepValid(result, NAVIGATION_VALIDITY_FILTER))
+    reachabilityValidities.set(stepId, isStepValid(result, REACHABILITY_VALIDITY_FILTER))
   })
 
-  return navigationValidities
+  return reachabilityValidities
 }

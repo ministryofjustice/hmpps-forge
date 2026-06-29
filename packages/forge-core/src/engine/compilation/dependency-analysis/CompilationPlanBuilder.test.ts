@@ -39,9 +39,9 @@ describe('CompilationPlanBuilder', () => {
       const reachabilityInputs = result.reachabilityInputs.get(journeyNode.id)
 
       expect(result.stepInputs.get(firstStepNode.id)?.core.runtimePlan.path).toBe('first')
-      expect(result.stepInputs.get(firstStepNode.id)?.core.navigationId).toBe(journeyNode.id)
-      expect(result.stepInputs.get(secondStepNode.id)?.core.navigationId).toBe(journeyNode.id)
-      expect(reachabilityInputs?.navigationId).toBe(journeyNode.id)
+      expect(result.stepInputs.get(firstStepNode.id)?.core.reachabilityId).toBe(journeyNode.id)
+      expect(result.stepInputs.get(secondStepNode.id)?.core.reachabilityId).toBe(journeyNode.id)
+      expect(reachabilityInputs?.reachabilityId).toBe(journeyNode.id)
       expect(reachabilityInputs?.reachabilityPlan.stateTable).toBe(reachabilityInputs?.stateTable)
       expect(reachabilityInputs?.fieldInventorySources).toEqual([
         {

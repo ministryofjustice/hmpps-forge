@@ -81,7 +81,7 @@ function createFacts(
   }
 }
 
-// The compiled state function receives navigation-mode validity as a boolean map:
+// The compiled state function receives reachability-mode validity as a boolean map:
 // a step is present iff it has validation, and the value is its validity.
 function setStepValidities(plan: ReachabilityStateTable, validStepIds: NodeId[]): void {
   stepValidities = new Map()

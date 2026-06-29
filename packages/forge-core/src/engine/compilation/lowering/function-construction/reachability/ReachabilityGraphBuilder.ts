@@ -1,8 +1,8 @@
 import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
-import { pickTieBreakerWinner } from './NavigationPathAnalyzer'
+import { pickTieBreakerWinner } from './ReachabilityPathAnalyzer'
 import type { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type { ReachabilityNode } from '../../../../contracts/navigation/reachabilityEvaluation.type'
+import type { ReachabilityNode } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import type { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 
@@ -12,7 +12,7 @@ import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
  * predecessor route-template paths and tie-breaker priority.
  *
  * Entry predicates, forward outcomes, and tie-breaker priorities come from the
- * compiled reachability result; per-step navigation-mode validity is read from the
+ * compiled reachability result; per-step reachability-mode validity is read from the
  * precomputed `stepValidities` map (a step absent from the map has no validation
  * and is treated as valid). An invalid step does not propagate reachability to its
  * successors.
@@ -157,7 +157,7 @@ export default class ReachabilityGraphBuilder {
 
   private evaluateStepReachability(step: ReachabilityNode): void {
     // Absence from the map means the step has no validation, so it is valid and
-    // cannot block forward reachability. The map carries navigation-mode validity:
+    // cannot block forward reachability. The map carries reachability-mode validity:
     // non-submission, default group - `submissionOnly` and off-default failures don't gate.
     step.isValid = this.stepValidities.get(step.stepId) ?? true
 

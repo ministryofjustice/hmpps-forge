@@ -39,7 +39,7 @@ under heavy-load - so Forge remains performant!
 
 - Compile every `StepCompilationInputs` entry into a `CompiledStep`.
 - Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
-- Compile every `ReachabilityCompilationInputs` entry into a `CompiledNavigationFunction`.
+- Compile every `ReachabilityCompilationInputs` entry into a `CompiledReachabilityFactsFunction`.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
