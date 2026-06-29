@@ -32,6 +32,12 @@ export interface HookInputs {
 
 export interface ValidationInputs {
   readonly stepNode: StepASTNode
+  /**
+   * Whether the step has real validation (validating field blocks or a domain
+   * `validWhen`). Owns the answer to "which steps does the eager validities phase
+   * validate" — independent of reachability/navigation.
+   */
+  readonly hasValidation: boolean
   readonly validatingFieldBlocks: FieldBlockASTNode[]
   readonly mapIterateNodes: IterateASTNode[]
 }

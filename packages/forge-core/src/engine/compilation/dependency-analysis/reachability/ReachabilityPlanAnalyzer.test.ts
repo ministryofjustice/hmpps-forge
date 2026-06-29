@@ -184,7 +184,6 @@ describe('ReachabilityPlanAnalyzer', () => {
         code: 'first',
         isEntryPoint: false,
         entryWhenNodeId: entryWhen.id,
-        hasValidation: true,
         cleardownFieldCodes: ['fieldA'],
         reachabilityTieBreakers: [{ priority: 10, whenNodeId: tieBreakerWhen.id }],
       })

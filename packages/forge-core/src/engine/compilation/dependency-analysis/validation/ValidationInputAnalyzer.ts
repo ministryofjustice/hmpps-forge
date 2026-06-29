@@ -8,6 +8,9 @@ export default class ValidationInputAnalyzer {
   buildInputs(stepNode: StepASTNode): ValidationInputs {
     return {
       stepNode,
+      hasValidation:
+        this.fieldInventoryAnalyzer.hasValidationBlocks(stepNode.id) ||
+        this.fieldInventoryAnalyzer.hasConfiguredValue(stepNode.properties.validWhen),
       validatingFieldBlocks: this.fieldInventoryAnalyzer.findValidatingFieldBlocksForStep(stepNode.id),
       mapIterateNodes: this.fieldInventoryAnalyzer.findMapIterateNodesForStep(stepNode.id),
     }

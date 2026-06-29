@@ -33,7 +33,6 @@ export default class ReachabilityPlanAnalyzer {
         stepId: entry.stepId,
         code: entry.code,
         isEntryPoint: entry.isEntryPoint,
-        hasValidation: entry.hasValidation,
         forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
@@ -56,9 +55,6 @@ export default class ReachabilityPlanAnalyzer {
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
     const { forwardOutcomeEvaluation, forwardOutcomeGroups } = this.forwardNavigationAnalyzer.analyze(stepNode)
-    const hasValidation =
-      this.fieldInventoryAnalyzer.hasValidationBlocks(stepId) ||
-      this.fieldInventoryAnalyzer.hasConfiguredValue(stepNode.properties.validWhen)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
@@ -70,7 +66,6 @@ export default class ReachabilityPlanAnalyzer {
       entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
       forwardOutcomeEvaluation,
       forwardOutcomeGroups,
-      hasValidation,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,

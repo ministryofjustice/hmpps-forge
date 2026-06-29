@@ -60,6 +60,7 @@ describe('CodegenOrchestrator', () => {
         },
         validation: {
           stepNode,
+          hasValidation: false,
           validatingFieldBlocks: [],
           mapIterateNodes: [],
         },

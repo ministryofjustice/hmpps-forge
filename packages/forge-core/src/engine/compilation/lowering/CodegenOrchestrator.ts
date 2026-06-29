@@ -36,31 +36,50 @@ export default class CodegenOrchestrator {
       steps.set(stepId, this.compileStep(inputs, plan))
     })
 
-    this.resolveStepValidations(steps, journeys)
+    this.resolveStepValidations(steps, journeys, this.resolveValidatingStepIds(plan))
 
     return { steps, journeys }
   }
 
-  // Each step/journey carries the compiled validators of every step reachable in its navigation
-  // plan, so the runtime can check the validity of surrounding steps. This runs once all steps are
-  // compiled, since a navigation plan can reference steps compiled later in the pass.
-  private resolveStepValidations(steps: Map<NodeId, CompiledStep>, journeys: Map<NodeId, CompiledJourney>): void {
+  // Which steps the eager validities phase validates is a validation fact, not a navigation one:
+  // a step has validation when it carries validating field blocks or a domain `validWhen`.
+  private resolveValidatingStepIds(plan: CompilationPlan): ReadonlySet<NodeId> {
+    const validatingStepIds = new Set<NodeId>()
+
+    plan.stepInputs.forEach((inputs, stepId) => {
+      if (inputs.validation.hasValidation) {
+        validatingStepIds.add(stepId)
+      }
+    })
+
+    return validatingStepIds
+  }
+
+  // Each step/journey carries the compiled validators of every validating step in its journey, so
+  // the runtime can check the validity of surrounding steps. This runs once all steps are compiled,
+  // since a journey can reference steps compiled later in the pass.
+  private resolveStepValidations(
+    steps: Map<NodeId, CompiledStep>,
+    journeys: Map<NodeId, CompiledJourney>,
+    validatingStepIds: ReadonlySet<NodeId>,
+  ): void {
     steps.forEach(step => {
-      step.compiledStepValidations = this.collectStepValidations(step.navigationPlan, steps)
+      step.compiledStepValidations = this.collectStepValidations(step.navigationPlan, steps, validatingStepIds)
     })
     journeys.forEach(journey => {
-      journey.compiledStepValidations = this.collectStepValidations(journey.navigationPlan, steps)
+      journey.compiledStepValidations = this.collectStepValidations(journey.navigationPlan, steps, validatingStepIds)
     })
   }
 
   private collectStepValidations(
     navigationPlan: NavigationRuntimePlan,
     steps: ReadonlyMap<NodeId, CompiledStep>,
+    validatingStepIds: ReadonlySet<NodeId>,
   ): ReadonlyMap<NodeId, CompiledValidationFunction> {
     const compiledStepValidations = new Map<NodeId, CompiledValidationFunction>()
 
     navigationPlan.entries.forEach(entry => {
-      if (!entry.hasValidation) {
+      if (!validatingStepIds.has(entry.stepId)) {
         return
       }
 

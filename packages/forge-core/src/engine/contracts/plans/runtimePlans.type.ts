@@ -24,12 +24,6 @@ export interface NavigationRuntimeEntry {
   stepId: NodeId
   code?: string
   isEntryPoint: boolean
-  /**
-   * Whether the step has real validation (validating field blocks or domain
-   * validWhen). The eager validities phase validates only these steps, so the
-   * navigation walk treats a step absent from the validity map as valid.
-   */
-  hasValidation?: boolean
   forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }
 

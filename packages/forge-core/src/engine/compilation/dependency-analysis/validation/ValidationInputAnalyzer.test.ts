@@ -42,8 +42,34 @@ describe('ValidationInputAnalyzer', () => {
 
       // Assert
       expect(result.stepNode).toBe(stepNode)
+      expect(result.hasValidation).toBe(true)
       expect(result.validatingFieldBlocks).toEqual([validatingBlock])
       expect(result.mapIterateNodes).toEqual([])
+    })
+
+    it('should report no validation when the step has no validating blocks or domain validWhen', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const journeyNode = ASTTestFactory.journey().build()
+      const stepNode = ASTTestFactory.step().withPath('/step').build()
+      const plainBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('name').build()
+
+      nodeRegistry.register(journeyNode.id, journeyNode)
+      nodeRegistry.register(stepNode.id, stepNode)
+      nodeRegistry.register(plainBlock.id, plainBlock)
+      astNodeTree.addNode(journeyNode.id)
+      astNodeTree.addNode(stepNode.id, journeyNode.id)
+      astNodeTree.addNode(plainBlock.id, stepNode.id)
+
+      const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
+
+      // Act
+      const result = analyzer.buildInputs(stepNode)
+
+      // Assert
+      expect(result.hasValidation).toBe(false)
     })
   })
 })
