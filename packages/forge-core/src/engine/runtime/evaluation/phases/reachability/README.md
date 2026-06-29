@@ -31,7 +31,7 @@ It contains evaluated predicates and outcomes, but runtime must walk the graph, 
 - Resolve route-template target paths.
 - Pick default entry and tie-breaker winners.
 - Compute resume outcome and frontier path.
-- Project `JourneyReachabilityState` for answer cleardown.
+- Project `JourneyReachabilityProjection` for answer cleardown.
 - Resolve redirect targets for journey and step requests.
 
 ## Data Model
@@ -54,7 +54,7 @@ It records route template path, declaration index, entry status, reachability, v
 `ReachabilityEvaluation` is the request-facing result.
 It contains reachable steps, default entry path, frontier path, canonical path, progress state, resume state, and unreachable redirect configuration.
 
-`JourneyReachabilityState` is the projected state used by answer cleardown.
+`JourneyReachabilityProjection` is the projected state used by answer cleardown.
 It records unreachable steps and their field inventories after params are resolved.
 
 ### Example
@@ -93,7 +93,7 @@ flowchart TD
   finalize --> analyzer["NavigationPathAnalyzer"]
   finalize --> projector["ReachabilityStateProjector"]
   analyzer --> evaluation["ReachabilityEvaluation"]
-  projector --> state["JourneyReachabilityState"]
+  projector --> state["JourneyReachabilityProjection"]
 ```
 
 - [ReachabilityEvaluationWorkHandler.ts](ReachabilityEvaluationWorkHandler.ts) builds the graph and finalizes the result.

@@ -1,5 +1,5 @@
 import type { NodeId } from '../ast/ast.type'
-import type { JourneyReachabilityState } from './journeyReachabilityState.type'
+import type { JourneyReachabilityProjection } from './journeyReachabilityProjection.type'
 import type { ReachabilityEvaluation } from './reachabilityEvaluation.type'
 import type { CompiledReachabilityResult } from '../compiled/compiledFunctions.type'
 import type { JourneyRouteTemplateCatalog } from '../routing/routeTree.type'
@@ -21,5 +21,5 @@ export interface ReachabilityStateInput {
 
 export interface ReachabilityEvaluationResult {
   evaluation: ReachabilityEvaluation
-  reachability?: JourneyReachabilityState
+  reachability?: JourneyReachabilityProjection
 }

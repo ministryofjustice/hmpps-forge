@@ -1,6 +1,6 @@
 import { resolvePathParams } from '../../../../../framework/path/routePath'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityState } from '../../../../contracts/navigation/journeyReachabilityState.type'
+import type { JourneyReachabilityProjection } from '../../../../contracts/navigation/journeyReachabilityProjection.type'
 import type { ReachabilityEvaluation } from '../../../../contracts/navigation/reachabilityEvaluation.type'
 
 /**
@@ -11,7 +11,7 @@ import type { ReachabilityEvaluation } from '../../../../contracts/navigation/re
  * current answers are cleared.
  */
 export function evaluateAnswerCleardown(
-  reachability: JourneyReachabilityState,
+  reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
   evaluation: ReachabilityEvaluation,
   params: Record<string, string>,
@@ -33,7 +33,7 @@ export function evaluateAnswerCleardown(
  * have an answer are returned.
  */
 function resolveFieldsToClear(
-  reachability: JourneyReachabilityState,
+  reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
   retainedStepPaths: readonly string[],
 ): readonly string[] {

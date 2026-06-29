@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityState } from '../../../../contracts/navigation/journeyReachabilityState.type'
+import type { JourneyReachabilityProjection } from '../../../../contracts/navigation/journeyReachabilityProjection.type'
 import type { ReachabilityEvaluation } from '../../../../contracts/navigation/reachabilityEvaluation.type'
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
 
@@ -11,7 +11,7 @@ const noCurrentStep = {
 } as unknown as ReachabilityEvaluation
 
 function evaluate(
-  reachability: JourneyReachabilityState,
+  reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
   evaluation: ReachabilityEvaluation = noCurrentStep,
 ): readonly string[] {
@@ -26,7 +26,7 @@ describe('evaluateAnswerCleardown', () => {
         stale: { current: 'value', parsed: 'VALUE', mutations: [{ value: 'value', source: 'post' }] },
         kept: { current: 'keep', mutations: [{ value: 'keep', source: 'post' }] },
       }
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [{ path: '/choose', fieldCodes: ['kept'] }],
         unreachableSteps: [{ path: '/detail', fieldCodes: ['stale'] }],
       }
@@ -52,7 +52,7 @@ describe('evaluateAnswerCleardown', () => {
       const answers: Record<string, AnswerHistory> = {
         fieldA: { current: 'value', mutations: [] },
       }
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [],
         unreachableSteps: [{ path: '/detail', fieldCodes: ['fieldA', 'fieldB'] }],
       }
@@ -71,7 +71,7 @@ describe('evaluateAnswerCleardown', () => {
         task_2_status: { current: 'pending', mutations: [] },
         unrelated: { current: 'value', mutations: [] },
       }
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [],
         unreachableSteps: [{ path: '/detail', cleardownFieldCodes: ['^task_\\d+_status$'] }],
       }
@@ -90,7 +90,7 @@ describe('evaluateAnswerCleardown', () => {
       const answers: Record<string, AnswerHistory> = {
         stale: { current: undefined, mutations: [{ value: undefined, source: 'cleardown' }] },
       }
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [],
         unreachableSteps: [{ path: '/detail', fieldCodes: ['stale'] }],
       }
@@ -108,7 +108,7 @@ describe('evaluateAnswerCleardown', () => {
         retained: { current: 'keep', mutations: [{ value: 'keep', source: 'post' }] },
         stale: { current: 'drop', mutations: [{ value: 'drop', source: 'post' }] },
       }
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [],
         unreachableSteps: [
           { path: '/forward', fieldCodes: ['retained'] },
@@ -132,7 +132,7 @@ describe('evaluateAnswerCleardown', () => {
 
     it('should return an empty array when there are no answers', () => {
       // Arrange
-      const reachability: JourneyReachabilityState = {
+      const reachability: JourneyReachabilityProjection = {
         reachableSteps: [],
         unreachableSteps: [{ path: '/detail', fieldCodes: ['stale'] }],
       }

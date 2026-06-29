@@ -6,7 +6,7 @@ export interface StepReachabilityProjection {
   backPath?: string
 }
 
-export interface JourneyReachabilityState {
+export interface JourneyReachabilityProjection {
   reachableSteps: StepReachabilityProjection[]
   unreachableSteps: StepReachabilityProjection[]
 }
