@@ -139,6 +139,10 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     stateTable: ReachabilityStateTable,
   ): ReadonlyMap<NodeId, CompiledValidationFunction> {
+    if (stateTable.reachabilityDisabled) {
+      return new Map()
+    }
+
     const validationCompiler = new StepValidationCompiler(this.dependencies)
     const validatingStepIds = this.resolveValidatingStepIds(plan)
     const compiledStepValidations = new Map<NodeId, CompiledValidationFunction>()
@@ -164,8 +168,8 @@ export default class CodegenOrchestrator {
     return compiledStepValidations
   }
 
-  // Which steps the eager validities phase validates is a validation fact, not a navigation one:
-  // a step has validation when it carries validating field blocks or a domain `validWhen`.
+  // When reachability checks are enabled, a step has eager validation when it
+  // carries validating field blocks or a domain `validWhen`.
   private resolveValidatingStepIds(plan: CompilationPlan): ReadonlySet<NodeId> {
     const validatingStepIds = new Set<NodeId>()
 
