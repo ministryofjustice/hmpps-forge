@@ -146,13 +146,13 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
 
   resolveFieldFailures(ctx, blockId, blockProps) {
     // Validation shows for the whole step at once: when any field failed, every
-    // field carries validWhen — its own failures, or [] when it passed. When
-    // nothing failed there is no validWhen, matching the un-validated render.
+    // field carries errors - its own failures, or [] when it passed. When nothing
+    // failed there is no errors property, matching the un-validated render.
     if (Object.keys(ctx.fieldFailures).length === 0) {
       return
     }
 
-    blockProps.validWhen = ctx.fieldFailures[String(blockId)] ?? []
+    blockProps.errors = ctx.fieldFailures[String(blockId)] ?? []
   },
 
   evaluateFunction(ctx, diagnostics, metadata, functionName, args) {

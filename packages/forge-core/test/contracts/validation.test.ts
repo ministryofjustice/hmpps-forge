@@ -51,6 +51,28 @@ describe('validation contracts', () => {
       }
     })
 
+    it('should attach failures to the rendered field block where components read them', async () => {
+      // Arrange
+      const client = createClient(requiredFieldJourney)
+
+      // Act
+      const result = await client.post('/required/name', {
+        session: {},
+        body: { fullName: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const field = result.getBlocksByVariant('govukTextInput')[0]
+
+        expect(field.properties.errors).toEqual([
+          expect.objectContaining({ message: 'Enter your full name', passed: false }),
+        ])
+      }
+    })
+
     it('should pass validation and redirect when required field is present', async () => {
       // Arrange
       const client = createClient(requiredFieldJourney)

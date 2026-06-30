@@ -519,7 +519,7 @@ describe('StepResolveCompiler', () => {
 
       // Assert
       expect(source).toContain('resolveFieldFailures(ctx, resolveBlockId, blockProps)')
-      expect(result.props.blocks[0].props.properties.validWhen).toEqual([failure])
+      expect(result.props.blocks[0].props.properties.errors).toEqual([failure])
     })
 
     it('should attach iterator field failures by template block ID instead of field code', async () => {
@@ -551,9 +551,9 @@ describe('StepResolveCompiler', () => {
       // Assert
       expect(result.props.blocks).toHaveLength(2)
       expect(result.props.blocks[0].props.id).toBe('compiled:template:1:0')
-      expect(result.props.blocks[0].props.properties.validWhen).toEqual([failure])
+      expect(result.props.blocks[0].props.properties.errors).toEqual([failure])
       expect(result.props.blocks[1].props.id).toBe('compiled:template:1:1')
-      expect(result.props.blocks[1].props.properties.validWhen).toEqual([])
+      expect(result.props.blocks[1].props.properties.errors).toEqual([])
     })
 
     it('should evaluate generator expressions inside iterator yield templates', async () => {

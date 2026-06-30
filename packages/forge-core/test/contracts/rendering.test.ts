@@ -728,11 +728,11 @@ describe('rendering contracts', () => {
       if (result.type === 'render') {
         const nameBlock = result.context.blocks.find(b => b.properties.code === 'fullName')
         const emailBlock = result.context.blocks.find(b => b.properties.code === 'email')
-        const nameValidations = nameBlock?.properties.validWhen as { passed: boolean; message: string }[]
-        const emailValidations = emailBlock?.properties.validWhen as { passed: boolean; message: string }[]
+        const nameErrors = nameBlock?.properties.errors as { passed: boolean; message: string }[]
+        const emailErrors = emailBlock?.properties.errors as { passed: boolean; message: string }[]
 
-        expect(nameValidations.some(v => !v.passed && v.message === 'Enter your full name')).toBe(true)
-        expect(emailValidations.every(v => v.passed)).toBe(true)
+        expect(nameErrors.some(v => !v.passed && v.message === 'Enter your full name')).toBe(true)
+        expect(emailErrors).toEqual([])
 
         expect(nameBlock?.properties.value).toBe('')
         expect(emailBlock?.properties.value).toBe('ada@example.com')
@@ -766,10 +766,10 @@ describe('rendering contracts', () => {
 
         expect(nestedBlock).toBeDefined()
 
-        const nestedValidWhen = nestedBlock?.properties.validWhen as { passed: boolean; message: string }[]
+        const nestedErrors = nestedBlock?.properties.errors as { passed: boolean; message: string }[]
 
-        expect(nestedValidWhen).toBeDefined()
-        expect(nestedValidWhen.some(v => !v.passed && v.message === 'Enter a detail')).toBe(true)
+        expect(nestedErrors).toBeDefined()
+        expect(nestedErrors.some(v => !v.passed && v.message === 'Enter a detail')).toBe(true)
       }
     })
   })
