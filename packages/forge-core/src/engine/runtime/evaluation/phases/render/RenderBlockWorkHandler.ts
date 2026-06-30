@@ -144,6 +144,7 @@ function replaceNestedBlocks(
       type: StructureType.BLOCK,
       variant: value.variant,
       blockType: value.blockType,
+      ...value.properties,
     } as BlockDefinition
 
     const entry = children[childIndex]
