@@ -6,6 +6,8 @@ import {
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
+  block as blockBuilder,
+  field as fieldBuilder,
   journey,
   step,
   access,
@@ -21,8 +23,50 @@ import {
   Self,
   Condition,
 } from '../../src/authoring'
-import { CollectionBlock } from '../../src/components'
+import {
+  buildComponent,
+  CollectionBlock,
+  type BlockDefinition,
+  type FieldBlockDefinition,
+  type RenderedBlock,
+} from '../../src/components'
 import { Effects } from './contractHelpers'
+
+interface ContractTextField extends FieldBlockDefinition {
+  variant: 'contractTextField'
+  label: string
+}
+
+interface ContractNestedFieldProbe extends BlockDefinition {
+  variant: 'contractNestedFieldProbe'
+  field: FieldBlockDefinition
+}
+
+const contractTextFieldComponent = buildComponent<ContractTextField>('contractTextField', block => {
+  return `<input id="${block.code}" name="${block.code}" aria-label="${block.label}">`
+})
+
+const contractNestedFieldProbeComponent = buildComponent<ContractNestedFieldProbe>(
+  'contractNestedFieldProbe',
+  block => {
+    const nestedField = block.field as RenderedBlock
+    const nestedFieldBlock = nestedField.block as FieldBlockDefinition
+
+    return `<div data-nested-field-code="${nestedFieldBlock.code}">${nestedField.html}</div>`
+  },
+)
+
+function ContractTextField(props: Omit<ContractTextField, 'type' | 'blockType' | 'variant'>): ContractTextField {
+  return fieldBuilder<ContractTextField>({ ...props, variant: 'contractTextField' })
+}
+
+function ContractNestedFieldProbe(
+  props: Omit<ContractNestedFieldProbe, 'type' | 'blockType' | 'variant'>,
+): ContractNestedFieldProbe {
+  return blockBuilder<ContractNestedFieldProbe>({ ...props, variant: 'contractNestedFieldProbe' })
+}
+
+export const renderingContractComponents = [contractTextFieldComponent, contractNestedFieldProbeComponent]
 
 export const basicBlocksJourney = journey({
   code: 'basic-blocks',
@@ -46,6 +90,27 @@ export const basicBlocksJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const nestedFieldMetadataRenderJourney = journey({
+  code: 'nested-field-meta',
+  path: '/nested-field-meta',
+  title: 'Nested Field Metadata',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        ContractNestedFieldProbe({
+          field: ContractTextField({
+            code: 'goal_title',
+            label: 'Goal title',
+          }),
+        }),
+      ],
+    }),
   ],
 })
 

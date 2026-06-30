@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { BlockType } from '../../src/authoring/types/enums'
-import type { RenderBlock } from '../../src/framework/rendering/types'
+import Forge from '../../src/engine/Forge'
+import type { BlockDefinition, EvaluatedBlock, RenderedBlock } from '../../src/components'
+import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
+import type { ForgeRenderer, RenderBlock } from '../../src/framework/rendering/types'
+import type { Logger } from '../../src/framework/types/adapter.type'
+import TestRouteResolver from '../../src/testing/test-client/TestRouteResolver'
+import TestSnapshotFactory from '../../src/testing/test-client/TestSnapshotFactory'
 import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
 import type { RequestTraceEvent } from '../../src/testing'
 import {
@@ -25,7 +31,36 @@ import {
   parsedValueRenderJourney,
   postBlockValueAfterDependentWhenJourney,
   nestedBlockValidationJourney,
+  nestedFieldMetadataRenderJourney,
+  renderingContractComponents,
 } from './rendering.fixtures'
+
+const silentLogger: Logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
+
+const contractRenderer: ForgeRenderer<string> = {
+  renderBlock(entry: ComponentRegistryEntry<BlockDefinition, string>, block: EvaluatedBlock<BlockDefinition>): string {
+    const output = entry.render(block)
+
+    if (typeof output !== 'string') {
+      throw new Error('Contract renderer only supports synchronous string components')
+    }
+
+    return output
+  },
+
+  wrapNestedBlock(block: BlockDefinition, output: string): RenderedBlock {
+    return { block, html: output }
+  },
+
+  assemblePage(_context, renderedBlocks): string {
+    return renderedBlocks.join('')
+  },
+}
 
 function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
   const collectionBlock = blocks.find(b => b.variant === 'collection-block')
@@ -168,6 +203,28 @@ describe('rendering contracts', () => {
           }),
         ]),
       )
+    })
+  })
+
+  describe('adapter rendering', () => {
+    it('should preserve nested field metadata for parent components', async () => {
+      // Arrange
+      const forge = new Forge({ logger: silentLogger })
+        .registerGlobalComponents(renderingContractComponents)
+        .registerPackage({ journey: nestedFieldMetadataRenderJourney })
+      const resolved = TestRouteResolver.resolve('/nested-field-meta/form', 'GET', forge.getTopology())
+      const snapshot = TestSnapshotFactory.create('GET', '/nested-field-meta/form', resolved, { session: {} })
+
+      // Act
+      const result = await forge.execute({ snapshot, renderer: contractRenderer })
+
+      // Assert
+      expect(result.kind).toBe('render')
+
+      if (result.kind === 'render') {
+        expect(result.output).toContain('data-nested-field-code="goal_title"')
+        expect(result.output).toContain('id="goal_title"')
+      }
     })
   })
 
