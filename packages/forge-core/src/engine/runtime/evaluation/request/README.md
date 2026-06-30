@@ -166,6 +166,7 @@ flowchart TD
 - [RequestAnswerPreparationWorkHandler.ts](RequestAnswerPreparationWorkHandler.ts) runs compiled answer preparation.
   It relies on answer preparation work to mutate `context.domain.answers`.
 - [RequestValiditiesWorkHandler.ts](RequestValiditiesWorkHandler.ts) eagerly validates compiled steps in non-submission mode and records step validities.
+  Journeys with disabled reachability checks compile an empty step-validations index, so this phase has no cross-step validation work for those journeys.
 - [RequestReachabilityWorkHandler.ts](RequestReachabilityWorkHandler.ts) runs compiled navigation evaluation and decides journey redirects, unreachable-step redirects, and resume redirects.
 - [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) clears stale answers after reachability has been evaluated.
 - [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and projects stored validation failures for render.
@@ -201,6 +202,7 @@ flowchart TD
 - `request.validities` runs before `request.reachability` on every request.
   Reachability reads step validities to decide whether navigation can pass through validation-gated steps.
   It runs the mounted node's journey-scoped `compiledStepValidations` index, not every step's local `compiledValidation` function.
+  When reachability checks are disabled, that journey-scoped index is empty.
 - `request.entry-validation` does not run field validation itself.
   It selects active groups and projects the already-stored current step validity.
 - `request.submit` does not write `ctx.request.validation` directly.
@@ -224,6 +226,7 @@ flowchart TD
   Validation, navigation, hooks, and render read prepared answers.
 - Keep validities before reachability.
   Reachability would otherwise evaluate navigation against missing step validity data.
+  When reachability checks are disabled, validities still keeps this phase position but has no eager step validations to run.
 - Keep answer cleardown after reachability.
   It needs `context.evaluation.reachability` and `ctx.request.reachabilityEvaluation`.
 - Keep submit on `POST` only.

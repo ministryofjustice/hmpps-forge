@@ -65,6 +65,37 @@ export const requiredFieldJourney = journey({
   ],
 })
 
+export const reachabilityDisabledValidationJourney = journey({
+  code: 'reach-disabled-validation',
+  path: '/reach-disabled-validation',
+  title: 'Reachability Disabled Validation',
+  reachability: { disableReachabilityChecks: true },
+  onAccess: [access({ effects: [Effects.LoadAnswers('reach-disabled-validation')] })],
+  steps: [
+    step({
+      path: '/start',
+      title: 'Start',
+      blocks: [GovUKTextInput({ code: 'name', label: 'Name' }), GovUKButton({ text: 'Continue' })],
+    }),
+    step({
+      path: '/date',
+      title: 'Date',
+      blocks: [
+        GovUKTextInput({
+          code: 'targetDate',
+          label: 'Target date',
+          validWhen: [
+            validation({
+              condition: Self().match(Condition.Date.IsToday()),
+              message: 'Date must be today',
+            }),
+          ],
+        }),
+      ],
+    }),
+  ],
+})
+
 export const multipleRulesJourney = journey({
   code: 'multi-rules',
   path: '/multi-rules',
