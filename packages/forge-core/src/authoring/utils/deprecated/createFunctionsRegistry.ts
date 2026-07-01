@@ -33,6 +33,8 @@ function extractFunctionType(entry: unknown): FunctionType | undefined {
  * calls the factory with `deps` to produce an evaluator, and preserves metadata
  * like `functionType` and `isAsync` for the engine to use at runtime.
  *
+ * @deprecated Use BaseFunctionRegistry.build() instead.
+ *
  * @param implementations - Object mapping function names to factory entries
  * @param deps - Dependencies to inject into each factory (omit if none needed)
  *

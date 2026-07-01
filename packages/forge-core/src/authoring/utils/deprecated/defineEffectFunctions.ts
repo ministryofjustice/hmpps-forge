@@ -22,6 +22,8 @@ import type {
  * by the engine at runtime - the returned `effects` builders only expose the
  * remaining configuration arguments.
  *
+ * @deprecated Use EffectRegistry instead.
+ *
  * @param factories - Effect factories keyed by function name
  *
  * @returns Object containing effect builders and implementations

@@ -19,6 +19,7 @@ export interface PackageDependencies {
   componentRegistry: ComponentRegistry
 }
 
+/** @deprecated Use BaseFunctionRegistry subclasses instead */
 export type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) => FunctionEvaluator<unknown>>
 
 export type ForgePackageFunctions<TDeps> =

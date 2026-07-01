@@ -21,6 +21,8 @@ import type {
  * The evaluator's first parameter (`value`) is injected by the engine at runtime -
  * the returned `conditions` builders only expose the remaining configuration arguments.
  *
+ * @deprecated Use ConditionRegistry instead.
+ *
  * @param factories - Condition factories keyed by function name
  *
  * @returns Object containing condition builders and implementations

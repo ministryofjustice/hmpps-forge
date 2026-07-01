@@ -4,6 +4,8 @@ import type { FunctionImplementations, FunctionShapeMap } from './defineFunction
 /**
  * Extract the optional `prepare` hook from a factory entry. Returns
  * `undefined` for plain-function factories (back-compat).
+ *
+ * @deprecated Internal utility — no longer needed with registry pattern.
  */
 export function extractPrepare(entry: unknown): ((...args: unknown[]) => unknown[]) | undefined {
   if (typeof entry === 'function') {
@@ -20,6 +22,8 @@ export function extractPrepare(entry: unknown): ((...args: unknown[]) => unknown
  * each stamp their own kind here before handing `implementations` off to
  * `createFunctionsRegistry`, so the registry entry can tell the engine how to
  * enforce `inputSchema`/`argumentsSchema` without depending on call-site diagnostics.
+ *
+ * @deprecated Internal utility — no longer needed with registry pattern.
  */
 export function tagFunctionType(
   factories: Record<string, unknown>,
@@ -57,6 +61,8 @@ export function tagFunctionType(
  *
  * This is the shared implementation behind `defineConditionFunctions`,
  * `defineTransformerFunctions`, and `defineEffectFunctions`.
+ *
+ * @deprecated Internal utility — no longer needed with registry pattern.
  */
 export function buildExpressionFunctions<TShapes extends FunctionShapeMap, TDeps>(
   factories: FunctionImplementations<TShapes, TDeps> | Record<string, unknown>,

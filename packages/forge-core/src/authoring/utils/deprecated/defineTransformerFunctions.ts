@@ -21,6 +21,8 @@ import type {
  * The evaluator's first parameter (`value`) is injected by the engine at runtime -
  * the returned `transformers` builders only expose the remaining configuration arguments.
  *
+ * @deprecated Use TransformerRegistry instead.
+ *
  * @param factories - Transformer factories keyed by function name
  *
  * @returns Object containing transformer builders and implementations

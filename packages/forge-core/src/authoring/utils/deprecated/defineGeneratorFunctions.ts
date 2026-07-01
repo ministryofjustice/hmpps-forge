@@ -33,6 +33,8 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * sanitising/reshaping arguments before they enter the expression tree, and/or
  * throwing to reject invalid arguments at module-load time rather than at render time.
  *
+ * @deprecated Use GeneratorRegistry instead.
+ *
  * @param factories - Generator factories keyed by function name
  *
  * @returns Object containing generator builders and implementations

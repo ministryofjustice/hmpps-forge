@@ -8,8 +8,10 @@ import {
   ResolvableValue,
 } from '../../types/expressions.type'
 
+/** @deprecated Use registry classes instead. */
 export type NoDeps = Record<string, never>
 
+/** @deprecated Use registry classes instead. */
 export type FunctionShapeMap = Record<string, FunctionEvaluator<unknown>>
 type PublicFunctionArguments<TFunction> = TFunction extends (...args: infer TArgs) => unknown ? TArgs : never
 
@@ -17,11 +19,16 @@ type FunctionGroup<T, TExpr> = {
   [K in keyof T]: (...args: PublicFunctionArguments<T[K]>) => TExpr
 }
 
+/** @deprecated Use ConditionRegistry instead. */
 export type ConditionFunctionGroup<T> = FunctionGroup<T, ConditionFunctionExpr<ResolvableValue[]>>
+/** @deprecated Use TransformerRegistry instead. */
 export type TransformerFunctionGroup<T> = FunctionGroup<T, TransformerFunctionExpr<ResolvableValue[]>>
+/** @deprecated Use EffectRegistry instead. */
 export type EffectFunctionGroup<T> = FunctionGroup<T, EffectFunctionExpr<ResolvableValue[]>>
+/** @deprecated Use GeneratorRegistry instead. */
 export type GeneratorFunctionGroup<T> = FunctionGroup<T, unknown>
 
+/** @deprecated Use registry classes instead. */
 export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = NoDeps> = {
   [K in keyof TShapes]: (deps: TDeps) => TShapes[K]
 }
@@ -42,6 +49,8 @@ export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = No
  *
  * Return the (possibly cleaned) arguments as an array. The returned array
  * replaces the original arguments in the built expression.
+ *
+ * @deprecated Use registry classes instead.
  */
 export type FunctionFactoryEntry<
   TEvaluator extends FunctionEvaluator<unknown>,
@@ -68,6 +77,7 @@ type RuntimeReturn = {
   generator: ResolvableValue | Promise<ResolvableValue>
 }
 
+/** @deprecated Use registry classes instead. */
 export type ImplementationShapes<
   TKind extends keyof RuntimeContext,
   TFunctions extends Record<string, (...args: never[]) => unknown>,
@@ -77,6 +87,7 @@ export type ImplementationShapes<
   ) => RuntimeReturn[TKind]
 }
 
+/** @deprecated Use ConditionRegistry instead. */
 export type ConditionImplementations<TConditions extends ConditionFunctionGroup<TConditions>, TDeps = NoDeps> = {
   [K in keyof TConditions]: FunctionFactoryEntry<
     ImplementationShapes<'condition', TConditions>[K],
@@ -85,6 +96,7 @@ export type ConditionImplementations<TConditions extends ConditionFunctionGroup<
   >
 }
 
+/** @deprecated Use TransformerRegistry instead. */
 export type TransformerImplementations<
   TTransformers extends TransformerFunctionGroup<TTransformers>,
   TDeps = NoDeps,
@@ -96,6 +108,7 @@ export type TransformerImplementations<
   >
 }
 
+/** @deprecated Use EffectRegistry instead. */
 export type EffectImplementations<TEffects extends EffectFunctionGroup<TEffects>, TDeps = NoDeps> = {
   [K in keyof TEffects]: FunctionFactoryEntry<
     ImplementationShapes<'effect', TEffects>[K],
@@ -104,6 +117,7 @@ export type EffectImplementations<TEffects extends EffectFunctionGroup<TEffects>
   >
 }
 
+/** @deprecated Use GeneratorRegistry instead. */
 export type GeneratorImplementations<TGenerators extends GeneratorFunctionGroup<TGenerators>, TDeps = NoDeps> = {
   [K in keyof TGenerators]: FunctionFactoryEntry<
     ImplementationShapes<'generator', TGenerators>[K],
@@ -121,18 +135,22 @@ type ValueArguments<TFunction extends FunctionEvaluator<unknown>> =
 type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
   Parameters<TFunction> extends ResolvableValue[] ? Parameters<TFunction> : never
 
+/** @deprecated Use ConditionRegistry instead. */
 export type ConditionFunctions<TShapes extends FunctionShapeMap> = {
   [K in keyof TShapes]: (...args: ValueArguments<TShapes[K]>) => ConditionFunctionExpr<ValueArguments<TShapes[K]>>
 }
 
+/** @deprecated Use TransformerRegistry instead. */
 export type TransformerFunctions<TShapes extends FunctionShapeMap> = {
   [K in keyof TShapes]: (...args: ValueArguments<TShapes[K]>) => TransformerFunctionExpr<ValueArguments<TShapes[K]>>
 }
 
+/** @deprecated Use EffectRegistry instead. */
 export type EffectFunctions<TShapes extends FunctionShapeMap> = {
   [K in keyof TShapes]: (...args: ValueArguments<TShapes[K]>) => EffectFunctionExpr<ValueArguments<TShapes[K]>>
 }
 
+/** @deprecated Use GeneratorRegistry instead. */
 export type GeneratorFunctions<TShapes extends FunctionShapeMap> = {
   [K in keyof TShapes]: (...args: GeneratorArguments<TShapes[K]>) => GeneratorBuilder<GeneratorArguments<TShapes[K]>>
 }
