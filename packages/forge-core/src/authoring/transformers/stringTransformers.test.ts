@@ -1,9 +1,11 @@
-import { StringTransformers, StringTransformersRegistry } from './stringTransformers'
+import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
 import { FunctionType } from '../types/enums'
+
+const StringTransformersRegistry = stringTransformersRegistry.build()
 
 describe('String Transformers', () => {
   describe('Trim', () => {
-    const { evaluate } = StringTransformersRegistry.Trim
+    const { evaluate } = StringTransformersRegistry['String.Trim']
 
     it('should remove leading and trailing whitespace', () => {
       const result = evaluate('  hello world  ')
@@ -38,14 +40,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.Trim()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'Trim',
+        name: 'String.Trim',
         arguments: [],
       })
     })
   })
 
   describe('ToUpperCase', () => {
-    const { evaluate } = StringTransformersRegistry.ToUpperCase
+    const { evaluate } = StringTransformersRegistry['String.ToUpperCase']
 
     it('should convert string to uppercase', () => {
       const result = evaluate('hello world')
@@ -78,7 +80,7 @@ describe('String Transformers', () => {
   })
 
   describe('ToLowerCase', () => {
-    const { evaluate } = StringTransformersRegistry.ToLowerCase
+    const { evaluate } = StringTransformersRegistry['String.ToLowerCase']
 
     it('should convert string to lowercase', () => {
       const result = evaluate('HELLO WORLD')
@@ -106,7 +108,7 @@ describe('String Transformers', () => {
   })
 
   describe('ToTitleCase', () => {
-    const { evaluate } = StringTransformersRegistry.ToTitleCase
+    const { evaluate } = StringTransformersRegistry['String.ToTitleCase']
 
     it('should capitalize first letter of each word', () => {
       const result = evaluate('hello world')
@@ -139,7 +141,7 @@ describe('String Transformers', () => {
   })
 
   describe('Capitalize', () => {
-    const { evaluate } = StringTransformersRegistry.Capitalize
+    const { evaluate } = StringTransformersRegistry['String.Capitalize']
 
     it('should capitalize first letter only', () => {
       const result = evaluate('hello world')
@@ -167,7 +169,7 @@ describe('String Transformers', () => {
   })
 
   describe('Possessive', () => {
-    const { evaluate } = StringTransformersRegistry.Possessive
+    const { evaluate } = StringTransformersRegistry['String.Possessive']
 
     it('should add apostrophe-s for names not ending in s', () => {
       expect(evaluate('John')).toBe("John's")
@@ -203,14 +205,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.Possessive()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'Possessive',
+        name: 'String.Possessive',
         arguments: [],
       })
     })
   })
 
   describe('Substring', () => {
-    const { evaluate } = StringTransformersRegistry.Substring
+    const { evaluate } = StringTransformersRegistry['String.Substring']
 
     it('should extract substring with start and end positions', () => {
       const result = evaluate('hello world', 0, 5)
@@ -238,7 +240,7 @@ describe('String Transformers', () => {
   })
 
   describe('Replace', () => {
-    const { evaluate } = StringTransformersRegistry.Replace
+    const { evaluate } = StringTransformersRegistry['String.Replace']
 
     it('should replace all occurrences of search string', () => {
       const result = evaluate('hello world hello', 'hello', 'hi')
@@ -266,7 +268,7 @@ describe('String Transformers', () => {
   })
 
   describe('PadStart', () => {
-    const { evaluate } = StringTransformersRegistry.PadStart
+    const { evaluate } = StringTransformersRegistry['String.PadStart']
 
     it('should pad string to target length with spaces', () => {
       const result = evaluate('5', 3)
@@ -294,7 +296,7 @@ describe('String Transformers', () => {
   })
 
   describe('PadEnd', () => {
-    const { evaluate } = StringTransformersRegistry.PadEnd
+    const { evaluate } = StringTransformersRegistry['String.PadEnd']
 
     it('should pad string to target length with spaces', () => {
       const result = evaluate('5', 3)
@@ -322,7 +324,7 @@ describe('String Transformers', () => {
   })
 
   describe('ToInt', () => {
-    const { evaluate } = StringTransformersRegistry.ToInt
+    const { evaluate } = StringTransformersRegistry['String.ToInt']
 
     it('should convert string to integer', () => {
       const result = evaluate('123')
@@ -378,14 +380,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.ToInt()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'ToInt',
+        name: 'String.ToInt',
         arguments: [],
       })
     })
   })
 
   describe('ToFloat', () => {
-    const { evaluate } = StringTransformersRegistry.ToFloat
+    const { evaluate } = StringTransformersRegistry['String.ToFloat']
 
     it('should convert string to float', () => {
       const result = evaluate('123.45')
@@ -446,14 +448,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.ToFloat()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'ToFloat',
+        name: 'String.ToFloat',
         arguments: [],
       })
     })
   })
 
   describe('ToArray', () => {
-    const { evaluate } = StringTransformersRegistry.ToArray
+    const { evaluate } = StringTransformersRegistry['String.ToArray']
 
     it('should split string into character array by default', () => {
       const result = evaluate('hello')
@@ -508,14 +510,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.ToArray(',')
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'ToArray',
+        name: 'String.ToArray',
         arguments: [','],
       })
     })
   })
 
   describe('ToDate', () => {
-    const { evaluate } = StringTransformersRegistry.ToDate
+    const { evaluate } = StringTransformersRegistry['String.ToDate']
 
     it('should parse UK format with slash separator (DD/MM/YYYY)', () => {
       const result = evaluate('15/03/2024')
@@ -647,14 +649,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.ToDate()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'ToDate',
+        name: 'String.ToDate',
         arguments: [],
       })
     })
   })
 
   describe('FormatDate', () => {
-    const { evaluate } = StringTransformersRegistry.FormatDate
+    const { evaluate } = StringTransformersRegistry['String.FormatDate']
 
     it('should format ISO date as UK long date when options are omitted', () => {
       // Arrange
@@ -748,7 +750,7 @@ describe('String Transformers', () => {
       // Assert
       expect(result).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'FormatDate',
+        name: 'String.FormatDate',
         arguments: [],
       })
     })
@@ -763,14 +765,14 @@ describe('String Transformers', () => {
       // Assert
       expect(result).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'FormatDate',
+        name: 'String.FormatDate',
         arguments: [options],
       })
     })
   })
 
   describe('FormatDate', () => {
-    const { evaluate } = StringTransformersRegistry.FormatDate
+    const { evaluate } = StringTransformersRegistry['String.FormatDate']
 
     it('should format ISO date as UK long date when options are omitted', () => {
       // Arrange
@@ -863,7 +865,7 @@ describe('String Transformers', () => {
       // Assert
       expect(result).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'FormatDate',
+        name: 'String.FormatDate',
         arguments: [],
       })
     })
@@ -878,14 +880,14 @@ describe('String Transformers', () => {
       // Assert
       expect(result).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'FormatDate',
+        name: 'String.FormatDate',
         arguments: [options],
       })
     })
   })
 
   describe('ToISODate', () => {
-    const { evaluate } = StringTransformersRegistry.ToISODate
+    const { evaluate } = StringTransformersRegistry['String.ToISODate']
 
     it('should convert UK date format to ISO format', () => {
       expect(evaluate('15/03/2024')).toBe('2024-03-15')
@@ -956,14 +958,14 @@ describe('String Transformers', () => {
       const expr = StringTransformers.ToISODate()
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'ToISODate',
+        name: 'String.ToISODate',
         arguments: [],
       })
     })
   })
 
   describe('ToTimestampDate', () => {
-    const { evaluate } = StringTransformersRegistry.ToTimestampDate
+    const { evaluate } = StringTransformersRegistry['String.ToTimestampDate']
 
     it('should convert an epoch timestamp string to a Date', () => {
       // Arrange
@@ -991,7 +993,7 @@ describe('String Transformers', () => {
   })
 
   describe('EscapeHtml', () => {
-    const { evaluate } = StringTransformersRegistry.EscapeHtml
+    const { evaluate } = StringTransformersRegistry['String.EscapeHtml']
 
     it('should escape angle brackets', () => {
       // Arrange
@@ -1067,7 +1069,7 @@ describe('String Transformers', () => {
       // Assert
       expect(expr).toEqual({
         type: FunctionType.TRANSFORMER,
-        name: 'EscapeHtml',
+        name: 'String.EscapeHtml',
         arguments: [],
       })
     })

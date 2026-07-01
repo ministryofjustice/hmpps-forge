@@ -1,8 +1,10 @@
-import { DateTransformersRegistry } from './dateTransformers'
+import { dateTransformersRegistry } from './dateTransformers'
+
+const DateTransformersRegistry = dateTransformersRegistry.build()
 
 describe('DateTransformers', () => {
   describe('Format', () => {
-    const { evaluate } = DateTransformersRegistry.Format
+    const { evaluate } = DateTransformersRegistry['Date.Format']
 
     it('should format date with DD/MM/YYYY pattern', () => {
       // Arrange
@@ -55,7 +57,7 @@ describe('DateTransformers', () => {
   })
 
   describe('AddDays', () => {
-    const { evaluate } = DateTransformersRegistry.AddDays
+    const { evaluate } = DateTransformersRegistry['Date.AddDays']
 
     it('should add days to a date', () => {
       // Arrange
@@ -94,7 +96,7 @@ describe('DateTransformers', () => {
   })
 
   describe('SubtractDays', () => {
-    const { evaluate } = DateTransformersRegistry.SubtractDays
+    const { evaluate } = DateTransformersRegistry['Date.SubtractDays']
 
     it('should subtract days from a date', () => {
       // Arrange
@@ -109,7 +111,7 @@ describe('DateTransformers', () => {
   })
 
   describe('AddMonths', () => {
-    const { evaluate } = DateTransformersRegistry.AddMonths
+    const { evaluate } = DateTransformersRegistry['Date.AddMonths']
 
     it('should add months to a date', () => {
       // Arrange
@@ -137,7 +139,7 @@ describe('DateTransformers', () => {
   })
 
   describe('AddYears', () => {
-    const { evaluate } = DateTransformersRegistry.AddYears
+    const { evaluate } = DateTransformersRegistry['Date.AddYears']
 
     it('should add years to a date', () => {
       // Arrange
@@ -163,7 +165,7 @@ describe('DateTransformers', () => {
   })
 
   describe('StartOfDay', () => {
-    const { evaluate } = DateTransformersRegistry.StartOfDay
+    const { evaluate } = DateTransformersRegistry['Date.StartOfDay']
 
     it('should return midnight of the given date', () => {
       // Arrange
@@ -182,7 +184,7 @@ describe('DateTransformers', () => {
   })
 
   describe('EndOfDay', () => {
-    const { evaluate } = DateTransformersRegistry.EndOfDay
+    const { evaluate } = DateTransformersRegistry['Date.EndOfDay']
 
     it('should return end of day for the given date', () => {
       // Arrange
@@ -201,7 +203,7 @@ describe('DateTransformers', () => {
   })
 
   describe('ToISOString', () => {
-    const { evaluate } = DateTransformersRegistry.ToISOString
+    const { evaluate } = DateTransformersRegistry['Date.ToISOString']
 
     it('should convert date to ISO string', () => {
       // Arrange
@@ -216,7 +218,7 @@ describe('DateTransformers', () => {
   })
 
   describe('ToLocaleString', () => {
-    const { evaluate } = DateTransformersRegistry.ToLocaleString
+    const { evaluate } = DateTransformersRegistry['Date.ToLocaleString']
 
     it('should convert date to locale string', () => {
       // Arrange
@@ -249,7 +251,7 @@ describe('DateTransformers', () => {
       const originalTime = original.getTime()
 
       // Act
-      DateTransformersRegistry.AddDays.evaluate(original, 7)
+      DateTransformersRegistry['Date.AddDays'].evaluate(original, 7)
 
       // Assert
       expect(original.getTime()).toBe(originalTime)
@@ -261,7 +263,7 @@ describe('DateTransformers', () => {
       const originalTime = original.getTime()
 
       // Act
-      DateTransformersRegistry.AddMonths.evaluate(original, 3)
+      DateTransformersRegistry['Date.AddMonths'].evaluate(original, 3)
 
       // Assert
       expect(original.getTime()).toBe(originalTime)

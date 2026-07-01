@@ -1,8 +1,8 @@
-import { ArrayTransformers, ArrayTransformersRegistry } from './arrayTransformers'
-import { DateTransformers, DateTransformersRegistry } from './dateTransformers'
-import { NumberTransformers, NumberTransformersRegistry } from './numberTransformers'
-import { ObjectTransformers, ObjectTransformersRegistry } from './objectTransformers'
-import { StringTransformers, StringTransformersRegistry } from './stringTransformers'
+import { ArrayTransformers, arrayTransformersRegistry } from './arrayTransformers'
+import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
+import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
+import { ObjectTransformers, objectTransformersRegistry } from './objectTransformers'
+import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
 
 export const Transformer = {
   /** Transformers for handling strings */
@@ -22,9 +22,9 @@ export const Transformer = {
 }
 
 export const TransformersRegistry = {
-  ...StringTransformersRegistry,
-  ...NumberTransformersRegistry,
-  ...ArrayTransformersRegistry,
-  ...ObjectTransformersRegistry,
-  ...DateTransformersRegistry,
+  ...stringTransformersRegistry.build(),
+  ...numberTransformersRegistry.build(),
+  ...arrayTransformersRegistry.build(),
+  ...objectTransformersRegistry.build(),
+  ...dateTransformersRegistry.build(),
 }

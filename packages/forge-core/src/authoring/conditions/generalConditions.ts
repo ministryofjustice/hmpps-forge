@@ -5,7 +5,8 @@ const generalConditions = new ConditionRegistry()
 
 export const GeneralConditions = {
   /** Checks if a value is not empty/null/undefined */
-  IsRequired: generalConditions.register('IsRequired',
+  IsRequired: generalConditions.register(
+    'IsRequired',
     () => (value: unknown) =>
       !(
         value === null ||
@@ -16,9 +17,7 @@ export const GeneralConditions = {
   ),
 
   /** Checks if a value is strictly equal to an expected value */
-  Equals: generalConditions.register('Equals',
-    () => (value: unknown, expected: ResolvableValue) => value === expected,
-  ),
+  Equals: generalConditions.register('Equals', () => (value: unknown, expected: ResolvableValue) => value === expected),
 }
 
 export { generalConditions as generalConditionsRegistry }
