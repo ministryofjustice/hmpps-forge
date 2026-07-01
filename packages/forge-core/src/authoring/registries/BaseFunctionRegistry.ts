@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { z, type ZodType } from 'zod'
 import { FunctionType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
@@ -24,6 +23,7 @@ export const CONDITION_OUTPUT_SCHEMA = z.boolean()
 
 export default abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
   private readonly registrations = new Map<string, StoredRegistration>()
+
   private anonymousCounter = 0
 
   constructor(
@@ -55,11 +55,7 @@ export default abstract class BaseFunctionRegistry<TDeps = Record<string, never>
     return { name: first, options: second as RegistrationOptions, factory: third! }
   }
 
-  protected store(
-    name: string,
-    options: RegistrationOptions,
-    factory: (deps: TDeps) => (...args: any[]) => any,
-  ): void {
+  protected store(name: string, options: RegistrationOptions, factory: (deps: TDeps) => (...args: any[]) => any): void {
     this.registrations.set(name, {
       name,
       inputSchema: options.inputSchema,

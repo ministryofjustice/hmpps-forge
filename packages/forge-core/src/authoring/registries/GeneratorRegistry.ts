@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ResolvableValue } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { FunctionType } from '../types/enums'

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { TransformerFunctionExpr } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
 import BaseFunctionRegistry, { type RegistrationOptions } from './BaseFunctionRegistry'

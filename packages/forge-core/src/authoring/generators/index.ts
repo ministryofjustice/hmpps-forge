@@ -1,5 +1,5 @@
-import { DateGenerators, DateGeneratorsRegistry } from './dateGenerators'
-import { FormatGenerators, FormatGeneratorsRegistry } from './formatGenerators'
+import { DateGenerators, dateGeneratorsRegistry } from './dateGenerators'
+import { FormatGenerators, formatGeneratorsRegistry } from './formatGenerators'
 
 export const Generator = {
   /** Generators for producing formatted string values */
@@ -10,6 +10,6 @@ export const Generator = {
 }
 
 export const GeneratorsRegistry = {
-  ...FormatGeneratorsRegistry,
-  ...DateGeneratorsRegistry,
+  ...formatGeneratorsRegistry.build(),
+  ...dateGeneratorsRegistry.build(),
 }

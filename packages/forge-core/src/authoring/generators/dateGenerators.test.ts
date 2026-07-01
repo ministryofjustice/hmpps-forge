@@ -1,10 +1,12 @@
-import { DateGenerators, DateGeneratorsRegistry } from './dateGenerators'
+import { DateGenerators, dateGeneratorsRegistry } from './dateGenerators'
 import { FunctionType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 
 describe('DateGenerators', () => {
+  const registry = dateGeneratorsRegistry.build()
+
   describe('Now', () => {
-    const { evaluate } = DateGeneratorsRegistry.Now
+    const { evaluate } = registry['Date.Now']
 
     it('should return current date and time', () => {
       // Arrange
@@ -27,14 +29,14 @@ describe('DateGenerators', () => {
       // Assert
       expect(builder.expr).toEqual({
         type: FunctionType.GENERATOR,
-        name: 'Now',
+        name: 'Date.Now',
         arguments: [],
       })
     })
   })
 
   describe('Today', () => {
-    const { evaluate } = DateGeneratorsRegistry.Today
+    const { evaluate } = registry['Date.Today']
 
     it('should return start of current day', () => {
       // Arrange
@@ -64,7 +66,7 @@ describe('DateGenerators', () => {
       // Assert
       expect(builder.expr).toEqual({
         type: FunctionType.GENERATOR,
-        name: 'Today',
+        name: 'Date.Today',
         arguments: [],
       })
     })
@@ -73,12 +75,12 @@ describe('DateGenerators', () => {
   describe('Registry Metadata', () => {
     it('should mark Now as sync', () => {
       // Assert
-      expect(DateGeneratorsRegistry.Now.isAsync).toBe(false)
+      expect(registry['Date.Now'].isAsync).toBe(false)
     })
 
     it('should mark Today as sync', () => {
       // Assert
-      expect(DateGeneratorsRegistry.Today.isAsync).toBe(false)
+      expect(registry['Date.Today'].isAsync).toBe(false)
     })
   })
 })

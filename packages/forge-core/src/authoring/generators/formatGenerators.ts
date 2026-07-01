@@ -1,25 +1,15 @@
 import { assertString } from '../../shared/utils/asserts'
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { ResolvableValue } from '../types/expressions.type'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
-import { defineGeneratorFunctions } from '../utils/defineGeneratorFunctions'
+import GeneratorRegistry from '../registries/GeneratorRegistry'
 
 export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
 
-export interface FormatGeneratorGroup {
-  FormatString: (
-    template: string,
-    ...replacements: ResolvableValue[]
-  ) => GeneratorBuilder<[string, ...ResolvableValue[]]>
+const formatGenerators = new GeneratorRegistry()
+
+export const FormatGenerators = {
+  FormatString: formatGenerators.register(FORMAT_STRING_GENERATOR_NAME, () => createFormatStringGenerator()),
 }
 
-const { generators: FormatGenerators, implementations } = defineGeneratorFunctions<FormatGeneratorGroup>({
-  FormatString: createFormatStringGenerator,
-})
-
-const FormatGeneratorsRegistry = createFunctionsRegistry(implementations)
-
-export { FormatGenerators, FormatGeneratorsRegistry }
+export { formatGenerators as formatGeneratorsRegistry }
 
 export function formatString(template: string, replacements: readonly unknown[]): string {
   return template.replace(/%([1-9]\d*)(?!\d)/g, (placeholder, indexValue) =>

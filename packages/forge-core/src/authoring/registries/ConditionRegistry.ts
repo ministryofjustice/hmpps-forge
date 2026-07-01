@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ConditionFunctionExpr } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
 import BaseFunctionRegistry, { CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'

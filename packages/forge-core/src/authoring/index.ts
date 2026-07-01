@@ -3,6 +3,7 @@ export { Condition, ConditionsRegistry } from './conditions'
 export { Generator, GeneratorsRegistry } from './generators'
 export { Transformer, TransformersRegistry } from './transformers'
 
+export { default as GeneratorRegistry } from './registries/GeneratorRegistry'
 export { createFunctionsRegistry } from './utils/createFunctionsRegistry'
 export { defineConditionFunctions } from './utils/defineConditionFunctions'
 export { defineEffectFunctions } from './utils/defineEffectFunctions'

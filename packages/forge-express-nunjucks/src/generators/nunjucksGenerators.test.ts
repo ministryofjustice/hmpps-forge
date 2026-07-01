@@ -1,8 +1,7 @@
-import { createFunctionsRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { assertTemplateIsAllowed, NunjucksGenerators, nunjucksFunctions } from './nunjucksGenerators'
 
 describe('nunjucksGenerators', () => {
-  const registry = createFunctionsRegistry(nunjucksFunctions)
+  const registry = nunjucksFunctions.build()
 
   describe('String evaluator', () => {
     const evaluate = registry.String.evaluate
