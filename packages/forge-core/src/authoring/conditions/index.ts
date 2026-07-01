@@ -1,13 +1,12 @@
-import { GeneralConditions, GeneralConditionsRegistry } from './generalConditions'
-import { StringConditions, StringConditionsRegistry } from './stringConditions'
-import { AddressConditions, AddressConditionsRegistry } from './addressConditions'
-import { EmailConditions, EmailConditionsRegistry } from './emailConditions'
-import { DateConditions, DateConditionsRegistry } from './dateConditions'
-import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
-import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
-import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
-import { ObjectConditions, ObjectConditionsRegistry } from './objectConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
+import { StringConditions, stringConditionsRegistry } from './stringConditions'
+import { AddressConditions, addressConditionsRegistry } from './addressConditions'
+import { EmailConditions, emailConditionsRegistry } from './emailConditions'
+import { DateConditions, dateConditionsRegistry } from './dateConditions'
+import { NumberConditions, numberConditionsRegistry } from './numberConditions'
+import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
+import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
+import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
 
 export const Condition = {
   ...GeneralConditions,
@@ -37,14 +36,14 @@ export const Condition = {
   Object: ObjectConditions,
 }
 
-export const ConditionsRegistry = createFunctionsRegistry({
-  ...GeneralConditionsRegistry,
-  ...StringConditionsRegistry,
-  ...EmailConditionsRegistry,
-  ...PhoneConditionsRegistry,
-  ...AddressConditionsRegistry,
-  ...DateConditionsRegistry,
-  ...NumberConditionsRegistry,
-  ...ArrayConditionsRegistry,
-  ...ObjectConditionsRegistry,
-})
+export const ConditionsRegistry = {
+  ...generalConditionsRegistry.build(),
+  ...stringConditionsRegistry.build(),
+  ...emailConditionsRegistry.build(),
+  ...phoneConditionsRegistry.build(),
+  ...addressConditionsRegistry.build(),
+  ...dateConditionsRegistry.build(),
+  ...numberConditionsRegistry.build(),
+  ...arrayConditionsRegistry.build(),
+  ...objectConditionsRegistry.build(),
+}

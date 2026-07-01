@@ -1,232 +1,106 @@
-import { assertNumber, assertString } from '../../shared/utils/asserts'
-import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
+import { z } from 'zod'
+import ConditionRegistry from '../registries/ConditionRegistry'
+import type { ResolvableValue } from '../types/expressions.type'
 
-/**
- * String conditions for text validation and pattern matching
- *
- * All config arguments accept both static values and expressions:
- * - Static: Condition.String.HasMinLength(5)
- * - Dynamic: Condition.String.HasMinLength(Answer('requiredLength'))
- */
-export interface StringConditionGroup {
-  /**
-   * Checks if a string matches a regular expression pattern
-   * @param pattern - The regex pattern to match against
-   * @returns true if the string matches the pattern
-   */
-  MatchesRegex: (pattern: ResolvableValue) => ConditionFunctionExpr
+const stringSchema = z.string()
+const nonNegativeNumberArgsSchema = z.tuple([z.number().nonnegative()])
 
-  /**
-   * Checks if a string has at least the minimum specified length
-   * @param min - The minimum length required
-   * @returns true if the string length is >= min
-   */
-  HasMinLength: (min: ResolvableValue) => ConditionFunctionExpr
+const stringConditions = new ConditionRegistry()
 
-  /**
-   * Checks if a string does not exceed the maximum specified length
-   * @param max - The maximum length allowed
-   * @returns true if the string length is <= max
-   */
-  HasMaxLength: (max: ResolvableValue) => ConditionFunctionExpr
+export const StringConditions = {
+  /** Checks if a string matches a regular expression pattern */
+  MatchesRegex: stringConditions.register('String.MatchesRegex', {
+    inputSchema: stringSchema,
+  }, () => (value: string, pattern: ResolvableValue) => {
+    try {
+      return new RegExp(String(pattern)).test(value)
+    } catch {
+      throw new Error(`Condition.String.MatchesRegex: Invalid regex pattern "${pattern}"`)
+    }
+  }),
 
-  /**
-   * Checks if a string has exactly the specified length
-   * @param len - The exact length required
-   * @returns true if the string length equals len
-   */
-  HasExactLength: (len: ResolvableValue) => ConditionFunctionExpr
+  /** Checks if a string has at least the minimum specified length */
+  HasMinLength: stringConditions.register('String.HasMinLength', {
+    inputSchema: stringSchema,
+    argumentsSchema: nonNegativeNumberArgsSchema,
+  }, () => (value: string, min: number) => value.length >= Number(min)),
 
-  /**
-   * Checks if a string contains at most the specified number of words
-   * @param maxWords - The maximum number of words allowed
-   * @returns true if the word count is <= maxWords
-   */
-  HasMaxWords: (maxWords: ResolvableValue) => ConditionFunctionExpr
+  /** Checks if a string does not exceed the maximum specified length */
+  HasMaxLength: stringConditions.register('String.HasMaxLength', {
+    inputSchema: stringSchema,
+    argumentsSchema: nonNegativeNumberArgsSchema,
+  }, () => (value: string, max: number) => value.length <= Number(max)),
 
-  /**
-   * Checks if a string contains only letters (A-Z, a-z)
-   * @returns true if the string contains only letters
-   */
-  LettersOnly: () => ConditionFunctionExpr
+  /** Checks if a string has exactly the specified length */
+  HasExactLength: stringConditions.register('String.HasExactLength', {
+    inputSchema: stringSchema,
+    argumentsSchema: nonNegativeNumberArgsSchema,
+  }, () => (value: string, len: number) => value.length === Number(len)),
 
-  /**
-   * Checks if a string contains only digits (0-9)
-   * @returns true if the string contains only digits
-   */
-  DigitsOnly: () => ConditionFunctionExpr
+  /** Checks if a string contains at most the specified number of words */
+  HasMaxWords: stringConditions.register('String.HasMaxWords', {
+    inputSchema: stringSchema,
+    argumentsSchema: nonNegativeNumberArgsSchema,
+  }, () => (value: string, maxWords: number) => {
+    const max = Number(maxWords)
+    const trimmed = value.trim()
 
-  /**
-   * Checks if a string contains only letters and common punctuation marks
-   * Allowed: A-Z, a-z, . , ' " ( ) - ! ? and space
-   * @returns true if the string contains only allowed characters
-   */
-  LettersWithCommonPunctuation: () => ConditionFunctionExpr
+    if (trimmed === '') {
+      return max >= 0
+    }
 
-  /**
-   * Checks if a string contains only letters, spaces, dashes, and apostrophes
-   * Useful for validating names
-   * @returns true if the string contains only allowed characters
-   */
-  LettersWithSpaceDashApostrophe: () => ConditionFunctionExpr
+    return trimmed.split(/\s+/).length <= max
+  }),
 
-  /**
-   * Checks if a string contains only letters and digits (alphanumeric)
-   * @returns true if the string is alphanumeric
-   */
-  LettersAndDigitsOnly: () => ConditionFunctionExpr
+  /** Contains only letters (A-Z, a-z) */
+  LettersOnly: stringConditions.register('String.LettersOnly', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z]+$/.test(value)),
 
-  /**
-   * Checks if a string contains only alphanumeric characters and common punctuation
-   * Allowed: A-Z, a-z, 0-9, . , ' " ( ) - ! ? and space
-   * @returns true if the string contains only allowed characters
-   */
-  AlphanumericWithCommonPunctuation: () => ConditionFunctionExpr
+  /** Contains only digits (0-9) */
+  DigitsOnly: stringConditions.register('String.DigitsOnly', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[0-9]+$/.test(value)),
 
-  /**
-   * Checks if a string contains only alphanumeric characters and safe symbols
-   * Allowed: A-Z, a-z, 0-9, space, and . , ; : ' " ( ) - ! ? @ # $ % ^ & *
-   * @returns true if the string contains only allowed characters
-   */
-  AlphanumericWithAllSafeSymbols: () => ConditionFunctionExpr
+  /** Contains only letters and common punctuation */
+  LettersWithCommonPunctuation: stringConditions.register('String.LettersWithCommonPunctuation', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z.,'"()\-!? ]+$/.test(value)),
 
-  /**
-   * Checks if a string starts with the specified prefix
-   * @param prefix - The prefix to check for
-   * @returns true if the string starts with the prefix
-   */
-  StartsWith: (prefix: ResolvableValue) => ConditionFunctionExpr
+  /** Contains only letters, spaces, dashes, and apostrophes */
+  LettersWithSpaceDashApostrophe: stringConditions.register('String.LettersWithSpaceDashApostrophe', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z\s\-']+$/.test(value)),
 
-  /**
-   * Checks if a string ends with the specified suffix
-   * @param suffix - The suffix to check for
-   * @returns true if the string ends with the suffix
-   */
-  EndsWith: (suffix: ResolvableValue) => ConditionFunctionExpr
+  /** Contains only letters and digits (alphanumeric) */
+  LettersAndDigitsOnly: stringConditions.register('String.LettersAndDigitsOnly', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z0-9]+$/.test(value)),
 
-  /**
-   * Checks if a string contains the specified substring
-   * @param substring - The substring to check for
-   * @returns true if the string contains the substring
-   */
-  Contains: (substring: ResolvableValue) => ConditionFunctionExpr
+  /** Contains only alphanumeric characters and common punctuation */
+  AlphanumericWithCommonPunctuation: stringConditions.register('String.AlphanumericWithCommonPunctuation', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z0-9.,'"()\-!? ]+$/.test(value)),
+
+  /** Contains only alphanumeric characters and safe symbols */
+  AlphanumericWithAllSafeSymbols: stringConditions.register('String.AlphanumericWithAllSafeSymbols', {
+    inputSchema: stringSchema,
+  }, () => (value: string) => /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)),
+
+  /** Checks if a string starts with the specified prefix */
+  StartsWith: stringConditions.register('String.StartsWith', {
+    inputSchema: stringSchema,
+  }, () => (value: string, prefix: ResolvableValue) => value.startsWith(String(prefix))),
+
+  /** Checks if a string ends with the specified suffix */
+  EndsWith: stringConditions.register('String.EndsWith', {
+    inputSchema: stringSchema,
+  }, () => (value: string, suffix: ResolvableValue) => value.endsWith(String(suffix))),
+
+  /** Checks if a string contains the specified substring */
+  Contains: stringConditions.register('String.Contains', {
+    inputSchema: stringSchema,
+  }, () => (value: string, substring: ResolvableValue) => value.includes(String(substring))),
 }
 
-export const { conditions: StringConditions, implementations: StringConditionsImplementations } =
-  defineConditionFunctions<StringConditionGroup>({
-    MatchesRegex: () => (value: unknown, pattern: ResolvableValue) => {
-      assertString(value, 'Condition.String.MatchesRegex')
-      assertString(pattern, 'Condition.String.MatchesRegex (pattern)')
-
-      try {
-        return new RegExp(pattern).test(value)
-      } catch {
-        throw new Error(`Condition.String.MatchesRegex: Invalid regex pattern "${pattern}"`)
-      }
-    },
-
-    HasMinLength: () => (value: unknown, min: ResolvableValue) => {
-      assertString(value, 'Condition.String.HasMinLength')
-      assertNumber(min, 'Condition.String.HasMinLength (min)')
-
-      if (min < 0) {
-        throw new Error('Condition.String.HasMinLength: min must be a non-negative number')
-      }
-
-      return value.length >= min
-    },
-
-    HasMaxLength: () => (value: unknown, max: ResolvableValue) => {
-      assertString(value, 'Condition.String.HasMaxLength')
-      assertNumber(max, 'Condition.String.HasMaxLength (max)')
-
-      if (max < 0) {
-        throw new Error('Condition.String.HasMaxLength: max must be a non-negative number')
-      }
-
-      return value.length <= max
-    },
-
-    HasExactLength: () => (value: unknown, len: ResolvableValue) => {
-      assertString(value, 'Condition.String.HasExactLength')
-      assertNumber(len, 'Condition.String.HasExactLength (len)')
-
-      if (len < 0) {
-        throw new Error('Condition.String.HasExactLength: len must be a non-negative number')
-      }
-
-      return value.length === len
-    },
-
-    HasMaxWords: () => (value: unknown, maxWords: ResolvableValue) => {
-      assertString(value, 'Condition.String.HasMaxWords')
-      assertNumber(maxWords, 'Condition.String.HasMaxWords (maxWords)')
-
-      if (maxWords < 0) {
-        throw new Error('Condition.String.HasMaxWords: maxWords must be a non-negative number')
-      }
-
-      const trimmed = value.trim()
-      if (trimmed === '') {
-        return maxWords >= 0
-      }
-
-      return trimmed.split(/\s+/).length <= maxWords
-    },
-
-    LettersOnly: () => (value: unknown) => {
-      assertString(value, 'Condition.String.LettersOnly')
-      return /^[A-Za-z]+$/.test(value)
-    },
-
-    DigitsOnly: () => (value: unknown) => {
-      assertString(value, 'Condition.String.DigitsOnly')
-      return /^[0-9]+$/.test(value)
-    },
-
-    LettersWithCommonPunctuation: () => (value: unknown) => {
-      assertString(value, 'Condition.String.LettersWithCommonPunctuation')
-      return /^[A-Za-z.,'"()\-!? ]+$/.test(value)
-    },
-
-    LettersWithSpaceDashApostrophe: () => (value: unknown) => {
-      assertString(value, 'Condition.String.LettersWithSpaceDashApostrophe')
-      return /^[A-Za-z\s\-']+$/.test(value)
-    },
-
-    LettersAndDigitsOnly: () => (value: unknown) => {
-      assertString(value, 'Condition.String.LettersAndDigitsOnly')
-      return /^[A-Za-z0-9]+$/.test(value)
-    },
-
-    AlphanumericWithCommonPunctuation: () => (value: unknown) => {
-      assertString(value, 'Condition.String.AlphanumericWithCommonPunctuation')
-      return /^[A-Za-z0-9.,'"()\-!? ]+$/.test(value)
-    },
-
-    AlphanumericWithAllSafeSymbols: () => (value: unknown) => {
-      assertString(value, 'Condition.String.AlphanumericWithAllSafeSymbols')
-      return /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value)
-    },
-
-    StartsWith: () => (value: unknown, prefix: ResolvableValue) => {
-      assertString(value, 'Condition.String.StartsWith')
-      assertString(prefix, 'Condition.String.StartsWith (prefix)')
-      return value.startsWith(prefix)
-    },
-
-    EndsWith: () => (value: unknown, suffix: ResolvableValue) => {
-      assertString(value, 'Condition.String.EndsWith')
-      assertString(suffix, 'Condition.String.EndsWith (suffix)')
-      return value.endsWith(suffix)
-    },
-
-    Contains: () => (value: unknown, substring: ResolvableValue) => {
-      assertString(value, 'Condition.String.Contains')
-      assertString(substring, 'Condition.String.Contains (substring)')
-      return value.includes(substring)
-    },
-  })
-
-export const StringConditionsRegistry = StringConditionsImplementations
+export { stringConditions as stringConditionsRegistry }

@@ -1,34 +1,24 @@
-import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
-import { defineConditionFunctions } from '../utils/defineConditionFunctions'
+import ConditionRegistry from '../registries/ConditionRegistry'
+import type { ResolvableValue } from '../types/expressions.type'
 
-export interface GeneralConditionGroup {
-  /**
-   * Checks if a value is not empty/null/undefined
-   * Returns false for: null, undefined, empty strings (after trim), empty arrays
-   * @returns true if the value is considered "present" or "filled"
-   */
-  IsRequired: () => ConditionFunctionExpr
+const generalConditions = new ConditionRegistry()
 
-  /**
-   * Checks if a value is strictly equal to an expected value
-   * Uses === comparison (strict equality)
-   * @param expected - The expected value to compare against
-   * @returns true if value === expected
-   */
-  Equals: (expected: ResolvableValue) => ConditionFunctionExpr
-}
-
-export const { conditions: GeneralConditions, implementations: GeneralConditionsImplementations } =
-  defineConditionFunctions<GeneralConditionGroup>({
-    IsRequired: () => (value: unknown) =>
+export const GeneralConditions = {
+  /** Checks if a value is not empty/null/undefined */
+  IsRequired: generalConditions.register('IsRequired',
+    () => (value: unknown) =>
       !(
         value === null ||
         value === undefined ||
         (typeof value === 'string' && value.trim() === '') ||
         (Array.isArray(value) && value.length === 0)
       ),
+  ),
 
-    Equals: () => (value: unknown, expected: ResolvableValue) => value === expected,
-  })
+  /** Checks if a value is strictly equal to an expected value */
+  Equals: generalConditions.register('Equals',
+    () => (value: unknown, expected: ResolvableValue) => value === expected,
+  ),
+}
 
-export const GeneralConditionsRegistry = GeneralConditionsImplementations
+export { generalConditions as generalConditionsRegistry }
