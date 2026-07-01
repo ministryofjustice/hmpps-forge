@@ -1,4 +1,6 @@
+import type { ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../contracts/compiled/renderBlock.brand'
+import { FunctionType } from '../../../../authoring/types/enums'
 
 interface AnswerHistory {
   current: unknown
@@ -24,11 +26,17 @@ interface RenderFieldFailureContext {
   fieldFailures: Record<string, unknown[]>
 }
 
+interface FunctionRegistryLookupEntry {
+  evaluate(...args: unknown[]): unknown
+  inputSchema?: ZodType
+  argumentsSchema?: ZodType
+  outputSchema?: ZodType
+  functionType?: FunctionType
+}
+
 interface FunctionEvaluationContext {
   conditions: {
-    get(name: string): {
-      evaluate(...args: unknown[]): unknown
-    }
+    get(name: string): FunctionRegistryLookupEntry
   }
 }
 
@@ -156,13 +164,37 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
   },
 
   evaluateFunction(ctx, diagnostics, metadata, functionName, args) {
-    const evaluate = () => ctx.conditions.get(functionName).evaluate(...args)
+    const evaluate = () => {
+      const entry = ctx.conditions.get(functionName)
+
+      if (failsSoftAsFalse(entry, functionName, args)) {
+        return false
+      }
+
+      const result = entry.evaluate(...args)
+
+      validateOutput(entry, functionName, result)
+
+      return result
+    }
 
     return evaluateWithDiagnostics(diagnostics, metadata, evaluate)
   },
 
   evaluateFunctionAsync(ctx, diagnostics, metadata, functionName, args) {
-    const evaluate = async () => ctx.conditions.get(functionName).evaluate(...args)
+    const evaluate = async () => {
+      const entry = ctx.conditions.get(functionName)
+
+      if (failsSoftAsFalse(entry, functionName, args)) {
+        return false
+      }
+
+      const result = await entry.evaluate(...args)
+
+      validateOutput(entry, functionName, result)
+
+      return result
+    }
 
     return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
   },
@@ -198,6 +230,58 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
       throw error
     }
   },
+}
+
+function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string, result: unknown): void {
+  if (entry.outputSchema === undefined) {
+    return
+  }
+
+  const parsed = entry.outputSchema.safeParse(result)
+
+  if (!parsed.success) {
+    throw new TypeError(`${functionName}: return value failed schema validation — ${parsed.error.message}`)
+  }
+}
+
+/**
+ * Checks a function call's args against its registry entry's schemas before
+ * `evaluate` runs. Generators take no injected first parameter, so their full
+ * `args` is config; every other kind injects `args[0]` (value or context) and
+ * `argumentsSchema` only covers what follows it.
+ *
+ * `inputSchema` only has a defined failure mode for conditions, which fail soft
+ * — an unanswered/wrongly-shaped field is a normal "not valid yet" outcome, not
+ * a bug. Every other schema failure (arguments on any kind, or a transformer's
+ * value) is an author mistake and throws.
+ */
+function failsSoftAsFalse(entry: FunctionRegistryLookupEntry, functionName: string, args: unknown[]): boolean {
+  const hasInjectedValue = entry.functionType !== FunctionType.GENERATOR
+  const configArgs = hasInjectedValue ? args.slice(1) : args
+
+  if (entry.argumentsSchema !== undefined) {
+    const parsed = entry.argumentsSchema.safeParse(configArgs)
+
+    if (!parsed.success) {
+      throw new TypeError(`${functionName}: arguments failed schema validation — ${parsed.error.message}`)
+    }
+  }
+
+  if (entry.inputSchema === undefined || !hasInjectedValue) {
+    return false
+  }
+
+  const parsedValue = entry.inputSchema.safeParse(args[0])
+
+  if (parsedValue.success) {
+    return false
+  }
+
+  if (entry.functionType === FunctionType.CONDITION) {
+    return true
+  }
+
+  throw new TypeError(`${functionName}: value failed schema validation — ${parsedValue.error.message}`)
 }
 
 function evaluateWithDiagnostics(

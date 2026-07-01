@@ -507,7 +507,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Emits a registered function call through shared helpers when diagnostics are available.
+   * Emits a registered function call through the shared evaluation helper, so
+   * schema validation and diagnostics tracking always run.
    */
   compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
     const callIsAsync = this.dependencies.functionRegistry.get(funcName)?.isAsync ?? true
@@ -518,16 +519,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
     const helperName = callIsAsync ? 'evaluateFunctionAsync' : 'evaluateFunction'
     const helperCall = this.diagnostics.wrapFunctionCall(helperName, funcName, argExprs, source)
-
-    if (helperCall === undefined) {
-      const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argExprs.join(', ')})`
-
-      if (callIsAsync) {
-        return `(await ${callExpr})`
-      }
-
-      return callExpr
-    }
 
     if (callIsAsync) {
       return `(await ${helperCall})`
