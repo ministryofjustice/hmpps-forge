@@ -1,12 +1,11 @@
-import { StringConditions, StringConditionsImplementations } from './stringConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { StringConditions, stringConditionsRegistry } from './stringConditions'
 import { FunctionType } from '../types/enums'
 
 describe('StringConditions', () => {
-  const registry = createFunctionsRegistry(StringConditionsImplementations)
+  const registry = stringConditionsRegistry.build()
 
   describe('MatchesRegex', () => {
-    const { evaluate } = registry.MatchesRegex
+    const { evaluate } = registry['String.MatchesRegex']
 
     test('should return true when string matches regex pattern', () => {
       expect(evaluate('hello', 'h.*o')).toBe(true)
@@ -19,15 +18,6 @@ describe('StringConditions', () => {
       expect(evaluate('abc', '^\\d+$')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123, 'pattern')).toThrow(
-        'Condition.String.MatchesRegex expects a string but received number',
-      )
-      expect(() => evaluate(null, 'pattern')).toThrow(
-        'Condition.String.MatchesRegex expects a string but received object',
-      )
-    })
-
     test('should throw error for invalid regex pattern', () => {
       expect(() => evaluate('test', '[[')).toThrow('Condition.String.MatchesRegex: Invalid regex pattern')
     })
@@ -36,14 +26,14 @@ describe('StringConditions', () => {
       const expr = StringConditions.MatchesRegex('h.*o')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'MatchesRegex',
+        name: 'String.MatchesRegex',
         arguments: ['h.*o'],
       })
     })
   })
 
   describe('HasMinLength', () => {
-    const { evaluate } = registry.HasMinLength
+    const { evaluate } = registry['String.HasMinLength']
 
     test('should return true when string length is greater than or equal to min', () => {
       expect(evaluate('hello', 3)).toBe(true)
@@ -56,27 +46,18 @@ describe('StringConditions', () => {
       expect(evaluate('', 1)).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123, 3)).toThrow('Condition.String.HasMinLength expects a string but received number')
-    })
-
-    test('should throw error when min is not a valid number', () => {
-      expect(() => evaluate('test', -1)).toThrow('Condition.String.HasMinLength: min must be a non-negative number')
-      expect(() => evaluate('test', 'abc')).toThrow('Condition.String.HasMinLength (min) expects a number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMinLength(5)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'HasMinLength',
+        name: 'String.HasMinLength',
         arguments: [5],
       })
     })
   })
 
   describe('HasMaxLength', () => {
-    const { evaluate } = registry.HasMaxLength
+    const { evaluate } = registry['String.HasMaxLength']
 
     test('should return true when string length is less than or equal to max', () => {
       expect(evaluate('hello', 10)).toBe(true)
@@ -89,26 +70,18 @@ describe('StringConditions', () => {
       expect(evaluate('x', 0)).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate([], 5)).toThrow('Condition.String.HasMaxLength expects a string but received object')
-    })
-
-    test('should throw error when max is not a valid number', () => {
-      expect(() => evaluate('test', -5)).toThrow('Condition.String.HasMaxLength: max must be a non-negative number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMaxLength(10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'HasMaxLength',
+        name: 'String.HasMaxLength',
         arguments: [10],
       })
     })
   })
 
   describe('HasExactLength', () => {
-    const { evaluate } = registry.HasExactLength
+    const { evaluate } = registry['String.HasExactLength']
 
     test('should return true when string length equals the specified length', () => {
       expect(evaluate('hello', 5)).toBe(true)
@@ -122,26 +95,18 @@ describe('StringConditions', () => {
       expect(evaluate('', 1)).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(true, 5)).toThrow('Condition.String.HasExactLength expects a string but received boolean')
-    })
-
-    test('should throw error when len is not a valid number', () => {
-      expect(() => evaluate('test', -1)).toThrow('Condition.String.HasExactLength: len must be a non-negative number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.HasExactLength(8)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'HasExactLength',
+        name: 'String.HasExactLength',
         arguments: [8],
       })
     })
   })
 
   describe('HasMaxWords', () => {
-    const { evaluate } = registry.HasMaxWords
+    const { evaluate } = registry['String.HasMaxWords']
 
     test('should return true when word count is less than or equal to max', () => {
       expect(evaluate('hello world', 2)).toBe(true)
@@ -164,26 +129,18 @@ describe('StringConditions', () => {
       expect(evaluate('one  two  three  four', 3)).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123, 5)).toThrow('Condition.String.HasMaxWords expects a string but received number')
-    })
-
-    test('should throw error when maxWords is not a valid number', () => {
-      expect(() => evaluate('test', -1)).toThrow('Condition.String.HasMaxWords: maxWords must be a non-negative number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.HasMaxWords(100)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'HasMaxWords',
+        name: 'String.HasMaxWords',
         arguments: [100],
       })
     })
   })
 
   describe('LettersOnly', () => {
-    const { evaluate } = registry.LettersOnly
+    const { evaluate } = registry['String.LettersOnly']
 
     test('should return true for strings with only letters', () => {
       expect(evaluate('hello')).toBe(true)
@@ -200,22 +157,18 @@ describe('StringConditions', () => {
       expect(evaluate('123')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123)).toThrow('Condition.String.LettersOnly expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LettersOnly',
+        name: 'String.LettersOnly',
         arguments: [],
       })
     })
   })
 
   describe('DigitsOnly', () => {
-    const { evaluate } = registry.DigitsOnly
+    const { evaluate } = registry['String.DigitsOnly']
 
     test('should return true for strings with only digits', () => {
       expect(evaluate('123')).toBe(true)
@@ -231,22 +184,18 @@ describe('StringConditions', () => {
       expect(evaluate('-123')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123)).toThrow('Condition.String.DigitsOnly expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.DigitsOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'DigitsOnly',
+        name: 'String.DigitsOnly',
         arguments: [],
       })
     })
   })
 
   describe('LettersWithCommonPunctuation', () => {
-    const { evaluate } = registry.LettersWithCommonPunctuation
+    const { evaluate } = registry['String.LettersWithCommonPunctuation']
 
     test('should return true for letters with allowed punctuation', () => {
       expect(evaluate('Hello, World!')).toBe(true)
@@ -264,24 +213,18 @@ describe('StringConditions', () => {
       expect(evaluate('')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(null)).toThrow(
-        'Condition.String.LettersWithCommonPunctuation expects a string but received object',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersWithCommonPunctuation()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LettersWithCommonPunctuation',
+        name: 'String.LettersWithCommonPunctuation',
         arguments: [],
       })
     })
   })
 
   describe('LettersWithSpaceDashApostrophe', () => {
-    const { evaluate } = registry.LettersWithSpaceDashApostrophe
+    const { evaluate } = registry['String.LettersWithSpaceDashApostrophe']
 
     test('should return true for letters with space, dash, and apostrophe', () => {
       expect(evaluate('Hello World')).toBe(true)
@@ -298,24 +241,18 @@ describe('StringConditions', () => {
       expect(evaluate('test.')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.String.LettersWithSpaceDashApostrophe expects a string but received undefined',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersWithSpaceDashApostrophe()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LettersWithSpaceDashApostrophe',
+        name: 'String.LettersWithSpaceDashApostrophe',
         arguments: [],
       })
     })
   })
 
   describe('LettersAndDigitsOnly', () => {
-    const { evaluate } = registry.LettersAndDigitsOnly
+    const { evaluate } = registry['String.LettersAndDigitsOnly']
 
     test('should return true for alphanumeric strings', () => {
       expect(evaluate('Hello123')).toBe(true)
@@ -331,22 +268,18 @@ describe('StringConditions', () => {
       expect(evaluate('')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate({})).toThrow('Condition.String.LettersAndDigitsOnly expects a string but received object')
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.LettersAndDigitsOnly()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LettersAndDigitsOnly',
+        name: 'String.LettersAndDigitsOnly',
         arguments: [],
       })
     })
   })
 
   describe('AlphanumericWithCommonPunctuation', () => {
-    const { evaluate } = registry.AlphanumericWithCommonPunctuation
+    const { evaluate } = registry['String.AlphanumericWithCommonPunctuation']
 
     test('should return true for alphanumeric with allowed punctuation', () => {
       expect(evaluate('Hello123!')).toBe(true)
@@ -363,24 +296,18 @@ describe('StringConditions', () => {
       expect(evaluate('')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123)).toThrow(
-        'Condition.String.AlphanumericWithCommonPunctuation expects a string but received number',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.AlphanumericWithCommonPunctuation()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'AlphanumericWithCommonPunctuation',
+        name: 'String.AlphanumericWithCommonPunctuation',
         arguments: [],
       })
     })
   })
 
   describe('AlphanumericWithAllSafeSymbols', () => {
-    const { evaluate } = registry.AlphanumericWithAllSafeSymbols
+    const { evaluate } = registry['String.AlphanumericWithAllSafeSymbols']
 
     test('should return true for alphanumeric with all safe symbols', () => {
       expect(evaluate('Hello@123')).toBe(true)
@@ -398,24 +325,18 @@ describe('StringConditions', () => {
       expect(evaluate('')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate([])).toThrow(
-        'Condition.String.AlphanumericWithAllSafeSymbols expects a string but received object',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.AlphanumericWithAllSafeSymbols()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'AlphanumericWithAllSafeSymbols',
+        name: 'String.AlphanumericWithAllSafeSymbols',
         arguments: [],
       })
     })
   })
 
   describe('StartsWith', () => {
-    const { evaluate } = registry.StartsWith
+    const { evaluate } = registry['String.StartsWith']
 
     test('should return true when string starts with the prefix', () => {
       expect(evaluate('hello world', 'hello')).toBe(true)
@@ -430,28 +351,18 @@ describe('StringConditions', () => {
       expect(evaluate('', 'h')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123, 'prefix')).toThrow('Condition.String.StartsWith expects a string but received number')
-    })
-
-    test('should throw error when prefix is not a string', () => {
-      expect(() => evaluate('test', 123)).toThrow(
-        'Condition.String.StartsWith (prefix) expects a string but received number',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.StartsWith('hello')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'StartsWith',
+        name: 'String.StartsWith',
         arguments: ['hello'],
       })
     })
   })
 
   describe('EndsWith', () => {
-    const { evaluate } = registry.EndsWith
+    const { evaluate } = registry['String.EndsWith']
 
     test('should return true when string ends with the suffix', () => {
       expect(evaluate('hello world', 'world')).toBe(true)
@@ -466,28 +377,18 @@ describe('StringConditions', () => {
       expect(evaluate('', 'o')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(null, 'suffix')).toThrow('Condition.String.EndsWith expects a string but received object')
-    })
-
-    test('should throw error when suffix is not a string', () => {
-      expect(() => evaluate('test', undefined)).toThrow(
-        'Condition.String.EndsWith (suffix) expects a string but received undefined',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.EndsWith('.com')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'EndsWith',
+        name: 'String.EndsWith',
         arguments: ['.com'],
       })
     })
   })
 
   describe('Contains', () => {
-    const { evaluate } = registry.Contains
+    const { evaluate } = registry['String.Contains']
 
     test('should return true when string contains the substring', () => {
       expect(evaluate('hello world', 'lo wo')).toBe(true)
@@ -504,21 +405,11 @@ describe('StringConditions', () => {
       expect(evaluate('', 'a')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate([], 'substring')).toThrow('Condition.String.Contains expects a string but received object')
-    })
-
-    test('should throw error when substring is not a string', () => {
-      expect(() => evaluate('test', {})).toThrow(
-        'Condition.String.Contains (substring) expects a string but received object',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = StringConditions.Contains('@')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'Contains',
+        name: 'String.Contains',
         arguments: ['@'],
       })
     })

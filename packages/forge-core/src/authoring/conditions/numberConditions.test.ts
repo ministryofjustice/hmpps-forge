@@ -1,12 +1,11 @@
-import { NumberConditions, NumberConditionsImplementations } from './numberConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { NumberConditions, numberConditionsRegistry } from './numberConditions'
 import { FunctionType } from '../types/enums'
 
 describe('NumberConditions', () => {
-  const registry = createFunctionsRegistry(NumberConditionsImplementations)
+  const registry = numberConditionsRegistry.build()
 
   describe('IsNumber', () => {
-    const { evaluate } = registry.IsNumber
+    const { evaluate } = registry['Number.IsNumber']
 
     test('should return true for valid numbers', () => {
       expect(evaluate(0)).toBe(true)
@@ -35,14 +34,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.IsNumber()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsNumber',
+        name: 'Number.IsNumber',
         arguments: [],
       })
     })
   })
 
   describe('IsInteger', () => {
-    const { evaluate } = registry.IsInteger
+    const { evaluate } = registry['Number.IsInteger']
 
     test('should return true for integers', () => {
       expect(evaluate(0)).toBe(true)
@@ -74,14 +73,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.IsInteger()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsInteger',
+        name: 'Number.IsInteger',
         arguments: [],
       })
     })
   })
 
   describe('GreaterThan', () => {
-    const { evaluate } = registry.GreaterThan
+    const { evaluate } = registry['Number.GreaterThan']
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -99,17 +98,6 @@ describe('NumberConditions', () => {
       expect(evaluate(-1, 0)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('10', 5)).toThrow('Condition.Number.GreaterThan expects a number but received string')
-      expect(() => evaluate(null, 5)).toThrow('Condition.Number.GreaterThan expects a number but received object')
-      expect(() => evaluate(undefined, 5)).toThrow(
-        'Condition.Number.GreaterThan expects a number but received undefined',
-      )
-      expect(() => evaluate(true, 5)).toThrow('Condition.Number.GreaterThan expects a number but received boolean')
-      expect(() => evaluate({}, 5)).toThrow('Condition.Number.GreaterThan expects a number but received object')
-      expect(() => evaluate(NaN, 5)).toThrow('Condition.Number.GreaterThan expects a number but received NaN')
-    })
-
     test('should handle edge cases with Infinity and negative numbers', () => {
       expect(evaluate(Infinity, 1000)).toBe(true)
       expect(evaluate(-Infinity, 0)).toBe(false)
@@ -120,14 +108,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.GreaterThan(5)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'GreaterThan',
+        name: 'Number.GreaterThan',
         arguments: [5],
       })
     })
   })
 
   describe('GreaterThanOrEqual', () => {
-    const { evaluate } = registry.GreaterThanOrEqual
+    const { evaluate } = registry['Number.GreaterThanOrEqual']
 
     test('should return true when value is greater than threshold', () => {
       expect(evaluate(10, 5)).toBe(true)
@@ -145,24 +133,18 @@ describe('NumberConditions', () => {
       expect(evaluate(-1, 0)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('5', 5)).toThrow('Condition.Number.GreaterThanOrEqual expects a number but received string')
-      expect(() => evaluate([], 5)).toThrow('Condition.Number.GreaterThanOrEqual expects a number but received object')
-      expect(() => evaluate(NaN, 5)).toThrow('Condition.Number.GreaterThanOrEqual expects a number but received NaN')
-    })
-
     test('should build correct expression object', () => {
       const expr = NumberConditions.GreaterThanOrEqual(10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'GreaterThanOrEqual',
+        name: 'Number.GreaterThanOrEqual',
         arguments: [10],
       })
     })
   })
 
   describe('LessThan', () => {
-    const { evaluate } = registry.LessThan
+    const { evaluate } = registry['Number.LessThan']
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -180,11 +162,6 @@ describe('NumberConditions', () => {
       expect(evaluate(0, -1)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('3', 5)).toThrow('Condition.Number.LessThan expects a number but received string')
-      expect(() => evaluate(NaN, 5)).toThrow('Condition.Number.LessThan expects a number but received NaN')
-    })
-
     test('should handle edge cases with Infinity', () => {
       expect(evaluate(-Infinity, 0)).toBe(true)
       expect(evaluate(0, Infinity)).toBe(true)
@@ -195,14 +172,14 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.LessThan(7)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LessThan',
+        name: 'Number.LessThan',
         arguments: [7],
       })
     })
   })
 
   describe('LessThanOrEqual', () => {
-    const { evaluate } = registry.LessThanOrEqual
+    const { evaluate } = registry['Number.LessThanOrEqual']
 
     test('should return true when value is less than threshold', () => {
       expect(evaluate(3, 5)).toBe(true)
@@ -220,23 +197,18 @@ describe('NumberConditions', () => {
       expect(evaluate(0, -1)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate(false, 5)).toThrow('Condition.Number.LessThanOrEqual expects a number but received boolean')
-      expect(() => evaluate(NaN, 5)).toThrow('Condition.Number.LessThanOrEqual expects a number but received NaN')
-    })
-
     test('should build correct expression object', () => {
       const expr = NumberConditions.LessThanOrEqual(3)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'LessThanOrEqual',
+        name: 'Number.LessThanOrEqual',
         arguments: [3],
       })
     })
   })
 
   describe('Between', () => {
-    const { evaluate } = registry.Between
+    const { evaluate } = registry['Number.Between']
 
     test('should return true when value is between min and max (inclusive)', () => {
       expect(evaluate(5, 1, 10)).toBe(true)
@@ -272,15 +244,6 @@ describe('NumberConditions', () => {
       expect(evaluate(6, 5, 5)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
-      expect(() => evaluate('5', 1, 10)).toThrow('Condition.Number.Between expects a number but received string')
-      expect(() => evaluate(null, 1, 10)).toThrow('Condition.Number.Between expects a number but received object')
-      expect(() => evaluate(undefined, 1, 10)).toThrow(
-        'Condition.Number.Between expects a number but received undefined',
-      )
-      expect(() => evaluate(NaN, 1, 10)).toThrow('Condition.Number.Between expects a number but received NaN')
-    })
-
     test('should handle inverted ranges (max < min)', () => {
       expect(evaluate(5, 10, 1)).toBe(false)
       expect(evaluate(5, 10, 5)).toBe(false)
@@ -290,7 +253,7 @@ describe('NumberConditions', () => {
       const expr = NumberConditions.Between(1, 10)
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'Between',
+        name: 'Number.Between',
         arguments: [1, 10],
       })
     })

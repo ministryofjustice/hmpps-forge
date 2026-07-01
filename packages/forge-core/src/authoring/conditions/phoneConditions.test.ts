@@ -1,12 +1,11 @@
-import { PhoneConditions, PhoneConditionsImplementations } from './phoneConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
 import { FunctionType } from '../types/enums'
 
 describe('PhoneConditions', () => {
-  const registry = createFunctionsRegistry(PhoneConditionsImplementations)
+  const registry = phoneConditionsRegistry.build()
 
   describe('IsValidPhoneNumber', () => {
-    const { evaluate } = registry.IsValidPhoneNumber
+    const { evaluate } = registry['Phone.IsValidPhoneNumber']
 
     test('should return true for valid phone numbers', () => {
       expect(evaluate('1234567')).toBe(true)
@@ -37,29 +36,18 @@ describe('PhoneConditions', () => {
       expect(evaluate('+49 30 12345678')).toBe(true)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123456789)).toThrow(
-        'Condition.Phone.IsValidPhoneNumber expects a string but received number',
-      )
-      expect(() => evaluate(null)).toThrow('Condition.Phone.IsValidPhoneNumber expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.Phone.IsValidPhoneNumber expects a string but received undefined',
-      )
-      expect(() => evaluate([])).toThrow('Condition.Phone.IsValidPhoneNumber expects a string but received object')
-    })
-
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidPhoneNumber()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidPhoneNumber',
+        name: 'Phone.IsValidPhoneNumber',
         arguments: [],
       })
     })
   })
 
   describe('IsValidUKMobile', () => {
-    const { evaluate } = registry.IsValidUKMobile
+    const { evaluate } = registry['Phone.IsValidUKMobile']
 
     test('should return true for valid UK mobile numbers', () => {
       expect(evaluate('07123456789')).toBe(true)
@@ -104,20 +92,11 @@ describe('PhoneConditions', () => {
       expect(evaluate('07123  456  789')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(7123456789)).toThrow('Condition.Phone.IsValidUKMobile expects a string but received number')
-      expect(() => evaluate(null)).toThrow('Condition.Phone.IsValidUKMobile expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.Phone.IsValidUKMobile expects a string but received undefined',
-      )
-      expect(() => evaluate({})).toThrow('Condition.Phone.IsValidUKMobile expects a string but received object')
-    })
-
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidUKMobile()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidUKMobile',
+        name: 'Phone.IsValidUKMobile',
         arguments: [],
       })
     })

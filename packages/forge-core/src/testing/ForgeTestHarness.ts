@@ -1,5 +1,5 @@
 import Forge from '../engine/Forge'
-import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
+import type { ForgePackageFunctions, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import type { ForgeInstrumentationOptions } from '../engine/diagnostics/ForgeTraceSinkDispatcher'
@@ -49,7 +49,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  registerGlobalFunctions<TDeps>(functions: ForgeFunctionImplementations<TDeps>, deps?: TDeps): this {
+  registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
     this.forge.registerGlobalFunctions(functions, deps)
 
     return this

@@ -1,6 +1,6 @@
 import type { ConditionFunctionExpr } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
-import BaseFunctionRegistry, { CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
+import { BaseFunctionRegistry, CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class ConditionRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {

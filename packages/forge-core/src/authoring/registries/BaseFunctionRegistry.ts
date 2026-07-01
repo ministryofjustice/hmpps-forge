@@ -21,7 +21,7 @@ interface StoredRegistration {
 
 export const CONDITION_OUTPUT_SCHEMA = z.boolean()
 
-export default abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
+export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
   private readonly registrations = new Map<string, StoredRegistration>()
 
   private anonymousCounter = 0

@@ -1,9 +1,8 @@
-import { GeneralConditions, GeneralConditionsImplementations } from './generalConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
 import { FunctionType } from '../types/enums'
 
 describe('GeneralConditions', () => {
-  const registry = createFunctionsRegistry(GeneralConditionsImplementations)
+  const registry = generalConditionsRegistry.build()
 
   describe('IsRequired', () => {
     const { evaluate } = registry.IsRequired

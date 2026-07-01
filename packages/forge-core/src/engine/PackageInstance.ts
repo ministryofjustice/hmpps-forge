@@ -2,6 +2,7 @@ import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
 import { DSLValidator } from './validation/DSLValidator'
 import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
+import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
@@ -102,7 +103,18 @@ export default class PackageInstance {
     const resolvedDeps = options.functionDependencies ?? {}
     const scopedFunctionRegistry = new ScopedFunctionRegistry(options.functionRegistry)
 
-    scopedFunctionRegistry.register(createFunctionsRegistry(pkg.functions, resolvedDeps))
+    const { functions } = pkg
+
+    if (functions instanceof BaseFunctionRegistry) {
+      scopedFunctionRegistry.register(functions.build(resolvedDeps))
+    } else if (Array.isArray(functions)) {
+      functions.forEach(registry => {
+        scopedFunctionRegistry.register(registry.build(resolvedDeps))
+      })
+    } else {
+      // deprecated: old implementations-map path
+      scopedFunctionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
+    }
 
     return scopedFunctionRegistry
   }

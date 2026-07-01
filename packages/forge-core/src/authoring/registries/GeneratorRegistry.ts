@@ -1,7 +1,7 @@
 import type { ResolvableValue } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { FunctionType } from '../types/enums'
-import BaseFunctionRegistry, { type RegistrationOptions } from './BaseFunctionRegistry'
+import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class GeneratorRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {

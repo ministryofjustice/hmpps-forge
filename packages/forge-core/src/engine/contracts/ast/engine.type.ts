@@ -5,6 +5,8 @@ import type { JourneyDefinition } from '../../../authoring/types/structures.type
 import type { ComponentRegistryEntry } from '../../../components/types/components.type'
 import type { BlockDefinition } from '../../../components/types/structures.type'
 import type { FunctionEvaluator } from '../../../authoring/types/functions.type'
+import type { BaseFunctionRegistry } from '../../../authoring/registries/BaseFunctionRegistry'
+import type { FunctionImplementations, FunctionShapeMap } from '../../../authoring/utils/defineFunction.type'
 
 export type { ASTNode, AstNodeId, CompiledNodeId, CompileAstNodeId, NodeId, TemplateNodeId } from './ast.type'
 
@@ -19,9 +21,14 @@ export interface PackageDependencies {
 
 export type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) => FunctionEvaluator<unknown>>
 
+export type ForgePackageFunctions<TDeps> =
+  | FunctionImplementations<FunctionShapeMap, TDeps>
+  | BaseFunctionRegistry<TDeps>
+  | BaseFunctionRegistry<TDeps>[]
+
 export interface ForgePackageRegistration<TDeps = Record<string, never>> {
   journey: string | JourneyDefinition
-  functions?: ForgeFunctionImplementations<TDeps>
+  functions?: ForgePackageFunctions<TDeps>
   components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
   enabled?: boolean
 }

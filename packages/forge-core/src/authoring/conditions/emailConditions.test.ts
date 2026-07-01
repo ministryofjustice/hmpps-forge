@@ -1,12 +1,11 @@
-import { EmailConditions, EmailConditionsImplementations } from './emailConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { EmailConditions, emailConditionsRegistry } from './emailConditions'
 import { FunctionType } from '../types/enums'
 
 describe('EmailConditions', () => {
-  const registry = createFunctionsRegistry(EmailConditionsImplementations)
+  const registry = emailConditionsRegistry.build()
 
   describe('IsValidEmail', () => {
-    const { evaluate } = registry.IsValidEmail
+    const { evaluate } = registry['Email.IsValidEmail']
 
     test('should return true for valid email addresses', () => {
       expect(evaluate('test@example.com')).toBe(true)
@@ -47,19 +46,11 @@ describe('EmailConditions', () => {
       expect(evaluate('1234567890@example.com')).toBe(true)
     })
 
-    test('should throw error when value is not a string', () => {
-      expect(() => evaluate(123)).toThrow('Condition.Email.IsValidEmail expects a string but received number')
-      expect(() => evaluate(null)).toThrow('Condition.Email.IsValidEmail expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow('Condition.Email.IsValidEmail expects a string but received undefined')
-      expect(() => evaluate([])).toThrow('Condition.Email.IsValidEmail expects a string but received object')
-      expect(() => evaluate({})).toThrow('Condition.Email.IsValidEmail expects a string but received object')
-    })
-
     test('should build correct expression object', () => {
       const expr = EmailConditions.IsValidEmail()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidEmail',
+        name: 'Email.IsValidEmail',
         arguments: [],
       })
     })

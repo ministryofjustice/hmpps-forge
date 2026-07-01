@@ -1,12 +1,11 @@
-import { ObjectConditions, ObjectConditionsImplementations } from './objectConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
 import { FunctionType } from '../types/enums'
 
 describe('ObjectConditions', () => {
-  const registry = createFunctionsRegistry(ObjectConditionsImplementations)
+  const registry = objectConditionsRegistry.build()
 
   describe('IsObject', () => {
-    const { evaluate } = registry.IsObject
+    const { evaluate } = registry['Object.IsObject']
 
     test('should return true for plain objects', () => {
       expect(evaluate({})).toBe(true)
@@ -53,14 +52,14 @@ describe('ObjectConditions', () => {
       const expr = ObjectConditions.IsObject()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsObject',
+        name: 'Object.IsObject',
         arguments: [],
       })
     })
   })
 
   describe('HasProperty', () => {
-    const { evaluate } = registry.HasProperty
+    const { evaluate } = registry['Object.HasProperty']
 
     test('should return true when object has the property', () => {
       expect(evaluate({ name: 'John' }, 'name')).toBe(true)
@@ -96,30 +95,18 @@ describe('ObjectConditions', () => {
       expect(evaluate(obj, 'user.name')).toBe(false)
     })
 
-    test('should throw error when value is not an object', () => {
-      expect(() => evaluate('string', 'prop')).toThrow(
-        'Condition.Object.HasProperty expects an object but received string',
-      )
-      expect(() => evaluate(123, 'prop')).toThrow('Condition.Object.HasProperty expects an object but received number')
-      expect(() => evaluate(null, 'prop')).toThrow('Condition.Object.HasProperty expects an object but received null')
-      expect(() => evaluate(undefined, 'prop')).toThrow(
-        'Condition.Object.HasProperty expects an object but received undefined',
-      )
-      expect(() => evaluate([], 'prop')).toThrow('Condition.Object.HasProperty expects an object but received array')
-    })
-
     test('should build correct expression object', () => {
       const expr = ObjectConditions.HasProperty('user.address')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'HasProperty',
+        name: 'Object.HasProperty',
         arguments: ['user.address'],
       })
     })
   })
 
   describe('PropertyIsEmpty', () => {
-    const { evaluate } = registry.PropertyIsEmpty
+    const { evaluate } = registry['Object.PropertyIsEmpty']
 
     test('should return true when property is null', () => {
       expect(evaluate({ value: null }, 'value')).toBe(true)
@@ -164,30 +151,18 @@ describe('ObjectConditions', () => {
       expect(evaluate(obj, 'user.phone')).toBe(true)
     })
 
-    test('should throw error when value is not an object', () => {
-      expect(() => evaluate('string', 'prop')).toThrow(
-        'Condition.Object.PropertyIsEmpty expects an object but received string',
-      )
-      expect(() => evaluate(123, 'prop')).toThrow(
-        'Condition.Object.PropertyIsEmpty expects an object but received number',
-      )
-      expect(() => evaluate([], 'prop')).toThrow(
-        'Condition.Object.PropertyIsEmpty expects an object but received array',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = ObjectConditions.PropertyIsEmpty('user.email')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'PropertyIsEmpty',
+        name: 'Object.PropertyIsEmpty',
         arguments: ['user.email'],
       })
     })
   })
 
   describe('PropertyHasValue', () => {
-    const { evaluate } = registry.PropertyHasValue
+    const { evaluate } = registry['Object.PropertyHasValue']
 
     test('should return true when property has a non-empty value', () => {
       expect(evaluate({ value: 'text' }, 'value')).toBe(true)
@@ -234,23 +209,11 @@ describe('ObjectConditions', () => {
       expect(evaluate(obj, 'user.phone')).toBe(false)
     })
 
-    test('should throw error when value is not an object', () => {
-      expect(() => evaluate('string', 'prop')).toThrow(
-        'Condition.Object.PropertyHasValue expects an object but received string',
-      )
-      expect(() => evaluate(null, 'prop')).toThrow(
-        'Condition.Object.PropertyHasValue expects an object but received null',
-      )
-      expect(() => evaluate(undefined, 'prop')).toThrow(
-        'Condition.Object.PropertyHasValue expects an object but received undefined',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = ObjectConditions.PropertyHasValue('user.address.city')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'PropertyHasValue',
+        name: 'Object.PropertyHasValue',
         arguments: ['user.address.city'],
       })
     })

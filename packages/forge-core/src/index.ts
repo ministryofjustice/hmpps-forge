@@ -11,7 +11,11 @@ export type {
   ForgeInstrumentationSink,
 } from './engine/diagnostics/ForgeTraceSinkDispatcher'
 export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
-export type { ForgePackageRegistration, ForgeFunctionImplementations } from './engine/contracts/ast/engine.type'
+export type {
+  ForgePackageRegistration,
+  ForgePackageFunctions,
+  ForgeFunctionImplementations,
+} from './engine/contracts/ast/engine.type'
 export type {
   RequestTrace,
   RequestTraceEvent,

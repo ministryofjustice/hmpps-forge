@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
-import { FormatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
+import { formatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../../contracts/ast/expressions.type'
@@ -146,7 +146,7 @@ describe('HookLifecycleCompiler', () => {
     functionRegistry = new FunctionRegistry()
     compiler = new HookLifecycleCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
     functionRegistry.register({
-      ...FormatGeneratorsRegistry,
+      ...formatGeneratorsRegistry.build(),
       isRequired: {
         name: 'isRequired',
         isAsync: false,

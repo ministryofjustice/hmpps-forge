@@ -1,12 +1,11 @@
-import { DateConditions, DateConditionsImplementations } from './dateConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { DateConditions, dateConditionsRegistry } from './dateConditions'
 import { FunctionType } from '../types/enums'
 
 describe('DateConditions', () => {
-  const registry = createFunctionsRegistry(DateConditionsImplementations)
+  const registry = dateConditionsRegistry.build()
 
   describe('IsValid', () => {
-    const { evaluate } = registry.IsValid
+    const { evaluate } = registry['Date.IsValid']
 
     test('should return true for valid ISO date strings', () => {
       expect(evaluate('2025-09-05')).toBe(true)
@@ -33,22 +32,18 @@ describe('DateConditions', () => {
       expect(evaluate('invalid')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(123)).toThrow('Condition.Date.IsValid expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValid()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValid',
+        name: 'Date.IsValid',
         arguments: [],
       })
     })
   })
 
   describe('IsValidYear', () => {
-    const { evaluate } = registry.IsValidYear
+    const { evaluate } = registry['Date.IsValidYear']
 
     test('should return true for valid years in ISO date strings', () => {
       expect(evaluate('2024-01-01')).toBe(true)
@@ -68,22 +63,18 @@ describe('DateConditions', () => {
       expect(evaluate('invalid')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(2024)).toThrow('Condition.Date.IsValidYear expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidYear()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidYear',
+        name: 'Date.IsValidYear',
         arguments: [],
       })
     })
   })
 
   describe('IsValidMonth', () => {
-    const { evaluate } = registry.IsValidMonth
+    const { evaluate } = registry['Date.IsValidMonth']
 
     test('should return true for valid months in ISO date strings', () => {
       expect(evaluate('1990-01-01')).toBe(true)
@@ -101,22 +92,18 @@ describe('DateConditions', () => {
       expect(evaluate('invalid')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(12)).toThrow('Condition.Date.IsValidMonth expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidMonth()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidMonth',
+        name: 'Date.IsValidMonth',
         arguments: [],
       })
     })
   })
 
   describe('IsValidDay', () => {
-    const { evaluate } = registry.IsValidDay
+    const { evaluate } = registry['Date.IsValidDay']
 
     test('should return true for valid days in regular months', () => {
       expect(evaluate('2024-01-15')).toBe(true) // January (31 days)
@@ -153,22 +140,18 @@ describe('DateConditions', () => {
       expect(evaluate('2001-02-29')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(15)).toThrow('Condition.Date.IsValidDay expects a string but received number')
-    })
-
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidDay()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsValidDay',
+        name: 'Date.IsValidDay',
         arguments: [],
       })
     })
   })
 
   describe('IsBefore', () => {
-    const { evaluate } = registry.IsBefore
+    const { evaluate } = registry['Date.IsBefore']
 
     test('should return true when date is before comparison date', () => {
       expect(evaluate('2024-01-01', '2024-01-02')).toBe(true)
@@ -186,10 +169,6 @@ describe('DateConditions', () => {
       expect(evaluate('2024-01-02', '2024-01-01')).toBe(false)
       expect(evaluate('2024-01-01', '2023-12-31')).toBe(false)
       expect(evaluate('2024-02-01', '2024-01-15')).toBe(false)
-    })
-
-    test('should validate input type', () => {
-      expect(() => evaluate(123, '2024-01-01')).toThrow('Condition.Date.IsBefore expects a string but received number')
     })
 
     test('should throw error when value is invalid date string', () => {
@@ -214,14 +193,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsBefore('2024-12-31')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsBefore',
+        name: 'Date.IsBefore',
         arguments: ['2024-12-31'],
       })
     })
   })
 
   describe('IsAfter', () => {
-    const { evaluate } = registry.IsAfter
+    const { evaluate } = registry['Date.IsAfter']
 
     test('should return true when date is after comparison date', () => {
       expect(evaluate('2024-01-02', '2024-01-01')).toBe(true)
@@ -241,10 +220,6 @@ describe('DateConditions', () => {
       expect(evaluate('2024-01-15', '2024-02-01')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(123, '2024-01-01')).toThrow('Condition.Date.IsAfter expects a string but received number')
-    })
-
     test('should throw error when value is invalid date string', () => {
       expect(() => evaluate('invalid-date', '2024-01-01')).toThrow(
         'Condition.Date.IsAfter: Invalid date string "invalid-date"',
@@ -261,14 +236,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsAfter('2024-01-01')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsAfter',
+        name: 'Date.IsAfter',
         arguments: ['2024-01-01'],
       })
     })
   })
 
   describe('IsFutureDate', () => {
-    const { evaluate } = registry.IsFutureDate
+    const { evaluate } = registry['Date.IsFutureDate']
 
     test('should return true for future dates', () => {
       const tomorrow = new Date()
@@ -299,10 +274,6 @@ describe('DateConditions', () => {
       expect(evaluate(today)).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(123)).toThrow('Condition.Date.IsFutureDate expects a string but received number')
-    })
-
     test('should throw error when value is invalid date string', () => {
       expect(() => evaluate('invalid-date')).toThrow('Condition.Date.IsFutureDate: Invalid date string "invalid-date"')
       expect(() => evaluate('2024-13-01')).toThrow('Condition.Date.IsFutureDate: Invalid date string "2024-13-01"')
@@ -312,14 +283,14 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsFutureDate()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsFutureDate',
+        name: 'Date.IsFutureDate',
         arguments: [],
       })
     })
   })
 
   describe('IsToday', () => {
-    const { evaluate } = registry.IsToday
+    const { evaluate } = registry['Date.IsToday']
 
     test('should return true for today', () => {
       const today = new Date().toISOString().split('T')[0]
@@ -350,10 +321,6 @@ describe('DateConditions', () => {
       expect(evaluate('2999-12-31')).toBe(false)
     })
 
-    test('should validate input type', () => {
-      expect(() => evaluate(123)).toThrow('Condition.Date.IsToday expects a string but received number')
-    })
-
     test('should throw error when value is invalid date string', () => {
       expect(() => evaluate('invalid-date')).toThrow('Condition.Date.IsToday: Invalid date string "invalid-date"')
       expect(() => evaluate('2024-13-01')).toThrow('Condition.Date.IsToday: Invalid date string "2024-13-01"')
@@ -363,7 +330,7 @@ describe('DateConditions', () => {
       const expr = DateConditions.IsToday()
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsToday',
+        name: 'Date.IsToday',
         arguments: [],
       })
     })

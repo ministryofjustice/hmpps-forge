@@ -1,6 +1,6 @@
 import type { EffectFunctionExpr } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
-import BaseFunctionRegistry, { type RegistrationOptions } from './BaseFunctionRegistry'
+import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class EffectRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {

@@ -11,7 +11,7 @@ import {
 } from '../../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  FormatGeneratorsRegistry,
+  formatGeneratorsRegistry,
 } from '../../../../../authoring/generators/formatGenerators'
 import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
@@ -124,7 +124,7 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
         }
 
         if (name === 'trim') {

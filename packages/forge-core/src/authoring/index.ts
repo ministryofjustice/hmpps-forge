@@ -3,13 +3,18 @@ export { Condition, ConditionsRegistry } from './conditions'
 export { Generator, GeneratorsRegistry } from './generators'
 export { Transformer, TransformersRegistry } from './transformers'
 
+export { BaseFunctionRegistry } from './registries/BaseFunctionRegistry'
+export { default as ConditionRegistry } from './registries/ConditionRegistry'
+export { default as TransformerRegistry } from './registries/TransformerRegistry'
 export { default as GeneratorRegistry } from './registries/GeneratorRegistry'
+export { default as EffectRegistry } from './registries/EffectRegistry'
 export { createFunctionsRegistry } from './utils/createFunctionsRegistry'
 export { defineConditionFunctions } from './utils/defineConditionFunctions'
 export { defineEffectFunctions } from './utils/defineEffectFunctions'
 export { defineGeneratorFunctions } from './utils/defineGeneratorFunctions'
 export { defineTransformerFunctions } from './utils/defineTransformerFunctions'
 export { createFunctionScope, type FunctionScope } from './utils/createFunctionScope'
+export type { FunctionImplementations, FunctionShapeMap } from './utils/defineFunction.type'
 
 export { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
 

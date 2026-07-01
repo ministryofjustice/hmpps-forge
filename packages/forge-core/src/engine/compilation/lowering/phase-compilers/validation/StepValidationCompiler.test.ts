@@ -10,7 +10,7 @@ import {
 } from '../../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  FormatGeneratorsRegistry,
+  formatGeneratorsRegistry,
 } from '../../../../../authoring/generators/formatGenerators'
 import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../contracts/ast/structures.type'
 import {
@@ -141,7 +141,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
         }
 
         if (name === 'isRequired') {
