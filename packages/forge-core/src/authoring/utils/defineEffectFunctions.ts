@@ -1,5 +1,5 @@
 import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   EffectFunctionGroup,
   EffectFunctions,
@@ -60,6 +60,9 @@ export function defineEffectFunctions<TShapes extends FunctionShapeMap, TDeps = 
 } {
   return {
     effects: buildExpressionFunctions(factories, FunctionType.EFFECT) as EffectFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.EFFECT) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

@@ -72,16 +72,9 @@ export interface NunjucksGeneratorShape {
   String: (props: NunjucksStringGeneratorProps) => GeneratorBuilder<[NunjucksStringGeneratorProps]>
 }
 
-// Have to jump through some hoops with the types here because of Rolldown trying to create
-// code split types.
 export const {
   generators: NunjucksGenerators,
   implementations: nunjucksFunctions,
-}: {
-  generators: NunjucksGeneratorShape
-  implementations: {
-    String: (deps: Record<string, never>) => (props: NunjucksStringGeneratorProps) => unknown
-  }
 } = defineGeneratorFunctions<NunjucksGeneratorShape>({
   String: {
     prepare: (props: NunjucksStringGeneratorProps) => {

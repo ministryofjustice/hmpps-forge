@@ -1,8 +1,11 @@
+import { createFunctionsRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { assertTemplateIsAllowed, NunjucksGenerators, nunjucksFunctions } from './nunjucksGenerators'
 
 describe('nunjucksGenerators', () => {
+  const registry = createFunctionsRegistry(nunjucksFunctions)
+
   describe('String evaluator', () => {
-    const evaluate = nunjucksFunctions.String({})
+    const evaluate = registry.String.evaluate
 
     it('should render a plain template', () => {
       // Arrange / Act
@@ -155,7 +158,7 @@ describe('nunjucksGenerators', () => {
 
     it('should reject at render time when a forbidden tag slips past the prepare hook', () => {
       // Arrange
-      const evaluate = nunjucksFunctions.String({})
+      const evaluate = registry.String.evaluate
 
       // Act / Assert: calling the generator evaluator directly still catches it on cache miss.
       expect(() => evaluate({ template: '{% include "x.njk" %}' })).toThrow(/include/)

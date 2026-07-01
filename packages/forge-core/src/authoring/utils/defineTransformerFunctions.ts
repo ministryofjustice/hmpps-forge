@@ -1,5 +1,5 @@
 import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -59,6 +59,9 @@ export function defineTransformerFunctions<TShapes extends FunctionShapeMap, TDe
 } {
   return {
     transformers: buildExpressionFunctions(factories, FunctionType.TRANSFORMER) as TransformerFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.TRANSFORMER) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

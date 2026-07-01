@@ -1,7 +1,8 @@
 import { FunctionEvaluator } from '../types/functions.type'
 import { ResolvableValue } from '../types/expressions.type'
+import { FunctionType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { extractFactories, extractPrepare } from './defineFunction'
+import { extractPrepare, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -91,6 +92,9 @@ export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps
 
   return {
     generators,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.GENERATOR) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }
