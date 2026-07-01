@@ -1,5 +1,5 @@
-import { FunctionEvaluator, FunctionRegistryObject } from '../types/functions.type'
-import type { FunctionType } from '../types/enums'
+import { FunctionEvaluator, FunctionRegistryObject } from '../../types/functions.type'
+import type { FunctionType } from '../../types/enums'
 import type { FunctionImplementations, FunctionShapeMap, NoDeps } from './defineFunction.type'
 
 /**

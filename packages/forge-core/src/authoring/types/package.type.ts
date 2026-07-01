@@ -1,6 +1,6 @@
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
-import type { FunctionImplementations, FunctionShapeMap } from '../utils/defineFunction.type'
+import type { FunctionImplementations, FunctionShapeMap } from '../utils/deprecated/defineFunction.type'
 import type { BaseFunctionRegistry } from '../registries/BaseFunctionRegistry'
 import type { JourneyDefinition } from './structures.type'
 

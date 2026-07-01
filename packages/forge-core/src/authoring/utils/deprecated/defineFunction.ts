@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionType } from '../../types/enums'
 import type { FunctionImplementations, FunctionShapeMap } from './defineFunction.type'
 
 /**

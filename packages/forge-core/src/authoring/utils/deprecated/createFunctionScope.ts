@@ -1,11 +1,11 @@
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { FunctionType } from '../types/enums'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import { FunctionType } from '../../types/enums'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   TransformerFunctionExpr,
   ResolvableValue,
-} from '../types/expressions.type'
+} from '../../types/expressions.type'
 import type { FunctionImplementations, FunctionShapeMap, NoDeps } from './defineFunction.type'
 
 type ScopedFunctionFactory<TDeps> = (deps: TDeps) => (...args: never[]) => unknown

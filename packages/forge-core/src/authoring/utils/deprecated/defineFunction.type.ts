@@ -1,12 +1,12 @@
-import { FunctionEvaluator } from '../types/functions.type'
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import type { EffectFunctionContext } from '../../engine/runtime/evaluation/context/EffectFunctionContext'
+import { FunctionEvaluator } from '../../types/functions.type'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import type { EffectFunctionContext } from '../../../engine/runtime/evaluation/context/EffectFunctionContext'
 import {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   TransformerFunctionExpr,
   ResolvableValue,
-} from '../types/expressions.type'
+} from '../../types/expressions.type'
 
 export type NoDeps = Record<string, never>
 

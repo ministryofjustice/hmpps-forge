@@ -1,7 +1,7 @@
-import { FunctionEvaluator } from '../types/functions.type'
-import { ResolvableValue } from '../types/expressions.type'
-import { FunctionType } from '../types/enums'
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { FunctionEvaluator } from '../../types/functions.type'
+import { ResolvableValue } from '../../types/expressions.type'
+import { FunctionType } from '../../types/enums'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
 import { extractPrepare, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,

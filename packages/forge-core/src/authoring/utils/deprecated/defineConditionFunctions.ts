@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionType } from '../../types/enums'
 import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   ConditionFunctionGroup,

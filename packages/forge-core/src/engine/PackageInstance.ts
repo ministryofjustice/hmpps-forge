@@ -1,7 +1,7 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
 import { DSLValidator } from './validation/DSLValidator'
-import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
+import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
