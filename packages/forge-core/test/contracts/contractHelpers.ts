@@ -1,10 +1,10 @@
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { journey, defineEffectFunctions, type EffectFunctionExpr } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import type {
-  RuntimeContextSnapshotTrace,
-  RequestTraceUnit,
-} from '../../src/engine/runtime/evaluation/work/tracing/trace.type'
+import type { ForgeRenderer } from '../../src/framework/rendering/types'
+import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
+import type { BlockDefinition } from '../../src/components'
+import type { RuntimeContextSnapshotTrace, RequestTraceUnit } from '../../src/engine/contracts/runtime/trace.type'
 
 export interface ContractEffectShape {
   LoadAnswers: (journeyCode: string) => EffectFunctionExpr
@@ -92,6 +92,37 @@ export function createTracedClient(journeyDef: ReturnType<typeof journey>, trace
       .registerGlobalComponents(govukComponents)
       .registerPackage({ journey: journeyDef, functions: effectImplementations })
       .createClient()
+}
+
+export function createRenderClient(
+  journeyDef: ReturnType<typeof journey>,
+  renderer: ForgeRenderer<unknown>,
+  components: ComponentRegistryEntry<BlockDefinition, unknown>[],
+) {
+  return new ForgeTestHarness()
+    .registerGlobalComponents(components)
+    .registerPackage({ journey: journeyDef, functions: effectImplementations })
+    .createClient(renderer)
+}
+
+export function createTracedRenderClient(
+  journeyDef: ReturnType<typeof journey>,
+  renderer: ForgeRenderer<unknown>,
+  traces: RequestTraceEvent[],
+  components: ComponentRegistryEntry<BlockDefinition, unknown>[],
+) {
+  return new ForgeTestHarness({
+      instrumentation: {
+        sinks: [
+          {
+            onRequestTrace: event => traces.push(event),
+          },
+        ],
+      },
+    })
+      .registerGlobalComponents(components)
+      .registerPackage({ journey: journeyDef, functions: effectImplementations })
+      .createClient(renderer)
 }
 
 export function answersFromTrace(event: RequestTraceEvent): Record<string, unknown> {
