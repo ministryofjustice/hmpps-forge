@@ -27,7 +27,7 @@ export default class JourneyFactory {
     const properties: JourneyASTNode['properties'] = {
       code: dataProperties.code,
       path: dataProperties.path,
-      title: dataProperties.title,
+      title: this.nodeFactory.transformChild(dataProperties.title, 'title'),
     }
 
     if (dataProperties.code === undefined) {
@@ -58,7 +58,7 @@ export default class JourneyFactory {
     }
 
     if (dataProperties.description !== undefined) {
-      properties.description = dataProperties.description
+      properties.description = this.nodeFactory.transformChild(dataProperties.description, 'description')
     }
 
     if (dataProperties.onAccess !== undefined) {
@@ -78,7 +78,7 @@ export default class JourneyFactory {
     }
 
     if (dataProperties.metadata !== undefined) {
-      properties.metadata = dataProperties.metadata
+      properties.metadata = this.nodeFactory.transformChild(dataProperties.metadata, 'metadata')
     }
 
     if (dataProperties.data !== undefined) {

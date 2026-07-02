@@ -7,6 +7,7 @@ import type {
   CompiledReachabilityFactsFunction,
   CompiledReachabilityStateFunction,
   CompiledResolveFunction,
+  CompiledRouteMetadataFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
@@ -38,7 +39,14 @@ export type RequestEntryValidationWorkProps = PhaseWorkProps<CompiledEntryValida
 
 export type RequestSubmitWorkProps = PhaseWorkProps<CompiledSubmitHooksFunction>
 
-export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction> & {
+export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction>
+
+/**
+ * The route-tree phase resolves the package's route metadata and hydrates it onto
+ * the static topology. It carries the same topology props the resolve phase used
+ * to own, plus the package-level `compiled` metadata function it evaluates.
+ */
+export type RequestRouteTreeWorkProps = PhaseWorkProps<CompiledRouteMetadataFunction> & {
   readonly routeTree: StoredRouteTree
   readonly currentRouteTemplatePath: string
 }

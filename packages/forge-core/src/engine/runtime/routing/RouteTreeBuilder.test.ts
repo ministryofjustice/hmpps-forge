@@ -14,12 +14,10 @@ describe('RouteTreeBuilder', () => {
     id: CompileAstNodeId,
     path: string,
     ancestorJourneyIds: readonly NodeId[],
-    title = `Journey ${path}`,
   ): JourneyRouteDescriptor {
     return {
       nodeId: id,
       path,
-      title,
       ancestorJourneyIds,
     }
   }
@@ -28,12 +26,10 @@ describe('RouteTreeBuilder', () => {
     id: CompileAstNodeId,
     path: string,
     ancestorJourneyIds: readonly NodeId[],
-    title = `Step ${path}`,
   ): StepRouteDescriptor {
     return {
       nodeId: id,
       path,
-      title,
       ancestorJourneyIds,
     }
   }
@@ -57,7 +53,7 @@ describe('RouteTreeBuilder', () => {
   it('should include the base path as route segment nodes', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:1', '/journey', ['compile_ast:1'])
-    const step = createStepDescriptor('compile_ast:2', '/start', ['compile_ast:1'], 'Start')
+    const step = createStepDescriptor('compile_ast:2', '/start', ['compile_ast:1'])
 
     // Act
     const { index } = buildRouteTree([journey], [step], '/forms')
@@ -82,13 +78,8 @@ describe('RouteTreeBuilder', () => {
   it('should merge shared route segments for sibling routes', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:3', '/apply', ['compile_ast:3'])
-    const nameStep = createStepDescriptor('compile_ast:4', '/personal/name', ['compile_ast:3'], 'Name')
-    const dateOfBirthStep = createStepDescriptor(
-      'compile_ast:5',
-      '/personal/date-of-birth',
-      ['compile_ast:3'],
-      'Date of birth',
-    )
+    const nameStep = createStepDescriptor('compile_ast:4', '/personal/name', ['compile_ast:3'])
+    const dateOfBirthStep = createStepDescriptor('compile_ast:5', '/personal/date-of-birth', ['compile_ast:3'])
 
     // Act
     const { index } = buildRouteTree([journey], [nameStep, dateOfBirthStep])
@@ -114,12 +105,7 @@ describe('RouteTreeBuilder', () => {
       'compile_ast:6',
       'compile_ast:7',
     ])
-    const overviewStep = createStepDescriptor(
-      'compile_ast:8',
-      '/overview',
-      ['compile_ast:6', 'compile_ast:7'],
-      'Overview',
-    )
+    const overviewStep = createStepDescriptor('compile_ast:8', '/overview', ['compile_ast:6', 'compile_ast:7'])
 
     // Act
     const { index, result } = buildRouteTree([guideJourney, sectionJourney], [overviewStep])
@@ -144,7 +130,7 @@ describe('RouteTreeBuilder', () => {
   it('should preserve parameterised path segments in template paths', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:9', '/users/:userId', ['compile_ast:9'])
-    const step = createStepDescriptor('compile_ast:10', '/items/:itemId', ['compile_ast:9'], 'Item')
+    const step = createStepDescriptor('compile_ast:10', '/items/:itemId', ['compile_ast:9'])
 
     // Act
     const { index, result } = buildRouteTree([journey], [step])
@@ -157,8 +143,8 @@ describe('RouteTreeBuilder', () => {
   it('should allow a concrete route node to have children', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:11', '/guide', ['compile_ast:11'])
-    const searchStep = createStepDescriptor('compile_ast:12', '/search', ['compile_ast:11'], 'Search')
-    const resultsStep = createStepDescriptor('compile_ast:13', '/search/results', ['compile_ast:11'], 'Results')
+    const searchStep = createStepDescriptor('compile_ast:12', '/search', ['compile_ast:11'])
+    const resultsStep = createStepDescriptor('compile_ast:13', '/search/results', ['compile_ast:11'])
 
     // Act
     const { index } = buildRouteTree([journey], [searchStep, resultsStep])
@@ -188,7 +174,7 @@ describe('RouteTreeBuilder', () => {
   it('should allow a step to occupy the same path as its parent journey', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:20', '/', ['compile_ast:20'])
-    const step = createStepDescriptor('compile_ast:21', '/', ['compile_ast:20'], 'Home')
+    const step = createStepDescriptor('compile_ast:21', '/', ['compile_ast:20'])
 
     // Act
     const { index } = buildRouteTree([journey], [step])

@@ -58,8 +58,6 @@ function createRequestContext(
     props: {
       compiled,
       path: '/step',
-      routeTree: [],
-      currentRouteTemplatePath: '/step',
     },
     withWork: () => createRequestContext(failure),
   }

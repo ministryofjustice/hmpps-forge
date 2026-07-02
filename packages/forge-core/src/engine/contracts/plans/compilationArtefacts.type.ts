@@ -8,11 +8,14 @@ import type {
   CompiledReachabilityFactsFunction,
   CompiledReachabilityStateFunction,
   CompiledResolveFunction,
+  CompiledRouteMetadataFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 
-export type CompiledPackageFunctions = Record<PropertyKey, never>
+export interface CompiledPackageFunctions {
+  compiledRouteMetadata: CompiledRouteMetadataFunction
+}
 
 export interface CompiledJourneyFunctions {
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
@@ -45,6 +48,7 @@ export interface CompiledStep {
   compiledEntryValidation: CompiledEntryValidationFunction
   compiledResolve: CompiledResolveFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
 export interface CompiledJourney {
@@ -55,6 +59,7 @@ export interface CompiledJourney {
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
 export interface CompiledPackage {

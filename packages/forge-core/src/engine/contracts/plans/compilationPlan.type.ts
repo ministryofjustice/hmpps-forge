@@ -7,6 +7,8 @@ import type {
   ReachabilityCompilationPlan,
   StepRuntimePlan,
 } from './runtimePlans.type'
+import type { RouteMetadata } from '../../../authoring/types/structures.type'
+import type { ResolvableString } from '../../../components/types/structures.type'
 
 export interface ReachabilityTieBreakerEntry {
   priority: number
@@ -78,8 +80,16 @@ export interface ReachabilityCompilationInputs {
   readonly fieldInventorySources: FieldInventoryStepSource[]
 }
 
+export interface RouteMetadataCompilationInputs {
+  readonly nodeId: NodeId
+  readonly title: ResolvableString
+  readonly description?: ResolvableString
+  readonly metadata?: RouteMetadata
+}
+
 export interface CompilationPlan {
   readonly stepInputs: ReadonlyMap<NodeId, StepCompilationInputs>
   readonly journeyInputs: ReadonlyMap<NodeId, JourneyCompilationInputs>
   readonly reachabilityInputs: ReadonlyMap<NodeId, ReachabilityCompilationInputs>
+  readonly routeMetadataInputs: ReadonlyMap<NodeId, RouteMetadataCompilationInputs>
 }

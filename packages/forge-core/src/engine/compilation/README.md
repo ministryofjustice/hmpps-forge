@@ -119,6 +119,7 @@ The names are intentionally close, but they do not mean the same thing:
 | Validation | `ValidationInputAnalyzer` selects validating fields and map iterates | `StepValidationCompiler.compileOnSubmitValidation()` and `compileOnEntryValidation()` | `request.validities`, `request.entry-validation`, and `submit.validation` read or run validation work |
 | Reachability | `ReachabilityPlanAnalyzer` builds the reachability state table, plan, and field inventory sources | `ReachabilityCompiler.compileFacts()` | `request.reachability` evaluates reachability |
 | Resolve | `ResolveInputAnalyzer` selects the step, ancestors, and iterates | `StepResolveCompiler.compile()` | `request.resolve` runs `resolve.blocks` |
+| Route metadata | `RouteMetadataInputAnalyzer` collects step and journey title/description/metadata | `RouteMetadataCompiler.compile()` (package scope) | `request.route-tree` hydrates the route tree |
 
 *Note: Some runtime phases do not have lowering phase compilers.*
 

@@ -25,6 +25,7 @@ export type WorkOutputByKind = {
   readonly 'request.answer-cleardown': PhaseWorkOutput
   readonly 'request.entry-validation': PhaseWorkOutput
   readonly 'request.submit': PhaseWorkOutput
+  readonly 'request.route-tree': PhaseWorkOutput
   readonly 'request.resolve': PhaseWorkOutput
   readonly 'request.render': PhaseWorkOutput
   readonly 'render.render-blocks': unknown

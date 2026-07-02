@@ -16,7 +16,7 @@ Runtime is where a compiled Forge journey answers a real request.
 Compilation has already produced `CompiledStep`, `CompiledJourney`, route indexes, and generated functions.
 Mounting has already turned those compiled artifacts into `MountedNode` values.
 That still is not a final response.
-Runtime must copy request state into `RuntimeContext`, run access checks, prepare answers, evaluate reachability, resolve render blocks, and either redirect, error, or render.
+Runtime must copy request state into `RuntimeContext`, run access checks, prepare answers, evaluate reachability, hydrate the route tree, resolve render blocks, and either redirect, error, or render.
 
 For example, a step `POST` cannot just call the step's resolve function.
 It needs prepared answers first.
@@ -144,13 +144,14 @@ Runtime executes that work against one request.
 | Answer cleardown | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
 | Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
 | Submit | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
+| Route metadata | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
 | Resolve | `compiledResolve` | `request.resolve` builds `RenderContext` |
 | Render | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
 - [RequestEvaluator.ts](RequestEvaluator.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
 - [evaluation/request/README.md](evaluation/request/README.md) covers request phase order and cross-phase request state.
 - [evaluation/work/README.md](evaluation/work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
-- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, resolve, and render.
+- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, route-tree, resolve, and render.
 - [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
 
 ## Boundaries
