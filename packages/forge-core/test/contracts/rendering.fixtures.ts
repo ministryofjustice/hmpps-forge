@@ -1,40 +1,18 @@
-import {
-  GovUKTextInput,
-  GovUKButton,
-  GovUKRadioInput,
-  GovUKInsetText,
-} from '@ministryofjustice/hmpps-forge/govuk-components'
-
-import {
-  block as blockBuilder,
-  field as fieldBuilder,
-  journey,
-  step,
-  access,
-  submit,
-  redirect,
-  validation,
-  Transformer,
-  Answer,
-  Data,
-  Format,
-  Iterator,
-  Loop,
-  Self,
-  Condition,
-} from '../../src/authoring'
+import { block as blockBuilder, field as fieldBuilder, journey, step } from '../../src/authoring'
 import {
   buildComponent,
-  CollectionBlock,
   type BlockDefinition,
   type FieldBlockDefinition,
   type RenderedBlock,
 } from '../../src/components'
-import { Effects } from './contractHelpers'
 
-interface ContractTextField extends FieldBlockDefinition {
-  variant: 'contractTextField'
+interface ContractField extends FieldBlockDefinition {
+  variant: 'contractField'
   label: string
+}
+
+interface ContractAsyncField extends FieldBlockDefinition {
+  variant: 'contractAsyncField'
 }
 
 interface ContractNestedFieldProbe extends BlockDefinition {
@@ -42,8 +20,21 @@ interface ContractNestedFieldProbe extends BlockDefinition {
   field: FieldBlockDefinition
 }
 
-const contractTextFieldComponent = buildComponent<ContractTextField>('contractTextField', block => {
+interface ContractMultiFieldProbe extends BlockDefinition {
+  variant: 'contractMultiFieldProbe'
+  fields: FieldBlockDefinition[]
+}
+
+interface ContractScopedField extends FieldBlockDefinition {
+  variant: 'contractScopedField'
+}
+
+const contractFieldComponent = buildComponent<ContractField>('contractField', block => {
   return `<input id="${block.code}" name="${block.code}" aria-label="${block.label}">`
+})
+
+const contractAsyncFieldComponent = buildComponent<ContractAsyncField>('contractAsyncField', block => {
+  return Promise.resolve(`<async id="${block.code}">`)
 })
 
 const contractNestedFieldProbeComponent = buildComponent<ContractNestedFieldProbe>(
@@ -56,8 +47,29 @@ const contractNestedFieldProbeComponent = buildComponent<ContractNestedFieldProb
   },
 )
 
-function ContractTextField(props: Omit<ContractTextField, 'type' | 'blockType' | 'variant'>): ContractTextField {
-  return fieldBuilder<ContractTextField>({ ...props, variant: 'contractTextField' })
+const contractMultiFieldProbeComponent = buildComponent<ContractMultiFieldProbe>('contractMultiFieldProbe', block => {
+  const nestedFields = block.fields as unknown as RenderedBlock[]
+  const inner = nestedFields.map(nested => nested.html).join('')
+
+  return `<section>${inner}</section>`
+})
+
+/** Global-scope entry for the shadowing test. Same variant as the package-scoped entry below. */
+export const contractScopedGlobalComponent = buildComponent<ContractScopedField>('contractScopedField', block => {
+  return `<global id="${block.code}">`
+})
+
+/** Package-scope entry that shadows the global one for the journey it is registered against. */
+export const contractScopedPackageComponent = buildComponent<ContractScopedField>('contractScopedField', block => {
+  return `<scoped id="${block.code}">`
+})
+
+function ContractField(props: Omit<ContractField, 'type' | 'blockType' | 'variant'>): ContractField {
+  return fieldBuilder<ContractField>({ ...props, variant: 'contractField' })
+}
+
+function ContractAsyncField(props: Omit<ContractAsyncField, 'type' | 'blockType' | 'variant'>): ContractAsyncField {
+  return fieldBuilder<ContractAsyncField>({ ...props, variant: 'contractAsyncField' })
 }
 
 function ContractNestedFieldProbe(
@@ -66,30 +78,83 @@ function ContractNestedFieldProbe(
   return blockBuilder<ContractNestedFieldProbe>({ ...props, variant: 'contractNestedFieldProbe' })
 }
 
-export const renderingContractComponents = [contractTextFieldComponent, contractNestedFieldProbeComponent]
+function ContractMultiFieldProbe(
+  props: Omit<ContractMultiFieldProbe, 'type' | 'blockType' | 'variant'>,
+): ContractMultiFieldProbe {
+  return blockBuilder<ContractMultiFieldProbe>({ ...props, variant: 'contractMultiFieldProbe' })
+}
 
-export const basicBlocksJourney = journey({
-  code: 'basic-blocks',
-  path: '/basic-blocks',
-  title: 'Basic Blocks',
-  onAccess: [access({ effects: [Effects.LoadAnswers('basic-blocks')] })],
+function ContractScopedField(props: Omit<ContractScopedField, 'type' | 'blockType' | 'variant'>): ContractScopedField {
+  return fieldBuilder<ContractScopedField>({ ...props, variant: 'contractScopedField' })
+}
+
+export const renderingContractComponents = [
+  contractFieldComponent,
+  contractAsyncFieldComponent,
+  contractNestedFieldProbeComponent,
+  contractMultiFieldProbeComponent,
+]
+
+export const basicRenderJourney = journey({
+  code: 'basic-render',
+  path: '/basic-render',
+  title: 'Basic Render',
   steps: [
     step({
       path: '/form',
-      title: 'Form Step',
+      title: 'Form',
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('basic-blocks')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
+      blocks: [ContractField({ code: 'fullName', label: 'Full name' })],
+    }),
+  ],
+})
+
+export const orderedRenderJourney = journey({
+  code: 'ordered-render',
+  path: '/ordered-render',
+  title: 'Ordered Render',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        ContractField({ code: 'firstName', label: 'First name' }),
+        ContractField({ code: 'lastName', label: 'Last name' }),
+        ContractField({ code: 'email', label: 'Email' }),
       ],
     }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const invisibleBlockRenderJourney = journey({
+  code: 'invisible-render',
+  path: '/invisible-render',
+  title: 'Invisible Render',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        ContractField({ code: 'shown', label: 'Shown field' }),
+        ContractField({ code: 'hidden', label: 'Hidden field', visibleWhen: false }),
+      ],
+    }),
+  ],
+})
+
+export const asyncRenderJourney = journey({
+  code: 'async-render',
+  path: '/async-render',
+  title: 'Async Render',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [ContractAsyncField({ code: 'asyncField' }), ContractField({ code: 'syncField', label: 'Sync field' })],
+    }),
   ],
 })
 
@@ -104,688 +169,45 @@ export const nestedFieldMetadataRenderJourney = journey({
       reachability: { entryWhen: true },
       blocks: [
         ContractNestedFieldProbe({
-          field: ContractTextField({
-            code: 'goal_title',
-            label: 'Goal title',
-          }),
+          field: ContractField({ code: 'goal_title', label: 'Goal title' }),
         }),
       ],
     }),
   ],
 })
 
-export const blockOrderingJourney = journey({
-  code: 'ordering',
-  path: '/ordering',
-  title: 'Block Ordering',
-  onAccess: [access({ effects: [Effects.LoadAnswers('ordering')] })],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Ordered Form',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({ code: 'firstName', label: 'First name' }),
-        GovUKTextInput({ code: 'lastName', label: 'Last name' }),
-        GovUKTextInput({ code: 'email', label: 'Email address' }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('ordering')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const visibleWhenFalseJourney = journey({
-  code: 'visible-false',
-  path: '/visible-false',
-  title: 'Visible When False',
-  onAccess: [access({ effects: [Effects.LoadAnswers('visible-false')] })],
+export const multiNestedRenderJourney = journey({
+  code: 'multi-nested-render',
+  path: '/multi-nested-render',
+  title: 'Multi Nested Render',
   steps: [
     step({
       path: '/form',
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({ code: 'shown', label: 'Shown field' }),
-        GovUKTextInput({ code: 'hidden', label: 'Hidden field', visibleWhen: false }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('visible-false')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const visibleWhenDynamicJourney = journey({
-  code: 'visible-dynamic',
-  path: '/visible-dynamic',
-  title: 'Visible When Dynamic',
-  onAccess: [access({ effects: [Effects.LoadAnswers('visible-dynamic')] })],
-  steps: [
-    step({
-      path: '/contact',
-      title: 'Contact',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKRadioInput({
-          code: 'contactMethod',
-          fieldset: { legend: { text: 'How should we contact you?' } },
-          items: [
-            { value: 'email', text: 'Email' },
-            { value: 'phone', text: 'Phone' },
+        ContractMultiFieldProbe({
+          fields: [
+            ContractField({ code: 'alpha', label: 'Alpha' }),
+            ContractField({ code: 'bravo', label: 'Bravo' }),
+            ContractField({ code: 'charlie', label: 'Charlie' }),
           ],
         }),
-        GovUKTextInput({
-          code: 'emailAddress',
-          label: 'Email address',
-          visibleWhen: Answer('contactMethod').match(Condition.Equals('email')),
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('visible-dynamic')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
       ],
     }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
 
-export const visibleWhenPreservesAnswerJourney = journey({
-  code: 'visible-preserves',
-  path: '/visible-preserves',
-  title: 'Visible Preserves Answer',
-  onAccess: [access({ effects: [Effects.LoadAnswers('visible-preserves')] })],
+export const scopedOverrideRenderJourney = journey({
+  code: 'scoped-override-render',
+  path: '/scoped-override-render',
+  title: 'Scoped Override Render',
   steps: [
     step({
       path: '/form',
       title: 'Form',
       reachability: { entryWhen: true },
-      blocks: [
-        GovUKRadioInput({
-          code: 'toggle',
-          fieldset: { legend: { text: 'Show details?' } },
-          items: [
-            { value: 'yes', text: 'Yes' },
-            { value: 'no', text: 'No' },
-          ],
-        }),
-        GovUKTextInput({
-          code: 'detail',
-          label: 'Detail',
-          visibleWhen: Answer('toggle').match(Condition.Equals('yes')),
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('visible-preserves')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
+      blocks: [ContractScopedField({ code: 'scopedField' })],
     }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const dynamicPropertyJourney = journey({
-  code: 'dynamic-prop',
-  path: '/dynamic-prop',
-  title: 'Dynamic Properties',
-  onAccess: [access({ effects: [Effects.LoadData()] })],
-  steps: [
-    step({
-      path: '/info',
-      title: 'Info',
-      reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: Data('message') }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const stepMetadataJourney = journey({
-  code: 'step-meta',
-  path: '/step-meta',
-  title: 'Step Metadata',
-  metadata: { journeyTag: 'test-journey' },
-  steps: [
-    step({
-      path: '/form',
-      title: 'Step Title',
-      metadata: { section: 'personal-details' },
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const answerDisplayJourney = journey({
-  code: 'answer-display',
-  path: '/answer-display',
-  title: 'Answer Display',
-  onAccess: [access({ effects: [Effects.LoadAnswers('answer-display')] })],
-  steps: [
-    step({
-      path: '/name',
-      title: 'Name',
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('answer-display')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const validationDisplayJourney = journey({
-  code: 'validation-display',
-  path: '/validation-display',
-  title: 'Validation Display',
-  onAccess: [access({ effects: [Effects.LoadAnswers('validation-display')] })],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({
-          code: 'fullName',
-          label: 'Full name',
-          validWhen: [
-            validation({
-              condition: Self().match(Condition.IsRequired()),
-              message: 'Enter your full name',
-            }),
-          ],
-        }),
-        GovUKTextInput({
-          code: 'email',
-          label: 'Email',
-          validWhen: [
-            validation({
-              condition: Self().match(Condition.IsRequired()),
-              message: 'Enter your email',
-            }),
-          ],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: true,
-          onValid: {
-            effects: [Effects.SaveAnswers('validation-display')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const iteratorRenderJourney = journey({
-  code: 'iter-render',
-  path: '/iter-render',
-  title: 'Iterator Render',
-  onAccess: [access({ effects: [Effects.LoadData(), Effects.LoadAnswers('iter-render')] })],
-  steps: [
-    step({
-      path: '/members',
-      title: 'Members',
-      reachability: { entryWhen: true },
-      blocks: [
-        CollectionBlock({
-          collection: Data('members').each(
-            Iterator.Map([
-              GovUKTextInput({
-                code: Format('memberName_%1', Loop.Index0()),
-                label: Format('Member %1 name', Loop.Index()),
-              }),
-            ]),
-          ),
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('iter-render')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const dataDisplayJourney = journey({
-  code: 'data-display',
-  path: '/data-display',
-  title: 'Data Display',
-  onAccess: [access({ effects: [Effects.LoadData()] })],
-  steps: [
-    step({
-      path: '/info',
-      title: 'Info',
-      reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: 'Some info' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const domainValidationRenderJourney = journey({
-  code: 'domain-render',
-  path: '/domain-render',
-  title: 'Domain Validation Render',
-  steps: [
-    step({
-      path: '/range',
-      title: 'Range',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({ code: 'minValue', label: 'Minimum' }),
-        GovUKTextInput({ code: 'maxValue', label: 'Maximum' }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      validWhen: [
-        validation({
-          condition: Answer('minValue').not.match(Condition.Equals(Answer('maxValue'))),
-          message: 'Minimum and maximum must be different',
-        }),
-      ],
-      onSubmission: [
-        submit({
-          validate: true,
-          onValid: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const backlinkJourney = journey({
-  code: 'backlink',
-  path: '/backlink',
-  title: 'Backlink',
-  steps: [
-    step({
-      path: '/step-one',
-      title: 'Step One',
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'step-two' })] },
-        }),
-      ],
-    }),
-    step({
-      code: 'step-two',
-      path: '/step-two',
-      title: 'Step Two',
-      backlink: '/backlink/step-one',
-      blocks: [GovUKTextInput({ code: 'email', label: 'Email' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const ancestorJourney = journey({
-  code: 'parent',
-  path: '/parent',
-  title: 'Parent Journey',
-  metadata: { section: 'top-level' },
-  children: [
-    journey({
-      code: 'child',
-      path: '/child',
-      title: 'Child Journey',
-      steps: [
-        step({
-          path: '/form',
-          title: 'Child Form',
-          reachability: { entryWhen: true },
-          blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-          onSubmission: [
-            submit({
-              validate: false,
-              onAlways: { next: [redirect({ goto: 'done' })] },
-            }),
-          ],
-        }),
-        step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-      ],
-    }),
-  ],
-})
-
-export const autoDerivedBacklinkJourney = journey({
-  code: 'auto-backlink',
-  path: '/auto-backlink',
-  title: 'Auto Derived Backlink',
-  onAccess: [access({ effects: [Effects.LoadAnswers('auto-backlink')] })],
-  steps: [
-    step({
-      path: '/step-one',
-      title: 'Step One',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({
-          code: 'firstName',
-          label: 'First name',
-          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: true,
-          onValid: {
-            effects: [Effects.SaveAnswers('auto-backlink')],
-            next: [redirect({ goto: 'step-two' })],
-          },
-        }),
-      ],
-    }),
-    step({
-      code: 'step-two',
-      path: '/step-two',
-      title: 'Step Two',
-      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('auto-backlink')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const stepViewJourney = journey({
-  code: 'step-view',
-  path: '/step-view',
-  title: 'Step View',
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      view: { template: 'custom-layout.njk', locals: { sidebar: 'enabled' } },
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const blockSkipPropsJourney = journey({
-  code: 'block-skip',
-  path: '/block-skip',
-  title: 'Block Skip Props',
-  onAccess: [access({ effects: [Effects.LoadAnswers('block-skip')] })],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({
-          code: 'trimmedField',
-          label: 'Trimmed field',
-          formatters: [Transformer.String.Trim()],
-          parsers: [Transformer.String.Trim()],
-          validWhen: [
-            validation({
-              condition: Self().match(Condition.IsRequired()),
-              message: 'Enter a value',
-            }),
-          ],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('block-skip')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const routeTreeJourney = journey({
-  code: 'route-tree',
-  path: '/route-tree',
-  title: 'Route Tree',
-  steps: [
-    step({
-      path: '/step-one',
-      title: 'Step One',
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'firstName', label: 'First name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'step-two' })] },
-        }),
-      ],
-    }),
-    step({
-      code: 'step-two',
-      path: '/step-two',
-      title: 'Step Two',
-      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const parsedValueRenderJourney = journey({
-  code: 'parsed-render',
-  path: '/parsed-render',
-  title: 'Parsed Value Render',
-  onAccess: [access({ effects: [Effects.LoadAnswers('parsed-render')] })],
-  steps: [
-    step({
-      path: '/name',
-      title: 'Name',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({
-          code: 'fullName',
-          label: 'Full name',
-          parsers: [Transformer.String.ToUpperCase()],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: {
-            effects: [Effects.SaveAnswers('parsed-render')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const postBlockValueAfterDependentWhenJourney = journey({
-  code: 'post-block-dw',
-  path: '/post-block-dw',
-  title: 'POST Block Value After DependentWhen',
-  onAccess: [access({ effects: [Effects.LoadAnswers('post-block-dw')] })],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKRadioInput({
-          code: 'contactMethod',
-          fieldset: { legend: { text: 'How should we contact you?' } },
-          items: [
-            { value: 'email', text: 'Email' },
-            { value: 'phone', text: 'Phone' },
-          ],
-        }),
-        GovUKTextInput({
-          code: 'emailAddress',
-          label: 'Email address',
-          dependentWhen: Answer('contactMethod').match(Condition.Equals('email')),
-        }),
-        GovUKTextInput({
-          code: 'fullName',
-          label: 'Full name',
-          validWhen: [
-            validation({
-              condition: Self().match(Condition.IsRequired()),
-              message: 'Enter your full name',
-            }),
-          ],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: true,
-          onValid: {
-            effects: [Effects.SaveAnswers('post-block-dw')],
-            next: [redirect({ goto: 'done' })],
-          },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const nestedBlockValidationJourney = journey({
-  code: 'nested-valid',
-  path: '/nested-valid',
-  title: 'Nested Block Validation',
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [
-        GovUKRadioInput({
-          code: 'choice',
-          fieldset: { legend: { text: 'Choose' } },
-          items: [
-            {
-              value: 'yes',
-              text: 'Yes',
-              block: GovUKTextInput({
-                code: 'detail',
-                label: 'Detail',
-                validWhen: [
-                  validation({
-                    condition: Self().match(Condition.IsRequired()),
-                    message: 'Enter a detail',
-                  }),
-                ],
-              }),
-            },
-            { value: 'no', text: 'No' },
-          ],
-        }),
-        GovUKButton({ text: 'Continue' }),
-      ],
-      onSubmission: [
-        submit({
-          validate: true,
-          onValid: { next: [redirect({ goto: 'done' })] },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
