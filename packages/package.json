@@ -1,6 +1,6 @@
 {
   "name": "@ministryofjustice/hmpps-forge",
-  "version": "0.1.0-alpha.23",
+  "version": "0.2.0",
   "description": "HMPPS Forge",
   "keywords": [
     "hmpps",
@@ -18,7 +18,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "tag": "alpha"
+    "tag": "latest"
   },
   "exports": {
     "./core": {
@@ -78,7 +78,7 @@
     "node": "20 || 22 || 24"
   },
   "scripts": {
-    "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md .",
+    "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md ../CHANGELOG.md .",
     "clean": "rm -rf ./dist/",
     "test": "vitest run",
     "lint": "eslint . --cache --max-warnings 0",
