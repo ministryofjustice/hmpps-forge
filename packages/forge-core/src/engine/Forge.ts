@@ -5,7 +5,8 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
-import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
@@ -167,17 +168,18 @@ export default class Forge {
   registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
     const resolvedDeps = (deps ?? {}) as TDeps
 
-    if (functions instanceof BaseFunctionRegistry) {
+    if (isFunctionRegistry(functions)) {
       this.functionRegistry.register(functions.build(resolvedDeps))
     } else if (Array.isArray(functions)) {
       functions.forEach(registry => {
-        if (registry instanceof BaseFunctionRegistry) {
+        if (isFunctionRegistry(registry)) {
           this.functionRegistry.register(registry.build(resolvedDeps))
         }
       })
     } else {
-      // deprecated: old implementations-map path
-      this.functionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
+      this.functionRegistry.register(
+        createFunctionsRegistry(functions as FunctionImplementations<FunctionShapeMap, TDeps>, resolvedDeps),
+      )
     }
 
     return this

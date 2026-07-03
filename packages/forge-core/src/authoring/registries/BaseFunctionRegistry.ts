@@ -21,7 +21,22 @@ interface StoredRegistration {
 
 export const CONDITION_OUTPUT_SCHEMA = z.boolean()
 
+// Each rolldown entry point (core, core/authoring) inlines its own copy of this class, so
+// `instanceof` fails when an instance from one bundle reaches a check in another. The
+// Symbol.for brand is process-global, so it survives the duplication.
+//
+// TODO: Probably should delete the brand/symbol machinery once the deprecated
+// implementations-map form of `functions` is removed — at that point the engine only needs
+// Array.isArray before calling .build(), and never needs to identify a registry.
+const REGISTRY_BRAND = Symbol.for('forge:BaseFunctionRegistry')
+
+export function isFunctionRegistry<T = any>(value: unknown): value is BaseFunctionRegistry<T> {
+  return typeof value === 'object' && value !== null && (value as Record<symbol, unknown>)[REGISTRY_BRAND] === true
+}
+
 export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
+  readonly [REGISTRY_BRAND] = true
+
   private readonly registrations = new Map<string, StoredRegistration>()
 
   private anonymousCounter = 0

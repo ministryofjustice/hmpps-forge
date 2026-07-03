@@ -35,7 +35,7 @@ export function tagFunctionType(
     const entry = factories[name]
 
     if (typeof entry === 'function') {
-      const fn = entry as Function & { functionType?: FunctionType }
+      const fn = entry as ((...args: unknown[]) => unknown) & { functionType?: FunctionType }
       fn.functionType = functionType
       tagged[name] = fn
 

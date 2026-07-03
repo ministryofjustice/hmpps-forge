@@ -2,7 +2,7 @@ import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
 import { DSLValidator } from './validation/DSLValidator'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
-import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
@@ -105,7 +105,7 @@ export default class PackageInstance {
 
     const { functions } = pkg
 
-    if (functions instanceof BaseFunctionRegistry) {
+    if (isFunctionRegistry(functions)) {
       scopedFunctionRegistry.register(functions.build(resolvedDeps))
     } else if (Array.isArray(functions)) {
       functions.forEach(registry => {
