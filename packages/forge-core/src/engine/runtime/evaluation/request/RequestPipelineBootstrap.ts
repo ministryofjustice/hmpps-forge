@@ -92,14 +92,19 @@ export default class RequestPipelineBootstrap {
 
     const answerCleardown = WorkTaskFactory.requestAnswerCleardown({})
 
-    const resolve = WorkTaskFactory.requestResolve({
-      compiled: stepNode.compiledResolve,
+    const routeTree = WorkTaskFactory.requestRouteTree({
+      compiled: stepNode.compiledRouteMetadata,
       path: node.path,
       routeTree: stepNode.routeTree,
       currentRouteTemplatePath: stepNode.templatePath,
     })
 
-    const terminalPhases = this.buildTerminalPhases(resolve, stepNode)
+    const resolve = WorkTaskFactory.requestResolve({
+      compiled: stepNode.compiledResolve,
+      path: node.path,
+    })
+
+    const terminalPhases = this.buildTerminalPhases(routeTree, resolve, stepNode)
 
     if (method === 'POST') {
       const submit = WorkTaskFactory.requestSubmit({
@@ -136,11 +141,11 @@ export default class RequestPipelineBootstrap {
     ]
   }
 
-  private buildTerminalPhases(resolve: WorkTask, stepNode: MountedStepNode): readonly WorkTask[] {
+  private buildTerminalPhases(routeTree: WorkTask, resolve: WorkTask, stepNode: MountedStepNode): readonly WorkTask[] {
     const { renderer } = this.config
 
     if (!renderer) {
-      return [resolve]
+      return [routeTree, resolve]
     }
 
     const render = WorkTaskFactory.requestRender({
@@ -148,6 +153,6 @@ export default class RequestPipelineBootstrap {
       componentRegistry: stepNode.componentRegistry,
     })
 
-    return [resolve, render]
+    return [routeTree, resolve, render]
   }
 }

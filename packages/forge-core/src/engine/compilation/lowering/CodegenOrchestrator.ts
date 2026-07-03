@@ -16,6 +16,7 @@ import type {
   CompilationPlan,
   JourneyCompilationInputs,
   ReachabilityCompilationInputs,
+  RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
@@ -25,6 +26,7 @@ import { evaluateReachabilityState } from './function-construction/reachability/
 import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
+import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'
 
 export default class CodegenOrchestrator {
   constructor(private readonly dependencies: CompilationDependencies) {}
@@ -33,29 +35,24 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const packageFunctions = this.compilePackageFunctions()
+    const packageFunctions = this.compilePackageFunctions(plan.routeMetadataInputs)
     const journeys = new Map<NodeId, CompiledJourney>()
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.journeyInputs.forEach((journeyInputs, journeyId) => {
       const reachabilityInputs = this.resolveReachabilityInputs(plan, journeyId)
-      const journeyFunctions = this.compileJourneyFunctions(
-        plan,
-        nodeRegistry,
-        packageFunctions,
-        journeyInputs,
-        reachabilityInputs,
-      )
+      const journeyFunctions = this.compileJourneyFunctions(plan, nodeRegistry, journeyInputs, reachabilityInputs)
       const journeyStepIds = this.resolveJourneyStepIds(reachabilityInputs.stateTable)
 
       journeys.set(journeyId, {
         runtimePlan: journeyInputs.runtimePlan,
         ...journeyFunctions,
+        ...packageFunctions,
       })
 
       journeyStepIds.forEach(stepId => {
         const stepInputs = this.resolveStepInputs(plan, stepId)
-        const stepFunctions = this.compileStepFunctions(stepInputs, packageFunctions, journeyFunctions)
+        const stepFunctions = this.compileStepFunctions(stepInputs, journeyFunctions)
 
         steps.set(stepId, {
           runtimePlan: stepInputs.core.runtimePlan,
@@ -63,6 +60,7 @@ export default class CodegenOrchestrator {
           compiledReachabilityState: journeyFunctions.compiledReachabilityState,
           compiledStepValidations: journeyFunctions.compiledStepValidations,
           ...stepFunctions,
+          ...packageFunctions,
         })
       })
     })
@@ -70,13 +68,18 @@ export default class CodegenOrchestrator {
     return { steps, journeys }
   }
 
-  private compilePackageFunctions(): CompiledPackageFunctions {
-    return {}
+  private compilePackageFunctions(
+    routeMetadataInputs: ReadonlyMap<NodeId, RouteMetadataCompilationInputs>,
+  ): CompiledPackageFunctions {
+    const routeMetadataCompiler = new RouteMetadataCompiler(this.dependencies)
+
+    return {
+      compiledRouteMetadata: routeMetadataCompiler.compile(routeMetadataInputs.values()),
+    }
   }
 
   private compileStepFunctions(
     inputs: StepCompilationInputs,
-    _packageFunctions: CompiledPackageFunctions,
     _journeyFunctions: CompiledJourneyFunctions,
   ): CompiledStepFunctions {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
@@ -112,7 +115,6 @@ export default class CodegenOrchestrator {
   private compileJourneyFunctions(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
-    _packageFunctions: CompiledPackageFunctions,
     inputs: JourneyCompilationInputs,
     reachabilityInputs: ReachabilityCompilationInputs,
   ): CompiledJourneyFunctions {
@@ -139,6 +141,10 @@ export default class CodegenOrchestrator {
     plan: CompilationPlan,
     stateTable: ReachabilityStateTable,
   ): ReadonlyMap<NodeId, CompiledValidationFunction> {
+    if (stateTable.reachabilityDisabled) {
+      return new Map()
+    }
+
     const validationCompiler = new StepValidationCompiler(this.dependencies)
     const validatingStepIds = this.resolveValidatingStepIds(plan)
     const compiledStepValidations = new Map<NodeId, CompiledValidationFunction>()
@@ -164,8 +170,8 @@ export default class CodegenOrchestrator {
     return compiledStepValidations
   }
 
-  // Which steps the eager validities phase validates is a validation fact, not a navigation one:
-  // a step has validation when it carries validating field blocks or a domain `validWhen`.
+  // When reachability checks are enabled, a step has eager validation when it
+  // carries validating field blocks or a domain `validWhen`.
   private resolveValidatingStepIds(plan: CompilationPlan): ReadonlySet<NodeId> {
     const validatingStepIds = new Set<NodeId>()
 

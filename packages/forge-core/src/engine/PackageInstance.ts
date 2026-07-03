@@ -78,10 +78,6 @@ export default class PackageInstance {
     return this.compilation.journeyCode
   }
 
-  getJourneyTitle(): string {
-    return this.rawConfiguration.title
-  }
-
   private static loadConfiguration(configuration: string | JourneyDefinition): JourneyDefinition {
     const parsedConfiguration: unknown = typeof configuration === 'string' ? JSON.parse(configuration) : configuration
 

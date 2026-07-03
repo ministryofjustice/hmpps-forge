@@ -4,6 +4,7 @@ import type {
   CompilationPlan,
   JourneyCompilationInputs,
   ReachabilityCompilationInputs,
+  RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
@@ -16,6 +17,7 @@ import AnswerPreparationInputAnalyzer from './answer-preparation/AnswerPreparati
 import HookInputAnalyzer from './hooks/HookInputAnalyzer'
 import ValidationInputAnalyzer from './validation/ValidationInputAnalyzer'
 import ResolveInputAnalyzer from './resolve/ResolveInputAnalyzer'
+import RouteMetadataInputAnalyzer from './route-metadata/RouteMetadataInputAnalyzer'
 
 type StepIndex = Map<NodeId, StepASTNode>
 type JourneyIndex = Map<NodeId, JourneyASTNode>
@@ -33,6 +35,8 @@ export default class CompilationPlanBuilder {
 
   private readonly resolveInputAnalyzer: ResolveInputAnalyzer
 
+  private readonly routeMetadataInputAnalyzer: RouteMetadataInputAnalyzer
+
   constructor(nodeRegistry: ASTNodeIndex, astNodeTree: ASTNodeTree) {
     const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
 
@@ -42,6 +46,7 @@ export default class CompilationPlanBuilder {
     this.hookInputAnalyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
     this.validationInputAnalyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
     this.resolveInputAnalyzer = new ResolveInputAnalyzer(nodeRegistry, astNodeTree, fieldInventoryAnalyzer)
+    this.routeMetadataInputAnalyzer = new RouteMetadataInputAnalyzer()
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
@@ -49,6 +54,7 @@ export default class CompilationPlanBuilder {
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
     const reachabilityInputs = new Map<NodeId, ReachabilityCompilationInputs>()
+    const routeMetadataInputs = new Map<NodeId, RouteMetadataCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
       const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
@@ -86,10 +92,21 @@ export default class CompilationPlanBuilder {
       }
     })
 
+    // Route metadata is a per-node concern, collected for every step and journey — including
+    // container journeys with no direct steps, which the reachability loop above never visits.
+    stepIndex.forEach(stepNode => {
+      routeMetadataInputs.set(stepNode.id, this.routeMetadataInputAnalyzer.buildInputs(stepNode))
+    })
+
+    journeyIndex.forEach(journeyNode => {
+      routeMetadataInputs.set(journeyNode.id, this.routeMetadataInputAnalyzer.buildInputs(journeyNode))
+    })
+
     return {
       stepInputs,
       journeyInputs,
       reachabilityInputs,
+      routeMetadataInputs,
     }
   }
 

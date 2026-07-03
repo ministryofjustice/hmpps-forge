@@ -11,6 +11,7 @@ import type {
   CompiledReachabilityFactsFunction,
   CompiledReachabilityStateFunction,
   CompiledResolveFunction,
+  CompiledRouteMetadataFunction,
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
@@ -36,7 +37,6 @@ interface MountedNodeBase {
   readonly path: string
   readonly templatePath: string
   readonly basePath: string
-  readonly title?: string
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
@@ -46,6 +46,7 @@ interface MountedNodeBase {
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
   readonly compiledAnswerPreparation: CompiledAnswerPreparationFunction
   readonly compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  readonly compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
 export interface MountedStepNode extends MountedNodeBase {
@@ -112,7 +113,6 @@ export default class MountRegistry {
         templatePath: node.templatePath,
         basePath: node.basePath,
         methods: node.kind === 'step' ? ['GET', 'POST'] : ['GET'],
-        title: node.title,
       })
     })
 
@@ -140,7 +140,6 @@ export default class MountRegistry {
         path: runtimePlan.path,
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
-        title: stepRouteIndex.get(ctx.stepId)?.title,
         functionRegistry,
         componentRegistry,
         compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
@@ -150,6 +149,7 @@ export default class MountRegistry {
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledStep.compiledAnswerPreparation,
         compiledStepValidations: compiledStep.compiledStepValidations,
+        compiledRouteMetadata: compiledStep.compiledRouteMetadata,
         compiledEntryValidation: compiledStep.compiledEntryValidation,
         compiledSubmitHooks: compiledStep.compiledSubmitHooks,
         compiledValidation: compiledStep.compiledValidation,
@@ -187,7 +187,6 @@ export default class MountRegistry {
         path: runtimePlan.path,
         templatePath,
         basePath: templatePath,
-        title: journeyRouteIndex.get(journeyId)?.title,
         functionRegistry,
         componentRegistry,
         compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
@@ -197,6 +196,7 @@ export default class MountRegistry {
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledJourney.compiledAnswerPreparation,
         compiledStepValidations: compiledJourney.compiledStepValidations,
+        compiledRouteMetadata: compiledJourney.compiledRouteMetadata,
       })
     })
   }

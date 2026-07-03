@@ -2,6 +2,7 @@ import type { HttpMethod } from '../../framework/types/request.type'
 import type { ResponseBindings } from '../../framework/types/responseBindings.type'
 import type { CookieMutation } from '../../framework/types/response.type'
 import type { ForgeOutcome } from '../../framework/types/outcome.type'
+import type { ForgeRenderer } from '../../framework/rendering/types'
 import type { ForgeTopology } from '../../framework/types/topology.type'
 import type { ForgeExecutionRequest } from '../../engine/Forge'
 import TestRouteResolver from './TestRouteResolver'
@@ -18,7 +19,10 @@ export class ForgeTestClient {
 
   private capturedCookies = new Map<string, CookieMutation>()
 
-  constructor(private readonly forge: TestClientForge) {}
+  constructor(
+    private readonly forge: TestClientForge,
+    private readonly renderer?: ForgeRenderer<unknown>,
+  ) {}
 
   async get(path: string, options?: TestRequestOptions): Promise<TestResult> {
     return this.dispatch('GET', path, options)
@@ -32,7 +36,7 @@ export class ForgeTestClient {
     const resolved = TestRouteResolver.resolve(path, method, this.forge.getTopology())
     const responseBindings = this.createResponseBindings()
     const snapshot = TestSnapshotFactory.create(method, path, resolved, options)
-    const outcome = await this.forge.execute({ snapshot, responseBindings })
+    const outcome = await this.forge.execute({ snapshot, responseBindings, renderer: this.renderer })
 
     return this.buildResult(outcome)
   }
@@ -68,6 +72,7 @@ export class ForgeTestClient {
     return {
       type: 'render',
       context,
+      output: outcome.output,
       headers,
       cookies,
       getBlocksByVariant: (variant: string) => context.blocks.filter(b => b.variant === variant),

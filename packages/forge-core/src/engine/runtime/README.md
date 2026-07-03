@@ -16,7 +16,7 @@ Runtime is where a compiled Forge journey answers a real request.
 Compilation has already produced `CompiledStep`, `CompiledJourney`, route indexes, and generated functions.
 Mounting has already turned those compiled artifacts into `MountedNode` values.
 That still is not a final response.
-Runtime must copy request state into `RuntimeContext`, run access checks, prepare answers, evaluate reachability, resolve render blocks, and either redirect, error, or render.
+Runtime must copy request state into `RuntimeContext`, run access checks, prepare answers, evaluate reachability, hydrate the route tree, resolve render blocks, and either redirect, error, or render.
 
 For example, a step `POST` cannot just call the step's resolve function.
 It needs prepared answers first.
@@ -56,6 +56,7 @@ It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 It carries compiled functions, registries, route data, and static data for either a step or a journey.
 Both step and journey nodes carry the reachability pair `compiledReachabilityFacts` and `compiledReachabilityState`; step nodes add step-only functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
 Both node kinds also carry `compiledStepValidations`, the journey-scoped index of validating step ids to step-specific validation functions.
+When reachability checks are disabled for the journey, this index is empty because reachability does not need eager cross-step validities.
 
 `RuntimeContext` is the mutable state for one request.
 It has three branches:
@@ -138,18 +139,19 @@ Runtime executes that work against one request.
 |---|---|---|
 | Access | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
 | Answer preparation | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
-| Step validities | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks |
+| Step validities | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks when reachability checks are enabled |
 | Reachability | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
 | Answer cleardown | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
 | Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
 | Submit | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
+| Route metadata | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
 | Resolve | `compiledResolve` | `request.resolve` builds `RenderContext` |
 | Render | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
 - [RequestEvaluator.ts](RequestEvaluator.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
 - [evaluation/request/README.md](evaluation/request/README.md) covers request phase order and cross-phase request state.
 - [evaluation/work/README.md](evaluation/work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
-- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, resolve, and render.
+- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, route-tree, resolve, and render.
 - [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
 
 ## Boundaries
@@ -201,6 +203,7 @@ Runtime executes that work against one request.
   Access must be able to halt before answer preparation, validation, submit hooks, resolve, or render.
 - Keep validities before reachability.
   Reachability reads validation state when forward movement is validation-gated.
+  When reachability checks are disabled, the phase still runs in this position but has no eager step validations to execute.
 - Keep resolve before render.
   Render requires the `RenderContext` created by resolve.
 - Preserve `WorkTask` child order in completed output.

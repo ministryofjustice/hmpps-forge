@@ -1,19 +1,15 @@
 import { AstNodeId } from '../../../../contracts/ast/engine.type'
+import type { ResolvedRouteMetadata } from '../../../../contracts/compiled/compiledFunctions.type'
 import { StoredRouteTreeNode } from '../../../../contracts/routing/routeTree.type'
 import { hydrateRouteTree } from './hydrateRouteTree'
 
-function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile_ast:100'): StoredRouteTreeNode {
-  const metadata = undefined
-
+function createStoredStep(path: string, id: AstNodeId = 'compile_ast:100'): StoredRouteTreeNode {
   return {
     segment: getLastSegment(path),
     templatePath: path,
-    metadata,
     route: {
       kind: 'step',
       nodeId: id,
-      title,
-      metadata,
     },
     children: [],
   }
@@ -22,25 +18,14 @@ function createStoredStep(path: string, title?: string, id: AstNodeId = 'compile
 function createStoredJourney(
   path: string,
   children: StoredRouteTreeNode[],
-  overrides: Partial<{
-    id: AstNodeId
-    title: string
-    description: string
-    metadata: Record<string, unknown>
-  }> = {},
+  id: AstNodeId = 'compile_ast:200',
 ): StoredRouteTreeNode {
-  const id = overrides.id ?? 'compile_ast:200'
-
   return {
     segment: getLastSegment(path),
     templatePath: path,
-    metadata: overrides.metadata,
     route: {
       kind: 'journey',
       nodeId: id,
-      title: overrides.title,
-      description: overrides.description,
-      metadata: overrides.metadata,
     },
     children,
   }
@@ -55,18 +40,14 @@ describe('hydrateRouteTree', () => {
     it('should resolve param placeholders in route tree paths', () => {
       // Arrange
       const routeTree = [
-        createStoredJourney(
-          '/user/:userId',
-          [
-            createStoredStep('/user/:userId/profile', 'Profile'),
-            createStoredStep('/user/:userId/settings', 'Settings'),
-          ],
-          { title: 'User' },
-        ),
+        createStoredJourney('/user/:userId', [
+          createStoredStep('/user/:userId/profile', 'compile_ast:101'),
+          createStoredStep('/user/:userId/settings', 'compile_ast:102'),
+        ]),
       ]
 
       // Act
-      const result = hydrateRouteTree(routeTree, '/user/:userId/profile', { userId: 'abc-123' })
+      const result = hydrateRouteTree(routeTree, '/user/:userId/profile', { userId: 'abc-123' }, {})
 
       // Assert
       expect(result[0].path).toBe('/user/abc-123')
@@ -77,18 +58,14 @@ describe('hydrateRouteTree', () => {
     it('should preserve active state when resolving param placeholders', () => {
       // Arrange
       const routeTree = [
-        createStoredJourney(
-          '/user/:userId',
-          [
-            createStoredStep('/user/:userId/profile', 'Profile'),
-            createStoredStep('/user/:userId/settings', 'Settings'),
-          ],
-          { title: 'User' },
-        ),
+        createStoredJourney('/user/:userId', [
+          createStoredStep('/user/:userId/profile', 'compile_ast:101'),
+          createStoredStep('/user/:userId/settings', 'compile_ast:102'),
+        ]),
       ]
 
       // Act
-      const result = hydrateRouteTree(routeTree, '/user/:userId/profile', { userId: 'abc-123' })
+      const result = hydrateRouteTree(routeTree, '/user/:userId/profile', { userId: 'abc-123' }, {})
 
       // Assert
       expect(result[0].active).toBe(true)
@@ -99,44 +76,65 @@ describe('hydrateRouteTree', () => {
     it('should leave unmatched param placeholders unchanged', () => {
       // Arrange
       const routeTree = [
-        createStoredJourney('/user/:userId', [createStoredStep('/user/:userId/item/:itemId', 'Item')], {
-          title: 'User',
-        }),
+        createStoredJourney('/user/:userId', [createStoredStep('/user/:userId/item/:itemId', 'compile_ast:101')]),
       ]
 
       // Act
-      const result = hydrateRouteTree(routeTree, '/user/:userId/item/:itemId', { userId: 'abc-123' })
+      const result = hydrateRouteTree(routeTree, '/user/:userId/item/:itemId', { userId: 'abc-123' }, {})
 
       // Assert
       expect(result[0].children[0].path).toBe('/user/abc-123/item/:itemId')
     })
 
-    it('should build route tree with active state from stored routes', () => {
+    it('should merge resolved route metadata onto each node and its route by node id', () => {
+      // Arrange
+      const routeTree = [createStoredJourney('/journey', [createStoredStep('/journey/step', 'compile_ast:101')])]
+      const routeMetadata: ResolvedRouteMetadata = {
+        'compile_ast:101': { title: 'Step', metadata: { hiddenFromNav: true } },
+      }
+
+      // Act
+      const result = hydrateRouteTree(routeTree, '/journey/step', {}, routeMetadata)
+      const stepNode = result[0].children[0]
+
+      // Assert
+      expect(stepNode.metadata).toEqual({ hiddenFromNav: true })
+      expect(stepNode.route).toEqual({
+        kind: 'step',
+        nodeId: 'compile_ast:101',
+        title: 'Step',
+        description: undefined,
+        metadata: { hiddenFromNav: true },
+      })
+      expect(result[0].metadata).toBeUndefined()
+      expect(result[0].route?.title).toBeUndefined()
+    })
+
+    it('should build route tree with active state and metadata resolved from the map', () => {
       // Arrange
       const routeTree = [
         createStoredJourney(
           '/journey',
           [
-            createStoredStep('/journey/step-1', 'Step 1', 'compile_ast:101'),
+            createStoredStep('/journey/step-1', 'compile_ast:101'),
             createStoredJourney(
               '/journey/child',
-              [createStoredStep('/journey/child/step', 'Child Step', 'compile_ast:102')],
-              {
-                id: 'compile_ast:103',
-                title: 'Child Journey',
-              },
+              [createStoredStep('/journey/child/step', 'compile_ast:102')],
+              'compile_ast:103',
             ),
           ],
-          {
-            id: 'compile_ast:104',
-            title: 'Journey',
-            description: 'Journey Description',
-          },
+          'compile_ast:104',
         ),
       ]
+      const routeMetadata: ResolvedRouteMetadata = {
+        'compile_ast:104': { title: 'Journey', description: 'Journey Description' },
+        'compile_ast:101': { title: 'Step 1' },
+        'compile_ast:103': { title: 'Child Journey' },
+        'compile_ast:102': { title: 'Child Step' },
+      }
 
       // Act
-      const result = hydrateRouteTree(routeTree, '/journey/child/step', {})
+      const result = hydrateRouteTree(routeTree, '/journey/child/step', {}, routeMetadata)
 
       // Assert
       expect(result).toEqual([

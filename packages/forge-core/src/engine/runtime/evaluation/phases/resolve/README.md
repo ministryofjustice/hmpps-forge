@@ -4,7 +4,7 @@
 
 This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/resolve`.
 
-This code turns compiled resolve-block work into branded `RenderBlock` values and route-tree render data.
+This code turns compiled resolve-block work into branded `RenderBlock` values.
 It resolves nested work tasks inside block properties before the render phase sees them.
 
 This document does not cover generated resolve source, component rendering, or request-level validation visibility.
@@ -20,7 +20,7 @@ Resolve must run those nested tasks and replace them with completed outputs befo
 
 The raw compiled block props are not enough.
 Renderers need plain render blocks, not work tasks hidden inside property values.
-The request resolve handler also needs route tree data and block outputs to build `RenderContext`.
+The request resolve handler combines those block outputs with the route tree built by the route-tree phase to build `RenderContext`.
 
 ## Responsibilities
 
@@ -29,7 +29,6 @@ The request resolve handler also needs route tree data and block outputs to buil
 - Return branded `RenderBlock` values.
 - Preserve block ID, variant, block type, and properties.
 - Count visible blocks for trace metadata.
-- Hydrate stored route trees for render.
 
 ## Data Model
 
@@ -99,7 +98,6 @@ flowchart TD
 
 - [ResolveBlocksWorkHandler.ts](ResolveBlocksWorkHandler.ts) runs block tasks concurrently and folds `RenderBlock` outputs.
 - [ResolveBlockWorkHandler.ts](ResolveBlockWorkHandler.ts) collects nested work from properties, replaces completed output, and brands the block.
-- [hydrateRouteTree.ts](hydrateRouteTree.ts) turns stored route tree data into render route tree data with active state.
 - [typeguards.ts](typeguards.ts) contains render-block type guards used by resolve helpers.
 
 ## Boundaries
@@ -113,7 +111,7 @@ flowchart TD
 - `WorkTaskPropsWalker` owns traversal and replacement semantics.
   Resolve should use it rather than hand-walking props.
 - Request resolve owns `RenderContext` assembly.
-  This folder only returns resolve outputs and route tree helpers.
+  This folder only returns resolve outputs.
 
 ## Quirks
 
@@ -144,12 +142,11 @@ flowchart TD
 - To change block folding, start in `ResolveBlocksWorkHandler`.
 - To change nested property replacement, start in `ResolveBlockWorkHandler`.
 - To change traversal semantics, start in `WorkTaskPropsWalker`.
-- To change route tree hydration, start in `hydrateRouteTree.ts`.
+- To change route tree hydration, start in the route-tree phase (`../route-tree`).
 - To change validation error attachment, start in request-level `RequestResolveWorkHandler`.
 
 ## Entry Points
 
 - [ResolveBlocksWorkHandler.ts](ResolveBlocksWorkHandler.ts) answers how block tasks are collected into resolve output.
 - [ResolveBlockWorkHandler.ts](ResolveBlockWorkHandler.ts) answers how one compiled block becomes `RenderBlock`.
-- [hydrateRouteTree.ts](hydrateRouteTree.ts) answers how stored route trees become render route trees.
 - [typeguards.ts](typeguards.ts) answers how resolve identifies branded render blocks.

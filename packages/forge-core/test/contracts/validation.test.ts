@@ -18,6 +18,7 @@ import {
   entryValidationJourney,
   onInvalidBranchJourney,
   validateFalseJourney,
+  reachabilityDisabledValidationJourney,
   emptyIteratorJourney,
   andCombinatorJourney,
   orCombinatorJourney,
@@ -46,6 +47,28 @@ describe('validation contracts', () => {
       if (result.type === 'render') {
         expect(result.context.showValidationFailures).toBe(true)
         expect(result.getValidationErrorsByFieldCode('fullName')).toEqual([
+          expect.objectContaining({ message: 'Enter your full name', passed: false }),
+        ])
+      }
+    })
+
+    it('should attach failures to the rendered field block where components read them', async () => {
+      // Arrange
+      const client = createClient(requiredFieldJourney)
+
+      // Act
+      const result = await client.post('/required/name', {
+        session: {},
+        body: { fullName: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const field = result.getBlocksByVariant('govukTextInput')[0]
+
+        expect(field.properties.errors).toEqual([
           expect.objectContaining({ message: 'Enter your full name', passed: false }),
         ])
       }
@@ -200,6 +223,27 @@ describe('validation contracts', () => {
         const errors = result.getValidationErrorsByFieldCode('emailAddress')
 
         expect(errors).toEqual([expect.objectContaining({ message: 'Enter an email address' })])
+      }
+    })
+  })
+
+  describe('reachability disabled', () => {
+    it('should not eagerly validate other steps', async () => {
+      // Arrange
+      const client = createClient(reachabilityDisabledValidationJourney)
+      const session: ContractSession = {
+        answers: { 'reach-disabled-validation': { targetDate: '28/09/2026' } },
+      }
+
+      // Act
+      const result = await client.get('/reach-disabled-validation/start', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.path).toBe('/start')
+        expect(result.context.fieldValidationErrors).toEqual([])
       }
     })
   })

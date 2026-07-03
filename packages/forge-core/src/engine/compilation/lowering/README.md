@@ -173,6 +173,7 @@ flowchart TD
 - [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation functions.
 - [phase-compilers/reachability/StepFieldInventoryCompiler.ts](phase-compilers/reachability/StepFieldInventoryCompiler.ts) compiles field inventory used by navigation.
 - [phase-compilers/resolve/StepResolveCompiler.ts](phase-compilers/resolve/StepResolveCompiler.ts) compiles render/resolve work for a step.
+- [phase-compilers/route-tree/RouteMetadataCompiler.ts](phase-compilers/route-tree/RouteMetadataCompiler.ts) compiles the package-level route metadata function consumed by the route-tree phase.
 - [phase-compilers/validation/StepValidationCompiler.ts](phase-compilers/validation/StepValidationCompiler.ts) compiles submit validation and entry-validation group selection.
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) is the shared expression entry point used by the phase compilers.
 - [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps generated source, attaches diagnostics, injects helpers, and constructs the executable function.
@@ -285,4 +286,5 @@ flowchart TD
 - [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation work.
 - [phase-compilers/reachability/StepFieldInventoryCompiler.ts](phase-compilers/reachability/StepFieldInventoryCompiler.ts) compiles navigation field inventory.
 - [phase-compilers/resolve/StepResolveCompiler.ts](phase-compilers/resolve/StepResolveCompiler.ts) compiles resolve/render work.
+- [phase-compilers/route-tree/RouteMetadataCompiler.ts](phase-compilers/route-tree/RouteMetadataCompiler.ts) compiles route metadata for the route tree.
 - [phase-compilers/validation/StepValidationCompiler.ts](phase-compilers/validation/StepValidationCompiler.ts) compiles validation work.

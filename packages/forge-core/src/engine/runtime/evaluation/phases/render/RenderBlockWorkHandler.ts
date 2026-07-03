@@ -44,7 +44,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
   kind: RENDER_BLOCK_KIND,
 
   begin(ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>) {
-    const { block, entry, renderer, componentRegistry } = ctx.props
+    const { block, renderer, componentRegistry } = ctx.props
 
     if (block.properties.visibleWhen === false) {
       ctx.omitFromTrace?.()
@@ -55,10 +55,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     const nestedTasks = collectNestedBlockTasks(block.properties, renderer, componentRegistry)
 
     if (nestedTasks.length === 0) {
-      const evaluatedBlock = toEvaluatedBlock(block)
-      const output = renderer.renderBlock(entry, evaluatedBlock)
-
-      return { output: output as Promise<unknown> }
+      return { groups: [] }
     }
 
     return {
@@ -144,6 +141,7 @@ function replaceNestedBlocks(
       type: StructureType.BLOCK,
       variant: value.variant,
       blockType: value.blockType,
+      ...value.properties,
     } as BlockDefinition
 
     const entry = children[childIndex]

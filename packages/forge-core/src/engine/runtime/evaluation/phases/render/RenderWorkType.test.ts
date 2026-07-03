@@ -145,6 +145,33 @@ describe('Render work handlers', () => {
     )
   })
 
+  it('should preserve nested block properties when wrapping rendered output', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createRenderer()
+    const componentRegistry = createComponentRegistry('parent', 'child')
+    const child = {
+      ...createRenderBlock('child', { code: 'goal_title' }, 'compile_ast:child'),
+      blockType: BlockType.FIELD,
+    }
+    const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
+    const task = WorkTaskFactory.renderBlocks([parent], renderer, componentRegistry)
+
+    // Act
+    await executor.execute(task, new WorkContext(createRequestContext()))
+
+    // Assert
+    expect(renderer.wrapNestedBlock).toHaveBeenCalledWith(
+      {
+        type: StructureType.BLOCK,
+        variant: 'child',
+        blockType: BlockType.FIELD,
+        code: 'goal_title',
+      },
+      '<child>',
+    )
+  })
+
   it('should assemble page output from rendered blocks', async () => {
     // Arrange
     const executor = new WorkExecutor()
