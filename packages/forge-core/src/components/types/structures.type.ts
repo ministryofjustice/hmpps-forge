@@ -171,14 +171,13 @@ export type ResolvableArray<T> = T[] | DynamicExpression | ChainableIterable
 
 export type ResolvableObject<T extends object> = T | DynamicExpression
 
-export type RenderedBlock = {
+export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
-  html: string
-}
+} & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
 type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr | PredicateTestExprBuilder>
 
-export type EvaluatedBlock<T, IsRoot extends boolean = true> =
+export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R
     ? [R] extends [never]
       ? never
@@ -189,21 +188,31 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true> =
           : R extends number
             ? number
             : R extends (infer U)[]
-              ? EvaluatedBlock<U, false>[]
+              ? EvaluatedBlock<U, false, TRenderedBlock>[]
               : R extends FieldBlockDefinition
                 ? IsRoot extends true
-                  ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                  ? {
+                      [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false, TRenderedBlock>
+                    } & {
                       value?: unknown
                       errors?: { message: string; details?: Record<string, any> }[]
                     }
-                  : RenderedBlock
+                  : TRenderedBlock
                 : R extends BlockDefinition
                   ? IsRoot extends true
-                    ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> } & {
+                    ? {
+                        [K in keyof R]: K extends 'type' | 'variant'
+                          ? R[K]
+                          : EvaluatedBlock<R[K], false, TRenderedBlock>
+                      } & {
                         value?: unknown
                       }
-                    : RenderedBlock
+                    : TRenderedBlock
                   : R extends object
-                    ? { [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false> }
+                    ? {
+                        [K in keyof R]: K extends 'type' | 'variant'
+                          ? R[K]
+                          : EvaluatedBlock<R[K], false, TRenderedBlock>
+                      }
                     : R
     : never

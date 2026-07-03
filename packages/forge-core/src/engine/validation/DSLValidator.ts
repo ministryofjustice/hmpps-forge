@@ -2,20 +2,22 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
 import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
-import { formatDSLPath } from '../diagnostics/formatDSLPath'
+import DSLSourceLocator from '../diagnostics/DSLSourceLocator'
+import type { DSLPathSegment } from '../diagnostics/sourceLocation.type'
 
 export class DSLValidator {
   static validateSchema(input: unknown): asserts input is JourneyDefinition {
     const result = JourneySchema.safeParse(input)
 
     if (!result.success) {
+      const sourceLocator = new DSLSourceLocator(input)
       const schemaErrors = result.error.issues.map(issue => {
         const path = issue.path.map(pathPart => (typeof pathPart === 'symbol' ? pathPart.toString() : pathPart))
 
         return new ForgeConfigurationSchemaError({
           path,
           message: issue.message,
-          formattedPath: formatDSLPath(input, path),
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
           expected: 'expected' in issue && typeof issue.expected === 'string' ? issue.expected : undefined,
           code: issue.code,
         })
@@ -39,7 +41,7 @@ export class DSLValidator {
       })
     }
 
-    const errors = this.checkSerializableTypes(input, [])
+    const errors = this.checkSerializableTypes(input, [], new DSLSourceLocator(input))
 
     if (errors.length > 0) {
       throw new AggregateError(errors, 'JSON validation failed due to non-serializable types')
@@ -52,7 +54,7 @@ export class DSLValidator {
       throw new ForgeConfigurationSerialisationError({
         path: [],
         message: `JSON serialization failed: ${(error as Error).message}`,
-        formattedPath: formatDSLPath(input, []),
+        formattedPath: new DSLSourceLocator(input).fromPath([]).formattedPath,
         type: 'json_error',
       })
     }
@@ -60,8 +62,8 @@ export class DSLValidator {
 
   private static checkSerializableTypes(
     obj: unknown,
-    path: (string | number)[] = [],
-    root: unknown = obj,
+    path: DSLPathSegment[] = [],
+    sourceLocator: DSLSourceLocator = new DSLSourceLocator(obj),
     seen = new WeakSet(),
   ): ForgeConfigurationSerialisationError[] {
     const errors: ForgeConfigurationSerialisationError[] = []
@@ -71,27 +73,39 @@ export class DSLValidator {
         new ForgeConfigurationSerialisationError({
           type: 'Undefined value',
           path,
-          formattedPath: formatDSLPath(root, path),
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
         }),
       )
     } else if (typeof obj === 'function') {
       errors.push(
-        new ForgeConfigurationSerialisationError({ type: 'Function', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({
+          type: 'Function',
+          path,
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
+        }),
       )
     } else if (typeof obj === 'symbol') {
       errors.push(
-        new ForgeConfigurationSerialisationError({ type: 'Symbol', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({
+          type: 'Symbol',
+          path,
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
+        }),
       )
     } else if (typeof obj === 'bigint') {
       errors.push(
-        new ForgeConfigurationSerialisationError({ type: 'BigInt', path, formattedPath: formatDSLPath(root, path) }),
+        new ForgeConfigurationSerialisationError({
+          type: 'BigInt',
+          path,
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
+        }),
       )
     } else if (obj instanceof Date) {
       errors.push(
         new ForgeConfigurationSerialisationError({
           type: 'Date object',
           path,
-          formattedPath: formatDSLPath(root, path),
+          formattedPath: sourceLocator.fromPath(path).formattedPath,
         }),
       )
     } else if (obj && typeof obj === 'object') {
@@ -103,7 +117,7 @@ export class DSLValidator {
 
       if (Array.isArray(obj)) {
         obj.forEach((item, i) => {
-          errors.push(...this.checkSerializableTypes(item, [...path, i], root, seen))
+          errors.push(...this.checkSerializableTypes(item, [...path, i], sourceLocator, seen))
         })
       } else if (Object.getPrototypeOf(obj) !== Object.prototype) {
         const constructorName =
@@ -113,12 +127,12 @@ export class DSLValidator {
           new ForgeConfigurationSerialisationError({
             type: `Non-plain object (${constructorName})`,
             path,
-            formattedPath: formatDSLPath(root, path),
+            formattedPath: sourceLocator.fromPath(path).formattedPath,
           }),
         )
       } else {
         Object.entries(obj).forEach(([key, value]) => {
-          errors.push(...this.checkSerializableTypes(value, [...path, key], root, seen))
+          errors.push(...this.checkSerializableTypes(value, [...path, key], sourceLocator, seen))
         })
       }
     }

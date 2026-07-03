@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface ForgeConfigurationSerialisationErrorOptions {
   /** Path to the invalid field */
@@ -35,7 +34,6 @@ export default class ForgeConfigurationSerialisationError extends Error {
     this.type = options.type
     this.code = options.code
     this.message = message
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {

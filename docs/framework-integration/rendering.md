@@ -4,17 +4,21 @@
 
 Rendering turns a Forge `RenderContext` into an HTTP response.
 
-`forge-core` prepares render data, but it does not own HTML generation. The
-framework integration layer receives the render context, renders the page shell,
-renders blocks through the component registry, and writes the response through
-the host framework.
+`forge-core` orchestrates block rendering — registry lookup, visible-block
+filtering, and nested-block walking — and drives the host's `ForgeRenderer`
+methods to produce the HTML. It does this as real
+work types run by the `WorkExecutor`, not a hand-rolled traversal. The framework
+integration layer implements those render methods (template selection,
+view-locals merge, page assembly) and writes the finished outcome through the
+host framework.
 
 This keeps the core engine independent of Express, Nunjucks, GOV.UK Frontend,
 MOJ Frontend, or any other rendering stack.
 
 ## Where rendering starts
 
-Rendering starts when a runtime controller calls `FrameworkAdapter.render`.
+Rendering starts when the adapter calls
+`forge.execute({ snapshot, responseBindings, renderer })`.
 
 At that point Forge has already:
 
@@ -23,9 +27,13 @@ At that point Forge has already:
 - run validation needed for the request
 - built the `RenderContext`
 
-The adapter receives the render context with the original framework request and
-response objects. From this point onwards, rendering is framework integration
-work.
+Rendering is skipped when no `renderer` is supplied to `forge.execute`; in that
+case the pipeline ends after the resolve phase and the outcome carries the
+`RenderContext` with no `output`. When a `renderer` is supplied, the render phase
+renders the blocks and page inside `forge-core` (driving the supplied renderer's
+methods) and returns a `ForgeOutcome` of kind `render` whose `output` is the
+assembled page. The `RenderContext` is also on the outcome as `context`, but the
+adapter does not re-render it — it just writes `output` to the response.
 
 ## Inputs and outputs
 
@@ -57,7 +65,8 @@ The Express/Nunjucks adapter uses these shapes:
 
 1. `RenderContext` contains evaluated Forge runtime data.
 
-2. `TemplateRenderer` turns top-level blocks into rendered HTML strings.
+2. `forge-core` walks the top-level blocks and drives the renderer's methods
+   (here `NunjucksRenderer`) to turn them into rendered HTML strings.
 
 3. Nested blocks inside component properties become rendered-block objects.
 
@@ -72,17 +81,41 @@ contract.
 
 ## Key concepts
 
-### `FrameworkAdapter.render`
+### `forge.execute` and `ForgeRenderer`
 
-`FrameworkAdapter.render` is the rendering boundary from `forge-core` into a
-framework adapter.
+The adapter's entry point into the engine is `forge.execute`. The
+core-to-adapter rendering contract is the `ForgeRenderer<TOut>` interface, which
+the adapter implements and passes as the `renderer` on the execution request.
+Its methods are:
 
-The core runtime does not know whether the adapter will use Nunjucks, React,
-server-side templates, JSON, or another response format. It only passes the
-render context to the adapter.
+- `renderBlock(entry, block)` — render one evaluated block into `TOut` (the
+  engine has already resolved `entry` from the component registry)
+- `wrapNestedBlock(block, output)` — wrap a rendered nested block (the
+  Nunjucks adapter returns `{ block, html }`)
+- `assemblePage(context, renderedBlocks, requestState)` — combine the
+  rendered blocks and render context into the page (`TOut`)
 
-Adapters should treat `RenderContext` as the core contract for rendering a
-step response.
+Rendering is skipped not by a method on the contract but by not supplying a
+`renderer` to `forge.execute`; with no renderer the pipeline ends after the
+resolve phase and the outcome carries the `RenderContext` with no `output`.
+
+The adapter is also responsible for routing, building the `RequestSnapshot`,
+providing the response bindings, and dispatching the outcome, but those are the
+routing, response, and dispatch side covered by the adapter-contract doc.
+
+`forge-core` does not know whether the adapter uses Nunjucks, React,
+server-side templates, JSON, or another response format. It drives the
+renderer's methods and returns the result as the `output` on a `render`
+outcome.
+
+Internally, `forge-core` runs this as work types via the `WorkExecutor`. A
+`request.render` phase fans out a `render.render-blocks` work type and a
+`render.assemble-page` work type. `render.render-blocks` fans out one
+`render.render-blocks.block` child per registered top-level block; nested
+`RenderBlock`s inside a block's properties become further
+`render.render-blocks.block` children. The block work types call the renderer's
+`renderBlock` and `wrapNestedBlock`, and `render.assemble-page` calls
+`assemblePage` to produce the page.
 
 ### `RenderContext`
 
@@ -116,9 +149,14 @@ navigation, answers, data, and validation errors needed to lay out the page.
 
 ### Page template rendering
 
-The Express/Nunjucks adapter uses `TemplateRenderer` to render a full page.
+The Express/Nunjucks adapter's renderer is `NunjucksRenderer`, which implements
+the `ForgeRenderer<string>` interface (`renderBlock`, `wrapNestedBlock`,
+`assemblePage`). It is passed as the `renderer` on the execution request, so the
+engine's render phase calls its methods directly.
 
-`TemplateRenderer` chooses the page template from the current step first, then
+`NunjucksRenderer` assembles a full page in its `assemblePage` method.
+
+`NunjucksRenderer` chooses the page template from the current step first, then
 from the nearest ancestor with a template, then from the configured default
 template.
 
@@ -129,9 +167,11 @@ are applied from root to inner journey, and step locals are applied last.
 
 Blocks are rendered through the component registry.
 
-For each visible block, `TemplateRenderer` looks up the component registered for
-the block variant. It converts the evaluated block into the component-facing
-block shape and calls the component's render function.
+Top-level blocks with `visibleWhen: false` are filtered out before rendering. For
+each visible block, `forge-core` looks up the component registered for the block
+variant. It converts the evaluated block into the component-facing block shape
+and passes it to the renderer's `renderBlock`, which calls the component's
+render function.
 
 The component-facing shape keeps the authoring-level block discriminator and
 variant, then spreads the evaluated block properties onto the object. Validation
@@ -144,8 +184,9 @@ rendered block output as part of its template context.
 
 Blocks can appear inside component properties.
 
-Before a component is rendered, `TemplateRenderer` can walk block properties and
-render nested blocks to a nested rendered-block shape.
+Before a component is rendered, `forge-core` walks block properties and renders
+nested blocks to a nested rendered-block shape (the renderer's
+`wrapNestedBlock` builds the shape).
 
 That nested shape contains:
 
@@ -155,7 +196,7 @@ That nested shape contains:
 This allows wrapper or reveal-style components to receive rendered child
 content without needing to know about Forge's AST or runtime graph.
 
-Blocks with `visibleWhen: false` are skipped.
+A nested block with `visibleWhen: false` is dropped during substitution.
 
     Note:
     We will probably move this `visibleWhen` check into the rendering compiler 
@@ -166,9 +207,11 @@ Blocks with `visibleWhen: false` are skipped.
 
 The render context controls whether validation failures should be shown.
 
-When failures are visible, `TemplateRenderer` extracts failed validation results
-from a field block's `validWhen` property and passes them to the component as
-errors.
+When `showValidationFailures` is set, the resolve phase groups the request's
+field validation failures by render block ID and attaches them to the matching
+block as an `errors` array, so the blocks the render phase receives already
+carry their errors. Field code stays as answer identity and debug metadata. The
+render phase does not re-extract failures.
 
 Each component receives errors in a small field-error shape:
 
@@ -215,10 +258,13 @@ Important failure cases include:
 - the framework response cannot be written
 
 Adapter errors should stay in the framework integration layer. Core runtime
-errors should be raised before `FrameworkAdapter.render` is called.
+errors are surfaced as a `ForgeOutcome` of kind `error` from `forge.execute`;
+the host maps that error outcome to an HTTP error.
 
-The main rule to preserve is that `forge-core` owns render data, while
-framework and component packages own rendering.
+The main rule to preserve is that `forge-core` owns render data and orchestrates
+block rendering, while framework and component packages own the rendering stack
+it drives — template selection, page assembly, and the markup each component
+produces.
 
 ## Connection to other docs
 

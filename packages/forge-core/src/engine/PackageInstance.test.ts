@@ -1,8 +1,8 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { JourneyCompilationResult } from './contracts/plans/compilationArtefacts.type'
-import JourneyCompiler from './JourneyCompiler'
+import type { CompiledPackage } from './contracts/plans/compilationArtefacts.type'
+import CompilationPipeline from './compilation/CompilationPipeline'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
@@ -102,7 +102,7 @@ describe('PackageInstance', () => {
 })
 
 function mockCompilation(): void {
-  vi.spyOn(JourneyCompiler.prototype, 'compile')
+  vi.spyOn(CompilationPipeline.prototype, 'compile')
     .mockReturnValue(createCompilationResult())
 }
 
@@ -116,7 +116,7 @@ function createJourneyDefinition(): JourneyDefinition {
   }
 }
 
-function createCompilationResult(): JourneyCompilationResult {
+function createCompilationResult(): CompiledPackage {
   return {
     journeyCode: 'journey',
     stepRouteIndex: new Map(),

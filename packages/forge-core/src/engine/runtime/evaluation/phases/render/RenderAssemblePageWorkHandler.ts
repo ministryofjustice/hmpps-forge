@@ -1,0 +1,46 @@
+import type { RenderContext, ForgeRenderer } from '../../../../../framework/rendering/types'
+import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type {
+  WorkContextContract,
+  WorkHandler,
+  WorkInstrumentation,
+  WorkTask,
+  WorkUnitFields,
+} from '../../../../contracts/runtime/work.type'
+
+export interface RenderAssemblePageWorkProps {
+  readonly renderContext: RenderContext
+  readonly renderer: ForgeRenderer<unknown>
+}
+
+export type RenderAssemblePageWorkTask = WorkTask<'render.assemble-page', RenderAssemblePageWorkProps>
+
+export const RENDER_ASSEMBLE_PAGE_KIND = 'render.assemble-page'
+
+export const RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION: WorkInstrumentation<RenderAssemblePageWorkProps, unknown> = {
+  resolveTraceMetadataAtStart(
+    ctx: WorkContextContract<RequestExecutionContext, RenderAssemblePageWorkProps>,
+  ): WorkUnitFields {
+    return {
+      renderedBlocks: (ctx.request.renderedBlocks ?? []).length,
+    }
+  },
+
+  resolveTraceMetadataAtFinish(): WorkUnitFields | undefined {
+    return undefined
+  },
+}
+
+export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-page', RenderAssemblePageWorkProps> = {
+  kind: RENDER_ASSEMBLE_PAGE_KIND,
+
+  begin(ctx: WorkContextContract<RequestExecutionContext, RenderAssemblePageWorkProps>) {
+    const { renderContext, renderer } = ctx.props
+    const renderedBlocks = ctx.request.renderedBlocks ?? []
+    const requestState = ctx.request.context.request.state
+
+    const output = renderer.assemblePage(renderContext, renderedBlocks, requestState)
+
+    return { output: output as Promise<unknown> }
+  },
+}

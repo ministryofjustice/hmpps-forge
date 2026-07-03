@@ -1,37 +1,69 @@
 import type { NodeId } from '../ast/ast.type'
-import type { IterateASTNode, SubmitHookASTNode } from '../ast/expressions.type'
+import type { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../ast/structures.type'
 import type {
   JourneyRuntimePlan,
-  NavigationRuntimePlan,
+  ReachabilityStateTable,
   ReachabilityCompilationPlan,
   StepRuntimePlan,
 } from './runtimePlans.type'
+import type { RouteMetadata } from '../../../authoring/types/structures.type'
+import type { ResolvableString } from '../../../components/types/structures.type'
 
 export interface ReachabilityTieBreakerEntry {
   priority: number
   whenNodeId?: NodeId
 }
 
-export interface StepCompilationInputs {
+export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
+  readonly staticData: Record<string, unknown>
+  readonly reachabilityId: NodeId
+}
+
+export interface AnswerPreparationInputs {
   readonly fieldBlocks: FieldBlockASTNode[]
-  readonly validatingFieldBlocks: FieldBlockASTNode[]
   readonly mapIterateNodes: IterateASTNode[]
-  readonly allIterateNodes: IterateASTNode[]
-  readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
-  readonly renderAncestors: JourneyASTNode[]
+}
+
+export interface HookInputs {
+  readonly accessHooks: AccessHookASTNode[]
   readonly submitHooks: SubmitHookASTNode[]
 }
 
+export interface ValidationInputs {
+  readonly stepNode: StepASTNode
+  /**
+   * Whether the step has real validation (validating field blocks or a domain
+   * `validWhen`). Owns the answer to "which steps does the eager validities phase
+   * validate" — independent of reachability/navigation.
+   */
+  readonly hasValidation: boolean
+  readonly validatingFieldBlocks: FieldBlockASTNode[]
+  readonly mapIterateNodes: IterateASTNode[]
+}
+
+export interface ResolveInputs {
+  readonly stepNode: StepASTNode
+  readonly ancestorJourneys: JourneyASTNode[]
+  readonly allIterateNodes: IterateASTNode[]
+}
+
+export interface StepCompilationInputs {
+  readonly core: StepCoreInputs
+  readonly answerPreparation: AnswerPreparationInputs
+  readonly hooks: HookInputs
+  readonly validation: ValidationInputs
+  readonly resolve: ResolveInputs
+}
+
 export interface JourneyCompilationInputs {
-  readonly journeyNode: JourneyASTNode
   readonly runtimePlan: JourneyRuntimePlan
-  readonly navigationPlan: NavigationRuntimePlan
+  readonly staticData: Record<string, unknown>
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
-  readonly accessAncestors: Array<JourneyASTNode | StepASTNode>
+  readonly accessHooks: AccessHookASTNode[]
 }
 
 export interface FieldInventoryStepSource {
@@ -41,10 +73,23 @@ export interface FieldInventoryStepSource {
   readonly cleardownFieldCodes: string[]
 }
 
+export interface ReachabilityCompilationInputs {
+  readonly reachabilityId: NodeId
+  readonly stateTable: ReachabilityStateTable
+  readonly reachabilityPlan: ReachabilityCompilationPlan
+  readonly fieldInventorySources: FieldInventoryStepSource[]
+}
+
+export interface RouteMetadataCompilationInputs {
+  readonly nodeId: NodeId
+  readonly title: ResolvableString
+  readonly description?: ResolvableString
+  readonly metadata?: RouteMetadata
+}
+
 export interface CompilationPlan {
-  readonly stepInputs: Map<NodeId, StepCompilationInputs>
-  readonly journeyInputs: Map<NodeId, JourneyCompilationInputs>
-  readonly reachabilityPlans: ReachabilityCompilationPlan[]
-  readonly fieldInventorySources: Map<NavigationRuntimePlan, FieldInventoryStepSource[]>
-  readonly navigationPlansByStepId: Map<NodeId, NavigationRuntimePlan>
+  readonly stepInputs: ReadonlyMap<NodeId, StepCompilationInputs>
+  readonly journeyInputs: ReadonlyMap<NodeId, JourneyCompilationInputs>
+  readonly reachabilityInputs: ReadonlyMap<NodeId, ReachabilityCompilationInputs>
+  readonly routeMetadataInputs: ReadonlyMap<NodeId, RouteMetadataCompilationInputs>
 }

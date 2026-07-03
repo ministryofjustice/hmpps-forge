@@ -1,35 +1,100 @@
 import type {
-  AnswerPreparationContext,
-  ReachabilityContext,
-  RenderCompilationContext,
-  ValidationContext,
-} from './phaseContexts.type'
-import type { StepValidityResult } from '../runtime/stepValidityResult.type'
-import type { RenderBlock } from '../../../framework/rendering/types'
+  CompiledAnswerPreparationContext,
+  CompiledReachabilityContext,
+  CompiledResolveContext,
+  CompiledRouteMetadataContext,
+  CompiledValidationContext,
+} from './compiledContexts.type'
+import { NodeId } from '../ast/ast.type'
+import { BlockType } from '../../../authoring/types/enums'
+import type { StepFieldInventory } from '../plans/stepFieldInventory.type'
 import type {
-  NavigationEvaluationInput,
-  NavigationEvaluationResult,
-} from '../navigation/generatedNavigationEvaluation.type'
+  ReachabilityEvaluationResult,
+  ReachabilityFactsInput,
+  ReachabilityStateInput,
+} from '../reachability/generatedReachabilityEvaluation.type'
 
-export type CompiledValidationFunction = (
-  ctx: ValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
-) => StepValidityResult | Promise<StepValidityResult>
+export type CompiledStaticDataFunction = () => Record<string, unknown>
 
-export type CompiledEntryValidationFunction = (ctx: ValidationContext) => string[] | Promise<string[]>
-
-export interface CompiledRenderResult {
-  blocks: RenderBlock[]
-  step: Record<string, unknown>
-  ancestors: Record<string, unknown>[]
+export interface ResolvedRouteMetadataEntry {
+  title?: string
+  description?: string
+  metadata?: Record<string, unknown>
 }
 
-export type CompiledRenderFunction = (
-  ctx: RenderCompilationContext,
-) => CompiledRenderResult | Promise<CompiledRenderResult>
+/**
+ * Per-request resolved route metadata, keyed by the node ID of the step or
+ * journey each entry describes. The package-level route-metadata function builds
+ * this in one pass; the resolve phase merges it onto the statically built route
+ * topology by node ID.
+ */
+export type ResolvedRouteMetadata = Record<NodeId, ResolvedRouteMetadataEntry>
 
-export type CompiledAnswerPreparationFunction = (ctx: AnswerPreparationContext) => void | Promise<void>
+/**
+ * The package-level compiled function. Evaluates every step's and journey's
+ * authored title/description/metadata expressions and returns them keyed by node
+ * ID, ready to merge onto the route tree. Like CompiledStaticDataFunction it
+ * returns plain data rather than a work task.
+ */
+export type CompiledRouteMetadataFunction = (
+  ctx: CompiledRouteMetadataContext,
+) => ResolvedRouteMetadata | Promise<ResolvedRouteMetadata>
+
+export type CompiledValidationFunction = (
+  ctx: CompiledValidationContext,
+  isSubmission: boolean,
+) => CompiledValidationWorkTask | Promise<CompiledValidationWorkTask>
+
+export type CompiledEntryValidationFunction = (ctx: CompiledValidationContext) => string[] | Promise<string[]>
+
+export interface CompiledResolveBlockWorkProps {
+  readonly id: NodeId
+  readonly variant: string
+  readonly blockType: BlockType
+  readonly properties: Record<PropertyKey, unknown>
+}
+
+export interface CompiledValidationWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: unknown
+}
+
+export interface CompiledAnswerPreparationWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: unknown
+}
+
+export interface CompiledResolveBlockWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: CompiledResolveBlockWorkProps
+}
+
+export interface CompiledResolveBlocksWorkProps {
+  readonly blocks: CompiledResolveBlockWorkTask[]
+  readonly step: Record<string, unknown>
+  readonly ancestors: Record<string, unknown>[]
+}
+
+export interface CompiledResolveBlocksWorkTask {
+  readonly $$typeof: symbol
+  readonly key: string
+  readonly handler: unknown
+  readonly props: CompiledResolveBlocksWorkProps
+}
+
+export type CompiledResolveFunction = (
+  ctx: CompiledResolveContext,
+) => CompiledResolveBlocksWorkTask | Promise<CompiledResolveBlocksWorkTask>
+
+export type CompiledAnswerPreparationFunction = (
+  ctx: CompiledAnswerPreparationContext,
+) => CompiledAnswerPreparationWorkTask | Promise<CompiledAnswerPreparationWorkTask>
 
 /**
  * The result of calling the compiled reachability function. Arrays are indexed
@@ -47,13 +112,25 @@ export interface CompiledReachabilityResult {
   tieBreakerPriorities: (number | undefined)[]
   /** Whether the journey's resume condition evaluated to true */
   resumeActive: boolean
+  /** Per-step field inventory for projection (present only when request params were available) */
+  fieldInventory?: StepFieldInventory[]
 }
 
-export type CompiledReachabilityFunction = (
-  ctx: ReachabilityContext,
+/**
+ * Evaluates the journey's dynamic reachability expressions (entry predicates,
+ * forward outcomes, tie-breakers, resume condition) and, when request params are
+ * supplied, the per-step field inventory. The static graph walk that turns these
+ * facts into reachability state lives in `CompiledReachabilityStateFunction`.
+ */
+export type CompiledReachabilityFactsFunction = (
+  ctx: CompiledReachabilityContext,
+  factsInput?: ReachabilityFactsInput,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
-export type CompiledNavigationFunction = (
-  ctx: ReachabilityContext,
-  navigation: NavigationEvaluationInput,
-) => Promise<NavigationEvaluationResult>
+/**
+ * Turns precomputed reachability facts and per-step validities into the full
+ * reachability evaluation (and, when field inventory and params are present, its
+ * consumer-facing projection). Lowering binds the static navigation plan into the
+ * closure, so the runtime calls it with request-time inputs only.
+ */
+export type CompiledReachabilityStateFunction = (input: ReachabilityStateInput) => ReachabilityEvaluationResult

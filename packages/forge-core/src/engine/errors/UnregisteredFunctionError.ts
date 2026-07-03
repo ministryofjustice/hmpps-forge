@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface UnregisteredFunctionErrorOptions {
   /** Path to the function reference in the journey configuration */
@@ -28,7 +27,6 @@ export default class UnregisteredFunctionError extends Error {
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.formattedPath = options.formattedPath
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {

@@ -6,13 +6,9 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import JourneyCompiler from './JourneyCompiler'
+import CompilationPipeline from './compilation/CompilationPipeline'
 
-import type {
-  CompiledJourney,
-  CompiledStep,
-  JourneyCompilationResult,
-} from './contracts/plans/compilationArtefacts.type'
+import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
 
 export interface PackageInstanceOptions<TDeps> {
@@ -24,7 +20,7 @@ export interface PackageInstanceOptions<TDeps> {
 export default class PackageInstance {
   private readonly dependencies: PackageDependencies
 
-  private readonly compilation: JourneyCompilationResult
+  private readonly compilation: CompiledPackage
 
   private readonly rawConfiguration: JourneyDefinition
 
@@ -36,12 +32,12 @@ export default class PackageInstance {
 
     this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
 
-    const compiler = new JourneyCompiler({
+    const pipeline = new CompilationPipeline({
       functionRegistry: this.dependencies.functionRegistry,
       componentRegistry: this.dependencies.componentRegistry,
     })
 
-    this.compilation = compiler.compile(this.rawConfiguration)
+    this.compilation = pipeline.compile(this.rawConfiguration)
   }
 
   getDependencies(): PackageDependencies {
@@ -56,6 +52,10 @@ export default class PackageInstance {
     }
 
     return step
+  }
+
+  getCompiledSteps(): ReadonlyMap<NodeId, CompiledStep> {
+    return this.compilation.steps
   }
 
   getStepRouteIndex(): StepRouteIndex {
@@ -76,10 +76,6 @@ export default class PackageInstance {
 
   getJourneyCode(): string {
     return this.compilation.journeyCode
-  }
-
-  getJourneyTitle(): string {
-    return this.rawConfiguration.title
   }
 
   private static loadConfiguration(configuration: string | JourneyDefinition): JourneyDefinition {

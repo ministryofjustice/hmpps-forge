@@ -2,7 +2,8 @@ import { ASTNodeType } from './enums'
 import { BlockType } from '../../../authoring/types/enums'
 import { ASTNode } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
-import type { UnreachableRedirectTarget, ViewConfig } from '../../../authoring/types/structures.type'
+import type { RouteMetadata, UnreachableRedirectTarget, ViewConfig } from '../../../authoring/types/structures.type'
+import type { ResolvableString } from '../../../components/types/structures.type'
 
 export interface JourneyReachabilityAST {
   resumeWhen?: true | ASTNode
@@ -28,11 +29,11 @@ export interface JourneyASTNode extends ASTNode {
     onAccess?: AccessHookASTNode[]
     steps?: StepASTNode[]
     children?: JourneyASTNode[]
-    title: string
-    description?: string
+    title: ResolvableString
+    description?: ResolvableString
     version?: string
     view?: ViewConfig
-    metadata?: Record<string, any>
+    metadata?: RouteMetadata
     data?: Record<string, unknown>
     reachability?: JourneyReachabilityAST
   }
@@ -47,12 +48,12 @@ export interface StepASTNode extends ASTNode {
     onSubmission?: SubmitHookASTNode[]
     validateOnEntry?: StepEntryValidationAST[]
     blocks?: BlockASTNode[]
-    title: string
-    description?: string
+    title: ResolvableString
+    description?: ResolvableString
     view?: ViewConfig
     reachability?: StepReachabilityAST
     backlink?: string
-    metadata?: Record<string, any>
+    metadata?: RouteMetadata
     data?: Record<string, unknown>
     validWhen?: unknown
     cleardownFieldCodes?: string[]

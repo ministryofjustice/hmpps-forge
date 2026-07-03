@@ -1,5 +1,4 @@
 import formatFields from '../../shared/utils/utils'
-import formatDiagnosticStack from './formatDiagnosticStack'
 
 interface UnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
@@ -52,8 +51,6 @@ export default class UnknownNodeTypeError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)
     }
-
-    this.stack = formatDiagnosticStack(this)
   }
 
   toString() {

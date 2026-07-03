@@ -595,7 +595,7 @@ export interface RedirectOutcome {
 
 /**
  * Represents an error outcome in a hook.
- * When matched, halts hook processing and throws an HTTP error.
+ * When matched, halts hook processing and returns an error outcome.
  *
  * @example
  * // Not found error

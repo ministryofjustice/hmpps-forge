@@ -1,22 +1,26 @@
 import { buildComponent } from '../components/utils/buildComponent'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
-import MountRegistry from './runtime/routes/MountRegistry'
-import type { ForgeRuntime } from './runtime/routes/MountRegistry'
+import MountRegistry from './registries/MountRegistry'
+import type { MountedNode } from './registries/MountRegistry'
+import RequestEvaluator from './runtime/RequestEvaluator'
 import type { PackageDependencies } from './contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
+import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import Forge from './Forge'
 
 vi.mock('./PackageInstance')
 vi.mock('./registries/ComponentRegistry')
 vi.mock('./registries/FunctionRegistry')
-vi.mock('./runtime/routes/MountRegistry')
+vi.mock('./registries/MountRegistry')
+vi.mock('./runtime/RequestEvaluator')
 
 describe('Forge', () => {
   let mockLogger: Mocked<Console>
   let mockPackageInstance: Mocked<PackageInstance>
   let mockPackageDependencies: PackageDependencies
   let mockMountRegistry: Mocked<MountRegistry>
+  let mockRequestEvaluator: Mocked<RequestEvaluator>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -30,28 +34,34 @@ describe('Forge', () => {
       debug: vi.fn(),
     } as any
 
-    mockMountRegistry = {
-      mount: vi.fn().mockReturnValue(3),
-      getTopology: vi.fn().mockReturnValue({ routes: [] }),
-      getRuntime: vi.fn().mockReturnValue({ routeTreeRoots: [], mounts: [] } as ForgeRuntime),
-    } as any
-    ;(MountRegistry as MockedClass<typeof MountRegistry>).mockImplementation(function mockMountRegistryCtor() {
-      return mockMountRegistry as any
-    })
-
     mockPackageDependencies = {
       componentRegistry: {} as ComponentRegistry,
       functionRegistry: {} as FunctionRegistry,
     }
 
     mockPackageInstance = {
-      getJourneyTitle: vi.fn().mockReturnValue('Test Form'),
       getJourneyCode: vi.fn().mockReturnValue('test-form'),
       getConfiguration: vi.fn().mockReturnValue({ code: 'test-form', title: 'Test Form' }),
       getDependencies: vi.fn().mockReturnValue(mockPackageDependencies),
     } as unknown as Mocked<PackageInstance>
     ;(PackageInstance as MockedClass<typeof PackageInstance>).mockImplementation(function mockPackageInstanceCtor() {
       return mockPackageInstance as any
+    })
+
+    mockMountRegistry = {
+      register: vi.fn(),
+      getNode: vi.fn(),
+      getTopology: vi.fn().mockReturnValue({ routes: [] }),
+    } as any
+    ;(MountRegistry as MockedClass<typeof MountRegistry>).mockImplementation(function mockMountRegistryCtor() {
+      return mockMountRegistry as any
+    })
+
+    mockRequestEvaluator = {
+      evaluate: vi.fn(),
+    } as unknown as Mocked<RequestEvaluator>
+    ;(RequestEvaluator as MockedClass<typeof RequestEvaluator>).mockImplementation(function mockRequestEvaluatorCtor() {
+      return mockRequestEvaluator as any
     })
   })
 
@@ -72,6 +82,7 @@ describe('Forge', () => {
       expect(ComponentRegistry).toHaveBeenCalledTimes(1)
       expect(FunctionRegistry).toHaveBeenCalledTimes(1)
       expect(MountRegistry).toHaveBeenCalledTimes(1)
+      expect(RequestEvaluator).toHaveBeenCalledTimes(1)
     })
 
     it('should use custom options when provided', () => {
@@ -172,7 +183,7 @@ describe('Forge', () => {
   describe('registerPackage()', () => {
     const mockJourneyDef = { type: 'journey', code: 'pkg-journey', title: 'Package Journey' } as any
 
-    it('should create and mount a package instance', () => {
+    it('should create and register a package instance', () => {
       // Arrange
       const mockComponent = buildComponent('pkg-comp', () => '<div />')
       const functionDependencies = { prefix: 'case-' }
@@ -196,7 +207,7 @@ describe('Forge', () => {
           functionDependencies,
         }),
       )
-      expect(mockMountRegistry.mount).toHaveBeenCalledWith(mockPackageInstance)
+      expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
     })
 
     it('should skip registration when enabled is false', () => {
@@ -223,6 +234,41 @@ describe('Forge', () => {
       // Act & Assert
       expect(() => engine.registerPackage({ journey: mockJourneyDef })).toThrow(error)
       expect(mockLogger.error).not.toHaveBeenCalled()
+    })
+
+    it('should throw formatted registration errors for aggregate failures', () => {
+      // Arrange
+      const schemaError = Object.assign(new Error('Invalid input: expected "HookType.Access"'), {
+        name: 'ForgeConfigurationSchemaError',
+        formattedPath: 'guide > onAccess[1] > type',
+        code: 'invalid_value',
+      })
+      const aggregateError = new AggregateError([schemaError], 'Schema validation failed')
+
+      ;(PackageInstance as unknown as Mock).mockImplementation(function mockPackageInstanceCtor() {
+        throw aggregateError
+      })
+
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      const act = () => engine.registerPackage({ journey: mockJourneyDef })
+
+      // Assert
+      expect(act).toThrow(ForgeRegistrationError)
+
+      try {
+        act()
+      } catch (error) {
+        expect(error).toBeInstanceOf(ForgeRegistrationError)
+
+        if (error instanceof ForgeRegistrationError) {
+          expect(error.stack).toBe(error.message)
+          expect(error.message).toContain('Forge registration failed: Schema validation failed')
+          expect(error.message).toContain('Path: guide > onAccess[1] > type')
+          expect(error.message).toContain('Code: invalid_value')
+        }
+      }
     })
 
     it('should swallow errors when strictRegistration is false', () => {
@@ -260,27 +306,49 @@ describe('Forge', () => {
     })
   })
 
-  describe('getRouter', () => {
-    it('should build the router from the configured frameworkAdapter', () => {
+  describe('getRouter()', () => {
+    it('should build the router through the deprecated framework adapter', () => {
       // Arrange
-      const mockRouter = { _type: 'router' }
-      const frameworkAdapter = { build: vi.fn().mockReturnValue(mockRouter) }
-      const engine = new Forge(createDefaultOptions({ frameworkAdapter }))
+      const router = { kind: 'router' }
+      const frameworkAdapter = { build: vi.fn().mockReturnValue(router) }
+      const engine = new Forge(createDefaultOptions({ frameworkAdapter, logger: mockLogger }))
 
       // Act
-      const router = engine.getRouter()
+      const result = engine.getRouter()
 
       // Assert
+      expect(result).toBe(router)
       expect(frameworkAdapter.build).toHaveBeenCalledWith(engine)
-      expect(router).toBe(mockRouter)
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+      )
     })
 
-    it('should throw when no frameworkAdapter is configured', () => {
+    it('should throw when no framework adapter is configured', () => {
       // Arrange
-      const engine = new Forge(createDefaultOptions())
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
-      // Act & Assert
-      expect(() => engine.getRouter()).toThrow('getRouter() requires a frameworkAdapter')
+      // Act
+      const act = () => engine.getRouter()
+
+      // Assert
+      expect(act).toThrow('getRouter() requires a frameworkAdapter')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+      )
+    })
+  })
+
+  describe('getInstrumentation()', () => {
+    it('should return enabled instrumentation when sinks are configured', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ instrumentation: { sinks: [{ onRequestTrace: vi.fn() }] } }))
+
+      // Act
+      const instrumentation = engine.getInstrumentation()
+
+      // Assert
+      expect(instrumentation.enabled).toBe(true)
     })
   })
 
@@ -305,7 +373,7 @@ describe('Forge', () => {
         .registerPackage({ journey: 'config-2' })
 
       expect(result).toBe(engine)
-      expect(mockMountRegistry.mount).toHaveBeenCalledTimes(2)
+      expect(mockMountRegistry.register).toHaveBeenCalledTimes(2)
     })
 
     it('should support chaining even when package registration fails', () => {
@@ -327,7 +395,7 @@ describe('Forge', () => {
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockMountRegistry.mount).toHaveBeenCalledTimes(1)
+      expect(mockMountRegistry.register).toHaveBeenCalledTimes(1)
     })
 
     it('should handle complete registration workflow with chaining', () => {
@@ -353,7 +421,39 @@ describe('Forge', () => {
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
         CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
       })
-      expect(mockMountRegistry.mount).toHaveBeenCalledWith(mockPackageInstance)
+      expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
+    })
+  })
+
+  describe('execute()', () => {
+    it('should resolve the node and delegate to the runtime', async () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+      const mockNode = { mountKey: 'test::step-one', kind: 'step' } as MountedNode
+      const request = { snapshot: { nodeId: 'test::step-one', method: 'GET' } } as never
+      const outcome = { kind: 'navigate', url: '/next' }
+
+      vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
+      vi.mocked(mockRequestEvaluator.evaluate).mockResolvedValue(outcome as never)
+
+      // Act
+      const result = await engine.execute(request)
+
+      // Assert
+      expect(result).toBe(outcome)
+      expect(mockMountRegistry.getNode).toHaveBeenCalledWith('test::step-one')
+      expect(mockRequestEvaluator.evaluate).toHaveBeenCalledWith(expect.objectContaining({ node: mockNode }))
+    })
+
+    it('should throw when no node is registered for the snapshot', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+      const request = { snapshot: { nodeId: 'unknown::step', method: 'GET' } } as never
+
+      vi.mocked(mockMountRegistry.getNode).mockReturnValue(undefined)
+
+      // Act & Assert
+      expect(() => engine.execute(request)).toThrow('[Forge] No node registered for "unknown::step"')
     })
   })
 })

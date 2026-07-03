@@ -1,6 +1,6 @@
 import { ResolvableValue, ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { assertNumber } from '../../shared/utils/asserts'
+import { assertNumber, isAbsent } from '../../shared/utils/asserts'
 
 /**
  * Number conditions for numeric comparisons and validation
@@ -72,6 +72,10 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
     },
 
     GreaterThan: () => (value: unknown, threshold: number | ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertNumber(value, 'Condition.Number.GreaterThan')
       assertNumber(threshold, 'Condition.Number.GreaterThan (threshold)')
 
@@ -79,6 +83,10 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
     },
 
     GreaterThanOrEqual: () => (value: unknown, threshold: number | ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertNumber(value, 'Condition.Number.GreaterThanOrEqual')
       assertNumber(threshold, 'Condition.Number.GreaterThanOrEqual (threshold)')
 
@@ -86,6 +94,10 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
     },
 
     LessThan: () => (value: unknown, threshold: number | ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertNumber(value, 'Condition.Number.LessThan')
       assertNumber(threshold, 'Condition.Number.LessThan (threshold)')
 
@@ -93,6 +105,10 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
     },
 
     LessThanOrEqual: () => (value: unknown, threshold: number | ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertNumber(value, 'Condition.Number.LessThanOrEqual')
       assertNumber(threshold, 'Condition.Number.LessThanOrEqual (threshold)')
 
@@ -100,6 +116,10 @@ export const { conditions: NumberConditions, implementations: NumberConditionsIm
     },
 
     Between: () => (value: unknown, min: number | ResolvableValue, max: number | ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertNumber(value, 'Condition.Number.Between')
       assertNumber(min, 'Condition.Number.Between (min)')
       assertNumber(max, 'Condition.Number.Between (max)')

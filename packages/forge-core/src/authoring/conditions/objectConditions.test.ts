@@ -96,16 +96,17 @@ describe('ObjectConditions', () => {
       expect(evaluate(obj, 'user.name')).toBe(false)
     })
 
-    test('should throw error when value is not an object', () => {
+    test('should throw error when value is present but not an object', () => {
       expect(() => evaluate('string', 'prop')).toThrow(
         'Condition.Object.HasProperty expects an object but received string',
       )
       expect(() => evaluate(123, 'prop')).toThrow('Condition.Object.HasProperty expects an object but received number')
-      expect(() => evaluate(null, 'prop')).toThrow('Condition.Object.HasProperty expects an object but received null')
-      expect(() => evaluate(undefined, 'prop')).toThrow(
-        'Condition.Object.HasProperty expects an object but received undefined',
-      )
       expect(() => evaluate([], 'prop')).toThrow('Condition.Object.HasProperty expects an object but received array')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 'prop')).toBe(false)
+      expect(evaluate(undefined, 'prop')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -234,16 +235,15 @@ describe('ObjectConditions', () => {
       expect(evaluate(obj, 'user.phone')).toBe(false)
     })
 
-    test('should throw error when value is not an object', () => {
+    test('should throw error when value is present but not an object', () => {
       expect(() => evaluate('string', 'prop')).toThrow(
         'Condition.Object.PropertyHasValue expects an object but received string',
       )
-      expect(() => evaluate(null, 'prop')).toThrow(
-        'Condition.Object.PropertyHasValue expects an object but received null',
-      )
-      expect(() => evaluate(undefined, 'prop')).toThrow(
-        'Condition.Object.PropertyHasValue expects an object but received undefined',
-      )
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 'prop')).toBe(false)
+      expect(evaluate(undefined, 'prop')).toBe(false)
     })
 
     test('should build correct expression object', () => {

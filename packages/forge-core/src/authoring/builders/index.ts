@@ -187,7 +187,7 @@ export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOut
 
 /**
  * Creates an error outcome for hooks.
- * When matched, halts hook processing and throws an HTTP error.
+ * When matched, halts hook processing and returns an error outcome.
  *
  * @example
  * // Not found error

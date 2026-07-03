@@ -65,15 +65,16 @@ describe('AddressConditions', () => {
       expect(evaluate('SW1A.1AA')).toBe(false)
     })
 
-    test('should throw error when value is not a string', () => {
+    test('should throw error when value is present but not a string', () => {
       expect(() => evaluate(123456)).toThrow('Condition.Address.IsValidPostcode expects a string but received number')
-      expect(() => evaluate(null)).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow(
-        'Condition.Address.IsValidPostcode expects a string but received undefined',
-      )
       expect(() => evaluate([])).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
       expect(() => evaluate({})).toThrow('Condition.Address.IsValidPostcode expects a string but received object')
       expect(() => evaluate(true)).toThrow('Condition.Address.IsValidPostcode expects a string but received boolean')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
     })
 
     test('should build correct expression object', () => {

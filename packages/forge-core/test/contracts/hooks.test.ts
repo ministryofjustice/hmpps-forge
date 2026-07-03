@@ -21,7 +21,6 @@ import {
   mutationSourceJourney,
   answerIntrospectionJourney,
   requestMetadataJourney,
-  responseReadbackJourney,
   cookieOptionsJourney,
   allDataJourney,
   fieldsToClearJourney,
@@ -192,8 +191,7 @@ describe('hooks and effects contracts', () => {
       expect(session.effectLog).toEqual(['always', 'valid'])
     })
 
-    // TODO: unskip when error routing through outcomes is reimplemented
-    it.skip('should return error when onAlways throwError fires before validation runs', async () => {
+    it('should return error when onAlways throwError fires before validation runs', async () => {
       // Arrange
       const client = createHooksClient(throwErrorBeforeValidationJourney)
 
@@ -335,8 +333,7 @@ describe('hooks and effects contracts', () => {
       }
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should record access source in answer mutation history', async () => {
+    it('should record access source in answer mutation history', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedHooksClient(mutationSourceJourney, traces)
@@ -353,8 +350,7 @@ describe('hooks and effects contracts', () => {
       })
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should record submit source in answer mutation history', async () => {
+    it('should record submit source in answer mutation history', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedHooksClient(mutationSourceJourney, traces)
@@ -676,55 +672,7 @@ describe('hooks and effects contracts', () => {
     })
   })
 
-  describe('context - response readback', () => {
-    it('should read back set headers via getResponseHeader', async () => {
-      // Arrange
-      const client = createHooksClient(responseReadbackJourney)
-
-      // Act
-      const result = await client.get('/res-readback/form', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.data.readbackHeader).toBe('header-value')
-      }
-    })
-
-    it('should read back set cookies via getResponseCookie', async () => {
-      // Arrange
-      const client = createHooksClient(responseReadbackJourney)
-
-      // Act
-      const result = await client.get('/res-readback/form', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        const cookie = result.context.data.readbackCookie as { value: string }
-
-        expect(cookie.value).toBe('cookie-value')
-      }
-    })
-
-    it('should track counts via getAllResponseHeaders and getAllResponseCookies', async () => {
-      // Arrange
-      const client = createHooksClient(responseReadbackJourney)
-
-      // Act
-      const result = await client.get('/res-readback/form', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.data.allHeaderCount).toBe(1)
-        expect(result.context.data.allCookieCount).toBe(1)
-      }
-    })
-
+  describe('context - response cookie options', () => {
     it('should pass cookie options through to result', async () => {
       // Arrange
       const client = createHooksClient(cookieOptionsJourney)
@@ -797,8 +745,7 @@ describe('hooks and effects contracts', () => {
     })
   })
 
-  // TODO: unskip when work descriptor tracing is implemented
-  describe.skip('trace emission', () => {
+  describe('trace emission', () => {
     it('should emit trace to observer even when pipeline throws an unhandled error', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []

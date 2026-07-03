@@ -50,9 +50,10 @@ the framework performant.
 ### Framework independence at the core
 
 `forge-core` has no dependency on Express, Nunjucks, GOV.UK Frontend, or MOJ
-Frontend. Web framework integration is handled through the `FrameworkAdapter`
-interface, and component rendering is handled through `ComponentRegistryEntry`
-renderers.
+Frontend. Web framework integration is handled through the `ForgeRenderer`
+interface and `ResponseBindings`: the framework supplies a `RequestSnapshot` and
+receives a `ForgeOutcome` back. Component rendering is handled through
+`ComponentRegistryEntry` renderers.
 
 ### Stateless request evaluation
 
@@ -92,45 +93,51 @@ the authored definition before runtime.
 
 ## High-Level architecture
 
-### Four-phase pipeline
+### Pipeline stages
 
-Every journey definition passes through four phases between authoring and
+Every journey definition passes through four broad stages between authoring and
 request handling:
 
-```text
-                 Intermediate
-Authoring        representation   Compilation           Runtime
-+-----------+    +-----------+    +----------------+    +------------+
-| Builders  |    | Node      |    | Codegen        |    | Route      |
-| and DSL   | -> | factories | -> | and plans      | -> | handlers   |
-|           |    | and tree  |    |                |    | rendering  |
-+-----------+    +-----------+    +----------------+    +------------+
+```mermaid
+flowchart TD
+    A["DSL<br/>authors describe the journey"]
+    B["Schema validation<br/>JSON + Zod checks"]
+    C["Compilation<br/>AST, semantic analysis, dependency analysis, lowering"]
+    D["Runtime<br/>mounted nodes evaluate request snapshots"]
+    A --> B --> C --> D
 ```
 
-1. **Authoring** describes a journey as a declarative object graph: journeys,
-   steps, blocks, references, conditions, hooks, and outcomes.
+1. **Authoring / DSL** describes a journey as a declarative object graph:
+   journeys, steps, blocks, references, conditions, hooks, and outcomes.
 
-2. **Intermediate representation** normalises that object graph into an indexed
-   structure that the engine can validate, traverse, and compile.
+2. **Schema validation** checks that the raw authored definition is serialisable
+   and matches the broad Zod schemas.
 
-3. **Compilation** turns the indexed structure into runtime plans and generated
-   functions for the major evaluation phases.
+3. **Compilation** builds the AST, runs semantic rules, derives compile-time
+   dependencies, lowers those inputs into runtime functions, and builds route
+   indexes.
 
-4. **Runtime** uses those plans and functions to evaluate each request, decide
-   access, navigation, validation, hooks, and rendering, then delegates the
-   final HTTP response to the framework adapter.
+4. **Runtime evaluation** uses mounted compiled artifacts to evaluate each
+   request, decide access, navigation, validation, hooks, and rendering, then
+   returns a `ForgeOutcome` for the framework adapter.
+
+The source-adjacent engine docs are the source of truth for internals:
+[engine/README.md](../packages/forge-core/src/engine/README.md),
+[engine/compilation/README.md](../packages/forge-core/src/engine/compilation/README.md),
+and [engine/runtime/README.md](../packages/forge-core/src/engine/runtime/README.md).
 
 ### Package structure
 
 The library is published as one npm package, `@ministryofjustice/hmpps-forge`,
-with seven export entry points declared in `packages/package.json`:
+with eight export entry points declared in `packages/package.json`:
 
 | Entry point | Source area | Role |
 |---|---|---|
 | `./core` | `forge-core` | `Forge` class, global registries, selected runtime-facing types |
 | `./core/authoring` | `forge-core` | Builder API, definition types, conditions, transformers, generators, effects helpers |
 | `./core/components` | `forge-core` | Component system interfaces and built-in components |
-| `./core/framework` | `forge-core` | Framework adapter interfaces, request/response types, render context types, path utilities |
+| `./core/framework` | `forge-core` | Renderer interface (`ForgeRenderer`), response bindings, snapshot/outcome/topology types, render context types, path utilities |
+| `./core/testing` | `forge-core` | Testing helpers and types for exercising the engine |
 | `./express-nunjucks` | `forge-express-nunjucks` | Express router adapter, Nunjucks renderer, Nunjucks helpers |
 | `./govuk-components` | `forge-govuk-components` | GOV.UK Design System component implementations and authoring wrappers |
 | `./moj-components` | `forge-moj-components` | MOJ Frontend component implementations and authoring wrappers |
@@ -143,7 +150,8 @@ forge-core
 
 forge-express-nunjucks
   Depends on forge-core, Express, Nunjucks, and http-errors.
-  Implements FrameworkAdapter and Nunjucks component helper utilities.
+  Provides createExpressRouter and a NunjucksRenderer that implements the core
+  ForgeRenderer interface, plus Nunjucks component helper utilities.
 
 forge-govuk-components
   Depends on forge-core and the express-nunjucks helper.
@@ -175,15 +183,26 @@ today because their renderers use Nunjucks component helpers from
 | Shared by authoring definitions and runtime rendering       |
 +-------------------------------------------------------------+
 | Framework                                                   |
-| FrameworkAdapter, request/response types, path utilities    |
+| ForgeRenderer, response bindings, request/response types,   |
+| path utilities                                              |
 | Integration boundary for web frameworks                     |
 +-------------------------------------------------------------+
 | Engine                                                      |
-|   contracts/  — shared types (no logic)                     |
-|   ast/        — AST construction (depends on contracts/)    |
-|   lowering/   — codegen (depends on contracts/ + ast/)      |
-|   runtime/    — execution (depends on contracts/ only)      |
+|   contracts/            — shared types (no logic)           |
+|   compilation/ast/      — AST construction                  |
+|       (depends on contracts/)                               |
+|   compilation/semantic-analysis/ — runs semantic rules on   |
+|       the finalised AST (depends on contracts/ + ast/)      |
+|   compilation/dependency-analysis/ — derives the            |
+|       CompilationPlan from the AST                          |
+|       (depends on contracts/ + ast/)                        |
+|   compilation/lowering/ — codegen from the plan             |
+|       (depends on contracts/ + ast/, NOT                    |
+|        dependency-analysis/, NOT runtime/)                  |
+|   runtime/              — execution (depends on contracts/) |
 |   + registries, validation, errors, diagnostics             |
+|   ast/semantic-analysis/dependency-analysis/lowering        |
+|       grouped under compilation/                            |
 |   Layer boundaries enforced by eslint                       |
 +-------------------------------------------------------------+
 | Shared                                                      |

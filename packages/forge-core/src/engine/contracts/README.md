@@ -7,7 +7,7 @@ layer imports from here; contracts imports from none of them.
 ## Why a separate layer?
 
 Without contracts, the layers would import types from each other and create
-circular dependencies. `lowering/` needs to know what a `CompiledRenderFunction`
+circular dependencies. `lowering/` needs to know what a `CompiledResolveFunction`
 looks like so it can produce one; `runtime/` needs to know the same type so it
 can call one. If either layer owned the type, the other would have to import
 from it - and the boundary would break.
@@ -21,11 +21,11 @@ the pipeline speaks.
 | Folder | What it defines |
 |--------|-----------------|
 | [`ast/`](./ast/) | AST node types (`ASTNode`, `JourneyASTNode`, `StepASTNode`, `ExpressionASTNode`, etc.), the `ASTNodeType` enum, and type guard functions (`isReferenceExprNode`, `isFieldBlockStructNode`, etc.) |
-| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledRenderFunction`, `CompiledValidationFunction`, `CompiledNavigationFunction`, etc.), the phase context types each function receives (`ValidationContext`, `RenderCompilationContext`, `AnswerPreparationContext`), and the render block brand symbol |
-| [`plans/`](./plans/) | `CompilationPlan` (the handoff from planner to codegen), `StepRuntimePlan` / `JourneyRuntimePlan` / `NavigationRuntimePlan` (minimal metadata that survives into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
-| [`navigation/`](./navigation/) | `NavigationEvaluation` and `NavigationStepState` (the result of evaluating reachability at request time), plus the input/output types for the compiled navigation function |
+| [`compiled/`](./compiled/) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledReachabilityFactsFunction`, `CompiledRouteMetadataFunction`, etc.), the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, `CompiledRouteMetadataContext`, all extending `CompiledBaseContext`), and the render block brand symbol |
+| [`plans/`](./plans/) | `CompilationPlan` (the handoff from planner to codegen), `StepRuntimePlan` / `JourneyRuntimePlan` / `ReachabilityStateTable` (minimal metadata that survives into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
+| [`navigation/`](reachability/) | `ReachabilityEvaluation` and `JourneyReachabilityProjection` (the result of evaluating reachability at request time), plus the input/output types for the compiled reachability function (`ReachabilityEvaluationInput` / `ReachabilityEvaluationResult`) |
 | [`routing/`](./routing/) | Route descriptors (`JourneyRouteDescriptor`, `StepRouteDescriptor`), the route tree structures (`StoredRouteTreeNode`, `RouteTreeIndex`), and the route template catalog |
-| [`runtime/`](./runtime/) | Request-scoped state types: `AnswerHistory` (the mutation log), `RuntimeEvaluationGlobalState`, `StepValidityResult`, `ValidationResult`, `HookLifecycleContext`, `EffectEvaluationContext` |
+| [`runtime/`](./runtime/) | Request-scoped state types: `AnswerHistory` (the mutation log), `RuntimeContext`, `StepValidityResult`, `ValidationResult`, `CompiledHookLifecycleContext`, `HookEffectWorkProps` |
 
 ## How it's used
 
@@ -38,5 +38,4 @@ it. The typical flow:
    (e.g. `runtime/`)
 3. Neither layer imports the other - both import contracts
 
-Contracts may not import from `ast/`, `lowering/`, or `runtime/` - enforced by
-eslint, so a stray import fails the build.
+Contracts may not import from any `compilation/` layer (`ast/`, `semantic-analysis/`, `dependency-analysis/`, `lowering/`) or from `runtime/` - enforced by eslint, so a stray import fails the build.

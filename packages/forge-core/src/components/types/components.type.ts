@@ -1,5 +1,7 @@
 import type { BlockDefinition, EvaluatedBlock } from './structures.type'
 
+type MaybePromise<T> = T | Promise<T>
+
 /**
  * Component render function
  *
@@ -26,7 +28,7 @@ import type { BlockDefinition, EvaluatedBlock } from './structures.type'
 export type ComponentRenderer<T extends BlockDefinition, TRenderOutput = unknown> = (
   block: EvaluatedBlock<T>,
   renderer?: unknown,
-) => TRenderOutput
+) => MaybePromise<TRenderOutput>
 
 /**
  * Component registry entry
@@ -38,5 +40,5 @@ export type ComponentRenderer<T extends BlockDefinition, TRenderOutput = unknown
  */
 export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput = unknown> {
   variant: string
-  render(block: EvaluatedBlock<T>, renderer?: unknown): TRenderOutput
+  render(block: EvaluatedBlock<T>, renderer?: unknown): MaybePromise<TRenderOutput>
 }

@@ -1,4 +1,4 @@
-import { assertArray } from '../../shared/utils/asserts'
+import { assertArray, isAbsent } from '../../shared/utils/asserts'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
 
@@ -65,12 +65,20 @@ export const { conditions: ArrayConditions, implementations: ArrayConditionsImpl
     },
 
     Contains: () => (value: unknown, expected: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertArray(value, 'Condition.Array.Contains')
 
       return value.includes(expected)
     },
 
     ContainsAny: () => (value: unknown, expected: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertArray(value, 'Condition.Array.ContainsAny')
       assertArray(expected, 'Condition.Array.ContainsAny (expected)')
       if (value.length === 0 && expected.length === 0) {
@@ -81,6 +89,10 @@ export const { conditions: ArrayConditions, implementations: ArrayConditionsImpl
     },
 
     ContainsAll: () => (value: unknown, expected: ResolvableValue) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertArray(value, 'Condition.Array.ContainsAll')
       assertArray(expected, 'Condition.Array.ContainsAll (expected)')
       if (value.length === 0 && expected.length === 0) {

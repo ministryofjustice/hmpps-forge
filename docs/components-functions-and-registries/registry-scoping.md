@@ -98,14 +98,18 @@ them.
 
 Component scoping affects framework rendering as well as validation.
 
-When package components are registered, Forge rebuilds the framework adapter
-with the scoped component registry. This matters because the adapter is the
-piece that later renders evaluated blocks.
+When package components are registered, the package's `ScopedComponentRegistry`
+is stored in the package's dependencies. During registration `MountRegistry`
+copies it onto each route's `MountedNode` as `componentRegistry`, and render
+time resolves component variants through that per-route registry.
 
 Without this, validation could see a scoped component while rendering still
 used the global component registry.
 
-The adapter and journey must agree on the active component registry.
+The framework adapter is constructed once and is never passed or rebuilt with a
+component registry. Each route renders through the scoped component registry on
+its `MountedNode`, derived from the package's dependencies, so there is no separate
+adapter-held registry to reconcile.
 
 ## Function scoping and generated code
 
@@ -130,8 +134,6 @@ Important failure cases include:
 - a package registers duplicate names or variants inside its scoped registry
 - a journey references a function not visible in its active function registry
 - a journey references a variant not visible in its active component registry
-- a framework adapter is built with a different component registry from the
-  journey
 
 Most of these should fail during registration or validation.
 
@@ -164,5 +166,5 @@ function call sites.
 The components and component registry doc explains component variants and
 render-facing component contracts.
 
-The framework adapter docs explain why component registry selection also affects
-adapter construction and rendering.
+The framework adapter docs explain why component registry selection affects
+rendering, through the per-route `MountedNode` rather than adapter construction.

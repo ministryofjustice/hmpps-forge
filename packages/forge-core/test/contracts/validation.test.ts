@@ -18,6 +18,7 @@ import {
   entryValidationJourney,
   onInvalidBranchJourney,
   validateFalseJourney,
+  reachabilityDisabledValidationJourney,
   emptyIteratorJourney,
   andCombinatorJourney,
   orCombinatorJourney,
@@ -46,6 +47,28 @@ describe('validation contracts', () => {
       if (result.type === 'render') {
         expect(result.context.showValidationFailures).toBe(true)
         expect(result.getValidationErrorsByFieldCode('fullName')).toEqual([
+          expect.objectContaining({ message: 'Enter your full name', passed: false }),
+        ])
+      }
+    })
+
+    it('should attach failures to the rendered field block where components read them', async () => {
+      // Arrange
+      const client = createClient(requiredFieldJourney)
+
+      // Act
+      const result = await client.post('/required/name', {
+        session: {},
+        body: { fullName: '' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const field = result.getBlocksByVariant('govukTextInput')[0]
+
+        expect(field.properties.errors).toEqual([
           expect.objectContaining({ message: 'Enter your full name', passed: false }),
         ])
       }
@@ -200,6 +223,27 @@ describe('validation contracts', () => {
         const errors = result.getValidationErrorsByFieldCode('emailAddress')
 
         expect(errors).toEqual([expect.objectContaining({ message: 'Enter an email address' })])
+      }
+    })
+  })
+
+  describe('reachability disabled', () => {
+    it('should not eagerly validate other steps', async () => {
+      // Arrange
+      const client = createClient(reachabilityDisabledValidationJourney)
+      const session: ContractSession = {
+        answers: { 'reach-disabled-validation': { targetDate: '28/09/2026' } },
+      }
+
+      // Act
+      const result = await client.get('/reach-disabled-validation/start', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.path).toBe('/start')
+        expect(result.context.fieldValidationErrors).toEqual([])
       }
     })
   })
@@ -392,7 +436,8 @@ describe('validation contracts', () => {
   describe('entry validation', () => {
     it('should show validation failures on GET when validateOnEntry is set', async () => {
       // Arrange
-      const client = createClient(entryValidationJourney)
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedClient(entryValidationJourney, traces)
 
       // Act
       const result = await client.get('/entry-valid/name', {
@@ -408,11 +453,26 @@ describe('validation contracts', () => {
         const errors = result.getValidationErrorsByFieldCode('fullName')
 
         expect(errors).toEqual([expect.objectContaining({ message: 'Enter your full name' })])
+
+        const validitiesPhase = traces[0].trace.phases.find(p => p.phase === 'validities')
+
+        expect(validitiesPhase?.units).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'validation.step',
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  kind: 'validation.field',
+                  beginFields: expect.objectContaining({ blockCode: 'fullName' }),
+                }),
+              ]),
+            }),
+          ]),
+        )
       }
     })
 
-    // TODO: unskip when work descriptor tracing is implemented
-    it.skip('should not show validation failures on GET without validateOnEntry', async () => {
+    it('should not show validation failures on GET without validateOnEntry', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedClient(requiredFieldJourney, traces)
@@ -432,7 +492,7 @@ describe('validation contracts', () => {
         const entryPhase = traces[0].trace.phases.find(p => p.phase === 'entry-validation')
 
         expect(entryPhase).toBeDefined()
-        expect(entryPhase!.units.filter(u => u.kind === 'entry-validation-rule')).toEqual([])
+        expect(entryPhase!.units.filter(u => u.kind === 'validation.step')).toEqual([])
       }
     })
 
@@ -600,8 +660,7 @@ describe('validation contracts', () => {
       }
     })
 
-    // TODO: unskip when nested iterator handling is reimplemented
-    it.skip('should validate fields in nested iterators independently', async () => {
+    it('should validate fields in nested iterators independently', async () => {
       // Arrange
       const client = createClient(nestedIteratorValidationJourney)
       const session: ContractSession = {

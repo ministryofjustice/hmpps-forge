@@ -59,6 +59,119 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate static data with ordinary nested type fields', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        data: {
+          service: {
+            type: 'static-service',
+            enabled: true,
+          },
+        },
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            data: {
+              values: [{ type: 'static-value', label: 'Allowed' }],
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should validate dynamic route metadata schema', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: { type: ExpressionType.REFERENCE, path: ['data', 'journeyTitle'] },
+        description: { type: ExpressionType.REFERENCE, path: ['data', 'journeyDescription'] },
+        metadata: {
+          hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideJourney'] },
+          navGroup: {
+            type: FunctionType.GENERATOR,
+            name: 'Format',
+            arguments: ['Group %1', { type: ExpressionType.REFERENCE, path: ['params', 'groupId'] }],
+          },
+        },
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: { type: ExpressionType.REFERENCE, path: ['data', 'stepTitle'] },
+            description: { type: ExpressionType.REFERENCE, path: ['data', 'stepDescription'] },
+            metadata: {
+              hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideStep'] },
+              navigation: {
+                label: { type: ExpressionType.REFERENCE, path: ['data', 'stepNavLabel'] },
+              },
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject Forge expressions in nested static data', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            data: {
+              values: [
+                {
+                  label: 'Disallowed',
+                  value: {
+                    type: ExpressionType.REFERENCE,
+                    path: ['request', 'user'],
+                  },
+                },
+              ],
+            },
+            blocks: [],
+          },
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateSchema(invalidJourney)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const dataError = error.errors.find(
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'steps.0.data.values.0.value',
+          )
+
+          expect(dataError).toBeInstanceOf(ForgeConfigurationSchemaError)
+          expect(dataError?.message).toContain('Forge expressions are not supported in static data')
+        }
+      }
+    })
+
     it('should reject invalid journey unreachable redirect targets', () => {
       // Arrange
       const invalidJourney = {

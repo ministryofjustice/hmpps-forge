@@ -99,15 +99,16 @@ describe('NumberConditions', () => {
       expect(evaluate(-1, 0)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
+    test('should throw error when value is present but not a number', () => {
       expect(() => evaluate('10', 5)).toThrow('Condition.Number.GreaterThan expects a number but received string')
-      expect(() => evaluate(null, 5)).toThrow('Condition.Number.GreaterThan expects a number but received object')
-      expect(() => evaluate(undefined, 5)).toThrow(
-        'Condition.Number.GreaterThan expects a number but received undefined',
-      )
       expect(() => evaluate(true, 5)).toThrow('Condition.Number.GreaterThan expects a number but received boolean')
       expect(() => evaluate({}, 5)).toThrow('Condition.Number.GreaterThan expects a number but received object')
       expect(() => evaluate(NaN, 5)).toThrow('Condition.Number.GreaterThan expects a number but received NaN')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 5)).toBe(false)
+      expect(evaluate(undefined, 5)).toBe(false)
     })
 
     test('should handle edge cases with Infinity and negative numbers', () => {
@@ -272,13 +273,14 @@ describe('NumberConditions', () => {
       expect(evaluate(6, 5, 5)).toBe(false)
     })
 
-    test('should throw error when value is not a number', () => {
+    test('should throw error when value is present but not a number', () => {
       expect(() => evaluate('5', 1, 10)).toThrow('Condition.Number.Between expects a number but received string')
-      expect(() => evaluate(null, 1, 10)).toThrow('Condition.Number.Between expects a number but received object')
-      expect(() => evaluate(undefined, 1, 10)).toThrow(
-        'Condition.Number.Between expects a number but received undefined',
-      )
       expect(() => evaluate(NaN, 1, 10)).toThrow('Condition.Number.Between expects a number but received NaN')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null, 1, 10)).toBe(false)
+      expect(evaluate(undefined, 1, 10)).toBe(false)
     })
 
     test('should handle inverted ranges (max < min)', () => {

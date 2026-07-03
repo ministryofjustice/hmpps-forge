@@ -92,21 +92,18 @@ Install the package and peer dependencies:
 npm install @ministryofjustice/hmpps-forge express nunjucks express-session govuk-frontend
 ```
 
-Set up the framework adapter and register your journeys:
+Create the engine, register your journeys, and mount the Express router:
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { ExpressFrameworkAdapter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 
-const forge = new Forge({
-  frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }),
-})
+const forge = new Forge({ logger })
+  .registerGlobalComponents(govukComponents)
+  .registerPackage(myJourneyPackage)
 
-forge.registerGlobalComponents(govukComponents)
-forge.registerPackage(myJourneyPackage)
-
-app.use(forge.getRouter())
+app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
 ## Developer guide

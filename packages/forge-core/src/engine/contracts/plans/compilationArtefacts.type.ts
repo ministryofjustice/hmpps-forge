@@ -1,33 +1,68 @@
 import type { NodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
-import type { JourneyRuntimePlan, NavigationRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
-  CompiledRenderFunction,
+  CompiledReachabilityFactsFunction,
+  CompiledReachabilityStateFunction,
+  CompiledResolveFunction,
+  CompiledRouteMetadataFunction,
+  CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
 
+export interface CompiledPackageFunctions {
+  compiledRouteMetadata: CompiledRouteMetadataFunction
+}
+
+export interface CompiledJourneyFunctions {
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+}
+
+export interface CompiledStepFunctions {
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledSubmitHooks: CompiledSubmitHooksFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledValidation: CompiledValidationFunction
+  compiledEntryValidation: CompiledEntryValidationFunction
+  compiledResolve: CompiledResolveFunction
+}
+
 export interface CompiledStep {
   runtimePlan: StepRuntimePlan
-  navigationPlan: NavigationRuntimePlan
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledSubmitHooks?: CompiledSubmitHooksFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
-  compiledValidation?: CompiledValidationFunction
-  compiledEntryValidation?: CompiledEntryValidationFunction
-  compiledRender?: CompiledRenderFunction
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledSubmitHooks: CompiledSubmitHooksFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledValidation: CompiledValidationFunction
+  compiledEntryValidation: CompiledEntryValidationFunction
+  compiledResolve: CompiledResolveFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
 export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
-  navigationPlan: NavigationRuntimePlan
-  compiledAccessLifecycle?: CompiledAccessLifecycleFunction
-  compiledAnswerPreparation?: CompiledAnswerPreparationFunction
+  compiledReachabilityFacts: CompiledReachabilityFactsFunction
+  compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledStaticData: CompiledStaticDataFunction
+  compiledAccessLifecycle: CompiledAccessLifecycleFunction
+  compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
+  compiledRouteMetadata: CompiledRouteMetadataFunction
 }
 
-export interface JourneyCompilationResult {
+export interface CompiledPackage {
   readonly journeyCode: string
   readonly stepRouteIndex: StepRouteIndex
   readonly journeyRouteIndex: JourneyRouteIndex

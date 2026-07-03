@@ -1,6 +1,6 @@
 import express from 'express'
 import createError from 'http-errors'
-import { Forge } from '@ministryofjustice/hmpps-forge/core'
+import { Forge, type ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/core'
 import {
   createExpressRouter,
   nunjucksFunctions,
@@ -24,7 +24,7 @@ export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
 
-  const forge = new Forge({ logger })
+  const forge = new Forge({ logger, instrumentation: { sinks: createForgeInstrumentationSinks() } })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
     .registerGlobalFunctions(nunjucksFunctions)
@@ -58,4 +58,49 @@ export default function createApp(services: Services): express.Application {
   app.use(errorHandler(process.env.NODE_ENV === 'production'))
 
   return app
+}
+
+function createForgeInstrumentationSinks(): ForgeInstrumentationSink[] {
+  const tracePath = process.env.FORGE_TRACE_PATH
+  const tracePathPrefix = process.env.FORGE_TRACE_PATH_PREFIX
+
+  if (!tracePath && !tracePathPrefix) {
+    return []
+  }
+
+  return [
+    {
+      onRequestTrace: event => {
+        if (!shouldLogForgeTrace(event.snapshot.location.pathname, tracePath, tracePathPrefix)) {
+          return
+        }
+
+        logger.info(
+          {
+            forgeTrace: {
+              snapshot: {
+                nodeId: event.snapshot.nodeId,
+                method: event.snapshot.method,
+                path: event.snapshot.location.pathname,
+              },
+              trace: event.trace,
+            },
+          },
+          'Forge request trace',
+        )
+      },
+    },
+  ]
+}
+
+function shouldLogForgeTrace(
+  pathname: string,
+  tracePath: string | undefined,
+  tracePathPrefix: string | undefined,
+): boolean {
+  if (tracePath && pathname === tracePath) {
+    return true
+  }
+
+  return tracePathPrefix ? pathname.startsWith(tracePathPrefix) : false
 }
