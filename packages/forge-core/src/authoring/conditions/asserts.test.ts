@@ -1,4 +1,4 @@
-import { assertNumber, assertDate, assertString, assertArray, assertObject } from '../../shared/utils/asserts'
+import { assertNumber, assertDate, assertString, assertArray, assertObject, isAbsent } from '../../shared/utils/asserts'
 
 describe('asserts', () => {
   describe('assertNumber', () => {
@@ -150,6 +150,22 @@ describe('asserts', () => {
 
     it('should include helpful message in error', () => {
       expect(() => assertObject('string', 'testFunction')).toThrow('Ensure the field value is an object')
+    })
+  })
+
+  describe('isAbsent', () => {
+    it('should return true for null and undefined', () => {
+      expect(isAbsent(null)).toBe(true)
+      expect(isAbsent(undefined)).toBe(true)
+    })
+
+    it('should return false for present values, including empty ones', () => {
+      expect(isAbsent('')).toBe(false)
+      expect(isAbsent(0)).toBe(false)
+      expect(isAbsent(false)).toBe(false)
+      expect(isAbsent([])).toBe(false)
+      expect(isAbsent({})).toBe(false)
+      expect(isAbsent(NaN)).toBe(false)
     })
   })
 

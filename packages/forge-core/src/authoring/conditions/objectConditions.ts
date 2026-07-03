@@ -1,6 +1,6 @@
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { assertObject } from '../../shared/utils/asserts'
+import { assertObject, isAbsent } from '../../shared/utils/asserts'
 import { getByPath } from '../../shared/utils/utils'
 
 const isEmpty = (value: unknown): boolean =>
@@ -43,18 +43,30 @@ export const { conditions: ObjectConditions, implementations: ObjectConditionsIm
     IsObject: () => (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value),
 
     HasProperty: () => (value: unknown, path: string) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertObject(value, 'Condition.Object.HasProperty')
 
       return getByPath(value, path) !== undefined
     },
 
     PropertyIsEmpty: () => (value: unknown, path: string) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertObject(value, 'Condition.Object.PropertyIsEmpty')
 
       return isEmpty(getByPath(value, path))
     },
 
     PropertyHasValue: () => (value: unknown, path: string) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertObject(value, 'Condition.Object.PropertyHasValue')
 
       return !isEmpty(getByPath(value, path))

@@ -1,4 +1,4 @@
-import { assertString } from '../../shared/utils/asserts'
+import { assertString, isAbsent } from '../../shared/utils/asserts'
 import { ConditionFunctionExpr } from '../types/expressions.type'
 import { defineConditionFunctions } from '../utils/defineConditionFunctions'
 
@@ -21,6 +21,10 @@ export interface PhoneConditionGroup {
 export const { conditions: PhoneConditions, implementations: PhoneConditionsImplementations } =
   defineConditionFunctions<PhoneConditionGroup>({
     IsValidPhoneNumber: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Phone.IsValidPhoneNumber')
 
       const phoneRegex = /^\+?[0-9\s().-]{7,20}$/
@@ -29,6 +33,10 @@ export const { conditions: PhoneConditions, implementations: PhoneConditionsImpl
     },
 
     IsValidUKMobile: () => (value: unknown) => {
+      if (isAbsent(value)) {
+        return false
+      }
+
       assertString(value, 'Condition.Phone.IsValidUKMobile')
 
       const ukMobileRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/

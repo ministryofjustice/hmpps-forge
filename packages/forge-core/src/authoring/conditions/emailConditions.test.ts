@@ -47,12 +47,15 @@ describe('EmailConditions', () => {
       expect(evaluate('1234567890@example.com')).toBe(true)
     })
 
-    test('should throw error when value is not a string', () => {
+    test('should throw error when value is present but not a string', () => {
       expect(() => evaluate(123)).toThrow('Condition.Email.IsValidEmail expects a string but received number')
-      expect(() => evaluate(null)).toThrow('Condition.Email.IsValidEmail expects a string but received object')
-      expect(() => evaluate(undefined)).toThrow('Condition.Email.IsValidEmail expects a string but received undefined')
       expect(() => evaluate([])).toThrow('Condition.Email.IsValidEmail expects a string but received object')
       expect(() => evaluate({})).toThrow('Condition.Email.IsValidEmail expects a string but received object')
+    })
+
+    test('should return false when value is absent', () => {
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
     })
 
     test('should build correct expression object', () => {

@@ -37,6 +37,11 @@ describe('DateConditions', () => {
       expect(() => evaluate(123)).toThrow('Condition.Date.IsValid expects a string but received number')
     })
 
+    test('should return false when value is absent', () => {
+      expect(evaluate(null)).toBe(false)
+      expect(evaluate(undefined)).toBe(false)
+    })
+
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValid()
       expect(expr).toEqual({
