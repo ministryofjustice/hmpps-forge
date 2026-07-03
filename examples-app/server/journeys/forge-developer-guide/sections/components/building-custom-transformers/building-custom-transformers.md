@@ -188,6 +188,8 @@ configuration mistake, not user input.
 Schemas run at request time, each time the transformer is
 evaluated — not when the journey module loads.
 
+Argument-count mismatches against a tuple schema are additionally caught at `registerPackage()` by semantic analysis, so a call with the wrong number of arguments fails compilation instead of waiting for request time.
+
 ---
 
 ## Author-time preparation
