@@ -18,7 +18,6 @@ services:
       NODE_ENV: development
       ENVIRONMENT_NAME: dev
       NODE_CLUSTER_ENABLED: false
-      FORGE_TRACE_PATH_PREFIX: /forge-developer-guide/patterns/demos/single-question-per-page
 
 volumes:
   examples_app_node_modules:
