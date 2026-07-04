@@ -62,7 +62,7 @@ export class ReactRenderer implements ForgeRenderer<ReactNode> {
       throw new Error(`Component variant "${entry.variant}" must render a React node for the Next React adapter.`)
     }
 
-    return <Fragment key={this.resolveBlockKey(block)}>{rendered}</Fragment>
+    return <Fragment>{rendered}</Fragment>
   }
 
   /** Wrap a rendered child as ReactRenderedBlock format (block metadata + node) */
@@ -78,15 +78,11 @@ export class ReactRenderer implements ForgeRenderer<ReactNode> {
   ): ReactNode {
     const stateAction = requestState[FORGE_REACT_ACTION]
     const action = isReactFormAction(stateAction) ? stateAction : context.step.path
+    // The engine's evaluated blocks carry no stable id, and the list is rebuilt
+    // wholesale each request, so index keys are the honest choice.
+    const blocks = renderedBlocks.map((node, index) => <Fragment key={index}>{node}</Fragment>)
 
-    return this.page({ context, blocks: [...renderedBlocks], action })
-  }
-
-  private resolveBlockKey(block: EvaluatedBlock<BlockDefinition>): string | undefined {
-    const keyedBlock = block as { id?: unknown; nodeId?: unknown }
-    const key = keyedBlock.id ?? keyedBlock.nodeId
-
-    return typeof key === 'string' ? key : undefined
+    return this.page({ context, blocks, action })
   }
 }
 

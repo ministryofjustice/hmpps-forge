@@ -9,7 +9,7 @@ import type {
 import type { ReactNode } from 'react'
 import type { RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
 
-import { FORGE_REACT_ACTION, ReactRenderer } from './ReactRenderer'
+import { FORGE_REACT_ACTION, ReactRenderer, type ReactPageRenderContext } from './ReactRenderer'
 
 function createRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
   return {
@@ -153,7 +153,11 @@ describe('ReactRenderer', () => {
 
       // Assert
       expect(renderToStaticMarkup(node)).toBe('<section>Custom</section>')
-      expect(page).toHaveBeenCalledWith({ context, blocks, action: '/forms/step' })
+      expect(page).toHaveBeenCalledWith(expect.objectContaining({ context, action: '/forms/step' }))
+
+      const [[pageInput]] = page.mock.calls as [[ReactPageRenderContext]]
+
+      expect(renderToStaticMarkup(<>{pageInput.blocks}</>)).toBe('<p>Hello</p>')
     })
   })
 })
