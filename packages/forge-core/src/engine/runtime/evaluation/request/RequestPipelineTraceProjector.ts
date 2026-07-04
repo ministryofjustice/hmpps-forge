@@ -3,6 +3,7 @@ import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import { captureContextSnapshot, type ContextSnapshotData } from '../work/tracing/contextSnapshot'
 import type {
   RequestTrace,
+  RequestTraceError,
   RequestTracePhase,
   RequestTraceRouteContext,
   RequestTraceUnit,
@@ -41,7 +42,7 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome, ...this.traceTiming(rootWorkUnit), phases },
+      trace: { outcome, ...this.traceTiming(rootWorkUnit), ...this.resultDetail(result), phases },
       route: this.traceRoute(node, routeTree),
     })
   }
@@ -49,6 +50,7 @@ export default class RequestPipelineTraceProjector {
   emitFailedTrace(
     snapshot: RequestSnapshot,
     instrumentation: ForgeInstrumentation,
+    error: unknown,
     rootWorkUnit: WorkUnit,
     context: RuntimeContext,
     node: MountedNode,
@@ -66,7 +68,7 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), phases },
+      trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), error: this.errorDetail(error), phases },
       route: this.traceRoute(node, routeTree),
     })
   }
@@ -122,6 +124,26 @@ export default class RequestPipelineTraceProjector {
     }
 
     return result.kind
+  }
+
+  private resultDetail(result: RequestPipelineResult): Pick<RequestTrace, 'redirect' | 'error'> {
+    if (result.kind === 'redirect') {
+      return { redirect: { target: result.target } }
+    }
+
+    if (result.kind === 'error') {
+      return { error: { status: result.status, message: result.message } }
+    }
+
+    return {}
+  }
+
+  private errorDetail(error: unknown): RequestTraceError {
+    if (error instanceof Error) {
+      return { message: error.message, stack: error.stack }
+    }
+
+    return { message: String(error) }
   }
 
   private traceRoute(node: MountedNode, routeTree: RouteTree | undefined): RequestTraceRouteContext {

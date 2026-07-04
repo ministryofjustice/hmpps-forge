@@ -109,20 +109,21 @@ export default class RequestEvaluator {
       return pipelineResult
     } catch (error) {
       if (error instanceof WorkExecutionError) {
-        this.traceProjector.emitFailedTrace(
-          snapshot,
-          instrumentation,
-          error.workUnit,
-          requestExecutionContext.context,
-          node,
-          requestExecutionContext.routeTree,
-        )
-
         let unwrapped: unknown = error
 
         while (unwrapped instanceof WorkExecutionError) {
           unwrapped = unwrapped.original
         }
+
+        this.traceProjector.emitFailedTrace(
+          snapshot,
+          instrumentation,
+          unwrapped,
+          error.workUnit,
+          requestExecutionContext.context,
+          node,
+          requestExecutionContext.routeTree,
+        )
 
         throw unwrapped
       }

@@ -40,11 +40,23 @@ export interface RequestTracePhase {
   readonly units: readonly RequestTraceUnit[]
 }
 
+export interface RequestTraceRedirect {
+  readonly target: string
+}
+
+export interface RequestTraceError {
+  readonly status?: number
+  readonly message: string
+  readonly stack?: string
+}
+
 export interface RequestTrace {
   readonly outcome: 'render' | 'redirect' | 'error'
   readonly startedAtMs: number
   readonly completedAtMs?: number
   readonly durationMs?: number
+  readonly redirect?: RequestTraceRedirect
+  readonly error?: RequestTraceError
   readonly phases: readonly RequestTracePhase[]
 }
 

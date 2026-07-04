@@ -103,6 +103,7 @@ describe('RequestPipelineTraceProjector', () => {
       projector.emitFailedTrace(
         createSnapshot(),
         createInstrumentation(emitted),
+        new Error('boom'),
         root,
         createRuntimeContext(),
         createMountedNode(),
@@ -138,6 +139,107 @@ describe('RequestPipelineTraceProjector', () => {
           },
         ],
       })
+    })
+
+    it('should carry the redirect target when the pipeline result is a redirect', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'redirect', target: '/journey/next' })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'redirect', target: '/journey/next' },
+        root,
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.outcome).toBe('redirect')
+      expect(emitted[0].trace.redirect).toEqual({ target: '/journey/next' })
+    })
+
+    it('should carry the status and message when the pipeline result is a halt error', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'error', status: 403, message: 'Forbidden' })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'error', status: 403, message: 'Forbidden' },
+        root,
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.outcome).toBe('error')
+      expect(emitted[0].trace.error).toEqual({ status: 403, message: 'Forbidden' })
+    })
+
+    it('should carry the message and stack when a failed trace is thrown from an Error', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+      const thrown = new Error('handler exploded')
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        thrown,
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.error).toEqual({ message: 'handler exploded', stack: thrown.stack })
+    })
+
+    it('should stringify the thrown value when a failed trace is thrown from a non-Error', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        'catastrophic failure',
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.error).toEqual({ message: 'catastrophic failure' })
     })
 
     it('should carry the static route block without titles when there is no hydrated route tree', () => {
@@ -213,6 +315,7 @@ describe('RequestPipelineTraceProjector', () => {
       projector.emitFailedTrace(
         createSnapshot(),
         createInstrumentation(emitted),
+        new Error('boom'),
         root,
         createRuntimeContext(),
         createMountedNode(),
