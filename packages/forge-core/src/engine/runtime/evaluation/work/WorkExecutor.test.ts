@@ -66,6 +66,14 @@ function createParentElement(children: readonly WorkTask[], group: TestWorkGroup
   return createWorkTask('parent', type, {})
 }
 
+function busyWaitMs(durationMs: number): void {
+  const start = performance.now()
+
+  while (performance.now() - start < durationMs) {
+    // Spin to burn real synchronous CPU time while holding the event loop.
+  }
+}
+
 describe('WorkExecutor', () => {
   describe('execute()', () => {
     it('should complete begin-only work with no children', async () => {
@@ -520,6 +528,68 @@ describe('WorkExecutor', () => {
       expect(rejection.workUnit.completed).toBe(false)
       expect(rejection.workUnit.children).toHaveLength(1)
       expect(rejection.workUnit.children[0].completed).toBe(false)
+    })
+
+    it('should charge self time to the busy sibling only when concurrent siblings interleave', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const busyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => ({ output: 'begin' }),
+        complete: () => {
+          busyWaitMs(20)
+
+          return 'busy'
+        },
+      }
+      const idleType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => ({ output: 'idle' }),
+      }
+      const element = createParentElement(
+        [createWorkTask('busy', busyType, {}), createWorkTask('idle', idleType, {})],
+        { mode: 'concurrent' },
+      )
+
+      // Act
+      const { workUnit } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const [busyUnit, idleUnit] = workUnit.children
+      expect(busyUnit.selfDurationMs).toBeGreaterThanOrEqual(20)
+      expect(idleUnit.selfDurationMs).toBeLessThan(10)
+      expect(busyUnit.durationMs).toBeGreaterThanOrEqual(20)
+      expect(idleUnit.durationMs).toBeGreaterThanOrEqual(20)
+    })
+
+    it('should exclude child execution time from a parent self time', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const slowChildType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(20)
+
+          return { output: 'slow' }
+        },
+      }
+      const parentType: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [{ mode: 'sequential', children: [createWorkTask('slow-child', slowChildType, {})] }],
+        }),
+        complete: (_ctx, children) => children.map(child => child.output),
+      }
+      const element = createWorkTask('parent', parentType, {})
+
+      // Act
+      const { workUnit } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const [childUnit] = workUnit.children
+      expect(childUnit.selfDurationMs).toBeGreaterThanOrEqual(20)
+      expect(workUnit.selfDurationMs).toBeLessThan(10)
+      expect(workUnit.durationMs).toBeGreaterThanOrEqual(20)
     })
   })
 })

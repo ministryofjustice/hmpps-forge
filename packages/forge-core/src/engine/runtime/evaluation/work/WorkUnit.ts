@@ -21,6 +21,8 @@ export default class WorkUnit implements WorkUnitContract {
 
   private mutableDurationMs: number | undefined
 
+  private mutableSelfDurationMs = 0
+
   private mutableOutput: unknown
 
   private mutableOmitFromTrace = false
@@ -71,6 +73,10 @@ export default class WorkUnit implements WorkUnitContract {
     return this.mutableDurationMs
   }
 
+  get selfDurationMs(): number {
+    return this.mutableSelfDurationMs
+  }
+
   get output(): unknown {
     return this.mutableOutput
   }
@@ -81,6 +87,10 @@ export default class WorkUnit implements WorkUnitContract {
 
   addChild(childWorkUnit: WorkUnit): void {
     this.childWorkUnits.push(childWorkUnit)
+  }
+
+  addSelfTime(ms: number): void {
+    this.mutableSelfDurationMs += ms
   }
 
   recordTraceMetadataAtStart(traceMetadata: WorkUnitFields | undefined): void {

@@ -18,7 +18,10 @@ export type {
 } from './engine/contracts/ast/engine.type'
 export type {
   RequestTrace,
+  RequestTraceError,
   RequestTraceEvent,
   RequestTracePhase,
+  RequestTraceRedirect,
+  RequestTraceRouteContext,
   RequestTraceUnit,
 } from './engine/contracts/runtime/trace.type'

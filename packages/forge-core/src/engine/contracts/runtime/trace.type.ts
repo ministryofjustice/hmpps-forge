@@ -14,6 +14,7 @@ export interface WorkUnitTrace {
   readonly startedAtMs: number
   readonly completedAtMs?: number
   readonly durationMs?: number
+  readonly selfDurationMs?: number
   readonly children: readonly WorkUnitTrace[]
 }
 
@@ -34,15 +35,41 @@ export type RequestTraceUnit = WorkUnitTrace | RuntimeContextSnapshotTrace
 
 export interface RequestTracePhase {
   readonly phase: string
+  readonly startedAtMs: number
+  readonly completedAtMs?: number
+  readonly durationMs?: number
   readonly units: readonly RequestTraceUnit[]
+}
+
+export interface RequestTraceRedirect {
+  readonly target: string
+}
+
+export interface RequestTraceError {
+  readonly status?: number
+  readonly message: string
+  readonly stack?: string
 }
 
 export interface RequestTrace {
   readonly outcome: 'render' | 'redirect' | 'error'
+  readonly startedAtMs: number
+  readonly completedAtMs?: number
+  readonly durationMs?: number
+  readonly redirect?: RequestTraceRedirect
+  readonly error?: RequestTraceError
   readonly phases: readonly RequestTracePhase[]
+}
+
+export interface RequestTraceRouteContext {
+  readonly journeyCode: string
+  readonly journeyTitle?: string
+  readonly stepTitle?: string
+  readonly routeTemplatePath: string
 }
 
 export interface RequestTraceEvent {
   readonly snapshot: RequestSnapshot
   readonly trace: RequestTrace
+  readonly route?: RequestTraceRouteContext
 }

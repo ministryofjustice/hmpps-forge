@@ -169,7 +169,7 @@ describe('ResolveBlockWorkHandler', () => {
         variant: 'html',
         blockType: BlockType.BASIC,
       })
-      expect(root.children[0].completeFields).toEqual({ visible: false })
+      expect(root.children[0].completeFields).toEqual({ visible: false, properties: { visibleWhen: false } })
     })
   })
 })

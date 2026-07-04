@@ -28,6 +28,7 @@ export interface WorkUnitContract extends WorkUnitReference {
   readonly startedAtMs: number
   readonly completedAtMs?: number
   readonly durationMs?: number
+  readonly selfDurationMs: number
   readonly output?: unknown
   readonly omitFromTrace: boolean
 }

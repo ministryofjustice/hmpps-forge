@@ -38,6 +38,7 @@ describe('WorkUnitTraceSerializer', () => {
             startedAtMs: expect.any(Number),
             completedAtMs: expect.any(Number),
             durationMs: expect.any(Number),
+            selfDurationMs: expect.any(Number),
             children: [
               {
                 key: 'grandchild',
@@ -48,6 +49,7 @@ describe('WorkUnitTraceSerializer', () => {
                 startedAtMs: expect.any(Number),
                 completedAtMs: expect.any(Number),
                 durationMs: expect.any(Number),
+                selfDurationMs: expect.any(Number),
                 children: [],
               },
             ],
