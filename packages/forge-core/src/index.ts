@@ -20,5 +20,6 @@ export type {
   RequestTrace,
   RequestTraceEvent,
   RequestTracePhase,
+  RequestTraceRouteContext,
   RequestTraceUnit,
 } from './engine/contracts/runtime/trace.type'

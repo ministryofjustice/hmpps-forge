@@ -4,6 +4,7 @@ import { captureContextSnapshot, type ContextSnapshotData } from '../work/tracin
 import type {
   RequestTrace,
   RequestTracePhase,
+  RequestTraceRouteContext,
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
 } from '../../../contracts/runtime/trace.type'
@@ -11,6 +12,9 @@ import type WorkUnit from '../work/WorkUnit'
 import WorkUnitTraceSerializer from '../work/tracing/WorkUnitTraceSerializer'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { MountedNode } from '../../../registries/MountRegistry'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { RouteTree, RouteTreeNode } from '../../../../framework/rendering/types'
 
 export default class RequestPipelineTraceProjector {
   private readonly serializer = new WorkUnitTraceSerializer()
@@ -20,6 +24,8 @@ export default class RequestPipelineTraceProjector {
     instrumentation: ForgeInstrumentation,
     result: RequestPipelineResult,
     rootWorkUnit: WorkUnit,
+    node: MountedNode,
+    routeTree: RouteTree | undefined,
   ): void {
     if (!instrumentation.enabled) {
       return
@@ -33,7 +39,11 @@ export default class RequestPipelineTraceProjector {
 
     const outcome = this.traceOutcome(result)
 
-    instrumentation.onRequestTrace({ snapshot, trace: { outcome, ...this.traceTiming(rootWorkUnit), phases } })
+    instrumentation.onRequestTrace({
+      snapshot,
+      trace: { outcome, ...this.traceTiming(rootWorkUnit), phases },
+      route: this.traceRoute(node, routeTree),
+    })
   }
 
   emitFailedTrace(
@@ -41,6 +51,8 @@ export default class RequestPipelineTraceProjector {
     instrumentation: ForgeInstrumentation,
     rootWorkUnit: WorkUnit,
     context: RuntimeContext,
+    node: MountedNode,
+    routeTree: RouteTree | undefined,
   ): void {
     if (!instrumentation.enabled) {
       return
@@ -52,7 +64,11 @@ export default class RequestPipelineTraceProjector {
       return
     }
 
-    instrumentation.onRequestTrace({ snapshot, trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), phases } })
+    instrumentation.onRequestTrace({
+      snapshot,
+      trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), phases },
+      route: this.traceRoute(node, routeTree),
+    })
   }
 
   private project(rootUnit: WorkUnit): RequestTracePhase[] {
@@ -106,6 +122,41 @@ export default class RequestPipelineTraceProjector {
     }
 
     return result.kind
+  }
+
+  private traceRoute(node: MountedNode, routeTree: RouteTree | undefined): RequestTraceRouteContext {
+    const activeBranch = routeTree ? this.collectActiveBranch(routeTree) : []
+
+    return {
+      journeyCode: node.journeyCode,
+      routeTemplatePath: node.templatePath,
+      journeyTitle: this.journeyTitle(activeBranch),
+      stepTitle: this.stepTitle(activeBranch, node.nodeId),
+    }
+  }
+
+  private journeyTitle(activeBranch: readonly RouteTreeNode[]): string | undefined {
+    return activeBranch.find(node => node.route?.kind === 'journey')?.route?.title
+  }
+
+  private stepTitle(activeBranch: readonly RouteTreeNode[], nodeId: NodeId): string | undefined {
+    const matched = activeBranch.find(node => node.route?.nodeId === nodeId)
+
+    if (matched?.route?.title !== undefined) {
+      return matched.route.title
+    }
+
+    return [...activeBranch].reverse().find(node => node.route !== undefined)?.route?.title
+  }
+
+  private collectActiveBranch(nodes: readonly RouteTreeNode[]): RouteTreeNode[] {
+    const active = nodes.find(node => node.active)
+
+    if (active === undefined) {
+      return []
+    }
+
+    return [active, ...this.collectActiveBranch(active.children)]
   }
 
   private traceTiming(workUnit: WorkUnit): Pick<RequestTrace, 'startedAtMs' | 'completedAtMs' | 'durationMs'> {

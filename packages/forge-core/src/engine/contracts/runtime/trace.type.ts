@@ -48,7 +48,15 @@ export interface RequestTrace {
   readonly phases: readonly RequestTracePhase[]
 }
 
+export interface RequestTraceRouteContext {
+  readonly journeyCode: string
+  readonly journeyTitle?: string
+  readonly stepTitle?: string
+  readonly routeTemplatePath: string
+}
+
 export interface RequestTraceEvent {
   readonly snapshot: RequestSnapshot
   readonly trace: RequestTrace
+  readonly route?: RequestTraceRouteContext
 }

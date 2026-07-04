@@ -1,7 +1,8 @@
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
-import type { RenderContext } from '../../../../framework/rendering/types'
+import type { RenderContext, RouteTree } from '../../../../framework/rendering/types'
 import type { RequestTraceEvent } from '../../../contracts/runtime/trace.type'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
+import type { MountedNode } from '../../../registries/MountRegistry'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
 import WorkUnit from '../work/WorkUnit'
 import type { ContextSnapshotData } from '../work/tracing/contextSnapshot'
@@ -45,6 +46,8 @@ describe('RequestPipelineTraceProjector', () => {
           context: createRenderContext(),
         },
         root,
+        createMountedNode(),
+        undefined,
       )
 
       // Assert
@@ -97,7 +100,14 @@ describe('RequestPipelineTraceProjector', () => {
       child.complete({ visible: true })
 
       // Act
-      projector.emitFailedTrace(createSnapshot(), createInstrumentation(emitted), root, createRuntimeContext())
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+      )
 
       // Assert
       expect(emitted).toHaveLength(1)
@@ -127,6 +137,94 @@ describe('RequestPipelineTraceProjector', () => {
             ],
           },
         ],
+      })
+    })
+
+    it('should carry the static route block without titles when there is no hydrated route tree', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'render', context: createRenderContext() },
+        root,
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].route).toEqual({
+        journeyCode: 'journey',
+        routeTemplatePath: '/journey/step',
+        journeyTitle: undefined,
+        stepTitle: undefined,
+      })
+    })
+
+    it('should populate journey and step titles from the hydrated route tree when present', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'render', context: createRenderContext() },
+        root,
+        createMountedNode(),
+        createRouteTree(),
+      )
+
+      // Assert
+      expect(emitted[0].route).toEqual({
+        journeyCode: 'journey',
+        routeTemplatePath: '/journey/step',
+        journeyTitle: 'Apply for something',
+        stepTitle: 'Your details',
+      })
+    })
+
+    it('should carry the static route block without titles when emitting a failed trace', () => {
+      // Arrange
+      const root = new WorkUnit('request', 'request.pipeline')
+      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].route).toEqual({
+        journeyCode: 'journey',
+        routeTemplatePath: '/journey/step',
+        journeyTitle: undefined,
+        stepTitle: undefined,
       })
     })
   })
@@ -208,4 +306,38 @@ function createContextSnapshot(): ContextSnapshotData {
     data: {},
     answers: {},
   }
+}
+
+// The projector only reads journeyCode/templatePath/nodeId off the node, so stub those and
+// widen at the fixture boundary rather than fabricate the full compiled MountedStepNode.
+function createMountedNode(): MountedNode {
+  return {
+    mountKey: 'journey::step',
+    kind: 'step',
+    nodeId: 'compile_ast:2',
+    journeyCode: 'journey',
+    templatePath: '/journey/step',
+  } as unknown as MountedNode
+}
+
+function createRouteTree(): RouteTree {
+  return [
+    {
+      segment: 'journey',
+      path: '/journey',
+      templatePath: '/journey',
+      active: true,
+      route: { kind: 'journey', nodeId: 'compile_ast:1', title: 'Apply for something' },
+      children: [
+        {
+          segment: 'step',
+          path: '/journey/step',
+          templatePath: '/journey/step',
+          active: true,
+          route: { kind: 'step', nodeId: 'compile_ast:2', title: 'Your details' },
+          children: [],
+        },
+      ],
+    },
+  ]
 }
