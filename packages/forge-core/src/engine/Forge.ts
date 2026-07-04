@@ -6,6 +6,7 @@ import type { ComponentRegistryEntry } from '../components/types/components.type
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
@@ -274,8 +275,9 @@ export default class Forge {
    * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
   getRouter(): unknown {
-    this.options.logger.warn(
-      '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+    ForgeDeprecations.warn(
+      'FORGE_DEP_getRouter',
+      'frameworkAdapter and getRouter() are deprecated - build framework routers directly, for example createExpressRouter(forge, options).',
     )
 
     if (!this.options.frameworkAdapter) {

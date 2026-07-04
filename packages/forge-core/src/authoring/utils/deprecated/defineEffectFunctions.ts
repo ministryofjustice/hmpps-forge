@@ -1,4 +1,5 @@
 import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   EffectFunctionGroup,
@@ -60,6 +61,11 @@ export function defineEffectFunctions<TShapes extends FunctionShapeMap, TDeps = 
   effects: EffectFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineEffectFunctions',
+    'defineEffectFunctions is deprecated - use EffectRegistry instead.',
+  )
+
   return {
     effects: buildExpressionFunctions(factories, FunctionType.EFFECT) as EffectFunctions<TShapes>,
     implementations: tagFunctionType(factories, FunctionType.EFFECT) as unknown as FunctionImplementations<
