@@ -52,7 +52,7 @@ export default class CodegenOrchestrator {
 
       journeyStepIds.forEach(stepId => {
         const stepInputs = this.resolveStepInputs(plan, stepId)
-        const stepFunctions = this.compileStepFunctions(stepInputs, journeyFunctions)
+        const stepFunctions = this.compileStepFunctions(stepInputs)
 
         steps.set(stepId, {
           runtimePlan: stepInputs.core.runtimePlan,
@@ -78,10 +78,7 @@ export default class CodegenOrchestrator {
     }
   }
 
-  private compileStepFunctions(
-    inputs: StepCompilationInputs,
-    _journeyFunctions: CompiledJourneyFunctions,
-  ): CompiledStepFunctions {
+  private compileStepFunctions(inputs: StepCompilationInputs): CompiledStepFunctions {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const validationCompiler = new StepValidationCompiler(this.dependencies)

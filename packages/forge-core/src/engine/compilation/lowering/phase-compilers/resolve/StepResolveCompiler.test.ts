@@ -114,6 +114,15 @@ describe('StepResolveCompiler', () => {
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    answerCode: { name: 'answerCode', isAsync: true, evaluate: () => undefined },
+    Equals: { name: 'Equals', isAsync: true, evaluate: () => undefined },
+    fieldCode: { name: 'fieldCode', isAsync: true, evaluate: () => undefined },
+    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
+    renderAddress: { name: 'renderAddress', isAsync: true, evaluate: () => undefined },
+    renderMember: { name: 'renderMember', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new StepResolveCompiler(dependencies)
@@ -1167,7 +1176,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1177,7 +1186,7 @@ describe('StepResolveCompiler', () => {
 
       functionRegistry.register({
         ...formatGeneratorsRegistry.build(),
-        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const formatCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
@@ -1237,7 +1246,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const date = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'date']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [date])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1247,7 +1256,7 @@ describe('StepResolveCompiler', () => {
 
       functionRegistry.register({
         ...formatGeneratorsRegistry.build(),
-        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const typeErrorCompiler = new StepResolveCompiler({
@@ -1276,7 +1285,7 @@ describe('StepResolveCompiler', () => {
 
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
-        functionName: 'FormatDate',
+        functionName: 'String.FormatDate',
         functionType: FunctionType.TRANSFORMER,
       })
     })

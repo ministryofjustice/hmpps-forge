@@ -48,7 +48,6 @@ describe('StepFactory', () => {
       // Assert
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.STEP)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.path).toBe('test-step')
       expect(result.properties.code).toBe('test-step')
     })

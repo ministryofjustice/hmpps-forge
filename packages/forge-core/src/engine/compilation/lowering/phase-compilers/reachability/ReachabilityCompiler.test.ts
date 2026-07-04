@@ -152,6 +152,11 @@ describe('ReachabilityCompiler', () => {
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new ReachabilityCompiler(dependencies)

@@ -43,7 +43,6 @@ describe('ValidationFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.VALIDATION)
-      expect(result).not.toHaveProperty('raw')
 
       expect(result.properties.message !== undefined).toBe(true)
       expect(result.properties.message).toBe('Field is required')

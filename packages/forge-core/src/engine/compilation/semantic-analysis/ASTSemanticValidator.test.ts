@@ -897,6 +897,91 @@ describe('ASTSemanticValidator', () => {
       // Act / Assert
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
+
+    it('should reject an effect outside a hook', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                defaultValue: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+
+    it('should reject an effect inside an iterator template outside a hook', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                defaultValue: {
+                  type: ExpressionType.ITERATE,
+                  input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] },
+                  iterator: {
+                    type: IteratorType.MAP,
+                    yield: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+                  },
+                },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          )
+
+          expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
+        }
+      }
+    })
   })
 
   describe('function argument scope', () => {
