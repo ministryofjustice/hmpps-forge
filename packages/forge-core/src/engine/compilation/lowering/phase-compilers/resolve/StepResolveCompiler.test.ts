@@ -1176,7 +1176,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1186,7 +1186,7 @@ describe('StepResolveCompiler', () => {
 
       functionRegistry.register({
         ...formatGeneratorsRegistry.build(),
-        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const formatCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
@@ -1246,7 +1246,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const date = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'date']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [date])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1256,7 +1256,7 @@ describe('StepResolveCompiler', () => {
 
       functionRegistry.register({
         ...formatGeneratorsRegistry.build(),
-        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const typeErrorCompiler = new StepResolveCompiler({
@@ -1285,7 +1285,7 @@ describe('StepResolveCompiler', () => {
 
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
-        functionName: 'FormatDate',
+        functionName: 'String.FormatDate',
         functionType: FunctionType.TRANSFORMER,
       })
     })
