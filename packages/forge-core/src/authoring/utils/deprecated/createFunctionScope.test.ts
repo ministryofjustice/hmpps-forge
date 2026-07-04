@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FunctionType } from '../types/enums'
+import { FunctionType } from '../../types/enums'
 import { createFunctionsRegistry } from './createFunctionsRegistry'
 import { createFunctionScope } from './createFunctionScope'
 

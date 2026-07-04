@@ -9,9 +9,9 @@ import {
 } from '../../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  FormatGeneratorsRegistry,
+  formatGeneratorsRegistry,
 } from '../../../../../authoring/generators/formatGenerators'
-import { StringTransformersRegistry } from '../../../../../authoring/transformers/stringTransformers'
+import { stringTransformersRegistry } from '../../../../../authoring/transformers/stringTransformers'
 import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../../contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
@@ -97,7 +97,7 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
         }
 
         return { evaluate: () => undefined }
@@ -1000,7 +1000,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
+        ...formatGeneratorsRegistry.build(),
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -1081,7 +1081,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
+        ...formatGeneratorsRegistry.build(),
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -1176,8 +1176,8 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
-        FormatDate: StringTransformersRegistry.FormatDate,
+        ...formatGeneratorsRegistry.build(),
+        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const formatCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
@@ -1210,7 +1210,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
+        ...formatGeneratorsRegistry.build(),
         AsyncFormatDate: {
           name: 'AsyncFormatDate',
           isAsync: true,
@@ -1246,8 +1246,8 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
-        FormatDate: StringTransformersRegistry.FormatDate,
+        ...formatGeneratorsRegistry.build(),
+        FormatDate: stringTransformersRegistry.build()['String.FormatDate'],
       })
 
       const typeErrorCompiler = new StepResolveCompiler({
@@ -1304,7 +1304,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...FormatGeneratorsRegistry,
+        ...formatGeneratorsRegistry.build(),
         throwingCount: {
           name: 'throwingCount',
           isAsync: false,

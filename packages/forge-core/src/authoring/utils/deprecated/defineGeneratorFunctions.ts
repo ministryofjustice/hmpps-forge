@@ -1,7 +1,8 @@
-import { FunctionEvaluator } from '../types/functions.type'
-import { ResolvableValue } from '../types/expressions.type'
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { extractFactories, extractPrepare } from './defineFunction'
+import { FunctionEvaluator } from '../../types/functions.type'
+import { ResolvableValue } from '../../types/expressions.type'
+import { FunctionType } from '../../types/enums'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import { extractPrepare, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -31,6 +32,8 @@ type GeneratorArguments<TFunction extends FunctionEvaluator<unknown>> =
  * `prepare` is provided, it runs synchronously when the author calls the builder —
  * sanitising/reshaping arguments before they enter the expression tree, and/or
  * throwing to reject invalid arguments at module-load time rather than at render time.
+ *
+ * @deprecated Use GeneratorRegistry instead.
  *
  * @param factories - Generator factories keyed by function name
  *
@@ -91,6 +94,9 @@ export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps
 
   return {
     generators,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.GENERATOR) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

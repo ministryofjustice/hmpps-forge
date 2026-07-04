@@ -72,18 +72,16 @@ To register components globally (available to all journeys), use
 ## Adding custom function implementations
 
 Forge allows authors to write custom effects, conditions,
-transformers, and generators. These are declared in your journey
-definition but implemented in the package. The `functions` property
-maps declarations to their implementations:
+transformers, and generators. You register each on a registry
+(`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, or
+`GeneratorRegistry`) and pass those registries to the package. The
+`functions` property takes a single registry, or an array when a
+journey uses several:
 
 ```typescript
 export default createForgePackage<MyDeps>({
   journey: travelDeclaration,
-  functions: {
-    ...myEffectsImplementations,
-    ...myConditionImplementations,
-    ...myTransformerImplementations,
-  },
+  functions: [myEffects, myConditions, myTransformers],
 })
 ```
 
@@ -132,9 +130,7 @@ all. When set to `false`, `registerPackage()` skips it entirely:
 export default createForgePackage({
   enabled: config.featureFlags.travelDeclarationEnabled,
   journey: travelDeclaration,
-  functions: {
-    ...myEffectsImplementations,
-  },
+  functions: myEffects,
 })
 ```
 

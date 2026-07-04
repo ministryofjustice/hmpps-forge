@@ -2,13 +2,15 @@ import { FunctionType } from '../types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
-  FormatGeneratorsRegistry,
+  formatGeneratorsRegistry,
   formatString,
 } from './formatGenerators'
 
 describe('FormatGenerators', () => {
+  const registry = formatGeneratorsRegistry.build()
+
   describe('FormatString', () => {
-    const { evaluate } = FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+    const { evaluate } = registry[FORMAT_STRING_GENERATOR_NAME]
 
     it('should replace positional placeholders when replacements are provided', () => {
       // Arrange
@@ -76,7 +78,7 @@ describe('FormatGenerators', () => {
 
     it('should mark FormatString as sync', () => {
       // Assert
-      expect(FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME].isAsync).toBe(false)
+      expect(registry[FORMAT_STRING_GENERATOR_NAME].isAsync).toBe(false)
     })
   })
 })

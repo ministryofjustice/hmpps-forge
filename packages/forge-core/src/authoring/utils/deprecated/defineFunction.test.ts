@@ -1,6 +1,6 @@
-import { FunctionType } from '../types/enums'
-import { ConditionFunctionExpr, EffectFunctionExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { FunctionType } from '../../types/enums'
+import { ConditionFunctionExpr, EffectFunctionExpr, TransformerFunctionExpr } from '../../types/expressions.type'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
 import { createFunctionsRegistry } from './createFunctionsRegistry'
 import { defineConditionFunctions } from './defineConditionFunctions'
 import { defineEffectFunctions } from './defineEffectFunctions'
@@ -20,10 +20,11 @@ describe('createFunctionsRegistry', () => {
     const registry = createFunctionsRegistry(implementations)
 
     // Assert
-    expect(registry.IsInteger).toEqual({
+    expect(registry.IsInteger).toMatchObject({
       name: 'IsInteger',
       evaluate: expect.any(Function),
       isAsync: false,
+      functionType: FunctionType.CONDITION,
     })
     expect(registry.IsInteger.evaluate(12)).toBe(true)
     expect(registry.IsInteger.evaluate(12.5)).toBe(false)

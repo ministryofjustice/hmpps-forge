@@ -1,12 +1,11 @@
-import { ArrayConditions, ArrayConditionsImplementations } from './arrayConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
 import { FunctionType } from '../types/enums'
 
 describe('ArrayConditions', () => {
-  const registry = createFunctionsRegistry(ArrayConditionsImplementations)
+  const registry = arrayConditionsRegistry.build()
 
   describe('IsArray', () => {
-    const { evaluate } = registry.IsArray
+    const { evaluate } = registry['Array.IsArray']
 
     test('should return true when value is an array', () => {
       expect(evaluate([])).toBe(true)
@@ -23,7 +22,7 @@ describe('ArrayConditions', () => {
   })
 
   describe('IsIn', () => {
-    const { evaluate } = registry.IsIn
+    const { evaluate } = registry['Array.IsIn']
 
     test('should return true when value is in the expected array', () => {
       expect(evaluate('apple', ['apple', 'banana', 'orange'])).toBe(true)
@@ -59,33 +58,18 @@ describe('ArrayConditions', () => {
       expect(evaluate([1, 2], [[1, 2]])).toBe(false)
     })
 
-    test('should throw error when expected is not an array', () => {
-      expect(() => evaluate('test', 'not-an-array' as any)).toThrow(
-        'Condition.Array.IsIn (expected) expects an array but received string',
-      )
-      expect(() => evaluate('test', null as any)).toThrow(
-        'Condition.Array.IsIn (expected) expects an array but received object',
-      )
-      expect(() => evaluate('test', undefined as any)).toThrow(
-        'Condition.Array.IsIn (expected) expects an array but received undefined',
-      )
-      expect(() => evaluate('test', 123 as any)).toThrow(
-        'Condition.Array.IsIn (expected) expects an array but received number',
-      )
-    })
-
     test('should build correct expression object', () => {
       const expr = ArrayConditions.IsIn(['option1', 'option2'])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'IsIn',
+        name: 'Array.IsIn',
         arguments: [['option1', 'option2']],
       })
     })
   })
 
   describe('Contains', () => {
-    const { evaluate } = registry.Contains
+    const { evaluate } = registry['Array.Contains']
 
     test('should return true when value array contains the expected value', () => {
       expect(evaluate(['apple', 'banana'], 'apple')).toBe(true)
@@ -119,33 +103,18 @@ describe('ArrayConditions', () => {
       expect(evaluate([[1, 2]], [1, 2])).toBe(false)
     })
 
-    test('should throw error when value is present but not an array', () => {
-      expect(() => evaluate('not-an-array' as any, 'test')).toThrow(
-        'Condition.Array.Contains expects an array but received string',
-      )
-      expect(() => evaluate(123 as any, 'test')).toThrow(
-        'Condition.Array.Contains expects an array but received number',
-      )
-      expect(() => evaluate({} as any, 'test')).toThrow('Condition.Array.Contains expects an array but received object')
-    })
-
-    test('should return false when value is absent', () => {
-      expect(evaluate(null as any, 'test')).toBe(false)
-      expect(evaluate(undefined as any, 'test')).toBe(false)
-    })
-
     test('should build correct expression object', () => {
       const expr = ArrayConditions.Contains('searchValue')
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'Contains',
+        name: 'Array.Contains',
         arguments: ['searchValue'],
       })
     })
   })
 
   describe('ContainsAny', () => {
-    const { evaluate } = registry.ContainsAny
+    const { evaluate } = registry['Array.ContainsAny']
 
     test('should return true when value array contains any of the items from expected array', () => {
       expect(evaluate(['apple', 'banana'], ['orange', 'apple'])).toBe(true)
@@ -185,32 +154,18 @@ describe('ArrayConditions', () => {
       expect(evaluate([arr1, 'test'], [arr2])).toBe(false)
     })
 
-    test('should throw error when value is present but not an array', () => {
-      expect(() => evaluate('not-an-array' as any, ['test'])).toThrow(
-        'Condition.Array.ContainsAny expects an array but received string',
-      )
-      expect(() => evaluate(123 as any, ['test'])).toThrow(
-        'Condition.Array.ContainsAny expects an array but received number',
-      )
-    })
-
-    test('should return false when value is absent', () => {
-      expect(evaluate(null as any, ['test'])).toBe(false)
-      expect(evaluate(undefined as any, ['test'])).toBe(false)
-    })
-
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAny(['value1', 'value2'])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'ContainsAny',
+        name: 'Array.ContainsAny',
         arguments: [['value1', 'value2']],
       })
     })
   })
 
   describe('ContainsAll', () => {
-    const { evaluate } = registry.ContainsAll
+    const { evaluate } = registry['Array.ContainsAll']
 
     test('should return true when all items in value array are in expected array', () => {
       expect(evaluate(['apple', 'banana'], ['apple', 'banana', 'orange'])).toBe(true)
@@ -264,25 +219,11 @@ describe('ArrayConditions', () => {
       expect(evaluate([arr1], [arr2])).toBe(false)
     })
 
-    test('should throw error when value is present but not an array', () => {
-      expect(() => evaluate('not-an-array' as any, [1, 2])).toThrow(
-        'Condition.Array.ContainsAll expects an array but received string',
-      )
-      expect(() => evaluate(123 as any, [1, 2])).toThrow(
-        'Condition.Array.ContainsAll expects an array but received number',
-      )
-    })
-
-    test('should return false when value is absent', () => {
-      expect(evaluate(null as any, [1, 2])).toBe(false)
-      expect(evaluate(undefined as any, [1, 2])).toBe(false)
-    })
-
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAll([1, 2, 3])
       expect(expr).toEqual({
         type: FunctionType.CONDITION,
-        name: 'ContainsAll',
+        name: 'Array.ContainsAll',
         arguments: [[1, 2, 3]],
       })
     })

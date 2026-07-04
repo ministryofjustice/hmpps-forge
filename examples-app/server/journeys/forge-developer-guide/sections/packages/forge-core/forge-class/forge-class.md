@@ -78,7 +78,7 @@ import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authorin
 
 export const myPackage = createForgePackage({
   journey: myJourney,
-  functions: myEffectImplementations,
+  functions: myEffects,
   components: [myCustomComponent],
   enabled: true,
 })
@@ -87,7 +87,7 @@ export const myPackage = createForgePackage({
 | Property | Type | Description |
 |----------|------|-------------|
 | `journey` | `JourneyDefinition` | The journey definition (required). |
-| `functions` | `FunctionImplementations` | Custom effect, condition, transformer, and generator implementations. |
+| `functions` | `Registry \| Registry[]` | One or more function registries (`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, `GeneratorRegistry`) holding your custom implementations. A deprecated implementations map is also accepted. |
 | `components` | `ComponentRegistryEntry[]` | Custom components scoped to this journey. |
 | `enabled` | `boolean` | Whether to register the package. Defaults to `true`. |
 
@@ -105,6 +105,14 @@ import { nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjuc
 forge
   .registerGlobalComponents(govukComponents(nunjucksEnv))
   .registerGlobalFunctions(nunjucksFunctions)
+```
+
+`registerGlobalFunctions()` accepts a single function registry, an
+array of registries, or (deprecated) an implementations map. Pass
+any dependencies those functions need as the second argument:
+
+```typescript
+forge.registerGlobalFunctions([myConditions, myTransformers], { api: services.apiClient })
 ```
 
 You can also register a single component:

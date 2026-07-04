@@ -1,8 +1,6 @@
 import { assertObject } from '../../shared/utils/asserts'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
-import { defineTransformerFunctions } from '../utils/defineTransformerFunctions'
+import TransformerRegistry from '../registries/TransformerRegistry'
 import { getByPath } from '../../shared/utils/utils'
-import { TransformerFunctionExpr } from '../types/expressions.type'
 
 export interface DateParts {
   year?: string
@@ -10,10 +8,9 @@ export interface DateParts {
   day?: string
 }
 
-/**
- * Object transformation functions for extracting and reshaping object values
- */
-export interface ObjectTransformerGroup {
+const objectTransformers = new TransformerRegistry()
+
+export const ObjectTransformers = {
   /**
    * Converts an object with date parts to an ISO 8601 date string
    * Supports full dates (YYYY-MM-DD), partial dates (YYYY-MM, MM-DD), or single components
@@ -31,26 +28,7 @@ export interface ObjectTransformerGroup {
    * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} becomes "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
-  ToISO: (paths: DateParts) => TransformerFunctionExpr
-
-  /**
-   * Converts an ISO 8601 date string back to an object with date parts.
-   * The inverse of ToISO. Objects are passed through unchanged.
-   *
-   * @param paths - Object mapping date components to output property names
-   * @example
-   * // Full date: "2024-03-15" becomes {year: "2024", month: "03", day: "15"}
-   * FromISO({year: 'year', month: 'month', day: 'day'})
-   *
-   * @example
-   * // Year-month: "2024-03" becomes {year: "2024", month: "03"}
-   * FromISO({year: 'year', month: 'month'})
-   */
-  FromISO: (paths: DateParts) => TransformerFunctionExpr
-}
-
-const { transformers: ObjectTransformers, implementations } = defineTransformerFunctions<ObjectTransformerGroup>({
-  ToISO: () => (value: any, paths: DateParts) => {
+  ToISO: objectTransformers.register('Object.ToISO', () => (value: any, paths: DateParts) => {
     assertObject(value, 'Transformer.Object.ToISO')
 
     if (!paths || typeof paths !== 'object') {
@@ -119,9 +97,22 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
     }
 
     throw new TypeError('Transformer.Object.ToISO: No valid date components found in object')
-  },
+  }),
 
-  FromISO: () => (value: any, paths: DateParts) => {
+  /**
+   * Converts an ISO 8601 date string back to an object with date parts.
+   * The inverse of ToISO. Objects are passed through unchanged.
+   *
+   * @param paths - Object mapping date components to output property names
+   * @example
+   * // Full date: "2024-03-15" becomes {year: "2024", month: "03", day: "15"}
+   * FromISO({year: 'year', month: 'month', day: 'day'})
+   *
+   * @example
+   * // Year-month: "2024-03" becomes {year: "2024", month: "03"}
+   * FromISO({year: 'year', month: 'month'})
+   */
+  FromISO: objectTransformers.register('Object.FromISO', () => (value: any, paths: DateParts) => {
     if (typeof value === 'object' && value !== null) {
       return value
     }
@@ -184,9 +175,7 @@ const { transformers: ObjectTransformers, implementations } = defineTransformerF
     }
 
     return {}
-  },
-})
+  }),
+}
 
-const ObjectTransformersRegistry = createFunctionsRegistry(implementations)
-
-export { ObjectTransformers, ObjectTransformersRegistry }
+export { objectTransformers as objectTransformersRegistry }

@@ -1,5 +1,5 @@
 import nunjucks from 'nunjucks'
-import { defineGeneratorFunctions, type GeneratorBuilder } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Throws if the template uses any forbidden tags. Wired into the generator's
@@ -52,7 +52,9 @@ interface NunjucksStringGeneratorProps {
   data?: Record<string, unknown>
 }
 
-export interface NunjucksGeneratorShape {
+const nunjucksGenerators = new GeneratorRegistry()
+
+export const NunjucksGenerators = {
   /**
    * Render a Nunjucks template to a ResolvableString expression.
    *
@@ -65,31 +67,17 @@ export interface NunjucksGeneratorShape {
    * `{% import %}`, `{% from %}`, `{% include %}`, `{% extends %}`, and
    * `{% macro %}` are rejected at author-call time. If you need reusable
    * composition logic, extract a custom generator or component instead.
-   *
-   * @param props.template - Nunjucks template source.
-   * @param props.data - Values available to the template (defaults to an empty object).
    */
-  String: (props: NunjucksStringGeneratorProps) => GeneratorBuilder<[NunjucksStringGeneratorProps]>
-}
+  String: nunjucksGenerators.register(
+    'String',
+    {
+      prepare: (props: NunjucksStringGeneratorProps) => {
+        assertTemplateIsAllowed(props.template)
 
-// Have to jump through some hoops with the types here because of Rolldown trying to create
-// code split types.
-export const {
-  generators: NunjucksGenerators,
-  implementations: nunjucksFunctions,
-}: {
-  generators: NunjucksGeneratorShape
-  implementations: {
-    String: (deps: Record<string, never>) => (props: NunjucksStringGeneratorProps) => unknown
-  }
-} = defineGeneratorFunctions<NunjucksGeneratorShape>({
-  String: {
-    prepare: (props: NunjucksStringGeneratorProps) => {
-      assertTemplateIsAllowed(props.template)
-
-      return [props]
+        return [props]
+      },
     },
-    factory: () => (props: NunjucksStringGeneratorProps) => {
+    () => (props: NunjucksStringGeneratorProps) => {
       let compiled = templateCache.get(props.template)
 
       if (!compiled) {
@@ -100,5 +88,7 @@ export const {
 
       return compiled.render(props.data ?? {})
     },
-  },
-})
+  ),
+}
+
+export { nunjucksGenerators as nunjucksFunctions }

@@ -2,7 +2,7 @@
 title: Custom effects
 section: building-functions-and-components
 path: building-functions-and-components/custom-effects
-teaches: [defineEffectFunctions, EffectFunctionExpr, EffectFunctionContext, custom-effect-shape, effect-implementation, typed-context]
+teaches: [EffectRegistry, register, EffectFunctionContext, effect-implementation, typed-context]
 prerequisites: [onAccess, onSubmission, access, submit, Data, Answer, createForgePackage]
 ---
 
@@ -21,35 +21,81 @@ decide *what* they do.
 
 ---
 
-## The shape interface
+## Declaring effects
 
-The shape interface defines what each effect looks like in a
-journey definition. Each property is a function that returns an
-`EffectFunctionExpr`:
+Custom effects are declared through an `EffectRegistry`. You create
+one registry, register each effect on it, and group the returned
+handles in a plain object for use in journey definitions. Each
+factory follows the pattern
+`(deps) => (context, ...args) => Promise<void> | void`:
 
 ```typescript
-import { EffectFunctionExpr } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { EffectRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-export interface MyEffectShape {
+const myEffects = new EffectRegistry<MyDeps>()
+
+export const MyEffects = {
   /**
    * Loads case data from the API and sets it on the data context.
    * @param caseId - The unique identifier of the case to load.
    */
-  LoadCaseData: (caseId: string) => EffectFunctionExpr
+  LoadCaseData: myEffects.register(
+    'LoadCaseData',
+    (deps) => async (context, caseId: string) => {
+      const caseData = await deps.caseApi.getCase(caseId)
+
+      context.setData('case', caseData)
+    },
+  ),
+
   /** Persists all current answers to the data store. */
-  SaveAnswers: () => EffectFunctionExpr
+  SaveAnswers: myEffects.register('SaveAnswers', (deps) => async (context) => {
+    const sessionId = context.getSession().id
+    const answers = context.getAllAnswers()
+
+    await deps.formDataStore.save(sessionId, answers)
+  }),
+
   /** Collects trip field answers into a structured object and appends it to the trips array. */
-  AddTrip: () => EffectFunctionExpr
+  AddTrip: myEffects.register('AddTrip', (deps) => async (context) => {
+    const trip = {
+      country: context.getAnswer('tripCountry'),
+      departureDate: context.getAnswer('tripDepartureDate'),
+      returnDate: context.getAnswer('tripReturnDate'),
+      reason: context.getAnswer('tripReason'),
+    }
+
+    const trips = context.getAnswer('trips') ?? []
+    context.setAnswer('trips', [...trips, trip])
+
+    context.setAnswer('tripCountry', undefined)
+    context.setAnswer('tripDepartureDate', undefined)
+    context.setAnswer('tripReturnDate', undefined)
+    context.setAnswer('tripReason', undefined)
+  }),
+
   /**
    * Removes a trip from the trips array by its position.
    * @param index - The zero-based index of the trip to remove.
    */
-  RemoveTrip: (index: number) => EffectFunctionExpr
+  RemoveTrip: myEffects.register('RemoveTrip', (deps) => async (context, index: number) => {
+    const trips = context.getAnswer('trips') ?? []
+    context.setAnswer('trips', trips.filter((_, i) => i !== index))
+  }),
 }
 ```
 
-Arguments declared in the shape are expressions in the journey
-definition that Forge resolves before calling the effect:
+There is no separate shape interface to maintain. `register` infers
+the argument types straight from the factory, so
+`MyEffects.LoadCaseData` becomes
+`(caseId: string) => EffectFunctionExpr` and `MyEffects.SaveAnswers`
+becomes `() => EffectFunctionExpr`. The JSDoc on each grouped handle
+documents the effect the same way a shape interface used to.
+
+`MyEffects.LoadCaseData(Params('caseId'))` creates an effect
+expression that Forge runs inside a hook. Arguments passed to a
+handle are expressions that Forge resolves before calling the
+effect:
 
 ```typescript
 access({
@@ -62,82 +108,25 @@ actual value from the URL and passes it to the effect function.
 
 ---
 
-## The implementation
-
-`defineEffectFunctions` pairs the shape with implementations. Each
-implementation follows the pattern
-`(deps) => (context, ...args) => Promise<void> | void`:
-
-```typescript
-import { defineEffectFunctions } from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export const { effects: MyEffects, implementations: myEffectImplementations } =
-  defineEffectFunctions<MyEffectShape, MyDeps>({
-    LoadCaseData: (deps) => async (context, caseId: string) => {
-      const caseData = await deps.caseApi.getCase(caseId)
-
-      context.setData('case', caseData)
-    },
-
-    SaveAnswers: (deps) => async (context) => {
-      const sessionId = context.getSession().id
-      const answers = context.getAllAnswers()
-
-      await deps.formDataStore.save(sessionId, answers)
-    },
-
-    AddTrip: (deps) => async (context) => {
-      const trip = {
-        country: context.getAnswer('tripCountry'),
-        departureDate: context.getAnswer('tripDepartureDate'),
-        returnDate: context.getAnswer('tripReturnDate'),
-        reason: context.getAnswer('tripReason'),
-      }
-
-      const trips = context.getAnswer('trips') ?? []
-      context.setAnswer('trips', [...trips, trip])
-
-      context.setAnswer('tripCountry', undefined)
-      context.setAnswer('tripDepartureDate', undefined)
-      context.setAnswer('tripReturnDate', undefined)
-      context.setAnswer('tripReason', undefined)
-    },
-
-    RemoveTrip: (deps) => async (context, index: number) => {
-      const trips = context.getAnswer('trips') ?? []
-      context.setAnswer('trips', trips.filter((_, i) => i !== index))
-    },
-  })
-```
-
-The call returns two things:
-
-- **`effects`** (here `MyEffects`) is a builder object for use in
-  journey definitions. `MyEffects.LoadCaseData(Params('caseId'))`
-  creates an effect expression that Forge runs inside a hook.
-- **`implementations`** (here `myEffectImplementations`) is an
-  object containing the actual functions, ready to be registered in
-  a package.
-
----
-
 ## Author-time preparation
 
-Factory entries can also be written as `{ prepare, factory }`,
-where `prepare` is an optional hook that runs synchronously when
-the effect builder is called. Use it to sanitise or reshape
-arguments before they enter the expression tree, and to reject
-invalid arguments early — when the journey module loads rather
-than at render time.
+The `register` options object accepts a `prepare` hook that runs
+synchronously when the effect handle is called. Use it to sanitise
+or reshape arguments before they enter the expression tree, and to
+reject invalid arguments early — when the journey module loads
+rather than at render time.
 
 `prepare` receives only the arguments the author passed to the
-builder and returns them as an array. The returned array replaces
+handle and returns them as an array. The returned array replaces
 the original arguments in the built expression.
 
 ```typescript
-export const { effects: MyEffects, implementations: myEffectImplementations } =
-  defineEffectFunctions<MyEffectShape, MyDeps>({
-    RemoveTrip: {
+const myEffects = new EffectRegistry<MyDeps>()
+
+export const MyEffects = {
+  RemoveTrip: myEffects.register(
+    'RemoveTrip',
+    {
       prepare: (index: number): [number] => {
         if (!Number.isInteger(index) || index < 0) {
           throw new Error('RemoveTrip requires a non-negative integer index')
@@ -145,12 +134,13 @@ export const { effects: MyEffects, implementations: myEffectImplementations } =
 
         return [index]
       },
-      factory: (deps) => async (context, index: number) => {
-        const trips = context.getAnswer('trips') ?? []
-        context.setAnswer('trips', trips.filter((_, i) => i !== index))
-      },
     },
-  })
+    (deps) => async (context, index: number) => {
+      const trips = context.getAnswer('trips') ?? []
+      context.setAnswer('trips', trips.filter((_, i) => i !== index))
+    },
+  ),
+}
 ```
 
 A bad call fails as soon as the definition is imported:
@@ -163,8 +153,12 @@ MyEffects.RemoveTrip(-1)
 `prepare` does not see injected dependencies or the runtime
 context, so it can only check structural properties of the
 arguments: required fields, numeric ranges, enum membership, or
-combinations of arguments. Checks that depend on the context
-belong inside the evaluator.
+combinations of arguments. Checks that depend on the context belong
+inside the evaluator. The options object also accepts an
+`argumentsSchema` (a `z.tuple`) when you only need to validate the
+arguments without reshaping them — note it runs at request time,
+each time the effect is evaluated, whereas `prepare` runs once at
+module load.
 
 If an argument is itself an expression like `Params('caseId')`, its
 resolved value is not available at author time. Validate the
@@ -305,14 +299,14 @@ interface MySession {
 type MyContext = EffectFunctionContext<Record<string, unknown>, MyAnswers, MySession>
 ```
 
-Then use the type on your implementations:
+Then use the type on your effect factories:
 
 ```typescript
-SaveAnswers: (deps) => async (context: MyContext) => {
+SaveAnswers: myEffects.register('SaveAnswers', (deps) => async (context: MyContext) => {
   const name = context.getAnswer('fullName')        // typed as string
   const method = context.getAnswer('contactMethod')  // typed as 'email' | 'phone' | 'text'
   const session = context.getSession()               // typed as MySession
-}
+}),
 ```
 
 The answer interfaces must extend `Record<string, unknown>` so
@@ -337,10 +331,10 @@ Effects can be synchronous or asynchronous. Most real effects are
 async because they interact with external services:
 
 ```typescript
-LoadCaseData: (deps) => async (context, caseId: string) => {
+LoadCaseData: myEffects.register('LoadCaseData', (deps) => async (context, caseId: string) => {
   const caseData = await deps.caseApi.getCase(caseId)
   context.setData('case', caseData)
-}
+}),
 ```
 
 When multiple effects appear in the same hook, they run in
@@ -365,18 +359,22 @@ ordering is guaranteed.
 
 ## Registration
 
-Effect implementations are registered in a package through the
-`functions` property:
+Pass the registry to a package through the `functions` property:
 
 ```typescript
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 export default createForgePackage<MyDeps>({
   journey: myJourney,
-  functions: {
-    ...myEffectImplementations,
-  },
+  functions: myEffects,
 })
+```
+
+`functions` also accepts an array of registries when a package
+mixes effects with conditions, transformers, or generators:
+
+```typescript
+functions: [myEffects, myConditions],
 ```
 
 Dependencies are injected at application startup:
@@ -388,9 +386,18 @@ forge.registerPackage(myPackage, {
 })
 ```
 
-Every effect in the package receives these dependencies as its
+Every effect in the registry receives these dependencies as its
 outer function argument. This keeps effects decoupled from service
-construction and makes them straightforward to test.
+construction and makes them straightforward to test. To make
+effects available to every journey rather than a single package,
+register the registry globally instead:
+
+```typescript
+forge.registerGlobalFunctions(myEffects, {
+  caseApi: services.caseApi,
+  formDataStore: services.formDataStore,
+})
+```
 
 ---
 
@@ -402,7 +409,7 @@ The most common pair of effects. Load answers from a data store on
 access, save them on submission:
 
 ```typescript
-LoadAnswers: (deps) => async (context) => {
+LoadAnswers: myEffects.register('LoadAnswers', (deps) => async (context) => {
   const sessionId = context.getSession().id
   const saved = await deps.store.get(sessionId)
 
@@ -413,14 +420,14 @@ LoadAnswers: (deps) => async (context) => {
       }
     }
   }
-},
+}),
 
-SaveAnswers: (deps) => async (context) => {
+SaveAnswers: myEffects.register('SaveAnswers', (deps) => async (context) => {
   const sessionId = context.getSession().id
   const answers = context.getAllAnswers()
 
   await deps.store.save(sessionId, answers)
-},
+}),
 ```
 
 The `hasAnswer` check in `LoadAnswers` avoids overwriting values
@@ -432,13 +439,13 @@ old saved values on top of the new submission.
 Load from an API and expose through `Data()`:
 
 ```typescript
-LoadAppointmentSlots: (deps) => async (context) => {
+LoadAppointmentSlots: myEffects.register('LoadAppointmentSlots', (deps) => async (context) => {
   const date = context.getAnswer('appointmentDate')
   const type = context.getAnswer('appointmentType')
   const slots = await deps.appointmentApi.getSlots(type, date)
 
   context.setData('availableSlots', slots)
-},
+}),
 ```
 
 Blocks reference `Data('availableSlots')` without knowing where
@@ -450,7 +457,7 @@ Gather individual field answers into a structured object and
 append it to an array:
 
 ```typescript
-AddTrip: (deps) => async (context) => {
+AddTrip: myEffects.register('AddTrip', (deps) => async (context) => {
   const trip = {
     country: context.getAnswer('tripCountry'),
     departureDate: context.getAnswer('tripDepartureDate'),
@@ -464,16 +471,18 @@ AddTrip: (deps) => async (context) => {
   context.setAnswer('tripCountry', undefined)
   context.setAnswer('tripDepartureDate', undefined)
   context.setAnswer('tripReturnDate', undefined)
-},
+}),
 ```
 
 ---
 
 ## Testing
 
-Effects are the most involved function type to test because of the
-context object. Create a mock context with the methods your effect
-uses:
+`register` returns an expression handle, not the underlying
+function, so tests evaluate the effect through the registry's
+`build` method. Call `build` with mock dependencies to get an
+object keyed by name, then read the `evaluate` function and call it
+with a mock context:
 
 ```typescript
 describe('MyEffects', () => {
@@ -489,7 +498,7 @@ describe('MyEffects', () => {
         setData: jest.fn(),
       } as unknown as EffectFunctionContext
 
-      const loadCaseData = myEffectImplementations.LoadCaseData(deps)
+      const loadCaseData = myEffects.build(deps).LoadCaseData.evaluate
 
       // Act
       await loadCaseData(context, '123')
@@ -515,7 +524,7 @@ describe('MyEffects', () => {
         setAnswer: jest.fn((code: string, value: unknown) => { answers[code] = value }),
       } as unknown as EffectFunctionContext
 
-      const addTrip = myEffectImplementations.AddTrip({} as MyDeps)
+      const addTrip = myEffects.build({} as MyDeps).AddTrip.evaluate
 
       // Act
       await addTrip(context)
@@ -528,9 +537,11 @@ describe('MyEffects', () => {
 })
 ```
 
-For effects with many context interactions, a helper function that
-builds a mock context from an initial state can reduce boilerplate
-across tests.
+`build` returns the entry keyed by the name you registered, and
+`evaluate` is the `(context, ...args) => Promise<void>` function
+itself. For effects with many context interactions, a helper
+function that builds a mock context from an initial state can reduce
+boilerplate across tests.
 
 ---
 
@@ -554,6 +565,6 @@ across tests.
   catch errors when you need to transform them into a different
   outcome (for example, setting a "not found" flag on the data
   context).
-- **Prepare arguments at author time.** Use the
-  `{ prepare, factory }` form to sanitise arguments and catch
-  configuration errors at module load rather than at render time.
+- **Validate arguments early.** Use a `prepare` hook to catch
+  configuration errors at module load, or an `argumentsSchema` to
+  catch them at request time before the evaluator runs.

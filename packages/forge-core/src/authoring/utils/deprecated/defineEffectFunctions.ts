@@ -1,5 +1,5 @@
-import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { FunctionType } from '../../types/enums'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   EffectFunctionGroup,
   EffectFunctions,
@@ -21,6 +21,8 @@ import type {
  * The evaluator's first parameter (`context: EffectFunctionContext`) is injected
  * by the engine at runtime - the returned `effects` builders only expose the
  * remaining configuration arguments.
+ *
+ * @deprecated Use EffectRegistry instead.
  *
  * @param factories - Effect factories keyed by function name
  *
@@ -60,6 +62,9 @@ export function defineEffectFunctions<TShapes extends FunctionShapeMap, TDeps = 
 } {
   return {
     effects: buildExpressionFunctions(factories, FunctionType.EFFECT) as EffectFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.EFFECT) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

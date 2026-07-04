@@ -1,15 +1,4 @@
 /**
- * True when a value is absent (null or undefined).
- *
- * Conditions guard on this to treat an unanswered field as a non-match (returning
- * false) instead of throwing on the value-type assertion. A present value of the
- * wrong type still throws, so genuine authoring/formatter mistakes stay loud.
- */
-export function isAbsent(value: unknown): boolean {
-  return value === undefined || value === null
-}
-
-/**
  * Asserts that a value is a number (not NaN)
  */
 export function assertNumber(value: unknown, functionName: string): asserts value is number {

@@ -32,11 +32,16 @@ export default class DiagnosticEmitter {
     return helperCall
   }
 
-  wrapFunctionCall(helperName: string, funcName: string, argExprs: string[], source: unknown): string | undefined {
-    const metadata = this.getMetadata(source, funcName)
-
-    if (metadata === undefined) {
-      return undefined
+  /**
+   * Unlike `wrapExpression`, the function name is always known here (it's a
+   * required parameter, not derived from `source`), so metadata is always
+   * worth tracking and this always routes through the helper call.
+   */
+  wrapFunctionCall(helperName: string, funcName: string, argExprs: string[], source: unknown): string {
+    const metadata: DiagnosticMetadata = {
+      ...this.getSourceDiagnostics(source),
+      functionName: funcName,
+      functionType: this.getFunctionType(source),
     }
 
     return this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs)

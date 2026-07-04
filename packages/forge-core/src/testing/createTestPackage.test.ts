@@ -1,5 +1,5 @@
 import { createTestPackage } from './createTestPackage'
-import type { ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
+import type { ForgeFunctionImplementations, ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
 
 describe('createTestPackage()', () => {
   it('should return the package unchanged when no overrides are provided', () => {
@@ -36,7 +36,7 @@ describe('createTestPackage()', () => {
     })
 
     // Assert
-    const saveFactory = result.functions!.SaveData
+    const saveFactory = (result.functions as ForgeFunctionImplementations<any>).SaveData
     const evaluator = saveFactory({} as any)
 
     expect(evaluator).toBe(mockSave)
@@ -59,7 +59,7 @@ describe('createTestPackage()', () => {
     })
 
     // Assert
-    expect(result.functions!.LoadData).toBe(realLoadFactory)
+    expect((result.functions as ForgeFunctionImplementations<any>).LoadData).toBe(realLoadFactory)
   })
 
   it('should not mutate the original package', () => {
@@ -77,7 +77,7 @@ describe('createTestPackage()', () => {
     })
 
     // Assert
-    const originalEvaluator = original.functions!.SaveData({} as any)
+    const originalEvaluator = (original.functions as ForgeFunctionImplementations<any>).SaveData({} as any)
 
     expect(originalEvaluator()).toBe('real-save')
   })
@@ -112,6 +112,6 @@ describe('createTestPackage()', () => {
     })
 
     // Assert
-    expect(result.functions!.SaveData).toBeDefined()
+    expect((result.functions as ForgeFunctionImplementations<any>).SaveData).toBeDefined()
   })
 })
