@@ -24,12 +24,6 @@ export const validateBlockScope: ASTValidationRule = (context: ASTValidationCont
   nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
     const parent = node.parent
 
-    if (!parent) {
-      errors.push(buildError(node.diagnostics?.source))
-
-      return
-    }
-
     // Composite component wrappers legitimately hold child blocks in arbitrary
     // properties (slots, content, rows, columns); those child blocks parent to
     // the wrapper block, so any block-parented block is in scope.

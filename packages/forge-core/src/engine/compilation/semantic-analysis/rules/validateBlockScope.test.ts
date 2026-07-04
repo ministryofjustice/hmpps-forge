@@ -110,17 +110,5 @@ describe('validateBlockScope', () => {
       // Assert
       expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
     })
-
-    it('should return an error when the block has no parent', () => {
-      // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD).build()
-      const context = createContext([block], [])
-
-      // Act
-      const errors = validateBlockScope(context)
-
-      // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
-    })
   })
 })
