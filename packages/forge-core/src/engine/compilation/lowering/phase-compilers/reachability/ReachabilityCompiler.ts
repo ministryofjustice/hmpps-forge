@@ -195,13 +195,15 @@ export default class ReachabilityCompiler {
     nodeRegistry: ASTNodeIndex,
     emitter: CodeEmitter,
   ): void {
-    const redirectOutcomes = group.outcomeIds
-      .map(outcomeId => nodeRegistry.get(outcomeId))
-      .filter(isRedirectOutcomeNode)
+    const redirectOutcomes = group.outcomeIds.map(outcomeId => {
+      const node = nodeRegistry.get(outcomeId)
 
-    if (redirectOutcomes.length === 0) {
-      return
-    }
+      if (!node || !isRedirectOutcomeNode(node)) {
+        throw new Error(`Forward outcome node "${outcomeId}" missing from registry or not a redirect outcome`)
+      }
+
+      return node
+    })
 
     const overApproximateOutcomeIds = new Set(group.overApproximateOutcomeIds ?? [])
 
