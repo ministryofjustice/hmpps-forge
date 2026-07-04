@@ -44,7 +44,7 @@ function createRenderer(): ForgeRenderer<string> {
   }
 }
 
-function createRequestContext(): RequestExecutionContext {
+function createRequestContext(traceEnabled = false): RequestExecutionContext {
   return {
     context: {
       request: {
@@ -75,8 +75,16 @@ function createRequestContext(): RequestExecutionContext {
     functionRegistry: { get: vi.fn() } as unknown as RequestExecutionContext['functionRegistry'],
     componentRegistry: new ComponentRegistry(),
     hasRenderer: true,
+    traceEnabled,
     buildStepValidation: () => undefined,
     recordStepValidation: () => {},
+  }
+}
+
+function createMarkingRenderer(): ForgeRenderer<string> {
+  return {
+    ...createRenderer(),
+    markBlock: vi.fn((nodeId: string, output: string) => `<!--forge:${nodeId}-->${output}<!--/forge:${nodeId}-->`),
   }
 }
 
@@ -188,5 +196,49 @@ describe('Render work handlers', () => {
     // Assert
     expect(result.output).toBe('<one><two>')
     expect(renderer.assemblePage).toHaveBeenCalledWith(renderContext, ['<one>', '<two>'], {})
+  })
+
+  it('should mark the block output with comment markers when the request is traced and the renderer supports it', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createMarkingRenderer()
+    const componentRegistry = createComponentRegistry('known')
+    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
+
+    // Assert
+    expect(result.output).toEqual(['<!--forge:compile_ast:known--><known><!--/forge:compile_ast:known-->'])
+    expect(renderer.markBlock).toHaveBeenCalledWith('compile_ast:known', '<known>')
+  })
+
+  it('should not mark the block output when the request is not traced', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createMarkingRenderer()
+    const componentRegistry = createComponentRegistry('known')
+    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext(false)))
+
+    // Assert
+    expect(result.output).toEqual(['<known>'])
+    expect(renderer.markBlock).not.toHaveBeenCalled()
+  })
+
+  it('should not mark the block output when the renderer does not implement markBlock', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createRenderer()
+    const componentRegistry = createComponentRegistry('known')
+    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
+
+    // Assert
+    expect(result.output).toEqual(['<known>'])
   })
 })

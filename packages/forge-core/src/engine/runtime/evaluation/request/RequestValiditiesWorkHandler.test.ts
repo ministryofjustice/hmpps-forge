@@ -17,6 +17,7 @@ function createRequestContext(overrides: Partial<RequestExecutionContext> = {}):
     responseBindings: {},
     functionRegistry: {} as RequestExecutionContext['functionRegistry'],
     hasRenderer: false,
+    traceEnabled: false,
     buildStepValidation: () => undefined,
     recordStepValidation: () => {},
     ...overrides,

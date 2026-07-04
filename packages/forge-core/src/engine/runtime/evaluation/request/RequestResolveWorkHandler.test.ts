@@ -45,6 +45,7 @@ function createRequestContext(
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
     hasRenderer: false,
+    traceEnabled: false,
     showValidationFailures: true,
     validation: {
       isValid: false,

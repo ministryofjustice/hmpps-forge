@@ -59,6 +59,7 @@ export default class RequestEvaluator {
       node,
       snapshot,
       renderer,
+      traceEnabled: this.options.instrumentation.enabled,
     })
 
     const context = {

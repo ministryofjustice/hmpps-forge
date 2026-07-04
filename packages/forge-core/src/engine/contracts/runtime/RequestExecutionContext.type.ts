@@ -28,6 +28,7 @@ export interface RequestExecutionContext {
   readonly componentRegistry: ComponentRegistry
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
+  readonly traceEnabled: boolean
   reachabilityEvaluation?: ReachabilityEvaluation
   routeTree?: RouteTree
   validation?: ValidationView

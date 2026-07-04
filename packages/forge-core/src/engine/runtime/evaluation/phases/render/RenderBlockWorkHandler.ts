@@ -70,7 +70,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     }
   },
 
-  complete(
+  async complete(
     ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>,
     children: readonly CompletedWork[],
   ) {
@@ -83,7 +83,14 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     const updatedProperties = replaceNestedBlocks(block.properties, children, renderer)
     const evaluatedBlock = toEvaluatedBlock({ ...block, properties: updatedProperties })
 
-    return renderer.renderBlock(entry, evaluatedBlock)
+    const output = await renderer.renderBlock(entry, evaluatedBlock)
+
+    // Mark only while devtools is tracing, so production output stays unmarked.
+    if (ctx.request.traceEnabled && renderer.markBlock) {
+      return renderer.markBlock(block.id, output)
+    }
+
+    return output
   },
 }
 
