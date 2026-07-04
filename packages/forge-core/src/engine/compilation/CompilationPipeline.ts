@@ -139,10 +139,7 @@ export default class CompilationPipeline {
     let current = start
 
     while (current !== undefined) {
-      if (current.type === ASTNodeType.JOURNEY) {
-        ids.push(current.id)
-      }
-
+      ids.push(current.id)
       current = current.parent
     }
 
