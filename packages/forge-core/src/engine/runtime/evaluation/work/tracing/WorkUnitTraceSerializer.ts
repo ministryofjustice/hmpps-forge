@@ -12,6 +12,7 @@ export default class WorkUnitTraceSerializer {
       startedAtMs: workUnit.startedAtMs,
       completedAtMs: workUnit.completedAtMs,
       durationMs: workUnit.durationMs,
+      selfDurationMs: workUnit.selfDurationMs,
       children: workUnit.children.filter(child => !child.omitFromTrace).map(child => this.serialize(child)),
     }
   }

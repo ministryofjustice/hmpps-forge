@@ -14,6 +14,7 @@ export interface WorkUnitTrace {
   readonly startedAtMs: number
   readonly completedAtMs?: number
   readonly durationMs?: number
+  readonly selfDurationMs?: number
   readonly children: readonly WorkUnitTrace[]
 }
 

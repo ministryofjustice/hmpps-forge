@@ -67,7 +67,14 @@ export default class WorkExecutor {
 
     workUnit.recordTraceMetadataAtStart(traceMetadataAtStart)
 
-    const begin = await task.handler.begin(workCtx)
+    // Measure only the synchronous span of the handler calls: awaiting across a suspension
+    // would fold in siblings' interleaved work, which is exactly the queue-wait smear we drop.
+    const beginStartedAtMs = performance.now()
+    const beginResult = task.handler.begin(workCtx)
+
+    workUnit.addSelfTime(performance.now() - beginStartedAtMs)
+
+    const begin = await beginResult
     const children: CompletedWork[] = []
 
     for (const group of begin.groups ?? []) {
@@ -76,7 +83,12 @@ export default class WorkExecutor {
       children.push(...completedGroup)
     }
 
-    const output = await this.completeWork(task, workCtx, children, begin.output)
+    const completeStartedAtMs = performance.now()
+    const completeResult = this.completeWork(task, workCtx, children, begin.output)
+
+    workUnit.addSelfTime(performance.now() - completeStartedAtMs)
+
+    const output = await completeResult
     const traceMetadataAtFinish = this.resolveTraceMetadataAtFinish(task, workCtx, output)
 
     workUnit.recordTraceMetadataAtFinish(traceMetadataAtFinish)
