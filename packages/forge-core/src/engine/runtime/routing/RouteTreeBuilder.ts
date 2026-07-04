@@ -30,13 +30,9 @@ export default class RouteTreeBuilder {
     const catalogsByBasePath = new Map<string, JourneyRouteTemplateCatalog>()
 
     journeyContexts.forEach(context => {
-      const descriptor = input.journeyRouteIndex.get(context.journeyId)
       const route: StoredRouteTreeRoute = {
         kind: 'journey',
         nodeId: context.journeyId,
-        title: descriptor?.title,
-        description: descriptor?.description,
-        metadata: descriptor?.metadata,
       }
       const node = this.insertConcreteRoute(context.templatePath, route)
 
@@ -48,13 +44,9 @@ export default class RouteTreeBuilder {
     )
 
     stepContexts.forEach(context => {
-      const descriptor = input.stepRouteIndex.get(context.stepId)
       const route: StoredRouteTreeRoute = {
         kind: 'step',
         nodeId: context.stepId,
-        title: descriptor?.title,
-        description: descriptor?.description,
-        metadata: descriptor?.metadata,
       }
       const node = this.insertConcreteRoute(context.routeTemplatePath, route)
 
@@ -173,7 +165,6 @@ export default class RouteTreeBuilder {
     }
 
     node.route = route
-    node.metadata = route.metadata
 
     return node
   }

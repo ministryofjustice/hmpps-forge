@@ -26,7 +26,7 @@ export default class StepFactory {
 
     const properties: StepASTNode['properties'] = {
       path: json.path,
-      title: json.title,
+      title: this.nodeFactory.transformChild(json.title, 'title'),
     }
 
     if (dataProperties.path === undefined) {
@@ -71,6 +71,10 @@ export default class StepFactory {
       properties.blocks = this.nodeFactory.transformChild(dataProperties.blocks, 'blocks')
     }
 
+    if (dataProperties.description !== undefined) {
+      properties.description = this.nodeFactory.transformChild(dataProperties.description, 'description')
+    }
+
     if (dataProperties.view !== undefined) {
       properties.view = this.nodeFactory.transformChild(dataProperties.view, 'view')
     }
@@ -99,7 +103,7 @@ export default class StepFactory {
     }
 
     if (dataProperties.metadata !== undefined) {
-      properties.metadata = dataProperties.metadata
+      properties.metadata = this.nodeFactory.transformChild(dataProperties.metadata, 'metadata')
     }
 
     if (dataProperties.data !== undefined) {

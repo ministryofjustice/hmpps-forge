@@ -5,7 +5,7 @@
 This document covers `packages/forge-core/src/engine/runtime/evaluation/phases`.
 
 This code contains the runtime work handlers and helper functions that do phase-specific request work.
-It validates answers, prepares answers, evaluates hooks, computes reachability, resolves render blocks, renders blocks, and clears stale answers.
+It validates answers, prepares answers, evaluates hooks, computes reachability, hydrates the route tree, resolves render blocks, renders blocks, and clears stale answers.
 
 This document does not cover request phase ordering, work executor mechanics, compiled source generation, or framework adapter routing.
 
@@ -34,6 +34,7 @@ They consume compiled functions and runtime data. They must not build AST, plans
 - Execute access and submit hook lifecycles.
 - Run submit validation as a hook stage.
 - Build reachability evaluation from compiled navigation output and stored step validities.
+- Hydrate the route tree from resolved route metadata.
 - Resolve compiled block tasks into branded `RenderBlock` values.
 - Render visible blocks and assemble page output.
 - Clear answers for unreachable stale steps.
@@ -73,7 +74,7 @@ Handlers use it for:
 - `renderedBlocks`.
 
 Some folders are full work-handler families.
-`answer-cleardown` is the exception: it is a helper folder called by the request-level answer-cleardown handler.
+`answer-cleardown` and `route-tree` are the exceptions: they are helper folders called by their request-level handlers.
 
 ### Example
 
@@ -139,6 +140,8 @@ flowchart TD
   See its README for graph building, resume, redirects, and projection.
 - [answer-cleardown](answer-cleardown) owns stale-answer clearing.
   See its README for retained paths and `cleardown` mutations.
+- [route-tree](route-tree) owns hydrating the route tree from resolved route metadata.
+  See its README for param resolution, active state, and metadata merge.
 - [resolve](resolve) owns conversion from compiled block work to `RenderBlock`.
   See its README for nested work replacement and render block branding.
 - [render](render) owns renderer-facing work.
@@ -165,8 +168,8 @@ flowchart TD
   This keeps execution policy in the work executor and domain folding in the handler.
 - Handler instrumentation is colocated with the handler.
   Trace fields should describe the runtime work, not duplicate large request state.
-- `answer-cleardown` is a helper-only phase folder.
-  It still lives here because it owns phase-specific runtime behavior.
+- `answer-cleardown` and `route-tree` are helper-only phase folders.
+  They still live here because they own phase-specific runtime behavior.
 
 ## Constraints
 
@@ -194,6 +197,7 @@ flowchart TD
 - [hooks/README.md](hooks/README.md) explains access and submit hook lifecycles.
 - [reachability/README.md](reachability/README.md) explains runtime navigation reachability.
 - [answer-cleardown/README.md](answer-cleardown/README.md) explains stale answer clearing.
+- [route-tree/README.md](route-tree/README.md) explains route tree hydration from resolved metadata.
 - [resolve/README.md](resolve/README.md) explains resolve-block work and render block creation.
 - [render/README.md](render/README.md) explains renderer-facing work.
 - [../../../contracts/runtime/workOutput.type.ts](../../../contracts/runtime/workOutput.type.ts) maps work kinds to output types.

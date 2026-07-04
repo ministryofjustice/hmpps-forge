@@ -105,6 +105,7 @@ describe('CodegenOrchestrator', () => {
             },
           ],
         ]),
+        routeMetadataInputs: new Map(),
       }
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),
@@ -133,6 +134,9 @@ describe('CodegenOrchestrator', () => {
       expect(compiledJourney?.compiledStaticData).toEqual(expect.any(Function))
       expect(compiledJourney?.compiledAccessLifecycle).toEqual(expect.any(Function))
       expect(compiledJourney?.compiledAnswerPreparation).toEqual(expect.any(Function))
+      expect(compiledStep?.compiledRouteMetadata).toEqual(expect.any(Function))
+      expect(compiledJourney?.compiledRouteMetadata).toEqual(expect.any(Function))
+      expect(compiledStep?.compiledRouteMetadata).toBe(compiledJourney?.compiledRouteMetadata)
       expect(compiledStep?.compiledStaticData()).toEqual({ shared: 'step' })
       expect(compiledValidatingStep?.compiledStaticData()).toEqual({ shared: 'validating-step' })
       expect(compiledJourney?.compiledStaticData()).toEqual({ shared: 'journey' })
@@ -233,6 +237,7 @@ describe('CodegenOrchestrator', () => {
             },
           ],
         ]),
+        routeMetadataInputs: new Map(),
       }
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),

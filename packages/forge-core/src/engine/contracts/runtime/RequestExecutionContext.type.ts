@@ -5,7 +5,7 @@ import type { ValidationView } from './validationView.type'
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { RuntimeContext } from './evaluationState.type'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
-import type { RenderContext } from '../../../framework/rendering/types'
+import type { RenderContext, RouteTree } from '../../../framework/rendering/types'
 import type { StepValidationWorkTask } from './ValidationWork.type'
 
 export type StepValidationTaskResult = StepValidationWorkTask | undefined
@@ -27,6 +27,7 @@ export interface RequestExecutionContext {
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
   reachabilityEvaluation?: ReachabilityEvaluation
+  routeTree?: RouteTree
   validation?: ValidationView
   showValidationFailures?: boolean
   renderContext?: RenderContext

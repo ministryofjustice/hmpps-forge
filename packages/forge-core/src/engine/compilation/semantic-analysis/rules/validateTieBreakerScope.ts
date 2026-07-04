@@ -1,5 +1,6 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode, TieBreakerASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
@@ -13,6 +14,10 @@ function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationRe
     code: 'tiebreaker_outside_step_reachability',
     formattedPath: source?.formattedPath ?? 'unknown',
   })
+}
+
+function containsNode(container: unknown, nodeId: NodeId): boolean {
+  return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
 }
 
 export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
@@ -31,6 +36,12 @@ export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidatio
     const parent = nodeIndex.get(parentId)
 
     if (!parent || parent.type !== ASTNodeType.STEP) {
+      errors.push(buildError(node.diagnostics?.source))
+
+      return
+    }
+
+    if (!containsNode(parent.properties?.reachability?.tieBreakers, node.id)) {
       errors.push(buildError(node.diagnostics?.source))
     }
   })

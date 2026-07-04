@@ -11,6 +11,8 @@ import { validateValidationScope } from './rules/validateValidationScope'
 import { validateOutcomeScope } from './rules/validateOutcomeScope'
 import { validateHookScope } from './rules/validateHookScope'
 import { validateTieBreakerScope } from './rules/validateTieBreakerScope'
+import { validateStructureScope } from './rules/validateStructureScope'
+import { validateBlockScope } from './rules/validateBlockScope'
 import { validateFunctionArguments } from './rules/validateFunctionArguments'
 import { validateContainerTypes } from './rules/validateContainerTypes'
 
@@ -23,6 +25,8 @@ const RULES: readonly ASTValidationRule[] = [
   validateOutcomeScope,
   validateHookScope,
   validateTieBreakerScope,
+  validateStructureScope,
+  validateBlockScope,
   validateFunctionArguments,
   validateContainerTypes,
 ]

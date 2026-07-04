@@ -9,7 +9,7 @@ import {
   PredicateType,
   StructureType,
 } from '../../../authoring/types/enums'
-import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema } from './expressions.schema'
+import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {
   TransformerFunctionExprSchema,
@@ -77,6 +77,11 @@ export const ResolvableStringSchema = z.union([
   ConditionalExprSchema,
   MatchExprSchema,
 ])
+
+/**
+ * @see {@link RouteMetadata}
+ */
+export const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional())
 
 /**
  * @see {@link ValidationExpr}
@@ -231,11 +236,12 @@ export const StepSchema = z.looseObject({
   onAccess: z.array(AccessHookSchema).optional(),
   onSubmission: z.array(SubmitHookSchema).optional(),
   validateOnEntry: z.array(StepEntryValidationSchema).optional(),
-  title: z.string(),
+  title: ResolvableStringSchema,
+  description: ResolvableStringSchema.optional(),
   view: ViewConfigSchema.optional(),
   reachability: StepReachabilitySchema,
   backlink: z.string().optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: RouteMetadataSchema.optional(),
   data: StaticDataSchema.optional(),
   validWhen: ValidWhenSchema.optional(),
 })
@@ -251,10 +257,10 @@ export const JourneySchema: z.ZodType<any> = z.lazy(() =>
     onAccess: z.array(AccessHookSchema).optional(),
     steps: z.array(StepSchema).optional(),
     children: z.array(JourneySchema).optional(),
-    title: z.string(),
-    description: z.string().optional(),
+    title: ResolvableStringSchema,
+    description: ResolvableStringSchema.optional(),
     view: ViewConfigSchema.optional(),
-    metadata: z.record(z.string(), z.any()).optional(),
+    metadata: RouteMetadataSchema.optional(),
     data: StaticDataSchema.optional(),
     reachability: JourneyReachabilitySchema,
   }),

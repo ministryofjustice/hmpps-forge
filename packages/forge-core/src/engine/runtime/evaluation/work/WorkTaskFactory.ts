@@ -112,6 +112,10 @@ import {
   REQUEST_RESOLVE_WORK_HANDLER,
   REQUEST_RESOLVE_WORK_INSTRUMENTATION,
 } from '../request/RequestResolveWorkHandler'
+import {
+  REQUEST_ROUTE_TREE_WORK_HANDLER,
+  REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION,
+} from '../request/RequestRouteTreeWorkHandler'
 import { REQUEST_SUBMIT_WORK_HANDLER, REQUEST_SUBMIT_WORK_INSTRUMENTATION } from '../request/RequestSubmitWorkHandler'
 import {
   REQUEST_VALIDITIES_WORK_HANDLER,
@@ -127,6 +131,7 @@ import type {
   RequestReachabilityWorkProps,
   RequestRenderWorkProps,
   RequestResolveWorkProps,
+  RequestRouteTreeWorkProps,
   RequestSubmitWorkProps,
   RequestValiditiesWorkProps,
 } from '../../../contracts/runtime/RequestPipelineWork.type'
@@ -341,6 +346,10 @@ export default class WorkTaskFactory {
 
   static requestResolve(props: RequestResolveWorkProps): WorkTask<'request.resolve', RequestResolveWorkProps> {
     return createWorkTask('resolve', REQUEST_RESOLVE_WORK_HANDLER, props, REQUEST_RESOLVE_WORK_INSTRUMENTATION)
+  }
+
+  static requestRouteTree(props: RequestRouteTreeWorkProps): WorkTask<'request.route-tree', RequestRouteTreeWorkProps> {
+    return createWorkTask('route-tree', REQUEST_ROUTE_TREE_WORK_HANDLER, props, REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION)
   }
 
   static requestRender(props: RequestRenderWorkProps): WorkTask<'request.render', RequestRenderWorkProps> {

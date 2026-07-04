@@ -1,5 +1,6 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
@@ -17,6 +18,10 @@ function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationRe
   })
 }
 
+function containsNode(container: unknown, nodeId: NodeId): boolean {
+  return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
+}
+
 function hasHookAncestor(context: ASTValidationContext, nodeId: AstNodeId): boolean {
   const ancestors = getAncestorChain(nodeId, context.nodeTree)
 
@@ -28,11 +33,36 @@ function hasHookAncestor(context: ASTValidationContext, nodeId: AstNodeId): bool
 }
 
 export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex } = context
+  const { nodeIndex, nodeTree } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.OUTCOME).forEach(node => {
-    if (!hasHookAncestor(context, node.id)) {
+    const parentId = nodeTree.getParent(node.id)
+
+    if (!parentId) {
+      errors.push(buildError(node.diagnostics?.source))
+
+      return
+    }
+
+    const parent = nodeIndex.get(parentId)
+
+    if (!parent || parent.type !== ASTNodeType.HOOK) {
+      errors.push(buildError(node.diagnostics?.source))
+
+      return
+    }
+
+    // Access hooks carry outcomes in `next`; submit hooks split them across the
+    // onAlways/onValid/onInvalid branch objects, which are plain objects and so
+    // parent their outcomes to the hook itself.
+    const inHookNext =
+      containsNode(parent.properties?.next, node.id) ||
+      containsNode(parent.properties?.onAlways?.next, node.id) ||
+      containsNode(parent.properties?.onValid?.next, node.id) ||
+      containsNode(parent.properties?.onInvalid?.next, node.id)
+
+    if (!inHookNext) {
       errors.push(buildError(node.diagnostics?.source))
     }
   })

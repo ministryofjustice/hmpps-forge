@@ -5,7 +5,6 @@ import { resolvePathParams } from '../../../../framework/path/routePath'
 import type { RenderContext } from '../../../../framework/rendering/types'
 import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/reachabilityRedirects'
-import { hydrateRouteTree } from '../phases/resolve/hydrateRouteTree'
 import { RESOLVE_BLOCKS_KIND } from '../phases/resolve/ResolveBlocksWorkHandler'
 import type {
   CompletedWork,
@@ -72,11 +71,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const domainFailures = showValidationFailures ? (ctx.request.validation?.domainFailures ?? []) : []
 
     const renderContext: RenderContext = {
-      routeTree: hydrateRouteTree(
-        ctx.props.routeTree,
-        ctx.props.currentRouteTemplatePath,
-        ctx.request.context.request.params,
-      ),
+      routeTree: ctx.request.routeTree ?? [],
       step,
       ancestors: output.ancestors as RenderContext['ancestors'],
       blocks: [...output.blocks],

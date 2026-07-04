@@ -3,6 +3,7 @@ import type { ForgePackageFunctions, ForgePackageRegistration } from '../engine/
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import type { ForgeInstrumentationOptions } from '../engine/diagnostics/ForgeTraceSinkDispatcher'
+import type { ForgeRenderer } from '../framework/rendering/types'
 import { ForgeTestClient } from './test-client/ForgeTestClient'
 
 const silentLogger = {
@@ -61,7 +62,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  createClient(): ForgeTestClient {
-    return new ForgeTestClient(this.forge)
+  createClient(renderer?: ForgeRenderer<unknown>): ForgeTestClient {
+    return new ForgeTestClient(this.forge, renderer)
   }
 }

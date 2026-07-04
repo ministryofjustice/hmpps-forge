@@ -17,6 +17,8 @@ export interface TestRequestOptions {
 export interface TestRenderResult {
   type: 'render'
   context: RenderContext
+  /** Assembled renderer output. Present only when the client was created with a renderer. */
+  output?: unknown
   headers: Map<string, string>
   cookies: Map<string, CookieMutation>
   getBlocksByVariant(variant: string): RenderBlock[]

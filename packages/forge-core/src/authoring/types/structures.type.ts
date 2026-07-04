@@ -1,4 +1,4 @@
-import { IterateExpr, SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
+import { IterateExpr, ResolvableValue, SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { ChainableIterable } from '../builders/types'
@@ -57,6 +57,8 @@ export type TieBreakerProps = Omit<TieBreaker, 'type'>
 
 export type UnreachableRedirectTarget = 'entry' | 'frontier'
 
+export type RouteMetadata = Record<string, ResolvableValue | undefined>
+
 /**
  * Top-level journey definition representing a complete form flow.
  * Journeys contain steps and can have nested child journeys.
@@ -68,12 +70,10 @@ export interface JourneyDefinition {
   onAccess?: AccessHook[]
   steps?: StepDefinition[]
   children?: JourneyDefinition[]
-  title: string
-  description?: string
+  title: ResolvableString
+  description?: ResolvableString
   view?: ViewConfig
-  metadata?: {
-    [key: string]: any
-  }
+  metadata?: RouteMetadata
   data?: Record<string, unknown>
   reachability?: JourneyReachability
 }
@@ -172,13 +172,12 @@ export interface StepDefinition {
   onAccess?: AccessHook[]
   onSubmission?: SubmitHook[]
   validateOnEntry?: StepEntryValidation[]
-  title: string
+  title: ResolvableString
+  description?: ResolvableString
   view?: ViewConfig
   reachability?: StepReachability
   backlink?: string
-  metadata?: {
-    [key: string]: any
-  }
+  metadata?: RouteMetadata
   data?: Record<string, unknown>
   /**
    * Validation rules for this step. Rules are checked in order.
