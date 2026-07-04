@@ -74,6 +74,13 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
       const usesAwait = options.forceAsync === true || expr.usesAwait
       let compiled: GeneratedFunction
 
+      // Record before compiling so a source string that fails to compile is
+      // still captured on the incomplete span. recordTraceMetadataAtStart
+      // replaces beginFields wholesale, so re-record phase alongside source.
+      if (tracer.captureGeneratedSource) {
+        span?.recordTraceMetadataAtStart({ phase, source })
+      }
+
       try {
         compiled = createCompiledFunction<GeneratedFunction>(
           [...parameterNames, GENERATED_FUNCTION_HELPERS_PARAM, RUNTIME_DIAGNOSTICS_PARAM],

@@ -139,6 +139,57 @@ describe('GeneratedFunctionCompiler', () => {
       expect(span?.completed).toBe(false)
     })
 
+    it('should capture the wrapped source on begin fields when captureGeneratedSource is enabled', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true, captureGeneratedSource: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => '"use strict";return true;', { phase: 'render' })
+
+      // Assert
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+      const source = span?.beginFields.source
+
+      expect(span?.beginFields.phase).toBe('render')
+      expect(typeof source).toBe('string')
+      expect(source).toContain('return true;')
+      expect(source).toContain('use strict')
+    })
+
+    it('should omit source from begin fields when captureGeneratedSource is not enabled', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+
+      // Assert
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+
+      expect(span?.beginFields).toEqual({ phase: 'render' })
+      expect('source' in (span?.beginFields ?? {})).toBe(false)
+    })
+
+    it('should keep captured source on the incomplete span when compilation fails', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true, captureGeneratedSource: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      const compile = () =>
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
+
+      // Assert
+      expect(compile).toThrow(ForgeCompilationError)
+
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+
+      expect(span?.completed).toBe(false)
+      expect(typeof span?.beginFields.source).toBe('string')
+    })
+
     it('should record no spans when the tracer is disabled', () => {
       // Arrange
       const tracer = CompilationTracer.disabled
