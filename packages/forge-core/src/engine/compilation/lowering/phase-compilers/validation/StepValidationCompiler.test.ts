@@ -210,6 +210,15 @@ describe('StepValidationCompiler', () => {
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
+    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
+    hasMaxLength: { name: 'hasMaxLength', isAsync: true, evaluate: () => undefined },
+    isRequired: { name: 'isRequired', isAsync: true, evaluate: () => undefined },
+    messageGenerator: { name: 'messageGenerator', isAsync: true, evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new StepValidationCompiler(dependencies)

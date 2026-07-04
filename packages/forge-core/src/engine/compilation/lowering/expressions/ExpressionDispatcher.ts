@@ -511,7 +511,13 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * schema validation and diagnostics tracking always run.
    */
   compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
-    const callIsAsync = this.dependencies.functionRegistry.get(funcName)?.isAsync ?? true
+    const registeredFunction = this.dependencies.functionRegistry.get(funcName)
+
+    if (!registeredFunction) {
+      throw new Error(`Function "${funcName}" missing from registry`)
+    }
+
+    const callIsAsync = registeredFunction.isAsync
 
     if (callIsAsync) {
       this.usedAwait = true

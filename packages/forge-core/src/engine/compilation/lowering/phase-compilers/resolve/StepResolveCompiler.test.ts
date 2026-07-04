@@ -114,6 +114,15 @@ describe('StepResolveCompiler', () => {
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    answerCode: { name: 'answerCode', isAsync: true, evaluate: () => undefined },
+    Equals: { name: 'Equals', isAsync: true, evaluate: () => undefined },
+    fieldCode: { name: 'fieldCode', isAsync: true, evaluate: () => undefined },
+    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
+    renderAddress: { name: 'renderAddress', isAsync: true, evaluate: () => undefined },
+    renderMember: { name: 'renderMember', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new StepResolveCompiler(dependencies)
