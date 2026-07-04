@@ -1,20 +1,5 @@
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
-import type {
-  ComponentRegistry,
-  ForgeRoute,
-  Logger,
-  RenderContext,
-} from '@ministryofjustice/hmpps-forge/core/framework'
-
-export interface StaticRenderContext {
-  basePath: string
-}
-
-export type StaticRenderFunction = (
-  context: RenderContext,
-  componentRegistry: ComponentRegistry,
-  staticContext: StaticRenderContext,
-) => string | Promise<string>
+import type { ForgeRenderer, ForgeRoute, Logger } from '@ministryofjustice/hmpps-forge/core/framework'
 
 export interface AssetSource {
   from: string
@@ -24,7 +9,8 @@ export interface AssetSource {
 export interface StaticSiteOptions {
   forge: Forge
   outputDir: string
-  render: StaticRenderFunction
+  /** Renderer driving the page HTML. Defaults to a plain {@link StaticHtmlRenderer}. */
+  renderer?: ForgeRenderer<string>
   assets?: AssetSource[]
   origin?: string
   logger?: Logger | Console

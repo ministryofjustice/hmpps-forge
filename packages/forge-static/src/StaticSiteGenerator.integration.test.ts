@@ -1,17 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+// The developer guide sources live in the sibling examples-app project, which is
+// not a workspace dependency of packages/, so they are imported by relative path.
+/* eslint-disable import/no-relative-packages */
+import { describe, it, expect, beforeEach } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { journey, step, createForgePackage, Data } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type { RenderContext, ComponentRegistry } from '@ministryofjustice/hmpps-forge/core/framework'
-import { isRenderBlock } from '@ministryofjustice/hmpps-forge/core/framework'
 import GuideContentStore from '../../../examples-app/server/data/guideContentStore'
-import { govukMarkdown, GovUKMarkdownBlock } from '../../../examples-app/server/journeys/forge-developer-guide/components/govukMarkdown'
-import { tableOfContentsComponent, TableOfContents } from '../../../examples-app/server/journeys/forge-developer-guide/components/tableOfContents'
-import { GuideEffectsImplementations, loadContent } from '../../../examples-app/server/journeys/forge-developer-guide/effects'
+import {
+  govukMarkdown,
+  GovUKMarkdownBlock,
+} from '../../../examples-app/server/journeys/forge-developer-guide/components/govukMarkdown'
+import {
+  tableOfContentsComponent,
+  TableOfContents,
+} from '../../../examples-app/server/journeys/forge-developer-guide/components/tableOfContents'
+import {
+  GuideEffectsImplementations,
+  loadContent,
+} from '../../../examples-app/server/journeys/forge-developer-guide/effects'
 import type { GuideDeps } from '../../../examples-app/server/journeys/forge-developer-guide/effects'
 import { StaticSiteGenerator } from './StaticSiteGenerator'
+import { StaticHtmlRenderer } from './StaticHtmlRenderer'
+import type { StaticPageRenderContext } from './StaticHtmlRenderer'
 import { bundleAssets } from './bundleAssets'
 
 // ---------------------------------------------------------------------------
@@ -88,30 +100,10 @@ function createGuidePackage() {
 }
 
 // ---------------------------------------------------------------------------
-// Render function — produces a full HTML page from Forge's RenderContext
+// Page function — produces a full HTML page from Forge's rendered blocks
 // ---------------------------------------------------------------------------
 
-function renderPage(
-  context: RenderContext,
-  componentRegistry: ComponentRegistry,
-  { basePath }: { basePath: string },
-): string {
-  const blockHtml = context.blocks
-    .filter(block => isRenderBlock(block) && block.properties.visibleWhen !== false)
-    .map(block => {
-      const component = componentRegistry.get(block.variant)
-
-      if (!component) {
-        return `<!-- unknown variant: ${block.variant} -->`
-      }
-
-      return component.render(
-        { ...block.properties, variant: block.variant, type: 'BLOCK' } as never,
-        undefined,
-      )
-    })
-    .join('\n')
-
+function renderPage({ context, blocks, basePath }: StaticPageRenderContext): string {
   const title = context.step.title ?? 'Untitled'
 
   return [
@@ -123,7 +115,7 @@ function renderPage(
     `  <link rel="stylesheet" href="${basePath}/assets/css/index.css">`,
     '</head>',
     '<body>',
-    `  <main id="main" class="govuk-width-container">${blockHtml}</main>`,
+    `  <main id="main" class="govuk-width-container">${blocks.join('\n')}</main>`,
     `  <script src="${basePath}/assets/js/index.js"></script>`,
     '</body>',
     '</html>',
@@ -139,10 +131,6 @@ describe('StaticSiteGenerator (integration)', () => {
 
   beforeEach(() => {
     outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-static-integration-'))
-  })
-
-  afterEach(() => {
-    console.log(`Output: ${outputDir}`)
   })
 
   it('should bundle assets, generate pages, and produce a browsable static site', async () => {
@@ -172,7 +160,7 @@ describe('StaticSiteGenerator (integration)', () => {
     const generator = new StaticSiteGenerator({
       forge,
       outputDir,
-      render: renderPage,
+      renderer: new StaticHtmlRenderer({ page: renderPage }),
       logger: silentLogger,
     })
 
@@ -187,20 +175,12 @@ describe('StaticSiteGenerator (integration)', () => {
       expect(html).toContain('<!DOCTYPE html>')
       expect(html).toContain('assets/css/index.css')
       expect(html).toContain('assets/js/index.js')
-
-      console.log(`  ${page.relativePath} — ${(html.length / 1024).toFixed(1)} KB`)
     })
 
     expect(fs.existsSync(path.join(assetsOutputDir, 'css/index.css'))).toBe(true)
     expect(fs.existsSync(path.join(assetsOutputDir, 'js/index.js'))).toBe(true)
 
-    const cssSize = fs.statSync(path.join(assetsOutputDir, 'css/index.css')).size
-    console.log(`  assets/css/index.css — ${(cssSize / 1024).toFixed(1)} KB`)
-
-    const getStartedHtml = fs.readFileSync(
-      path.join(outputDir, 'guide/get-started/index.html'),
-      'utf-8',
-    )
+    const getStartedHtml = fs.readFileSync(path.join(outputDir, 'guide/get-started/index.html'), 'utf-8')
 
     expect(getStartedHtml).toContain('Forge is a stateless framework')
     expect(getStartedHtml).toContain('govuk-heading')

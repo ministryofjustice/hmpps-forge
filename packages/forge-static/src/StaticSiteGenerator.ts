@@ -1,8 +1,9 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { NO_OP_RESPONSE_BINDINGS } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { ForgeRoute, Logger, RequestSnapshot } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { AssetSource, GeneratedPage, StaticBuildResult, StaticRenderContext, StaticSiteOptions, SkippedRoute } from './types'
+import type { ForgeRenderer, ForgeRoute, Logger, RequestSnapshot } from '@ministryofjustice/hmpps-forge/core/framework'
+import { FORGE_STATIC_BASE_PATH, StaticHtmlRenderer } from './StaticHtmlRenderer'
+import type { AssetSource, GeneratedPage, StaticBuildResult, StaticSiteOptions, SkippedRoute } from './types'
 
 const PARAM_PATTERN = /:[^/]+/
 
@@ -11,7 +12,7 @@ export class StaticSiteGenerator {
 
   private readonly outputDir: string
 
-  private readonly render: StaticSiteOptions['render']
+  private readonly renderer: ForgeRenderer<string>
 
   private readonly origin: string
 
@@ -22,7 +23,7 @@ export class StaticSiteGenerator {
   constructor(options: StaticSiteOptions) {
     this.forge = options.forge
     this.outputDir = options.outputDir
-    this.render = options.render
+    this.renderer = options.renderer ?? new StaticHtmlRenderer()
     this.assets = options.assets ?? []
     this.origin = options.origin ?? 'http://localhost'
     this.logger = options.logger ?? console
@@ -43,12 +44,12 @@ export class StaticSiteGenerator {
         continue
       }
 
-      const page = await this.buildPage(route)
+      const result = await this.buildPage(route)
 
-      if (page) {
-        pages.push(page)
+      if ('reason' in result) {
+        skipped.push(result)
       } else {
-        skipped.push({ route, reason: 'evaluation did not produce a render outcome' })
+        pages.push(result)
       }
     }
 
@@ -77,32 +78,41 @@ export class StaticSiteGenerator {
     return undefined
   }
 
-  private async buildPage(route: ForgeRoute): Promise<GeneratedPage | undefined> {
-    const snapshot = this.createSnapshot(route)
-    const outcome = await this.forge.evaluate(snapshot, { response: NO_OP_RESPONSE_BINDINGS })
+  private async buildPage(route: ForgeRoute): Promise<GeneratedPage | SkippedRoute> {
+    const relativePath = this.toFilePath(route.templatePath)
+    const dirname = path.dirname(relativePath)
+    const basePath = dirname === '.' ? '.' : Array(dirname.split(path.sep).length).fill('..').join('/')
+
+    const snapshot = this.createSnapshot(route, basePath)
+    const outcome = await this.forge.execute({
+      snapshot,
+      responseBindings: NO_OP_RESPONSE_BINDINGS,
+      renderer: this.renderer,
+    })
 
     if (outcome.kind !== 'render') {
       this.logger.warn(`Route ${route.templatePath} returned '${outcome.kind}', skipping`)
 
-      return undefined
+      return { route, reason: 'evaluation did not produce a render outcome' }
     }
 
-    const relativePath = this.toFilePath(route.templatePath)
-    const depth = path.dirname(relativePath).split(path.sep).length
-    const basePath = depth > 0 ? Array(depth).fill('..').join('/') : '.'
-    const staticContext: StaticRenderContext = { basePath }
-    const html = await this.render(outcome.context, outcome.componentRegistry, staticContext)
+    if (typeof outcome.output !== 'string') {
+      this.logger.warn(`Route ${route.templatePath} produced no output, skipping`)
+
+      return { route, reason: 'renderer produced no output' }
+    }
+
     const outputPath = path.join(this.outputDir, relativePath)
 
     fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-    fs.writeFileSync(outputPath, html, 'utf-8')
+    fs.writeFileSync(outputPath, outcome.output, 'utf-8')
 
     this.logger.info(`Generated: ${relativePath}`)
 
     return { route, relativePath, outputPath }
   }
 
-  private createSnapshot(route: ForgeRoute): RequestSnapshot {
+  private createSnapshot(route: ForgeRoute, basePath: string): RequestSnapshot {
     const pathname = route.templatePath
     const href = `${this.origin}${pathname}`
 
@@ -115,7 +125,7 @@ export class StaticSiteGenerator {
       post: {},
       headers: {},
       cookies: {},
-      state: {},
+      state: { [FORGE_STATIC_BASE_PATH]: basePath },
       session: null,
     }
   }

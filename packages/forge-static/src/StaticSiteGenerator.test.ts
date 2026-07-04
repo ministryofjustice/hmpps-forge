@@ -3,10 +3,11 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
-import { journey, step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { journey, step, access, redirect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { HtmlBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import { StaticSiteGenerator } from './StaticSiteGenerator'
-import type { StaticRenderFunction } from './types'
+import { StaticHtmlRenderer } from './StaticHtmlRenderer'
+import type { StaticPageRenderer } from './StaticHtmlRenderer'
 
 const silentLogger = {
   info: () => {},
@@ -55,19 +56,19 @@ describe('StaticSiteGenerator', () => {
       ])
 
       const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
+      const page = vi.fn<StaticPageRenderer>(
+        ({ context }) => `<html><body><h1>${context.step.title}</h1></body></html>`,
+      )
+      const renderer = new StaticHtmlRenderer({ page })
 
-      const render = vi.fn<StaticRenderFunction>(context => {
-        return `<html><body><h1>${context.step.title}</h1></body></html>`
-      })
-
-      const generator = new StaticSiteGenerator({ forge, outputDir, render, logger: silentLogger })
+      const generator = new StaticSiteGenerator({ forge, outputDir, renderer, logger: silentLogger })
 
       // Act
       const result = await generator.build()
 
       // Assert
       expect(result.pages).toHaveLength(2)
-      expect(render).toHaveBeenCalledTimes(2)
+      expect(page).toHaveBeenCalledTimes(2)
 
       const homePath = path.join(outputDir, 'test-site/home/index.html')
       const aboutPath = path.join(outputDir, 'test-site/about/index.html')
@@ -96,9 +97,10 @@ describe('StaticSiteGenerator', () => {
       })
 
       const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
-      const render = vi.fn<StaticRenderFunction>(() => '<html></html>')
+      const page = vi.fn<StaticPageRenderer>(() => '<html></html>')
+      const renderer = new StaticHtmlRenderer({ page })
 
-      const generator = new StaticSiteGenerator({ forge, outputDir, render, logger: silentLogger })
+      const generator = new StaticSiteGenerator({ forge, outputDir, renderer, logger: silentLogger })
 
       // Act
       const result = await generator.build()
@@ -106,10 +108,10 @@ describe('StaticSiteGenerator', () => {
       // Assert
       expect(result.pages).toHaveLength(0)
       expect(result.skipped.some(s => s.reason.includes('dynamic route'))).toBe(true)
-      expect(render).not.toHaveBeenCalled()
+      expect(page).not.toHaveBeenCalled()
     })
 
-    it('should pass render context with blocks to the render function', async () => {
+    it('should pass the render context and blocks to the page function', async () => {
       // Arrange
       const testJourney = contentJourney('content-site', [
         step({
@@ -121,43 +123,99 @@ describe('StaticSiteGenerator', () => {
       ])
 
       const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
-      const render = vi.fn<StaticRenderFunction>(() => '<html></html>')
+      const page = vi.fn<StaticPageRenderer>(() => '<html></html>')
+      const renderer = new StaticHtmlRenderer({ page })
 
-      const generator = new StaticSiteGenerator({ forge, outputDir, render, logger: silentLogger })
+      const generator = new StaticSiteGenerator({ forge, outputDir, renderer, logger: silentLogger })
 
       // Act
       await generator.build()
 
       // Assert
-      expect(render).toHaveBeenCalledTimes(1)
+      expect(page).toHaveBeenCalledTimes(1)
 
-      const [context, componentRegistry, staticContext] = render.mock.calls[0]
+      const [{ context, blocks }] = page.mock.calls[0]
 
       expect(context.step.title).toBe('Content Page')
       expect(context.blocks).toHaveLength(2)
-      expect(context.blocks[0].variant).toBe('html')
-      expect(componentRegistry).toBeDefined()
-      expect(staticContext.basePath).toBe('../..')
+      expect(blocks).toHaveLength(2)
+      expect(blocks[0]).toContain('First block')
     })
 
-    it('should support async render functions', async () => {
+    it('should pass a two-segment basePath to the page function for a nested step', async () => {
       // Arrange
-      const testJourney = contentJourney('async-site', [
+      const testJourney = contentJourney('deep-site', [
         step({
           code: 'page',
           path: '/page',
-          title: 'Async Page',
-          blocks: [HtmlBlock({ content: '<p>Async content</p>' })],
+          title: 'Deep Page',
+          blocks: [HtmlBlock({ content: '<p>Deep</p>' })],
+        }),
+      ])
+
+      const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
+      const page = vi.fn<StaticPageRenderer>(() => '<html></html>')
+      const renderer = new StaticHtmlRenderer({ page })
+
+      const generator = new StaticSiteGenerator({ forge, outputDir, renderer, logger: silentLogger })
+
+      // Act
+      await generator.build()
+
+      // Assert
+      const [{ basePath }] = page.mock.calls[0]
+
+      expect(basePath).toBe('../..')
+    })
+
+    it('should pass a single-segment basePath to the page function for a top-level step', async () => {
+      // Arrange
+      const testJourney = journey({
+        code: 'root-site',
+        path: '/',
+        title: 'Root Site',
+        reachability: { disableReachabilityChecks: true },
+        steps: [
+          step({
+            code: 'page',
+            path: '/page',
+            title: 'Top Page',
+            blocks: [HtmlBlock({ content: '<p>Top</p>' })],
+          }),
+        ],
+      })
+
+      const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
+      const page = vi.fn<StaticPageRenderer>(() => '<html></html>')
+      const renderer = new StaticHtmlRenderer({ page })
+
+      const generator = new StaticSiteGenerator({ forge, outputDir, renderer, logger: silentLogger })
+
+      // Act
+      await generator.build()
+
+      // Assert
+      expect(page).toHaveBeenCalledTimes(1)
+
+      const [{ basePath }] = page.mock.calls[0]
+
+      expect(basePath).toBe('..')
+    })
+
+    it('should use the default renderer when no renderer is provided', async () => {
+      // Arrange
+      const testJourney = contentJourney('default-site', [
+        step({
+          code: 'page',
+          path: '/page',
+          title: 'Default Page',
+          blocks: [HtmlBlock({ content: '<p>Default content</p>' })],
         }),
       ])
 
       const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
 
-      const render = vi.fn<StaticRenderFunction>(async context => {
-        return `<html><body>${context.step.title}</body></html>`
-      })
-
-      const generator = new StaticSiteGenerator({ forge, outputDir, render, logger: silentLogger })
+      const generator = new StaticSiteGenerator({ forge, outputDir, logger: silentLogger })
 
       // Act
       const result = await generator.build()
@@ -165,9 +223,41 @@ describe('StaticSiteGenerator', () => {
       // Assert
       expect(result.pages).toHaveLength(1)
 
-      const content = fs.readFileSync(path.join(outputDir, 'async-site/page/index.html'), 'utf-8')
+      const html = fs.readFileSync(path.join(outputDir, 'default-site/page/index.html'), 'utf-8')
 
-      expect(content).toContain('Async Page')
+      expect(html).toContain('<!DOCTYPE html>')
+      expect(html).toContain('<h1>Default Page</h1>')
+      expect(html).toContain('Default content')
+    })
+
+    it('should skip a route that produces a non-render outcome', async () => {
+      // Arrange
+      const testJourney = contentJourney('redirect-site', [
+        step({
+          code: 'home',
+          path: '/home',
+          title: 'Home',
+          blocks: [HtmlBlock({ content: '<p>Home</p>' })],
+        }),
+        step({
+          code: 'away',
+          path: '/away',
+          title: 'Away',
+          onAccess: [access({ next: [redirect({ goto: '/redirect-site/home' })] })],
+          blocks: [HtmlBlock({ content: '<p>Away</p>' })],
+        }),
+      ])
+
+      const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
+
+      const generator = new StaticSiteGenerator({ forge, outputDir, logger: silentLogger })
+
+      // Act
+      const result = await generator.build()
+
+      // Assert
+      expect(result.pages).toHaveLength(1)
+      expect(result.skipped.some(s => s.reason === 'evaluation did not produce a render outcome')).toBe(true)
     })
 
     it('should return build result with page metadata', async () => {
@@ -182,9 +272,8 @@ describe('StaticSiteGenerator', () => {
       ])
 
       const forge = new Forge({ logger: silentLogger }).registerPackage({ journey: testJourney })
-      const render: StaticRenderFunction = () => '<html></html>'
 
-      const generator = new StaticSiteGenerator({ forge, outputDir, render, logger: silentLogger })
+      const generator = new StaticSiteGenerator({ forge, outputDir, logger: silentLogger })
 
       // Act
       const result = await generator.build()
