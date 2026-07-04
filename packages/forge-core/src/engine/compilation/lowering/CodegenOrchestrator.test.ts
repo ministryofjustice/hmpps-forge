@@ -277,9 +277,7 @@ describe('CodegenOrchestrator', () => {
         resumeAlways: false,
       }
       const plan: CompilationPlan = {
-        stepInputs: new Map([
-          [stepNode.id, createStepInputs({ stepNode, journeyId: journeyNode.id, staticData: { shared: 'step' } })],
-        ]),
+        stepInputs: new Map([[stepNode.id, createStepInputs({ stepNode, staticData: { shared: 'step' } })]]),
         journeyInputs: new Map([
           [
             journeyNode.id,
@@ -305,7 +303,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      orchestrator.compileAll(plan, new ASTNodeIndex())
+      orchestrator.compileAll(plan)
 
       // Assert
       const root = tracer.root
