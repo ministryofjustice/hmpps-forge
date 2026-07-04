@@ -1,4 +1,5 @@
 import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
@@ -59,6 +60,11 @@ export function defineTransformerFunctions<TShapes extends FunctionShapeMap, TDe
   transformers: TransformerFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineTransformerFunctions',
+    'defineTransformerFunctions is deprecated - use TransformerRegistry instead.',
+  )
+
   return {
     transformers: buildExpressionFunctions(factories, FunctionType.TRANSFORMER) as TransformerFunctions<TShapes>,
     implementations: tagFunctionType(factories, FunctionType.TRANSFORMER) as unknown as FunctionImplementations<

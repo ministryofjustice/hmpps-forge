@@ -1,4 +1,5 @@
 import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   ConditionFunctionGroup,
@@ -57,6 +58,11 @@ export function defineConditionFunctions<TShapes extends FunctionShapeMap, TDeps
   conditions: ConditionFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineConditionFunctions',
+    'defineConditionFunctions is deprecated - use ConditionRegistry instead.',
+  )
+
   return {
     conditions: buildExpressionFunctions(factories, FunctionType.CONDITION) as ConditionFunctions<TShapes>,
     implementations: tagFunctionType(factories, FunctionType.CONDITION) as unknown as FunctionImplementations<

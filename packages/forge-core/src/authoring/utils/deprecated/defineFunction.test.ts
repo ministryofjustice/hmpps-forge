@@ -1,3 +1,4 @@
+import type { MockInstance } from 'vitest'
 import { FunctionType } from '../../types/enums'
 import { ConditionFunctionExpr, EffectFunctionExpr, TransformerFunctionExpr } from '../../types/expressions.type'
 import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
@@ -6,6 +7,17 @@ import { defineConditionFunctions } from './defineConditionFunctions'
 import { defineEffectFunctions } from './defineEffectFunctions'
 import { defineGeneratorFunctions } from './defineGeneratorFunctions'
 import { defineTransformerFunctions } from './defineTransformerFunctions'
+
+// These utilities now emit runtime deprecation warnings; silence them so the suite output stays clean.
+let emitWarning: MockInstance<typeof process.emitWarning>
+
+beforeEach(() => {
+  emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('createFunctionsRegistry', () => {
   it('should materialise implementations into registry entries', () => {
@@ -384,5 +396,30 @@ describe('factory prepare hook', () => {
       name: 'Today',
       arguments: [],
     })
+  })
+})
+
+describe('deprecation warnings', () => {
+  const SEEN_CODES = Symbol.for('forge:deprecations')
+
+  beforeEach(() => {
+    // The seen-codes set lives on globalThis and persists across test files in the same worker,
+    // so clear it to make this assertion independent of what ran earlier.
+    delete (globalThis as Record<symbol, unknown>)[SEEN_CODES]
+  })
+
+  it('should emit FORGE_DEP_defineConditionFunctions once when defineConditionFunctions is called twice', () => {
+    // Arrange
+    const factories = { IsPositive: () => (value: unknown) => Number(value) > 0 }
+
+    // Act
+    defineConditionFunctions(factories)
+    defineConditionFunctions(factories)
+
+    // Assert
+    const deprecationCalls = emitWarning.mock.calls.filter(([, options]) => {
+      return typeof options === 'object' && options?.code === 'FORGE_DEP_defineConditionFunctions'
+    })
+    expect(deprecationCalls).toHaveLength(1)
   })
 })

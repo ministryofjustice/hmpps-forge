@@ -2,6 +2,7 @@ import { FunctionEvaluator } from '../../types/functions.type'
 import { ResolvableValue } from '../../types/expressions.type'
 import { FunctionType } from '../../types/enums'
 import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { extractPrepare, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
@@ -80,6 +81,11 @@ export function defineGeneratorFunctions<TShapes extends FunctionShapeMap, TDeps
   generators: GeneratorFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineGeneratorFunctions',
+    'defineGeneratorFunctions is deprecated - use GeneratorRegistry instead.',
+  )
+
   const generators = {} as GeneratorFunctions<TShapes>
 
   Object.keys(factories).forEach(name => {

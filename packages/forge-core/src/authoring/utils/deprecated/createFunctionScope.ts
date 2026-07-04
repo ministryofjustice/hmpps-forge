@@ -1,4 +1,5 @@
 import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { FunctionType } from '../../types/enums'
 import type {
   ConditionFunctionExpr,
@@ -83,6 +84,11 @@ const isSameFactory = <TDeps>(
  * @deprecated Use ConditionRegistry/TransformerRegistry/EffectRegistry/GeneratorRegistry inline instead.
  */
 export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_createFunctionScope',
+    'createFunctionScope is deprecated - use ConditionRegistry/TransformerRegistry/EffectRegistry/GeneratorRegistry inline instead.',
+  )
+
   const implementations: FunctionImplementations<FunctionShapeMap, TDeps> = {}
 
   const register = (name: string, factory: ScopedFunctionFactory<TDeps>): void => {
