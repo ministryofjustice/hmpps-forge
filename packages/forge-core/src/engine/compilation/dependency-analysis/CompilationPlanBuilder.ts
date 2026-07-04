@@ -50,7 +50,7 @@ export default class CompilationPlanBuilder {
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
-    const journeyStepMap = new Map<NodeId, StepASTNode[]>()
+    const journeyStepMap = new Map<NodeId, { journeyNode: JourneyASTNode; steps: StepASTNode[] }>()
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
     const reachabilityInputs = new Map<NodeId, ReachabilityCompilationInputs>()
@@ -67,20 +67,17 @@ export default class CompilationPlanBuilder {
 
       stepInputs.set(stepId, this.buildStepInputs(stepNode))
 
-      const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
-
-      existingJourneySteps.push(stepNode)
-      journeyStepMap.set(parentJourneyId, existingJourneySteps)
-    })
-
-    journeyStepMap.forEach((journeySteps, journeyId) => {
-      const journeyNode = journeyIndex.get(journeyId)
-
-      if (!journeyNode) {
-        throw new Error(`Journey "${journeyId}" grouping these steps was not registered as a journey`)
+      const existingEntry = journeyStepMap.get(parentJourneyId) ?? {
+        journeyNode: parentJourney as JourneyASTNode,
+        steps: [],
       }
 
-      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(journeySteps, journeyNode)
+      existingEntry.steps.push(stepNode)
+      journeyStepMap.set(parentJourneyId, existingEntry)
+    })
+
+    journeyStepMap.forEach(({ journeyNode, steps }, journeyId) => {
+      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(steps, journeyNode)
 
       reachabilityInputs.set(journeyId, {
         reachabilityId: journeyId,
