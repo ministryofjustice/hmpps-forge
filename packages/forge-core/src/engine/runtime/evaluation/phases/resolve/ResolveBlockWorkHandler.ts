@@ -94,5 +94,6 @@ function traceBegin(props: ResolveBlockWorkProps): WorkUnitFields {
 function traceComplete(output: RenderBlock): WorkUnitFields {
   return {
     visible: output.properties.visibleWhen !== false,
+    properties: output.properties,
   }
 }
