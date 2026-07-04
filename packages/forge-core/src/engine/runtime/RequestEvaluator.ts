@@ -101,7 +101,7 @@ export default class RequestEvaluator {
         snapshot,
         instrumentation,
         pipelineResult,
-        completed.workUnit,
+        completed.traceSpan,
         node,
         requestExecutionContext.routeTree,
       )
@@ -119,7 +119,7 @@ export default class RequestEvaluator {
           snapshot,
           instrumentation,
           unwrapped,
-          error.workUnit,
+          error.traceSpan,
           requestExecutionContext.context,
           node,
           requestExecutionContext.routeTree,

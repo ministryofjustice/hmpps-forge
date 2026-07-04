@@ -18,3 +18,6 @@ There is no side-channel source map and no hidden symbol metadata.
 | [`DSLSourceLocator.ts`](./DSLSourceLocator.ts) | Combines a root authored object with `DSLPathFormatter` to create `DSLSourceLocation` values |
 | [`DiagnosticErrorFormatter.ts`](./DiagnosticErrorFormatter.ts) | Formats diagnostic fields for error display and appends runtime diagnostic blocks to stack traces |
 | [`ForgeTraceSinkDispatcher.ts`](./ForgeTraceSinkDispatcher.ts) | Fans request trace events out to configured instrumentation sinks; `enabled` is true only when at least one sink is registered |
+| [`tracing/traceSpan.type.ts`](./tracing/traceSpan.type.ts) | Self-contained runtime trace primitives: `TraceSpanFields`, `TraceSpanReference`, `TraceSpanContract`, and the serialized `SerializedTraceSpan` |
+| [`tracing/TraceSpan.ts`](./tracing/TraceSpan.ts) | Mutable trace-span node recorded while a work task runs; captures timing, self time, begin/complete fields, output, and `omitFromTrace` |
+| [`tracing/TraceSpanSerializer.ts`](./tracing/TraceSpanSerializer.ts) | Serializes a `TraceSpan` tree into `SerializedTraceSpan` trace data and drops children marked `omitFromTrace` |

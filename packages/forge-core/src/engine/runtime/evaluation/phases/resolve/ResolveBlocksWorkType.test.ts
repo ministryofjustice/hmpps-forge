@@ -84,8 +84,8 @@ describe('ResolveBlocksWorkHandler', () => {
       const result = await executor.executeWithUnit(element, createContext())
 
       // Assert
-      expect(result.workUnit.beginFields).toEqual({ blocks: 2 })
-      expect(result.workUnit.completeFields).toEqual({ visibleBlocks: 1 })
+      expect(result.traceSpan.beginFields).toEqual({ blocks: 2 })
+      expect(result.traceSpan.completeFields).toEqual({ visibleBlocks: 1 })
     })
   })
 })

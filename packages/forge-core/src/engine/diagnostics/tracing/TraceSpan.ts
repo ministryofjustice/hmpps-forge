@@ -1,19 +1,19 @@
-import type { WorkUnitContract, WorkUnitFields } from '../../../contracts/runtime/work.type'
+import type { TraceSpanContract, TraceSpanFields } from './traceSpan.type'
 
-export default class WorkUnit implements WorkUnitContract {
-  private readonly workKey: string
+export default class TraceSpan implements TraceSpanContract {
+  private readonly spanKey: string
 
-  private readonly workKind: string
+  private readonly spanKind: string
 
-  private readonly parentWorkUnit?: WorkUnit
+  private readonly parentTraceSpan?: TraceSpan
 
-  private readonly childWorkUnits: WorkUnit[] = []
+  private readonly childTraceSpans: TraceSpan[] = []
 
   private readonly mutableStartedAtMs = performance.now()
 
-  private mutableBeginFields: WorkUnitFields = {}
+  private mutableBeginFields: TraceSpanFields = {}
 
-  private mutableCompleteFields: WorkUnitFields = {}
+  private mutableCompleteFields: TraceSpanFields = {}
 
   private mutableCompleted = false
 
@@ -27,33 +27,33 @@ export default class WorkUnit implements WorkUnitContract {
 
   private mutableOmitFromTrace = false
 
-  constructor(key: string, kind: string, parent?: WorkUnit) {
-    this.workKey = key
-    this.workKind = kind
-    this.parentWorkUnit = parent
+  constructor(key: string, kind: string, parent?: TraceSpan) {
+    this.spanKey = key
+    this.spanKind = kind
+    this.parentTraceSpan = parent
   }
 
   get key(): string {
-    return this.workKey
+    return this.spanKey
   }
 
   get kind(): string {
-    return this.workKind
+    return this.spanKind
   }
 
-  get parent(): WorkUnit | undefined {
-    return this.parentWorkUnit
+  get parent(): TraceSpan | undefined {
+    return this.parentTraceSpan
   }
 
-  get children(): readonly WorkUnit[] {
-    return this.childWorkUnits
+  get children(): readonly TraceSpan[] {
+    return this.childTraceSpans
   }
 
-  get beginFields(): WorkUnitFields {
+  get beginFields(): TraceSpanFields {
     return this.mutableBeginFields
   }
 
-  get completeFields(): WorkUnitFields {
+  get completeFields(): TraceSpanFields {
     return this.mutableCompleteFields
   }
 
@@ -85,19 +85,19 @@ export default class WorkUnit implements WorkUnitContract {
     return this.mutableOmitFromTrace
   }
 
-  addChild(childWorkUnit: WorkUnit): void {
-    this.childWorkUnits.push(childWorkUnit)
+  addChild(childTraceSpan: TraceSpan): void {
+    this.childTraceSpans.push(childTraceSpan)
   }
 
   addSelfTime(ms: number): void {
     this.mutableSelfDurationMs += ms
   }
 
-  recordTraceMetadataAtStart(traceMetadata: WorkUnitFields | undefined): void {
+  recordTraceMetadataAtStart(traceMetadata: TraceSpanFields | undefined): void {
     this.mutableBeginFields = traceMetadata ?? {}
   }
 
-  recordTraceMetadataAtFinish(traceMetadata: WorkUnitFields | undefined): void {
+  recordTraceMetadataAtFinish(traceMetadata: TraceSpanFields | undefined): void {
     this.mutableCompleteFields = traceMetadata ?? {}
   }
 

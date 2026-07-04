@@ -5,8 +5,8 @@ import type {
   WorkHandler,
   WorkInstrumentation,
   WorkTask,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 
 export interface RenderAssemblePageWorkProps {
   readonly renderContext: RenderContext
@@ -20,13 +20,13 @@ export const RENDER_ASSEMBLE_PAGE_KIND = 'render.assemble-page'
 export const RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION: WorkInstrumentation<RenderAssemblePageWorkProps, unknown> = {
   resolveTraceMetadataAtStart(
     ctx: WorkContextContract<RequestExecutionContext, RenderAssemblePageWorkProps>,
-  ): WorkUnitFields {
+  ): TraceSpanFields {
     return {
       renderedBlocks: (ctx.request.renderedBlocks ?? []).length,
     }
   },
 
-  resolveTraceMetadataAtFinish(): WorkUnitFields | undefined {
+  resolveTraceMetadataAtFinish(): TraceSpanFields | undefined {
     return undefined
   },
 }

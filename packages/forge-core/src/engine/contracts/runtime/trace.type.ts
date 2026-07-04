@@ -3,26 +3,13 @@ import type { JourneyReachabilityProjection } from '../reachability/journeyReach
 import type { AnswerHistory } from './answerHistory.type'
 import type { NodeId } from '../ast/ast.type'
 import type { StepValidityResult } from './stepValidityResult.type'
-import type { WorkUnitFields } from './work.type'
-
-export interface WorkUnitTrace {
-  readonly key: string
-  readonly kind: string
-  readonly beginFields: WorkUnitFields
-  readonly completeFields: WorkUnitFields
-  readonly completed: boolean
-  readonly startedAtMs: number
-  readonly completedAtMs?: number
-  readonly durationMs?: number
-  readonly selfDurationMs?: number
-  readonly children: readonly WorkUnitTrace[]
-}
+import type { SerializedTraceSpan, TraceSpanFields } from '../../diagnostics/tracing/traceSpan.type'
 
 export interface RuntimeContextSnapshotTrace {
   readonly key: string
   readonly kind: 'context-snapshot'
-  readonly beginFields: WorkUnitFields
-  readonly completeFields: WorkUnitFields
+  readonly beginFields: TraceSpanFields
+  readonly completeFields: TraceSpanFields
   readonly completed: true
   readonly children: readonly []
   readonly answers: Record<string, AnswerHistory>
@@ -31,7 +18,7 @@ export interface RuntimeContextSnapshotTrace {
   readonly reachability?: JourneyReachabilityProjection
 }
 
-export type RequestTraceUnit = WorkUnitTrace | RuntimeContextSnapshotTrace
+export type RequestTraceUnit = SerializedTraceSpan | RuntimeContextSnapshotTrace
 
 export interface RequestTracePhase {
   readonly phase: string

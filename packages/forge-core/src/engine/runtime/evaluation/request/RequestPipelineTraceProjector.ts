@@ -9,8 +9,8 @@ import type {
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
 } from '../../../contracts/runtime/trace.type'
-import type WorkUnit from '../work/WorkUnit'
-import WorkUnitTraceSerializer from '../work/tracing/WorkUnitTraceSerializer'
+import type TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import TraceSpanSerializer from '../../../diagnostics/tracing/TraceSpanSerializer'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
@@ -18,13 +18,13 @@ import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { RouteTree, RouteTreeNode } from '../../../../framework/rendering/types'
 
 export default class RequestPipelineTraceProjector {
-  private readonly serializer = new WorkUnitTraceSerializer()
+  private readonly serializer = new TraceSpanSerializer()
 
   emitTrace(
     snapshot: RequestSnapshot,
     instrumentation: ForgeInstrumentation,
     result: RequestPipelineResult,
-    rootWorkUnit: WorkUnit,
+    rootTraceSpan: TraceSpan,
     node: MountedNode,
     routeTree: RouteTree | undefined,
   ): void {
@@ -32,7 +32,7 @@ export default class RequestPipelineTraceProjector {
       return
     }
 
-    const phases = this.project(rootWorkUnit)
+    const phases = this.project(rootTraceSpan)
 
     if (phases.length === 0) {
       return
@@ -42,7 +42,7 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome, ...this.traceTiming(rootWorkUnit), ...this.resultDetail(result), phases },
+      trace: { outcome, ...this.traceTiming(rootTraceSpan), ...this.resultDetail(result), phases },
       route: this.traceRoute(node, routeTree),
     })
   }
@@ -51,7 +51,7 @@ export default class RequestPipelineTraceProjector {
     snapshot: RequestSnapshot,
     instrumentation: ForgeInstrumentation,
     error: unknown,
-    rootWorkUnit: WorkUnit,
+    rootTraceSpan: TraceSpan,
     context: RuntimeContext,
     node: MountedNode,
     routeTree: RouteTree | undefined,
@@ -60,7 +60,7 @@ export default class RequestPipelineTraceProjector {
       return
     }
 
-    const phases = this.projectFailed(rootWorkUnit, context)
+    const phases = this.projectFailed(rootTraceSpan, context)
 
     if (phases.length === 0) {
       return
@@ -68,12 +68,12 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), error: this.errorDetail(error), phases },
+      trace: { outcome: 'error', ...this.traceTiming(rootTraceSpan), error: this.errorDetail(error), phases },
       route: this.traceRoute(node, routeTree),
     })
   }
 
-  private project(rootUnit: WorkUnit): RequestTracePhase[] {
+  private project(rootUnit: TraceSpan): RequestTracePhase[] {
     return rootUnit.children.map(phaseUnit => {
       const phase = this.phaseName(phaseUnit.kind)
       const units: RequestTraceUnit[] = phaseUnit.children.map(child => this.serializer.serialize(child))
@@ -86,7 +86,7 @@ export default class RequestPipelineTraceProjector {
     })
   }
 
-  projectFailed(rootUnit: WorkUnit, context: RuntimeContext): RequestTracePhase[] {
+  projectFailed(rootUnit: TraceSpan, context: RuntimeContext): RequestTracePhase[] {
     const phases = this.project(rootUnit)
     const failedIndex = rootUnit.children.length - 1
     const failedPhase = phases[failedIndex]
@@ -181,11 +181,11 @@ export default class RequestPipelineTraceProjector {
     return [active, ...this.collectActiveBranch(active.children)]
   }
 
-  private traceTiming(workUnit: WorkUnit): Pick<RequestTrace, 'startedAtMs' | 'completedAtMs' | 'durationMs'> {
+  private traceTiming(traceSpan: TraceSpan): Pick<RequestTrace, 'startedAtMs' | 'completedAtMs' | 'durationMs'> {
     return {
-      startedAtMs: workUnit.startedAtMs,
-      completedAtMs: workUnit.completedAtMs,
-      durationMs: workUnit.durationMs,
+      startedAtMs: traceSpan.startedAtMs,
+      completedAtMs: traceSpan.completedAtMs,
+      durationMs: traceSpan.durationMs,
     }
   }
 

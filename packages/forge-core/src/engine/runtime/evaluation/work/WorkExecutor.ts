@@ -1,7 +1,8 @@
 import WorkContext from './WorkContext'
-import WorkUnit from './WorkUnit'
 import WorkExecutionError from './WorkExecutionError'
-import type { CompletedWork, WorkGroup, WorkTask, WorkUnitFields } from '../../../contracts/runtime/work.type'
+import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { CompletedWork, WorkGroup, WorkTask } from '../../../contracts/runtime/work.type'
 import type { WorkOutputOf } from '../../../contracts/runtime/workOutput.type'
 
 type FirstMatchWorkGroup = Extract<WorkGroup, { readonly mode: 'first-match' }>
@@ -13,7 +14,7 @@ export type WorkExecutionResult<TWorkKind extends string> = CompletedWork<WorkOu
 
 export interface WorkExecutionResultWithUnit<TWorkKind extends string> {
   readonly completedWork: WorkExecutionResult<TWorkKind>
-  readonly workUnit: WorkUnit
+  readonly traceSpan: TraceSpan
 }
 
 export default class WorkExecutor {
@@ -23,56 +24,56 @@ export default class WorkExecutor {
     task: WorkTask<TWorkKind>,
     ctx: WorkContext,
   ): Promise<WorkExecutionResult<TWorkKind>> {
-    const workUnit = this.createWorkUnit(task, ctx)
+    const traceSpan = this.createTraceSpan(task, ctx)
 
-    return this.runUnit(task, ctx, workUnit)
+    return this.runUnit(task, ctx, traceSpan)
   }
 
   async executeWithUnit<TWorkKind extends string>(
     task: WorkTask<TWorkKind>,
     ctx: WorkContext,
   ): Promise<WorkExecutionResultWithUnit<TWorkKind>> {
-    const workUnit = this.createWorkUnit(task, ctx)
+    const traceSpan = this.createTraceSpan(task, ctx)
 
     try {
-      const completedWork = await this.runUnit(task, ctx, workUnit)
+      const completedWork = await this.runUnit(task, ctx, traceSpan)
 
-      return { completedWork, workUnit }
+      return { completedWork, traceSpan }
     } catch (error) {
-      throw new WorkExecutionError(error, workUnit)
+      throw new WorkExecutionError(error, traceSpan)
     }
   }
 
-  private createWorkUnit(task: WorkTask, ctx: WorkContext): WorkUnit {
-    const parentWorkUnit = ctx.work
+  private createTraceSpan(task: WorkTask, ctx: WorkContext): TraceSpan {
+    const parentTraceSpan = ctx.work
 
-    if (parentWorkUnit !== undefined && !(parentWorkUnit instanceof WorkUnit)) {
-      throw new Error('[Forge] Work context parent must be a WorkUnit to nest in the trace tree')
+    if (parentTraceSpan !== undefined && !(parentTraceSpan instanceof TraceSpan)) {
+      throw new Error('[Forge] Work context parent must be a TraceSpan to nest in the trace tree')
     }
 
-    const workUnit = new WorkUnit(task.key, task.handler.kind, parentWorkUnit)
+    const traceSpan = new TraceSpan(task.key, task.handler.kind, parentTraceSpan)
 
-    parentWorkUnit?.addChild(workUnit)
+    parentTraceSpan?.addChild(traceSpan)
 
-    return workUnit
+    return traceSpan
   }
 
   private async runUnit<TWorkKind extends string>(
     task: WorkTask<TWorkKind>,
     ctx: WorkContext,
-    workUnit: WorkUnit,
+    traceSpan: TraceSpan,
   ): Promise<WorkExecutionResult<TWorkKind>> {
-    const workCtx = ctx.withWork(workUnit, task.props)
+    const workCtx = ctx.withWork(traceSpan, task.props)
     const traceMetadataAtStart = this.resolveTraceMetadataAtStart(task, workCtx)
 
-    workUnit.recordTraceMetadataAtStart(traceMetadataAtStart)
+    traceSpan.recordTraceMetadataAtStart(traceMetadataAtStart)
 
     // Measure only the synchronous span of the handler calls: awaiting across a suspension
     // would fold in siblings' interleaved work, which is exactly the queue-wait smear we drop.
     const beginStartedAtMs = performance.now()
     const beginResult = task.handler.begin(workCtx)
 
-    workUnit.addSelfTime(performance.now() - beginStartedAtMs)
+    traceSpan.addSelfTime(performance.now() - beginStartedAtMs)
 
     const begin = await beginResult
     const children: CompletedWork[] = []
@@ -86,13 +87,13 @@ export default class WorkExecutor {
     const completeStartedAtMs = performance.now()
     const completeResult = this.completeWork(task, workCtx, children, begin.output)
 
-    workUnit.addSelfTime(performance.now() - completeStartedAtMs)
+    traceSpan.addSelfTime(performance.now() - completeStartedAtMs)
 
     const output = await completeResult
     const traceMetadataAtFinish = this.resolveTraceMetadataAtFinish(task, workCtx, output)
 
-    workUnit.recordTraceMetadataAtFinish(traceMetadataAtFinish)
-    workUnit.complete(output)
+    traceSpan.recordTraceMetadataAtFinish(traceMetadataAtFinish)
+    traceSpan.complete(output)
 
     return {
       key: task.key,
@@ -148,7 +149,7 @@ export default class WorkExecutor {
   private resolveTraceMetadataAtStart<TWorkKind extends string>(
     task: WorkTask<TWorkKind>,
     ctx: WorkContext,
-  ): WorkUnitFields | undefined {
+  ): TraceSpanFields | undefined {
     if (!this.traceEnabled || !isInstrumentedWorkTask(task)) {
       return undefined
     }
@@ -160,7 +161,7 @@ export default class WorkExecutor {
     task: WorkTask<TWorkKind>,
     ctx: WorkContext,
     output: WorkOutputOf<TWorkKind>,
-  ): WorkUnitFields | undefined {
+  ): TraceSpanFields | undefined {
     if (!this.traceEnabled || !isInstrumentedWorkTask(task)) {
       return undefined
     }
