@@ -2,6 +2,7 @@ import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import { captureContextSnapshot, type ContextSnapshotData } from '../work/tracing/contextSnapshot'
 import type {
+  RequestTrace,
   RequestTracePhase,
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
@@ -32,7 +33,7 @@ export default class RequestPipelineTraceProjector {
 
     const outcome = this.traceOutcome(result)
 
-    instrumentation.onRequestTrace({ snapshot, trace: { outcome, phases } })
+    instrumentation.onRequestTrace({ snapshot, trace: { outcome, ...this.traceTiming(rootWorkUnit), phases } })
   }
 
   emitFailedTrace(
@@ -51,7 +52,7 @@ export default class RequestPipelineTraceProjector {
       return
     }
 
-    instrumentation.onRequestTrace({ snapshot, trace: { outcome: 'error', phases } })
+    instrumentation.onRequestTrace({ snapshot, trace: { outcome: 'error', ...this.traceTiming(rootWorkUnit), phases } })
   }
 
   private project(rootUnit: WorkUnit): RequestTracePhase[] {
@@ -63,7 +64,7 @@ export default class RequestPipelineTraceProjector {
         units.push(this.toContextSnapshotUnit(phase, phaseUnit.completeFields as ContextSnapshotData))
       }
 
-      return { phase, units }
+      return { phase, ...this.traceTiming(phaseUnit), units }
     })
   }
 
@@ -105,6 +106,14 @@ export default class RequestPipelineTraceProjector {
     }
 
     return result.kind
+  }
+
+  private traceTiming(workUnit: WorkUnit): Pick<RequestTrace, 'startedAtMs' | 'completedAtMs' | 'durationMs'> {
+    return {
+      startedAtMs: workUnit.startedAtMs,
+      completedAtMs: workUnit.completedAtMs,
+      durationMs: workUnit.durationMs,
+    }
   }
 
   private phaseName(kind: string): string {

@@ -96,6 +96,9 @@ function createTraceEvent(pathname: string): RequestTraceEvent {
     },
     trace: {
       outcome: 'render',
+      startedAtMs: 0,
+      completedAtMs: 1,
+      durationMs: 1,
       phases: [],
     },
   }

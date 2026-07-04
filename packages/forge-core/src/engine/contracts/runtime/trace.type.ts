@@ -34,11 +34,17 @@ export type RequestTraceUnit = WorkUnitTrace | RuntimeContextSnapshotTrace
 
 export interface RequestTracePhase {
   readonly phase: string
+  readonly startedAtMs: number
+  readonly completedAtMs?: number
+  readonly durationMs?: number
   readonly units: readonly RequestTraceUnit[]
 }
 
 export interface RequestTrace {
   readonly outcome: 'render' | 'redirect' | 'error'
+  readonly startedAtMs: number
+  readonly completedAtMs?: number
+  readonly durationMs?: number
   readonly phases: readonly RequestTracePhase[]
 }
 
