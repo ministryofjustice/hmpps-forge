@@ -64,40 +64,55 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   options: CompileOptions = {},
 ): TFunction {
   const phase = options.phase ?? 'unknown'
-  const source = wrapGeneratedSource(buildGeneratedSource(expr, buildSource))
-  const usesAwait = options.forceAsync === true || expr.usesAwait
-  let compiled: GeneratedFunction
+  const tracer = expr.tracer
 
-  try {
-    compiled = createCompiledFunction<GeneratedFunction>(
-      [...parameterNames, GENERATED_FUNCTION_HELPERS_PARAM, RUNTIME_DIAGNOSTICS_PARAM],
-      source,
-      usesAwait,
-    )
-  } catch (cause) {
-    throw new ForgeCompilationError({ phase, cause })
-  }
+  return tracer.span(
+    `codegen:${phase}`,
+    'codegen.function',
+    span => {
+      const source = wrapGeneratedSource(buildGeneratedSource(expr, buildSource))
+      const usesAwait = options.forceAsync === true || expr.usesAwait
+      let compiled: GeneratedFunction
 
-  const wrapped: GeneratedFunction = (...args: never[]) => {
-    const runtimeDiagnostics = createRuntimeDiagnostics(phase)
-    const runtimeArgs = parameterNames.map((_, index) => args[index])
-
-    try {
-      const result = Reflect.apply(compiled, undefined, [...runtimeArgs, generatedFunctionHelpers, runtimeDiagnostics])
-
-      if (isPromiseLike(result)) {
-        return Promise.resolve(result).catch((error: unknown) => {
-          throw runtimeDiagnostics.wrap(error)
-        })
+      try {
+        compiled = createCompiledFunction<GeneratedFunction>(
+          [...parameterNames, GENERATED_FUNCTION_HELPERS_PARAM, RUNTIME_DIAGNOSTICS_PARAM],
+          source,
+          usesAwait,
+        )
+      } catch (cause) {
+        throw new ForgeCompilationError({ phase, cause })
       }
 
-      return result
-    } catch (error) {
-      throw runtimeDiagnostics.wrap(error)
-    }
-  }
+      const wrapped: GeneratedFunction = (...args: never[]) => {
+        const runtimeDiagnostics = createRuntimeDiagnostics(phase)
+        const runtimeArgs = parameterNames.map((_, index) => args[index])
 
-  return wrapped as TFunction
+        try {
+          const result = Reflect.apply(compiled, undefined, [
+            ...runtimeArgs,
+            generatedFunctionHelpers,
+            runtimeDiagnostics,
+          ])
+
+          if (isPromiseLike(result)) {
+            return Promise.resolve(result).catch((error: unknown) => {
+              throw runtimeDiagnostics.wrap(error)
+            })
+          }
+
+          return result
+        } catch (error) {
+          throw runtimeDiagnostics.wrap(error)
+        }
+      }
+
+      span?.recordTraceMetadataAtFinish({ async: usesAwait })
+
+      return wrapped as TFunction
+    },
+    { phase },
+  )
 }
 
 const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics => {

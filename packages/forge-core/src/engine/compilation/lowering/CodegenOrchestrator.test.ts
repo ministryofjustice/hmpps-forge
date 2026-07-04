@@ -7,6 +7,7 @@ import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../
 import type { FieldBlockASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
 import CodegenOrchestrator from './CodegenOrchestrator'
 
 describe('CodegenOrchestrator', () => {
@@ -256,6 +257,75 @@ describe('CodegenOrchestrator', () => {
       expect([...Array.from(compiledStep?.compiledStepValidations.keys() ?? [])]).toEqual([])
       expect([...Array.from(compiledValidatingStep?.compiledStepValidations.keys() ?? [])]).toEqual([])
       expect([...Array.from(compiledJourney?.compiledStepValidations.keys() ?? [])]).toEqual([])
+    })
+
+    it('should record nested codegen spans for package, journey, step, and function work when tracing', () => {
+      // Arrange
+      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
+      const stepNode = ASTTestFactory.step().withPath('/first').build()
+      const stateTable: ReachabilityStateTable = {
+        entries: [{ stepId: stepNode.id, isEntryPoint: false }],
+        resumeConfigured: false,
+        unreachableRedirect: 'entry',
+        reachabilityDisabled: false,
+      }
+      const reachabilityPlan: ReachabilityCompilationPlan = {
+        stateTable,
+        entries: [
+          {
+            stepId: stepNode.id,
+            isEntryPoint: false,
+            forwardOutcomeGroups: [],
+            cleardownFieldCodes: [],
+            reachabilityTieBreakers: [],
+          },
+        ],
+        resumeAlways: false,
+      }
+      const plan: CompilationPlan = {
+        stepInputs: new Map([
+          [stepNode.id, createStepInputs({ stepNode, journeyId: journeyNode.id, staticData: { shared: 'step' } })],
+        ]),
+        journeyInputs: new Map([
+          [
+            journeyNode.id,
+            {
+              runtimePlan: { journeyId: journeyNode.id, path: 'journey' },
+              staticData: { shared: 'journey' },
+              stepFieldBlocks: [],
+              stepMapIterateNodes: [],
+              accessHooks: [],
+            },
+          ],
+        ]),
+        reachabilityInputs: new Map([
+          [journeyNode.id, { reachabilityId: journeyNode.id, stateTable, reachabilityPlan, fieldInventorySources: [] }],
+        ]),
+        routeMetadataInputs: new Map(),
+      }
+      const tracer = new CompilationTracer({ enabled: true })
+      const orchestrator = new CodegenOrchestrator({
+        functionRegistry: new FunctionRegistry(),
+        componentRegistry: new ComponentRegistry(),
+        tracer,
+      })
+
+      // Act
+      orchestrator.compileAll(plan, new ASTNodeIndex())
+
+      // Assert
+      const root = tracer.root
+      const packageFunctionsSpan = root?.children.find(child => child.kind === 'codegen.package-functions')
+      const journeySpan = root?.children.find(child => child.kind === 'codegen.journey')
+      const stepSpan = journeySpan?.children.find(child => child.kind === 'codegen.step')
+      const stepFunctionSpans = stepSpan?.children.filter(child => child.kind === 'codegen.function') ?? []
+
+      expect(packageFunctionsSpan?.key).toBe('package-functions')
+      expect(journeySpan?.key).toBe(`journey:${journeyNode.id}`)
+      expect(journeySpan?.beginFields).toEqual({ nodeId: journeyNode.id })
+      expect(stepSpan?.key).toBe(`step:${stepNode.id}`)
+      expect(stepSpan?.beginFields).toEqual({ nodeId: stepNode.id })
+      expect(stepFunctionSpans.length).toBeGreaterThan(0)
     })
   })
 })

@@ -5,6 +5,7 @@ import ForgeRuntimeEvaluationError, {
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
+import CompilationTracer from '../../../diagnostics/tracing/CompilationTracer'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
@@ -85,6 +86,70 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Assert
       expect(result).toBe('red')
+    })
+
+    it('should record a completed codegen.function span when the tracer is enabled', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+
+      // Assert
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+
+      expect(span?.key).toBe('codegen:render')
+      expect(span?.beginFields).toEqual({ phase: 'render' })
+      expect(span?.completeFields).toEqual({ async: false })
+      expect(span?.completed).toBe(true)
+    })
+
+    it('should record async completion metadata when the function is forced async', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', {
+        phase: 'render',
+        forceAsync: true,
+      })
+
+      // Assert
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+
+      expect(span?.completeFields).toEqual({ async: true })
+    })
+
+    it('should leave the codegen.function span incomplete when source construction fails', () => {
+      // Arrange
+      const tracer = new CompilationTracer({ enabled: true })
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      const compile = () =>
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
+
+      // Assert
+      expect(compile).toThrow(ForgeCompilationError)
+
+      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
+
+      expect(span?.completed).toBe(false)
+    })
+
+    it('should record no spans when the tracer is disabled', () => {
+      // Arrange
+      const tracer = CompilationTracer.disabled
+      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
+
+      // Act
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+
+      // Assert
+      expect(tracer.root).toBeUndefined()
+      expect(Reflect.apply(fn, undefined, [{}])).toBe(true)
     })
   })
 })
