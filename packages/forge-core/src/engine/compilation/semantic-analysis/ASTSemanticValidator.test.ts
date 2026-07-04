@@ -1696,6 +1696,187 @@ describe('ASTSemanticValidator', () => {
     })
   })
 
+  describe('structure scope', () => {
+    const functionRegistry = new FunctionRegistry()
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should allow steps in journey steps arrays and journeys in children arrays', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child',
+            title: 'Child',
+            steps: [{ type: StructureType.STEP, path: '/step2', title: 'Step 2', blocks: [] } as StepDefinition],
+          },
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+    })
+
+    it('should reject a step defined inside a block property', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                content: { type: StructureType.STEP, path: '/stray', title: 'Stray' },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'step_outside_journey_steps',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+
+    it('should reject a journey defined inside a block property', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                content: { type: StructureType.JOURNEY, path: '/stray', code: 'stray', title: 'Stray' },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'journey_outside_journey_children',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+  })
+
+  describe('block scope', () => {
+    const functionRegistry = new FunctionRegistry()
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerMany([
+      buildComponent('text', () => '<input />'),
+      buildComponent('wrapper', () => '<div />'),
+    ])
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should allow blocks in step blocks arrays and nested within other blocks', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'wrapper',
+                content: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+              } as unknown as BlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+    })
+
+    it('should reject a block defined inside journey metadata', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        metadata: {
+          banner: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+        },
+        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'block_outside_blocks',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+  })
+
   describe('container types', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({

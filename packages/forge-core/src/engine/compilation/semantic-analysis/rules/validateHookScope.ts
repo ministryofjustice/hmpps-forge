@@ -1,5 +1,6 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { NodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
@@ -9,10 +10,14 @@ import { walkTemplateValue } from './templateWalker'
 function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
-    message: 'Hooks can only be used on steps (onAccess, onSubmission) or journeys (onAccess)',
+    message: 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
     code: 'hook_outside_step_or_journey',
     formattedPath: source?.formattedPath ?? 'unknown',
   })
+}
+
+function containsNode(container: unknown, nodeId: NodeId): boolean {
+  return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
 }
 
 export const validateHookScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
@@ -31,6 +36,15 @@ export const validateHookScope: ASTValidationRule = (context: ASTValidationConte
     const parent = nodeIndex.get(parentId)
 
     if (!parent || (parent.type !== ASTNodeType.JOURNEY && parent.type !== ASTNodeType.STEP)) {
+      errors.push(buildError(node.diagnostics?.source))
+
+      return
+    }
+
+    const inAccess = containsNode(parent.properties?.onAccess, node.id)
+    const inSubmission = parent.type === ASTNodeType.STEP && containsNode(parent.properties?.onSubmission, node.id)
+
+    if (!inAccess && !inSubmission) {
       errors.push(buildError(node.diagnostics?.source))
     }
   })
