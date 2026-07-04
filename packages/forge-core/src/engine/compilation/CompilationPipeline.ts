@@ -15,6 +15,7 @@ import CompilationPlanBuilder from './dependency-analysis/CompilationPlanBuilder
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
 import ASTSemanticValidator from './semantic-analysis/ASTSemanticValidator'
 import getAncestorChain from './ast/ast-state/getAncestorChain'
+import CompilationTracer from '../diagnostics/tracing/CompilationTracer'
 
 type AstContext = {
   rootNode: JourneyASTNode
@@ -23,16 +24,26 @@ type AstContext = {
 }
 
 export default class CompilationPipeline {
-  constructor(private readonly dependencies: CompilationDependencies) {}
+  private readonly tracer: CompilationTracer
+
+  constructor(private readonly dependencies: CompilationDependencies) {
+    this.tracer = dependencies.tracer ?? CompilationTracer.disabled
+  }
 
   compile(journeyDef: JourneyDefinition): CompiledPackage {
-    const ast = this.buildAstTree(journeyDef)
+    const ast = this.tracer.span('build-ast-tree', 'compilation.ast', () => this.buildAstTree(journeyDef))
 
-    this.validateSemantics(ast)
+    this.tracer.recordJourneyCode(ast.rootNode.properties.code)
 
-    const plan = this.buildCompilationPlan(ast)
-    const compiledArtifacts = this.lowerCompilationPlan(plan, ast.nodeRegistry)
-    const routes = this.buildRouteIndexes(ast)
+    this.tracer.span('validate-semantics', 'compilation.semantic-analysis', () => this.validateSemantics(ast))
+
+    const plan = this.tracer.span('build-compilation-plan', 'compilation.dependency-analysis', () =>
+      this.buildCompilationPlan(ast),
+    )
+    const compiledArtifacts = this.tracer.span('lower-compilation-plan', 'compilation.lowering', () =>
+      this.lowerCompilationPlan(plan, ast.nodeRegistry),
+    )
+    const routes = this.tracer.span('build-route-indexes', 'compilation.routes', () => this.buildRouteIndexes(ast))
 
     return {
       journeyCode: ast.rootNode.properties.code,

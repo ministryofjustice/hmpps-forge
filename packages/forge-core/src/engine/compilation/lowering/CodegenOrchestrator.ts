@@ -27,42 +27,63 @@ import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'
+import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
 
 export default class CodegenOrchestrator {
-  constructor(private readonly dependencies: CompilationDependencies) {}
+  private readonly tracer: CompilationTracer
+
+  constructor(private readonly dependencies: CompilationDependencies) {
+    this.tracer = dependencies.tracer ?? CompilationTracer.disabled
+  }
 
   compileAll(
     plan: CompilationPlan,
     nodeRegistry: ASTNodeIndex,
   ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const packageFunctions = this.compilePackageFunctions(plan.routeMetadataInputs)
+    const packageFunctions = this.tracer.span('package-functions', 'codegen.package-functions', () =>
+      this.compilePackageFunctions(plan.routeMetadataInputs),
+    )
     const journeys = new Map<NodeId, CompiledJourney>()
     const steps = new Map<NodeId, CompiledStep>()
 
     plan.journeyInputs.forEach((journeyInputs, journeyId) => {
-      const reachabilityInputs = this.resolveReachabilityInputs(plan, journeyId)
-      const journeyFunctions = this.compileJourneyFunctions(plan, nodeRegistry, journeyInputs, reachabilityInputs)
-      const journeyStepIds = this.resolveJourneyStepIds(reachabilityInputs.stateTable)
+      this.tracer.span(
+        `journey:${journeyId}`,
+        'codegen.journey',
+        () => {
+          const reachabilityInputs = this.resolveReachabilityInputs(plan, journeyId)
+          const journeyFunctions = this.compileJourneyFunctions(plan, nodeRegistry, journeyInputs, reachabilityInputs)
+          const journeyStepIds = this.resolveJourneyStepIds(reachabilityInputs.stateTable)
 
-      journeys.set(journeyId, {
-        runtimePlan: journeyInputs.runtimePlan,
-        ...journeyFunctions,
-        ...packageFunctions,
-      })
+          journeys.set(journeyId, {
+            runtimePlan: journeyInputs.runtimePlan,
+            ...journeyFunctions,
+            ...packageFunctions,
+          })
 
-      journeyStepIds.forEach(stepId => {
-        const stepInputs = this.resolveStepInputs(plan, stepId)
-        const stepFunctions = this.compileStepFunctions(stepInputs)
+          journeyStepIds.forEach(stepId => {
+            this.tracer.span(
+              `step:${stepId}`,
+              'codegen.step',
+              () => {
+                const stepInputs = this.resolveStepInputs(plan, stepId)
+                const stepFunctions = this.compileStepFunctions(stepInputs)
 
-        steps.set(stepId, {
-          runtimePlan: stepInputs.core.runtimePlan,
-          compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
-          compiledReachabilityState: journeyFunctions.compiledReachabilityState,
-          compiledStepValidations: journeyFunctions.compiledStepValidations,
-          ...stepFunctions,
-          ...packageFunctions,
-        })
-      })
+                steps.set(stepId, {
+                  runtimePlan: stepInputs.core.runtimePlan,
+                  compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
+                  compiledReachabilityState: journeyFunctions.compiledReachabilityState,
+                  compiledStepValidations: journeyFunctions.compiledStepValidations,
+                  ...stepFunctions,
+                  ...packageFunctions,
+                })
+              },
+              { nodeId: stepId },
+            )
+          })
+        },
+        { nodeId: journeyId },
+      )
     })
 
     return { steps, journeys }
@@ -130,7 +151,9 @@ export default class CodegenOrchestrator {
       compiledStaticData: this.compileStaticData(inputs.staticData),
       compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
       compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
-      compiledStepValidations: this.compileJourneyValidationIndex(plan, stateTable),
+      compiledStepValidations: this.tracer.span('validation-index', 'codegen.validation-index', () =>
+        this.compileJourneyValidationIndex(plan, stateTable),
+      ),
     }
   }
 

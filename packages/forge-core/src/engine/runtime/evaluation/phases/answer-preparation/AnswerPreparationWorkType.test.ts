@@ -93,11 +93,11 @@ describe('AnswerPreparationWorkHandler', () => {
       const result = await new WorkExecutor().executeWithUnit(task, context)
 
       // Assert
-      expect(result.workUnit.kind).toBe(ANSWER_PREPARATION_KIND)
-      expect(result.workUnit.completeFields.answers).toEqual(context.request.context.domain.answers)
-      expect(result.workUnit.children[0].kind).toBe(FIELD_ANSWER_PREPARATION_KIND)
-      expect(result.workUnit.children[0].beginFields).toEqual({ code: 'name', mode: 'GET' })
-      expect(result.workUnit.children[0].completeFields).toEqual({
+      expect(result.traceSpan.kind).toBe(ANSWER_PREPARATION_KIND)
+      expect(result.traceSpan.completeFields.answers).toEqual(context.request.context.domain.answers)
+      expect(result.traceSpan.children[0].kind).toBe(FIELD_ANSWER_PREPARATION_KIND)
+      expect(result.traceSpan.children[0].beginFields).toEqual({ code: 'name', mode: 'GET' })
+      expect(result.traceSpan.children[0].completeFields).toEqual({
         code: 'name',
         mode: 'GET',
         mutationCount: 1,

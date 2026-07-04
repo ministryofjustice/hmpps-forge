@@ -1,11 +1,7 @@
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
 import type { CompiledAccessHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import type {
-  WorkContextContract,
-  WorkHandler,
-  WorkInstrumentation,
-  WorkUnitFields,
-} from '../../../../contracts/runtime/work.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type { AccessHookNextWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
 
@@ -54,7 +50,7 @@ export const ACCESS_HOOK_NEXT_WORK_HANDLER: WorkHandler<'access.hook.next', Acce
   },
 }
 
-function traceComplete(output: HookStageResult<CompiledAccessHookResult>): WorkUnitFields {
+function traceComplete(output: HookStageResult<CompiledAccessHookResult>): TraceSpanFields {
   return output.status === 'terminal'
     ? { executed: output.result.executed, outcome: output.result.outcome }
     : { outcome: 'continue' }

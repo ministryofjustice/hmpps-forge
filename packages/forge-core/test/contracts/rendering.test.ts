@@ -3,7 +3,7 @@ import type { ComponentRegistryEntry } from '../../src/components/types/componen
 import type { BlockDefinition, EvaluatedBlock } from '../../src/components'
 import type { ForgeRenderer, RenderContext } from '../../src/framework/rendering/types'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import type { WorkUnitTrace } from '../../src/engine/contracts/runtime/trace.type'
+import type { SerializedTraceSpan } from '../../src/engine/diagnostics/tracing/traceSpan.type'
 import { createRenderClient, createTracedRenderClient } from './contractHelpers'
 import {
   basicRenderJourney,
@@ -62,7 +62,7 @@ function createRecordingRenderer(options: { asyncAssemble?: boolean } = {}): Rec
   return { renderer, calls }
 }
 
-function renderBlockUnits(traces: RequestTraceEvent[]): readonly WorkUnitTrace[] {
+function renderBlockUnits(traces: RequestTraceEvent[]): readonly SerializedTraceSpan[] {
   const renderPhase = traces[0].trace.phases.find(phase => phase.phase === 'render')
   const renderBlocksUnit = renderPhase?.units.find(unit => unit.kind === 'render.render-blocks')
 

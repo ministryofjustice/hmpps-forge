@@ -5,8 +5,8 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import type { ResolveBlocksOutput } from '../../../../contracts/runtime/resolveBlocksOutput.type'
 import { childOutputs } from '../../work/workTask'
 import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'
@@ -57,13 +57,13 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
   },
 }
 
-function traceBegin(props: ResolveBlocksWorkProps): WorkUnitFields {
+function traceBegin(props: ResolveBlocksWorkProps): TraceSpanFields {
   return {
     blocks: props.blocks.length,
   }
 }
 
-function traceComplete(output: ResolveBlocksOutput): WorkUnitFields {
+function traceComplete(output: ResolveBlocksOutput): TraceSpanFields {
   return {
     visibleBlocks: output.blocks.filter(block => block.properties.visibleWhen !== false).length,
   }

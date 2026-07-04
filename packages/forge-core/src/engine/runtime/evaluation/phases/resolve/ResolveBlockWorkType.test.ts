@@ -1,7 +1,7 @@
 import { BlockType } from '../../../../../authoring/types/enums'
 import type { CompiledResolveContext } from '../../../../contracts/compiled/compiledContexts.type'
 import WorkContext from '../../work/WorkContext'
-import WorkUnit from '../../work/WorkUnit'
+import TraceSpan from '../../../../diagnostics/tracing/TraceSpan'
 import WorkExecutor from '../../work/WorkExecutor'
 import { createWorkTask } from '../../work/workTask'
 import { isRenderBlock } from './typeguards'
@@ -146,7 +146,7 @@ describe('ResolveBlockWorkHandler', () => {
 
     it('should declare render trace fields attached by the executor', async () => {
       // Arrange
-      const root = new WorkUnit('root', 'render.root')
+      const root = new TraceSpan('root', 'render.root')
       const executor = new WorkExecutor()
       const element = createWorkTask(
         'content',

@@ -1,42 +1,24 @@
-import type { WorkUnitReference } from './workUnit.type'
+import type { TraceSpanFields, TraceSpanReference } from '../../diagnostics/tracing/traceSpan.type'
 import type { WorkOutputOf } from './workOutput.type'
 
 export const FORGE_WORK = Symbol.for('forge.work')
 
-export type WorkUnitFields = Readonly<Record<string, unknown>>
-
 export interface WorkContextContract<TRequestContext = unknown, TProps = unknown> {
   readonly request: TRequestContext
   readonly props: TProps
-  readonly work?: WorkUnitReference
+  readonly work?: TraceSpanReference
 
-  withWork(work: WorkUnitReference, props: TProps): WorkContextContract<TRequestContext, TProps>
+  withWork(work: TraceSpanReference, props: TProps): WorkContextContract<TRequestContext, TProps>
 
   // Lets a work task drop its own trace unit (a no-op'd, unselected hook branch).
   // Optional because trace omission is best-effort and not every context records work.
   omitFromTrace?(): void
 }
 
-export interface WorkUnitContract extends WorkUnitReference {
-  readonly key: string
-  readonly kind: string
-  readonly parent?: WorkUnitContract
-  readonly children: readonly WorkUnitContract[]
-  readonly beginFields: WorkUnitFields
-  readonly completeFields: WorkUnitFields
-  readonly completed: boolean
-  readonly startedAtMs: number
-  readonly completedAtMs?: number
-  readonly durationMs?: number
-  readonly selfDurationMs: number
-  readonly output?: unknown
-  readonly omitFromTrace: boolean
-}
-
 export interface WorkInstrumentation<TProps = unknown, TOutput = unknown> {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<unknown, TProps>): WorkUnitFields | undefined
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<unknown, TProps>): TraceSpanFields | undefined
 
-  resolveTraceMetadataAtFinish(ctx: WorkContextContract<unknown, TProps>, output: TOutput): WorkUnitFields | undefined
+  resolveTraceMetadataAtFinish(ctx: WorkContextContract<unknown, TProps>, output: TOutput): TraceSpanFields | undefined
 }
 
 export interface WorkHandler<K extends string = string, TProps = unknown> {

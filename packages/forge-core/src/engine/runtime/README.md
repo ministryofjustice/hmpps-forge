@@ -103,7 +103,7 @@ flowchart TD
   requestContext --> executor["WorkExecutor.executeWithUnit()"]
   pipelineTask --> executor
   executor -->|"run request phases + nested work"| pipelineResult["RequestPipelineResult"]
-  executor -->|"completed WorkUnit tree"| trace["RequestPipelineTraceProjector"]
+  executor -->|"completed TraceSpan tree"| trace["RequestPipelineTraceProjector"]
   pipelineResult -->|"buildOutcome()"| outcome["ForgeOutcome"]
 ```
 

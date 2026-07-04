@@ -11,8 +11,8 @@ import type {
   WorkHandler,
   WorkInstrumentation,
   WorkTask,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import WorkTaskFactory from '../../work/WorkTaskFactory'
 
 export interface RenderBlockWorkProps {
@@ -27,7 +27,9 @@ export type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderB
 export const RENDER_BLOCK_KIND = 'render.render-blocks.block'
 
 export const RENDER_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlockWorkProps, unknown> = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>): WorkUnitFields {
+  resolveTraceMetadataAtStart(
+    ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>,
+  ): TraceSpanFields {
     return {
       id: ctx.props.block.id,
       variant: ctx.props.block.variant,
@@ -35,7 +37,7 @@ export const RENDER_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlockW
     }
   },
 
-  resolveTraceMetadataAtFinish(): WorkUnitFields | undefined {
+  resolveTraceMetadataAtFinish(): TraceSpanFields | undefined {
     return undefined
   },
 }

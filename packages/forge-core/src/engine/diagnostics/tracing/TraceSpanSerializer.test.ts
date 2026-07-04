@@ -1,14 +1,14 @@
-import WorkUnit from '../WorkUnit'
-import WorkUnitTraceSerializer from './WorkUnitTraceSerializer'
+import TraceSpan from './TraceSpan'
+import TraceSpanSerializer from './TraceSpanSerializer'
 
-describe('WorkUnitTraceSerializer', () => {
+describe('TraceSpanSerializer', () => {
   describe('serialize()', () => {
-    it('should serialize nested work units with trace fields', () => {
+    it('should serialize nested trace spans with trace fields', () => {
       // Arrange
-      const root = new WorkUnit('root', 'render.root')
-      const child = new WorkUnit('child', 'resolve.block', root)
-      const grandchild = new WorkUnit('grandchild', 'resolve.block', child)
-      const serializer = new WorkUnitTraceSerializer()
+      const root = new TraceSpan('root', 'render.root')
+      const child = new TraceSpan('child', 'resolve.block', root)
+      const grandchild = new TraceSpan('grandchild', 'resolve.block', child)
+      const serializer = new TraceSpanSerializer()
 
       root.addChild(child)
       child.addChild(grandchild)
@@ -60,10 +60,10 @@ describe('WorkUnitTraceSerializer', () => {
 
     it('should drop children marked omit-from-trace', () => {
       // Arrange
-      const root = new WorkUnit('root', 'submit.hook')
-      const selected = new WorkUnit('onValid', 'submit.branch', root)
-      const unselected = new WorkUnit('onInvalid', 'submit.branch', root)
-      const serializer = new WorkUnitTraceSerializer()
+      const root = new TraceSpan('root', 'submit.hook')
+      const selected = new TraceSpan('onValid', 'submit.branch', root)
+      const unselected = new TraceSpan('onInvalid', 'submit.branch', root)
+      const serializer = new TraceSpanSerializer()
 
       root.addChild(selected)
       root.addChild(unselected)

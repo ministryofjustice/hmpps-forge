@@ -4,7 +4,7 @@ import type { RequestTraceEvent } from '../../../contracts/runtime/trace.type'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
-import WorkUnit from '../work/WorkUnit'
+import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
 import type { ContextSnapshotData } from '../work/tracing/contextSnapshot'
 import RequestPipelineTraceProjector from './RequestPipelineTraceProjector'
 
@@ -24,9 +24,9 @@ describe('RequestPipelineTraceProjector', () => {
         .mockReturnValueOnce(40)
         .mockReturnValueOnce(50)
 
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
-      const child = new WorkUnit('block', 'resolve.block', phase)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const child = new TraceSpan('block', 'resolve.block', phase)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -89,9 +89,9 @@ describe('RequestPipelineTraceProjector', () => {
         .mockReturnValueOnce(20)
         .mockReturnValueOnce(30)
 
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
-      const child = new WorkUnit('block', 'resolve.block', phase)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const child = new TraceSpan('block', 'resolve.block', phase)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -143,8 +143,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should carry the redirect target when the pipeline result is a redirect', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -169,8 +169,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should carry the status and message when the pipeline result is a halt error', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -195,8 +195,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should carry the message and stack when a failed trace is thrown from an Error', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
       const thrown = new Error('handler exploded')
@@ -220,8 +220,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should stringify the thrown value when a failed trace is thrown from a non-Error', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -244,8 +244,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should carry the static route block without titles when there is no hydrated route tree', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -274,8 +274,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should populate journey and step titles from the hydrated route tree when present', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -304,8 +304,8 @@ describe('RequestPipelineTraceProjector', () => {
 
     it('should carry the static route block without titles when emitting a failed trace', () => {
       // Arrange
-      const root = new WorkUnit('request', 'request.pipeline')
-      const phase = new WorkUnit('resolve', 'request.resolve', root)
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
       const projector = new RequestPipelineTraceProjector()
       const emitted: RequestTraceEvent[] = []
 
@@ -336,9 +336,11 @@ describe('RequestPipelineTraceProjector', () => {
 function createInstrumentation(emitted: RequestTraceEvent[]): ForgeInstrumentation {
   return {
     enabled: true,
+    captureGeneratedSource: false,
     onRequestTrace: event => {
       emitted.push(event)
     },
+    onCompilationTrace: vi.fn(),
   }
 }
 

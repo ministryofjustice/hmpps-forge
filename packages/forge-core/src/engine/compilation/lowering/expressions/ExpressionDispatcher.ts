@@ -12,6 +12,7 @@ import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import type { CompilationDependencies } from '../compilationDependencies.type'
+import CompilationTracer from '../../../diagnostics/tracing/CompilationTracer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
@@ -62,6 +63,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   get usesAwait(): boolean {
     return this.usedAwait
+  }
+
+  get tracer(): CompilationTracer {
+    return this.dependencies.tracer ?? CompilationTracer.disabled
   }
 
   /**

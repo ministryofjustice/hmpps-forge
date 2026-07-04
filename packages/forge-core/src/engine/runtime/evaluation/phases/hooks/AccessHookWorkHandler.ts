@@ -6,8 +6,8 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { createWorkTask, findTerminalStage, isTerminalStage } from '../../work/workTask'
 import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
 import type { AccessHookWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
@@ -55,7 +55,7 @@ export const ACCESS_HOOK_WORK_HANDLER: WorkHandler<'access.hook', AccessHookWork
   },
 }
 
-function traceComplete(output: CompiledAccessHookResult): WorkUnitFields {
+function traceComplete(output: CompiledAccessHookResult): TraceSpanFields {
   return {
     executed: output.executed,
     outcome: output.outcome,

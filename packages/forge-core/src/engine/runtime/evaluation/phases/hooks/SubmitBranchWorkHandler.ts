@@ -5,8 +5,8 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { isStepValid } from '../validation/stepValidity'
 import { getStepValidity } from '../validation/stepValidityState'
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
@@ -103,7 +103,7 @@ function toSubmitResult(outcome: SubmitHookNextResult, name: SubmitBranchName): 
 function traceComplete(
   props: SubmitBranchWorkProps,
   output: HookStageResult<CompiledSubmitHookResult>,
-): WorkUnitFields {
+): TraceSpanFields {
   return {
     name: props.name,
     outcome: output.status === 'terminal' ? output.result.outcome : 'continue',

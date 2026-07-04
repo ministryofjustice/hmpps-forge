@@ -3,8 +3,8 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { childOutputs } from '../../work/workTask'
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
 import { FIELD_ANSWER_PREPARATION_KIND } from './FieldAnswerPreparationWorkHandler'
@@ -52,7 +52,7 @@ export const ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<'answer.preparation', 
   },
 }
 
-function traceComplete(ctx: WorkContextContract<RequestExecutionContext>): WorkUnitFields {
+function traceComplete(ctx: WorkContextContract<RequestExecutionContext>): TraceSpanFields {
   return {
     answers: ctx.request.context.domain.answers,
   }

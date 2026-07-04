@@ -1,10 +1,6 @@
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type {
-  WorkContextContract,
-  WorkHandler,
-  WorkInstrumentation,
-  WorkUnitFields,
-} from '../../../../contracts/runtime/work.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import type {
   AnswerPreparationFieldResult,
   FieldAnswerPreparationWorkProps,
@@ -39,7 +35,7 @@ export const FIELD_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
   },
 }
 
-function traceComplete(output: AnswerPreparationFieldResult): WorkUnitFields {
+function traceComplete(output: AnswerPreparationFieldResult): TraceSpanFields {
   return {
     code: output.code,
     mode: output.mode,

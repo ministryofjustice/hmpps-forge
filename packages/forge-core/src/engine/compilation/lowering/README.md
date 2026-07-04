@@ -74,6 +74,10 @@ Resolve returns a resolve-blocks task that contains resolve-block tasks.
 Generated functions are created by `compileGeneratedFunction()`.
 It wraps source with runtime diagnostics, passes `_forgeHelpers` and `_forgeRuntimeDiagnostics` as extra parameters that the runtime supplies on each call, and calls `createCompiledFunction()` with either `Function` or `AsyncFunction`.
 
+Every compiled function is also recorded as a `codegen.function` span on the compilation trace.
+When `ForgeInstrumentationOptions.captureGeneratedSource` is set, the wrapped generated source is attached to the span's begin fields.
+The source is captured before the `Function` construction, so a failed compile still carries the source that produced it.
+
 The main source-building helpers are:
 - `CodeEmitter`, which owns indentation and variable names.
 - `ExpressionDispatcher`, which compiles expressions and tracks iterator scope, `@self`, and `usesAwait`.
