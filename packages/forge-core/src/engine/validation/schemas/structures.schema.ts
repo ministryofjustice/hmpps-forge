@@ -137,7 +137,6 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
     validWhen: ValidWhenSchema.optional(),
     dependentWhen: PredicateExprSchema.optional(),
     multiple: z.boolean().optional(),
-    sanitize: z.boolean().optional(),
   })
 
   const fieldBlock = baseBlock.extend({
