@@ -87,6 +87,7 @@
     "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md ../CHANGELOG.md .",
     "clean": "rm -rf ./dist/",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "eslint . --cache --max-warnings 0",
     "lint:readability": "eslint \"forge-*/src/**/*.ts\" --config eslint.readability.config.mjs --no-cache",
     "lint-fix": "eslint . --cache --max-warnings 0 --fix",

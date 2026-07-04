@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
@@ -40,6 +40,9 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/__tests__/**/*.{ts,tsx}', '**/?(*.)+(spec|test).{ts,tsx}'],
+    // Integration tests reach into examples-app, whose dependencies are not
+    // installed for the plain packages test run - `npm run test:integration` runs them.
+    exclude: [...configDefaults.exclude, '**/*.integration.test.ts'],
     coverage: {
       provider: 'v8',
       thresholds: {
