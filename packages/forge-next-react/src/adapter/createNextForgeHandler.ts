@@ -1,12 +1,8 @@
-import { ForgeRuntime } from '@ministryofjustice/hmpps-forge/core'
-import type { Forge, TraceObserver } from '@ministryofjustice/hmpps-forge/core'
-import { extractPathname } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { HttpMethod } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 
-import { FORGE_REACT_ACTION, ReactRenderer, type ReactRendererOptions } from '../renderer/ReactRenderer'
-import { type NextForgeSessionStore, type NextRouteContext } from './forgeRequest'
-import NextRouteHandlerReactAdapterConfig from './NextRouteHandlerReactAdapterConfig'
-import type NextReactAdapterInput from './NextReactAdapterInput.type'
+import { ReactRenderer, type ReactRendererOptions } from '../renderer/ReactRenderer'
+import type { NextForgeSessionStore, NextRouteContext } from './types'
+import NextForgeHandlerFactory from './NextForgeHandlerFactory'
 
 export interface NextForgeHandler {
   GET(request: Request, context?: NextRouteContext): Promise<Response>
@@ -15,42 +11,21 @@ export interface NextForgeHandler {
 
 export interface NextForgeHandlerOptions extends ReactRendererOptions {
   sessionStore?: NextForgeSessionStore
-  traceObserver?: TraceObserver
 }
 
 /**
  * Build Next.js route handlers that serve a configured {@link Forge} instance.
  *
- * Builds a Forge runtime bound to a React adapter config. Forge owns request
- * execution, rendering work, response mutation tracing, and commit timing; this
- * factory owns only the Next route-handler transport.
+ * The returned `{ GET, POST }` handlers resolve the route from the topology
+ * (404 / 405 before touching the engine), build a snapshot, call
+ * `forge.execute`, persist the session, and dispatch the outcome. This factory
+ * owns only the Next route-handler transport; Forge owns request evaluation and
+ * rendering.
  */
 export function createNextForgeHandler(forge: Forge, options: NextForgeHandlerOptions = {}): NextForgeHandler {
+  const renderer = new ReactRenderer(options)
+  const topology = forge.getTopology()
   const logger = forge.getLogger()
-  const runtime = ForgeRuntime.create(forge)
-  const adapterConfig = new NextRouteHandlerReactAdapterConfig(new ReactRenderer(options), {
-    sessionStore: options.sessionStore,
-  })
 
-  return {
-    GET: (request, context) => handleRequest('GET', request, context),
-    POST: (request, context) => handleRequest('POST', request, context),
-  }
-
-  async function handleRequest(method: HttpMethod, request: Request, context?: NextRouteContext): Promise<Response> {
-    const requestPath = extractPathname(request.url)
-
-    logger.debug(`${method} request to Forge route at path ${requestPath}`)
-
-    const input: NextReactAdapterInput = {
-      method,
-      request,
-      context,
-      state: {
-        [FORGE_REACT_ACTION]: requestPath,
-      },
-    }
-
-    return runtime.execute(input, adapterConfig, { traceObserver: options.traceObserver })
-  }
+  return NextForgeHandlerFactory.create(forge, topology, logger, renderer, options.sessionStore)
 }

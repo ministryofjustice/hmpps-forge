@@ -6,7 +6,7 @@ import type {
   BlockDefinition,
   ComponentRegistryEntry,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import type { RequestTraceEvent, TraceObserver } from '@ministryofjustice/hmpps-forge/core'
+import type { ForgeInstrumentationSink, ForgeOptions, RequestTraceEvent } from '@ministryofjustice/hmpps-forge/core'
 
 import { createNextForgeHandler } from './createNextForgeHandler'
 import { SimpleSubmitButton, SimpleText, SimpleTextInput, simpleReactComponents } from '../components/simpleComponents'
@@ -26,7 +26,7 @@ interface BrokenReactBlock extends BlockDefinition, BrokenReactBlockProps {
   variant: 'brokenReact'
 }
 
-function createSimpleForge(): Forge {
+function createSimpleForge(options: Partial<ForgeOptions> = {}): Forge {
   const simpleJourney = journey({
     code: 'demo',
     path: '/demo',
@@ -46,7 +46,7 @@ function createSimpleForge(): Forge {
     ],
   })
 
-  return new Forge({ logger: silentLogger })
+  return new Forge({ logger: silentLogger, ...options })
     .registerGlobalComponents(simpleReactComponents)
     .registerPackage({ journey: simpleJourney })
 }
@@ -110,6 +110,20 @@ describe('createNextForgeHandler', () => {
     // Assert
     expect(response.status).toBe(405)
     expect(body).toContain('POST not allowed')
+    expect(response.headers.get('allow')).toBe('GET')
+  })
+
+  it('should return 404 when no route matches the request path', async () => {
+    // Arrange
+    const forge = createSimpleForge()
+    const handler = createNextForgeHandler(forge)
+    const request = new Request('http://localhost/unknown/path')
+
+    // Act
+    const response = await handler.GET(request)
+
+    // Assert
+    expect(response.status).toBe(404)
   })
 
   it('should load and save adapter-managed session state around evaluation', async () => {
@@ -130,33 +144,28 @@ describe('createNextForgeHandler', () => {
 
     // Assert
     expect(response.status).toBe(200)
-    expect(save).toHaveBeenCalledWith(session, response, request)
+    expect(save).toHaveBeenCalledWith(session, request, expect.any(Object))
   })
 
-  it('should emit adapter render and commit work units when tracing is enabled', async () => {
+  it('should emit resolve and render work units when an instrumentation sink is attached', async () => {
     // Arrange
-    const forge = createSimpleForge()
-    const traces: RequestTraceEvent[] = []
-    const traceObserver: TraceObserver = {
-      shouldTrace: () => true,
-      onTrace: trace => traces.push(trace),
-    }
-    const handler = createNextForgeHandler(forge, { traceObserver })
+    const events: RequestTraceEvent[] = []
+    const sink: ForgeInstrumentationSink = { onRequestTrace: event => events.push(event) }
+    const forge = createSimpleForge({ instrumentation: { sinks: [sink] } })
+    const handler = createNextForgeHandler(forge)
     const request = new Request('http://localhost/demo/start')
 
     // Act
     await handler.GET(request)
 
     // Assert
-    const kinds = traces.flatMap(trace => trace.trace.phases.flatMap(phase => collectUnitKinds(phase.units)))
-    const phases = traces.flatMap(trace => trace.trace.phases.map(phase => phase.phase))
+    const phases = events.flatMap(event => event.trace.phases.map(phase => phase.phase))
+    const kinds = events.flatMap(event => event.trace.phases.flatMap(phase => collectUnitKinds(phase.units)))
 
     expect(phases).toContain('resolve')
     expect(kinds).toContain('resolve.block')
-    expect(kinds).toContain('resolve.blocks')
-    expect(kinds).toContain('adapter.render.block')
-    expect(kinds).toContain('adapter.render.assemble')
-    expect(kinds).toContain('adapter.commit')
+    expect(kinds).toContain('render.render-blocks.block')
+    expect(kinds).toContain('render.assemble-page')
   })
 
   it('should reject component output that cannot be rendered as a React node', async () => {
