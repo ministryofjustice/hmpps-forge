@@ -105,6 +105,7 @@ export default class RequestEvaluator {
         completed.traceSpan,
         node,
         requestExecutionContext.routeTree,
+        requestExecutionContext.reachabilityEvaluation,
       )
 
       return pipelineResult
@@ -124,6 +125,7 @@ export default class RequestEvaluator {
           requestExecutionContext.context,
           node,
           requestExecutionContext.routeTree,
+          requestExecutionContext.reachabilityEvaluation,
         )
 
         throw unwrapped

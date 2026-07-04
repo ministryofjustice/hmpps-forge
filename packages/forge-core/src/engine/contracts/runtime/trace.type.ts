@@ -1,5 +1,7 @@
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import type { JourneyReachabilityProjection } from '../reachability/journeyReachabilityProjection.type'
+import type { ResumeOutcome } from '../reachability/reachabilityEvaluation.type'
+import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 import type { AnswerHistory } from './answerHistory.type'
 import type { NodeId } from '../ast/ast.type'
 import type { StepValidityResult } from './stepValidityResult.type'
@@ -38,6 +40,36 @@ export interface RequestTraceError {
   readonly stack?: string
 }
 
+/** One step in the request's reachability graph, projected from the runtime `ReachabilityNode`. */
+export interface RequestTraceReachabilityStep {
+  readonly stepId: NodeId
+  readonly routeTemplatePath: string
+  readonly code?: string
+  readonly declarationIndex: number
+  readonly isEntryPoint: boolean
+  readonly isConditionalEntry: boolean
+  readonly hasValidation: boolean
+  readonly isReachable: boolean
+  readonly isValid: boolean
+  readonly forwardRouteTemplatePaths: readonly string[]
+  readonly declaredForwardRouteTemplatePaths?: readonly string[]
+  readonly predecessorRouteTemplatePaths: readonly string[]
+  readonly tieBreakerPriority?: number
+}
+
+/** The request's reachability graph, projected from the runtime `ReachabilityEvaluation`. */
+export interface RequestTraceReachability {
+  readonly currentStepId?: NodeId
+  readonly steps: readonly RequestTraceReachabilityStep[]
+  readonly defaultEntryRouteTemplatePath?: string
+  readonly frontierRouteTemplatePath?: string
+  readonly canonicalPathRouteTemplatePaths: readonly string[]
+  readonly progressExists: boolean
+  readonly resumeActive: boolean
+  readonly resumeOutcome: ResumeOutcome
+  readonly unreachableRedirect: UnreachableRedirectTarget
+}
+
 export interface RequestTrace {
   readonly outcome: 'render' | 'redirect' | 'error'
   readonly startedAtMs: number
@@ -45,6 +77,7 @@ export interface RequestTrace {
   readonly durationMs?: number
   readonly redirect?: RequestTraceRedirect
   readonly error?: RequestTraceError
+  readonly reachability?: RequestTraceReachability
   readonly phases: readonly RequestTracePhase[]
 }
 

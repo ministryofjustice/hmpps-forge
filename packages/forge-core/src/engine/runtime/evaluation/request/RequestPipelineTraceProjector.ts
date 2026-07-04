@@ -5,12 +5,17 @@ import type {
   RequestTrace,
   RequestTraceError,
   RequestTracePhase,
+  RequestTraceReachabilityStep,
   RequestTraceRouteContext,
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
 } from '../../../contracts/runtime/trace.type'
 import type TraceSpan from '../../../diagnostics/tracing/TraceSpan'
 import TraceSpanSerializer from '../../../diagnostics/tracing/TraceSpanSerializer'
+import type {
+  ReachabilityEvaluation,
+  ReachabilityNode,
+} from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
@@ -27,6 +32,7 @@ export default class RequestPipelineTraceProjector {
     rootTraceSpan: TraceSpan,
     node: MountedNode,
     routeTree: RouteTree | undefined,
+    reachabilityEvaluation: ReachabilityEvaluation | undefined,
   ): void {
     if (!instrumentation.enabled) {
       return
@@ -42,7 +48,13 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome, ...this.traceTiming(rootTraceSpan), ...this.resultDetail(result), phases },
+      trace: {
+        outcome,
+        ...this.traceTiming(rootTraceSpan),
+        ...this.resultDetail(result),
+        ...this.reachabilityDetail(reachabilityEvaluation),
+        phases,
+      },
       route: this.traceRoute(node, routeTree),
     })
   }
@@ -55,6 +67,7 @@ export default class RequestPipelineTraceProjector {
     context: RuntimeContext,
     node: MountedNode,
     routeTree: RouteTree | undefined,
+    reachabilityEvaluation: ReachabilityEvaluation | undefined,
   ): void {
     if (!instrumentation.enabled) {
       return
@@ -68,7 +81,13 @@ export default class RequestPipelineTraceProjector {
 
     instrumentation.onRequestTrace({
       snapshot,
-      trace: { outcome: 'error', ...this.traceTiming(rootTraceSpan), error: this.errorDetail(error), phases },
+      trace: {
+        outcome: 'error',
+        ...this.traceTiming(rootTraceSpan),
+        error: this.errorDetail(error),
+        ...this.reachabilityDetail(reachabilityEvaluation),
+        phases,
+      },
       route: this.traceRoute(node, routeTree),
     })
   }
@@ -144,6 +163,48 @@ export default class RequestPipelineTraceProjector {
     }
 
     return { message: String(error) }
+  }
+
+  private reachabilityDetail(evaluation: ReachabilityEvaluation | undefined): Pick<RequestTrace, 'reachability'> {
+    if (evaluation === undefined) {
+      return {}
+    }
+
+    // The trace is an immutable buffered record; the live evaluation's node arrays are shared and
+    // mutated in place by the graph builder, so copy every array rather than alias it.
+    return {
+      reachability: {
+        currentStepId: evaluation.currentStepId,
+        steps: evaluation.steps.map(step => this.reachabilityStep(step)),
+        defaultEntryRouteTemplatePath: evaluation.defaultEntryRouteTemplatePath,
+        frontierRouteTemplatePath: evaluation.frontierRouteTemplatePath,
+        canonicalPathRouteTemplatePaths: [...evaluation.canonicalPathRouteTemplatePaths],
+        progressExists: evaluation.progressExists,
+        resumeActive: evaluation.resumeActive,
+        resumeOutcome: evaluation.resumeOutcome,
+        unreachableRedirect: evaluation.unreachableRedirect,
+      },
+    }
+  }
+
+  private reachabilityStep(step: ReachabilityNode): RequestTraceReachabilityStep {
+    return {
+      stepId: step.stepId,
+      routeTemplatePath: step.routeTemplatePath,
+      code: step.code,
+      declarationIndex: step.declarationIndex,
+      isEntryPoint: step.isEntryPoint,
+      isConditionalEntry: step.isConditionalEntry,
+      hasValidation: step.hasValidation,
+      isReachable: step.isReachable,
+      isValid: step.isValid,
+      forwardRouteTemplatePaths: [...step.forwardRouteTemplatePaths],
+      ...(step.declaredForwardRouteTemplatePaths
+        ? { declaredForwardRouteTemplatePaths: [...step.declaredForwardRouteTemplatePaths] }
+        : {}),
+      predecessorRouteTemplatePaths: [...step.predecessorRouteTemplatePaths],
+      tieBreakerPriority: step.tieBreakerPriority,
+    }
   }
 
   private traceRoute(node: MountedNode, routeTree: RouteTree | undefined): RequestTraceRouteContext {
