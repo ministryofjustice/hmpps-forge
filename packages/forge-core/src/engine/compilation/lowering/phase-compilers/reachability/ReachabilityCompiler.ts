@@ -189,7 +189,7 @@ export default class ReachabilityCompiler {
 
     const hookWhenNode = group.hookWhen
 
-    if (hookWhenNode !== undefined && this.expr.isCompilableNode(hookWhenNode)) {
+    if (hookWhenNode !== undefined) {
       emitter.scope(() => {
         const whenExpr = this.expr.compileExpression(hookWhenNode)
         const whenVar = emitter.const('hookWhen', `Boolean(${whenExpr})`)
