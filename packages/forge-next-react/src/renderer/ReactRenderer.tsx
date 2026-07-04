@@ -34,10 +34,9 @@ export interface ReactRendererOptions {
 }
 
 /**
- * The React rendering backend. ForgeRuntime owns the block walk and drives this
- * renderer per block through the Next adapter config; this class owns only the
- * React-specific parts: component rendering, nested-block wrapping, and page
- * assembly.
+ * The React rendering backend. The engine owns the block walk and drives this
+ * renderer through `forge.execute`; this class owns only the React-specific
+ * parts: component rendering, nested-block wrapping, and page assembly.
  *
  * Core's built-in components (`html`, `collectionBlock`, `templateWrapper`)
  * read nested output as HTML strings and are not supported by this renderer.

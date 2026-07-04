@@ -18,7 +18,7 @@ export function createFormState(
   }
 }
 
-export function assertSerializableNode(node: ReactNode): void {
+function assertSerializableNode(node: ReactNode): void {
   if (
     node === undefined ||
     node === null ||

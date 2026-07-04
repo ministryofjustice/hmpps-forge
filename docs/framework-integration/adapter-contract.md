@@ -230,12 +230,46 @@ component entry's `render`, `wrapNestedBlock` returns `{ block, html }`, and
 `assemblePage` selects the page template and renders it. See the rendering doc
 for detail.
 
-    # Note
-    We've never tried to implement anything but Express/Nunjucks here. We think
-    that this may likely need a restructure in future if it were to support something
-    like ReactJS, though with the lack of support for anything but Nunjucks in 
-    the official GOVUK packages, there's not really much push to explore this 
-    currently.
+The Next.js/React adapter (below) is a second implementation of this contract. It
+required no `forge-core` restructure: the same `getTopology` / `execute` / outcome
+surface served a React rendering stack across a very different framework.
+
+### Next.js/React adapter
+
+The Next.js/React package is a second implementation of the contract. It exposes
+three entry points for the App Router:
+
+- `createNextForgeHandler(forge, options)` returns `{ GET, POST }` for a catch-all
+  `route.ts`
+- `createNextForgePage(forge, options)` returns an async server component
+- `createNextForgeAction(forge, options)` returns a server action
+
+Each entry point resolves the route itself. `NextRouteResolver.resolve` matches the
+request against `forge.getTopology()` before the engine is touched, so a missing
+route (404) or an unsupported method (405, with `Allow`) is an adapter response
+produced without calling `forge.execute`. It then builds a `RequestSnapshot`, calls
+`forge.execute`, saves the session, and dispatches the outcome to the Next primitive
+the flow uses: a `Response`, a `redirect()`/`notFound()`, or a returned form state.
+
+The flows differ in the `ResponseBindings` sink they provide, because Next gives each
+surface a different response API:
+
+- route handler — `RecordingResponseBindings` captures header and cookie writes and
+  replays them onto the returned `Response`, so headers attach deterministically
+- server action — a `cookies()`-backed sink writes cookies through `next/headers`;
+  actions cannot set headers, so `setHeader` is a no-op
+- page — `NO_OP_RESPONSE_BINDINGS`; a server component cannot set headers or cookies,
+  so hook response effects are dropped (a platform constraint)
+
+All three pass a `ForgeRenderer<ReactNode>` (`ReactRenderer`) to `forge.execute`. The
+flows differ only in the page-composition function it assembles the rendered blocks
+with — a full HTML document for the handler, the action-state form for a `submit`
+page, the bare blocks for the action.
+
+The session store follows the same per-flow sink. Its `save(session, request, bindings)`
+receives the flow's `ResponseBindings`, so a cookie-issuing store writes through the
+recording sink in the route-handler flow and the `cookies()` sink in the action flow,
+and is inert during a page render where cookies cannot be written.
 
 ### Test client
 

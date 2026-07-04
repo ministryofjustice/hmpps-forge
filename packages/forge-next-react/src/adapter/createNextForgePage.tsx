@@ -57,6 +57,9 @@ export interface NextForgeActionOptions extends Omit<ReactRendererOptions, 'page
  * Without `submit` the page renders `content` (defaulting to a plain form). With
  * `submit` it renders the action-state form wired to the server action, and
  * `content` is ignored.
+ *
+ * A server component cannot write response headers or cookies, so hook response
+ * mutations and session-store cookie writes are dropped during a page render.
  */
 export function createNextForgePage(forge: Forge, options: NextForgePageOptions) {
   const page = options.submit
@@ -77,6 +80,9 @@ export function createNextForgePage(forge: Forge, options: NextForgePageOptions)
  * Build a server action that re-runs a {@link Forge} step submission and returns
  * the next form state (or redirects on navigation). Pair it with a page's
  * `submit` option so no-JavaScript submissions POST to the same `mountPath`.
+ *
+ * Cookies set by hooks or the session store persist through `next/headers`;
+ * response headers cannot be set from an action and are dropped.
  */
 export function createNextForgeAction(forge: Forge, options: NextForgeActionOptions = {}): NextForgePageSubmitAction {
   const renderer = new ReactRenderer({ rendererContext: options.rendererContext, page: ({ blocks }) => blocks })
