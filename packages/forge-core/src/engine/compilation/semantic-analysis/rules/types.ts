@@ -1,11 +1,9 @@
 import type ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import type ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type ComponentRegistry from '../../../registries/ComponentRegistry'
 
 export interface ASTValidationContext {
   readonly nodeIndex: ASTNodeIndex
-  readonly nodeTree: ASTNodeTree
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
 }

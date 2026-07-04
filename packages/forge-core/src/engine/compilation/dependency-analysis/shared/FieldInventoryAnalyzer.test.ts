@@ -1,10 +1,14 @@
 import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FieldInventoryAnalyzer from './FieldInventoryAnalyzer'
+
+function setParent(child: ASTNode, parent: ASTNode): void {
+  Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+}
 
 function createMapIterateNode(): IterateASTNode {
   return {
@@ -29,7 +33,6 @@ describe('FieldInventoryAnalyzer', () => {
     it('should select only descendant fields with configured validation', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const stepNode = ASTTestFactory.step().build()
       const validatingFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withCode('validated')
@@ -43,16 +46,14 @@ describe('FieldInventoryAnalyzer', () => {
         .withProperty('validWhen', [ASTTestFactory.reference(['answers', 'outside'])])
         .build()
 
+      setParent(validatingFieldBlock, stepNode)
+      setParent(plainFieldBlock, stepNode)
       nodeRegistry.register(stepNode.id, stepNode)
       nodeRegistry.register(validatingFieldBlock.id, validatingFieldBlock)
       nodeRegistry.register(plainFieldBlock.id, plainFieldBlock)
       nodeRegistry.register(outsideFieldBlock.id, outsideFieldBlock)
-      astNodeTree.addNode(stepNode.id)
-      astNodeTree.addNode(validatingFieldBlock.id, stepNode.id)
-      astNodeTree.addNode(plainFieldBlock.id, stepNode.id)
-      astNodeTree.addNode(outsideFieldBlock.id)
 
-      const analyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new FieldInventoryAnalyzer(nodeRegistry)
 
       // Act
       const result = analyzer.findValidatingFieldBlocksForStep(stepNode.id)
@@ -67,21 +68,19 @@ describe('FieldInventoryAnalyzer', () => {
     it('should build field inventory sources from reachability entries', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const stepNode = ASTTestFactory.step().build()
       const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
         .withCode('fieldA')
         .build()
       const iterateNode = createMapIterateNode()
 
+      setParent(fieldBlock, stepNode)
+      setParent(iterateNode, stepNode)
       nodeRegistry.register(stepNode.id, stepNode)
       nodeRegistry.register(fieldBlock.id, fieldBlock)
       nodeRegistry.register(iterateNode.id, iterateNode)
-      astNodeTree.addNode(stepNode.id)
-      astNodeTree.addNode(fieldBlock.id, stepNode.id)
-      astNodeTree.addNode(iterateNode.id, stepNode.id)
 
-      const analyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new FieldInventoryAnalyzer(nodeRegistry)
 
       // Act
       const result = analyzer.buildFieldInventorySources({

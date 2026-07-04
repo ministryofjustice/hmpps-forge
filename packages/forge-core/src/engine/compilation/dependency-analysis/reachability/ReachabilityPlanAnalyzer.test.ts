@@ -1,12 +1,18 @@
 import { BlockType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
-import RuntimePlanAnalyzer from '../shared/RuntimePlanAnalyzer'
 import ReachabilityPlanAnalyzer from './ReachabilityPlanAnalyzer'
+
+function setParent(child: ASTNode, parent: ASTNode): void {
+  Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+}
+
+function registerAll(nodeRegistry: ASTNodeIndex, nodes: readonly ASTNode[]): void {
+  nodes.forEach(node => nodeRegistry.register(node.id, node))
+}
 
 function createPredicate(path: string[]): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
@@ -15,23 +21,8 @@ function createPredicate(path: string[]): TestPredicateASTNode {
   }) as TestPredicateASTNode
 }
 
-function createAnalyzer(nodeRegistry: ASTNodeIndex, astNodeTree: ASTNodeTree): ReachabilityPlanAnalyzer {
-  const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
-  const runtimePlanAnalyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
-
-  return new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer, runtimePlanAnalyzer)
-}
-
-function registerJourneyStep(
-  nodeRegistry: ASTNodeIndex,
-  astNodeTree: ASTNodeTree,
-  journeyNode: JourneyASTNode,
-  stepNode: StepASTNode,
-): void {
-  nodeRegistry.register(journeyNode.id, journeyNode)
-  nodeRegistry.register(stepNode.id, stepNode)
-  astNodeTree.addNode(journeyNode.id)
-  astNodeTree.addNode(stepNode.id, journeyNode.id)
+function createAnalyzer(nodeRegistry: ASTNodeIndex): ReachabilityPlanAnalyzer {
+  return new ReachabilityPlanAnalyzer(new FieldInventoryAnalyzer(nodeRegistry))
 }
 
 describe('ReachabilityPlanAnalyzer', () => {
@@ -43,16 +34,16 @@ describe('ReachabilityPlanAnalyzer', () => {
     it('should default unreachable redirect to entry when omitted', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      registerJourneyStep(nodeRegistry, astNodeTree, journeyNode, stepNode)
+      setParent(stepNode, journeyNode)
+      registerAll(nodeRegistry, [journeyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan([stepNode], journeyNode, new Map([[journeyNode.id, journeyNode]]))
+      const result = analyzer.buildReachabilityPlan([stepNode], journeyNode)
 
       // Assert
       expect(result.stateTable.unreachableRedirect).toBe('entry')
@@ -61,31 +52,20 @@ describe('ReachabilityPlanAnalyzer', () => {
     it('should store configured unreachable redirect without inheriting ancestor values', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { unreachableRedirect: 'frontier' })
         .build()
       const childJourneyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      nodeRegistry.register(childJourneyNode.id, childJourneyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(parentJourneyNode.id)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
-      astNodeTree.addNode(stepNode.id, childJourneyNode.id)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
+      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [stepNode],
-        childJourneyNode,
-        new Map([
-          [parentJourneyNode.id, parentJourneyNode],
-          [childJourneyNode.id, childJourneyNode],
-        ]),
-      )
+      const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
 
       // Assert
       expect(result.stateTable.unreachableRedirect).toBe('entry')
@@ -94,28 +74,20 @@ describe('ReachabilityPlanAnalyzer', () => {
     it('should inherit disabled reachability from the parent journey when the journey has no own setting', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
       const childJourneyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
+      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [stepNode],
-        childJourneyNode,
-        new Map([
-          [parentJourneyNode.id, parentJourneyNode],
-          [childJourneyNode.id, childJourneyNode],
-        ]),
-      )
+      const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
 
       // Assert
       expect(result.stateTable.reachabilityDisabled).toBe(true)
@@ -124,7 +96,6 @@ describe('ReachabilityPlanAnalyzer', () => {
     it('should inherit disabled reachability from a distant ancestor when nearer journeys have no own setting', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const grandparentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
@@ -132,24 +103,15 @@ describe('ReachabilityPlanAnalyzer', () => {
       const childJourneyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      nodeRegistry.register(grandparentJourneyNode.id, grandparentJourneyNode)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
-      astNodeTree.addNode(parentJourneyNode.id, grandparentJourneyNode.id)
+      setParent(parentJourneyNode, grandparentJourneyNode)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
+      registerAll(nodeRegistry, [grandparentJourneyNode, parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [stepNode],
-        childJourneyNode,
-        new Map([
-          [grandparentJourneyNode.id, grandparentJourneyNode],
-          [parentJourneyNode.id, parentJourneyNode],
-          [childJourneyNode.id, childJourneyNode],
-        ]),
-      )
+      const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
 
       // Assert
       expect(result.stateTable.reachabilityDisabled).toBe(true)
@@ -158,7 +120,6 @@ describe('ReachabilityPlanAnalyzer', () => {
     it("should use the journey's own reachability setting when an ancestor sets a different value", () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: false })
         .build()
@@ -167,21 +128,14 @@ describe('ReachabilityPlanAnalyzer', () => {
         .build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
+      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [stepNode],
-        childJourneyNode,
-        new Map([
-          [parentJourneyNode.id, parentJourneyNode],
-          [childJourneyNode.id, childJourneyNode],
-        ]),
-      )
+      const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
 
       // Assert
       expect(result.stateTable.reachabilityDisabled).toBe(true)
@@ -190,7 +144,6 @@ describe('ReachabilityPlanAnalyzer', () => {
     it("should keep the journey's own disabled reachability off when an ancestor enables it", () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
@@ -199,21 +152,14 @@ describe('ReachabilityPlanAnalyzer', () => {
         .build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
-      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
+      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [stepNode],
-        childJourneyNode,
-        new Map([
-          [parentJourneyNode.id, parentJourneyNode],
-          [childJourneyNode.id, childJourneyNode],
-        ]),
-      )
+      const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
 
       // Assert
       expect(result.stateTable.reachabilityDisabled).toBe(false)
@@ -222,7 +168,6 @@ describe('ReachabilityPlanAnalyzer', () => {
     it('should build resume and reachability entry metadata in step order', () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const resumeWhen = createPredicate(['answers', 'resume'])
       const entryWhen = createPredicate(['answers', 'entry'])
       const tieBreakerWhen = createPredicate(['answers', 'priority'])
@@ -250,23 +195,15 @@ describe('ReachabilityPlanAnalyzer', () => {
         .withProperty('validWhen', [createPredicate(['answers', 'fieldA'])])
         .build()
 
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(firstStepNode.id, firstStepNode)
-      nodeRegistry.register(secondStepNode.id, secondStepNode)
-      nodeRegistry.register(validatingFieldBlock.id, validatingFieldBlock)
-      astNodeTree.addNode(journeyNode.id)
-      astNodeTree.addNode(firstStepNode.id, journeyNode.id)
-      astNodeTree.addNode(secondStepNode.id, journeyNode.id)
-      astNodeTree.addNode(validatingFieldBlock.id, firstStepNode.id)
+      setParent(firstStepNode, journeyNode)
+      setParent(secondStepNode, journeyNode)
+      setParent(validatingFieldBlock, firstStepNode)
+      registerAll(nodeRegistry, [journeyNode, firstStepNode, secondStepNode, validatingFieldBlock])
 
-      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = createAnalyzer(nodeRegistry)
 
       // Act
-      const result = analyzer.buildReachabilityPlan(
-        [firstStepNode, secondStepNode],
-        journeyNode,
-        new Map([[journeyNode.id, journeyNode]]),
-      )
+      const result = analyzer.buildReachabilityPlan([firstStepNode, secondStepNode], journeyNode)
 
       // Assert
       expect(result.resumeWhenNodeId).toBe(resumeWhen.id)

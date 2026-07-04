@@ -1,11 +1,9 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { NodeId } from '../../../contracts/ast/engine.type'
+import type { NodeId, ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
-import type { AstNodeId } from '../../../contracts/ast/ast.type'
-import getAncestorChain from '../../ast/ast-state/getAncestorChain'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
@@ -22,30 +20,26 @@ function containsNode(container: unknown, nodeId: NodeId): boolean {
   return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
 }
 
-function hasHookAncestor(context: ASTValidationContext, nodeId: AstNodeId): boolean {
-  const ancestors = getAncestorChain(nodeId, context.nodeTree)
+function hasHookAncestor(node: ASTNode): boolean {
+  let current = node.parent
 
-  return ancestors.some(ancestorId => {
-    const ancestor = context.nodeIndex.get(ancestorId)
+  while (current !== undefined) {
+    if (current.type === ASTNodeType.HOOK) {
+      return true
+    }
 
-    return ancestor?.type === ASTNodeType.HOOK
-  })
+    current = current.parent
+  }
+
+  return false
 }
 
 export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, nodeTree } = context
+  const { nodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.OUTCOME).forEach(node => {
-    const parentId = nodeTree.getParent(node.id)
-
-    if (!parentId) {
-      errors.push(buildError(node.diagnostics?.source))
-
-      return
-    }
-
-    const parent = nodeIndex.get(parentId)
+    const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.HOOK) {
       errors.push(buildError(node.diagnostics?.source))
@@ -70,7 +64,7 @@ export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationCo
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
-    const iterateInsideHook = hasHookAncestor(context, iterateNode.id)
+    const iterateInsideHook = hasHookAncestor(iterateNode)
     const { iterator } = iterateNode.properties
 
     const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(

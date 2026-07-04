@@ -1,4 +1,5 @@
 import type { NodeId } from '../../contracts/ast/ast.type'
+import { ASTNodeType } from '../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type {
   CompilationPlan,
@@ -8,7 +9,6 @@ import type {
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
-import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import FieldInventoryAnalyzer from './shared/FieldInventoryAnalyzer'
 import RuntimePlanAnalyzer from './shared/RuntimePlanAnalyzer'
@@ -37,15 +37,15 @@ export default class CompilationPlanBuilder {
 
   private readonly routeMetadataInputAnalyzer: RouteMetadataInputAnalyzer
 
-  constructor(nodeRegistry: ASTNodeIndex, astNodeTree: ASTNodeTree) {
-    const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
+  constructor(nodeRegistry: ASTNodeIndex) {
+    const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry)
 
-    this.runtimePlanAnalyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
-    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer, this.runtimePlanAnalyzer)
+    this.runtimePlanAnalyzer = new RuntimePlanAnalyzer()
+    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer)
     this.answerPreparationInputAnalyzer = new AnswerPreparationInputAnalyzer(fieldInventoryAnalyzer)
-    this.hookInputAnalyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
+    this.hookInputAnalyzer = new HookInputAnalyzer()
     this.validationInputAnalyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
-    this.resolveInputAnalyzer = new ResolveInputAnalyzer(nodeRegistry, astNodeTree, fieldInventoryAnalyzer)
+    this.resolveInputAnalyzer = new ResolveInputAnalyzer(fieldInventoryAnalyzer)
     this.routeMetadataInputAnalyzer = new RouteMetadataInputAnalyzer()
   }
 
@@ -57,10 +57,15 @@ export default class CompilationPlanBuilder {
     const routeMetadataInputs = new Map<NodeId, RouteMetadataCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
-      const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
-      const parentJourneyId = ancestors[ancestors.length - 2]
+      const parentJourney = stepNode.parent
 
-      stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
+      if (parentJourney?.type !== ASTNodeType.JOURNEY) {
+        throw new Error(`Step "${stepId}" was not registered under a journey`)
+      }
+
+      const parentJourneyId = parentJourney.id
+
+      stepInputs.set(stepId, this.buildStepInputs(stepNode))
 
       const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
 
@@ -75,11 +80,7 @@ export default class CompilationPlanBuilder {
         throw new Error(`Journey "${journeyId}" grouping these steps was not registered as a journey`)
       }
 
-      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(
-        journeySteps,
-        journeyNode,
-        journeyIndex,
-      )
+      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(journeySteps, journeyNode)
 
       reachabilityInputs.set(journeyId, {
         reachabilityId: journeyId,
@@ -109,13 +110,12 @@ export default class CompilationPlanBuilder {
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, reachabilityId: NodeId): StepCompilationInputs {
+  private buildStepInputs(stepNode: StepASTNode): StepCompilationInputs {
     return {
       core: {
         stepNode,
         runtimePlan: this.runtimePlanAnalyzer.buildStepRuntimePlan(stepNode),
-        staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode.id),
-        reachabilityId,
+        staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode),
       },
       answerPreparation: this.answerPreparationInputAnalyzer.buildInputs(stepNode),
       hooks: this.hookInputAnalyzer.buildInputs(stepNode),
@@ -132,9 +132,9 @@ export default class CompilationPlanBuilder {
 
     return {
       runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(journeyNode),
-      staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode.id),
+      staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode),
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
-      accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode.id),
+      accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode),
     }
   }
 }

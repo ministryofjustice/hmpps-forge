@@ -4,7 +4,6 @@ import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/ex
 import { isIterateExprNode } from '../../../contracts/ast/expression-nodes'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
-import getAncestorChain from '../../ast/ast-state/getAncestorChain'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 import type { TemplateNode } from '../../../contracts/ast/template.type'
@@ -43,48 +42,47 @@ function parseReferenceLevel(value: unknown): number | undefined {
   return Number.isInteger(level) && level >= 0 ? level : undefined
 }
 
-function getIteratorDepthForNode(nodeId: NodeId, context: ASTValidationContext): number {
-  const ancestors = getAncestorChain(nodeId, context.nodeTree)
-
+function getIteratorDepthForNode(node: ASTNode): number {
   let depth = 0
+  let current = node.parent
 
-  ancestors.forEach(ancestorId => {
-    if (ancestorId === nodeId) {
-      return
-    }
-
-    const ancestor = context.nodeIndex.get(ancestorId)
-
-    if (!ancestor || !isIterateExprNode(ancestor)) {
-      return
-    }
-
-    const iterateNode = ancestor as IterateASTNode
-
-    if (isInsideIteratorTemplate(nodeId, iterateNode, context)) {
+  while (current !== undefined) {
+    if (isIterateExprNode(current) && isInsideIteratorTemplate(node, current as IterateASTNode)) {
       depth += 1
     }
-  })
+
+    current = current.parent
+  }
 
   return depth
 }
 
-function isInsideIteratorTemplate(
-  descendantId: NodeId,
-  iterateNode: IterateASTNode,
-  context: ASTValidationContext,
-): boolean {
+function isInsideIteratorTemplate(descendant: ASTNode, iterateNode: IterateASTNode): boolean {
   const inputNode = iterateNode.properties.input
 
   if (inputNode && typeof inputNode === 'object' && 'id' in inputNode) {
     const inputId = (inputNode as ASTNode).id
 
-    if (descendantId === inputId || context.nodeTree.isDescendantOf(descendantId, inputId)) {
+    if (descendant.id === inputId || isDescendantOfNode(descendant, inputId)) {
       return false
     }
   }
 
   return true
+}
+
+function isDescendantOfNode(node: ASTNode, ancestorId: NodeId): boolean {
+  let current = node.parent
+
+  while (current !== undefined) {
+    if (current.id === ancestorId) {
+      return true
+    }
+
+    current = current.parent
+  }
+
+  return false
 }
 
 function validateItemReference(
@@ -146,18 +144,18 @@ function validateLoopReference(
   return errors
 }
 
-function validateRegisteredReference(node: ReferenceASTNode, context: ASTValidationContext): readonly Error[] {
+function validateRegisteredReference(node: ReferenceASTNode): readonly Error[] {
   const path = node.properties.path
   const namespace = path[0]
 
   if (namespace === '@scope') {
-    const depth = getIteratorDepthForNode(node.id, context)
+    const depth = getIteratorDepthForNode(node)
 
     return validateItemReference(path, depth, node.diagnostics?.source)
   }
 
   if (namespace === '@loop') {
-    const depth = getIteratorDepthForNode(node.id, context)
+    const depth = getIteratorDepthForNode(node)
 
     return validateLoopReference(path, depth, node.diagnostics?.source)
   }
@@ -244,13 +242,13 @@ export const validateReferenceScopes: ASTValidationRule = (context: ASTValidatio
   const referenceNodes = nodeIndex.findByType<ReferenceASTNode>(ExpressionType.REFERENCE)
 
   referenceNodes.forEach(node => {
-    errors.push(...validateRegisteredReference(node, context))
+    errors.push(...validateRegisteredReference(node))
   })
 
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
-    const parentDepth = getIteratorDepthForNode(iterateNode.id, context)
+    const parentDepth = getIteratorDepthForNode(iterateNode)
 
     errors.push(...validateTemplateReferences(iterateNode, parentDepth))
   })

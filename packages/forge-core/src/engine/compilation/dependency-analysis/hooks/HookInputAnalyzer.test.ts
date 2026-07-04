@@ -1,8 +1,11 @@
 import { HookType } from '../../../../authoring/types/enums'
-import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import HookInputAnalyzer from './HookInputAnalyzer'
+
+function setParent(child: ASTNode, parent: ASTNode): void {
+  Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+}
 
 describe('HookInputAnalyzer', () => {
   beforeEach(() => {
@@ -12,8 +15,6 @@ describe('HookInputAnalyzer', () => {
   describe('buildInputs()', () => {
     it('should return access hooks from ancestors and submit hooks from the step', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const journeyAccessHook = ASTTestFactory.hook(HookType.ACCESS).build()
       const stepAccessHook = ASTTestFactory.hook(HookType.ACCESS).build()
       const submitHook = ASTTestFactory.hook(HookType.SUBMIT).build()
@@ -24,12 +25,9 @@ describe('HookInputAnalyzer', () => {
         .withProperty('onSubmission', [submitHook])
         .build()
 
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(journeyNode.id)
-      astNodeTree.addNode(stepNode.id, journeyNode.id)
+      setParent(stepNode, journeyNode)
 
-      const analyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new HookInputAnalyzer()
 
       // Act
       const result = analyzer.buildInputs(stepNode)
@@ -43,32 +41,20 @@ describe('HookInputAnalyzer', () => {
   describe('resolveAccessHooks()', () => {
     it('should flatten access hooks from outer journey to current step', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const parentAccessHook = ASTTestFactory.hook(HookType.ACCESS).build()
       const childAccessHook = ASTTestFactory.hook(HookType.ACCESS).build()
       const stepAccessHook = ASTTestFactory.hook(HookType.ACCESS).build()
-      const parentJourneyNode = ASTTestFactory.journey()
-        .withProperty('onAccess', [parentAccessHook])
-        .build()
-      const childJourneyNode = ASTTestFactory.journey()
-        .withProperty('onAccess', [childAccessHook])
-        .build()
-      const stepNode = ASTTestFactory.step()
-        .withProperty('onAccess', [stepAccessHook])
-        .build()
+      const parentJourneyNode = ASTTestFactory.journey().withProperty('onAccess', [parentAccessHook]).build()
+      const childJourneyNode = ASTTestFactory.journey().withProperty('onAccess', [childAccessHook]).build()
+      const stepNode = ASTTestFactory.step().withProperty('onAccess', [stepAccessHook]).build()
 
-      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      nodeRegistry.register(childJourneyNode.id, childJourneyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(parentJourneyNode.id)
-      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
-      astNodeTree.addNode(stepNode.id, childJourneyNode.id)
+      setParent(childJourneyNode, parentJourneyNode)
+      setParent(stepNode, childJourneyNode)
 
-      const analyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new HookInputAnalyzer()
 
       // Act
-      const result = analyzer.resolveAccessHooks(stepNode.id)
+      const result = analyzer.resolveAccessHooks(stepNode)
 
       // Assert
       expect(result).toEqual([parentAccessHook, childAccessHook, stepAccessHook])

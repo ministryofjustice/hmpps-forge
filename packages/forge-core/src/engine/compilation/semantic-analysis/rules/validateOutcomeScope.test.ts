@@ -1,7 +1,6 @@
 import { HookType, BlockType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
@@ -10,15 +9,22 @@ import type { ASTValidationContext } from './types'
 import { validateOutcomeScope } from './validateOutcomeScope'
 
 const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
+  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+
+  edges.forEach(([childId, parentId]) => {
+    const child = byId.get(childId)
+    const parent = byId.get(parentId)
+
+    if (child !== undefined && parent !== undefined) {
+      Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+    }
+  })
+
   const nodeIndex = new ASTNodeIndex()
   nodes.forEach(node => nodeIndex.register(node.id, node))
 
-  const nodeTree = new ASTNodeTree()
-  edges.forEach(([childId, parentId]) => nodeTree.addNode(childId, parentId))
-
   return {
     nodeIndex,
-    nodeTree,
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }

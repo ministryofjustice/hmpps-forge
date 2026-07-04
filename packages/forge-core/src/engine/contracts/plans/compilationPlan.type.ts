@@ -19,7 +19,6 @@ export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly reachabilityId: NodeId
 }
 
 export interface AnswerPreparationInputs {

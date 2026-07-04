@@ -1,7 +1,10 @@
-import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import RuntimePlanAnalyzer from './RuntimePlanAnalyzer'
+
+function setParent(child: ASTNode, parent: ASTNode): void {
+  Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+}
 
 describe('RuntimePlanAnalyzer', () => {
   beforeEach(() => {
@@ -11,17 +14,8 @@ describe('RuntimePlanAnalyzer', () => {
   describe('buildStepRuntimePlan()', () => {
     it('should normalize the step path', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
-      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
-
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(journeyNode.id)
-      astNodeTree.addNode(stepNode.id, journeyNode.id)
-
-      const analyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new RuntimePlanAnalyzer()
 
       // Act
       const result = analyzer.buildStepRuntimePlan(stepNode)
@@ -37,8 +31,6 @@ describe('RuntimePlanAnalyzer', () => {
   describe('resolveStaticData()', () => {
     it('should merge static data from ancestors', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
-      const astNodeTree = new ASTNodeTree()
       const journeyNode = ASTTestFactory.journey()
         .withProperty('path', '/journey')
         .withProperty('data', { shared: 'journey', journeyOnly: true })
@@ -48,15 +40,12 @@ describe('RuntimePlanAnalyzer', () => {
         .withProperty('data', { shared: 'step', stepOnly: true })
         .build()
 
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(journeyNode.id)
-      astNodeTree.addNode(stepNode.id, journeyNode.id)
+      setParent(stepNode, journeyNode)
 
-      const analyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
+      const analyzer = new RuntimePlanAnalyzer()
 
       // Act
-      const result = analyzer.resolveStaticData(stepNode.id)
+      const result = analyzer.resolveStaticData(stepNode)
 
       // Assert
       expect(result).toEqual({

@@ -30,19 +30,11 @@ function containsNode(entries: unknown, nodeId: AstNodeId): boolean {
 }
 
 export const validateStructureScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, nodeTree } = context
+  const { nodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.STEP).forEach(node => {
-    const parentId = nodeTree.getParent(node.id)
-
-    if (!parentId) {
-      errors.push(buildStepError(node.diagnostics?.source))
-
-      return
-    }
-
-    const parent = nodeIndex.get(parentId)
+    const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.steps, node.id)) {
       errors.push(buildStepError(node.diagnostics?.source))
@@ -50,15 +42,13 @@ export const validateStructureScope: ASTValidationRule = (context: ASTValidation
   })
 
   nodeIndex.findByType(ASTNodeType.JOURNEY).forEach(node => {
-    const parentId = nodeTree.getParent(node.id)
+    const parent = node.parent
 
-    if (!parentId) {
+    if (!parent) {
       return
     }
 
-    const parent = nodeIndex.get(parentId)
-
-    if (!parent || parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.children, node.id)) {
+    if (parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.children, node.id)) {
       errors.push(buildJourneyError(node.diagnostics?.source))
     }
   })
