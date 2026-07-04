@@ -479,11 +479,11 @@ export default class StepAnswerPreparationCompiler {
   private compileTransformerCall(transformerNode: unknown, valueVar: string): string {
     const transformerCall = readTransformerCall(transformerNode)
 
-    if (transformerCall !== undefined) {
-      return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
+    if (transformerCall === undefined) {
+      throw new Error('Formatter entry is not a transformer function call')
     }
 
-    return this.expr.compileFunctionCall('unknown', [valueVar])
+    return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
   }
 
   /**

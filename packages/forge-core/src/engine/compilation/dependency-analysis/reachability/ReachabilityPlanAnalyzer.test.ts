@@ -91,7 +91,103 @@ describe('ReachabilityPlanAnalyzer', () => {
       expect(result.stateTable.unreachableRedirect).toBe('entry')
     })
 
-    it('should inherit reachability disabled from ancestors unless the journey overrides it', () => {
+    it('should inherit disabled reachability from the parent journey when the journey has no own setting', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const parentJourneyNode = ASTTestFactory.journey()
+        .withProperty('reachability', { disableReachabilityChecks: true })
+        .build()
+      const childJourneyNode = ASTTestFactory.journey().build()
+      const stepNode = ASTTestFactory.step().withCode('step').build()
+
+      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
+      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
+      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+
+      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+
+      // Act
+      const result = analyzer.buildReachabilityPlan(
+        [stepNode],
+        childJourneyNode,
+        new Map([
+          [parentJourneyNode.id, parentJourneyNode],
+          [childJourneyNode.id, childJourneyNode],
+        ]),
+      )
+
+      // Assert
+      expect(result.stateTable.reachabilityDisabled).toBe(true)
+    })
+
+    it('should inherit disabled reachability from a distant ancestor when nearer journeys have no own setting', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const grandparentJourneyNode = ASTTestFactory.journey()
+        .withProperty('reachability', { disableReachabilityChecks: true })
+        .build()
+      const parentJourneyNode = ASTTestFactory.journey().build()
+      const childJourneyNode = ASTTestFactory.journey().build()
+      const stepNode = ASTTestFactory.step().withCode('step').build()
+
+      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
+      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
+      nodeRegistry.register(grandparentJourneyNode.id, grandparentJourneyNode)
+      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+      astNodeTree.addNode(parentJourneyNode.id, grandparentJourneyNode.id)
+
+      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+
+      // Act
+      const result = analyzer.buildReachabilityPlan(
+        [stepNode],
+        childJourneyNode,
+        new Map([
+          [grandparentJourneyNode.id, grandparentJourneyNode],
+          [parentJourneyNode.id, parentJourneyNode],
+          [childJourneyNode.id, childJourneyNode],
+        ]),
+      )
+
+      // Assert
+      expect(result.stateTable.reachabilityDisabled).toBe(true)
+    })
+
+    it("should use the journey's own reachability setting when an ancestor sets a different value", () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const astNodeTree = new ASTNodeTree()
+      const parentJourneyNode = ASTTestFactory.journey()
+        .withProperty('reachability', { disableReachabilityChecks: false })
+        .build()
+      const childJourneyNode = ASTTestFactory.journey()
+        .withProperty('reachability', { disableReachabilityChecks: true })
+        .build()
+      const stepNode = ASTTestFactory.step().withCode('step').build()
+
+      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
+      nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
+      astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
+
+      const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
+
+      // Act
+      const result = analyzer.buildReachabilityPlan(
+        [stepNode],
+        childJourneyNode,
+        new Map([
+          [parentJourneyNode.id, parentJourneyNode],
+          [childJourneyNode.id, childJourneyNode],
+        ]),
+      )
+
+      // Assert
+      expect(result.stateTable.reachabilityDisabled).toBe(true)
+    })
+
+    it("should keep the journey's own disabled reachability off when an ancestor enables it", () => {
       // Arrange
       const nodeRegistry = new ASTNodeIndex()
       const astNodeTree = new ASTNodeTree()
@@ -103,12 +199,9 @@ describe('ReachabilityPlanAnalyzer', () => {
         .build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
+      registerJourneyStep(nodeRegistry, astNodeTree, childJourneyNode, stepNode)
       nodeRegistry.register(parentJourneyNode.id, parentJourneyNode)
-      nodeRegistry.register(childJourneyNode.id, childJourneyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      astNodeTree.addNode(parentJourneyNode.id)
       astNodeTree.addNode(childJourneyNode.id, parentJourneyNode.id)
-      astNodeTree.addNode(stepNode.id, childJourneyNode.id)
 
       const analyzer = createAnalyzer(nodeRegistry, astNodeTree)
 

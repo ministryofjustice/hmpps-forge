@@ -21,11 +21,11 @@ export default class ReachabilityPlanAnalyzer {
 
   buildReachabilityPlan(
     journeySteps: StepASTNode[],
-    journeyNode: JourneyASTNode | undefined,
+    journeyNode: JourneyASTNode,
     journeyIndex: JourneyIndex,
   ): ReachabilityCompilationPlan {
     const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
-    const resumeWhen = journeyNode?.properties.reachability?.resumeWhen
+    const resumeWhen = journeyNode.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
     const stateTable: ReachabilityStateTable = {
@@ -36,7 +36,7 @@ export default class ReachabilityPlanAnalyzer {
         forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
       resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
-      unreachableRedirect: journeyNode?.properties.reachability?.unreachableRedirect ?? 'entry',
+      unreachableRedirect: journeyNode.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
     }
 
@@ -74,11 +74,7 @@ export default class ReachabilityPlanAnalyzer {
     }
   }
 
-  private resolveReachabilityDisabled(journeyNode: JourneyASTNode | undefined, journeyIndex: JourneyIndex): boolean {
-    if (!journeyNode) {
-      return false
-    }
-
+  private resolveReachabilityDisabled(journeyNode: JourneyASTNode, journeyIndex: JourneyIndex): boolean {
     const ownSetting = journeyNode.properties.reachability?.disableReachabilityChecks
 
     if (ownSetting !== undefined) {

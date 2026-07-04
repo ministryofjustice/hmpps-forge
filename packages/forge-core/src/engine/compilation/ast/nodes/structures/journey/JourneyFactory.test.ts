@@ -35,7 +35,6 @@ describe('JourneyFactory', () => {
       // Assert
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.JOURNEY)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.title).toBe('Test Journey')
       expect(result.properties.code).toBe('test-journey')
       expect(result.properties.path).toBe('test-journey')

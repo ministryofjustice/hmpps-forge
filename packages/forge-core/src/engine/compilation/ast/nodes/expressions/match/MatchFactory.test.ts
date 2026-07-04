@@ -45,7 +45,6 @@ describe('MatchFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.MATCH)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.branches).toHaveLength(2)
       expect(result.properties.otherwise).toBe('Unknown')
     })

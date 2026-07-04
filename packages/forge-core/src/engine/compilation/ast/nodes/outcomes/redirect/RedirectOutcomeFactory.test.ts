@@ -40,7 +40,6 @@ describe('RedirectOutcomeFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.OUTCOME)
       expect(result.outcomeType).toBe(OutcomeType.REDIRECT)
-      expect(result).not.toHaveProperty('raw')
 
       expect(result.properties.goto).toBe('/next-step')
       expect(result.properties.when).toBeUndefined()

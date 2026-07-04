@@ -60,10 +60,6 @@ export default class CompilationPlanBuilder {
       const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
       const parentJourneyId = ancestors[ancestors.length - 2]
 
-      if (!parentJourneyId) {
-        return
-      }
-
       stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
 
       const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
@@ -74,6 +70,11 @@ export default class CompilationPlanBuilder {
 
     journeyStepMap.forEach((journeySteps, journeyId) => {
       const journeyNode = journeyIndex.get(journeyId)
+
+      if (!journeyNode) {
+        throw new Error(`Journey "${journeyId}" grouping these steps was not registered as a journey`)
+      }
+
       const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(
         journeySteps,
         journeyNode,
@@ -87,9 +88,7 @@ export default class CompilationPlanBuilder {
         fieldInventorySources: this.reachabilityPlanAnalyzer.buildFieldInventorySources(reachabilityPlan),
       })
 
-      if (journeyNode) {
-        journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
-      }
+      journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
     })
 
     // Route metadata is a per-node concern, collected for every step and journey — including

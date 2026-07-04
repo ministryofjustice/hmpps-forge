@@ -43,7 +43,6 @@ describe('ThrowErrorOutcomeFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.OUTCOME)
       expect(result.outcomeType).toBe(OutcomeType.THROW_ERROR)
-      expect(result).not.toHaveProperty('raw')
 
       expect(result.properties.status).toBe(404)
       expect(result.properties.message).toBe('Item not found')

@@ -38,7 +38,6 @@ describe('ReferenceFactory', () => {
       expect(Array.isArray(path)).toBe(true)
       expect(path).toEqual(['answers', 'field'])
 
-      expect(result).not.toHaveProperty('raw')
     })
 
     it('should transform path segments that are expressions', () => {

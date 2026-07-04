@@ -149,7 +149,7 @@ export default class ReachabilityCompiler {
       const node = nodeRegistry.get(entry.entryWhenNodeId)
 
       if (!node) {
-        return
+        throw new Error(`Entry predicate node "${entry.entryWhenNodeId}" missing from registry`)
       }
 
       emitter.scope(() => {
@@ -195,13 +195,15 @@ export default class ReachabilityCompiler {
     nodeRegistry: ASTNodeIndex,
     emitter: CodeEmitter,
   ): void {
-    const redirectOutcomes = group.outcomeIds
-      .map(outcomeId => nodeRegistry.get(outcomeId))
-      .filter(isRedirectOutcomeNode)
+    const redirectOutcomes = group.outcomeIds.map(outcomeId => {
+      const node = nodeRegistry.get(outcomeId)
 
-    if (redirectOutcomes.length === 0) {
-      return
-    }
+      if (!node || !isRedirectOutcomeNode(node)) {
+        throw new Error(`Forward outcome node "${outcomeId}" missing from registry or not a redirect outcome`)
+      }
+
+      return node
+    })
 
     const overApproximateOutcomeIds = new Set(group.overApproximateOutcomeIds ?? [])
 
@@ -352,7 +354,7 @@ export default class ReachabilityCompiler {
           const node = nodeRegistry.get(tieBreaker.whenNodeId)
 
           if (!node) {
-            return
+            throw new Error(`Tie-breaker predicate node "${tieBreaker.whenNodeId}" missing from registry`)
           }
 
           emitter.if(`${priorityVar} === undefined`, () => {
@@ -394,9 +396,7 @@ export default class ReachabilityCompiler {
     const node = nodeRegistry.get(plan.resumeWhenNodeId)
 
     if (!node) {
-      emitter.declareConst('resumeActive', 'false')
-
-      return
+      throw new Error(`Resume predicate node "${plan.resumeWhenNodeId}" missing from registry`)
     }
 
     const conditionExpr = this.expr.compileExpression(node)
