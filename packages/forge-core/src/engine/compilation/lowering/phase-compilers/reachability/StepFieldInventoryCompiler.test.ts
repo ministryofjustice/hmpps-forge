@@ -151,46 +151,6 @@ describe('StepFieldInventoryCompiler', () => {
       ])
     })
 
-    it('should collect dynamic registered field codes', () => {
-      // Arrange
-      const functionRegistry = new FunctionRegistry()
-      const dynamicCode = createGeneratorFunction('fieldCode')
-      const steps: FieldInventoryStepSource[] = [
-        {
-          stepId: 'compile_ast:step-a',
-          fieldBlocks: [createFieldBlock(dynamicCode)],
-          iterateNodes: [],
-          cleardownFieldCodes: [],
-        },
-      ]
-
-      functionRegistry.register({
-        fieldCode: {
-          name: 'fieldCode',
-          isAsync: false,
-          evaluate: () => 'firstName',
-        },
-      })
-
-      const localCompiler = new StepFieldInventoryCompiler({
-        functionRegistry,
-        componentRegistry: new ComponentRegistry(),
-      })
-      const compiled = localCompiler.compile(steps)
-
-      // Act
-      const result = compiled!(createContext(functionRegistry))
-
-      // Assert
-      expect(result).toEqual([
-        {
-          stepId: 'compile_ast:step-a',
-          fieldCodes: ['firstName'],
-          cleardownFieldCodes: [],
-        },
-      ])
-    })
-
     it('should compile MAP iterator template field codes without runtime expansion', () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()

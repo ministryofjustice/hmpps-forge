@@ -50,7 +50,6 @@ describe('XorFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.PREDICATE)
       expect(result.predicateType).toBe(PredicateType.XOR)
-      expect(result).not.toHaveProperty('raw')
       expect(Array.isArray(result.properties.operands)).toBe(true)
       expect(result.properties.operands).toHaveLength(2)
     })

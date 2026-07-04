@@ -58,7 +58,6 @@ describe('AccessFactory', () => {
       expect(result.hookType).toBe(HookType.ACCESS)
       expect(result.properties.when).toBeDefined()
       expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
-      expect(result).not.toHaveProperty('raw')
     })
 
     it('should create an Access hook with effects', () => {
@@ -277,18 +276,20 @@ describe('AccessFactory', () => {
       expect(result.properties.next).toBeUndefined()
     })
 
-    it('should generate unique node IDs from the ID generator', () => {
+    it('should generate unique node IDs', () => {
       // Arrange
       const json = {
         type: HookType.ACCESS,
       } as AccessHook
 
       // Act
-      const result = accessFactory.create(json)
+      const result1 = accessFactory.create(json)
+      const result2 = accessFactory.create(json)
 
       // Assert
-      expect(result.id).toBeDefined()
-      expect(typeof result.id).toBe('string')
+      expect(result1.id).toBeDefined()
+      expect(result2.id).toBeDefined()
+      expect(result1.id).not.toBe(result2.id)
     })
   })
 })

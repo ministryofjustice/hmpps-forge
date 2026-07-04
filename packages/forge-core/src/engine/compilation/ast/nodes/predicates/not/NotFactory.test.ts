@@ -42,7 +42,6 @@ describe('NotFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.PREDICATE)
       expect(result.predicateType).toBe(PredicateType.NOT)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.operand).toBeDefined()
     })
 

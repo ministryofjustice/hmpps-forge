@@ -341,7 +341,7 @@ describe('SubmitFactory', () => {
       expect(onValid).not.toHaveProperty('next')
     })
 
-    it('should generate unique node IDs from the ID generator', () => {
+    it('should generate unique node IDs', () => {
       // Arrange
       const json = {
         type: HookType.SUBMIT,
@@ -349,11 +349,13 @@ describe('SubmitFactory', () => {
       } satisfies SubmitHook
 
       // Act
-      const result = submitFactory.create(json)
+      const result1 = submitFactory.create(json)
+      const result2 = submitFactory.create(json)
 
       // Assert
-      expect(result.id).toBeDefined()
-      expect(typeof result.id).toBe('string')
+      expect(result1.id).toBeDefined()
+      expect(result2.id).toBeDefined()
+      expect(result1.id).not.toBe(result2.id)
     })
   })
 })

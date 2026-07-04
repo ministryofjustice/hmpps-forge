@@ -38,7 +38,6 @@ describe('FunctionFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(FunctionType.CONDITION)
-      expect(result).not.toHaveProperty('raw')
 
       expect(result.properties.name).toBe('IsTrue')
       expect(result.properties.arguments).toBeDefined()

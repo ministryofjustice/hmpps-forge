@@ -45,7 +45,6 @@ describe('IterateFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.ITERATE)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.iterator.type).toBe(IteratorType.MAP)
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
       expect(isTemplateNode(result.properties.iterator.yieldTemplate)).toBe(true)

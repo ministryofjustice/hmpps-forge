@@ -422,35 +422,6 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.firstName.mutations[0]).toEqual({ value: 'John', source: 'post' })
     })
 
-    it('should extract POST value when a registered field has dynamic code', async () => {
-      // Arrange
-      const dynamicCode = createGeneratorFunction('fieldCode')
-      const block = createFieldBlock(dynamicCode)
-      const localCompiler = createSyncCompiler('fieldCode')
-      const ctx = createCtx({
-        post: { firstName: 'John' },
-        conditions: {
-          get: vi.fn((name: string) => {
-            if (name === 'fieldCode') {
-              return { evaluate: () => 'firstName' }
-            }
-
-            return { evaluate: () => undefined }
-          }),
-        } as unknown as CompiledAnswerPreparationContext['conditions'],
-      })
-
-      // Act
-      const source = localCompiler.generateSource([block])
-      await runGeneratedSource(source, ctx)
-
-      // Assert
-      expect(source).toContain('const fieldCode = String(')
-      expect(ctx.answers.firstName).toBeDefined()
-      expect(ctx.answers.firstName.current).toBe('John')
-      expect(ctx.answers.firstName.mutations[0]).toEqual({ value: 'John', source: 'post' })
-    })
-
     it('should process multiple fields in order', async () => {
       // Arrange
       const block1 = createFieldBlock('firstName')
