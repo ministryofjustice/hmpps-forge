@@ -23,46 +23,48 @@ export type IndexableNodeType =
   | BlockType
 
 /**
- * Stores the shared compiled AST by ID.
+ * Groups the shared compiled AST by node type.
  *
  * The type index is deliberately simple because compilers ask broad questions:
- * "all FIELD blocks", "all ITERATE expressions", "all SUBMIT hooks". The AST
- * tree handles ownership and ancestry; this registry handles fast retrieval.
+ * "all FIELD blocks", "all ITERATE expressions", "all SUBMIT hooks". Ownership and
+ * ancestry live on the nodes themselves via `ASTNode.parent`.
  */
 export default class ASTNodeIndex {
-  private readonly nodes: Map<NodeId, ASTNode> = new Map()
+  private readonly registeredIds: Set<NodeId> = new Set()
 
-  private readonly typeIndex: Map<string, Set<NodeId>> = new Map()
+  private readonly typeIndex: Map<string, ASTNode[]> = new Map()
 
   /**
    * Nodes are frozen on registration so every generated function sees the same
    * shared AST shape for the lifetime of the compiled journey.
    */
   register(id: NodeId, node: ASTNode): void {
-    if (this.nodes.has(id)) {
+    if (this.registeredIds.has(id)) {
       throw new Error(`Node with ID "${id}" is already registered`)
     }
 
-    this.nodes.set(id, Object.freeze(node))
+    this.registeredIds.add(id)
 
-    this.addToTypeIndex(node.type, id)
+    const frozen = Object.freeze(node)
+
+    this.addToTypeIndex(node.type, frozen)
 
     const subType = this.getNodeSubType(node)
 
     if (subType) {
-      this.addToTypeIndex(subType, id)
+      this.addToTypeIndex(subType, frozen)
     }
   }
 
-  private addToTypeIndex(type: string, id: NodeId): void {
-    let typeSet = this.typeIndex.get(type)
+  private addToTypeIndex(type: string, node: ASTNode): void {
+    let nodes = this.typeIndex.get(type)
 
-    if (!typeSet) {
-      typeSet = new Set()
-      this.typeIndex.set(type, typeSet)
+    if (!nodes) {
+      nodes = []
+      this.typeIndex.set(type, nodes)
     }
 
-    typeSet.add(id)
+    nodes.push(node)
   }
 
   /** Sub-type indexing keeps compiler queries independent of AST wrapper type. */
@@ -90,31 +92,7 @@ export default class ASTNodeIndex {
     return undefined
   }
 
-  get(id: NodeId): ASTNode | undefined {
-    return this.nodes.get(id)
-  }
-
-  has(id: NodeId): boolean {
-    return this.nodes.has(id)
-  }
-
   findByType<T = ASTNode>(type: IndexableNodeType): T[] {
-    const nodeIds = this.typeIndex.get(type)
-
-    if (!nodeIds) {
-      return []
-    }
-
-    const results: T[] = []
-
-    nodeIds.forEach(id => {
-      const node = this.nodes.get(id)
-
-      if (node) {
-        results.push(node as T)
-      }
-    })
-
-    return results
+    return [...(this.typeIndex.get(type) ?? [])] as T[]
   }
 }
