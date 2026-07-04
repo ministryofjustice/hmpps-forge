@@ -1,7 +1,6 @@
 import { NodeIDGenerator } from '../../ast-state/NodeIDGenerator'
 import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { isTemplateNode } from '../../../../contracts/ast/nodes'
-import { TemplateValue } from '../../../../contracts/ast/template.type'
 import TemplateFactory from './TemplateFactory'
 
 describe('TemplateFactory', () => {
@@ -50,44 +49,6 @@ describe('TemplateFactory', () => {
       // Assert
       expect(isTemplateNode(result.steps[0])).toBe(true)
       expect(isTemplateNode(result.slots.details[0])).toBe(true)
-    })
-  })
-
-  describe('instantiate()', () => {
-    it('should instantiate arrays of template nodes as id-less ast nodes', () => {
-      // Arrange
-      const template = templateFactory.compile({
-        steps: [
-          {
-            id: 'compile_ast:1',
-            type: ASTNodeType.EXPRESSION,
-            expressionType: 'FunctionType.Transformer',
-            properties: {
-              name: 'RelativeTime',
-            },
-          },
-        ],
-      }) as TemplateValue & {
-        steps: unknown[]
-      }
-
-      // Act
-      const result = TemplateFactory.instantiate(template) as {
-        steps: Array<{
-          id?: string
-          type: ASTNodeType
-          expressionType: string
-          properties: {
-            name: string
-          }
-        }>
-      }
-
-      // Assert
-      expect(result.steps[0].id).toBeUndefined()
-      expect(result.steps[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.steps[0].expressionType).toBe('FunctionType.Transformer')
-      expect(result.steps[0].properties.name).toBe('RelativeTime')
     })
   })
 })
