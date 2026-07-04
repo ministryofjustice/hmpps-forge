@@ -231,11 +231,47 @@ component entry's `render`, `wrapNestedBlock` returns `{ block, html }`, and
 for detail.
 
     # Note
-    We've never tried to implement anything but Express/Nunjucks here. We think
+    Express/Nunjucks is the only HTTP framework adapter (the static generator
+    drives the same contract at build time). We think
     that this may likely need a restructure in future if it were to support something
     like ReactJS, though with the lack of support for anything but Nunjucks in 
     the official GOVUK packages, there's not really much push to explore this 
     currently.
+
+### Static site generator
+
+`StaticSiteGenerator` (`@ministryofjustice/hmpps-forge/static`) is a build-time
+host for the same contract, with no HTTP framework at all. `generator.build()`
+walks `forge.getTopology()` and executes each static step route once.
+
+For each route it:
+
+- skips journey-root routes, routes without a GET method, and dynamic routes
+  (any `:param` in the template path, since there is nothing to resolve them with
+  at build time)
+- builds a synthetic GET `RequestSnapshot` with empty `params`, `query`, `post`,
+  `headers`, and `cookies`, `session: null`, and the route's `templatePath` as
+  the location
+- passes `NO_OP_RESPONSE_BINDINGS`, because there is no response to write headers
+  or cookies to
+- calls `forge.execute({ snapshot, responseBindings, renderer })` with a
+  `ForgeRenderer<string>`
+
+The outcome decides what happens next. A `render` outcome's `output` is written
+to `<templatePath>/index.html` under the output directory. `navigate` and `error`
+outcomes skip the route with a recorded reason, since a static build has nowhere
+to redirect to.
+
+The bundled `StaticHtmlRenderer` is the default renderer. It has the same family
+shape as `NunjucksRenderer` - `renderBlock` guards for strings, `wrapNestedBlock`
+returns `{ block, html }` - with a `page` option for a custom page shell. Because
+pages land at different depths in the output tree, the generator writes each
+page's relative asset prefix into `snapshot.state` under `FORGE_STATIC_BASE_PATH`,
+and `assemblePage` hands it to the page function as `basePath`.
+
+`bundleAssets` (rolldown plus sass) and the `assets` copy option exist for
+shipping CSS and JS alongside the pages, but they are plain build tooling and do
+not touch the engine.
 
 ### Test client
 

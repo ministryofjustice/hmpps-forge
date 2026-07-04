@@ -7,6 +7,13 @@ import type { AssetSource, GeneratedPage, StaticBuildResult, StaticSiteOptions, 
 
 const PARAM_PATTERN = /:[^/]+/
 
+/**
+ * Build-time host for the adapter contract. Walks `forge.getTopology()`,
+ * executes each static step route through `forge.execute`, and writes the
+ * rendered HTML to `<templatePath>/index.html` under the output directory.
+ * Journey-root, non-GET, and dynamic (`:param`) routes are skipped and recorded
+ * in the result's `skipped` list.
+ */
 export class StaticSiteGenerator {
   private readonly forge: StaticSiteOptions['forge']
 

@@ -11,7 +11,9 @@ export interface StaticSiteOptions {
   outputDir: string
   /** Renderer driving the page HTML. Defaults to a plain {@link StaticHtmlRenderer}. */
   renderer?: ForgeRenderer<string>
+  /** Assets copied recursively into the output directory after the pages are built. */
   assets?: AssetSource[]
+  /** Only used to build the snapshot's location href - nothing is fetched from it. */
   origin?: string
   logger?: Logger | Console
 }

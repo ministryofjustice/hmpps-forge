@@ -32,7 +32,12 @@ export default [
     },
   },
   {
-    files: ['**/testing-helpers/**/*.ts', 'forge-express-nunjucks/src/adapter/types.ts'],
+    files: [
+      '**/testing-helpers/**/*.ts',
+      'forge-express-nunjucks/src/adapter/types.ts',
+      // Optional build-time dependencies loaded with dynamic imports, kept in devDependencies.
+      'forge-static/src/bundleAssets.ts',
+    ],
     rules: {
       'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
     },
