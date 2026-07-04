@@ -1,4 +1,4 @@
-import { isValidElement, type ReactNode } from 'react'
+import { Fragment, isValidElement, type ReactNode } from 'react'
 import type { RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
 import type { NextForgeFormState } from '@ministryofjustice/hmpps-forge/next-react/client'
 
@@ -45,6 +45,8 @@ export function assertSerializableNode(node: ReactNode): void {
   if (isValidElement(node)) {
     const props = node.props as Record<string, unknown>
 
+    assertSerializableElementType(node.type)
+
     if (typeof node.type === 'string') {
       assertSerializableProps(node.type, props)
     }
@@ -60,6 +62,28 @@ export function assertSerializableNode(node: ReactNode): void {
     'A Forge component returned a non-serializable object. ' +
       'Components used with createNextForgePage must return plain JSX elements.',
   )
+}
+
+function assertSerializableElementType(type: unknown): void {
+  if (typeof type === 'string' || type === Fragment || isClientReference(type)) {
+    return
+  }
+
+  const componentName = typeof type === 'function' ? type.name || 'Component' : 'Component'
+
+  throw new Error(
+    `A Forge component rendered <${componentName}>, a function or class component. ` +
+      'Components used with Forge server actions must render host elements (e.g. <div>) or ' +
+      'client components ("use client"), not server or inline components.',
+  )
+}
+
+function isClientReference(value: unknown): value is { $$typeof: symbol } {
+  if ((typeof value !== 'object' && typeof value !== 'function') || value === null) {
+    return false
+  }
+
+  return (value as { $$typeof?: unknown }).$$typeof === Symbol.for('react.client.reference')
 }
 
 function assertSerializableProps(elementType: string, props: Record<string, unknown>): void {
