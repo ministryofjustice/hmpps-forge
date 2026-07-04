@@ -339,6 +339,7 @@ describe('HookLifecycleCompiler', () => {
       const validRedirect = ASTTestFactory.redirectOutcome({ goto: '/valid' })
       const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
+        .withProperty('validationGroups', ['default'])
         .withProperty('onAlways', {
           effects: [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'submitEffect')],
           next: [alwaysRedirect],
@@ -373,6 +374,7 @@ describe('HookLifecycleCompiler', () => {
       })
       const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
+        .withProperty('validationGroups', ['default'])
         .withProperty('onInvalid', {
           next: [errorOutcome],
         })

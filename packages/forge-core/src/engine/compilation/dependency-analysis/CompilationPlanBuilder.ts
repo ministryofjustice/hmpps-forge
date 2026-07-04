@@ -60,10 +60,6 @@ export default class CompilationPlanBuilder {
       const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
       const parentJourneyId = ancestors[ancestors.length - 2]
 
-      if (!parentJourneyId) {
-        return
-      }
-
       stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
 
       const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []

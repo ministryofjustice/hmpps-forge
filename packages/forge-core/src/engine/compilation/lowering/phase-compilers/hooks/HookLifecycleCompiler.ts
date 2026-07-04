@@ -138,19 +138,13 @@ export default class HookLifecycleCompiler {
   }
 
   private compileAccessWhenFunction(hook: AccessHookASTNode): string {
-    if (hook.properties.when === undefined) {
+    const when = hook.properties.when
+
+    if (when === undefined) {
       return 'async () => true'
     }
 
     return this.compileAsyncFunctionExpression(emitter => {
-      const when = hook.properties.when
-
-      if (when === undefined) {
-        emitter.return('true')
-
-        return
-      }
-
       const predicateExpr = this.expr.compileExpression(when)
 
       emitter.return(`Boolean(${predicateExpr})`)
@@ -188,9 +182,7 @@ export default class HookLifecycleCompiler {
       // onValid/onInvalid branches at read time, matching the groups its validation
       // stage records under. Resolved once so every branch reads the same groups.
       const validationGroups =
-        hook.properties.validationGroups !== undefined && hook.properties.validationGroups.length > 0
-          ? hook.properties.validationGroups
-          : ['default']
+        hook.properties.validationGroups.length > 0 ? hook.properties.validationGroups : ['default']
 
       emitter.assign(
         `${propsVar}["when"]`,
