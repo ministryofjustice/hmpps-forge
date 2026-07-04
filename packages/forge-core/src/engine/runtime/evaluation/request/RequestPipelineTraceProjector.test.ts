@@ -336,9 +336,11 @@ describe('RequestPipelineTraceProjector', () => {
 function createInstrumentation(emitted: RequestTraceEvent[]): ForgeInstrumentation {
   return {
     enabled: true,
+    captureGeneratedSource: false,
     onRequestTrace: event => {
       emitted.push(event)
     },
+    onCompilationTrace: vi.fn(),
   }
 }
 

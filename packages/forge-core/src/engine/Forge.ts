@@ -220,6 +220,7 @@ export default class Forge {
         functionRegistry: this.functionRegistry,
         componentRegistry: this.componentRegistry,
         functionDependencies: deps,
+        instrumentation: this.instrumentation,
       })
 
       this.registerPackageInstance(packageInstance)
