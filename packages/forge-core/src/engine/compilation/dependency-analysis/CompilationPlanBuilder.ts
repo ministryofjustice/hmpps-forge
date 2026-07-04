@@ -1,4 +1,4 @@
-import type { NodeId } from '../../contracts/ast/ast.type'
+import type { ASTNode, NodeId } from '../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type {
@@ -59,7 +59,7 @@ export default class CompilationPlanBuilder {
     stepIndex.forEach((stepNode, stepId) => {
       const parentJourney = stepNode.parent
 
-      if (parentJourney?.type !== ASTNodeType.JOURNEY) {
+      if (!this.isJourneyNode(parentJourney)) {
         throw new Error(`Step "${stepId}" was not registered under a journey`)
       }
 
@@ -68,7 +68,7 @@ export default class CompilationPlanBuilder {
       stepInputs.set(stepId, this.buildStepInputs(stepNode))
 
       const existingEntry = journeyStepMap.get(parentJourneyId) ?? {
-        journeyNode: parentJourney as JourneyASTNode,
+        journeyNode: parentJourney,
         steps: [],
       }
 
@@ -133,5 +133,9 @@ export default class CompilationPlanBuilder {
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
       accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode),
     }
+  }
+
+  private isJourneyNode(node: ASTNode | undefined): node is JourneyASTNode {
+    return node?.type === ASTNodeType.JOURNEY
   }
 }
