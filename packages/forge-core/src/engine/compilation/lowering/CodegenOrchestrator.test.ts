@@ -1,5 +1,4 @@
 import { BlockType } from '../../../authoring/types/enums'
-import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import type { CompilationPlan, StepCompilationInputs } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
@@ -111,7 +110,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      const result = orchestrator.compileAll(plan, new ASTNodeIndex())
+      const result = orchestrator.compileAll(plan)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)
@@ -241,7 +240,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      const result = orchestrator.compileAll(plan, new ASTNodeIndex())
+      const result = orchestrator.compileAll(plan)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)

@@ -38,7 +38,7 @@ export default class CompilationPipeline {
       this.buildCompilationPlan(ast),
     )
     const compiledArtifacts = this.tracer.span('lower-compilation-plan', 'compilation.lowering', () =>
-      this.lowerCompilationPlan(plan, ast.nodeRegistry),
+      this.lowerCompilationPlan(plan),
     )
     const routes = this.tracer.span('build-route-indexes', 'compilation.routes', () => this.buildRouteIndexes(ast))
 
@@ -85,16 +85,13 @@ export default class CompilationPipeline {
     return planBuilder.buildPlan(stepIndex, journeyIndex)
   }
 
-  private lowerCompilationPlan(
-    plan: CompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-  ): {
+  private lowerCompilationPlan(plan: CompilationPlan): {
     steps: Map<NodeId, CompiledStep>
     journeys: Map<NodeId, CompiledJourney>
   } {
     const codegen = new CodegenOrchestrator(this.dependencies)
 
-    return codegen.compileAll(plan, nodeRegistry)
+    return codegen.compileAll(plan)
   }
 
   private buildRouteIndexes({ nodeRegistry }: AstContext): {

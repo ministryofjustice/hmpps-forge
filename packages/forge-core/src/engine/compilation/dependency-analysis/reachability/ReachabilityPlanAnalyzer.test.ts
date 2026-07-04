@@ -206,16 +206,16 @@ describe('ReachabilityPlanAnalyzer', () => {
       const result = analyzer.buildReachabilityPlan([firstStepNode, secondStepNode], journeyNode)
 
       // Assert
-      expect(result.resumeWhenNodeId).toBe(resumeWhen.id)
+      expect(result.resumeWhen).toBe(resumeWhen)
       expect(result.stateTable.resumeConfigured).toBe(true)
       expect(result.entries.map(entry => entry.stepId)).toEqual([firstStepNode.id, secondStepNode.id])
       expect(result.entries[0]).toMatchObject({
         stepId: firstStepNode.id,
         code: 'first',
         isEntryPoint: false,
-        entryWhenNodeId: entryWhen.id,
+        entryWhen,
         cleardownFieldCodes: ['fieldA'],
-        reachabilityTieBreakers: [{ priority: 10, whenNodeId: tieBreakerWhen.id }],
+        reachabilityTieBreakers: [{ priority: 10, when: tieBreakerWhen }],
       })
     })
   })

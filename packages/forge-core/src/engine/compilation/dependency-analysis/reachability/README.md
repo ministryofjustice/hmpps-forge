@@ -15,10 +15,10 @@ This document does not cover runtime navigation evaluation or generated navigati
 It contains:
 - `stateTable`, the smaller runtime reachability table.
 - `entries`, the richer compile-time reachability entries.
-- `resumeAlways` and `resumeWhenNodeId`, which describe resume behavior.
+- `resumeAlways` and `resumeWhen`, which describe resume behavior.
 
 Each reachability entry can include:
-- `entryWhenNodeId`, for step entry predicates.
+- `entryWhen`, for step entry predicates.
 - `forwardOutcomeGroups`, one group per submit hook with redirect outcomes.
 - `cleardownFieldCodes`, copied from the step.
 - `reachabilityTieBreakers`, copied from step reachability config.
