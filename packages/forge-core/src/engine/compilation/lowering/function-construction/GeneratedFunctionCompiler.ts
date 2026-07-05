@@ -31,6 +31,7 @@ interface RuntimeEvaluationDiagnostics {
     functionName?: string,
     functionType?: string,
   ) => unknown
+  warn: (code: string, message: string, details?: Record<string, unknown>) => void
 }
 
 const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
@@ -148,6 +149,11 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
         ...runtimeDiagnostics,
         cause: error,
       })
+    },
+    warn: (code, message, details) => {
+      const detail = details === undefined ? message : `${message} ${JSON.stringify(details)}`
+
+      process.emitWarning(detail, { code })
     },
   }
 

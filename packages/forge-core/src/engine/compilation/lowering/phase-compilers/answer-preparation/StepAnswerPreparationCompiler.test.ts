@@ -152,6 +152,7 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
       }),
     } as unknown as CompiledAnswerPreparationContext['conditions'],
     post: {},
+    components: new ComponentRegistry(),
     workTasks: WorkTaskFactory,
     ...overrides,
   }

@@ -58,6 +58,7 @@ interface RuntimeEvaluationDiagnostics {
     functionName?: string,
     functionType?: string,
   ): unknown
+  warn(code: string, message: string, details?: Record<string, unknown>): void
 }
 
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
